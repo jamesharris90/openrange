@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 const SAXO_BASE = process.env.SAXO_API_URL || 'https://gateway.saxobank.com/openapi';
 const SAXO_TOKEN = process.env.SAXO_TOKEN;
 const SAXO_CLIENT_KEY = process.env.SAXO_CLIENT_KEY;
+const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 
 if (!SAXO_TOKEN) {
   console.warn('Warning: SAXO_TOKEN not set. Proxy will respond with 502 for Saxo calls until configured.');
@@ -22,6 +23,24 @@ if (!SAXO_TOKEN) {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
+});
+
+// Simple API-key auth middleware for basic protection
+app.use((req, res, next) => {
+  // Allow health checks and static local development without API key
+  if (req.path === '/api/health') return next();
+
+  if (!PROXY_API_KEY) {
+    // If no API key configured, return 502 to avoid accidental exposure
+    return res.status(502).json({ error: 'Proxy API key not configured on server' });
+  }
+
+  const key = req.get('x-api-key') || req.query['api_key'];
+  if (!key || key !== PROXY_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized - missing or invalid API key' });
+  }
+
+  next();
 });
 
 // Proxy endpoint: forwards requests to Saxo OpenAPI
