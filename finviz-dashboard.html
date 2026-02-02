@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finviz Elite - Multi-Screener Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            color: #fff;
+            margin: 0;
+        }
+        
+        .header-info {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85em;
+            color: #b8c5d6;
+        }
+        
+        .last-update {
+            font-weight: 600;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .nav-tab {
+            padding: 10px 30px;
+            background: #1a2332;
+            color: #4a9eff;
+            border: 2px solid #2a5298;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .nav-tab:hover {
+            background: #2a5298;
+            color: white;
+        }
+        
+        .nav-tab.active {
+            background: #2a5298;
+            color: white;
+            border-color: #4a9eff;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #1e3c72;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .screener-section {
+            background: #141b2d;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .screener-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2a5298;
+        }
+        
+        .screener-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .screener-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .screener-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #4a9eff;
+        }
+        
+        .screener-dropdown {
+            background: #1a2332;
+            color: #4a9eff;
+            border: 1px solid #2a5298;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .screener-dropdown:hover {
+            background: #2a5298;
+        }
+        
+        .copy-btn {
+            background: #1a5f3a;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 12px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #2a8a52;
+        }
+        
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .copy-success {
+            background: #2a8a52 !important;
+        }
+        
+        .stock-count {
+            background: #2a5298;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .error {
+            background: #3d1a1a;
+            border: 1px solid #721c24;
+            color: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        
+        th {
+            background: #1a2332;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a9eff;
+            position: sticky;
+            top: 0;
+            border-bottom: 2px solid #2a5298;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #1a2332;
+        }
+        
+        tr:hover {
+            background: #1a2332;
+        }
+        
+        .ticker {
+            font-weight: 700;
+            color: #4a9eff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .ticker:hover {
+            text-decoration: underline;
+        }
+        
+        .positive {
+            color: #4caf50;
+            font-weight: 600;
+        }
+        
+        .negative {
+            color: #f44336;
+            font-weight: 600;
+        }
+        
+        .volume-high {
+            color: #ff9800;
+            font-weight: 600;
+        }
+        
+        .screener-content {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .screener-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .screener-content::-webkit-scrollbar-track {
+            background: #0a0e27;
+            border-radius: 4px;
+        }
+        
+        .screener-content::-webkit-scrollbar-thumb {
+            background: #2a5298;
+            border-radius: 4px;
+        }
+        
+        .screener-content::-webkit-scrollbar-thumb:hover {
+            background: #4a9eff;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            table {
+                font-size: 0.8em;
+            }
+            
+            th, td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🔥 Finviz Elite Dashboard</h1>
+            <div class="header-info">
+                <span class="last-update">Updated: <span id="lastUpdate">Loading...</span></span>
+                <span>Auto-refresh: <span id="refreshStatus">3 min</span></span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="nav-tabs" style="margin: 0;">
+                <a href="finviz-dashboard.html" class="nav-tab active">📈 Screeners</a>
+                <a href="market-overview.html" class="nav-tab">📊 Market Overview</a>
+            </div>
+            <button onclick="refreshAll()" style="padding: 8px 15px; font-size: 0.9em;">🔄 Refresh</button>
+            <button onclick="toggleAutoRefresh()" style="padding: 8px 15px; font-size: 0.9em;">⏸️ Pause</button>
+        </div>
+    </div>
+    
+    <div class="grid" id="screenersGrid"></div>
+
+    <script>
+        // Configuration
+        const PROXY_URL = 'http://localhost:8080/api/screener';
+        const REFRESH_INTERVAL = 180000; // 3 minutes in milliseconds
+        
+        let autoRefreshEnabled = true;
+        let refreshTimer = null;
+        
+        // Available screener presets
+        const availableScreeners = {
+            'custom': [
+                { name: 'Pre-Market Gappers', filters: 'cap_0.3to10,exch_nyse|nasd|amex,sh_avgvol_o500,sh_float_u20,sh_price_3to80,sh_relvol_o1,ta_gap_u4', signal: null },
+                { name: 'Short Term Momentum', filters: 'cap_0.3to10,exch_nyse|nasd|amex,sh_avgvol_o500,sh_float_u20,sh_price_3to80,sh_relvol_o1,ta_gap_u4', signal: null },
+                { name: 'Pressure Cooker', filters: 'cap_0.1to10,exch_amex|nasd|nyse,geo_usa,sh_avgvol_o500,sh_float_u50,sh_relvol_u1.5,ta_highlow20d_nh,ta_perf_dup,ta_perf2_1wup,ta_sma20_pa', signal: null },
+                { name: 'News & Volume', filters: 'cap_0.3to10,exch_amex|nasd|nyse,news_date_prevhours24|today|sinceyesterday|yesterday|prevdays7|prevminutes30|yesterdayafter|sinceyesterdayafter|todayafter,sh_float_0to200000000x,sh_price_4to50,sh_relvol_1.3to500,ta_change_u', signal: null },
+                { name: 'High Volume', filters: 'cap_small,exch_amex|nasd|nyse,sh_float_0to200000000x,sh_price_4to50,sh_relvol_o1.5,ta_change_u', signal: null },
+                { name: 'Momentum', filters: 'cap_0.3to10,exch_nyse|nasd|amex,sh_avgvol_o1000,sh_float_u20,sh_price_3to20,sh_relvol_o1.5,ta_perf_1wup', signal: null }
+            ],
+            'technical': [
+                { name: 'Top Gainers', filters: null, signal: 'ta_topgainers' },
+                { name: 'Top Losers', filters: null, signal: 'ta_toplosers' },
+                { name: 'New High', filters: null, signal: 'ta_newhigh' },
+                { name: 'New Low', filters: null, signal: 'ta_newlow' },
+                { name: 'Most Volatile', filters: null, signal: 'ta_mostvolatile' },
+                { name: 'Most Active', filters: null, signal: 'ta_mostactive' },
+                { name: 'Unusual Volume', filters: null, signal: 'ta_unusualvolume' },
+                { name: 'Overbought', filters: null, signal: 'ta_overbought' },
+                { name: 'Oversold', filters: null, signal: 'ta_oversold' }
+            ],
+            'patterns': [
+                { name: 'Wedge Up', filters: null, signal: 'ta_p_wedgeup' },
+                { name: 'Wedge Down', filters: null, signal: 'ta_p_wedgedown' },
+                { name: 'Triangle Ascending', filters: null, signal: 'ta_p_wedgeup' },
+                { name: 'Triangle Descending', filters: null, signal: 'ta_p_wedgedown' },
+                { name: 'Wedge', filters: null, signal: 'ta_p_wedge' },
+                { name: 'Channel Up', filters: null, signal: 'ta_p_channelup' },
+                { name: 'Channel Down', filters: null, signal: 'ta_p_channeldown' },
+                { name: 'Channel', filters: null, signal: 'ta_p_channel' },
+                { name: 'Double Top', filters: null, signal: 'ta_p_doubletop' },
+                { name: 'Double Bottom', filters: null, signal: 'ta_p_doublebottom' },
+                { name: 'Multiple Top', filters: null, signal: 'ta_p_multipletop' },
+                { name: 'Multiple Bottom', filters: null, signal: 'ta_p_multiplebottom' },
+                { name: 'Head & Shoulders', filters: null, signal: 'ta_p_headandshoulders' },
+                { name: 'Head & Shoulders Inverse', filters: null, signal: 'ta_p_headandshouldersinv' }
+            ],
+            'fundamental': [
+                { name: 'Upgrades', filters: null, signal: 'n_upgrades' },
+                { name: 'Downgrades', filters: null, signal: 'n_downgrades' },
+                { name: 'Earnings Before', filters: null, signal: 'n_earningsbefore' },
+                { name: 'Earnings After', filters: null, signal: 'n_earningsafter' },
+                { name: 'Recent Insider Buying', filters: null, signal: 'it_latestbuys' },
+                { name: 'Recent Insider Selling', filters: null, signal: 'it_latestsales' },
+                { name: 'Major News', filters: null, signal: 'n_majornews' }
+            ],
+            'gainers': [
+                { name: 'Top Gainers', filters: null, signal: 'ta_topgainers' },
+                { name: 'Top Gainers 1M', filters: null, signal: 'ta_topgainers1m' },
+                { name: 'Top Gainers 2M', filters: null, signal: 'ta_topgainers2m' },
+                { name: 'Top Gainers 3M', filters: null, signal: 'ta_topgainers3m' },
+                { name: 'Top Gainers 5M', filters: null, signal: 'ta_topgainers5m' },
+                { name: 'Top Gainers 10M', filters: null, signal: 'ta_topgainers10m' },
+                { name: 'Top Gainers 15M', filters: null, signal: 'ta_topgainers15m' },
+                { name: 'Top Gainers 30M', filters: null, signal: 'ta_topgainers30m' },
+                { name: 'Top Gainers 1H', filters: null, signal: 'ta_topgainers1h' },
+                { name: 'Top Gainers 2H', filters: null, signal: 'ta_topgainers2h' },
+                { name: 'Top Gainers 4H', filters: null, signal: 'ta_topgainers4h' }
+            ],
+            'losers': [
+                { name: 'Top Losers', filters: null, signal: 'ta_toplosers' },
+                { name: 'Top Losers 1M', filters: null, signal: 'ta_toplosers1m' },
+                { name: 'Top Losers 2M', filters: null, signal: 'ta_toplosers2m' },
+                { name: 'Top Losers 3M', filters: null, signal: 'ta_toplosers3m' },
+                { name: 'Top Losers 5M', filters: null, signal: 'ta_toplosers5m' },
+                { name: 'Top Losers 10M', filters: null, signal: 'ta_toplosers10m' },
+                { name: 'Top Losers 15M', filters: null, signal: 'ta_toplosers15m' },
+                { name: 'Top Losers 30M', filters: null, signal: 'ta_toplosers30m' },
+                { name: 'Top Losers 1H', filters: null, signal: 'ta_toplosers1h' },
+                { name: 'Top Losers 2H', filters: null, signal: 'ta_toplosers2h' },
+                { name: 'Top Losers 4H', filters: null, signal: 'ta_toplosers4h' }
+            ]
+        };
+        
+        // Current screener configuration
+        const screeners = availableScreeners.custom.map((s, i) => ({
+            ...s,
+            columns: '0,1,2,3,4,5,6,85,60,61,63,64,67,65,66'
+        }));
+        
+        // Initialize dashboard
+        function init() {
+            createScreenerSections();
+            refreshAll();
+            startAutoRefresh();
+        }
+        
+        // Create HTML sections for each screener
+        function createScreenerSections() {
+            const grid = document.getElementById('screenersGrid');
+            grid.innerHTML = '';
+            
+            screeners.forEach((screener, index) => {
+                const section = document.createElement('div');
+                section.className = 'screener-section';
+                section.id = `screener-${index}`;
+                
+                // Build dropdown options
+                let dropdownHTML = '<select class="screener-dropdown" onchange="changeScreener(' + index + ', this.value)">';
+                dropdownHTML += '<optgroup label="My Custom Screeners">';
+                availableScreeners.custom.forEach((s, i) => {
+                    const selected = s.name === screener.name ? 'selected' : '';
+                    dropdownHTML += `<option value="custom-${i}" ${selected}>${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '<optgroup label="Top Gainers">';
+                availableScreeners.gainers.forEach((s, i) => {
+                    dropdownHTML += `<option value="gainers-${i}">${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '<optgroup label="Top Losers">';
+                availableScreeners.losers.forEach((s, i) => {
+                    dropdownHTML += `<option value="losers-${i}">${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '<optgroup label="Technical Signals">';
+                availableScreeners.technical.forEach((s, i) => {
+                    dropdownHTML += `<option value="technical-${i}">${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '<optgroup label="Chart Patterns">';
+                availableScreeners.patterns.forEach((s, i) => {
+                    dropdownHTML += `<option value="patterns-${i}">${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '<optgroup label="Fundamental">';
+                availableScreeners.fundamental.forEach((s, i) => {
+                    dropdownHTML += `<option value="fundamental-${i}">${s.name}</option>`;
+                });
+                dropdownHTML += '</optgroup>';
+                
+                dropdownHTML += '</select>';
+                
+                section.innerHTML = `
+                    <div class="screener-header">
+                        <div class="screener-header-left">
+                            <span class="screener-title">${screener.name}</span>
+                            ${dropdownHTML}
+                        </div>
+                        <div class="screener-header-right">
+                            <button class="copy-btn" onclick="copyTickers(${index})" id="copy-btn-${index}">
+                                📋 Copy All
+                            </button>
+                            <span class="stock-count" id="count-${index}">0 stocks</span>
+                        </div>
+                    </div>
+                    <div class="screener-content" id="content-${index}">
+                        <div class="loading">Loading data...</div>
+                    </div>
+                `;
+                grid.appendChild(section);
+            });
+        }
+        
+        // Fetch data for a single screener
+        async function fetchScreener(screener, index) {
+            try {
+                let url;
+                if (screener.signal) {
+                    // Use signal parameter for preset screeners
+                    url = `${PROXY_URL}?s=${screener.signal}&c=${screener.columns}`;
+                } else {
+                    // Use filters parameter for custom screeners
+                    url = `${PROXY_URL}?f=${screener.filters}&c=${screener.columns}`;
+                }
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                const data = parseCSV(csvText);
+                
+                displayScreenerData(data, index, screener.name);
+            } catch (error) {
+                console.error(`Error fetching ${screener.name}:`, error);
+                const errorMsg = error.message.includes('Failed to fetch') 
+                    ? 'Cannot connect to proxy server. Make sure finviz_proxy.py is running!'
+                    : error.message;
+                document.getElementById(`content-${index}`).innerHTML = `
+                    <div class="error">
+                        ❌ Failed to load data: ${errorMsg}
+                    </div>
+                `;
+            }
+        }
+        
+        // Change screener preset
+        function changeScreener(index, value) {
+            const [category, categoryIndex] = value.split('-');
+            const newScreener = availableScreeners[category][parseInt(categoryIndex)];
+            
+            screeners[index] = {
+                ...newScreener,
+                columns: '0,1,2,3,4,5,6,85,60,61,63,64,67,65,66'
+            };
+            
+            // Update the title
+            document.querySelector(`#screener-${index} .screener-title`).textContent = newScreener.name;
+            
+            // Fetch new data
+            fetchScreener(screeners[index], index);
+        }
+        
+        // Copy all tickers to clipboard
+        function copyTickers(index) {
+            const contentDiv = document.getElementById(`content-${index}`);
+            const table = contentDiv.querySelector('table');
+            
+            if (!table) {
+                return;
+            }
+            
+            // Extract all tickers from the table
+            const tickers = [];
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const tickerCell = row.querySelector('td a.ticker');
+                if (tickerCell) {
+                    tickers.push(tickerCell.textContent.trim());
+                }
+            });
+            
+            if (tickers.length === 0) {
+                return;
+            }
+            
+            // Copy to clipboard (space-separated for easy pasting into TradingView)
+            const tickerText = tickers.join(' ');
+            navigator.clipboard.writeText(tickerText).then(() => {
+                // Show success feedback
+                const btn = document.getElementById(`copy-btn-${index}`);
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.classList.add('copy-success');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copy-success');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy tickers to clipboard');
+            });
+        }
+        
+        // Parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                data.push(row);
+            }
+            
+            return { headers, rows: data };
+        }
+        
+        // Display screener data in table format
+        function displayScreenerData(data, index, screenerName) {
+            const contentDiv = document.getElementById(`content-${index}`);
+            const countSpan = document.getElementById(`count-${index}`);
+            
+            if (data.rows.length === 0) {
+                contentDiv.innerHTML = '<div class="loading">No stocks found matching criteria</div>';
+                countSpan.textContent = '0 stocks';
+                return;
+            }
+            
+            countSpan.textContent = `${data.rows.length} stocks`;
+            
+            // Build table
+            let tableHTML = '<table><thead><tr>';
+            
+            // Add headers
+            const displayHeaders = data.headers.slice(0, 8); // Limit columns for readability
+            displayHeaders.forEach(header => {
+                tableHTML += `<th>${header}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            // Add rows
+            data.rows.forEach(row => {
+                tableHTML += '<tr>';
+                displayHeaders.forEach(header => {
+                    let value = row[header] || '';
+                    let cellClass = '';
+                    
+                    // Apply styling based on column type
+                    if (header === 'Ticker' || header === 'No.') {
+                        const ticker = row['Ticker'] || row['No.'] || value;
+                        value = `<a href="https://elite.finviz.com/quote.ashx?t=${ticker}" target="_blank" class="ticker">${value}</a>`;
+                    } else if (header.includes('Change') || header.includes('%')) {
+                        const numValue = parseFloat(value.replace('%', ''));
+                        if (!isNaN(numValue)) {
+                            cellClass = numValue >= 0 ? 'positive' : 'negative';
+                            if (!value.includes('%')) value += '%';
+                        }
+                    } else if (header.includes('Volume') || header.includes('Rel Volume')) {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue) && numValue > 1000000) {
+                            cellClass = 'volume-high';
+                        }
+                    }
+                    
+                    tableHTML += `<td class="${cellClass}">${value}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            contentDiv.innerHTML = tableHTML;
+        }
+        
+        // Refresh all screeners
+        async function refreshAll() {
+            updateLastRefreshTime();
+            
+            // Fetch screeners with staggered delays to avoid rate limiting
+            for (let i = 0; i < screeners.length; i++) {
+                await fetchScreener(screeners[i], i);
+                // Add 1 second delay between requests to avoid 429 errors
+                if (i < screeners.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
+        
+        // Update last refresh time
+        function updateLastRefreshTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = timeString;
+        }
+        
+        // Auto-refresh functionality
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => {
+                if (autoRefreshEnabled) {
+                    refreshAll();
+                }
+            }, REFRESH_INTERVAL);
+        }
+        
+        // Toggle auto-refresh
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            const button = event.target;
+            const statusSpan = document.getElementById('refreshStatus');
+            
+            if (autoRefreshEnabled) {
+                button.textContent = '⏸️ Pause Auto-Refresh';
+                statusSpan.textContent = '3 minutes';
+            } else {
+                button.textContent = '▶️ Resume Auto-Refresh';
+                statusSpan.textContent = 'Paused';
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

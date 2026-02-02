@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Core Modules -->
+    <script src="js/config.js"></script>
+    <script src="js/marketStatus.js"></script>
+    
+    <style>
+        .symbol-search-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .symbol-input-wrapper {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        
+        .symbol-input {
+            width: 100%;
+            padding: 14px 50px 14px 16px;
+            font-size: 1.2em;
+            font-weight: 600;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        
+        .symbol-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+        
+        .symbol-input::placeholder {
+            text-transform: none;
+            color: var(--text-muted);
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 8px 12px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .search-button:hover {
+            background: #3a8aef;
+        }
+        
+        .quick-symbols {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-symbol-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-symbol-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: var(--bg-card-hover);
+        }
+        
+        .current-symbol-banner {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #3a8aef 100%);
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .current-symbol-info h2 {
+            color: white;
+            margin: 0 0 4px 0;
+            font-size: 2em;
+        }
+        
+        .current-symbol-info p {
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+        
+        .widget-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 1200px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <i data-lucide="bar-chart-2" class="icon"></i>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <i data-lucide="search" class="icon"></i>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <i data-lucide="star" class="icon"></i>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <i data-lucide="sunrise" class="icon"></i>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <i data-lucide="trending-up" class="icon"></i>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <i data-lucide="sunset" class="icon"></i>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link active">
+                    <i data-lucide="microscope" class="icon"></i>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <i data-lucide="bot" class="icon"></i>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <i data-lucide="globe" class="icon"></i>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">
+                    <i data-lucide="microscope" style="width: 28px; height: 28px; margin-right: 12px; vertical-align: middle;"></i>
+                    Research & Analysis
+                </h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Symbol Search -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="symbol-search-container">
+                            <div class="symbol-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="symbolInput" 
+                                    class="symbol-input" 
+                                    placeholder="Enter ticker symbol (e.g., AAPL, TSLA, SPY)"
+                                    maxlength="10"
+                                    onkeypress="if(event.key === 'Enter') loadSymbol()"
+                                >
+                                <button class="search-button" onclick="loadSymbol()">
+                                    <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Access Symbols -->
+                        <div class="quick-symbols">
+                            <span style="color: var(--text-muted); margin-right: 8px; display: flex; align-items: center;">
+                                <i data-lucide="zap" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                Quick:
+                            </span>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('SPY')">SPY</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('QQQ')">QQQ</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('AAPL')">AAPL</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('TSLA')">TSLA</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('NVDA')">NVDA</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('MSFT')">MSFT</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('GOOGL')">GOOGL</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('AMZN')">AMZN</button>
+                            <button class="quick-symbol-btn" onclick="loadSymbolQuick('META')">META</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Symbol Banner -->
+                <div class="current-symbol-banner">
+                    <div class="current-symbol-info">
+                        <h2 id="currentSymbol">SPY</h2>
+                        <p id="currentSymbolName">S&P 500 ETF</p>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" style="background: rgba(255,255,255,0.2); border: none; color: white;" onclick="addToWatchlist()">
+                            <i data-lucide="star" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Add to Watchlist
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Analysis Grid -->
+                <div class="analysis-grid">
+                    <!-- Advanced Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="line-chart" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                                Advanced Chart
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-secondary" onclick="changeInterval('1')">1m</button>
+                                <button class="btn-secondary" onclick="changeInterval('5')">5m</button>
+                                <button class="btn-primary" onclick="changeInterval('15')">15m</button>
+                                <button class="btn-secondary" onclick="changeInterval('60')">1h</button>
+                                <button class="btn-secondary" onclick="changeInterval('D')">1D</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartContainer" style="height: 500px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Analysis -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="activity" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                                Technical Analysis
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="technicalContainer" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Symbol Info & Profile Grid -->
+                <div class="grid-2">
+                    <!-- Symbol Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="info" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                                Symbol Info
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="symbolInfoContainer" style="height: 300px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Company Profile -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="building" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                                Company Profile
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="profileContainer" style="height: 300px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fundamentals -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="bar-chart" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                            Fundamental Data
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="fundamentalsContainer" style="height: 400px;"></div>
+                    </div>
+                </div>
+
+                <!-- News -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="newspaper" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                            Latest News
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="newsContainer" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let currentSymbol = 'SPY';
+        let currentInterval = '15';
+        let chartWidget = null;
+
+        // Symbol name mapping
+        const symbolNames = {
+            'SPY': 'S&P 500 ETF',
+            'QQQ': 'Nasdaq 100 ETF',
+            'IWM': 'Russell 2000 ETF',
+            'AAPL': 'Apple Inc.',
+            'TSLA': 'Tesla Inc.',
+            'NVDA': 'NVIDIA Corporation',
+            'MSFT': 'Microsoft Corporation',
+            'GOOGL': 'Alphabet Inc.',
+            'AMZN': 'Amazon.com Inc.',
+            'META': 'Meta Platforms Inc.'
+        };
+
+        function loadSymbol() {
+            const input = document.getElementById('symbolInput');
+            const symbol = input.value.trim().toUpperCase();
+            
+            if (!symbol) {
+                alert('Please enter a ticker symbol');
+                return;
+            }
+            
+            loadSymbolQuick(symbol);
+        }
+
+        function loadSymbolQuick(symbol) {
+            currentSymbol = symbol;
+            
+            // Update UI
+            document.getElementById('currentSymbol').textContent = symbol;
+            document.getElementById('currentSymbolName').textContent = symbolNames[symbol] || 'Loading...';
+            document.getElementById('symbolInput').value = symbol;
+            
+            // Save to localStorage
+            localStorage.setItem('lastResearchSymbol', symbol);
+            
+            // Reload all widgets
+            loadChart();
+            loadTechnicalAnalysis();
+            loadSymbolInfo();
+            loadProfile();
+            loadFundamentals();
+            loadNews();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changeInterval(interval) {
+            currentInterval = interval;
+            loadChart();
+        }
+
+        function loadChart() {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '<div class="widget-loading">Loading chart...</div>';
+            
+            if (chartWidget) {
+                chartWidget.remove();
+            }
+            
+            chartWidget = new TradingView.widget({
+                autosize: true,
+                symbol: currentSymbol,
+                interval: currentInterval,
+                timezone: "America/New_York",
+                theme: "dark",
+                style: "1",
+                locale: "en",
+                toolbar_bg: "#0a0e1a",
+                enable_publishing: false,
+                hide_side_toolbar: false,
+                allow_symbol_change: true,
+                container_id: "chartContainer",
+                studies: ["STD;VWAP", "STD;Volume"],
+                backgroundColor: "rgba(26, 31, 46, 0)",
+                gridColor: "rgba(42, 46, 57, 0.06)"
+            });
+        }
+
+        function loadTechnicalAnalysis() {
+            const container = document.getElementById('technicalContainer');
+            container.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "interval": "15m",
+                "width": "100%",
+                "height": "100%",
+                "isTransparent": true,
+                "symbol": currentSymbol,
+                "showIntervalTabs": true,
+                "locale": "en",
+                "colorTheme": "dark"
+            });
+            container.appendChild(script);
+        }
+
+        function loadSymbolInfo() {
+            const container = document.getElementById('symbolInfoContainer');
+            container.innerHTML = '';
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container';
+            widgetDiv.style.height = '100%';
+            widgetDiv.style.width = '100%';
+            
+            const innerDiv = document.createElement('div');
+            innerDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.appendChild(innerDiv);
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "symbol": currentSymbol,
+                "width": "100%",
+                "height": "100%",
+                "locale": "en",
+                "colorTheme": "dark",
+                "isTransparent": true
+            });
+            widgetDiv.appendChild(script);
+            
+            container.appendChild(widgetDiv);
+        }
+
+        function loadProfile() {
+            const container = document.getElementById('profileContainer');
+            container.innerHTML = '';
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container';
+            widgetDiv.style.height = '100%';
+            widgetDiv.style.width = '100%';
+            
+            const innerDiv = document.createElement('div');
+            innerDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.appendChild(innerDiv);
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "100%",
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "symbol": currentSymbol,
+                "locale": "en"
+            });
+            widgetDiv.appendChild(script);
+            
+            container.appendChild(widgetDiv);
+        }
+
+        function loadFundamentals() {
+            const container = document.getElementById('fundamentalsContainer');
+            container.innerHTML = '';
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container';
+            widgetDiv.style.height = '100%';
+            widgetDiv.style.width = '100%';
+            
+            const innerDiv = document.createElement('div');
+            innerDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.appendChild(innerDiv);
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-financials.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "largeChartUrl": "",
+                "displayMode": "regular",
+                "width": "100%",
+                "height": "100%",
+                "symbol": currentSymbol,
+                "locale": "en"
+            });
+            widgetDiv.appendChild(script);
+            
+            container.appendChild(widgetDiv);
+        }
+
+        function loadNews() {
+            const container = document.getElementById('newsContainer');
+            container.innerHTML = '';
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container';
+            widgetDiv.style.height = '100%';
+            widgetDiv.style.width = '100%';
+            
+            const innerDiv = document.createElement('div');
+            innerDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.appendChild(innerDiv);
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "feedMode": "symbol",
+                "symbol": currentSymbol,
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "displayMode": "regular",
+                "width": "100%",
+                "height": "100%",
+                "locale": "en"
+            });
+            widgetDiv.appendChild(script);
+            
+            container.appendChild(widgetDiv);
+        }
+
+        function addToWatchlist() {
+            alert(`${currentSymbol} added to watchlist! (Connect to TradingView API for actual functionality)`);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load saved symbol or default to SPY
+            const savedSymbol = localStorage.getItem('lastResearchSymbol') || 'SPY';
+            loadSymbolQuick(savedSymbol);
+            
+            lucide.createIcons();
+            marketStatus.init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchlist - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .watchlist-select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1.05em;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .watchlist-select:hover {
+            border-color: var(--accent-blue);
+        }
+        
+        .watchlist-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+
+        .watchlist-frame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 8px;
+            background: var(--bg-primary);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link active">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">My Watchlist</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Watchlist Selector -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Active Watchlist
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-secondary" onclick="window.open(getCurrentWatchlistUrl(), '_blank')">
+                                Open in TradingView →
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <select class="watchlist-select" id="watchlistSelect" onchange="loadWatchlist()">
+                            <option value="318552056">Today's Watchlist</option>
+                            <option value="custom1">ORB Candidates</option>
+                            <option value="custom2">Swing Trades</option>
+                            <option value="custom3">Market ETFs</option>
+                            <option value="custom4">High Momentum</option>
+                            <option value="custom5">Earnings Plays</option>
+                        </select>
+                        <p style="margin-top: 12px; font-size: 0.9em; color: var(--text-muted);">
+                            <strong>Note:</strong> Click on any ticker in the watchlist below to view detailed charts and analysis
+                        </p>
+                    </div>
+                </div>
+
+                <!-- TradingView Watchlist -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span id="watchlistTitle">Today's Watchlist</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-icon" onclick="location.reload()" title="Refresh">🔄</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <iframe 
+                            id="watchlistFrame" 
+                            class="watchlist-frame"
+                            src="https://www.tradingview.com/watchlists/318552056/">
+                        </iframe>
+                        <p style="margin-top: 12px; font-size: 0.85em; color: var(--text-muted); font-style: italic;">
+                            TradingView watchlist with live data (requires TradingView login)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Symbol Selector -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Quick Symbol Selection
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn-secondary" onclick="selectSymbol('TAL')">TAL</button>
+                            <button class="btn-secondary" onclick="selectSymbol('AXTI')">AXTI</button>
+                            <button class="btn-secondary" onclick="selectSymbol('PLTR')">PLTR</button>
+                            <button class="btn-secondary" onclick="selectSymbol('NVDA')">NVDA</button>
+                            <button class="btn-secondary" onclick="selectSymbol('TSLA')">TSLA</button>
+                            <button class="btn-secondary" onclick="selectSymbol('SPY')">SPY</button>
+                            <button class="btn-secondary" onclick="selectSymbol('QQQ')">QQQ</button>
+                            <button class="btn-secondary" onclick="selectSymbol('IWM')">IWM</button>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; gap: 12px; align-items: center;">
+                            <input 
+                                type="text" 
+                                id="customSymbol" 
+                                placeholder="Or type a symbol..."
+                                style="flex: 1; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);"
+                                onkeypress="if(event.key === 'Enter') selectSymbol(this.value)"
+                            />
+                            <button class="btn-primary" onclick="selectSymbol(document.getElementById('customSymbol').value)">
+                                Load Chart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="chart-grid">
+                    <!-- Main Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                Detailed Chart - <span id="chartSymbol">SPY</span>
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-secondary" onclick="changeTimeframe('1')">1m</button>
+                                <button class="btn-secondary" onclick="changeTimeframe('5')">5m</button>
+                                <button class="btn-primary" onclick="changeTimeframe('15')">15m</button>
+                                <button class="btn-secondary" onclick="changeTimeframe('60')">1h</button>
+                                <button class="btn-secondary" onclick="changeTimeframe('D')">1D</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 600px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div id="chartWidget"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Analysis -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                Technical Analysis - <span id="technicalSymbol">SPY</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 600px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div id="technicalWidget"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Symbol Info & Fundamentals -->
+                <div class="grid-2" style="margin-top: 24px;">
+                    <!-- Symbol Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                Symbol Info - <span id="infoSymbol">SPY</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 300px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div id="infoWidget"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company Profile -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                Company Profile - <span id="profileSymbol">SPY</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 300px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div id="profileWidget"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let currentSymbol = 'SPY';
+        let currentInterval = '15';
+        
+        const watchlists = {
+            '318552056': {
+                title: "Today's Watchlist",
+                url: "https://www.tradingview.com/watchlists/318552056/"
+            },
+            'custom1': {
+                title: "ORB Candidates",
+                url: "https://www.tradingview.com/watchlists/318552056/" // Replace with your actual watchlist IDs
+            },
+            'custom2': {
+                title: "Swing Trades",
+                url: "https://www.tradingview.com/watchlists/318552056/"
+            },
+            'custom3': {
+                title: "Market ETFs",
+                url: "https://www.tradingview.com/watchlists/318552056/"
+            },
+            'custom4': {
+                title: "High Momentum",
+                url: "https://www.tradingview.com/watchlists/318552056/"
+            },
+            'custom5': {
+                title: "Earnings Plays",
+                url: "https://www.tradingview.com/watchlists/318552056/"
+            }
+        };
+
+        function loadWatchlist() {
+            const select = document.getElementById('watchlistSelect');
+            const watchlist = watchlists[select.value];
+            
+            document.getElementById('watchlistTitle').textContent = watchlist.title;
+            document.getElementById('watchlistFrame').src = watchlist.url;
+            
+            localStorage.setItem('selectedWatchlist', select.value);
+        }
+
+        function getCurrentWatchlistUrl() {
+            const select = document.getElementById('watchlistSelect');
+            return watchlists[select.value].url;
+        }
+
+        function selectSymbol(symbol) {
+            symbol = symbol.toUpperCase().trim();
+            if (!symbol) return;
+            
+            currentSymbol = symbol;
+            document.getElementById('customSymbol').value = '';
+            
+            // Update all symbol displays
+            document.getElementById('chartSymbol').textContent = symbol;
+            document.getElementById('technicalSymbol').textContent = symbol;
+            document.getElementById('infoSymbol').textContent = symbol;
+            document.getElementById('profileSymbol').textContent = symbol;
+            
+            // Reload all widgets with new symbol
+            loadChartWidget();
+            loadTechnicalWidget();
+            loadInfoWidget();
+            loadProfileWidget();
+            
+            // Save preference
+            localStorage.setItem('lastSymbol', symbol);
+        }
+
+        function changeTimeframe(interval) {
+            currentInterval = interval;
+            loadChartWidget();
+        }
+
+        function loadChartWidget() {
+            document.getElementById('chartWidget').innerHTML = '';
+            new TradingView.widget({
+                "width": "100%",
+                "height": "600",
+                "symbol": currentSymbol,
+                "interval": currentInterval,
+                "timezone": "America/New_York",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#0a0e1a",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "chartWidget",
+                "studies": ["STD;VWAP", "STD;Volume"],
+                "backgroundColor": "rgba(26, 31, 46, 0)"
+            });
+        }
+
+        function loadTechnicalWidget() {
+            document.getElementById('technicalWidget').innerHTML = '';
+            new TradingView.MediumWidget({
+                "symbols": [[currentSymbol]],
+                "chartOnly": false,
+                "width": "100%",
+                "height": "600",
+                "locale": "en",
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "autosize": true,
+                "showVolume": false,
+                "hideDateRanges": false,
+                "scalePosition": "right",
+                "scaleMode": "Normal",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+                "noTimeScale": false,
+                "valuesTracking": "1",
+                "changeMode": "price-and-percent",
+                "chartType": "area",
+                "container_id": "technicalWidget"
+            });
+        }
+
+        function loadInfoWidget() {
+            document.getElementById('infoWidget').innerHTML = '';
+            new TradingView.MiniWidget({
+                "symbol": currentSymbol,
+                "width": "100%",
+                "height": "100%",
+                "locale": "en",
+                "dateRange": "12M",
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "autosize": true,
+                "largeChartUrl": "",
+                "container_id": "infoWidget"
+            });
+        }
+
+        function loadProfileWidget() {
+            document.getElementById('profileWidget').innerHTML = '';
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "100%",
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "symbol": currentSymbol,
+                "locale": "en"
+            });
+            document.getElementById('profileWidget').appendChild(script);
+        }
+
+        function updateMarketStatus() {
+            const now = new Date();
+            const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = ny.getHours();
+            const minute = ny.getMinutes();
+            const day = ny.getDay();
+            const statusEl = document.getElementById('marketStatus');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (day === 0 || day === 6) {
+                statusEl.textContent = 'Market Closed (Weekend)';
+                statusDot.style.background = 'var(--accent-red)';
+                statusDot.style.animation = 'none';
+                return;
+            }
+            
+            if (hour < 9 || (hour === 9 && minute < 30)) {
+                if (hour >= 4) {
+                    statusEl.textContent = 'Pre-Market';
+                    statusDot.style.background = 'var(--accent-orange)';
+                } else {
+                    statusEl.textContent = 'Market Closed';
+                    statusDot.style.background = 'var(--accent-red)';
+                    statusDot.style.animation = 'none';
+                }
+                return;
+            }
+            
+            if (hour < 16 || (hour === 16 && minute === 0)) {
+                statusEl.textContent = 'Market Open';
+                statusDot.style.background = 'var(--accent-green)';
+                return;
+            }
+            
+            if (hour < 20) {
+                statusEl.textContent = 'Post-Market';
+                statusDot.style.background = 'var(--accent-orange)';
+                return;
+            }
+            
+            statusEl.textContent = 'Market Closed';
+            statusDot.style.background = 'var(--accent-red)';
+            statusDot.style.animation = 'none';
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load saved watchlist
+            const savedWatchlist = localStorage.getItem('selectedWatchlist');
+            if (savedWatchlist && watchlists[savedWatchlist]) {
+                document.getElementById('watchlistSelect').value = savedWatchlist;
+                loadWatchlist();
+            }
+            
+            // Load saved symbol
+            const savedSymbol = localStorage.getItem('lastSymbol');
+            if (savedSymbol) {
+                selectSymbol(savedSymbol);
+            } else {
+                selectSymbol('SPY');
+            }
+        });
+        
+        updateMarketStatus();
+        setInterval(updateMarketStatus, 60000);
+
+        // Listen for messages from TradingView iframe (if they support it)
+        window.addEventListener('message', function(event) {
+            // TradingView might post messages when symbols are clicked
+            if (event.data && event.data.symbol) {
+                selectSymbol(event.data.symbol);
+            }
+        });
+    </script>
+</body>
+</html>

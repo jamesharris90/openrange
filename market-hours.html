@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Hours - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link active">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">📈 Live Market</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot" style="background: var(--accent-green);"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Ticker Tape -->
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div class="widget-container">
+                        <div class="tradingview-widget-container">
+                            <div class="tradingview-widget-container__widget"></div>
+                            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                            {
+                                "symbols": [
+                                    {"proName": "FOREXCOM:SPXUSD", "title": "S&P 500"},
+                                    {"proName": "FOREXCOM:NSXUSD", "title": "Nasdaq"},
+                                    {"proName": "FOREXCOM:DJI", "title": "Dow"},
+                                    {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
+                                    {"proName": "FX:EURUSD", "title": "EUR/USD"}
+                                ],
+                                "showSymbolLogo": true,
+                                "colorTheme": "dark",
+                                "isTransparent": true,
+                                "displayMode": "adaptive",
+                                "locale": "en"
+                            }
+                            </script>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📊</span>
+                                SPY - 15 Minute
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-secondary">1M</button>
+                                <button class="btn-secondary">5M</button>
+                                <button class="btn-primary">15M</button>
+                                <button class="btn-secondary">1H</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 550px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div class="tradingview-widget-container__widget"></div>
+                                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                                    {
+                                        "autosize": false,
+                                        "width": "100%",
+                                        "height": "550",
+                                        "symbol": "AMEX:SPY",
+                                        "interval": "15",
+                                        "timezone": "Europe/London",
+                                        "theme": "dark",
+                                        "style": "1",
+                                        "locale": "en",
+                                        "backgroundColor": "rgba(26, 31, 46, 0)",
+                                        "gridColor": "rgba(42, 46, 57, 0.06)",
+                                        "enable_publishing": false,
+                                        "hide_side_toolbar": false,
+                                        "allow_symbol_change": true,
+                                        "studies": ["STD;VWAP", "STD;DEMA"],
+                                        "container_id": "tradingview_spy_main"
+                                    }
+                                    </script>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="icon">📊</span>
+                                QQQ - 15 Minute
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-secondary">1M</button>
+                                <button class="btn-secondary">5M</button>
+                                <button class="btn-primary">15M</button>
+                                <button class="btn-secondary">1H</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="widget-container" style="height: 550px;">
+                                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                    <div class="tradingview-widget-container__widget"></div>
+                                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                                    {
+                                        "autosize": false,
+                                        "width": "100%",
+                                        "height": "550",
+                                        "symbol": "NASDAQ:QQQ",
+                                        "interval": "15",
+                                        "timezone": "Europe/London",
+                                        "theme": "dark",
+                                        "style": "1",
+                                        "locale": "en",
+                                        "backgroundColor": "rgba(26, 31, 46, 0)",
+                                        "gridColor": "rgba(42, 46, 57, 0.06)",
+                                        "enable_publishing": false,
+                                        "hide_side_toolbar": false,
+                                        "allow_symbol_change": true,
+                                        "studies": ["STD;VWAP", "STD;DEMA"],
+                                        "container_id": "tradingview_qqq_main"
+                                    }
+                                    </script>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Heatmap -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">🔥</span>
+                            S&P 500 Heatmap
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-icon" onclick="location.reload()" title="Refresh">🔄</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="widget-container" style="height: 600px;">
+                            <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                <div class="tradingview-widget-container__widget"></div>
+                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+                                {
+                                    "exchanges": [],
+                                    "dataSource": "SPX500",
+                                    "grouping": "sector",
+                                    "blockSize": "market_cap_basic",
+                                    "blockColor": "change",
+                                    "locale": "en",
+                                    "symbolUrl": "",
+                                    "colorTheme": "dark",
+                                    "hasTopBar": false,
+                                    "isDataSetEnabled": false,
+                                    "isZoomEnabled": true,
+                                    "hasSymbolTooltip": true,
+                                    "width": "100%",
+                                    "height": "100%"
+                                }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function updateMarketStatus() {
+            const now = new Date();
+            const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = ny.getHours();
+            const minute = ny.getMinutes();
+            const day = ny.getDay();
+            const statusEl = document.getElementById('marketStatus');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (day === 0 || day === 6) {
+                statusEl.textContent = 'Market Closed (Weekend)';
+                statusDot.style.background = 'var(--accent-red)';
+                statusDot.style.animation = 'none';
+                return;
+            }
+            
+            if (hour < 9 || (hour === 9 && minute < 30)) {
+                if (hour >= 4) {
+                    statusEl.textContent = 'Pre-Market';
+                    statusDot.style.background = 'var(--accent-orange)';
+                } else {
+                    statusEl.textContent = 'Market Closed';
+                    statusDot.style.background = 'var(--accent-red)';
+                    statusDot.style.animation = 'none';
+                }
+                return;
+            }
+            
+            if (hour < 16 || (hour === 16 && minute === 0)) {
+                statusEl.textContent = 'Market Open';
+                statusDot.style.background = 'var(--accent-green)';
+                return;
+            }
+            
+            if (hour < 20) {
+                statusEl.textContent = 'Post-Market';
+                statusDot.style.background = 'var(--accent-orange)';
+                return;
+            }
+            
+            statusEl.textContent = 'Market Closed';
+            statusDot.style.background = 'var(--accent-red)';
+            statusDot.style.animation = 'none';
+        }
+        
+        updateMarketStatus();
+        setInterval(updateMarketStatus, 60000);
+    </script>
+</body>
+</html>

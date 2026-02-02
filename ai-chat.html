@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link active">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">AI Trading Assistant</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- AI Platform Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                    <!-- ChatGPT -->
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 24px; border: 2px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--border-color);">
+                            <div style="font-size: 3em;">🟢</div>
+                            <div>
+                                <h3 style="font-size: 1.4em; color: var(--accent-green); margin-bottom: 4px;">ChatGPT</h3>
+                                <p style="font-size: 0.9em; color: var(--text-muted);">Morning briefings & trend analysis</p>
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                            <p style="color: var(--text-secondary); font-size: 0.95em; line-height: 1.6;">
+                                Use ChatGPT for comprehensive pre-market analysis, generating morning briefings, and analyzing market trends.
+                            </p>
+                        </div>
+                        <a href="https://chat.openai.com" target="_blank" class="btn btn-primary" style="width: 100%; text-decoration: none; text-align: center; display: block;">
+                            Open ChatGPT →
+                        </a>
+                    </div>
+
+                    <!-- Claude -->
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 24px; border: 2px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--border-color);">
+                            <div style="font-size: 3em;">🟠</div>
+                            <div>
+                                <h3 style="font-size: 1.4em; color: var(--accent-orange); margin-bottom: 4px;">Claude</h3>
+                                <p style="font-size: 0.9em; color: var(--text-muted);">Trade validation & risk analysis</p>
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                            <p style="color: var(--text-secondary); font-size: 0.95em; line-height: 1.6;">
+                                Use Claude to validate trade setups, analyze risk/reward, and get detailed explanations of complex strategies.
+                            </p>
+                        </div>
+                        <a href="https://claude.ai" target="_blank" class="btn btn-primary" style="width: 100%; text-decoration: none; text-align: center; display: block; background: var(--gradient-orange);">
+                            Open Claude →
+                        </a>
+                    </div>
+
+                    <!-- Gemini -->
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 24px; border: 2px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--border-color);">
+                            <div style="font-size: 3em;">🔵</div>
+                            <div>
+                                <h3 style="font-size: 1.4em; color: var(--accent-blue); margin-bottom: 4px;">Gemini</h3>
+                                <p style="font-size: 0.9em; color: var(--text-muted);">Evening scans & portfolio review</p>
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                            <p style="color: var(--text-secondary); font-size: 0.95em; line-height: 1.6;">
+                                Use Gemini for end-of-day market scans, portfolio reviews, and preparing for tomorrow's trading session.
+                            </p>
+                        </div>
+                        <a href="https://gemini.google.com" target="_blank" class="btn btn-primary" style="width: 100%; text-decoration: none; text-align: center; display: block;">
+                            Open Gemini →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Prompt Templates Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Trading Prompt Templates - Click to Copy
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                            <!-- Morning Briefing -->
+                            <div class="prompt-card" onclick="copyPrompt('morning')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-green)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">🌅</div>
+                                    <h4 style="color: var(--accent-green); margin-bottom: 8px; font-size: 1.1em;">Morning Briefing</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Generate comprehensive pre-market analysis with key catalysts, sector trends, and economic data to watch.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-green);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+
+                            <!-- ORB Validation -->
+                            <div class="prompt-card" onclick="copyPrompt('orb')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-orange)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">🎯</div>
+                                    <h4 style="color: var(--accent-orange); margin-bottom: 8px; font-size: 1.1em;">ORB Setup Validation</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Analyze a potential Opening Range Breakout trade, checking volume, catalysts, and risk/reward ratio.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-orange);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+
+                            <!-- Risk Analysis -->
+                            <div class="prompt-card" onclick="copyPrompt('risk')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-purple)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">⚖️</div>
+                                    <h4 style="color: var(--accent-purple); margin-bottom: 8px; font-size: 1.1em;">Risk/Reward Analysis</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Calculate position sizing, stop loss placement, and profit targets based on account size and risk tolerance.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-purple);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+
+                            <!-- Evening Scan -->
+                            <div class="prompt-card" onclick="copyPrompt('evening')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-blue)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">🌙</div>
+                                    <h4 style="color: var(--accent-blue); margin-bottom: 8px; font-size: 1.1em;">Evening Market Scan</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Review today's market action and identify potential setups for tomorrow's session.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-blue);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+
+                            <!-- Earnings Analysis -->
+                            <div class="prompt-card" onclick="copyPrompt('earnings')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-green)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">📊</div>
+                                    <h4 style="color: var(--accent-green); margin-bottom: 8px; font-size: 1.1em;">Earnings Play Analysis</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Analyze earnings reports and identify post-earnings momentum opportunities with catalyst confirmation.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-green);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+
+                            <!-- Sector Rotation -->
+                            <div class="prompt-card" onclick="copyPrompt('sector')">
+                                <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-color); transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent-orange)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+                                    <div style="font-size: 2em; margin-bottom: 12px;">🔄</div>
+                                    <h4 style="color: var(--accent-orange); margin-bottom: 8px; font-size: 1.1em;">Sector Rotation Analysis</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9em; line-height: 1.5;">Identify which sectors are showing strength/weakness and potential rotation plays.</p>
+                                    <div style="margin-top: 12px; font-size: 0.85em; color: var(--accent-orange);">Click to copy prompt →</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden textarea for copying -->
+                        <textarea id="promptText" style="position: absolute; left: -9999px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Trading Workflow -->
+                <div class="card" style="margin-top: 24px; background: var(--bg-secondary);">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Your AI Trading Workflow
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-green);">
+                                <div style="font-size: 1.5em; margin-bottom: 8px;">🌅</div>
+                                <h4 style="color: var(--accent-green); margin-bottom: 8px;">1:00 PM - Morning Prep</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9em;">ChatGPT generates comprehensive morning briefing with market overview and key catalysts</p>
+                            </div>
+                            
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-orange);">
+                                <div style="font-size: 1.5em; margin-bottom: 8px;">🎯</div>
+                                <h4 style="color: var(--accent-orange); margin-bottom: 8px;">2:15 PM - Trade Setup</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9em;">Claude validates ORB candidates, checks risk/reward ratios, and confirms entry criteria</p>
+                            </div>
+                            
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-purple);">
+                                <div style="font-size: 1.5em; margin-bottom: 8px;">📊</div>
+                                <h4 style="color: var(--accent-purple); margin-bottom: 8px;">2:30 PM - Live Trading</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9em;">Execute trades based on validated setups, manage positions according to plan</p>
+                            </div>
+                            
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-blue);">
+                                <div style="font-size: 1.5em; margin-bottom: 8px;">🌙</div>
+                                <h4 style="color: var(--accent-blue); margin-bottom: 8px;">8:00 PM - Evening Review</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9em;">Gemini scans for tomorrow's opportunities and reviews today's performance</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const prompts = {
+            morning: `Create a comprehensive pre-market analysis for today's trading session including:
+
+1. Major market indices (SPY, QQQ, IWM) - overnight action and pre-market trends
+2. Key economic data releases scheduled for today
+3. Notable earnings reports and their potential market impact
+4. Sector rotation - which sectors are showing strength/weakness
+5. Top catalyst-driven stocks showing unusual pre-market volume
+6. Major news headlines that could move markets
+7. Key support/resistance levels on major indices
+8. Overall market sentiment and risk-on/risk-off positioning
+
+Format the analysis in a clear, actionable format that I can use to prepare for the 2:30 PM ET market open.`,
+
+            orb: `Analyze this potential Opening Range Breakout (ORB) trade setup:
+
+Stock Symbol: [INSERT SYMBOL]
+Pre-market Price: $[INSERT PRICE]
+Pre-market Volume: [INSERT VOLUME]
+Float: [INSERT FLOAT]
+Catalyst: [INSERT CATALYST - news, earnings, FDA approval, etc.]
+
+Please evaluate:
+1. Is the catalyst strong enough to drive sustained momentum?
+2. Is the volume sufficient for the float size?
+3. What are the key technical levels (support/resistance)?
+4. What's the risk/reward ratio for an entry at the opening range breakout?
+5. What position size is appropriate for a £300 account with 2% risk?
+6. What are the profit targets (1R, 2R, 3R)?
+7. Any red flags or reasons to avoid this setup?
+
+Provide a clear GO/NO-GO recommendation with reasoning.`,
+
+            risk: `Calculate position sizing and risk management for this trade:
+
+Account Size: £300
+Risk per Trade: 2% (£6)
+Stock Symbol: [INSERT SYMBOL]
+Entry Price: $[INSERT ENTRY]
+Stop Loss: $[INSERT STOP]
+Target Price: $[INSERT TARGET]
+
+Please calculate:
+1. Position size (number of shares)
+2. Total position value
+3. Risk in dollars/pounds
+4. Reward in dollars/pounds
+5. Risk/Reward ratio
+6. Breakeven after commissions (if known)
+7. Recommended adjustments if position size is too large/small
+
+Also provide guidance on:
+- Stop loss placement strategy (ATR-based, support-based, percentage-based)
+- Profit-taking strategy (scaling out vs. single exit)
+- Position management if trade goes in my favor`,
+
+            evening: `Conduct an end-of-day market scan for tomorrow's trading opportunities:
+
+1. Review Today's Market Action:
+   - How did major indices perform?
+   - Which sectors led/lagged?
+   - Notable individual stock moves
+   - Volume trends vs. average
+
+2. Identify Tomorrow's Setups:
+   - Stocks showing strong relative strength
+   - Earnings plays (companies reporting tomorrow)
+   - Stocks consolidating near breakout levels
+   - Gap-up/gap-down candidates
+   - Catalyst-driven opportunities
+
+3. Economic Calendar:
+   - What data releases are scheduled for tomorrow?
+   - How might they impact market direction?
+
+4. Technical Analysis:
+   - SPY, QQQ, IWM key levels for tomorrow
+   - Which stocks are setting up for ORB plays?
+
+5. Watchlist Creation:
+   - Prioritize 3-5 best setups for tomorrow
+   - Entry triggers, stop losses, and targets for each
+
+Format as an actionable morning watchlist.`,
+
+            earnings: `Analyze this earnings-related trading opportunity:
+
+Stock Symbol: [INSERT SYMBOL]
+Earnings Date: [INSERT DATE]
+Expected EPS: [INSERT IF KNOWN]
+Actual EPS: [INSERT IF AVAILABLE]
+Earnings Time: [Pre-market / After-hours]
+
+Pre-Earnings Analysis (if before):
+1. Historical earnings reaction (percentage moves)
+2. Implied volatility and expected move
+3. Technical setup going into earnings
+4. Analyst sentiment and recent revisions
+5. Trading strategy recommendation (buy before, wait for reaction, etc.)
+
+Post-Earnings Analysis (if after):
+1. Beat/Miss/Inline assessment
+2. Guidance commentary impact
+3. Initial market reaction analysis
+4. Technical breakout/breakdown setup
+5. Volume confirmation
+6. Is this a momentum continuation or reversal play?
+7. Specific entry/exit strategy for ORB trading
+
+Provide clear actionable recommendations with risk parameters.`,
+
+            sector: `Perform sector rotation analysis for current market conditions:
+
+1. Sector Performance Rankings (Last Week):
+   - List all 11 GICS sectors by performance
+   - Identify the top 3 and bottom 3 performers
+   - Compare to their 1-month and 3-month performance
+
+2. Rotation Patterns:
+   - Are defensive sectors (utilities, consumer staples) showing strength? (risk-off)
+   - Are cyclicals (financials, industrials, materials) leading? (risk-on)
+   - Is technology leadership broadening or narrowing?
+   - Energy and commodities - inflation/deflation signals
+
+3. Individual Stock Opportunities:
+   - 3 stocks from leading sectors with strong technical setups
+   - 3 stocks from lagging sectors that might be oversold bounce candidates
+
+4. Trading Implications:
+   - Is market in risk-on or risk-off mode?
+   - Which sector ETFs (XLK, XLF, XLE, etc.) show best momentum?
+   - Recommended focus for momentum/ORB trading
+
+5. Upcoming Catalysts:
+   - Sector-specific events or data that could shift rotation
+
+Provide actionable sector rotation trading plan.`
+        };
+
+        function copyPrompt(promptType) {
+            const promptText = document.getElementById('promptText');
+            promptText.value = prompts[promptType];
+            promptText.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            const notification = document.createElement('div');
+            notification.textContent = '✓ Prompt copied! Paste into your AI chat.';
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                background: var(--accent-green);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                box-shadow: var(--shadow-xl);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        function updateMarketStatus() {
+            const now = new Date();
+            const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = ny.getHours();
+            const minute = ny.getMinutes();
+            const day = ny.getDay();
+            const statusEl = document.getElementById('marketStatus');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (day === 0 || day === 6) {
+                statusEl.textContent = 'Market Closed (Weekend)';
+                statusDot.style.background = 'var(--accent-red)';
+                statusDot.style.animation = 'none';
+                return;
+            }
+            
+            if (hour < 9 || (hour === 9 && minute < 30)) {
+                if (hour >= 4) {
+                    statusEl.textContent = 'Pre-Market';
+                    statusDot.style.background = 'var(--accent-orange)';
+                } else {
+                    statusEl.textContent = 'Market Closed';
+                    statusDot.style.background = 'var(--accent-red)';
+                    statusDot.style.animation = 'none';
+                }
+                return;
+            }
+            
+            if (hour < 16 || (hour === 16 && minute === 0)) {
+                statusEl.textContent = 'Market Open';
+                statusDot.style.background = 'var(--accent-green)';
+                return;
+            }
+            
+            if (hour < 20) {
+                statusEl.textContent = 'Post-Market';
+                statusDot.style.background = 'var(--accent-orange)';
+                return;
+            }
+            
+            statusEl.textContent = 'Market Closed';
+            statusDot.style.background = 'var(--accent-red)';
+            statusDot.style.animation = 'none';
+        }
+        
+        updateMarketStatus();
+        setInterval(updateMarketStatus, 60000);
+    </script>
+</body>
+</html>

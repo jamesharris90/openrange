@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Hours - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/marketStatus.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon"><img src="logo pack/openrange_icon.png" alt="OpenRange Trader"></div>
+                    <div class="logo-text">
+                        <div class="brand-name"><span class="open">Open</span><span class="range">Range</span></div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link"><i data-lucide="bar-chart-2" class="icon"></i><span class="label">Dashboard</span></a>
+                <a href="screeners.html" class="nav-link"><i data-lucide="search" class="icon"></i><span class="label">Screeners</span></a>
+                <a href="watchlist.html" class="nav-link"><i data-lucide="star" class="icon"></i><span class="label">Watchlist</span></a>
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link"><i data-lucide="sunrise" class="icon"></i><span class="label">Pre-Market</span></a>
+                <a href="market-hours.html" class="nav-link active"><i data-lucide="trending-up" class="icon"></i><span class="label">Market Hours</span></a>
+                <a href="postmarket.html" class="nav-link"><i data-lucide="sunset" class="icon"></i><span class="label">Post-Market</span></a>
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link"><i data-lucide="microscope" class="icon"></i><span class="label">Research</span></a>
+                <a href="ai-chat.html" class="nav-link"><i data-lucide="bot" class="icon"></i><span class="label">AI Chat</span></a>
+                <a href="market-overview.html" class="nav-link"><i data-lucide="globe" class="icon"></i><span class="label">Market Overview</span></a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">Market Hours - ORB Trading</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status"><div class="status-dot"></div><span id="marketStatus">Market Open</span></div>
+                </div>
+            </div>
+            <div class="content-container">
+                <div class="card"><div class="card-body"><p>3 configurable ORB charts - Rename this file to market-hours.html after download</p></div></div>
+            </div>
+        </main>
+    </div>
+    <script>lucide.createIcons();marketStatus.init();</script>
+</body>
+</html>

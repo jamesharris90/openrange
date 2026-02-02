@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screeners - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .screener-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+        
+        .screener-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        
+        .screener-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .screener-select {
+            flex: 1;
+            padding: 10px 14px;
+            font-size: 0.95em;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .screener-select:hover {
+            border-color: var(--accent-blue);
+        }
+        
+        .screener-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+        
+        .screener-actions {
+            margin-left: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .screener-frame {
+            width: 100%;
+            height: 500px;
+            border: none;
+            background: var(--bg-primary);
+        }
+        
+        @media (max-width: 1400px) {
+            .screener-grid {
+                grid-template-columns: 1fr;
+            }
+            .screener-frame {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link active">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">Market Screeners</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Info Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            <strong>Finviz Elite Integration</strong> - Each screener can be customized independently. Your selections are saved automatically.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Screener Grid -->
+                <div class="screener-grid">
+                    <!-- Screener 1 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener1" onchange="updateScreener(1)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(1)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame1" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4"></iframe>
+                    </div>
+
+                    <!-- Screener 2 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener2" onchange="updateScreener(2)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change" selected>Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(2)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame2" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change"></iframe>
+                    </div>
+
+                    <!-- Screener 3 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener3" onchange="updateScreener(3)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume" selected>Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(3)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame3" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume"></iframe>
+                    </div>
+
+                    <!-- Screener 4 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener4" onchange="updateScreener(4)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change" selected>Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(4)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame4" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change"></iframe>
+                    </div>
+
+                    <!-- Screener 5 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener5" onchange="updateScreener(5)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4" selected>High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(5)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame5" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4"></iframe>
+                    </div>
+
+                    <!-- Screener 6 -->
+                    <div class="screener-panel">
+                        <div class="screener-header">
+                            <select class="screener-select" id="screener6" onchange="updateScreener(6)">
+                                <optgroup label="Pre-Market">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
+                                </optgroup>
+                                <optgroup label="Momentum">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
+                                </optgroup>
+                                <optgroup label="Gaps">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
+                                </optgroup>
+                                <optgroup label="Breakouts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
+                                </optgroup>
+                                <optgroup label="Market Cap">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change" selected>Small Cap Gainers</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
+                                </optgroup>
+                                <optgroup label="Catalysts">
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
+                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
+                                </optgroup>
+                            </select>
+                            <div class="screener-actions">
+                                <button class="btn-icon" onclick="refreshScreener(6)" title="Refresh">🔄</button>
+                            </div>
+                        </div>
+                        <iframe id="frame6" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change"></iframe>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function updateScreener(number) {
+            const select = document.getElementById(`screener${number}`);
+            const frame = document.getElementById(`frame${number}`);
+            frame.src = select.value;
+            
+            // Save preference
+            localStorage.setItem(`screener${number}`, select.value);
+        }
+
+        function refreshScreener(number) {
+            const frame = document.getElementById(`frame${number}`);
+            frame.src = frame.src;
+        }
+
+        // Load saved preferences
+        window.addEventListener('DOMContentLoaded', function() {
+            for (let i = 1; i <= 6; i++) {
+                const saved = localStorage.getItem(`screener${i}`);
+                if (saved) {
+                    const select = document.getElementById(`screener${i}`);
+                    select.value = saved;
+                    document.getElementById(`frame${i}`).src = saved;
+                }
+            }
+        });
+
+        function updateMarketStatus() {
+            const now = new Date();
+            const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = ny.getHours();
+            const minute = ny.getMinutes();
+            const day = ny.getDay();
+            const statusEl = document.getElementById('marketStatus');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (day === 0 || day === 6) {
+                statusEl.textContent = 'Market Closed (Weekend)';
+                statusDot.style.background = 'var(--accent-red)';
+                statusDot.style.animation = 'none';
+                return;
+            }
+            
+            if (hour < 9 || (hour === 9 && minute < 30)) {
+                if (hour >= 4) {
+                    statusEl.textContent = 'Pre-Market';
+                    statusDot.style.background = 'var(--accent-orange)';
+                } else {
+                    statusEl.textContent = 'Market Closed';
+                    statusDot.style.background = 'var(--accent-red)';
+                    statusDot.style.animation = 'none';
+                }
+                return;
+            }
+            
+            if (hour < 16 || (hour === 16 && minute === 0)) {
+                statusEl.textContent = 'Market Open';
+                statusDot.style.background = 'var(--accent-green)';
+                return;
+            }
+            
+            if (hour < 20) {
+                statusEl.textContent = 'Post-Market';
+                statusDot.style.background = 'var(--accent-orange)';
+                return;
+            }
+            
+            statusEl.textContent = 'Market Closed';
+            statusDot.style.background = 'var(--accent-red)';
+            statusDot.style.animation = 'none';
+        }
+        
+        updateMarketStatus();
+        setInterval(updateMarketStatus, 60000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "OpenRange Trader",
+  "short_name": "OpenRange",
+  "display": "standalone",
+  "background_color": "#0A0E27",
+  "theme_color": "#0A0E27",
+  "icons": [
+    {
+      "src": "openrange_icon.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ]
+}

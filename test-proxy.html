@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Proxy</title></head>
+<body style="background: #0a0e27; color: #fff; font-family: monospace; padding: 40px;">
+    <h1>Testing Proxy Stock Endpoint...</h1>
+    <button onclick="testStock()" style="padding: 20px; font-size: 18px; cursor: pointer;">Test AAPL</button>
+    <pre id="result" style="background: #1a2332; padding: 20px; margin-top: 20px; border-radius: 8px;"></pre>
+    
+    <script>
+        async function testStock() {
+            const result = document.getElementById('result');
+            result.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/stock/AAPL');
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+            }
+        }
+        
+        // Auto-test on load
+        window.addEventListener('load', testStock);
+    </script>
+</body>
+</html>

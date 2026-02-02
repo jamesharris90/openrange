@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post-Market - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link active">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+                
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">🌙 Post-Market Review</h1>
+                <div class="top-bar-actions">
+                    <div class="market-status">
+                        <div class="status-dot" style="background: var(--accent-orange);"></div>
+                        <span class="status-text">Post-Market Session</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Quick Stats -->
+                <div class="grid-4">
+                    <div class="stat-card">
+                        <div class="stat-label">📊 Day P&L</div>
+                        <div class="stat-value">+£12.50</div>
+                        <div class="stat-change">+4.2% today</div>
+                    </div>
+                    
+                    <div class="stat-card purple">
+                        <div class="stat-label">📈 Trades Taken</div>
+                        <div class="stat-value">2</div>
+                        <div class="stat-change">100% Win Rate</div>
+                    </div>
+                    
+                    <div class="stat-card orange">
+                        <div class="stat-label">⏱️ Avg Hold Time</div>
+                        <div class="stat-value">18m</div>
+                        <div class="stat-change">ORB strategy</div>
+                    </div>
+                    
+                    <div class="stat-card multi">
+                        <div class="stat-label">🎯 Best Trade</div>
+                        <div class="stat-value">+£50</div>
+                        <div class="stat-change">TAL +4.9%</div>
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="grid-2-1">
+                    <div>
+                        <!-- Day's Performance -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📊</span>
+                                    Day's Performance - Major Indices
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="widget-container" style="height: 500px;">
+                                    <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                        <div class="tradingview-widget-container__widget"></div>
+                                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+                                        {
+                                            "width": "100%",
+                                            "height": "500",
+                                            "symbolsGroups": [{
+                                                "name": "Indices",
+                                                "symbols": [
+                                                    {"name": "FOREXCOM:SPXUSD"},
+                                                    {"name": "FOREXCOM:NSXUSD"},
+                                                    {"name": "FOREXCOM:DJI"}
+                                                ]
+                                            }],
+                                            "showSymbolLogo": true,
+                                            "colorTheme": "dark",
+                                            "isTransparent": true,
+                                            "locale": "en"
+                                        }
+                                        </script>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Today's Trades -->
+                        <div class="card" style="margin-top: 24px;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📋</span>
+                                    Today's Trades
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Symbol</th>
+                                            <th>Side</th>
+                                            <th>Shares</th>
+                                            <th>Entry</th>
+                                            <th>Exit</th>
+                                            <th>P&L</th>
+                                            <th>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>14:35</td>
+                                            <td><strong>TAL</strong></td>
+                                            <td><span class="badge success">LONG</span></td>
+                                            <td>100</td>
+                                            <td>$10.25</td>
+                                            <td>$10.75</td>
+                                            <td style="color: var(--accent-green); font-weight: 600;">+£50.00</td>
+                                            <td style="color: var(--accent-green);">+4.9%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>15:12</td>
+                                            <td><strong>AXTI</strong></td>
+                                            <td><span class="badge success">LONG</span></td>
+                                            <td>50</td>
+                                            <td>$15.50</td>
+                                            <td>$16.25</td>
+                                            <td style="color: var(--accent-green); font-weight: 600;">+£37.50</td>
+                                            <td style="color: var(--accent-green);">+4.8%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sector Performance -->
+                        <div class="card" style="margin-top: 24px;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">🔥</span>
+                                    Sector Performance
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="widget-container" style="height: 400px;">
+                                    <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                        <div class="tradingview-widget-container__widget"></div>
+                                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+                                        {
+                                            "exchanges": [],
+                                            "dataSource": "SPX500",
+                                            "grouping": "sector",
+                                            "blockSize": "market_cap_basic",
+                                            "blockColor": "change",
+                                            "locale": "en",
+                                            "symbolUrl": "",
+                                            "colorTheme": "dark",
+                                            "hasTopBar": false,
+                                            "isDataSetEnabled": false,
+                                            "isZoomEnabled": true,
+                                            "hasSymbolTooltip": true,
+                                            "width": "100%",
+                                            "height": "100%"
+                                        }
+                                        </script>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Sidebar -->
+                    <div>
+                        <!-- Trading Notes -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📝</span>
+                                    Trading Notes
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="tradingNotes" 
+                                    style="width: 100%; height: 200px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; color: var(--text-primary); font-family: inherit; resize: vertical;"
+                                    placeholder="Record your thoughts about today's trading session..."></textarea>
+                                <button class="btn btn-primary" style="margin-top: 12px; width: 100%;" onclick="saveNotes()">
+                                    💾 Save Notes
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Market News -->
+                        <div class="card" style="margin-top: 24px;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📰</span>
+                                    After Hours News
+                                </div>
+                                <div class="card-actions">
+                                    <button class="btn-icon" onclick="loadNews()" title="Refresh">🔄</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="newsContent">
+                                    <div class="loading">
+                                        <div class="loading-spinner"></div>
+                                        Loading news...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tomorrow's Calendar -->
+                        <div class="card" style="margin-top: 24px;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <span class="icon">📅</span>
+                                    Tomorrow's Calendar
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="widget-container" style="height: 300px;">
+                                    <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                        <div class="tradingview-widget-container__widget"></div>
+                                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+                                        {
+                                            "colorTheme": "dark",
+                                            "isTransparent": true,
+                                            "width": "100%",
+                                            "height": "100%",
+                                            "locale": "en",
+                                            "importanceFilter": "0,1",
+                                            "countryFilter": "us"
+                                        }
+                                        </script>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const FINNHUB_PROXY = 'http://localhost:8080/api/finnhub/news';
+        
+        async function loadNews() {
+            try {
+                const response = await fetch(`${FINNHUB_PROXY}?category=general`);
+                const news = await response.json();
+                const content = document.getElementById('newsContent');
+                
+                if (!news || news.length === 0) {
+                    content.innerHTML = '<div class="loading">No news available</div>';
+                    return;
+                }
+                
+                content.innerHTML = news.slice(0, 10).map(item => {
+                    const date = new Date(item.datetime * 1000);
+                    const timeAgo = getTimeAgo(date);
+                    return `
+                        <div class="news-item" onclick="window.open('${item.url}', '_blank')">
+                            <div class="news-title">${item.headline}</div>
+                            <div class="news-meta">${item.source} • ${timeAgo}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading news:', error);
+                document.getElementById('newsContent').innerHTML = 
+                    '<div class="loading">Unable to load news. Check if proxy server is running.</div>';
+            }
+        }
+        
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            const intervals = {
+                year: 31536000,
+                month: 2592000,
+                week: 604800,
+                day: 86400,
+                hour: 3600,
+                minute: 60
+            };
+            
+            for (const [name, secondsInInterval] of Object.entries(intervals)) {
+                const interval = Math.floor(seconds / secondsInInterval);
+                if (interval >= 1) {
+                    return interval === 1 ? `1 ${name} ago` : `${interval} ${name}s ago`;
+                }
+            }
+            return 'Just now';
+        }
+        
+        function saveNotes() {
+            const notes = document.getElementById('tradingNotes').value;
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`notes_${today}`, notes);
+            alert('Notes saved!');
+        }
+        
+        function loadNotes() {
+            const today = new Date().toISOString().split('T')[0];
+            const saved = localStorage.getItem(`notes_${today}`);
+            if (saved) {
+                document.getElementById('tradingNotes').value = saved;
+            }
+        }
+        
+        // Initialize
+        loadNews();
+        loadNotes();
+    </script>
+</body>
+</html>
