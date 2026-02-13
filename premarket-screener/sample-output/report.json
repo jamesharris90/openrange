@@ -1,0 +1,532 @@
+{
+  "sessionInfo": {
+    "date": "2026-02-10",
+    "dayOfWeek": "Tuesday",
+    "marketOpenUk": "14:30",
+    "scannerSources": [
+      "Sample JSON/CSV",
+      "Mock News Provider",
+      "Mock Earnings Provider",
+      "Mock Market Data Provider"
+    ],
+    "tickersScanned": 10,
+    "tickersPassing": 9,
+    "macroNotes": "Sample session — mock data. Replace with real macro notes."
+  },
+  "tickers": [
+    {
+      "ticker": "NVDA",
+      "last": 142.5,
+      "pmPrice": 152.8,
+      "pmChangePct": 7.2,
+      "pmVolume": 14500000,
+      "avgVolume": 45000000,
+      "float": 2440000000,
+      "sector": "Technology",
+      "catalyst": {
+        "type": "earnings",
+        "detail": "Q4 beat: revenue $39.3B vs $38.1B est; data-centre up 93% YoY; raised FY guidance",
+        "earningsTiming": "Reported last night (after close)"
+      },
+      "relVolume": 1.6111111111111112,
+      "levels": {
+        "prevHigh": 145.2,
+        "prevLow": 140.1,
+        "prevClose": 142.5,
+        "pmHigh": 153.8,
+        "pmLow": 149.2,
+        "week52High": 153.8,
+        "week52Low": 65.8,
+        "htfResistance": 155,
+        "htfSupport": 138
+      },
+      "classification": "A",
+      "classificationReason": "Major catalyst, strong gap, high relative volume, holding PM highs",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 4 (Momentum Extension)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 4 (Momentum Extension)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 149.20 (PM low)",
+      "conviction": "HIGH",
+      "tier": 1,
+      "tierReason": "Primary focus"
+    },
+    {
+      "ticker": "SMCI",
+      "last": 38.2,
+      "pmPrice": 44.1,
+      "pmChangePct": 15.4,
+      "pmVolume": 5600000,
+      "avgVolume": 12000000,
+      "float": 58000000,
+      "sector": "Technology",
+      "catalyst": {
+        "type": "product",
+        "detail": "Announced new liquid-cooled AI server rack; major OEM partnership with NVDA",
+        "earningsTiming": "N/A"
+      },
+      "relVolume": 2.3333333333333335,
+      "levels": {
+        "prevHigh": 39.8,
+        "prevLow": 36.5,
+        "prevClose": 38.2,
+        "pmHigh": 45.2,
+        "pmLow": 42,
+        "week52High": 122.9,
+        "week52Low": 18.5,
+        "htfResistance": 48,
+        "htfSupport": 35
+      },
+      "classification": "A",
+      "classificationReason": "Major catalyst, strong gap, high relative volume, holding PM highs",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 4 (Momentum Extension)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 4 (Momentum Extension)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 42.00 (PM low)",
+      "conviction": "HIGH",
+      "tier": 1,
+      "tierReason": "Primary focus"
+    },
+    {
+      "ticker": "MARA",
+      "last": 18.9,
+      "pmPrice": 20.6,
+      "pmChangePct": 9,
+      "pmVolume": 4800000,
+      "avgVolume": 18000000,
+      "float": 210000000,
+      "sector": "Crypto / Financials",
+      "catalyst": {
+        "type": "sector",
+        "detail": "BTC breaks $105k overnight; hashrate expansion announced",
+        "earningsTiming": "Earnings next week"
+      },
+      "relVolume": 1.3333333333333333,
+      "levels": {
+        "prevHigh": 19.8,
+        "prevLow": 18.1,
+        "prevClose": 18.9,
+        "pmHigh": 21.3,
+        "pmLow": 19.9,
+        "week52High": 34,
+        "week52Low": 11.2,
+        "htfResistance": 22.5,
+        "htfSupport": 17.5
+      },
+      "classification": "B",
+      "classificationReason": "Fresh catalyst with adequate volume and gap",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 2 (Support Bounce)",
+        "Strategy 3 (VWAP Reclaim)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 2 (Support Bounce)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 19.90 (PM low)",
+      "conviction": "MEDIUM",
+      "tier": 2,
+      "tierReason": "Tier 1 full — displaced by higher-scoring names"
+    },
+    {
+      "ticker": "RIVN",
+      "last": 13.4,
+      "pmPrice": 14.8,
+      "pmChangePct": 10.4,
+      "pmVolume": 6200000,
+      "avgVolume": 22000000,
+      "float": 890000000,
+      "sector": "Consumer Discretionary",
+      "catalyst": {
+        "type": "contract",
+        "detail": "Awarded $5B fleet contract with Amazon for next-gen delivery vans",
+        "earningsTiming": "Reported 2 weeks ago"
+      },
+      "relVolume": 1.4090909090909092,
+      "levels": {
+        "prevHigh": 14.1,
+        "prevLow": 12.8,
+        "prevClose": 13.4,
+        "pmHigh": 15.2,
+        "pmLow": 14.4,
+        "week52High": 28.6,
+        "week52Low": 8.4,
+        "htfResistance": 16,
+        "htfSupport": 12.5
+      },
+      "classification": "B",
+      "classificationReason": "Fresh catalyst with adequate volume and gap",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 2 (Support Bounce)",
+        "Strategy 3 (VWAP Reclaim)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 2 (Support Bounce)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 14.40 (PM low)",
+      "conviction": "MEDIUM",
+      "tier": 2,
+      "tierReason": "Tier 1 full — displaced by higher-scoring names"
+    },
+    {
+      "ticker": "PLTR",
+      "last": 82.3,
+      "pmPrice": 84.9,
+      "pmChangePct": 3.2,
+      "pmVolume": 1400000,
+      "avgVolume": 35000000,
+      "float": 2100000000,
+      "sector": "Technology",
+      "catalyst": {
+        "type": "upgrade",
+        "detail": "Morgan Stanley upgrades to overweight; PT raised to $100",
+        "earningsTiming": "Earnings in 3 weeks"
+      },
+      "relVolume": 0.2,
+      "levels": {
+        "prevHigh": 83.5,
+        "prevLow": 80.6,
+        "prevClose": 82.3,
+        "pmHigh": 85.4,
+        "pmLow": 83.9,
+        "week52High": 85.4,
+        "week52Low": 21,
+        "htfResistance": 88,
+        "htfSupport": 78
+      },
+      "classification": "C",
+      "classificationReason": "Catalyst present but relative volume insufficient; observe only",
+      "permittedStrategies": [
+        "Strategy 3 (VWAP Reclaim)",
+        "Strategy 5 (Post-Flush Reclaim)"
+      ],
+      "primaryStrategy": "Strategy 3 (VWAP Reclaim)",
+      "secondaryStrategy": "Strategy 5 (Post-Flush Reclaim)",
+      "conditionalNote": "OBSERVE ONLY — trade only after confirmed reclaim with volume",
+      "primaryRisk": "Knife risk / failed reclaim",
+      "invalidation": "Loss of 83.90 (PM low)",
+      "conviction": "LOW",
+      "tier": 3,
+      "tierReason": "Did not rank into Tier 1 or 2"
+    },
+    {
+      "ticker": "BIOR",
+      "last": 2.1,
+      "pmPrice": 2.55,
+      "pmChangePct": 21.4,
+      "pmVolume": 1800000,
+      "avgVolume": 4500000,
+      "float": 32000000,
+      "sector": "Healthcare",
+      "catalyst": {
+        "type": "fda",
+        "detail": "FDA grants Fast Track designation for lead compound BIO-101",
+        "earningsTiming": "N/A"
+      },
+      "relVolume": 2,
+      "levels": {
+        "prevHigh": 2.3,
+        "prevLow": 1.95,
+        "prevClose": 2.1,
+        "pmHigh": 2.65,
+        "pmLow": 2.35,
+        "week52High": 6.8,
+        "week52Low": 1.4,
+        "htfResistance": 3,
+        "htfSupport": 1.8
+      },
+      "classification": "B",
+      "classificationReason": "Fresh catalyst with adequate volume and gap",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 2 (Support Bounce)",
+        "Strategy 3 (VWAP Reclaim)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 2 (Support Bounce)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 2.35 (PM low)",
+      "conviction": "MEDIUM",
+      "tier": 2,
+      "tierReason": "Tier 1 full — displaced by higher-scoring names"
+    },
+    {
+      "ticker": "LCID",
+      "last": 2.8,
+      "pmPrice": 2.48,
+      "pmChangePct": -11.4,
+      "pmVolume": 4200000,
+      "avgVolume": 28000000,
+      "float": 1500000000,
+      "sector": "Consumer Discretionary",
+      "catalyst": {
+        "type": "offering",
+        "detail": "$1.5B secondary offering priced at $2.40; dilution concerns",
+        "earningsTiming": "Reported last week"
+      },
+      "relVolume": 0.75,
+      "levels": {
+        "prevHigh": 3.1,
+        "prevLow": 2.7,
+        "prevClose": 2.8,
+        "pmHigh": 2.6,
+        "pmLow": 2.38,
+        "week52High": 7.2,
+        "week52Low": 2,
+        "htfResistance": 3.2,
+        "htfSupport": 2.3
+      },
+      "classification": "C",
+      "classificationReason": "Selloff / dilution catalyst — reversal watch only",
+      "permittedStrategies": [
+        "Strategy 3 (VWAP Reclaim)",
+        "Strategy 5 (Post-Flush Reclaim)"
+      ],
+      "primaryStrategy": "Strategy 3 (VWAP Reclaim)",
+      "secondaryStrategy": "Strategy 5 (Post-Flush Reclaim)",
+      "conditionalNote": "OBSERVE ONLY — trade only after confirmed reclaim with volume",
+      "primaryRisk": "Knife risk / failed reclaim",
+      "invalidation": "Loss of 2.38 (PM low)",
+      "conviction": "LOW",
+      "tier": 3,
+      "tierReason": "Did not rank into Tier 1 or 2"
+    },
+    {
+      "ticker": "RXRX",
+      "last": 5.9,
+      "pmPrice": 6.7,
+      "pmChangePct": 13.6,
+      "pmVolume": 2400000,
+      "avgVolume": 6000000,
+      "float": 230000000,
+      "sector": "Healthcare",
+      "catalyst": {
+        "type": "merger",
+        "detail": "Reports of acquisition talks with major pharma (unconfirmed)",
+        "earningsTiming": "N/A"
+      },
+      "relVolume": 2,
+      "levels": {
+        "prevHigh": 6.2,
+        "prevLow": 5.6,
+        "prevClose": 5.9,
+        "pmHigh": 6.9,
+        "pmLow": 6.3,
+        "week52High": 12.4,
+        "week52Low": 3.8,
+        "htfResistance": 7.5,
+        "htfSupport": 5.2
+      },
+      "classification": "A",
+      "classificationReason": "Major catalyst, strong gap, high relative volume, holding PM highs",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 4 (Momentum Extension)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 4 (Momentum Extension)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 6.30 (PM low)",
+      "conviction": "HIGH",
+      "tier": 1,
+      "tierReason": "Primary focus"
+    },
+    {
+      "ticker": "PRAX",
+      "last": 72,
+      "pmPrice": 90.5,
+      "pmChangePct": 25.7,
+      "pmVolume": 3400000,
+      "avgVolume": 800000,
+      "float": 28000000,
+      "sector": "Healthcare",
+      "catalyst": {
+        "type": "fda",
+        "detail": "Phase 3 data readout — primary endpoint met with p<0.001; NDA filing expected Q2",
+        "earningsTiming": "N/A"
+      },
+      "relVolume": 21.25,
+      "levels": {
+        "prevHigh": 74,
+        "prevLow": 69.5,
+        "prevClose": 72,
+        "pmHigh": 92,
+        "pmLow": 85,
+        "week52High": 92,
+        "week52Low": 28,
+        "htfResistance": 95,
+        "htfSupport": 68
+      },
+      "classification": "A",
+      "classificationReason": "Major catalyst, strong gap, high relative volume, holding PM highs",
+      "permittedStrategies": [
+        "Strategy 1 (ORB)",
+        "Strategy 4 (Momentum Extension)"
+      ],
+      "primaryStrategy": "Strategy 1 (ORB)",
+      "secondaryStrategy": "Strategy 4 (Momentum Extension)",
+      "conditionalNote": "Standard risk controls apply",
+      "primaryRisk": "Gap fill / loss of PM structure",
+      "invalidation": "Loss of 85.00 (PM low)",
+      "conviction": "HIGH",
+      "tier": 1,
+      "tierReason": "Primary focus"
+    },
+    {
+      "ticker": "FLNC",
+      "last": 8.4,
+      "pmPrice": 8.6,
+      "pmChangePct": 2.4,
+      "pmVolume": 45000,
+      "avgVolume": 3200000,
+      "float": 120000000,
+      "sector": "Industrials",
+      "catalyst": {
+        "type": "general",
+        "detail": "No identifiable catalyst — drifting on low volume"
+      },
+      "relVolume": 0.0703125,
+      "levels": {
+        "prevHigh": 8.7,
+        "prevLow": 8.2,
+        "prevClose": 8.4,
+        "pmHigh": 8.65,
+        "pmLow": 8.5,
+        "week52High": 24.3,
+        "week52Low": 6.1,
+        "htfResistance": 9.5,
+        "htfSupport": 7.8
+      },
+      "tier": 3,
+      "tierReason": "No identifiable catalyst"
+    }
+  ],
+  "priority": {
+    "tier1": [
+      {
+        "rank": 1,
+        "ticker": "PRAX",
+        "classification": "A",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "HIGH",
+        "keyLevel": 92
+      },
+      {
+        "rank": 2,
+        "ticker": "SMCI",
+        "classification": "A",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "HIGH",
+        "keyLevel": 45.2
+      },
+      {
+        "rank": 3,
+        "ticker": "RXRX",
+        "classification": "A",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "HIGH",
+        "keyLevel": 6.9
+      },
+      {
+        "rank": 4,
+        "ticker": "NVDA",
+        "classification": "A",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "HIGH",
+        "keyLevel": 153.8
+      }
+    ],
+    "tier2": [
+      {
+        "rank": 5,
+        "ticker": "BIOR",
+        "classification": "B",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "MEDIUM",
+        "keyLevel": 2.65,
+        "whySecondary": "Tier 1 full — displaced by higher-scoring names"
+      },
+      {
+        "rank": 6,
+        "ticker": "RIVN",
+        "classification": "B",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "MEDIUM",
+        "keyLevel": 15.2,
+        "whySecondary": "Tier 1 full — displaced by higher-scoring names"
+      },
+      {
+        "rank": 7,
+        "ticker": "MARA",
+        "classification": "B",
+        "primaryStrategy": "Strategy 1 (ORB)",
+        "conviction": "MEDIUM",
+        "keyLevel": 21.3,
+        "whySecondary": "Tier 1 full — displaced by higher-scoring names"
+      }
+    ],
+    "tier3": [
+      {
+        "ticker": "LCID",
+        "classification": "C",
+        "primaryStrategy": "Strategy 3 (VWAP Reclaim)",
+        "conviction": "LOW",
+        "reason": "Class C — observe only; no clean strategy mapping for active trading"
+      },
+      {
+        "ticker": "PLTR",
+        "classification": "C",
+        "primaryStrategy": "Strategy 3 (VWAP Reclaim)",
+        "conviction": "LOW",
+        "reason": "Class C — observe only; no clean strategy mapping for active trading"
+      }
+    ]
+  },
+  "actionPlan": {
+    "openingPhase": {
+      "title": "Opening Phase (14:30–15:30 UK)",
+      "items": [
+        "Primary ORB Candidates: PRAX, SMCI, RXRX, NVDA",
+        "What Needs to Happen for Entry: Hold PM highs into open, break ORB range with volume confirmation",
+        "If ORB Fails, Switch To: Support Bounce on BIOR, RIVN",
+        "Maximum Trades This Window: 2"
+      ]
+    },
+    "midSession": {
+      "title": "Mid-Session (15:30–18:30 UK)",
+      "items": [
+        "Support Bounce Candidates: BIOR, RIVN, MARA",
+        "Levels I Am Watching for Pullbacks: PRAX @ 85.00; SMCI @ 42.00; RXRX @ 6.30; NVDA @ 149.20",
+        "Class C Names to Check for Confirmation: PLTR, LCID — ONLY after confirmed VWAP reclaim"
+      ]
+    },
+    "lateSession": {
+      "title": "Late Session (18:30–20:45 UK)",
+      "items": [
+        "VWAP Reclaim Candidates: MARA, RIVN, PLTR, BIOR, LCID",
+        "Position Size Adjustment: Half size unless A-class setup with fresh catalyst",
+        "Conditions That Cancel This Window: Daily loss limit hit, 3+ losing trades, or all invalidation levels breached"
+      ]
+    }
+  },
+  "stopConditions": {
+    "dailyLossLimit": 500,
+    "maxLosingTrades": 3,
+    "emotionalCheckTime": "17:00",
+    "hardCloseUk": "20:45"
+  }
+}

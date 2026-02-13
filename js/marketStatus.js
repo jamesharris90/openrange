@@ -2,10 +2,20 @@
 // Handles market hours, countdown, and status display
 
 class MarketStatus {
-    constructor() {
+    constructor(options = {}) {
         this.statusElement = null;
         this.dotElement = null;
         this.updateInterval = null;
+        // Allow timezone configuration (default to US Eastern for NYSE)
+        this.timezone = options.timezone || 'America/New_York';
+        // Allow market hours configuration
+        this.marketHours = options.marketHours || {
+            preMarketStart: 4,      // 4:00 AM
+            marketOpenHour: 9,       // 9:30 AM
+            marketOpenMinute: 30,
+            marketCloseHour: 16,     // 4:00 PM
+            postMarketCloseHour: 20  // 8:00 PM
+        };
     }
     
     init(statusElementId = 'marketStatus') {
@@ -23,29 +33,31 @@ class MarketStatus {
     
     update() {
         const now = new Date();
-        const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        const hour = ny.getHours();
-        const minute = ny.getMinutes();
-        const day = ny.getDay();
-        
+        const marketTime = new Date(now.toLocaleString('en-US', { timeZone: this.timezone }));
+        const hour = marketTime.getHours();
+        const minute = marketTime.getMinutes();
+        const day = marketTime.getDay();
+
+        const mh = this.marketHours;
+
         let status = '';
         let color = '';
         let shouldPulse = true;
-        
+
         // Weekend check
         if (day === 0 || day === 6) {
             status = 'Market Closed (Weekend)';
             color = 'var(--accent-red)';
             shouldPulse = false;
         }
-        // Pre-market (4:00 AM - 9:30 AM ET)
-        else if (hour >= 4 && (hour < 9 || (hour === 9 && minute < 30))) {
+        // Pre-market
+        else if (hour >= mh.preMarketStart && (hour < mh.marketOpenHour || (hour === mh.marketOpenHour && minute < mh.marketOpenMinute))) {
             status = 'Pre-Market';
             color = 'var(--accent-orange)';
         }
-        // Market Open (9:30 AM - 4:00 PM ET) - FIXED LOGIC
-        else if (hour >= 9 && hour < 16) {
-            if (hour === 9 && minute < 30) {
+        // Market Open
+        else if (hour >= mh.marketOpenHour && hour < mh.marketCloseHour) {
+            if (hour === mh.marketOpenHour && minute < mh.marketOpenMinute) {
                 status = 'Pre-Market';
                 color = 'var(--accent-orange)';
             } else {
@@ -53,8 +65,8 @@ class MarketStatus {
                 color = 'var(--accent-green)';
             }
         }
-        // Post-market (4:00 PM - 8:00 PM ET)
-        else if (hour >= 16 && hour < 20) {
+        // Post-market
+        else if (hour >= mh.marketCloseHour && hour < mh.postMarketCloseHour) {
             status = 'Post-Market';
             color = 'var(--accent-orange)';
         }
@@ -64,11 +76,11 @@ class MarketStatus {
             color = 'var(--accent-red)';
             shouldPulse = false;
         }
-        
+
         if (this.statusElement) {
             this.statusElement.textContent = status;
         }
-        
+
         if (this.dotElement) {
             this.dotElement.style.background = color;
             this.dotElement.style.animation = shouldPulse ? 'pulse 2s ease-in-out infinite' : 'none';
@@ -77,27 +89,30 @@ class MarketStatus {
     
     getTimeToOpen() {
         const now = new Date();
-        const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        
-        // Create next market open time (9:30 AM ET)
-        const nextOpen = new Date(ny);
-        nextOpen.setHours(9, 30, 0, 0);
-        
-        // If we're past 9:30 AM today, target tomorrow
-        if (ny.getHours() > 9 || (ny.getHours() === 9 && ny.getMinutes() >= 30)) {
+        const marketTime = new Date(now.toLocaleString('en-US', { timeZone: this.timezone }));
+
+        const mh = this.marketHours;
+
+        // Create next market open time
+        const nextOpen = new Date(marketTime);
+        nextOpen.setHours(mh.marketOpenHour, mh.marketOpenMinute, 0, 0);
+
+        // If we're past market open today, target tomorrow
+        if (marketTime.getHours() > mh.marketOpenHour ||
+            (marketTime.getHours() === mh.marketOpenHour && marketTime.getMinutes() >= mh.marketOpenMinute)) {
             nextOpen.setDate(nextOpen.getDate() + 1);
         }
-        
+
         // Skip weekends
         while (nextOpen.getDay() === 0 || nextOpen.getDay() === 6) {
             nextOpen.setDate(nextOpen.getDate() + 1);
         }
-        
-        const diff = nextOpen - ny;
+
+        const diff = nextOpen - marketTime;
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
+
         return { hours, minutes, seconds, totalMs: diff };
     }
     
@@ -121,5 +136,11 @@ class MarketStatus {
     }
 }
 
-// Create global instance
-window.marketStatus = new MarketStatus();
+// Create global instance with default configuration
+// Can be overridden by providing CONFIG.MARKET from config.js
+window.marketStatus = new MarketStatus(
+    typeof CONFIG !== 'undefined' && CONFIG.MARKET ? {
+        timezone: CONFIG.MARKET.timezone,
+        marketHours: CONFIG.MARKET.hours
+    } : {}
+);

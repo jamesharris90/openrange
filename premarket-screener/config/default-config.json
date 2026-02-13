@@ -1,0 +1,25 @@
+{
+  "thresholds": {
+    "minPrice": 1,
+    "maxPrice": 500,
+    "minAvgVolume": 500000,
+    "minPmVolume": 100000,
+    "minGapPct": 3
+  },
+  "session": {
+    "marketOpenUk": "14:30",
+    "macroNotes": "Sample session — mock data. Replace with real macro notes."
+  },
+  "stopConditions": {
+    "dailyLossLimit": 500,
+    "maxLosingTrades": 3,
+    "emotionalCheckTime": "17:00",
+    "hardCloseUk": "20:45"
+  },
+  "scannerSources": [
+    "Sample JSON/CSV",
+    "Mock News Provider",
+    "Mock Earnings Provider",
+    "Mock Market Data Provider"
+  ]
+}

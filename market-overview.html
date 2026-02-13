@@ -9,9 +9,50 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -58,6 +99,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <span class="icon">🎯</span>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <span class="icon">📰</span>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <span class="icon">🔬</span>
                     <span class="label">Research</span>
@@ -256,11 +305,72 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ORB Trading Section -->
+                <div class="card" style="margin-top: 24px; background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%); border: 2px solid var(--accent-blue);">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">🎯</span>
+                            ORB Trading Dashboard
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-secondary" onclick="ORBRules.showModal()">
+                                📖 View ORB Rules
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid-3" style="margin-bottom: 24px;">
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-green);">
+                                <div style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">Small Cap Movers</div>
+                                <div style="font-size: 1.5em; font-weight: 600; color: var(--accent-green);" id="orbSmallCap">--</div>
+                                <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">Market cap $300M-$2B</div>
+                            </div>
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-orange);">
+                                <div style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">Mid Cap Movers</div>
+                                <div style="font-size: 1.5em; font-weight: 600; color: var(--accent-orange);" id="orbMidCap">--</div>
+                                <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">Market cap $2B-$10B</div>
+                            </div>
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent-purple);">
+                                <div style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">High Volume</div>
+                                <div style="font-size: 1.5em; font-weight: 600; color: var(--accent-purple);" id="orbHighVol">--</div>
+                                <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">Relative volume >3x</div>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--bg-card); padding: 20px; border-radius: 8px;">
+                            <h3 style="margin-bottom: 16px; color: var(--accent-blue);">Quick Links for ORB Traders</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                <a href="premarket.html" class="btn-secondary" style="text-decoration: none; text-align: center;">
+                                    🌅 Pre-Market Scanners
+                                </a>
+                                <a href="screeners.html" class="btn-secondary" style="text-decoration: none; text-align: center;">
+                                    🔍 Gap & Volume Screeners
+                                </a>
+                                <a href="watchlist.html" class="btn-secondary" style="text-decoration: none; text-align: center;">
+                                    ⭐ ORB Watchlist
+                                </a>
+                                <a href="ai-chat.html" class="btn-secondary" style="text-decoration: none; text-align: center;">
+                                    🤖 AI Trade Validation
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
     <script>
+        // Initialize ORB stats
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('orbSmallCap').textContent = '12 stocks';
+            document.getElementById('orbMidCap').textContent = '8 stocks';
+            document.getElementById('orbHighVol').textContent = '15 stocks';
+        });
+
         function updateMarketStatus() {
             const now = new Date();
             const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));

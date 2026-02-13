@@ -4,3 +4,9 @@ server/node_modules/
 .DS_Store
 .vscode/
 npm-debug.log
+server/users/*.db
+server/users/*.db-shm
+server/users/*.db-wal
+server/logs/
+server/*.log
+*.log

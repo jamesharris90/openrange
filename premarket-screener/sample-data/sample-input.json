@@ -1,0 +1,102 @@
+[
+  {
+    "ticker": "NVDA",
+    "last": 142.50,
+    "pmPrice": 152.80,
+    "pmChangePct": 7.2,
+    "pmVolume": 14500000,
+    "avgVolume": 45000000,
+    "float": 2440000000,
+    "sector": "Technology"
+  },
+  {
+    "ticker": "SMCI",
+    "last": 38.20,
+    "pmPrice": 44.10,
+    "pmChangePct": 15.4,
+    "pmVolume": 5600000,
+    "avgVolume": 12000000,
+    "float": 58000000,
+    "sector": "Technology"
+  },
+  {
+    "ticker": "MARA",
+    "last": 18.90,
+    "pmPrice": 20.60,
+    "pmChangePct": 9.0,
+    "pmVolume": 4800000,
+    "avgVolume": 18000000,
+    "float": 210000000,
+    "sector": "Crypto / Financials"
+  },
+  {
+    "ticker": "RIVN",
+    "last": 13.40,
+    "pmPrice": 14.80,
+    "pmChangePct": 10.4,
+    "pmVolume": 6200000,
+    "avgVolume": 22000000,
+    "float": 890000000,
+    "sector": "Consumer Discretionary"
+  },
+  {
+    "ticker": "PLTR",
+    "last": 82.30,
+    "pmPrice": 84.90,
+    "pmChangePct": 3.2,
+    "pmVolume": 1400000,
+    "avgVolume": 35000000,
+    "float": 2100000000,
+    "sector": "Technology"
+  },
+  {
+    "ticker": "BIOR",
+    "last": 2.10,
+    "pmPrice": 2.55,
+    "pmChangePct": 21.4,
+    "pmVolume": 1800000,
+    "avgVolume": 4500000,
+    "float": 32000000,
+    "sector": "Healthcare"
+  },
+  {
+    "ticker": "LCID",
+    "last": 2.80,
+    "pmPrice": 2.48,
+    "pmChangePct": -11.4,
+    "pmVolume": 4200000,
+    "avgVolume": 28000000,
+    "float": 1500000000,
+    "sector": "Consumer Discretionary"
+  },
+  {
+    "ticker": "FLNC",
+    "last": 8.40,
+    "pmPrice": 8.60,
+    "pmChangePct": 2.4,
+    "pmVolume": 45000,
+    "avgVolume": 3200000,
+    "float": 120000000,
+    "sector": "Industrials"
+  },
+  {
+    "ticker": "RXRX",
+    "last": 5.90,
+    "pmPrice": 6.70,
+    "pmChangePct": 13.6,
+    "pmVolume": 2400000,
+    "avgVolume": 6000000,
+    "float": 230000000,
+    "sector": "Healthcare"
+  },
+  {
+    "ticker": "PRAX",
+    "last": 72.00,
+    "pmPrice": 90.50,
+    "pmChangePct": 25.7,
+    "pmVolume": 3400000,
+    "avgVolume": 800000,
+    "float": 28000000,
+    "sector": "Healthcare"
+  }
+]

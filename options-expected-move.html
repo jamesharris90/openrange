@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expected Move Engine — Harris Trading</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@latest/font/lucide.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="js/sidebar.js" defer></script>
+  <style>
+    /* =====================================================
+       Expected Move Engine — Complete Stylesheet
+       ===================================================== */
+
+    /* Search Bar */
+    .em-search-container {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      padding: 20px 24px;
+    }
+    .em-search-container input[type="text"] {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      color: var(--text-primary); padding: 10px 16px; border-radius: 8px;
+      font-size: 1rem; width: 180px; text-transform: uppercase;
+    }
+    .em-search-container input:focus {
+      outline: none; border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .em-search-btn {
+      background: var(--accent-blue); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px; font-weight: 600;
+      cursor: pointer; font-size: 0.95rem; transition: background 0.15s;
+    }
+    .em-search-btn:hover { background: #2563eb; }
+    .em-quick-symbols {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .em-quick-btn {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      color: var(--text-secondary); padding: 6px 12px; border-radius: 6px;
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .em-quick-btn:hover {
+      border-color: var(--accent-blue); color: var(--accent-blue);
+      background: rgba(59,130,246,0.08);
+    }
+
+    /* Hero Section — Price + Composite Score */
+    .em-hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      padding: 0 24px 20px;
+    }
+    @media (max-width: 900px) {
+      .em-hero-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Price & Move Card */
+    .em-price-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 24px;
+    }
+    .em-price-header {
+      display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px;
+    }
+    .em-ticker-name {
+      font-size: 1.6rem; font-weight: 800; color: var(--text-primary);
+    }
+    .em-sector-tag {
+      font-size: 0.78rem; color: var(--text-muted); background: var(--bg-surface);
+      padding: 3px 10px; border-radius: 20px;
+    }
+    .em-price-large {
+      font-size: 2.2rem; font-weight: 700; color: var(--text-primary);
+      line-height: 1.1; margin: 4px 0;
+    }
+    .em-change { font-size: 0.95rem; font-weight: 600; }
+    .em-change.positive { color: var(--accent-green); }
+    .em-change.negative { color: var(--accent-red); }
+
+    .em-move-section {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+    .em-move-label {
+      font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;
+    }
+    .em-move-value {
+      font-size: 1.8rem; font-weight: 700; color: var(--accent-blue);
+    }
+    .em-move-pct {
+      font-size: 1.1rem; color: var(--text-secondary); margin-left: 8px;
+    }
+    .em-range-text {
+      color: var(--text-secondary); margin-top: 6px; font-size: 0.92rem;
+    }
+    .em-probability-row {
+      display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;
+    }
+    .em-prob-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg-surface); padding: 6px 12px; border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .em-prob-badge .label { color: var(--text-muted); }
+    .em-prob-badge .value { font-weight: 700; }
+    .em-method-tag {
+      font-size: 0.75rem; color: var(--text-muted); background: var(--bg-surface);
+      padding: 2px 8px; border-radius: 4px; margin-left: 4px;
+    }
+    .em-expiry-badge {
+      font-size: 0.82rem; color: var(--text-muted); margin-top: 8px;
+    }
+    .em-earnings-flag { margin-top: 8px; }
+    .em-earnings-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+    }
+    .em-earnings-badge.danger { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+    .em-earnings-badge.warning { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+
+    /* Composite Score Card */
+    .em-score-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 24px; display: flex; flex-direction: column;
+    }
+    .em-score-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .em-score-title {
+      font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600;
+    }
+    .em-composite-ring {
+      position: relative; width: 120px; height: 120px; margin: 0 auto 12px;
+    }
+    .em-composite-ring svg { transform: rotate(-90deg); }
+    .em-composite-ring .ring-bg {
+      fill: none; stroke: var(--border-color); stroke-width: 8;
+    }
+    .em-composite-ring .ring-fill {
+      fill: none; stroke-width: 8; stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s ease, stroke 0.3s;
+    }
+    .em-composite-number {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 2rem; font-weight: 800; color: var(--text-primary);
+    }
+    .em-tier-label {
+      text-align: center; font-size: 0.95rem; font-weight: 700;
+      padding: 6px 16px; border-radius: 8px; margin-bottom: 16px;
+    }
+    .em-tier-high { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .em-tier-conditional { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .em-tier-low { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .em-tier-avoid { background: rgba(107,114,128,0.15); color: #6b7280; }
+
+    /* Category Bars */
+    .em-category-bars { flex: 1; }
+    .em-cat-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px; font-size: 0.82rem;
+    }
+    .em-cat-label {
+      width: 120px; color: var(--text-secondary); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;
+    }
+    .em-cat-bar-wrap {
+      flex: 1; height: 8px; background: var(--bg-surface);
+      border-radius: 4px; overflow: hidden; position: relative;
+    }
+    .em-cat-bar-fill {
+      height: 100%; border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .em-cat-score {
+      width: 44px; text-align: right; font-weight: 600;
+      color: var(--text-primary); flex-shrink: 0;
+    }
+
+    /* Range Bar */
+    .em-range-bar-wrap {
+      margin: 20px 0 8px; position: relative; height: 50px;
+    }
+    .em-range-bar {
+      position: absolute; top: 18px; left: 0; right: 0;
+      height: 6px; background: var(--bg-surface); border-radius: 3px;
+    }
+    .em-range-marker {
+      position: absolute; top: -6px; width: 3px; height: 18px;
+      border-radius: 2px; transform: translateX(-50%);
+    }
+    .em-range-dot {
+      position: absolute; top: -5px; width: 16px; height: 16px;
+      background: var(--accent-blue); border-radius: 50%;
+      transform: translateX(-50%); border: 2px solid var(--bg-card);
+      box-shadow: 0 0 6px rgba(59,130,246,0.4);
+    }
+    .em-range-label {
+      position: absolute; top: 22px; transform: translateX(-50%);
+      font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;
+    }
+    .em-range-label.mid { color: var(--accent-blue); font-weight: 600; }
+
+    /* Analysis Grid — 3 columns */
+    .em-analysis-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      padding: 0 24px 20px;
+    }
+    @media (max-width: 1100px) {
+      .em-analysis-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .em-analysis-grid { grid-template-columns: 1fr; }
+    }
+
+    .em-analysis-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px;
+    }
+    .em-analysis-card h3 {
+      font-size: 0.88rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin: 0 0 14px 0; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .em-analysis-card h3 .em-cat-pill {
+      font-size: 0.78rem; padding: 2px 8px; border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* ATM Details */
+    .em-atm-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    .em-atm-card {
+      background: var(--bg-surface); border-radius: 8px; padding: 14px;
+    }
+    .em-atm-card h4 {
+      font-size: 0.82rem; color: var(--text-primary); margin: 0 0 10px 0;
+      font-weight: 700;
+    }
+    .em-atm-row {
+      display: flex; justify-content: space-between; padding: 3px 0;
+      font-size: 0.82rem;
+    }
+    .em-atm-row .label { color: var(--text-muted); }
+    .em-atm-row .value { color: var(--text-primary); font-weight: 600; }
+
+    /* IV Gauge */
+    .em-iv-gauge {
+      height: 12px; background: var(--bg-surface); border-radius: 6px;
+      overflow: hidden; margin: 8px 0;
+    }
+    .em-iv-gauge-fill {
+      height: 100%; border-radius: 6px; font-size: 0; transition: width 0.6s;
+    }
+    .em-iv-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .em-iv-stat {
+      display: flex; justify-content: space-between; padding: 5px 0;
+      font-size: 0.85rem; border-bottom: 1px solid var(--border-color);
+    }
+    .em-iv-stat:last-child { border-bottom: none; }
+    .em-iv-stat .label { color: var(--text-muted); }
+    .em-iv-stat .value { font-weight: 600; color: var(--text-primary); }
+
+    /* Scoring Breakdown Panel */
+    .em-breakdown-panel { padding: 0 24px 20px; }
+    .em-breakdown-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px;
+    }
+    .em-breakdown-card h3 {
+      font-size: 0.88rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin: 0 0 16px 0; font-weight: 600;
+    }
+    .em-breakdown-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .em-bd-category {
+      background: var(--bg-surface); border-radius: 8px; padding: 14px;
+    }
+    .em-bd-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .em-bd-title {
+      font-weight: 700; font-size: 0.88rem; color: var(--text-primary);
+    }
+    .em-bd-score {
+      font-weight: 800; font-size: 0.92rem; padding: 2px 10px;
+      border-radius: 6px;
+    }
+    .em-bd-factor {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 4px 0; font-size: 0.8rem; border-bottom: 1px dashed var(--border-color);
+    }
+    .em-bd-factor:last-child { border-bottom: none; }
+    .em-bd-factor-name { color: var(--text-secondary); min-width: 100px; }
+    .em-bd-factor-note { color: var(--text-muted); flex: 1; text-align: right; padding-left: 8px; }
+    .em-bd-factor-pts { font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+
+    /* Market & Technical Context Row */
+    .em-context-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      padding: 0 24px 20px;
+    }
+    @media (max-width: 800px) {
+      .em-context-grid { grid-template-columns: 1fr; }
+    }
+    .em-context-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px;
+    }
+    .em-context-card h3 {
+      font-size: 0.88rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin: 0 0 14px 0; font-weight: 600;
+    }
+    .em-context-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      font-size: 0.85rem; border-bottom: 1px solid var(--border-color);
+    }
+    .em-context-row:last-child { border-bottom: none; }
+    .em-context-row .label { color: var(--text-muted); }
+    .em-context-row .value { font-weight: 600; color: var(--text-primary); }
+    .em-bias-bullish { color: var(--accent-green); }
+    .em-bias-bearish { color: var(--accent-red); }
+    .em-bias-neutral { color: var(--accent-orange); }
+
+    /* Watchlist */
+    .em-watchlist-section { padding: 0 24px 24px; }
+    .em-watchlist-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; overflow: hidden;
+    }
+    .em-watchlist-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; flex-wrap: wrap; gap: 10px;
+    }
+    .em-watchlist-header h3 {
+      font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0;
+    }
+    .em-watchlist-actions {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .em-watchlist-actions input[type="text"] {
+      background: var(--bg-surface); border: 1px solid var(--border-color);
+      color: var(--text-primary); padding: 7px 12px; border-radius: 6px;
+      font-size: 0.85rem; width: 100px; text-transform: uppercase;
+    }
+    .em-wl-btn {
+      background: var(--bg-surface); border: 1px solid var(--border-color);
+      color: var(--text-secondary); padding: 7px 14px; border-radius: 6px;
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .em-wl-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .em-wl-btn.primary {
+      background: var(--accent-blue); color: #fff; border-color: var(--accent-blue);
+    }
+    .em-wl-btn.primary:hover { background: #2563eb; }
+    .em-countdown { font-size: 0.78rem; color: var(--text-muted); }
+
+    .em-watchlist-table { width: 100%; border-collapse: collapse; }
+    .em-watchlist-table th {
+      text-align: left; padding: 10px 12px; font-size: 0.78rem;
+      text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);
+      background: var(--bg-surface); border-bottom: 1px solid var(--border-color);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .em-watchlist-table th:hover { color: var(--accent-blue); }
+    .em-watchlist-table th.sort-asc::after { content: ' ▲'; font-size: 0.65rem; }
+    .em-watchlist-table th.sort-desc::after { content: ' ▼'; font-size: 0.65rem; }
+    .em-watchlist-table td {
+      padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .em-watchlist-table tbody tr { cursor: pointer; transition: background 0.12s; }
+    .em-watchlist-table tbody tr:hover { background: rgba(59,130,246,0.05); }
+    .em-row-highlight { background: rgba(245,158,11,0.06); }
+    .em-remove-btn {
+      background: transparent; border: 1px solid var(--border-color);
+      color: var(--text-muted); padding: 4px 10px; border-radius: 4px;
+      cursor: pointer; font-size: 0.78rem;
+    }
+    .em-remove-btn:hover { border-color: var(--accent-red); color: var(--accent-red); }
+
+    /* Score Pill */
+    .em-score-compact {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px; font-size: 0.82rem;
+      font-weight: 700; white-space: nowrap;
+    }
+    .em-score-high { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .em-score-conditional { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .em-score-low { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .em-score-avoid { background: rgba(107,114,128,0.15); color: #6b7280; }
+
+    /* IV Cell */
+    .em-iv-cell { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
+    .em-iv-low { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+    .em-iv-normal { background: rgba(34,197,94,0.12); color: var(--accent-green); }
+    .em-iv-elevated { background: rgba(245,158,11,0.12); color: var(--accent-orange); }
+    .em-iv-high { background: rgba(239,68,68,0.12); color: var(--accent-red); }
+
+    /* Skeleton */
+    .em-skeleton { background: linear-gradient(90deg, var(--bg-surface) 25%, var(--border-color) 50%, var(--bg-surface) 75%); background-size: 200% 100%; animation: em-shimmer 1.5s infinite; border-radius: 6px; }
+    .em-skeleton-block { height: 120px; }
+    .em-skeleton-line { height: 16px; margin: 8px 0; }
+    @keyframes em-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .em-empty { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .em-empty p { margin: 8px 0; }
+    .em-error-msg { color: var(--accent-red); padding: 20px; text-align: center; }
+    .em-attribution {
+      text-align: center; padding: 16px 24px; font-size: 0.75rem;
+      color: var(--text-muted); border-top: 1px solid var(--border-color);
+      margin-top: 20px;
+    }
+    .clr-green { color: var(--accent-green); }
+    .clr-red { color: var(--accent-red); }
+    .clr-orange { color: var(--accent-orange); }
+    .clr-blue { color: var(--accent-blue); }
+    .clr-muted { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside id="sidebar-container" class="sidebar"></aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar-container').classList.toggle('open')">
+          <i data-lucide="menu"></i>
+        </button>
+        <h2>Expected Move Engine</h2>
+        <div style="flex:1;"></div>
+        <span id="emCountdownText" class="em-countdown"></span>
+      </div>
+
+    <!-- Search -->
+    <div class="em-search-container">
+      <input type="text" id="emTickerInput" placeholder="Enter ticker…"
+        onkeydown="if(event.key==='Enter') ExpectedMove.lookupTicker()" />
+      <button class="em-search-btn" onclick="ExpectedMove.lookupTicker()">Analyze</button>
+      <div class="em-quick-symbols">
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('SPY')">SPY</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('QQQ')">QQQ</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AAPL')">AAPL</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('TSLA')">TSLA</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('NVDA')">NVDA</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AMZN')">AMZN</button>
+        <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('META')">META</button>
+      </div>
+    </div>
+
+    <!-- Hero: Price + Composite Score -->
+    <div class="em-hero-grid" id="emHeroGrid" style="display:none;">
+      <div class="em-price-card" id="emPriceCard"></div>
+      <div class="em-score-card" id="emScoreCard"></div>
+    </div>
+
+    <!-- Analysis Grid: ATM Options | Volatility Context | Market Regime -->
+    <div class="em-analysis-grid" id="emAnalysisGrid" style="display:none;">
+      <div class="em-analysis-card" id="emATMCard"></div>
+      <div class="em-analysis-card" id="emVolCard"></div>
+      <div class="em-analysis-card" id="emMarketCard"></div>
+    </div>
+
+    <!-- Context Row: Technicals | Sector -->
+    <div class="em-context-grid" id="emContextGrid" style="display:none;">
+      <div class="em-context-card" id="emTechCard"></div>
+      <div class="em-context-card" id="emSectorCard"></div>
+    </div>
+
+    <!-- Full Scoring Breakdown -->
+    <div class="em-breakdown-panel" id="emBreakdownPanel" style="display:none;">
+      <div class="em-breakdown-card" id="emBreakdownCard"></div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="em-watchlist-section">
+      <div class="em-watchlist-card">
+        <div class="em-watchlist-header">
+          <h3>Watchlist</h3>
+          <div class="em-watchlist-actions">
+            <input type="text" id="emAddInput" placeholder="Add ticker…"
+              onkeydown="if(event.key==='Enter') ExpectedMove.addTicker()" />
+            <button class="em-wl-btn primary" onclick="ExpectedMove.addTicker()">Add</button>
+            <button class="em-wl-btn" onclick="ExpectedMove.exportWatchlist()">Export CSV</button>
+            <button class="em-wl-btn" onclick="ExpectedMove.refreshAll()">Refresh All</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="em-watchlist-table" id="emWatchlistTable">
+            <thead>
+              <tr>
+                <th data-sort="ticker">Ticker</th>
+                <th data-sort="price">Price</th>
+                <th data-sort="change">Chg %</th>
+                <th data-sort="em">EM $</th>
+                <th data-sort="emPct">EM %</th>
+                <th data-sort="iv">ATM IV</th>
+                <th data-sort="hvRank">HV Rank</th>
+                <th data-sort="expiry">Expiry</th>
+                <th data-sort="earnings">Earnings</th>
+                <th data-sort="surprise">Surprise</th>
+                <th data-sort="composite">Score</th>
+                <th data-sort="tier">Tier</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="emWatchlistBody"></tbody>
+          </table>
+        </div>
+        <div id="emWatchlistEmpty" class="em-empty" style="display:none;">
+          <p><strong>No tickers in watchlist</strong></p>
+          <p>Add tickers above or use the quick symbols to start analyzing.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Watchlists -->
+    <div class="em-watchlist-section">
+      <div class="em-watchlist-card">
+        <div class="em-watchlist-header">
+          <h3>All Watchlists</h3>
+          <div class="em-watchlist-actions" id="emAllWatchlistMeta"></div>
+        </div>
+        <div id="emAllWatchlistList" class="em-quick-symbols" style="padding: 0 20px 16px; flex-wrap: wrap;"></div>
+        <div id="emAllWatchlistEmpty" class="em-empty" style="display:none;">
+          <p><strong>No watchlist symbols yet</strong></p>
+          <p>Add symbols from Screeners/News or this page's watchlist.</p>
+        </div>
+      </div>
+    </div>
+
+      <!-- Attribution -->
+      <div class="em-attribution">
+        Market-Adjusted Expected Move Engine &middot; Data: Yahoo Finance, Finnhub &middot;
+        Composite scoring for volatility pricing quality — not trade signals
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/marketStatus.js"></script>
+  <script src="js/watchlist-store.js"></script>
+  <script src="js/options-expected-move.js"></script>
+</body>
+</html>

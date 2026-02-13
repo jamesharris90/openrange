@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Screener - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+
+    <!-- API Config -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <!-- Core Modules -->
+    <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/watchlist-store.js"></script>
+    <script src="js/advanced-screener.js"></script>
+
+    <style>
+        .tabs-container {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .tab.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .screener-table-container {
+            overflow-x: auto;
+            max-height: calc(100vh - 300px);
+        }
+
+        .screener-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        .screener-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            z-index: 10;
+        }
+
+        .screener-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .screener-table th:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .screener-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .watchlist-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .watchlist-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+        }
+
+        .watchlist-btn.added {
+            background: rgba(0, 200, 83, 0.12);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .screener-table tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .screener-table tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .ticker-cell {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .positive {
+            color: var(--accent-green);
+        }
+
+        .negative {
+            color: var(--accent-red);
+        }
+
+        .filters-toggle {
+            margin-bottom: 16px;
+        }
+
+        .filters-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .filters-panel.active {
+            display: block;
+        }
+
+        .filter-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .filter-section {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-section h4 {
+            margin: 0 0 16px 0;
+            font-size: 0.95em;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .filter-section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .filter-input, .filter-select {
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.85em;
+            transition: border-color 0.2s;
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .result-info {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .export-btn {
+            padding: 6px 16px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .export-btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-preset {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-preset:hover {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+        }
+
+        /* Rich news hover preview on ticker cells */
+        .news-popover {
+            position: fixed;
+            max-width: 380px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            padding: 14px 16px;
+            z-index: 9999;
+            display: none;
+        }
+
+        .news-popover .news-popover__title {
+            font-weight: 700;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .news-popover .news-popover__meta {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .news-popover .news-popover__snippet {
+            font-size: 0.9em;
+            line-height: 1.55;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            }
+            logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <img src="logo pack/logo-no-background.png" alt="OpenRange Trader" class="logo">
+                </a>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <i data-lucide="bar-chart-2" class="icon"></i>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <i data-lucide="search" class="icon"></i>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <i data-lucide="star" class="icon"></i>
+                    <span class="label">Watchlist</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <i data-lucide="sunrise" class="icon"></i>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <i data-lucide="trending-up" class="icon"></i>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <i data-lucide="sunset" class="icon"></i>
+                    <span class="label">Post-Market</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="news-scanner.html" class="nav-link">
+                    <i data-lucide="newspaper" class="icon"></i>
+                    <span class="label">News Scanner</span>
+                </a>
+                <a href="advanced-screener.html" class="nav-link active">
+                    <i data-lucide="filter" class="icon"></i>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="research.html" class="nav-link">
+                    <i data-lucide="microscope" class="icon"></i>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <i data-lucide="bot" class="icon"></i>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <i data-lucide="globe" class="icon"></i>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">
+                    Advanced Stock Screener
+                </h1>
+                <div class="top-bar-actions">
+                    <button class="btn-secondary" onclick="advancedScreener.clearAllFilters()">
+                        <i data-lucide="x" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                        Clear Filters
+                    </button>
+                    <button class="btn-primary btn-refresh" onclick="advancedScreener.fetchData()">
+                        <span class="btn-refresh__glow" aria-hidden="true"></span>
+                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Filters Toggle -->
+                <div class="filters-toggle">
+                    <button class="btn-icon" id="filtersToggleBtn" onclick="toggleFilters()" title="Filters">
+                        <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+
+                <!-- Filters Panel -->
+                <div id="filtersPanel" class="filters-panel">
+                    <!-- Presets Section -->
+                    <div id="presetsContainer" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+                        <!-- Presets will be dynamically generated -->
+                    </div>
+
+                    <!-- Filter Sections -->
+                    <div class="filter-sections" id="filterSections">
+                        <!-- Filters will be dynamically generated -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 16px; display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="advancedScreener.applyAllFilters()">Apply Filters</button>
+                        <button class="btn-secondary" onclick="advancedScreener.clearAllFilters()">Clear All</button>
+                    </div>
+                </div>
+
+                <!-- News Legend -->
+                <div id="newsLegendContainer" style="padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 16px;">
+                    <!-- News legend will be dynamically generated -->
+                </div>
+
+                <!-- Results Info -->
+                <div class="result-info">
+                    <span id="resultCount">Loading...</span>
+                    <button class="export-btn" onclick="advancedScreener.exportToCSV()">
+                        <i data-lucide="download" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                        Export CSV
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs-container" id="tabsContainer">
+                    <!-- Tabs will be generated dynamically -->
+                </div>
+
+                <!-- Data Info Note -->
+                <div style="padding: 8px 16px; background: var(--bg-secondary); border-left: 3px solid var(--accent-blue); margin-bottom: 12px; font-size: 0.8em; color: var(--text-secondary);">
+                    <strong>Note:</strong> Data availability varies by view. Columns with insufficient data are automatically hidden. Some advanced metrics may not be available from the data source.
+                </div>
+
+                <!-- Table Container -->
+                <div class="screener-table-container" id="tableContainer">
+                    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        Loading screener data...
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Toggle filters
+        function toggleFilters() {
+            const panel = document.getElementById('filtersPanel');
+            panel.classList.toggle('active');
+        }
+
+        // Initialize screener when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Initializing advanced screener...');
+
+            // Wait for config to load
+            if (window.configReady) {
+                await window.configReady;
+            }
+
+            // Initialize and load data
+            advancedScreener.init();
+            advancedScreener.fetchData();
+
+            // Refresh icons
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -220,6 +220,45 @@
     </style>
 </head>
 <body>
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card,#141b2d);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
     <div class="header">
         <h1>🔥 Finviz Elite Dashboard</h1>
         <div class="header-info">

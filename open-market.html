@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Market - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="https://s3.tradingview.com/tv.js"></script>
+
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+    <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/open-market.js"></script>
+
+    <style>
+        .ticker-input-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ticker-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .ticker-badge {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        @media (max-width: 1100px) {
+            .charts-grid {
+                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            }
+        }
+
+        .chart-card .card-body {
+            padding: 0;
+        }
+
+        .chart-frame {
+            height: 360px;
+        }
+
+        .fundamentals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .fund-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .fund-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .fund-meta {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        .news-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .news-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+        }
+
+        .news-headline {
+            color: var(--text-primary);
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .news-meta {
+            color: var(--text-secondary);
+            font-size: 0.85em;
+        }
+
+        .news-row-content {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .news-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.25), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: 0.02em;
+            flex-shrink: 0;
+        }
+
+        .news-right-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            min-width: 120px;
+        }
+
+        .news-change-up {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        .news-change-down {
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        .table-card {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-card th, .table-card td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .table-card th {
+            color: var(--text-secondary);
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .table-card tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        .ticker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .ticker-field label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        @media (max-width: 900px) {
+            .news-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <i data-lucide="bar-chart-2" class="icon"></i>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <i data-lucide="search" class="icon"></i>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <i data-lucide="star" class="icon"></i>
+                    <span class="label">Watchlist</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <i data-lucide="sunrise" class="icon"></i>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="open-market.html" class="nav-link active">
+                    <i data-lucide="layout-grid" class="icon"></i>
+                    <span class="label">Open Market</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <i data-lucide="sunset" class="icon"></i>
+                    <span class="label">Post-Market</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="news-scanner.html" class="nav-link">
+                    <i data-lucide="newspaper" class="icon"></i>
+                    <span class="label">News Scanner</span>
+                </a>
+                <a href="research.html" class="nav-link">
+                    <i data-lucide="microscope" class="icon"></i>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <i data-lucide="bot" class="icon"></i>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <i data-lucide="globe" class="icon"></i>
+                    <span class="label">Market Overview</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <i data-lucide="trending-up" class="icon"></i>
+                    <span class="label">Market Hours</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">Open Market</h1>
+                <div class="top-bar-actions">
+                    <button class="btn-secondary" onclick="openMarket.refreshAll()">
+                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <div class="card">
+                    <div class="card-body">
+                        <p style="margin: 0; color: var(--text-secondary);">
+                            Multi-panel view with four live charts, screener fundamentals, and ticker-specific news. Enter up to four tickers to drive the board.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Tickers</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="ticker-grid">
+                            <div class="ticker-field">
+                                <label for="om-t1">Chart 1</label>
+                                <input id="om-t1" type="text" class="filter-input" placeholder="e.g. SMCI">
+                            </div>
+                            <div class="ticker-field">
+                                <label for="om-t2">Chart 2</label>
+                                <input id="om-t2" type="text" class="filter-input" placeholder="e.g. NVDA">
+                            </div>
+                            <div class="ticker-field">
+                                <label for="om-t3">Chart 3</label>
+                                <input id="om-t3" type="text" class="filter-input" placeholder="e.g. AMD">
+                            </div>
+                            <div class="ticker-field">
+                                <label for="om-t4">Chart 4</label>
+                                <input id="om-t4" type="text" class="filter-input" placeholder="e.g. SPY">
+                            </div>
+                        </div>
+                        <div class="ticker-input-row" style="margin-top:12px;">
+                            <button class="btn-primary" onclick="openMarket.applyTickers()">Apply</button>
+                            <button class="btn-secondary" onclick="openMarket.resetTickers()">Reset</button>
+                        </div>
+                        <div id="om-ticker-badges" class="ticker-badges"></div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" id="om-charts"></div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📑</span>
+                            Live Fundamentals
+                        </div>
+                        <div class="card-actions" style="gap: 8px;">
+                            <button class="btn-secondary" onclick="openMarket.refreshFundamentals()">Refresh Fundamentals</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="om-fundamentals" class="fundamentals-grid">
+                            <div class="helper-text">Loading fundamentals...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📰</span>
+                            Live News
+                        </div>
+                        <div class="card-actions" style="gap: 8px;">
+                            <button class="btn-secondary" onclick="openMarket.toggleNewsSort()" title="Sort by news freshness">
+                                News Freshness
+                            </button>
+                            <button class="btn-secondary" onclick="openMarket.refreshNews()">Refresh News</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="om-news" class="news-feed">
+                            <div class="helper-text">Loading news...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+            openMarket.init();
+        });
+    </script>
+</body>
+</html>

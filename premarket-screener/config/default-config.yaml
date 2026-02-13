@@ -1,0 +1,26 @@
+# Pre-Market Screener Configuration
+# All thresholds are configurable — adjust to match your risk tolerance.
+
+thresholds:
+  minPrice: 1            # Minimum tradeable price ($)
+  maxPrice: 500          # Maximum tradeable price ($)
+  minAvgVolume: 500000   # Minimum average daily volume
+  minPmVolume: 100000    # Minimum pre-market volume
+  minGapPct: 3           # Minimum gap % (absolute value)
+  # maxFloat: 250000000  # Optional: max float filter (uncomment to enable)
+
+session:
+  marketOpenUk: "14:30"
+  macroNotes: "Sample session — mock data. Replace with real macro notes."
+
+stopConditions:
+  dailyLossLimit: 500       # $ max loss before forced stop
+  maxLosingTrades: 3        # consecutive losers before stop
+  emotionalCheckTime: "17:00"  # UK time — pause and assess
+  hardCloseUk: "20:45"     # UK time — all positions closed
+
+scannerSources:
+  - "Sample JSON/CSV"
+  - "Mock News Provider"
+  - "Mock Earnings Provider"
+  - "Mock Market Data Provider"

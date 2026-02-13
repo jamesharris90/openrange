@@ -4,15 +4,34 @@
   "description": "Server-side proxy to forward requests to Saxo OpenAPI and hide client secrets",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "start-detached": "./scripts/start.sh",
+    "stop-detached": "./scripts/stop.sh",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.4.0",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csvtojson": "^2.0.14",
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
-    "express-rate-limit": "^6.7.0"
+    "express-rate-limit": "^6.7.0",
+    "jsonwebtoken": "^9.0.3",
+    "sqlite3": "^5.1.7",
+    "winston": "^3.19.0",
+    "yahoo-finance2": "^3.13.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.2.2"
   }
 }

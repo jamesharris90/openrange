@@ -4,11 +4,22 @@
 class SaxoAPI {
     constructor() {
         this.baseUrl = CONFIG.SAXO.apiUrl;
-        this.token = CONFIG.SAXO.token;
-        this.clientKey = CONFIG.SAXO.clientKey;
-        this.accountNumber = CONFIG.SAXO.accountNumber;
+        this.accountKey = null; // Will be fetched from /accounts/me
         this.cache = {};
         this.cacheDuration = 30000; // 30 seconds cache
+    }
+
+    // Use getters to always get current config values
+    get token() {
+        return CONFIG.SAXO.token;
+    }
+
+    get clientKey() {
+        return CONFIG.SAXO.clientKey;
+    }
+
+    get accountNumber() {
+        return CONFIG.SAXO.accountNumber;
     }
     
     /**
@@ -25,7 +36,6 @@ class SaxoAPI {
         
         const url = `${this.baseUrl}${endpoint}`;
         const headers = {
-            'Authorization': `Bearer ${this.token}`,
             'Content-Type': 'application/json',
             ...options.headers
         };
@@ -34,7 +44,8 @@ class SaxoAPI {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
             
-            const response = await fetch(url, { 
+            // Use AUTH helper to make authenticated call through proxy
+            const response = await AUTH.fetchSaxo(url, { 
                 method: options.method || 'GET',
                 headers, 
                 signal: controller.signal,
@@ -43,8 +54,9 @@ class SaxoAPI {
             
             clearTimeout(timeout);
             
-            if (!response.ok) {
-                throw new Error(`Saxo API Error: ${response.status} ${response.statusText}`);
+            if (!response || !response.ok) {
+                const status = response ? response.status : 'unknown';
+                throw new Error(`Saxo API Error: ${status}`);
             }
             
             const data = await response.json();
@@ -67,17 +79,36 @@ class SaxoAPI {
     }
     
     /**
+     * Get AccountKey from server (cached)
+     */
+    async getAccountKey() {
+        if (this.accountKey) return this.accountKey;
+
+        try {
+            const accounts = await this.call(`/port/v1/accounts/me`);
+            if (accounts && accounts.Data && accounts.Data.length > 0) {
+                this.accountKey = accounts.Data[0].AccountKey;
+                return this.accountKey;
+            }
+        } catch (error) {
+            console.warn('Failed to get AccountKey, using ClientKey fallback:', error);
+        }
+        return this.clientKey; // Fallback to clientKey
+    }
+
+    /**
      * Get account balance information
      */
     async getBalance() {
-        return this.call(`/port/v1/balances?ClientKey=${this.clientKey}&AccountKey=${this.clientKey}`);
+        // Use ClientKey for client-level balance (covers all accounts)
+        return this.call(`/port/v1/balances?ClientKey=${encodeURIComponent(this.clientKey)}`);
     }
     
     /**
      * Get open positions
      */
     async getPositions() {
-        return this.call(`/port/v1/positions?ClientKey=${this.clientKey}&FieldGroups=DisplayAndFormat,PositionBase,PositionView`);
+        return this.call(`/port/v1/positions?ClientKey=${encodeURIComponent(this.clientKey)}&FieldGroups=DisplayAndFormat,PositionBase,PositionView`);
     }
     
     /**
@@ -86,7 +117,7 @@ class SaxoAPI {
     async getClosedPositions(fromDate, toDate) {
         const from = fromDate || this.getTodayStart();
         const to = toDate || new Date().toISOString();
-        return this.call(`/hist/v3/positions?ClientKey=${this.clientKey}&FromDate=${from}&ToDate=${to}`);
+        return this.call(`/hist/v3/positions?ClientKey=${encodeURIComponent(this.clientKey)}&FromDate=${from}&ToDate=${to}`);
     }
     
     /**
@@ -101,15 +132,17 @@ class SaxoAPI {
      */
     async getPerformance(fromDate, toDate) {
         const from = fromDate || this.getTodayStart();
-        const to = toDate || new Date().toISOString();
-        return this.call(`/hist/v4/performance/summary?ClientKey=${this.clientKey}&AccountKey=${this.clientKey}&FromDate=${from}&ToDate=${to}&FieldGroups=DisplayAndFormat`);
+        // Format ToDate as YYYY-MM-DD for Saxo API
+        const to = toDate || new Date().toISOString().split('T')[0];
+        const accountKey = await this.getAccountKey();
+        return this.call(`/hist/v4/performance/summary?ClientKey=${encodeURIComponent(this.clientKey)}&AccountKey=${encodeURIComponent(accountKey)}&FromDate=${encodeURIComponent(from)}&ToDate=${encodeURIComponent(to)}`);
     }
     
     /**
      * Get account values (historical)
      */
     async getAccountValues() {
-        return this.call(`/hist/v3/accountvalues?ClientKey=${this.clientKey}`);
+        return this.call(`/hist/v3/accountvalues?ClientKey=${encodeURIComponent(this.clientKey)}`);
     }
     
     /**
@@ -118,7 +151,7 @@ class SaxoAPI {
     async getTodayTransactions() {
         const from = this.getTodayStart();
         const to = new Date().toISOString();
-        return this.call(`/hist/v1/transactions?ClientKey=${this.clientKey}&FromDate=${from}&ToDate=${to}`);
+        return this.call(`/hist/v1/transactions?ClientKey=${encodeURIComponent(this.clientKey)}&FromDate=${from}&ToDate=${to}`);
     }
     
     /**
@@ -185,12 +218,13 @@ class SaxoAPI {
     }
     
     /**
-     * Get today's start time in ISO format
+     * Get today's start time in ISO format (Saxo compatible)
      */
     getTodayStart() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        return today.toISOString();
+        // Return simple date format YYYY-MM-DD for Saxo API
+        return today.toISOString().split('T')[0];
     }
     
     /**
@@ -266,13 +300,18 @@ async function loadSaxoDashboard() {
         pnl: document.getElementById('todayPnL'),
         positions: document.getElementById('openPositions')
     };
-    
+
     // Show loading state
     Object.values(loadingStates).forEach(el => {
         if (el) el.textContent = 'Loading...';
     });
-    
+
     try {
+        // Wait for config to load first
+        if (window.configReady) {
+            await window.configReady;
+        }
+
         const data = await saxoAPI.getDashboardData();
         
         // Update balance

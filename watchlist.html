@@ -9,6 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+        <script src="js/watchlist-store.js"></script>
+        <script src="js/watchlist.js"></script>
     <style>
         .watchlist-select {
             width: 100%;
@@ -58,6 +62,45 @@
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -104,6 +147,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="news-scanner.html" class="nav-link">
+                    <span class="icon">📰</span>
+                    <span class="label">News Scanner</span>
+                </a>
+                <a href="advanced-screener.html" class="nav-link">
+                    <span class="icon">🎯</span>
+                    <span class="label">Advanced Screener</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <span class="icon">🔬</span>
                     <span class="label">Research</span>
@@ -134,6 +185,35 @@
 
             <!-- Content Container -->
             <div class="content-container">
+                <!-- My symbols -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">My Watchlist</div>
+                        <div class="card-actions">
+                            <button class="btn-primary" id="watchlistRefresh">Refresh Stats</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="watchlistChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                        <div id="watchlistStatus" class="helper-text" style="margin-top:8px;"></div>
+                        <div class="table-responsive" style="margin-top:12px;">
+                            <table class="screener-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ticker</th>
+                                        <th>Price</th>
+                                        <th>Change %</th>
+                                        <th>Gap %</th>
+                                        <th>Rel Vol</th>
+                                        <th>Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="watchlistTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Watchlist Selector -->
                 <div class="card">
                     <div class="card-header">
@@ -149,18 +229,16 @@
                     <div class="card-body">
                         <select class="watchlist-select" id="watchlistSelect" onchange="loadWatchlist()">
                             <option value="318552056">Today's Watchlist</option>
+                            <option value="316663718">Possible Watchlist</option>
+                            <option value="314532887">Yesterday's Watchlist</option>
                             <option value="custom1">ORB Candidates</option>
                             <option value="custom2">Swing Trades</option>
                             <option value="custom3">Market ETFs</option>
                             <option value="custom4">High Momentum</option>
                             <option value="custom5">Earnings Plays</option>
                         </select>
-                        <p style="margin-top: 12px; font-size: 0.9em; color: var(--text-muted);">
-                            <strong>Note:</strong> Click on any ticker in the watchlist below to view detailed charts and analysis
-                        </p>
                     </div>
                 </div>
-
                 <!-- TradingView Watchlist -->
                 <div class="card" style="margin-top: 24px;">
                     <div class="card-header">
@@ -168,17 +246,17 @@
                             <span id="watchlistTitle">Today's Watchlist</span>
                         </div>
                         <div class="card-actions">
-                            <button class="btn-icon" onclick="location.reload()" title="Refresh">🔄</button>
+                            <button class="btn-icon" onclick="loadWatchlist()" title="Refresh">🔄</button>
                         </div>
                     </div>
                     <div class="card-body">
-                        <iframe 
-                            id="watchlistFrame" 
-                            class="watchlist-frame"
-                            src="https://www.tradingview.com/watchlists/318552056/">
-                        </iframe>
+                        <div class="widget-container" style="height: 600px;">
+                            <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                <div id="watchlistWidget"></div>
+                            </div>
+                        </div>
                         <p style="margin-top: 12px; font-size: 0.85em; color: var(--text-muted); font-style: italic;">
-                            TradingView watchlist with live data (requires TradingView login)
+                            Live market data from TradingView
                         </p>
                     </div>
                 </div>
@@ -297,50 +375,87 @@
     </div>
 
     <script src="https://s3.tradingview.com/tv.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
     <script>
         let currentSymbol = 'SPY';
         let currentInterval = '15';
+
+        // Initialize symbol autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            SymbolSearch.createAutocomplete('customSymbol', selectSymbol);
+        });
         
         const watchlists = {
             '318552056': {
                 title: "Today's Watchlist",
-                url: "https://www.tradingview.com/watchlists/318552056/"
+                symbols: ["NASDAQ:TAL", "NASDAQ:AXTI", "NASDAQ:PLTR", "NASDAQ:NVDA", "NASDAQ:TSLA", "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:GOOGL"]
+            },
+            '316663718': {
+                title: "Possible Watchlist",
+                symbols: ["NASDAQ:META", "NASDAQ:AMZN", "NYSE:DIS", "NASDAQ:NFLX", "NASDAQ:AMD", "NYSE:BABA", "NASDAQ:INTC", "NYSE:BA"]
+            },
+            '314532887': {
+                title: "Yesterday's Watchlist",
+                symbols: ["NYSE:F", "NYSE:GM", "NASDAQ:RIVN", "NASDAQ:LCID", "NYSE:NIO", "NASDAQ:XPEV", "NYSE:PLUG", "NASDAQ:FCEL"]
             },
             'custom1': {
                 title: "ORB Candidates",
-                url: "https://www.tradingview.com/watchlists/318552056/" // Replace with your actual watchlist IDs
+                symbols: ["NASDAQ:QQQ", "NYSE:SPY", "NYSE:IWM", "NASDAQ:TQQQ", "NYSE:SQQQ", "NASDAQ:SOXL", "NYSE:UPRO", "NYSE:SPXU"]
             },
             'custom2': {
                 title: "Swing Trades",
-                url: "https://www.tradingview.com/watchlists/318552056/"
+                symbols: ["NYSE:JPM", "NYSE:BAC", "NYSE:WFC", "NYSE:C", "NYSE:GS", "NYSE:MS", "NYSE:USB", "NYSE:PNC"]
             },
             'custom3': {
                 title: "Market ETFs",
-                url: "https://www.tradingview.com/watchlists/318552056/"
+                symbols: ["NYSE:SPY", "NASDAQ:QQQ", "NYSE:IWM", "NYSE:DIA", "NYSE:VTI", "NYSE:VOO", "NYSE:VEA", "NYSE:VWO"]
             },
             'custom4': {
                 title: "High Momentum",
-                url: "https://www.tradingview.com/watchlists/318552056/"
+                symbols: ["NASDAQ:COIN", "NASDAQ:MARA", "NASDAQ:RIOT", "NASDAQ:MSTR", "NYSE:SQ", "NYSE:PYPL", "NASDAQ:HOOD", "NASDAQ:SOFI"]
             },
             'custom5': {
                 title: "Earnings Plays",
-                url: "https://www.tradingview.com/watchlists/318552056/"
+                symbols: ["NASDAQ:GOOG", "NASDAQ:AMZN", "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:TSLA", "NASDAQ:META", "NASDAQ:NFLX", "NASDAQ:NVDA"]
             }
         };
 
         function loadWatchlist() {
             const select = document.getElementById('watchlistSelect');
             const watchlist = watchlists[select.value];
-            
+
             document.getElementById('watchlistTitle').textContent = watchlist.title;
-            document.getElementById('watchlistFrame').src = watchlist.url;
-            
+
+            // Clear and recreate widget
+            const container = document.getElementById('watchlistWidget');
+            container.innerHTML = '';
+
+            // Create TradingView Market Quotes widget
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "600",
+                "symbolsGroups": [{
+                    "name": watchlist.title,
+                    "symbols": watchlist.symbols.map(s => ({ "name": s }))
+                }],
+                "showSymbolLogo": true,
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "locale": "en"
+            });
+            container.appendChild(script);
+
             localStorage.setItem('selectedWatchlist', select.value);
         }
 
         function getCurrentWatchlistUrl() {
-            const select = document.getElementById('watchlistSelect');
-            return watchlists[select.value].url;
+            // Return TradingView main site for opening externally
+            return 'https://www.tradingview.com';
         }
 
         function selectSymbol(symbol) {
@@ -496,10 +611,12 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', function() {
-            // Load saved watchlist
+            const selectEl = document.getElementById('watchlistSelect');
             const savedWatchlist = localStorage.getItem('selectedWatchlist');
-            if (savedWatchlist && watchlists[savedWatchlist]) {
-                document.getElementById('watchlistSelect').value = savedWatchlist;
+            if (selectEl) {
+                if (savedWatchlist && watchlists[savedWatchlist]) {
+                    selectEl.value = savedWatchlist;
+                }
                 loadWatchlist();
             }
             

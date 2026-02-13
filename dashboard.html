@@ -12,12 +12,20 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+    <script src="js/sidebar.js"></script>
+
+    <!-- Inject API key for demo/public mode (set this value server-side for production) -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <!-- Authentication -->
+    <script src="js/auth.js"></script>
+
     <!-- Core Modules -->
     <script src="js/config.js"></script>
     <script src="js/marketStatus.js"></script>
     <script src="js/saxoAPI.js"></script>
     <script src="js/news.js"></script>
+    <script src="js/alerts.js"></script>
     
     <style>
         .countdown-widget {
@@ -99,6 +107,34 @@
             color: var(--text-secondary);
             line-height: 1.5;
         }
+
+        .alert-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            margin-bottom: 8px;
+        }
+        .alert-pill {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.8em;
+            color: white;
+        }
+        .alert-pill.pending { background: var(--accent-blue); }
+        .alert-pill.triggered { background: var(--accent-green); }
+        .alert-remove {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .alert-remove:hover { color: var(--accent-red); }
         
         .loading {
             text-align: center;
@@ -115,10 +151,124 @@
             color: var(--accent-red);
             text-align: center;
         }
+
+        /* Compact news items */
+        .news-item.compact {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0;
+            border-radius: 0;
+            border-left: 0;
+            transition: all 0.2s;
+        }
+
+        .news-item.compact:hover {
+            background: var(--bg-card-hover);
+            padding-left: 16px;
+        }
+
+        .news-item.compact:last-child {
+            border-bottom: none;
+        }
+
+        .news-item.compact .news-meta {
+            margin-bottom: 4px;
+            font-size: 0.75em;
+        }
+
+        .news-item.compact .news-headline {
+            margin: 0;
+            font-size: 0.9em;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .news-item.compact .news-headline a {
+            color: var(--text-primary);
+        }
+
+        /* Filter buttons */
+        .filter-btn {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .no-news {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+        }
+
+        .no-news a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .no-news a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -165,6 +315,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <i data-lucide="filter" class="icon"></i>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <i data-lucide="newspaper" class="icon"></i>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <i data-lucide="microscope" class="icon"></i>
                     <span class="label">Research</span>
@@ -202,10 +360,25 @@
 
             <!-- Content Container -->
             <div class="content-container">
+                <!-- Saxo Connection Status Banner -->
+                <div id="saxoConnectionBanner" style="display:none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--accent-red);"></i>
+                        <span style="color: var(--text-primary); font-weight: 600;">Saxo Bank not connected</span>
+                    </div>
+                    <p style="margin: 8px 0; color: var(--text-secondary);">Connect your Saxo Bank account to view live trading data.</p>
+                    <button onclick="window.location.href='/auth/saxo/login'" style="background: var(--accent-blue); color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px;">
+                        Connect Saxo Account
+                    </button>
+                </div>
+
                 <!-- Stat Cards Row -->
                 <div class="grid-4">
                     <!-- Account Balance -->
-                    <div class="stat-card">
+                    <div class="stat-card" id="balanceCard">
+                        <button class="expand-btn" onclick="toggleCardExpand('balanceCard')" title="Expand">
+                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                        </button>
                         <div class="stat-icon" style="background: var(--gradient-blue);">
                             <i data-lucide="wallet" style="width: 24px; height: 24px; color: white;"></i>
                         </div>
@@ -218,6 +391,9 @@
 
                     <!-- Today's P&L -->
                     <div class="stat-card" id="pnlCard">
+                        <button class="expand-btn" onclick="toggleCardExpand('pnlCard')" title="Expand">
+                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                        </button>
                         <div class="stat-icon" style="background: var(--gradient-purple);">
                             <i data-lucide="trending-up" style="width: 24px; height: 24px; color: white;"></i>
                         </div>
@@ -229,7 +405,10 @@
                     </div>
 
                     <!-- Open Positions -->
-                    <div class="stat-card">
+                    <div class="stat-card" id="positionsCard">
+                        <button class="expand-btn" onclick="toggleCardExpand('positionsCard')" title="Expand">
+                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                        </button>
                         <div class="stat-icon" style="background: var(--gradient-orange);">
                             <i data-lucide="activity" style="width: 24px; height: 24px; color: white;"></i>
                         </div>
@@ -247,8 +426,59 @@
                         </div>
                         <div class="stat-content">
                             <div class="stat-label">Win Rate</div>
-                            <div class="stat-value">--</div>
+                            <div class="stat-value" id="winRate">--</div>
                             <div class="stat-change">This month</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Analytics Row -->
+                <div class="grid-4" style="margin-top: 16px;">
+                    <!-- Historical Performance -->
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--gradient-green);">
+                            <i data-lucide="bar-chart" style="width: 24px; height: 24px; color: white;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Historical P&L</div>
+                            <div class="stat-value" id="historicalPnL">Loading...</div>
+                            <div class="stat-change">Last 30 days</div>
+                        </div>
+                    </div>
+
+                    <!-- Market Movers -->
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--gradient-yellow);">
+                            <i data-lucide="arrow-up-right" style="width: 24px; height: 24px; color: white;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Top Movers</div>
+                            <div class="stat-value" id="marketMovers">Loading...</div>
+                            <div class="stat-change">Today</div>
+                        </div>
+                    </div>
+
+                    <!-- Trade Journal -->
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--gradient-grey);">
+                            <i data-lucide="book-open" style="width: 24px; height: 24px; color: white;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Trade Journal</div>
+                            <div class="stat-value" id="tradeJournalCount">0 entries</div>
+                            <div class="stat-change"><a href="#tradeJournalSection" style="color:var(--accent-blue)">View</a></div>
+                        </div>
+                    </div>
+
+                    <!-- Position Size Calculator -->
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--gradient-blue);">
+                            <i data-lucide="calculator" style="width: 24px; height: 24px; color: white;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Position Size</div>
+                            <div class="stat-value" id="positionSize">--</div>
+                            <div class="stat-change"><a href="#positionSizeSection" style="color:var(--accent-blue)">Calculate</a></div>
                         </div>
                     </div>
                 </div>
@@ -318,6 +548,44 @@
                                     </script>
                                 </div>
                             </div>
+                            <!-- TradingView Watchlist Widget -->
+                            <div class="tradingview-widget-container" style="margin-top:16px;">
+                                <div class="tradingview-widget-container__widget"></div>
+                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+                                {
+                                    "width": "100%",
+                                    "height": "200",
+                                    "symbols": [
+                                        ["NASDAQ:AAPL|1D"],
+                                        ["NASDAQ:TSLA|1D"],
+                                        ["NASDAQ:NVDA|1D"],
+                                        ["NASDAQ:MSFT|1D"],
+                                        ["NASDAQ:GOOGL|1D"],
+                                        ["NASDAQ:AMZN|1D"],
+                                        ["NASDAQ:META|1D"]
+                                    ],
+                                    "locale": "en",
+                                    "colorTheme": "dark",
+                                    "isTransparent": true
+                                }
+                                </script>
+                            </div>
+                            <!-- TradingView Screener Widget -->
+                            <div class="tradingview-widget-container" style="margin-top:16px;">
+                                <div class="tradingview-widget-container__widget"></div>
+                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+                                {
+                                    "width": "100%",
+                                    "height": "200",
+                                    "defaultColumn": "overview",
+                                    "defaultScreen": "most_actives",
+                                    "market": "stocks",
+                                    "locale": "en",
+                                    "colorTheme": "dark",
+                                    "isTransparent": true
+                                }
+                                </script>
+                            </div>
                         </div>
                     </div>
 
@@ -335,6 +603,13 @@
                             </div>
                         </div>
                         <div class="card-body">
+                            <!-- Market Cap Filters -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <button class="filter-btn active" data-filter="all" onclick="setNewsFilter('all', 'newsFeed')">All</button>
+                                <button class="filter-btn" data-filter="small" onclick="setNewsFilter('small', 'newsFeed')">Small Cap</button>
+                                <button class="filter-btn" data-filter="mid" onclick="setNewsFilter('mid', 'newsFeed')">Mid Cap</button>
+                                <button class="filter-btn" data-filter="large" onclick="setNewsFilter('large', 'newsFeed')">Large Cap</button>
+                            </div>
                             <div id="newsFeed" style="max-height: 400px; overflow-y: auto;">
                                 <div class="loading">Loading latest market news...</div>
                             </div>
@@ -366,6 +641,28 @@
                                 }
                                 </script>
                             </div>
+                            <!-- TradingView Heatmap Widget -->
+                            <div class="tradingview-widget-container" style="margin-top:16px;">
+                                <div class="tradingview-widget-container__widget"></div>
+                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+                                {
+                                    "exchanges": [],
+                                    "dataSource": "SPX500",
+                                    "grouping": "sector",
+                                    "blockSize": "market_cap_basic",
+                                    "blockColor": "change",
+                                    "locale": "en",
+                                    "symbolUrl": "",
+                                    "colorTheme": "dark",
+                                    "hasTopBar": false,
+                                    "isDataSetEnabled": false,
+                                    "isZoomEnabled": true,
+                                    "hasSymbolTooltip": true,
+                                    "width": "100%",
+                                    "height": "300"
+                                }
+                                </script>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -373,43 +670,217 @@
         </main>
     </div>
 
+    <!-- Trade Journal Section -->
+    <section id="tradeJournalSection" style="margin: 32px 0;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="book-open" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                    Trade Journal
+                </div>
+            </div>
+            <div class="card-body">
+                <textarea id="tradeJournal" style="width:100%;height:120px;resize:vertical;" placeholder="Log your trades, notes, and results..."></textarea>
+                <button class="btn-primary" onclick="saveTradeJournal()" style="margin-top:8px;">Save Entry</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Position Size Calculator Section -->
+    <section id="positionSizeSection" style="margin: 32px 0;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="calculator" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                    Position Size Calculator
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+                    <input type="number" id="accountEquity" placeholder="Account Equity (£)" style="width:160px;">
+                    <input type="number" id="riskPercent" placeholder="Risk %" style="width:100px;">
+                    <input type="number" id="stopLossPoints" placeholder="Stop Loss (pts)" style="width:120px;">
+                    <button class="btn-primary" onclick="calculatePositionSize()">Calculate</button>
+                    <span id="positionSizeResult" style="margin-left:16px;font-weight:600;"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Alert System Section -->
+    <section id="alertSystemSection" style="margin: 32px 0;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="bell" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+                    Alert System
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+                    <div class="alert-form" style="background:var(--bg-secondary);padding:12px;border-radius:10px;border:1px solid var(--border-color);">
+                        <div style="font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><i data-lucide="dollar-sign" style="width:16px;height:16px;"></i>Price Alert</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="text" id="alertSymbol" placeholder="Symbol (e.g. AAPL)" style="width:120px;">
+                            <select id="alertOperator" style="width:90px;padding:8px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);">
+                                <option value="gte">≥</option>
+                                <option value="lte">≤</option>
+                            </select>
+                            <input type="number" id="alertPrice" placeholder="Price" style="width:120px;">
+                            <button class="btn-primary" id="addPriceAlert">Add</button>
+                        </div>
+                    </div>
+                    <div class="alert-form" style="background:var(--bg-secondary);padding:12px;border-radius:10px;border:1px solid var(--border-color);">
+                        <div style="font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><i data-lucide="filter" style="width:16px;height:16px;"></i>Screener Watch</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="text" id="screenerFilter" placeholder="Finviz filter (e.g. sh_avgvol_o500,ta_change_u5)" style="flex:1;min-width:220px;">
+                            <input type="text" id="screenerSymbol" placeholder="Symbol (optional)" style="width:140px;">
+                            <button class="btn-primary" id="addScreenerAlert">Add</button>
+                        </div>
+                        <div class="helper-text" style="margin-top:6px;">Alert fires when the filter returns results, or when that symbol appears in the filter output.</div>
+                    </div>
+                </div>
+                <div id="alertStatus" class="helper-text" style="margin-top:8px;">No alerts configured.</div>
+                <div id="alertList" style="margin-top:12px;"></div>
+            </div>
+        </div>
+    </section>
+
     <script>
+        // Toggle card expand/collapse
+        function toggleCardExpand(cardId) {
+            const card = document.getElementById(cardId);
+            const btn = card.querySelector('.expand-btn i');
+
+            card.classList.toggle('expanded');
+
+            // Update icon
+            if (card.classList.contains('expanded')) {
+                btn.setAttribute('data-lucide', 'minimize-2');
+            } else {
+                btn.setAttribute('data-lucide', 'maximize-2');
+            }
+
+            // Refresh icons
+            lucide.createIcons();
+        }
+
+        // Set news filter
+        function setNewsFilter(filter, containerId) {
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Apply filter and refresh news
+            newsLoader.setMarketCapFilter(filter);
+            newsLoader.clearCache();
+            newsLoader.displayNews(containerId, 10);
+        }
+
+        // ...existing code...
         // Initialize Lucide icons
         lucide.createIcons();
-        
         // Initialize market status
         marketStatus.init();
         marketStatus.startCountdown();
-        
+
+        // Check Saxo connection status
+        async function checkSaxoConnection() {
+            try {
+                const response = await fetch('/api/saxo/auth/status');
+                const status = await response.json();
+                console.log('Saxo connection status:', status);
+
+                const banner = document.getElementById('saxoConnectionBanner');
+                if (!status.authenticated || !status.hasTokens) {
+                    if (banner) banner.style.display = 'block';
+                    return false;
+                } else {
+                    if (banner) banner.style.display = 'none';
+                    return true;
+                }
+            } catch (error) {
+                console.error('Failed to check Saxo connection status:', error);
+                return false;
+            }
+        }
+
         // Load Saxo dashboard data
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('Dashboard loading...');
-            
-            try {
-                await loadSaxoDashboard();
-                console.log('Saxo dashboard data loaded successfully');
-            } catch (error) {
-                console.error('Failed to load dashboard:', error);
+
+            // Check Saxo connection first
+            const isConnected = await checkSaxoConnection();
+
+            if (isConnected) {
+                try {
+                    await loadSaxoDashboard();
+                    console.log('Saxo dashboard data loaded successfully');
+                } catch (error) {
+                    console.error('Failed to load dashboard:', error);
+                }
+            } else {
+                console.log('Saxo not connected - showing connection prompt');
+                // Set placeholder values for stat cards
+                const balanceEl = document.getElementById('accountBalance');
+                const pnlEl = document.getElementById('todayPnL');
+                const posEl = document.getElementById('openPositions');
+                if (balanceEl) balanceEl.textContent = '--';
+                if (pnlEl) pnlEl.textContent = '--';
+                if (posEl) posEl.textContent = '--';
             }
-            
+
             // Load news
             newsLoader.displayNews('newsFeed', 10);
-            
             // Refresh Lucide icons after dynamic content loads
             setTimeout(() => {
                 lucide.createIcons();
             }, 1000);
+            // Load advanced analytics (mock for now)
+            document.getElementById('historicalPnL').textContent = '+£1,250';
+            document.getElementById('marketMovers').textContent = 'NVDA, TSLA, AAPL';
+            document.getElementById('winRate').textContent = '68%';
+            // Trade journal count
+            document.getElementById('tradeJournalCount').textContent = `${getTradeJournalCount()} entries`;
         });
-        
-        // Auto-refresh dashboard every 30 seconds
-        setInterval(async () => {
-            try {
-                await loadSaxoDashboard();
-                lucide.createIcons();
-            } catch (error) {
-                console.error('Auto-refresh failed:', error);
+
+        // Trade Journal logic
+        function saveTradeJournal() {
+            const entry = document.getElementById('tradeJournal').value.trim();
+            if (!entry) return;
+            let journal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
+            journal.push({ date: new Date().toISOString(), entry });
+            localStorage.setItem('tradeJournal', JSON.stringify(journal));
+            document.getElementById('tradeJournal').value = '';
+            document.getElementById('tradeJournalCount').textContent = `${journal.length} entries`;
+            alert('Trade journal entry saved!');
+        }
+        function getTradeJournalCount() {
+            let journal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
+            return journal.length;
+        }
+
+        // Position Size Calculator logic
+        function calculatePositionSize() {
+            const equity = parseFloat(document.getElementById('accountEquity').value);
+            const risk = parseFloat(document.getElementById('riskPercent').value);
+            const stop = parseFloat(document.getElementById('stopLossPoints').value);
+            if (!equity || !risk || !stop) {
+                document.getElementById('positionSizeResult').textContent = 'Enter all values.';
+                return;
             }
-        }, 30000);
+            const riskAmount = equity * (risk / 100);
+            const positionSize = Math.floor(riskAmount / stop);
+            document.getElementById('positionSizeResult').textContent = `Position Size: £${positionSize}`;
+            document.getElementById('positionSize').textContent = `£${positionSize}`;
+        }
+
+        // Alerts handled by js/alerts.js
+        // ...existing code...
     </script>
 </body>
 </html>

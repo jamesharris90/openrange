@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card,#141b2d);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+    <div class="app-container">
+        <main class="main-content">
+            <div class="card" style="max-width: 500px; margin: 40px auto;">
+                <div class="card-header">
+                    <div class="card-title">User Profile</div>
+                </div>
+                <div class="card-body">
+                    <div id="userDetails">
+                        <p><strong>Username:</strong> <span id="profileUsername">Loading...</span></p>
+                        <p><strong>Email:</strong> <span id="profileEmail">Loading...</span></p>
+                    </div>
+
+                    <div style="margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                        <h3 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-primary);">Saxo Bank Connection</h3>
+                        <div id="saxoStatus" style="margin-bottom: 12px;">
+                            <p style="margin: 0; color: var(--text-muted); font-size: 13px;">Checking connection...</p>
+                        </div>
+                        <button id="saxoConnectBtn" class="btn-primary" style="display: none;" onclick="connectSaxo()">
+                            Connect Saxo Account
+                        </button>
+                        <button id="saxoDisconnectBtn" class="btn-secondary" style="display: none;" onclick="disconnectSaxo()">
+                            Disconnect Saxo
+                        </button>
+                    </div>
+
+                    <button class="btn-primary" onclick="AUTH.logout()">Log Out</button>
+                    <button class="btn-secondary" onclick="location.href='forgot-password.html'">Forgot Password?</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/auth.js"></script>
+    <script>
+    // Load user details from token
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = AUTH.getToken();
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                document.getElementById('profileUsername').textContent = payload.username || 'Unknown';
+                document.getElementById('profileEmail').textContent = payload.email || 'Not set';
+            } catch (e) {
+                document.getElementById('profileUsername').textContent = 'Unknown';
+                document.getElementById('profileEmail').textContent = 'Not set';
+            }
+        }
+
+        // Check Saxo connection status
+        checkSaxoStatus();
+
+        // Check for OAuth callback success
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('saxo_connected') === 'true') {
+            document.getElementById('saxoStatus').innerHTML = '<p style="margin: 0; color: var(--accent-green);">✓ Successfully connected to Saxo!</p>';
+            // Clear URL parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setTimeout(checkSaxoStatus, 1000);
+        }
+    });
+
+    async function checkSaxoStatus() {
+        try {
+            const response = await fetch('/api/saxo/auth/status');
+            const status = await response.json();
+
+            const statusDiv = document.getElementById('saxoStatus');
+            const connectBtn = document.getElementById('saxoConnectBtn');
+            const disconnectBtn = document.getElementById('saxoDisconnectBtn');
+
+            if (status.authenticated) {
+                const expiresAt = new Date(status.expiresAt);
+                const expiresIn = Math.round((expiresAt - Date.now()) / 1000 / 60 / 60); // hours
+                statusDiv.innerHTML = `<p style="margin: 0; color: var(--accent-green);">✓ Connected (expires in ${expiresIn}h)</p>`;
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'inline-block';
+            } else {
+                statusDiv.innerHTML = '<p style="margin: 0; color: var(--accent-orange);">⚠ Not connected</p>';
+                connectBtn.style.display = 'inline-block';
+                disconnectBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Failed to check Saxo status:', error);
+            document.getElementById('saxoStatus').innerHTML = '<p style="margin: 0; color: var(--accent-red);">Error checking status</p>';
+        }
+    }
+
+    function connectSaxo() {
+        window.location.href = '/auth/saxo/login';
+    }
+
+    async function disconnectSaxo() {
+        if (!confirm('Are you sure you want to disconnect your Saxo account?')) return;
+
+        try {
+            const response = await fetch('/api/saxo/auth/disconnect', { method: 'POST' });
+            if (response.ok) {
+                await checkSaxoStatus();
+                alert('Saxo account disconnected successfully');
+            }
+        } catch (error) {
+            console.error('Failed to disconnect Saxo:', error);
+            alert('Failed to disconnect Saxo account');
+        }
+    }
+    </script>
+</body>
+</html>

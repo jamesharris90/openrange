@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expected Move - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+
+    <!-- Core Modules -->
+    <script src="js/config.js"></script>
+    <script src="js/marketStatus.js"></script>
+    <script src="js/watchlist-store.js"></script>
+    <script src="js/options-expected-move.js" defer></script>
+
+    <style>
+        /* ---- Ticker Search ---- */
+        .em-search-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .em-input-wrapper {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        .em-ticker-input {
+            width: 100%;
+            padding: 14px 50px 14px 16px;
+            font-size: 1.2em;
+            font-weight: 600;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .em-ticker-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+        .em-ticker-input::placeholder {
+            text-transform: none;
+            color: var(--text-muted);
+        }
+        .em-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 8px 12px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .em-search-btn:hover { background: #3a8aef; }
+        .em-quick-symbols {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .em-quick-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .em-quick-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: var(--bg-card-hover);
+        }
+
+        /* ---- Calculator Hero ---- */
+        .em-calculator { min-height: 120px; }
+        .em-hero {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .em-price-block { text-align: center; min-width: 160px; }
+        .em-ticker-label {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 2px;
+        }
+        .em-price-large {
+            font-size: 2.8em;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .em-change {
+            font-size: 1em;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .em-change.positive { color: var(--accent-green); }
+        .em-change.negative { color: var(--accent-red); }
+        .em-move-block {
+            flex: 1;
+            min-width: 260px;
+        }
+        .em-move-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+        .em-move-value {
+            font-size: 1.6em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .em-move-pct {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--accent-orange);
+            margin-left: 8px;
+        }
+        .em-range-text {
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-size: 0.95em;
+        }
+        .em-expiry-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* ---- Range Bar ---- */
+        .em-range-bar-wrap {
+            margin: 20px 0;
+            position: relative;
+        }
+        .em-range-bar {
+            height: 32px;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.25), rgba(16, 185, 129, 0.15) 35%, rgba(16, 185, 129, 0.15) 65%, rgba(239, 68, 68, 0.25));
+            border-radius: 8px;
+            position: relative;
+            overflow: visible;
+            border: 1px solid var(--border-color);
+        }
+        .em-range-marker {
+            position: absolute;
+            top: -4px;
+            width: 4px;
+            height: 40px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            transform: translateX(-50%);
+            box-shadow: 0 0 8px rgba(74, 158, 255, 0.6);
+        }
+        .em-range-dot {
+            position: absolute;
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid white;
+            box-shadow: 0 0 8px rgba(74, 158, 255, 0.6);
+            z-index: 2;
+        }
+        .em-range-label {
+            position: absolute;
+            top: 38px;
+            font-size: 0.78em;
+            font-weight: 600;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        .em-range-label.low { color: var(--accent-red); }
+        .em-range-label.mid { color: var(--accent-blue); }
+        .em-range-label.high { color: var(--accent-green); }
+
+        /* ---- ATM Detail Grid ---- */
+        .em-atm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .em-atm-card {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .em-atm-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .em-atm-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9em;
+        }
+        .em-atm-row .label { color: var(--text-secondary); }
+        .em-atm-row .value { color: var(--text-primary); font-weight: 600; }
+
+        /* ---- IV Rank / Strategy Cards ---- */
+        .em-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        @media (max-width: 1024px) {
+            .em-two-col { grid-template-columns: 1fr; }
+            .em-atm-grid { grid-template-columns: 1fr; }
+        }
+
+        .em-iv-gauge {
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+            margin: 12px 0;
+        }
+        .em-iv-gauge-fill {
+            height: 100%;
+            border-radius: 12px;
+            transition: width 0.5s ease, background 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 0.75em;
+            font-weight: 700;
+            color: white;
+            min-width: 40px;
+        }
+        .em-iv-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78em;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .em-iv-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+        .em-iv-stat:last-child { border-bottom: none; }
+        .em-iv-stat .label { color: var(--text-secondary); }
+        .em-iv-stat .value { font-weight: 600; color: var(--text-primary); }
+
+        /* ---- Strategy Suggestions ---- */
+        .em-strategy-item {
+            padding: 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+        .em-strategy-item:hover { border-color: var(--accent-blue); }
+        .em-strategy-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .em-strategy-desc {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .em-confidence {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .em-confidence.high { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .em-confidence.medium { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+        .em-confidence.low { background: rgba(148, 163, 184, 0.2); color: var(--text-secondary); }
+
+        /* ---- Watchlist Table ---- */
+        .em-watchlist-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .em-add-input {
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            width: 120px;
+            font-size: 0.9em;
+        }
+        .em-add-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .em-add-input::placeholder {
+            text-transform: none;
+            color: var(--text-muted);
+        }
+
+        #emWatchlistTable th[data-sort] {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 20px;
+        }
+        #emWatchlistTable th[data-sort]:hover {
+            color: var(--accent-blue);
+        }
+        #emWatchlistTable th[data-sort]::after {
+            content: '';
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em;
+            color: var(--text-muted);
+        }
+        #emWatchlistTable th.sort-asc::after { content: '\25B2'; color: var(--accent-blue); }
+        #emWatchlistTable th.sort-desc::after { content: '\25BC'; color: var(--accent-blue); }
+
+        /* Header Tooltips */
+        #emWatchlistTable th[data-tip] {
+            position: relative;
+        }
+        #emWatchlistTable th[data-tip] .th-label {
+            border-bottom: 1px dotted var(--text-muted);
+        }
+        #emWatchlistTable th[data-tip]:hover .th-tooltip {
+            display: block;
+        }
+        .th-tooltip {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            width: 240px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 200;
+            font-weight: 400;
+            font-size: 0.82em;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            text-align: left;
+            text-transform: none;
+            letter-spacing: normal;
+            white-space: normal;
+            cursor: default;
+            pointer-events: none;
+        }
+        .th-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: var(--border-color);
+        }
+
+        /* Score Pill */
+        .em-score-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85em;
+            cursor: help;
+            position: relative;
+        }
+        .em-score-poor { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .em-score-fair { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+        .em-score-good { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .em-score-excellent { background: rgba(74, 158, 255, 0.2); color: var(--accent-blue); }
+
+        /* Score Tooltip */
+        .em-score-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            width: 280px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 100;
+            font-weight: 400;
+            font-size: 0.85em;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            text-align: left;
+        }
+        .em-score-pill:hover .em-score-tooltip { display: block; }
+        .em-score-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--border-color);
+        }
+        .em-iv-cell {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+        .em-iv-low { background: rgba(74, 158, 255, 0.15); color: var(--accent-blue); }
+        .em-iv-normal { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .em-iv-elevated { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+        .em-iv-high { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+
+        .em-earnings-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 700;
+        }
+        .em-earnings-badge.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            animation: em-pulse 2s ease-in-out infinite;
+        }
+        .em-earnings-badge.warning {
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent-orange);
+        }
+        @keyframes em-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .em-remove-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8em;
+        }
+        .em-remove-btn:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .em-row-highlight {
+            background: rgba(239, 68, 68, 0.05) !important;
+            border-left: 3px solid var(--accent-red);
+        }
+        .em-row-clickable { cursor: pointer; }
+        .em-row-clickable:hover {
+            background: var(--bg-card-hover) !important;
+        }
+
+        /* ---- Loading Skeleton ---- */
+        .em-skeleton {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-card-hover) 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: em-shimmer 1.5s infinite;
+            border-radius: 6px;
+        }
+        @keyframes em-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .em-skeleton-line {
+            height: 18px;
+            margin-bottom: 10px;
+        }
+        .em-skeleton-block {
+            height: 120px;
+        }
+
+        /* ---- Attribution Banner ---- */
+        .em-attribution {
+            margin-top: 24px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.82em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ---- Refresh Countdown ---- */
+        .em-countdown {
+            font-size: 0.82em;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ---- Empty / Error States ---- */
+        .em-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .em-empty i { margin-bottom: 12px; opacity: 0.5; }
+
+        .em-error-msg {
+            padding: 12px 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            color: var(--accent-red);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar"></aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">
+                    <i data-lucide="gauge" style="width: 28px; height: 28px; margin-right: 12px; vertical-align: middle;"></i>
+                    Options Expected Move
+                </h1>
+                <div class="top-bar-actions">
+                    <div class="em-countdown" id="emCountdown">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <span id="emCountdownText">Auto-refresh: 5:00</span>
+                    </div>
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+
+                <!-- Ticker Search Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="em-search-container">
+                            <div class="em-input-wrapper">
+                                <input
+                                    type="text"
+                                    id="emTickerInput"
+                                    class="em-ticker-input"
+                                    placeholder="Enter ticker symbol (e.g., AAPL, SPY)"
+                                    maxlength="10"
+                                    onkeypress="if(event.key === 'Enter') ExpectedMove.lookupTicker()"
+                                >
+                                <button class="em-search-btn" onclick="ExpectedMove.lookupTicker()">
+                                    <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="em-quick-symbols">
+                            <span style="color: var(--text-muted); margin-right: 8px; display: flex; align-items: center;">
+                                <i data-lucide="zap" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                Quick:
+                            </span>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('SPY')">SPY</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('QQQ')">QQQ</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AAPL')">AAPL</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('TSLA')">TSLA</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('NVDA')">NVDA</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AMZN')">AMZN</button>
+                            <button class="em-quick-btn" onclick="ExpectedMove.quickLookup('META')">META</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculator Display Card -->
+                <div class="card" style="margin-top: 24px;" id="emCalculatorCard">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="target" style="width:18px;height:18px;"></i>
+                            Expected Move Calculator
+                        </div>
+                        <div id="emEarningsFlag"></div>
+                    </div>
+                    <div class="card-body em-calculator" id="emCalculatorBody">
+                        <div class="em-empty">
+                            <i data-lucide="bar-chart-2" style="width:48px;height:48px;"></i>
+                            <p>Enter a ticker symbol above to calculate expected move</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IV Rank + Strategy Suggester -->
+                <div class="em-two-col" id="emAnalysisRow" style="display:none;">
+                    <!-- IV Rank Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="activity" style="width:18px;height:18px;"></i>
+                                Volatility Rank
+                            </div>
+                        </div>
+                        <div class="card-body" id="emIVRankBody">
+                            <div class="em-empty"><p>No data yet</p></div>
+                        </div>
+                    </div>
+                    <!-- Strategy Suggester Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="lightbulb" style="width:18px;height:18px;"></i>
+                                Strategy Suggestions
+                            </div>
+                        </div>
+                        <div class="card-body" id="emStrategyBody">
+                            <div class="em-empty"><p>No data yet</p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist Card -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="list" style="width:18px;height:18px;"></i>
+                            Expected Move Watchlist
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="btn-secondary" onclick="ExpectedMove.exportWatchlist()" style="font-size:0.85em;">
+                                <i data-lucide="download" style="width:14px;height:14px;"></i> Export CSV
+                            </button>
+                            <button class="btn-secondary" onclick="ExpectedMove.refreshAll()" style="font-size:0.85em;">
+                                <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="em-watchlist-actions">
+                            <input type="text" id="emAddInput" class="em-add-input" placeholder="Ticker" maxlength="10"
+                                onkeypress="if(event.key === 'Enter') ExpectedMove.addTicker()">
+                            <button class="btn-primary" onclick="ExpectedMove.addTicker()" style="font-size:0.85em;">
+                                <i data-lucide="plus" style="width:14px;height:14px;"></i> Add
+                            </button>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table" id="emWatchlistTable">
+                                <thead>
+                                    <tr>
+                                        <th data-sort="ticker" data-tip="ticker"><span class="th-label">Ticker</span>
+                                            <span class="th-tooltip">The stock ticker symbol. Click a row to load the full expected move calculator above.</span></th>
+                                        <th data-sort="price" data-tip="price"><span class="th-label">Price</span>
+                                            <span class="th-tooltip">Current stock price (delayed 15-20 min via Yahoo Finance).</span></th>
+                                        <th data-sort="change" data-tip="change"><span class="th-label">Change %</span>
+                                            <span class="th-tooltip">Today's percentage price change. Green = up, Red = down.</span></th>
+                                        <th data-sort="em" data-tip="em"><span class="th-label">Exp Move $</span>
+                                            <span class="th-tooltip">Expected dollar move derived from ATM straddle pricing for the nearest expiry. Shows how much the market expects the stock to move up or down.</span></th>
+                                        <th data-sort="emPct" data-tip="emPct"><span class="th-label">Exp Move %</span>
+                                            <span class="th-tooltip">Expected move as a percentage of the current price. Higher % means the market is pricing in a larger potential swing.</span></th>
+                                        <th data-sort="iv" data-tip="iv"><span class="th-label">ATM IV</span>
+                                            <span class="th-tooltip">At-The-Money Implied Volatility — the market's annualized expected volatility priced into the nearest ATM options. Higher IV = more expensive options.</span></th>
+                                        <th data-sort="hvRank" data-tip="hvRank"><span class="th-label">HV Rank</span>
+                                            <span class="th-tooltip">Historical Volatility Rank (0–100). Shows where current realized volatility sits vs. the 52-week range. High rank (>75) = elevated vol, good for selling premium. Low rank (<25) = cheap vol, good for buying options.</span></th>
+                                        <th data-sort="expiry" data-tip="expiry"><span class="th-label">Expiry</span>
+                                            <span class="th-tooltip">The nearest options expiration date used to calculate the expected move.</span></th>
+                                        <th data-sort="earnings" data-tip="earnings"><span class="th-label">Earnings</span>
+                                            <span class="th-tooltip">Days until the next earnings announcement. ⚡ Highlighted when earnings are within 14 days — a key IV catalyst that can inflate premiums.</span></th>
+                                        <th data-sort="news" data-tip="news"><span class="th-label">News</span>
+                                            <span class="th-tooltip">Recent news freshness indicator. 🔥 Breaking (&lt;30 min), 🔴 Very Fresh (&lt;1 hr), 🟠 Fresh (&lt;6 hrs), 🟡 Recent (&lt;24 hrs), 🟢 Today/Yesterday, 🔵 This Week, — = none found.</span></th>
+                                        <th data-sort="score" data-tip="score"><span class="th-label">Score</span>
+                                            <span class="th-tooltip">Composite opportunity score (0–100) based on HV Rank, IV vs HV spread, ATM liquidity, days to expiry, and earnings proximity. Excellent (76+), Good (51-75), Fair (26-50), Poor (0-25). Hover the pill for a detailed breakdown.</span></th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emWatchlistBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emWatchlistEmpty" class="em-empty" style="padding:24px;">
+                            <p>Add tickers above to build your expected move watchlist</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attribution Banner -->
+                <div class="em-attribution">
+                    <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;"></i>
+                    <span>Data delayed 15-20 minutes via Yahoo Finance. This tool is for analysis only, not trade execution. Options involve risk and are not suitable for all investors.</span>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

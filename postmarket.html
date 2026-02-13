@@ -9,9 +9,50 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -58,6 +99,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <span class="icon">🎯</span>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <span class="icon">📰</span>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <span class="icon">🔬</span>
                     <span class="label">Research</span>
@@ -92,26 +141,26 @@
                 <div class="grid-4">
                     <div class="stat-card">
                         <div class="stat-label">📊 Day P&L</div>
-                        <div class="stat-value">+£12.50</div>
-                        <div class="stat-change">+4.2% today</div>
+                        <div class="stat-value" id="dayPnL">Loading...</div>
+                        <div class="stat-change" id="dayPnLChange">--% today</div>
                     </div>
-                    
+
                     <div class="stat-card purple">
                         <div class="stat-label">📈 Trades Taken</div>
-                        <div class="stat-value">2</div>
-                        <div class="stat-change">100% Win Rate</div>
+                        <div class="stat-value" id="tradesTaken">--</div>
+                        <div class="stat-change" id="winRate">--% Win Rate</div>
                     </div>
-                    
+
                     <div class="stat-card orange">
                         <div class="stat-label">⏱️ Avg Hold Time</div>
-                        <div class="stat-value">18m</div>
-                        <div class="stat-change">ORB strategy</div>
+                        <div class="stat-value" id="avgHoldTime">--</div>
+                        <div class="stat-change">Closed positions</div>
                     </div>
-                    
+
                     <div class="stat-card multi">
                         <div class="stat-label">🎯 Best Trade</div>
-                        <div class="stat-value">+£50</div>
-                        <div class="stat-change">TAL +4.9%</div>
+                        <div class="stat-value" id="bestTrade">--</div>
+                        <div class="stat-change" id="bestTradeSymbol">--</div>
                     </div>
                 </div>
 
@@ -311,8 +360,88 @@
         </main>
     </div>
 
+    <!-- Inject API key -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/saxoAPI.js"></script>
+    <script src="js/news.js"></script>
     <script>
-        const FINNHUB_PROXY = 'http://localhost:8080/api/finnhub/news';
+        // Load real trading data from Saxo
+        async function loadTodayStats() {
+            try {
+                // Wait for config to load
+                if (window.configReady) {
+                    await window.configReady;
+                }
+
+                const data = await saxoAPI.getDashboardData();
+
+                // Update Day P&L
+                const pnlEl = document.getElementById('dayPnL');
+                const pnlChangeEl = document.getElementById('dayPnLChange');
+                pnlEl.textContent = data.todayPnL.formatted;
+                pnlChangeEl.textContent = `${data.todayPnL.percentage >= 0 ? '+' : ''}${data.todayPnL.percentage.toFixed(2)}% today`;
+                pnlEl.style.color = data.todayPnL.gbp >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
+                // Load closed positions for trades analysis
+                const closedPos = await saxoAPI.getClosedPositions();
+                const trades = closedPos.Data || [];
+                const tradesCount = trades.length;
+
+                // Update Trades Taken
+                document.getElementById('tradesTaken').textContent = tradesCount;
+
+                // Calculate win rate
+                const winners = trades.filter(p => (p.ProfitLoss || 0) > 0).length;
+                const winRatePercent = tradesCount > 0 ? ((winners / tradesCount) * 100).toFixed(0) : 0;
+                document.getElementById('winRate').textContent = `${winRatePercent}% Win Rate`;
+
+                // Calculate avg hold time (if data available)
+                if (trades.length > 0 && trades[0].OpenTime && trades[0].CloseTime) {
+                    const totalMinutes = trades.reduce((sum, trade) => {
+                        if (trade.OpenTime && trade.CloseTime) {
+                            const open = new Date(trade.OpenTime);
+                            const close = new Date(trade.CloseTime);
+                            return sum + (close - open) / (1000 * 60);
+                        }
+                        return sum;
+                    }, 0);
+                    const avgMinutes = Math.round(totalMinutes / trades.length);
+                    const hours = Math.floor(avgMinutes / 60);
+                    const mins = avgMinutes % 60;
+                    document.getElementById('avgHoldTime').textContent =
+                        hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                } else {
+                    document.getElementById('avgHoldTime').textContent = '--';
+                }
+
+                // Find best trade
+                if (trades.length > 0) {
+                    const bestTrade = trades.reduce((best, trade) =>
+                        (trade.ProfitLoss || 0) > (best.ProfitLoss || 0) ? trade : best
+                    );
+                    const bestPnL = saxoAPI.formatCurrency(saxoAPI.convertToGBP(bestTrade.ProfitLoss || 0), true);
+                    document.getElementById('bestTrade').textContent = bestPnL;
+                    document.getElementById('bestTradeSymbol').textContent =
+                        `${bestTrade.Symbol || 'N/A'}`;
+                } else {
+                    document.getElementById('bestTrade').textContent = '--';
+                    document.getElementById('bestTradeSymbol').textContent = 'No trades';
+                }
+
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                document.getElementById('dayPnL').textContent = 'Error';
+                document.getElementById('tradesTaken').textContent = 'Error';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTodayStats);
+
+        const FINNHUB_PROXY = `${CONFIG.API_BASE}/api/finviz/news`;
         
         async function loadNews() {
             try {

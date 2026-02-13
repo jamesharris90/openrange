@@ -10,13 +10,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+    <script src="js/sidebar.js"></script>
+
+    <!-- Inject API key for demo/public mode (set this value server-side for production) -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <!-- Authentication -->
+    <script src="js/auth.js"></script>
+
     <!-- Core Modules -->
     <script src="js/config.js"></script>
     <script src="js/marketStatus.js"></script>
     <script src="js/saxoAPI.js"></script>
+    <script src="js/saxo-widgets.js"></script>
     <script src="js/news.js"></script>
     
     <style>
@@ -119,6 +128,45 @@
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -165,6 +213,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <i data-lucide="filter" class="icon"></i>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <i data-lucide="newspaper" class="icon"></i>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <i data-lucide="microscope" class="icon"></i>
                     <span class="label">Research</span>
@@ -202,6 +258,18 @@
 
             <!-- Content Container -->
             <div class="content-container">
+                <!-- Saxo Connection Status Banner -->
+                <div id="saxoConnectionBanner" style="display:none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--accent-red);"></i>
+                        <span style="color: var(--text-primary); font-weight: 600;">Saxo Bank not connected</span>
+                    </div>
+                    <p style="margin: 8px 0; color: var(--text-secondary);">Connect your Saxo Bank account to view live trading data.</p>
+                    <button onclick="window.location.href='/auth/saxo/login'" style="background: var(--accent-blue); color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px;">
+                        Connect Saxo Account
+                    </button>
+                </div>
+
                 <!-- Stat Cards Row -->
                 <div class="grid-4">
                     <!-- Account Balance -->
@@ -376,36 +444,80 @@
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
-        
+
         // Initialize market status
         marketStatus.init();
         marketStatus.startCountdown();
-        
+
+        // Check Saxo connection status (uses user-level check if logged in)
+        async function checkSaxoConnection() {
+            try {
+                // Use SaxoWidgets utility for user-level check
+                const isConnected = await SaxoWidgets.checkConnection();
+                console.log('Saxo connection status:', isConnected);
+
+                const banner = document.getElementById('saxoConnectionBanner');
+                if (!isConnected) {
+                    if (banner) banner.style.display = 'block';
+                    return false;
+                } else {
+                    if (banner) banner.style.display = 'none';
+                    return true;
+                }
+            } catch (error) {
+                console.error('Failed to check Saxo connection status:', error);
+                return false;
+            }
+        }
+
         // Load Saxo dashboard data
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('Dashboard loading...');
-            
-            try {
-                await loadSaxoDashboard();
-                console.log('Saxo dashboard data loaded successfully');
-            } catch (error) {
-                console.error('Failed to load dashboard:', error);
+
+            // Check Saxo connection first (checks user-level credentials)
+            const isConnected = await checkSaxoConnection();
+
+            if (isConnected) {
+                try {
+                    await loadSaxoDashboard();
+                    console.log('Saxo dashboard data loaded successfully');
+                } catch (error) {
+                    console.error('Failed to load dashboard:', error);
+                    // Show placeholders on error
+                    setPlaceholderValues();
+                }
+            } else {
+                console.log('Saxo not connected - showing connection prompt');
+                setPlaceholderValues();
             }
-            
-            // Load news
+
+            // Load news (always loads, not dependent on Saxo)
             newsLoader.displayNews('newsFeed', 10);
-            
+
             // Refresh Lucide icons after dynamic content loads
             setTimeout(() => {
                 lucide.createIcons();
             }, 1000);
         });
-        
-        // Auto-refresh dashboard every 30 seconds
+
+        // Helper to set placeholder values when Saxo is not connected
+        function setPlaceholderValues() {
+            const balanceEl = document.getElementById('accountBalance');
+            const pnlEl = document.getElementById('todayPnL');
+            const posEl = document.getElementById('openPositions');
+            if (balanceEl) balanceEl.textContent = '--';
+            if (pnlEl) pnlEl.textContent = '--';
+            if (posEl) posEl.textContent = '--';
+        }
+
+        // Auto-refresh dashboard every 30 seconds (only if connected)
         setInterval(async () => {
             try {
-                await loadSaxoDashboard();
-                lucide.createIcons();
+                const isConnected = await SaxoWidgets.checkConnection();
+                if (isConnected) {
+                    await loadSaxoDashboard();
+                    lucide.createIcons();
+                }
             } catch (error) {
                 console.error('Auto-refresh failed:', error);
             }

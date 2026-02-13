@@ -1,0 +1,871 @@
+(function () {
+  // =====================================================
+  // Constants
+  // =====================================================
+  const STORAGE_KEY = 'emWatchlist';
+  const LAST_TICKER_KEY = 'lastEMTicker';
+  const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  const FETCH_DELAY_MS = 300; // Stagger between watchlist requests
+
+  // =====================================================
+  // State
+  // =====================================================
+  let watchlist = [];
+  let tickerData = {};       // { AAPL: { options: {...}, history: {...}, news: [...], loading: bool } }
+  let currentTicker = null;
+  let refreshTimer = null;
+  let countdownTimer = null;
+  let nextRefreshAt = 0;
+  let sortState = { column: null, direction: 'desc' };
+
+  // =====================================================
+  // News Freshness Indicator
+  // =====================================================
+  function getNewsFreshness(newsItems) {
+    if (!newsItems || !newsItems.length) return { icon: '', label: '', color: '', age: Infinity };
+    // Find the most recent item
+    let newest = 0;
+    newsItems.forEach(n => {
+      const t = (n.datetime || 0) * 1000; // unix seconds -> ms
+      if (t > newest) newest = t;
+    });
+    if (!newest) return { icon: '', label: '', color: '', age: Infinity };
+    const ageMin = (Date.now() - newest) / 60000;
+    if (ageMin < 30) return { icon: '🔥', label: 'Breaking', color: '#ff4444', age: ageMin };
+    if (ageMin < 60) return { icon: '🔴', label: 'Very Fresh', color: '#ff6b6b', age: ageMin };
+    if (ageMin < 360) return { icon: '🟠', label: 'Fresh', color: '#ff8c42', age: ageMin };
+    if (ageMin < 1440) return { icon: '🟡', label: 'Recent', color: '#ffd93d', age: ageMin };
+    if (ageMin < 2880) return { icon: '🟢', label: 'Today/Yesterday', color: '#6bcf7f', age: ageMin };
+    if (ageMin < 7200) return { icon: '🔵', label: 'This Week', color: '#4d96ff', age: ageMin };
+    return { icon: '⚪', label: 'Older', color: '#bdc3c7', age: ageMin };
+  }
+
+  // =====================================================
+  // Watchlist Persistence
+  // =====================================================
+  function loadWatchlist() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      watchlist = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(watchlist)) watchlist = [];
+    } catch (_) {
+      watchlist = [];
+    }
+  }
+
+  function saveWatchlist() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist));
+  }
+
+  // =====================================================
+  // Data Fetching
+  // =====================================================
+  async function fetchOptions(ticker) {
+    const resp = await fetch(`/api/yahoo/options?t=${encodeURIComponent(ticker)}`);
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      throw new Error(body.error || `Options fetch failed (${resp.status})`);
+    }
+    return resp.json();
+  }
+
+  async function fetchHistory(ticker) {
+    const resp = await fetch(`/api/yahoo/history?t=${encodeURIComponent(ticker)}`);
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      throw new Error(body.error || `History fetch failed (${resp.status})`);
+    }
+    return resp.json();
+  }
+
+  async function fetchNews(ticker) {
+    try {
+      const to = new Date().toISOString().split('T')[0];
+      const from = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+      const resp = await fetch(`/api/finnhub/news/symbol?symbol=${encodeURIComponent(ticker)}&from=${from}&to=${to}`);
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return Array.isArray(data) ? data : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function fetchTickerData(ticker) {
+    tickerData[ticker] = tickerData[ticker] || {};
+    tickerData[ticker].loading = true;
+
+    try {
+      const [options, history, news] = await Promise.all([
+        fetchOptions(ticker).catch(err => ({ _error: err.message })),
+        fetchHistory(ticker).catch(err => ({ _error: err.message })),
+        fetchNews(ticker)
+      ]);
+      tickerData[ticker].options = options;
+      tickerData[ticker].history = history;
+      tickerData[ticker].news = news;
+    } finally {
+      tickerData[ticker].loading = false;
+    }
+    return tickerData[ticker];
+  }
+
+  // Staggered bulk fetch for watchlist
+  async function fetchAllWatchlistData() {
+    for (let i = 0; i < watchlist.length; i++) {
+      const t = watchlist[i];
+      await fetchTickerData(t);
+      renderWatchlistRow(t);
+      if (i < watchlist.length - 1) {
+        await new Promise(r => setTimeout(r, FETCH_DELAY_MS));
+      }
+    }
+  }
+
+  // =====================================================
+  // Strategy Engine
+  // =====================================================
+  function suggestStrategies(hvRank, avgIV, expectedMovePct, earningsInDays) {
+    const strategies = [];
+    const hasEarnings = earningsInDays != null && earningsInDays > 0 && earningsInDays <= 14;
+    const rank = hvRank != null ? hvRank : 50;
+
+    if (hasEarnings && earningsInDays <= 7 && rank > 50) {
+      strategies.push({
+        name: 'Iron Butterfly',
+        desc: 'Sell ATM straddle + buy wings to capture IV crush after earnings. Max profit if stock stays near current price.',
+        confidence: 'high'
+      });
+      strategies.push({
+        name: 'Iron Condor',
+        desc: 'Sell spreads outside the expected move. Profits if the stock stays within the range after earnings.',
+        confidence: 'high'
+      });
+    }
+
+    if (hasEarnings && earningsInDays <= 14 && rank < 40) {
+      strategies.push({
+        name: 'Long Straddle',
+        desc: 'Buy ATM call + put before earnings. Profits from a large move in either direction as IV expands.',
+        confidence: 'medium'
+      });
+    }
+
+    if (!hasEarnings || earningsInDays > 7) {
+      if (rank > 75) {
+        strategies.push({
+          name: 'Iron Condor',
+          desc: 'Sell premium outside the expected move. High IV means richer premiums. Defined risk.',
+          confidence: 'high'
+        });
+        strategies.push({
+          name: 'Credit Spread',
+          desc: 'Sell a vertical spread in the direction you\'re biased against. Collects elevated premium.',
+          confidence: 'high'
+        });
+      } else if (rank > 50) {
+        strategies.push({
+          name: 'Short Put Spread',
+          desc: 'Sell a put spread below support if moderately bullish. Good premium with elevated IV.',
+          confidence: 'medium'
+        });
+        strategies.push({
+          name: 'Covered Call',
+          desc: 'If holding shares, sell calls above the expected move to collect premium.',
+          confidence: 'medium'
+        });
+      } else if (rank < 30) {
+        strategies.push({
+          name: 'Long Straddle',
+          desc: 'Buy ATM call + put. Low IV means cheaper options — profits from a volatility expansion.',
+          confidence: 'medium'
+        });
+        strategies.push({
+          name: 'Calendar Spread',
+          desc: 'Sell near-term, buy longer-term at same strike. Benefits from IV increase in back month.',
+          confidence: 'medium'
+        });
+      } else {
+        strategies.push({
+          name: 'Cash-Secured Put',
+          desc: 'Sell a put at a strike you\'d buy shares at. Moderate IV provides reasonable premium.',
+          confidence: 'low'
+        });
+      }
+    }
+
+    return strategies;
+  }
+
+  // =====================================================
+  // Scoring System
+  // =====================================================
+  function calculateScore(ticker) {
+    const data = tickerData[ticker];
+    const opt = data?.options;
+    const hist = data?.history;
+    if (!opt || opt._error) return { score: 0, label: '--', cssClass: '', tips: [] };
+
+    const hvRank = hist?.hvRank;
+    const avgIV = opt.avgIV;
+    const hvCurrent = hist?.hvCurrent20;
+    const earningsDays = opt.earningsInDays;
+    const daysToExpiry = opt.daysToExpiry || 0;
+    const callVol = opt.atmCall?.volume || 0;
+    const putVol = opt.atmPut?.volume || 0;
+    const callOI = opt.atmCall?.openInterest || 0;
+    const putOI = opt.atmPut?.openInterest || 0;
+    const totalVol = callVol + putVol;
+    const totalOI = callOI + putOI;
+
+    let score = 0;
+    const tips = [];
+
+    // HV Rank (25 pts) — higher rank = more premium to sell
+    if (hvRank != null) {
+      if (hvRank >= 75) { score += 25; tips.push(`HV Rank is high (${hvRank.toFixed(0)}) — elevated IV means rich premiums for credit strategies`); }
+      else if (hvRank >= 50) { score += 20; tips.push(`HV Rank is moderate (${hvRank.toFixed(0)}) — decent premium levels`); }
+      else if (hvRank >= 25) { score += 15; tips.push(`HV Rank is normal (${hvRank.toFixed(0)}) — consider directional or debit strategies`); }
+      else { score += 5; tips.push(`HV Rank is low (${hvRank.toFixed(0)}) — IV is cheap, good for buying options`); }
+    }
+
+    // IV vs HV Spread (25 pts) — bigger IV premium = better for sellers
+    if (avgIV != null && hvCurrent != null) {
+      const spread = avgIV - hvCurrent;
+      if (spread > 0.15) { score += 25; tips.push(`IV is ${(spread * 100).toFixed(1)}% above HV — significant premium to harvest`); }
+      else if (spread > 0.05) { score += 18; tips.push(`IV is ${(spread * 100).toFixed(1)}% above HV — moderate premium opportunity`); }
+      else if (spread > 0) { score += 10; tips.push(`IV is slightly above HV — small premium edge`); }
+      else { score += 5; tips.push(`IV is at or below HV — options are relatively cheap to buy`); }
+    }
+
+    // Volume + OI (15 pts) — liquidity
+    if (totalVol > 500) { score += 10; }
+    else if (totalVol > 100) { score += 7; }
+    else { score += 2; tips.push('Low ATM volume — wider spreads may increase slippage'); }
+    if (totalOI > 1000) { score += 5; }
+    else if (totalOI > 500) { score += 3; }
+    else { score += 1; }
+
+    // DTE Sweet Spot (15 pts)
+    if (daysToExpiry >= 7 && daysToExpiry <= 45) { score += 15; tips.push(`${daysToExpiry} DTE is in the sweet spot for theta decay`); }
+    else if ((daysToExpiry >= 3 && daysToExpiry < 7) || (daysToExpiry > 45 && daysToExpiry <= 60)) { score += 10; tips.push(`${daysToExpiry} DTE — acceptable but not ideal timing`); }
+    else { score += 5; tips.push(`${daysToExpiry} DTE — consider a different expiry for better risk/reward`); }
+
+    // Earnings Proximity (20 pts) — catalyst
+    const hasEarnings = earningsDays != null && earningsDays > 0;
+    if (hasEarnings && earningsDays <= 7) { score += 20; tips.push(`Earnings in ${earningsDays} day${earningsDays !== 1 ? 's' : ''} — expect IV crush post-announcement`); }
+    else if (hasEarnings && earningsDays <= 14) { score += 15; tips.push(`Earnings in ${earningsDays} days — IV may be inflated ahead of the event`); }
+    else { score += 5; }
+
+    // Clamp score
+    score = Math.min(100, Math.max(0, score));
+
+    let label, cssClass;
+    if (score >= 76) { label = 'Excellent'; cssClass = 'em-score-excellent'; }
+    else if (score >= 51) { label = 'Good'; cssClass = 'em-score-good'; }
+    else if (score >= 26) { label = 'Fair'; cssClass = 'em-score-fair'; }
+    else { label = 'Poor'; cssClass = 'em-score-poor'; }
+
+    return { score, label, cssClass, tips };
+  }
+
+  // =====================================================
+  // Rendering: Calculator
+  // =====================================================
+  function renderCalculator(ticker) {
+    const data = tickerData[ticker];
+    const container = document.getElementById('emCalculatorBody');
+    const flagEl = document.getElementById('emEarningsFlag');
+    const analysisRow = document.getElementById('emAnalysisRow');
+    if (!container) return;
+
+    if (!data || data.loading) {
+      container.innerHTML = `
+        <div class="em-skeleton em-skeleton-block"></div>
+        <div class="em-skeleton em-skeleton-line" style="width:60%;margin-top:16px;"></div>
+        <div class="em-skeleton em-skeleton-line" style="width:40%;"></div>`;
+      return;
+    }
+
+    const opt = data.options;
+    if (opt?._error) {
+      container.innerHTML = `<div class="em-error-msg">${opt._error}</div>`;
+      if (analysisRow) analysisRow.style.display = 'none';
+      return;
+    }
+    if (!opt) {
+      container.innerHTML = '<div class="em-empty"><p>No data available</p></div>';
+      if (analysisRow) analysisRow.style.display = 'none';
+      return;
+    }
+
+    const changeClass = (opt.change || 0) >= 0 ? 'positive' : 'negative';
+    const changeSign = (opt.change || 0) >= 0 ? '+' : '';
+
+    // Earnings flag
+    if (flagEl) {
+      if (opt.earningsInDays != null && opt.earningsInDays > 0 && opt.earningsInDays <= 14) {
+        const cls = opt.earningsInDays <= 7 ? 'danger' : 'warning';
+        flagEl.innerHTML = `<span class="em-earnings-badge ${cls}">&#9889; Earnings in ${opt.earningsInDays} day${opt.earningsInDays !== 1 ? 's' : ''}</span>`;
+      } else {
+        flagEl.innerHTML = '';
+      }
+    }
+
+    container.innerHTML = `
+      <div class="em-hero">
+        <div class="em-price-block">
+          <div class="em-ticker-label">${opt.ticker}</div>
+          <div class="em-price-large">$${fmtNum(opt.price)}</div>
+          <div class="em-change ${changeClass}">${changeSign}${fmtNum(opt.change)} (${changeSign}${fmtNum(opt.changePercent)}%)</div>
+        </div>
+        <div class="em-move-block">
+          <div class="em-move-label">Expected Move (${opt.expirationDate || 'nearest expiry'})</div>
+          <div>
+            <span class="em-move-value">&plusmn;$${fmtNum(opt.expectedMove)}</span>
+            <span class="em-move-pct">&plusmn;${fmtNum(opt.expectedMovePercent)}%</span>
+          </div>
+          <div class="em-range-text">
+            Range: <strong>$${fmtNum(opt.rangeLow)}</strong> &mdash; <strong>$${fmtNum(opt.rangeHigh)}</strong>
+          </div>
+          <div class="em-expiry-badge">${opt.daysToExpiry} day${opt.daysToExpiry !== 1 ? 's' : ''} to expiry &middot; ${opt.callsCount} calls &middot; ${opt.putsCount} puts</div>
+        </div>
+      </div>
+      ${renderRangeBar(opt.price, opt.rangeLow, opt.rangeHigh)}
+      <div class="em-atm-grid">
+        ${renderATMCard('ATM Call', opt.atmCall)}
+        ${renderATMCard('ATM Put', opt.atmPut)}
+      </div>
+    `;
+
+    // Show analysis row
+    if (analysisRow) analysisRow.style.display = '';
+    renderIVRank(ticker);
+    renderStrategies(ticker);
+  }
+
+  function renderRangeBar(price, low, high) {
+    const margin = (high - low) * 0.25;
+    const barLow = low - margin;
+    const barHigh = high + margin;
+    const range = barHigh - barLow;
+    if (range <= 0) return '';
+
+    const pctLow = ((low - barLow) / range) * 100;
+    const pctPrice = ((price - barLow) / range) * 100;
+    const pctHigh = ((high - barLow) / range) * 100;
+
+    return `
+      <div class="em-range-bar-wrap">
+        <div class="em-range-bar">
+          <div class="em-range-marker" style="left:${pctLow}%;background:var(--accent-red);"></div>
+          <div class="em-range-dot" style="left:${pctPrice}%;"></div>
+          <div class="em-range-marker" style="left:${pctHigh}%;background:var(--accent-green);"></div>
+          <div class="em-range-label low" style="left:${pctLow}%;">$${fmtNum(low)}</div>
+          <div class="em-range-label mid" style="left:${pctPrice}%;">$${fmtNum(price)}</div>
+          <div class="em-range-label high" style="left:${pctHigh}%;">$${fmtNum(high)}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderATMCard(title, data) {
+    if (!data) return `<div class="em-atm-card"><h4>${title}</h4><div style="color:var(--text-muted);">Not available</div></div>`;
+    const iv = data.iv != null ? (data.iv * 100).toFixed(1) + '%' : '--';
+    const bidAskZero = (data.bid === 0 && data.ask === 0);
+    const lastPriceRow = bidAskZero && data.lastPrice
+      ? `<div class="em-atm-row"><span class="label">Last Price</span><span class="value" style="color:var(--accent-orange);">$${fmtNum(data.lastPrice)}</span></div>` : '';
+    return `
+      <div class="em-atm-card">
+        <h4>${title} — Strike $${fmtNum(data.strike)}</h4>
+        <div class="em-atm-row"><span class="label">Bid / Ask</span><span class="value">$${fmtNum(data.bid)} / $${fmtNum(data.ask)}</span></div>
+        ${lastPriceRow}
+        <div class="em-atm-row"><span class="label">Mid</span><span class="value">$${fmtNum(data.mid)}</span></div>
+        <div class="em-atm-row"><span class="label">IV</span><span class="value">${iv}</span></div>
+        <div class="em-atm-row"><span class="label">Volume</span><span class="value">${fmtInt(data.volume)}</span></div>
+        <div class="em-atm-row"><span class="label">Open Interest</span><span class="value">${fmtInt(data.openInterest)}</span></div>
+      </div>`;
+  }
+
+  // =====================================================
+  // Rendering: IV Rank
+  // =====================================================
+  function renderIVRank(ticker) {
+    const el = document.getElementById('emIVRankBody');
+    if (!el) return;
+    const data = tickerData[ticker];
+    const hist = data?.history;
+    const opt = data?.options;
+
+    if (!hist || hist._error) {
+      el.innerHTML = `<div class="em-empty"><p>Historical volatility unavailable</p></div>`;
+      return;
+    }
+
+    const rank = hist.hvRank;
+    const avgIV = opt?.avgIV;
+
+    if (rank == null) {
+      el.innerHTML = `<div class="em-empty"><p>Not enough price history to compute HV rank</p></div>`;
+      return;
+    }
+
+    const gaugeColor = rank < 25 ? 'var(--accent-blue)'
+      : rank < 50 ? 'var(--accent-green)'
+      : rank < 75 ? 'var(--accent-orange)'
+      : 'var(--accent-red)';
+
+    const rankLabel = rank < 25 ? 'Low' : rank < 50 ? 'Normal' : rank < 75 ? 'Elevated' : 'High';
+
+    el.innerHTML = `
+      <div style="margin-bottom:8px;font-weight:700;color:var(--text-primary);">
+        HV Rank: <span style="color:${gaugeColor};">${rank.toFixed(1)} — ${rankLabel}</span>
+      </div>
+      <div class="em-iv-gauge">
+        <div class="em-iv-gauge-fill" style="width:${Math.max(rank, 5)}%;background:${gaugeColor};">${rank.toFixed(0)}</div>
+      </div>
+      <div class="em-iv-labels">
+        <span>0 — Low</span>
+        <span>50 — Normal</span>
+        <span>100 — High</span>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="em-iv-stat">
+          <span class="label">Current 20-day HV (annualized)</span>
+          <span class="value">${(hist.hvCurrent20 * 100).toFixed(1)}%</span>
+        </div>
+        <div class="em-iv-stat">
+          <span class="label">52-Week HV High</span>
+          <span class="value">${(hist.hvHigh52w * 100).toFixed(1)}%</span>
+        </div>
+        <div class="em-iv-stat">
+          <span class="label">52-Week HV Low</span>
+          <span class="value">${(hist.hvLow52w * 100).toFixed(1)}%</span>
+        </div>
+        ${avgIV != null ? `
+        <div class="em-iv-stat">
+          <span class="label">ATM Implied Volatility</span>
+          <span class="value">${(avgIV * 100).toFixed(1)}%</span>
+        </div>
+        <div class="em-iv-stat">
+          <span class="label">IV vs HV Spread</span>
+          <span class="value" style="color:${avgIV > hist.hvCurrent20 ? 'var(--accent-orange)' : 'var(--accent-green)'};">
+            ${avgIV > hist.hvCurrent20 ? '+' : ''}${((avgIV - hist.hvCurrent20) * 100).toFixed(1)}%
+            ${avgIV > hist.hvCurrent20 ? '(IV premium)' : '(IV discount)'}
+          </span>
+        </div>` : ''}
+      </div>`;
+  }
+
+  // =====================================================
+  // Rendering: Strategy Suggestions
+  // =====================================================
+  function renderStrategies(ticker) {
+    const el = document.getElementById('emStrategyBody');
+    if (!el) return;
+    const data = tickerData[ticker];
+    const hist = data?.history;
+    const opt = data?.options;
+
+    const hvRank = hist?.hvRank;
+    const avgIV = opt?.avgIV;
+    const emPct = opt?.expectedMovePercent;
+    const earningsDays = opt?.earningsInDays;
+
+    const strategies = suggestStrategies(hvRank, avgIV, emPct, earningsDays);
+
+    if (!strategies.length) {
+      el.innerHTML = '<div class="em-empty"><p>No strategies to suggest based on current data</p></div>';
+      return;
+    }
+
+    el.innerHTML = strategies.map(s => `
+      <div class="em-strategy-item">
+        <div class="em-strategy-name">
+          ${s.name}
+          <span class="em-confidence ${s.confidence}">${s.confidence}</span>
+        </div>
+        <div class="em-strategy-desc">${s.desc}</div>
+      </div>`).join('');
+  }
+
+  // =====================================================
+  // Rendering: Watchlist Table
+  // =====================================================
+  function renderWatchlistTable() {
+    const tbody = document.getElementById('emWatchlistBody');
+    const emptyEl = document.getElementById('emWatchlistEmpty');
+    if (!tbody) return;
+
+    if (!watchlist.length) {
+      tbody.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = '';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    tbody.innerHTML = watchlist.map(t => {
+      const d = tickerData[t];
+      if (!d || d.loading) {
+        return `<tr id="em-row-${t}">
+          <td><strong>${t}</strong></td>
+          <td colspan="10"><div class="em-skeleton em-skeleton-line" style="width:80%;height:14px;"></div></td>
+          <td><button class="em-remove-btn" onclick="ExpectedMove.removeTicker('${t}')">Remove</button></td>
+        </tr>`;
+      }
+      return buildWatchlistRow(t, d);
+    }).join('');
+  }
+
+  function renderWatchlistRow(ticker) {
+    const row = document.getElementById(`em-row-${ticker}`);
+    const d = tickerData[ticker];
+    if (!row || !d) return;
+
+    const temp = document.createElement('tbody');
+    temp.innerHTML = buildWatchlistRow(ticker, d);
+    if (temp.firstChild) row.replaceWith(temp.firstChild);
+  }
+
+  function buildWatchlistRow(ticker, d) {
+    const opt = d.options;
+    const hist = d.history;
+
+    if (opt?._error) {
+      return `<tr id="em-row-${ticker}">
+        <td><strong>${ticker}</strong></td>
+        <td colspan="10" style="color:var(--text-muted);font-size:0.85em;">${opt._error}</td>
+        <td><button class="em-remove-btn" onclick="ExpectedMove.removeTicker('${ticker}')">Remove</button></td>
+      </tr>`;
+    }
+
+    const price = opt?.price;
+    const change = opt?.changePercent;
+    const em = opt?.expectedMove;
+    const emPct = opt?.expectedMovePercent;
+    const avgIV = opt?.avgIV;
+    const hvRank = hist?.hvRank;
+    const expiry = opt?.expirationDate || '--';
+    const earningsDays = opt?.earningsInDays;
+    const newsItems = d.news;
+
+    const ivClass = hvRank == null ? '' : hvRank < 25 ? 'em-iv-low' : hvRank < 50 ? 'em-iv-normal' : hvRank < 75 ? 'em-iv-elevated' : 'em-iv-high';
+    const hasEarnings = earningsDays != null && earningsDays > 0 && earningsDays <= 14;
+    const rowClass = hasEarnings && earningsDays <= 7 ? 'em-row-highlight' : '';
+
+    // Change %
+    let changeHtml = '--';
+    if (change != null) {
+      const sign = change >= 0 ? '+' : '';
+      const color = change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      changeHtml = `<span style="color:${color};font-weight:600;">${sign}${fmtNum(change)}%</span>`;
+    }
+
+    let earningsHtml = '';
+    if (hasEarnings) {
+      const cls = earningsDays <= 7 ? 'danger' : 'warning';
+      earningsHtml = `<span class="em-earnings-badge ${cls}">&#9889; ${earningsDays}d</span>`;
+    }
+
+    // News freshness
+    const nf = getNewsFreshness(newsItems);
+    let newsHtml = '<span style="color:var(--text-muted);">—</span>';
+    if (nf.icon) {
+      newsHtml = `<span title="${nf.label}" style="cursor:help;">${nf.icon}</span>`;
+    }
+
+    // Score
+    const sc = calculateScore(ticker);
+    const tipsHtml = sc.tips.length ? `<div class="em-score-tooltip">${sc.tips.map(t => `<div style="margin-bottom:6px;">${t}</div>`).join('')}</div>` : '';
+    const scoreHtml = sc.score > 0
+      ? `<span class="em-score-pill ${sc.cssClass}">${sc.score}<span style="font-weight:400;margin-left:4px;">${sc.label}</span>${tipsHtml}</span>`
+      : '--';
+
+    return `<tr id="em-row-${ticker}" class="${rowClass} em-row-clickable" onclick="ExpectedMove.quickLookup('${ticker}')">
+      <td><strong style="color:var(--accent-blue);">${ticker}</strong></td>
+      <td>${price != null ? '$' + fmtNum(price) : '--'}</td>
+      <td>${changeHtml}</td>
+      <td>${em != null ? '&plusmn;$' + fmtNum(em) : '--'}</td>
+      <td>${emPct != null ? '&plusmn;' + fmtNum(emPct) + '%' : '--'}</td>
+      <td>${avgIV != null ? '<span class="em-iv-cell ' + ivClass + '">' + (avgIV * 100).toFixed(1) + '%</span>' : '--'}</td>
+      <td>${hvRank != null ? '<span class="em-iv-cell ' + ivClass + '">' + hvRank.toFixed(0) + '</span>' : '--'}</td>
+      <td style="font-size:0.85em;">${expiry}</td>
+      <td>${earningsHtml}</td>
+      <td>${newsHtml}</td>
+      <td>${scoreHtml}</td>
+      <td><button class="em-remove-btn" onclick="event.stopPropagation();ExpectedMove.removeTicker('${ticker}')">Remove</button></td>
+    </tr>`;
+  }
+
+  // =====================================================
+  // Auto-Refresh
+  // =====================================================
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+    refreshTimer = setTimeout(async () => {
+      await doRefreshAll();
+      startAutoRefresh();
+    }, REFRESH_INTERVAL);
+    countdownTimer = setInterval(updateCountdown, 1000);
+    updateCountdown();
+  }
+
+  function stopAutoRefresh() {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    if (countdownTimer) clearInterval(countdownTimer);
+  }
+
+  function updateCountdown() {
+    const el = document.getElementById('emCountdownText');
+    if (!el) return;
+    const remaining = Math.max(0, nextRefreshAt - Date.now());
+    const min = Math.floor(remaining / 60000);
+    const sec = Math.floor((remaining % 60000) / 1000);
+    el.textContent = `Auto-refresh: ${min}:${String(sec).padStart(2, '0')}`;
+  }
+
+  // =====================================================
+  // Actions
+  // =====================================================
+  async function lookupTicker() {
+    const input = document.getElementById('emTickerInput');
+    const raw = (input?.value || '').trim().toUpperCase();
+    if (!raw) return;
+    currentTicker = raw;
+    localStorage.setItem(LAST_TICKER_KEY, raw);
+    input.value = raw;
+
+    // Show loading
+    renderCalculator(raw);
+
+    await fetchTickerData(raw);
+    renderCalculator(raw);
+  }
+
+  async function quickLookup(ticker) {
+    const t = ticker.toUpperCase();
+    const input = document.getElementById('emTickerInput');
+    if (input) input.value = t;
+    currentTicker = t;
+    localStorage.setItem(LAST_TICKER_KEY, t);
+
+    renderCalculator(t);
+    await fetchTickerData(t);
+    renderCalculator(t);
+  }
+
+  function addTicker() {
+    const input = document.getElementById('emAddInput');
+    const raw = (input?.value || '').trim().toUpperCase();
+    if (!raw) return;
+    if (watchlist.includes(raw)) {
+      input.value = '';
+      return;
+    }
+    watchlist.push(raw);
+    saveWatchlist();
+    input.value = '';
+
+    // Sync to shared watchlist store (visible on watchlist.html)
+    if (window.WATCHLIST) WATCHLIST.add(raw, 'expected-move');
+
+    renderWatchlistTable();
+
+    // Fetch data for new ticker
+    fetchTickerData(raw).then(() => renderWatchlistRow(raw));
+  }
+
+  function removeTicker(ticker) {
+    watchlist = watchlist.filter(t => t !== ticker);
+    delete tickerData[ticker];
+    saveWatchlist();
+
+    // Also remove from shared watchlist store
+    if (window.WATCHLIST) WATCHLIST.remove(ticker);
+
+    renderWatchlistTable();
+  }
+
+  async function doRefreshAll() {
+    if (currentTicker) {
+      await fetchTickerData(currentTicker);
+      renderCalculator(currentTicker);
+    }
+    await fetchAllWatchlistData();
+  }
+
+  async function refreshAll() {
+    // Reset countdown
+    startAutoRefresh();
+    await doRefreshAll();
+  }
+
+  // =====================================================
+  // Sort
+  // =====================================================
+  function getSortValue(ticker, column) {
+    const d = tickerData[ticker];
+    const opt = d?.options;
+    const hist = d?.history;
+    switch (column) {
+      case 'ticker': return ticker;
+      case 'price': return opt?.price ?? -Infinity;
+      case 'change': return opt?.changePercent ?? -Infinity;
+      case 'em': return opt?.expectedMove ?? -Infinity;
+      case 'emPct': return opt?.expectedMovePercent ?? -Infinity;
+      case 'iv': return opt?.avgIV ?? -Infinity;
+      case 'hvRank': return hist?.hvRank ?? -Infinity;
+      case 'expiry': return opt?.expirationDate || '';
+      case 'earnings': return opt?.earningsInDays ?? Infinity;
+      case 'news': { const nf = getNewsFreshness(d?.news); return nf.age != null ? -nf.age : Infinity; }
+      case 'score': return calculateScore(ticker).score;
+      default: return 0;
+    }
+  }
+
+  function sortWatchlist(column) {
+    if (sortState.column === column) {
+      sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc';
+    } else {
+      sortState.column = column;
+      sortState.direction = 'desc';
+    }
+
+    watchlist.sort((a, b) => {
+      const va = getSortValue(a, column);
+      const vb = getSortValue(b, column);
+      let cmp;
+      if (typeof va === 'string' && typeof vb === 'string') {
+        cmp = va.localeCompare(vb);
+      } else {
+        cmp = (va < vb ? -1 : va > vb ? 1 : 0);
+      }
+      return sortState.direction === 'asc' ? cmp : -cmp;
+    });
+
+    saveWatchlist();
+    renderWatchlistTable();
+    updateSortIndicators();
+  }
+
+  function updateSortIndicators() {
+    const table = document.getElementById('emWatchlistTable');
+    if (!table) return;
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === sortState.column) {
+        th.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+  }
+
+  function initSortHeaders() {
+    const table = document.getElementById('emWatchlistTable');
+    if (!table) return;
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => sortWatchlist(th.dataset.sort));
+    });
+  }
+
+  // =====================================================
+  // Export
+  // =====================================================
+  function exportWatchlist() {
+    if (!watchlist.length) return;
+
+    const headers = ['Ticker', 'Price', 'Change %', 'Exp Move $', 'Exp Move %', 'ATM IV', 'HV Rank', 'Expiry', 'Earnings Days', 'News', 'Score', 'Score Label'];
+    const rows = watchlist.map(t => {
+      const d = tickerData[t];
+      const opt = d?.options;
+      const hist = d?.history;
+      const sc = calculateScore(t);
+      const nf = getNewsFreshness(d?.news);
+      return [
+        t,
+        opt?.price ?? '',
+        opt?.changePercent != null ? opt.changePercent.toFixed(2) : '',
+        opt?.expectedMove ?? '',
+        opt?.expectedMovePercent ?? '',
+        opt?.avgIV != null ? (opt.avgIV * 100).toFixed(1) : '',
+        hist?.hvRank != null ? hist.hvRank.toFixed(0) : '',
+        opt?.expirationDate || '',
+        opt?.earningsInDays ?? '',
+        nf.label || 'None',
+        sc.score,
+        sc.label
+      ].join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expected-move-watchlist-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // =====================================================
+  // Utilities
+  // =====================================================
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return '--';
+    return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtInt(n) {
+    if (n == null || isNaN(n)) return '--';
+    return Number(n).toLocaleString('en-US');
+  }
+
+  // =====================================================
+  // Initialization
+  // =====================================================
+  async function init() {
+    loadWatchlist();
+
+    // Sync emWatchlist items into the shared watchlist store so they appear
+    // on the Watchlist page under the "Expected Move" filter
+    if (window.WATCHLIST && watchlist.length) {
+      watchlist.forEach(t => WATCHLIST.add(t, 'expected-move'));
+    }
+
+    renderWatchlistTable();
+    initSortHeaders();
+    startAutoRefresh();
+
+    if (window.lucide) lucide.createIcons();
+
+    // Load saved ticker
+    const saved = localStorage.getItem(LAST_TICKER_KEY);
+    if (saved) {
+      const input = document.getElementById('emTickerInput');
+      if (input) input.value = saved;
+      currentTicker = saved;
+      renderCalculator(saved);
+      fetchTickerData(saved).then(() => renderCalculator(saved));
+    }
+
+    // Load watchlist data
+    if (watchlist.length) {
+      await fetchAllWatchlistData();
+    }
+  }
+
+  // =====================================================
+  // Public API
+  // =====================================================
+  window.ExpectedMove = {
+    init,
+    lookupTicker,
+    quickLookup,
+    addTicker,
+    removeTicker,
+    refreshAll,
+    sortWatchlist,
+    exportWatchlist
+  };
+
+  window.addEventListener('DOMContentLoaded', init);
+})();

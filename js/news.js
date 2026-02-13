@@ -3,10 +3,11 @@
 
 class NewsLoader {
     constructor() {
-        this.apiUrl = `${CONFIG.API_BASE}/api/finnhub/news`;
+        this.apiUrl = `${CONFIG.API_BASE}/api/news`; // Use Finnhub news endpoint
         this.cache = null;
         this.cacheTimestamp = null;
         this.isLoading = false;
+        this.marketCapFilter = 'all'; // all, small, mid, large
     }
     
     /**
@@ -39,14 +40,15 @@ class NewsLoader {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
             
-            const response = await fetch(`${this.apiUrl}?category=${category}`, {
+            const response = await AUTH.fetchSaxo(`${this.apiUrl}?category=${category}`, {
                 signal: controller.signal
             });
             
             clearTimeout(timeout);
             
-            if (!response.ok) {
-                throw new Error(`News API Error: ${response.status}`);
+            if (!response || !response.ok) {
+                const status = response ? response.status : 'unknown';
+                throw new Error(`News API Error: ${status}`);
             }
             
             const data = await response.json();
@@ -85,16 +87,24 @@ class NewsLoader {
         container.innerHTML = '<div class="loading">Loading news...</div>';
         
         try {
-            const news = await this.fetchNews();
-            
+            let news = await this.fetchNews();
+
             if (!news || news.length === 0) {
                 container.innerHTML = '<div class="no-news">No news available</div>';
                 return;
             }
-            
+
+            // Apply market cap filter
+            const filteredNews = this.filterNewsByMarketCap(news);
+
+            if (filteredNews.length === 0) {
+                container.innerHTML = `<div class="no-news">No ${this.marketCapFilter} cap news available. <a href="#" onclick="newsLoader.setMarketCapFilter('all'); newsLoader.displayNews('${containerId}', ${limit}); return false;">Show all</a></div>`;
+                return;
+            }
+
             // Limit news items
-            const limitedNews = news.slice(0, limit);
-            
+            const limitedNews = filteredNews.slice(0, limit);
+
             // Generate HTML
             const newsHTML = limitedNews.map(item => this.createNewsItem(item)).join('');
             container.innerHTML = newsHTML;
@@ -113,31 +123,25 @@ class NewsLoader {
     }
     
     /**
-     * Create HTML for a single news item
+     * Create HTML for a single news item (compact headline format)
      */
     createNewsItem(item) {
         const date = new Date(item.datetime * 1000);
         const timeAgo = this.getTimeAgo(date);
         const source = item.source || 'Unknown';
         const headline = item.headline || 'No headline';
-        const summary = item.summary || '';
         const url = item.url || '#';
-        const image = item.image || '';
-        
+
         return `
-            <div class="news-item">
-                ${image ? `<img src="${image}" alt="${headline}" class="news-image" onerror="this.style.display='none'">` : ''}
-                <div class="news-content">
-                    <div class="news-meta">
-                        <span class="news-source">${this.escapeHtml(source)}</span>
-                        <span class="news-time">${timeAgo}</span>
-                    </div>
-                    <h4 class="news-headline">
-                        <a href="${url}" target="_blank" rel="noopener noreferrer">
-                            ${this.escapeHtml(headline)}
-                        </a>
-                    </h4>
-                    ${summary ? `<p class="news-summary">${this.escapeHtml(summary.substring(0, 150))}...</p>` : ''}
+            <div class="news-item compact">
+                <div class="news-meta">
+                    <span class="news-source">${this.escapeHtml(source)}</span>
+                    <span class="news-time">${timeAgo}</span>
+                </div>
+                <div class="news-headline">
+                    <a href="${this.sanitizeUrl(url)}" target="_blank" rel="noopener noreferrer">
+                        ${this.escapeHtml(headline)}
+                    </a>
                 </div>
             </div>
         `;
@@ -176,7 +180,60 @@ class NewsLoader {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    /**
+     * Sanitize URL to prevent XSS attacks
+     */
+    sanitizeUrl(url) {
+        if (!url || typeof url !== 'string') return '#';
+
+        const trimmed = url.trim().toLowerCase();
+
+        // Only allow http/https protocols
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            return url.trim();
+        }
+
+        // Block dangerous protocols
+        if (trimmed.startsWith('javascript:') ||
+            trimmed.startsWith('data:') ||
+            trimmed.startsWith('vbscript:') ||
+            trimmed.startsWith('file:')) {
+            return '#';
+        }
+
+        // If no protocol, default to https
+        return 'https://' + url.trim();
+    }
     
+    /**
+     * Set market cap filter
+     */
+    setMarketCapFilter(filter) {
+        this.marketCapFilter = filter;
+        console.log('Market cap filter set to:', filter);
+    }
+
+    /**
+     * Filter news based on market cap (basic keyword filtering)
+     */
+    filterNewsByMarketCap(news) {
+        if (this.marketCapFilter === 'all') return news;
+
+        const keywords = {
+            small: ['small cap', 'small-cap', 'smallcap', 'micro cap', 'microcap', 'penny stock'],
+            mid: ['mid cap', 'mid-cap', 'midcap', 'medium cap'],
+            large: ['large cap', 'large-cap', 'largecap', 'blue chip', 'mega cap', 'megacap']
+        };
+
+        const filterKeywords = keywords[this.marketCapFilter] || [];
+
+        return news.filter(item => {
+            const text = `${item.headline} ${item.summary || ''}`.toLowerCase();
+            return filterKeywords.some(keyword => text.includes(keyword));
+        });
+    }
+
     /**
      * Clear cache and force refresh
      */

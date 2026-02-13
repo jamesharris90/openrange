@@ -9,9 +9,50 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -58,6 +99,14 @@
                 </a>
                 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <span class="icon">🎯</span>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <span class="icon">📰</span>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
                     <span class="icon">🔬</span>
                     <span class="label">Research</span>
@@ -113,90 +162,31 @@
                     </div>
                 </div>
 
-                <!-- Charts Grid -->
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📊</span>
-                                SPY - 15 Minute
-                            </div>
-                            <div class="card-actions">
-                                <button class="btn-secondary">1M</button>
-                                <button class="btn-secondary">5M</button>
-                                <button class="btn-primary">15M</button>
-                                <button class="btn-secondary">1H</button>
-                            </div>
+                <!-- Saxo Positions -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">💼</span>
+                            My Open Positions
                         </div>
-                        <div class="card-body">
-                            <div class="widget-container" style="height: 550px;">
-                                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                                    <div class="tradingview-widget-container__widget"></div>
-                                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-                                    {
-                                        "autosize": false,
-                                        "width": "100%",
-                                        "height": "550",
-                                        "symbol": "AMEX:SPY",
-                                        "interval": "15",
-                                        "timezone": "Europe/London",
-                                        "theme": "dark",
-                                        "style": "1",
-                                        "locale": "en",
-                                        "backgroundColor": "rgba(26, 31, 46, 0)",
-                                        "gridColor": "rgba(42, 46, 57, 0.06)",
-                                        "enable_publishing": false,
-                                        "hide_side_toolbar": false,
-                                        "allow_symbol_change": true,
-                                        "studies": ["STD;VWAP", "STD;DEMA"],
-                                        "container_id": "tradingview_spy_main"
-                                    }
-                                    </script>
-                                </div>
-                            </div>
+                        <div class="card-actions">
+                            <a href="https://www.home.saxo/platforms/saxotradergo" target="_blank" class="btn-secondary">
+                                Open Saxo →
+                            </a>
                         </div>
                     </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="icon">📊</span>
-                                QQQ - 15 Minute
-                            </div>
-                            <div class="card-actions">
-                                <button class="btn-secondary">1M</button>
-                                <button class="btn-secondary">5M</button>
-                                <button class="btn-primary">15M</button>
-                                <button class="btn-secondary">1H</button>
-                            </div>
+                    <div class="card-body">
+                        <div id="positionsContainer">
+                            <div class="loading">Loading positions...</div>
                         </div>
-                        <div class="card-body">
-                            <div class="widget-container" style="height: 550px;">
-                                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                                    <div class="tradingview-widget-container__widget"></div>
-                                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-                                    {
-                                        "autosize": false,
-                                        "width": "100%",
-                                        "height": "550",
-                                        "symbol": "NASDAQ:QQQ",
-                                        "interval": "15",
-                                        "timezone": "Europe/London",
-                                        "theme": "dark",
-                                        "style": "1",
-                                        "locale": "en",
-                                        "backgroundColor": "rgba(26, 31, 46, 0)",
-                                        "gridColor": "rgba(42, 46, 57, 0.06)",
-                                        "enable_publishing": false,
-                                        "hide_side_toolbar": false,
-                                        "allow_symbol_change": true,
-                                        "studies": ["STD;VWAP", "STD;DEMA"],
-                                        "container_id": "tradingview_qqq_main"
-                                    }
-                                    </script>
-                                </div>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid - Dynamic based on open positions -->
+                <div id="chartsGrid" class="grid-2" style="margin-top: 24px;">
+                    <!-- Charts will be dynamically generated for open positions -->
+                    <div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 48px;">
+                        Loading position charts...
                     </div>
                 </div>
 
@@ -240,6 +230,18 @@
             </div>
         </main>
     </div>
+    <!-- TradingView Widget Library -->
+    <script src="https://s3.tradingview.com/tv.js"></script>
+
+    <!-- Inject API key -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <!-- Authentication -->
+    <script src="js/auth.js"></script>
+
+    <!-- Core Modules -->
+    <script src="js/config.js"></script>
+    <script src="js/saxoAPI.js"></script>
 
     <script>
         function updateMarketStatus() {
@@ -289,6 +291,158 @@
         
         updateMarketStatus();
         setInterval(updateMarketStatus, 60000);
+
+        // Load Saxo positions
+        async function loadPositions() {
+            const container = document.getElementById('positionsContainer');
+            const chartsGrid = document.getElementById('chartsGrid');
+            if (!container) return;
+
+            try {
+                // Wait for config to load
+                if (window.configReady) {
+                    await window.configReady;
+                }
+
+                const positions = await saxoAPI.getPositions();
+
+                if (!positions || !positions.Data || positions.Data.length === 0) {
+                    container.innerHTML = '<div class="loading">No open positions</div>';
+                    chartsGrid.innerHTML = '<div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 48px;">No open positions to display charts</div>';
+                    return;
+                }
+
+                // Display positions
+                const positionsHTML = positions.Data.map(pos => {
+                    const pnl = pos.ProfitLossOnTrade || 0;
+                    const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                    const pnlSign = pnl >= 0 ? '+' : '';
+                    return `
+                        <div class="position-item" style="padding: 12px; border-bottom: 1px solid var(--bg-hover); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">${pos.DisplayAndFormat?.Symbol || 'Unknown'}</div>
+                                <div style="font-size: 0.85em; color: var(--text-muted);">
+                                    ${pos.Amount || 0} @ ${pos.DisplayAndFormat?.AveragePrice || '0'}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="${pnlClass}" style="font-weight: 600;">
+                                    ${pnlSign}£${Math.abs(pnl).toFixed(2)}
+                                </div>
+                                <div style="font-size: 0.85em; color: var(--text-muted);">
+                                    ${pos.DisplayAndFormat?.CurrentPrice || '0'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = positionsHTML;
+
+                // Load charts for open positions
+                loadPositionCharts(positions.Data);
+            } catch (error) {
+                console.error('Failed to load positions:', error);
+                container.innerHTML = '<div style="padding: 12px; color: var(--accent-red);">Error loading positions</div>';
+                chartsGrid.innerHTML = '<div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--accent-red);">Error loading position charts</div>';
+            }
+        }
+
+        // Load charts for open positions
+        function loadPositionCharts(positions) {
+            const chartsGrid = document.getElementById('chartsGrid');
+            if (!chartsGrid) return;
+
+            // Clear loading message
+            chartsGrid.innerHTML = '';
+
+            // Create chart for each position (max 4)
+            const positionsToChart = positions.slice(0, 4);
+
+            positionsToChart.forEach((pos, index) => {
+                const symbol = pos.DisplayAndFormat?.Symbol || 'Unknown';
+                const containerId = `chart_${index}`;
+
+                // Create card for chart
+                const chartCard = document.createElement('div');
+                chartCard.className = 'card';
+                chartCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📊</span>
+                            ${symbol} - Position
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-secondary" onclick="updateChartInterval('${containerId}', '${symbol}', '5')">5M</button>
+                            <button class="btn-primary" onclick="updateChartInterval('${containerId}', '${symbol}', '15')">15M</button>
+                            <button class="btn-secondary" onclick="updateChartInterval('${containerId}', '${symbol}', '60')">1H</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="widget-container" style="height: 450px;">
+                            <div id="${containerId}" style="height:100%;width:100%"></div>
+                        </div>
+                    </div>
+                `;
+
+                chartsGrid.appendChild(chartCard);
+
+                // Create TradingView widget
+                setTimeout(() => {
+                    new TradingView.widget({
+                        "width": "100%",
+                        "height": "450",
+                        "symbol": symbol,
+                        "interval": "15",
+                        "timezone": "America/New_York",
+                        "theme": "dark",
+                        "style": "1",
+                        "locale": "en",
+                        "toolbar_bg": "#0a0e1a",
+                        "enable_publishing": false,
+                        "hide_side_toolbar": false,
+                        "allow_symbol_change": true,
+                        "container_id": containerId,
+                        "studies": ["STD;VWAP", "STD;Volume"],
+                        "backgroundColor": "rgba(26, 31, 46, 0)"
+                    });
+                }, 100 * index); // Stagger widget creation
+            });
+
+            // If there are no positions to chart, show message
+            if (positionsToChart.length === 0) {
+                chartsGrid.innerHTML = '<div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 48px;">No positions to display</div>';
+            }
+        }
+
+        // Update chart interval
+        window.chartWidgets = {};
+        function updateChartInterval(containerId, symbol, interval) {
+            // Clear and recreate widget with new interval
+            document.getElementById(containerId).innerHTML = '';
+            setTimeout(() => {
+                window.chartWidgets[containerId] = new TradingView.widget({
+                    "width": "100%",
+                    "height": "450",
+                    "symbol": symbol,
+                    "interval": interval,
+                    "timezone": "America/New_York",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#0a0e1a",
+                    "enable_publishing": false,
+                    "hide_side_toolbar": false,
+                    "allow_symbol_change": true,
+                    "container_id": containerId,
+                    "studies": ["STD;VWAP", "STD;Volume"],
+                    "backgroundColor": "rgba(26, 31, 46, 0)"
+                });
+            }, 100);
+        }
+
+        // Load positions on page load
+        document.addEventListener('DOMContentLoaded', loadPositions);
     </script>
 </body>
 </html>

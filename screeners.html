@@ -9,6 +9,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+
+    <!-- API Config -->
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
+
+    <!-- Core Modules -->
+    <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/watchlist-store.js"></script>
+    <script src="js/screeners.js"></script>
+
     <style>
         .screener-grid {
             display: grid;
@@ -16,14 +30,14 @@
             gap: 24px;
             margin-top: 24px;
         }
-        
+
         .screener-panel {
             background: var(--bg-card);
             border-radius: 12px;
             border: 1px solid var(--border-color);
             overflow: hidden;
         }
-        
+
         .screener-header {
             padding: 16px 20px;
             background: var(--bg-secondary);
@@ -32,56 +46,280 @@
             align-items: center;
             justify-content: space-between;
         }
-        
-        .screener-select {
-            flex: 1;
-            padding: 10px 14px;
-            font-size: 0.95em;
+
+        .screener-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .screener-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-panel {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .filter-input, .filter-select {
+            padding: 8px 10px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             color: var(--text-primary);
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-size: 0.9em;
         }
-        
-        .screener-select:hover {
-            border-color: var(--accent-blue);
-        }
-        
-        .screener-select:focus {
+
+        .filter-input:focus, .filter-select:focus {
             outline: none;
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
         }
-        
-        .screener-actions {
-            margin-left: 12px;
+
+        .filter-summary {
+            display: none;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: var(--accent-blue);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .filter-actions {
+            margin-top: 12px;
             display: flex;
             gap: 8px;
         }
-        
-        .screener-frame {
-            width: 100%;
-            height: 500px;
-            border: none;
+
+        .btn-filter {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .btn-filter:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .btn-filter.clear {
+            color: var(--accent-red);
+        }
+
+        .screener-content {
+            max-height: 600px;
+            overflow-y: auto;
             background: var(--bg-primary);
         }
-        
+
+        .result-count {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .screener-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .screener-table thead {
+            position: sticky;
+            top: 40px;
+            background: var(--bg-secondary);
+            z-index: 10;
+        }
+
+        .screener-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .screener-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+
+        .watchlist-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .watchlist-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+        }
+
+        .watchlist-btn.added {
+            background: rgba(0, 200, 83, 0.12);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .screener-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .screener-table tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .ticker-cell {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .company-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .positive {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .negative {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+
+        .no-data, .screener-error {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .screener-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .screener-error button {
+            margin-top: 12px;
+            padding: 8px 20px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .screener-error button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-icon.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+
         @media (max-width: 1400px) {
             .screener-grid {
                 grid-template-columns: 1fr;
             }
-            .screener-frame {
-                height: 600px;
+            .filter-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 <body>
     <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -97,47 +335,55 @@
                     </div>
                 </a>
             </div>
-            
+
             <nav class="nav-section">
                 <div class="nav-label">Main</div>
                 <a href="index.html" class="nav-link">
-                    <span class="icon">📊</span>
+                    <i data-lucide="bar-chart-2" class="icon"></i>
                     <span class="label">Dashboard</span>
                 </a>
                 <a href="screeners.html" class="nav-link active">
-                    <span class="icon">🔍</span>
+                    <i data-lucide="search" class="icon"></i>
                     <span class="label">Screeners</span>
                 </a>
                 <a href="watchlist.html" class="nav-link">
-                    <span class="icon">⭐</span>
+                    <i data-lucide="star" class="icon"></i>
                     <span class="label">Watchlist</span>
                 </a>
-                
+
                 <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
                 <a href="premarket.html" class="nav-link">
-                    <span class="icon">🌅</span>
+                    <i data-lucide="sunrise" class="icon"></i>
                     <span class="label">Pre-Market</span>
                 </a>
                 <a href="market-hours.html" class="nav-link">
-                    <span class="icon">📈</span>
+                    <i data-lucide="trending-up" class="icon"></i>
                     <span class="label">Market Hours</span>
                 </a>
                 <a href="postmarket.html" class="nav-link">
-                    <span class="icon">🌙</span>
+                    <i data-lucide="sunset" class="icon"></i>
                     <span class="label">Post-Market</span>
                 </a>
-                
+
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <i data-lucide="filter" class="icon"></i>
+                    <span class="label">Advanced Screener</span>
+                </a>
+                <a href="news-scanner.html" class="nav-link">
+                    <i data-lucide="newspaper" class="icon"></i>
+                    <span class="label">News Scanner</span>
+                </a>
                 <a href="research.html" class="nav-link">
-                    <span class="icon">🔬</span>
+                    <i data-lucide="microscope" class="icon"></i>
                     <span class="label">Research</span>
                 </a>
                 <a href="ai-chat.html" class="nav-link">
-                    <span class="icon">🤖</span>
+                    <i data-lucide="bot" class="icon"></i>
                     <span class="label">AI Chat</span>
                 </a>
                 <a href="market-overview.html" class="nav-link">
-                    <span class="icon">🌐</span>
+                    <i data-lucide="globe" class="icon"></i>
                     <span class="label">Market Overview</span>
                 </a>
             </nav>
@@ -149,6 +395,10 @@
             <div class="top-bar">
                 <h1 class="page-title">Market Screeners</h1>
                 <div class="top-bar-actions">
+                    <button class="btn-primary" onclick="loadAllScreeners()" style="margin-right: 16px;">
+                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                        Refresh All
+                    </button>
                     <div class="market-status">
                         <div class="status-dot"></div>
                         <span class="status-text" id="marketStatus">Market Open</span>
@@ -162,7 +412,7 @@
                 <div class="card">
                     <div class="card-body">
                         <p style="color: var(--text-secondary); margin: 0;">
-                            <strong>Finviz Elite Integration</strong> - Each screener can be customized independently. Your selections are saved automatically.
+                            <strong>Finviz Elite Screeners</strong> - Real-time stock screening with live data. Use filters to narrow down results. Click any stock to view detailed charts.
                         </p>
                     </div>
                 </div>
@@ -172,247 +422,319 @@
                     <!-- Screener 1 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener1" onchange="updateScreener(1)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="sunrise" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">Pre-Market Gainers</span>
+                                <span id="screener1-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(1)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener1')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener1')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame1" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4"></iframe>
+                        <div id="screener1-filter-panel" class="filter-panel">
+                            <div id="screener1-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 5" oninput="applyFilter('screener1', 'changeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Max</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 100" oninput="applyFilter('screener1', 'changeMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener1', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener1', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 1000000" oninput="applyFilter('screener1', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener1', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener1')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener1">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
 
                     <!-- Screener 2 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener2" onchange="updateScreener(2)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change" selected>Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">Top Gainers</span>
+                                <span id="screener2-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(2)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener2')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener2')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame2" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change"></iframe>
+                        <div id="screener2-filter-panel" class="filter-panel">
+                            <div id="screener2-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 5" oninput="applyFilter('screener2', 'changeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Max</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 100" oninput="applyFilter('screener2', 'changeMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener2', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener2', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 1000000" oninput="applyFilter('screener2', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener2', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener2')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener2">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
 
                     <!-- Screener 3 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener3" onchange="updateScreener(3)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume" selected>Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">Unusual Volume</span>
+                                <span id="screener3-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(3)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener3')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener3')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame3" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume"></iframe>
+                        <div id="screener3-filter-panel" class="filter-panel">
+                            <div id="screener3-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 5" oninput="applyFilter('screener3', 'changeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener3', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener3', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 1000000" oninput="applyFilter('screener3', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Rel Vol Min</label>
+                                    <input type="number" step="0.1" class="filter-input" placeholder="e.g. 3" oninput="applyFilter('screener3', 'relVolMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener3', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener3')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener3">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
 
                     <!-- Screener 4 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener4" onchange="updateScreener(4)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change" selected>Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="arrow-up" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">Gap Up</span>
+                                <span id="screener4-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(4)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener4')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener4')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame4" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change"></iframe>
+                        <div id="screener4-filter-panel" class="filter-panel">
+                            <div id="screener4-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Gap % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 3" oninput="applyFilter('screener4', 'gapMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener4', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener4', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 1000000" oninput="applyFilter('screener4', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener4', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener4')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener4">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
 
                     <!-- Screener 5 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener5" onchange="updateScreener(5)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4" selected>High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change">Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">High Volatility</span>
+                                <span id="screener5-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(5)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener5')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener5')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame5" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4"></iframe>
+                        <div id="screener5-filter-panel" class="filter-panel">
+                            <div id="screener5-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 5" oninput="applyFilter('screener5', 'changeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener5', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener5', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 1000000" oninput="applyFilter('screener5', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener5', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener5')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener5">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
 
                     <!-- Screener 6 -->
                     <div class="screener-panel">
                         <div class="screener-header">
-                            <select class="screener-select" id="screener6" onchange="updateScreener(6)">
-                                <optgroup label="Pre-Market">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,sh_price_u20,ta_changeopen_u5&ft=4">Pre-Market Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_curvol_o1000,ta_changeopen_u3&ft=4">Pre-Market Gappers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,sh_relvol_o3&ft=4">High Relative Volume Pre-Market</option>
-                                </optgroup>
-                                <optgroup label="Momentum">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_u5&ft=4&o=-change">Top Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_change_d5&ft=4&o=change">Top Losers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o2000,sh_relvol_o2&ft=4&o=-volume">Most Active</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_relvol_o3,sh_avgvol_o500&ft=4&o=-relativevolume">Unusual Volume</option>
-                                </optgroup>
-                                <optgroup label="Gaps">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u3&ft=4&o=-change">Gap Up</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_d3&ft=4&o=change">Gap Down</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_gap_u5&ft=4">Strong Gap Up 5%+</option>
-                                </optgroup>
-                                <optgroup label="Breakouts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nh&ft=4">New Highs</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_highlow52w_nl&ft=4">New Lows</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=sh_avgvol_o500,ta_volatility_wo5&ft=4">High Volatility</option>
-                                </optgroup>
-                                <optgroup label="Market Cap">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change" selected>Small Cap Gainers</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=cap_micro,sh_avgvol_o200,ta_change_u5&ft=4&o=-change">Micro Cap Movers</option>
-                                </optgroup>
-                                <optgroup label="Catalysts">
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_today&ft=4">Earnings Today</option>
-                                    <option value="https://elite.finviz.com/screener.ashx?v=111&f=earningsdate_thisweek&ft=4">Earnings This Week</option>
-                                </optgroup>
-                            </select>
+                            <div class="screener-title">
+                                <i data-lucide="target" style="width: 20px; height: 20px;"></i>
+                                <span class="screener-title__name">Small Cap Gainers</span>
+                                <span id="screener6-filter-summary" class="filter-summary"></span>
+                            </div>
                             <div class="screener-actions">
-                                <button class="btn-icon" onclick="refreshScreener(6)" title="Refresh">🔄</button>
+                                <button class="btn-icon" onclick="toggleFilters('screener6')" title="Filters">
+                                    <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-icon" onclick="refreshScreener('screener6')" title="Refresh">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
                             </div>
                         </div>
-                        <iframe id="frame6" class="screener-frame" src="https://elite.finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,ta_change_u3&ft=4&o=-change"></iframe>
+                        <div id="screener6-filter-panel" class="filter-panel">
+                            <div id="screener6-filters" class="filter-grid">
+                                <div class="filter-group">
+                                    <label class="filter-label">Change % Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 3" oninput="applyFilter('screener6', 'changeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Min</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 1" oninput="applyFilter('screener6', 'priceMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Price Max</label>
+                                    <input type="number" step="0.01" class="filter-input" placeholder="e.g. 20" oninput="applyFilter('screener6', 'priceMax', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Volume Min</label>
+                                    <input type="number" class="filter-input" placeholder="e.g. 500000" oninput="applyFilter('screener6', 'volumeMin', this.value)">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Sector</label>
+                                    <select class="filter-select" data-filter="sector" onchange="applyFilter('screener6', 'sector', this.value)">
+                                        <option value="all">All Sectors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter clear" onclick="clearScreenerFilters('screener6')">Clear Filters</button>
+                            </div>
+                        </div>
+                        <div class="screener-content" id="screener6">
+                            <div class="loading" style="padding: 40px; text-align: center;">Loading...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -420,32 +742,31 @@
     </div>
 
     <script>
-        function updateScreener(number) {
-            const select = document.getElementById(`screener${number}`);
-            const frame = document.getElementById(`frame${number}`);
-            frame.src = select.value;
-            
-            // Save preference
-            localStorage.setItem(`screener${number}`, select.value);
-        }
+        // Initialize Lucide icons
+        lucide.createIcons();
 
-        function refreshScreener(number) {
-            const frame = document.getElementById(`frame${number}`);
-            frame.src = frame.src;
-        }
+        // Initialize screeners when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Initializing screeners...');
 
-        // Load saved preferences
-        window.addEventListener('DOMContentLoaded', function() {
-            for (let i = 1; i <= 6; i++) {
-                const saved = localStorage.getItem(`screener${i}`);
-                if (saved) {
-                    const select = document.getElementById(`screener${i}`);
-                    select.value = saved;
-                    document.getElementById(`frame${i}`).src = saved;
-                }
+            // Wait for config to load
+            if (window.configReady) {
+                await window.configReady;
             }
+
+            // Initialize screener instances
+            initScreeners();
+
+            // Load all screeners
+            loadAllScreeners();
+
+            // Refresh icons
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 1000);
         });
 
+        // Update market status
         function updateMarketStatus() {
             const now = new Date();
             const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -454,14 +775,14 @@
             const day = ny.getDay();
             const statusEl = document.getElementById('marketStatus');
             const statusDot = document.querySelector('.status-dot');
-            
+
             if (day === 0 || day === 6) {
                 statusEl.textContent = 'Market Closed (Weekend)';
                 statusDot.style.background = 'var(--accent-red)';
                 statusDot.style.animation = 'none';
                 return;
             }
-            
+
             if (hour < 9 || (hour === 9 && minute < 30)) {
                 if (hour >= 4) {
                     statusEl.textContent = 'Pre-Market';
@@ -473,24 +794,24 @@
                 }
                 return;
             }
-            
+
             if (hour < 16 || (hour === 16 && minute === 0)) {
                 statusEl.textContent = 'Market Open';
                 statusDot.style.background = 'var(--accent-green)';
                 return;
             }
-            
+
             if (hour < 20) {
                 statusEl.textContent = 'Post-Market';
                 statusDot.style.background = 'var(--accent-orange)';
                 return;
             }
-            
+
             statusEl.textContent = 'Market Closed';
             statusDot.style.background = 'var(--accent-red)';
             statusDot.style.animation = 'none';
         }
-        
+
         updateMarketStatus();
         setInterval(updateMarketStatus, 60000);
     </script>

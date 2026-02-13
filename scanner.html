@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Scanner - OpenRange Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/sidebar.js"></script>
+    <style>
+        .filter-group {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .filter-group-title {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .filter-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .results-table thead {
+            background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .results-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .results-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .results-table tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .results-table tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .symbol-cell {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .positive {
+            color: var(--accent-green);
+        }
+
+        .negative {
+            color: var(--accent-red);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-news {
+            background: rgba(74, 158, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .tag-earnings {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--accent-purple);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 14, 26, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+            <span id="userMenuName">Guest</span>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" id="logoutLink" style="display:none;">Logout</a>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let token = localStorage.getItem('authToken');
+            let userMenuName = document.getElementById('userMenuName');
+            let loginLink = document.getElementById('loginLink');
+            let registerLink = document.getElementById('registerLink');
+            let profileLink = document.getElementById('profileLink');
+            let adminLink = document.getElementById('adminLink');
+            let logoutLink = document.getElementById('logoutLink');
+            if (token) {
+                try {
+                    let payload = JSON.parse(atob(token.split('.')[1]));
+                    userMenuName.textContent = payload.username || 'User';
+                    loginLink.style.display = 'none';
+                    registerLink.style.display = 'none';
+                    profileLink.style.display = '';
+                    logoutLink.style.display = '';
+                    if (payload.is_admin) adminLink.style.display = '';
+                } catch(e) {}
+            } else {
+                profileLink.style.display = 'none';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+            }
+            logoutLink && logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            });
+        });
+        </script>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="logo pack/openrange_icon.png" alt="OpenRange Trader">
+                    </div>
+                    <div class="logo-text">
+                        <div class="brand-name">
+                            <span class="open">Open</span><span class="range">Range</span>
+                        </div>
+                        <div class="brand-tagline">TRADER</div>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <a href="index.html" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="screeners.html" class="nav-link">
+                    <span class="icon">🔍</span>
+                    <span class="label">Screeners</span>
+                </a>
+                <a href="scanner.html" class="nav-link active">
+                    <span class="icon">🎯</span>
+                    <span class="label">Stock Scanner</span>
+                </a>
+                <a href="watchlist.html" class="nav-link">
+                    <span class="icon">⭐</span>
+                    <span class="label">Watchlist</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Market Sessions</div>
+                <a href="premarket.html" class="nav-link">
+                    <span class="icon">🌅</span>
+                    <span class="label">Pre-Market</span>
+                </a>
+                <a href="market-hours.html" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span class="label">Market Hours</span>
+                </a>
+                <a href="postmarket.html" class="nav-link">
+                    <span class="icon">🌙</span>
+                    <span class="label">Post-Market</span>
+                </a>
+
+                <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="research.html" class="nav-link">
+                    <span class="icon">🔬</span>
+                    <span class="label">Research</span>
+                </a>
+                <a href="ai-chat.html" class="nav-link">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI Chat</span>
+                </a>
+                <a href="market-overview.html" class="nav-link">
+                    <span class="icon">🌐</span>
+                    <span class="label">Market Overview</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title">🎯 Stock Scanner</h1>
+                <div class="top-bar-actions">
+                    <button class="btn-secondary" onclick="resetFilters()">Reset Filters</button>
+                    <button class="btn-primary" onclick="runScan()">🔍 Scan Stocks</button>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Filters Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">⚙️</span>
+                            Scanner Filters
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-icon" onclick="savePreset()" title="Save Preset">💾</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Market Cap Filter -->
+                        <div class="filter-group">
+                            <div class="filter-group-title">Market Cap</div>
+                            <div class="filter-row">
+                                <div class="filter-control">
+                                    <label class="filter-label">Size</label>
+                                    <select id="marketCapFilter" class="filter-select">
+                                        <option value="all">All</option>
+                                        <option value="micro">Micro Cap (&lt; $300M)</option>
+                                        <option value="small">Small Cap ($300M - $2B)</option>
+                                        <option value="mid">Mid Cap ($2B - $10B)</option>
+                                        <option value="large">Large Cap ($10B - $200B)</option>
+                                        <option value="mega">Mega Cap (&gt; $200B)</option>
+                                    </select>
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Min Market Cap ($M)</label>
+                                    <input type="number" id="minMarketCap" class="filter-input" placeholder="0">
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Max Market Cap ($M)</label>
+                                    <input type="number" id="maxMarketCap" class="filter-input" placeholder="Any">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pre-Market Change Filter -->
+                        <div class="filter-group">
+                            <div class="filter-group-title">Pre-Market / Price Change</div>
+                            <div class="filter-row">
+                                <div class="filter-control">
+                                    <label class="filter-label">Min Change (%)</label>
+                                    <input type="number" id="minChange" class="filter-input" placeholder="0" step="0.1">
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Max Change (%)</label>
+                                    <input type="number" id="maxChange" class="filter-input" placeholder="Any" step="0.1">
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Direction</label>
+                                    <select id="changeDirection" class="filter-select">
+                                        <option value="both">Both</option>
+                                        <option value="gainers">Gainers Only</option>
+                                        <option value="losers">Losers Only</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Float Filter -->
+                        <div class="filter-group">
+                            <div class="filter-group-title">Float</div>
+                            <div class="filter-row">
+                                <div class="filter-control">
+                                    <label class="filter-label">Min Float (M shares)</label>
+                                    <input type="number" id="minFloat" class="filter-input" placeholder="0" step="0.1">
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Max Float (M shares)</label>
+                                    <input type="number" id="maxFloat" class="filter-input" placeholder="Any" step="0.1">
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Float Category</label>
+                                    <select id="floatCategory" class="filter-select">
+                                        <option value="all">All</option>
+                                        <option value="low">Low Float (&lt; 20M)</option>
+                                        <option value="medium">Medium Float (20M - 100M)</option>
+                                        <option value="high">High Float (&gt; 100M)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- News Filter -->
+                        <div class="filter-group">
+                            <div class="filter-group-title">News & Catalysts</div>
+                            <div class="filter-row">
+                                <div class="filter-control">
+                                    <label class="filter-label">News Timeframe</label>
+                                    <select id="newsTimeframe" class="filter-select">
+                                        <option value="any">Any</option>
+                                        <option value="1h">Last 1 Hour</option>
+                                        <option value="2h">Last 2 Hours</option>
+                                        <option value="4h">Last 4 Hours</option>
+                                        <option value="1d">Last 24 Hours</option>
+                                        <option value="3d">Last 3 Days</option>
+                                        <option value="7d">Last 7 Days</option>
+                                    </select>
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Min News Count</label>
+                                    <input type="number" id="minNewsCount" class="filter-input" placeholder="0" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Earnings Filter -->
+                        <div class="filter-group">
+                            <div class="filter-group-title">Earnings</div>
+                            <div class="filter-row">
+                                <div class="filter-control">
+                                    <label class="filter-label">Earnings Timing</label>
+                                    <select id="earningsFilter" class="filter-select">
+                                        <option value="any">Any</option>
+                                        <option value="today">Released Today</option>
+                                        <option value="yesterday">Released Yesterday</option>
+                                        <option value="this_week">This Week</option>
+                                        <option value="next_week">Next Week</option>
+                                        <option value="upcoming">Upcoming (Next 7 Days)</option>
+                                    </select>
+                                </div>
+                                <div class="filter-control">
+                                    <label class="filter-label">Earnings Type</label>
+                                    <select id="earningsType" class="filter-select">
+                                        <option value="any">Any</option>
+                                        <option value="confirmed">Confirmed Only</option>
+                                        <option value="estimated">Estimated</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Card -->
+                <div class="card" style="margin-top: 24px; position: relative;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📋</span>
+                            Scan Results
+                            <span id="resultsCount" style="margin-left: 12px; color: var(--text-muted); font-weight: normal; font-size: 0.9em;"></span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-secondary" onclick="exportResults()">📥 Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingOverlay" class="loading-overlay hidden">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2em; margin-bottom: 12px;">🔍</div>
+                                <div>Scanning stocks...</div>
+                            </div>
+                        </div>
+                        <div style="max-height: 600px; overflow-y: auto;">
+                            <table class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Price</th>
+                                        <th>Change %</th>
+                                        <th>Volume</th>
+                                        <th>Market Cap</th>
+                                        <th>Float</th>
+                                        <th>Catalysts</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsBody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                                            Set your filters and click "Scan Stocks" to find opportunities
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TradingView Screener (as reference) -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="icon">📊</span>
+                            TradingView Stock Screener (Reference)
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="widget-container" style="height: 600px;">
+                            <div class="tradingview-widget-container" style="height:100%;width:100%">
+                                <div class="tradingview-widget-container__widget"></div>
+                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+                                {
+                                    "width": "100%",
+                                    "height": "600",
+                                    "defaultColumn": "overview",
+                                    "defaultScreen": "most_capitalized",
+                                    "market": "america",
+                                    "showToolbar": true,
+                                    "colorTheme": "dark",
+                                    "locale": "en",
+                                    "isTransparent": true
+                                }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mock stock data generator (replace with real API in production)
+        function generateMockStocks() {
+            const symbols = [
+                'AAPL', 'TSLA', 'NVDA', 'AMD', 'GOOGL', 'MSFT', 'AMZN', 'META', 'NFLX', 'BABA',
+                'TAL', 'AXTI', 'PLTR', 'SOFI', 'RIOT', 'MARA', 'COIN', 'HOOD', 'LCID', 'RIVN',
+                'F', 'GM', 'PLUG', 'FCEL', 'SPCE', 'OPEN', 'WISH', 'CLOV', 'AMC', 'GME'
+            ];
+
+            return symbols.map(symbol => ({
+                symbol: symbol,
+                price: (Math.random() * 500 + 10).toFixed(2),
+                change: (Math.random() * 20 - 5).toFixed(2),
+                volume: Math.floor(Math.random() * 100000000),
+                marketCap: Math.floor(Math.random() * 500000),
+                float: Math.floor(Math.random() * 500),
+                hasNews: Math.random() > 0.7,
+                hasEarnings: Math.random() > 0.85,
+                newsTime: Math.floor(Math.random() * 48), // hours ago
+                earningsDate: new Date(Date.now() + (Math.random() * 14 - 7) * 86400000).toISOString()
+            }));
+        }
+
+        let allStocks = generateMockStocks();
+
+        function runScan() {
+            const filters = {
+                marketCap: document.getElementById('marketCapFilter').value,
+                minMarketCap: parseFloat(document.getElementById('minMarketCap').value) || 0,
+                maxMarketCap: parseFloat(document.getElementById('maxMarketCap').value) || Infinity,
+                minChange: parseFloat(document.getElementById('minChange').value) || -Infinity,
+                maxChange: parseFloat(document.getElementById('maxChange').value) || Infinity,
+                changeDirection: document.getElementById('changeDirection').value,
+                minFloat: parseFloat(document.getElementById('minFloat').value) || 0,
+                maxFloat: parseFloat(document.getElementById('maxFloat').value) || Infinity,
+                floatCategory: document.getElementById('floatCategory').value,
+                newsTimeframe: document.getElementById('newsTimeframe').value,
+                minNewsCount: parseInt(document.getElementById('minNewsCount').value) || 0,
+                earningsFilter: document.getElementById('earningsFilter').value
+            };
+
+            // Show loading
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
+            // Simulate API delay
+            setTimeout(() => {
+                const results = filterStocks(allStocks, filters);
+                displayResults(results);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1000);
+        }
+
+        function filterStocks(stocks, filters) {
+            return stocks.filter(stock => {
+                // Market Cap filter
+                if (filters.marketCap !== 'all') {
+                    const ranges = {
+                        micro: [0, 300],
+                        small: [300, 2000],
+                        mid: [2000, 10000],
+                        large: [10000, 200000],
+                        mega: [200000, Infinity]
+                    };
+                    const [min, max] = ranges[filters.marketCap];
+                    if (stock.marketCap < min || stock.marketCap > max) return false;
+                }
+
+                if (stock.marketCap < filters.minMarketCap || stock.marketCap > filters.maxMarketCap) {
+                    return false;
+                }
+
+                // Change filter
+                const change = parseFloat(stock.change);
+                if (change < filters.minChange || change > filters.maxChange) {
+                    return false;
+                }
+
+                if (filters.changeDirection === 'gainers' && change < 0) return false;
+                if (filters.changeDirection === 'losers' && change > 0) return false;
+
+                // Float filter
+                if (stock.float < filters.minFloat || stock.float > filters.maxFloat) {
+                    return false;
+                }
+
+                if (filters.floatCategory !== 'all') {
+                    const ranges = {
+                        low: [0, 20],
+                        medium: [20, 100],
+                        high: [100, Infinity]
+                    };
+                    const [min, max] = ranges[filters.floatCategory];
+                    if (stock.float < min || stock.float > max) return false;
+                }
+
+                // News filter
+                if (filters.newsTimeframe !== 'any') {
+                    if (!stock.hasNews) return false;
+                    const hours = { '1h': 1, '2h': 2, '4h': 4, '1d': 24, '3d': 72, '7d': 168 };
+                    if (stock.newsTime > hours[filters.newsTimeframe]) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function displayResults(results) {
+            const tbody = document.getElementById('resultsBody');
+            const resultsCount = document.getElementById('resultsCount');
+
+            resultsCount.textContent = `(${results.length} stocks found)`;
+
+            if (results.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                            No stocks match your criteria. Try adjusting the filters.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = results.map(stock => {
+                const changeClass = parseFloat(stock.change) >= 0 ? 'positive' : 'negative';
+                const changeSign = parseFloat(stock.change) >= 0 ? '+' : '';
+
+                let catalysts = [];
+                if (stock.hasNews) catalysts.push('<span class="tag tag-news">News</span>');
+                if (stock.hasEarnings) catalysts.push('<span class="tag tag-earnings">Earnings</span>');
+
+                return `
+                    <tr onclick="viewStock('${stock.symbol}')">
+                        <td class="symbol-cell">${stock.symbol}</td>
+                        <td>$${stock.price}</td>
+                        <td class="${changeClass}">${changeSign}${stock.change}%</td>
+                        <td>${formatVolume(stock.volume)}</td>
+                        <td>$${formatMarketCap(stock.marketCap)}</td>
+                        <td>${stock.float}M</td>
+                        <td>${catalysts.join(' ') || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function formatVolume(volume) {
+            if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
+            if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
+            return volume;
+        }
+
+        function formatMarketCap(cap) {
+            if (cap >= 1000) return `${(cap / 1000).toFixed(1)}B`;
+            return `${cap}M`;
+        }
+
+        function viewStock(symbol) {
+            window.open(`research.html?symbol=${symbol}`, '_blank');
+        }
+
+        function resetFilters() {
+            document.getElementById('marketCapFilter').value = 'all';
+            document.getElementById('minMarketCap').value = '';
+            document.getElementById('maxMarketCap').value = '';
+            document.getElementById('minChange').value = '';
+            document.getElementById('maxChange').value = '';
+            document.getElementById('changeDirection').value = 'both';
+            document.getElementById('minFloat').value = '';
+            document.getElementById('maxFloat').value = '';
+            document.getElementById('floatCategory').value = 'all';
+            document.getElementById('newsTimeframe').value = 'any';
+            document.getElementById('minNewsCount').value = '';
+            document.getElementById('earningsFilter').value = 'any';
+            document.getElementById('earningsType').value = 'any';
+
+            document.getElementById('resultsBody').innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                        Set your filters and click "Scan Stocks" to find opportunities
+                    </td>
+                </tr>
+            `;
+            document.getElementById('resultsCount').textContent = '';
+        }
+
+        function savePreset() {
+            const filters = {
+                marketCap: document.getElementById('marketCapFilter').value,
+                minMarketCap: document.getElementById('minMarketCap').value,
+                maxMarketCap: document.getElementById('maxMarketCap').value,
+                minChange: document.getElementById('minChange').value,
+                maxChange: document.getElementById('maxChange').value,
+                changeDirection: document.getElementById('changeDirection').value,
+                minFloat: document.getElementById('minFloat').value,
+                maxFloat: document.getElementById('maxFloat').value,
+                floatCategory: document.getElementById('floatCategory').value,
+                newsTimeframe: document.getElementById('newsTimeframe').value,
+                minNewsCount: document.getElementById('minNewsCount').value,
+                earningsFilter: document.getElementById('earningsFilter').value,
+                earningsType: document.getElementById('earningsType').value
+            };
+
+            localStorage.setItem('scannerPreset', JSON.stringify(filters));
+            alert('Filter preset saved!');
+        }
+
+        function exportResults() {
+            // Get current results from table
+            const table = document.getElementById('resultsBody');
+            const rows = table.querySelectorAll('tr');
+
+            if (rows.length === 1 && rows[0].cells.length === 1) {
+                alert('No results to export');
+                return;
+            }
+
+            let csv = 'Symbol,Price,Change %,Volume,Market Cap,Float,News,Earnings\n';
+
+            rows.forEach(row => {
+                if (row.cells.length > 1) {
+                    const cells = Array.from(row.cells);
+                    const rowData = cells.map(cell => cell.textContent.trim()).join(',');
+                    csv += rowData + '\n';
+                }
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `stock-scanner-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Load saved preset on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('scannerPreset');
+            if (saved) {
+                const filters = JSON.parse(saved);
+                Object.keys(filters).forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el) el.value = filters[key];
+                });
+            }
+        });
+    </script>
+</body>
+</html>
