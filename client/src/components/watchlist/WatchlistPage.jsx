@@ -7,6 +7,7 @@ import TickerChip from '../shared/TickerChip';
 import SourceBadge from '../shared/SourceBadge';
 import SortableTable from '../shared/SortableTable';
 import { formatCurrency, formatPercent, formatMarketCap, getTimeAgo } from '../../utils/formatters';
+import { renderSymbolLink, renderPrice, renderPercentColor, renderMarketCapCell } from '../../utils/tableCells.jsx';
 import { SOURCE_COLORS } from '../../utils/constants';
 import { Plus, Download } from 'lucide-react';
 
@@ -85,31 +86,22 @@ export default function WatchlistPage() {
 
   const columns = [
     {
-      key: 'symbol', label: 'Symbol', render: (row) => (
-        <span style={{ color: 'var(--accent-blue)', fontWeight: 600, cursor: 'pointer' }}
-              onClick={() => setSelectedTicker(row.symbol)}>
-          {row.symbol}
-        </span>
-      ),
+      key: 'symbol', label: 'Symbol', render: (row) => renderSymbolLink(row.symbol, setSelectedTicker),
     },
     { key: 'shortName', label: 'Company' },
     {
       key: 'price', label: 'Price', align: 'right',
-      render: (row) => formatCurrency(row.price),
+      render: (row) => renderPrice(row.price),
       sortValue: (row) => row.price,
     },
     {
       key: 'changePercent', label: 'Change %', align: 'right',
-      render: (row) => (
-        <span style={{ color: row.changePercent >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-          {formatPercent(row.changePercent)}
-        </span>
-      ),
+      render: (row) => renderPercentColor(row.changePercent),
       sortValue: (row) => row.changePercent,
     },
     {
       key: 'marketCap', label: 'Market Cap', align: 'right',
-      render: (row) => formatMarketCap(row.marketCap),
+      render: (row) => renderMarketCapCell(row.marketCap),
       sortValue: (row) => row.marketCap,
     },
     {
@@ -126,6 +118,7 @@ export default function WatchlistPage() {
         <button
           className="btn-icon"
           title="Remove"
+          aria-label={`Remove ${row.symbol}`}
           onClick={(e) => { e.stopPropagation(); remove(row.symbol); }}
         >
           &times;
@@ -192,6 +185,7 @@ export default function WatchlistPage() {
             rowKey={(row) => row.symbol}
             onRowClick={(row) => setSelectedTicker(row.symbol)}
             rowClassName={(row) => selectedTicker === row.symbol ? 'row--selected' : ''}
+            virtualizeThreshold={400}
           />
         </div>
         {selectedTicker && (

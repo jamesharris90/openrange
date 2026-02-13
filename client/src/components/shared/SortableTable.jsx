@@ -1,9 +1,27 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
-export default function SortableTable({ columns, data, rowKey, onRowClick, rowClassName }) {
+const TableRow = memo(function TableRow({ row, columns, rowKey, onRowClick, rowClassName }) {
+  return (
+    <tr
+      key={rowKey(row)}
+      onClick={onRowClick ? () => onRowClick(row) : undefined}
+      className={rowClassName?.(row) || ''}
+      style={onRowClick ? { cursor: 'pointer' } : undefined}
+    >
+      {columns.map(col => (
+        <td key={col.key} style={{ textAlign: col.align || 'left' }}>
+          {col.render ? col.render(row) : row[col.key]}
+        </td>
+      ))}
+    </tr>
+  );
+});
+
+export default function SortableTable({ columns, data, rowKey, onRowClick, rowClassName, virtualizeThreshold = Infinity, rowHeight = 44, maxHeight = 640 }) {
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
+  const [scrollTop, setScrollTop] = useState(0);
 
   const sorted = useMemo(() => {
     if (!sortCol) return data;
@@ -21,6 +39,15 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
     });
   }, [data, sortCol, sortDir, columns]);
 
+  const virtualize = sorted.length > virtualizeThreshold;
+  const startIndex = virtualize ? Math.max(0, Math.floor(scrollTop / rowHeight)) : 0;
+  const visibleCount = virtualize ? Math.ceil(maxHeight / rowHeight) + 5 : sorted.length;
+  const endIndex = virtualize ? Math.min(sorted.length, startIndex + visibleCount) : sorted.length;
+  const rendered = virtualize ? sorted.slice(startIndex, endIndex) : sorted;
+
+  const topPad = virtualize ? startIndex * rowHeight : 0;
+  const bottomPad = virtualize ? Math.max(0, (sorted.length - endIndex) * rowHeight) : 0;
+
   const handleSort = (key) => {
     if (sortCol === key) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -31,7 +58,11 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
   };
 
   return (
-    <div className="table-wrapper">
+    <div
+      className="table-wrapper"
+      style={virtualize ? { maxHeight, overflow: 'auto' } : undefined}
+      onScroll={virtualize ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
+    >
       <table className="data-table">
         <thead>
           <tr>
@@ -54,20 +85,26 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
         <tbody>
           {sorted.length === 0 ? (
             <tr><td colSpan={columns.length} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No data</td></tr>
-          ) : sorted.map(row => (
-            <tr
-              key={rowKey(row)}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={rowClassName?.(row) || ''}
-              style={onRowClick ? { cursor: 'pointer' } : undefined}
-            >
-              {columns.map(col => (
-                <td key={col.key} style={{ textAlign: col.align || 'left' }}>
-                  {col.render ? col.render(row) : row[col.key]}
-                </td>
+          ) : (
+            <>
+              {virtualize && topPad > 0 && (
+                <tr><td style={{ height: topPad }} colSpan={columns.length} aria-hidden="true" /></tr>
+              )}
+              {rendered.map(row => (
+                <TableRow
+                  key={rowKey(row)}
+                  row={row}
+                  columns={columns}
+                  rowKey={rowKey}
+                  onRowClick={onRowClick}
+                  rowClassName={rowClassName}
+                />
               ))}
-            </tr>
-          ))}
+              {virtualize && bottomPad > 0 && (
+                <tr><td style={{ height: bottomPad }} colSpan={columns.length} aria-hidden="true" /></tr>
+              )}
+            </>
+          )}
         </tbody>
       </table>
     </div>

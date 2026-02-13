@@ -9,7 +9,7 @@
 .global-market-bar {
   width: 100%;
   height: var(--market-bar-height);
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
@@ -17,14 +17,17 @@
   align-items: center;
   justify-content: flex-end;
   padding: 8px 20px;
-  padding-left: calc(var(--sidebar-width) + 16px);
   gap: 12px;
   box-sizing: border-box;
   z-index: 950;
 }
 
 .app-container {
-  padding-top: var(--market-bar-height);
+  padding-top: 0;
+}
+
+.main-content {
+  padding-top: calc(var(--market-bar-height) + 72px);
 }
 
 .market-pill-group {
@@ -43,7 +46,6 @@ body.has-global-bar .top-bar {
   .global-market-bar {
     justify-content: center;
     padding: 12px;
-    padding-left: 12px;
   }
 
   .market-pill-group {
@@ -54,6 +56,24 @@ body.has-global-bar .top-bar {
 /* React-specific overrides */
 #root {
   min-height: 100vh;
+}
+
+/* Utility text colors for tables */
+.text-positive { color: var(--accent-green); font-weight: 600; }
+.text-negative { color: var(--accent-red); font-weight: 600; }
+.text-warning { color: var(--accent-orange); font-weight: 600; }
+.text-muted { color: var(--text-secondary); }
+.text-link { color: var(--accent-blue); font-weight: 600; cursor: pointer; }
+.text-link:hover { text-decoration: underline; }
+
+/* Time badge shared style */
+.time-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 /* ── Ticker Chips ── */

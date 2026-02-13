@@ -7,6 +7,7 @@ import EarningsResearchPanel from './EarningsResearchPanel';
 import { formatCurrency, formatPercent, formatMarketCap, formatVolume, formatFloat } from '../../utils/formatters';
 import { EARNINGS_TIME_LABELS, EARNINGS_TIME_COLORS } from '../../utils/constants';
 import { calcTradeScore, getScoreColor, getScoreLabel, DEFAULT_VISIBLE_COLUMNS, ALL_COLUMN_KEYS } from '../../utils/earningsScoring';
+import { renderSymbolLink, renderTimeBadge, renderPercentColor, renderMarketCapCell, renderVolumeCell, renderRvol, renderShortPercent, renderDistPercent } from '../../utils/tableCells.jsx';
 import { Star, Download, Loader2, ChevronUp, ChevronDown, Columns3, Minus, Plus, CheckSquare } from 'lucide-react';
 
 const DEFAULT_FILTERS = {
@@ -44,19 +45,17 @@ const COLUMN_SPECS = [
 ];
 
 // Cell renderer by column key
-function renderCell(key, row, { has, add, remove }) {
+function renderCell(key, row, { has, add, remove, score }) {
   switch (key) {
     case 'score': {
-      const score = calcTradeScore(row);
-      const sc = getScoreColor(score);
-      return <span className="score-pill" style={{ background: sc.bg, color: sc.color }} title={getScoreLabel(score)}>{score}</span>;
+      const finalScore = score ?? calcTradeScore(row);
+      const sc = getScoreColor(finalScore);
+      return <span className="score-pill" style={{ background: sc.bg, color: sc.color }} title={getScoreLabel(finalScore)}>{finalScore}</span>;
     }
     case 'symbol':
-      return <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{row.symbol}</span>;
+      return renderSymbolLink(row.symbol);
     case 'hour': {
-      const t = row.hour;
-      const colors = EARNINGS_TIME_COLORS[t] || {};
-      return <span className="time-badge" style={{ background: colors.bg, color: colors.color }}>{EARNINGS_TIME_LABELS[t] || t || '--'}</span>;
+      return renderTimeBadge(row.hour);
     }
     case 'epsEstimate':
       return row.epsEstimate != null ? `$${row.epsEstimate.toFixed(2)}` : '--';
@@ -68,48 +67,41 @@ function renderCell(key, row, { has, add, remove }) {
     case 'surprisePercent': {
       if (row.surprisePercent == null) return '--';
       const positive = row.surprisePercent >= 0;
-      return <span style={{ color: positive ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: 600 }}>{positive ? '+' : ''}{row.surprisePercent.toFixed(1)}%</span>;
+      return <span className={positive ? 'text-positive' : 'text-negative'}>{positive ? '+' : ''}{row.surprisePercent.toFixed(1)}%</span>;
     }
     case 'revenueEstimate':
-      return row.revenueEstimate != null ? formatMarketCap(row.revenueEstimate) : '--';
+      return renderMarketCapCell(row.revenueEstimate);
     case 'revenueActual':
-      return row.revenueActual != null ? formatMarketCap(row.revenueActual) : '--';
+      return renderMarketCapCell(row.revenueActual);
     case 'marketCap':
-      return formatMarketCap(row.marketCap);
+      return renderMarketCapCell(row.marketCap);
     case 'price':
       return formatCurrency(row.price);
     case 'changePercent':
-      return <span style={{ color: (row.changePercent || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>{formatPercent(row.changePercent)}</span>;
+      return renderPercentColor(row.changePercent);
     case 'avgVolume':
-      return formatVolume(row.avgVolume);
+      return renderVolumeCell(row.avgVolume);
     case 'volume':
-      return formatVolume(row.volume);
+      return renderVolumeCell(row.volume);
     case 'rvol': {
-      if (row.rvol == null) return '--';
-      const color = row.rvol >= 3 ? 'var(--accent-green)' : row.rvol >= 1.5 ? 'var(--accent-orange)' : 'var(--text-secondary)';
-      return <span style={{ color, fontWeight: row.rvol >= 2 ? 600 : 400 }}>{row.rvol.toFixed(1)}x</span>;
+      return renderRvol(row.rvol);
     }
     case 'floatShares':
       return formatFloat(row.floatShares);
     case 'sharesShort':
       return formatFloat(row.sharesShort);
     case 'shortPercentOfFloat': {
-      if (row.shortPercentOfFloat == null) return '--';
-      const color = row.shortPercentOfFloat >= 20 ? 'var(--accent-red)' : row.shortPercentOfFloat >= 10 ? 'var(--accent-orange)' : 'var(--text-secondary)';
-      return <span style={{ color }}>{row.shortPercentOfFloat.toFixed(1)}%</span>;
+      return renderShortPercent(row.shortPercentOfFloat);
     }
     case 'preMarketChangePercent': {
       if (row.preMarketChangePercent == null) return '--';
-      return <span style={{ color: row.preMarketChangePercent >= 0 ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: 600 }}>{formatPercent(row.preMarketChangePercent)}</span>;
+      return renderPercentColor(row.preMarketChangePercent);
     }
     case 'dist200MA': {
-      if (row.dist200MA == null) return '--';
-      return <span style={{ color: row.dist200MA >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>{formatPercent(row.dist200MA)}</span>;
+      return renderDistPercent(row.dist200MA);
     }
     case 'dist52WH': {
-      if (row.dist52WH == null) return '--';
-      const near = row.dist52WH > -5;
-      return <span style={{ color: near ? 'var(--accent-green)' : 'var(--text-secondary)' }}>{formatPercent(row.dist52WH)}</span>;
+      return renderDistPercent(row.dist52WH);
     }
     case 'analystRating':
       return row.analystRating || '--';
@@ -117,6 +109,7 @@ function renderCell(key, row, { has, add, remove }) {
       const inList = has(row.symbol);
       return (
         <button className="btn-icon" title={inList ? 'Remove from watchlist' : 'Add to watchlist'}
+          aria-label={inList ? `Remove ${row.symbol} from watchlist` : `Add ${row.symbol} to watchlist`}
           onClick={(e) => { e.stopPropagation(); inList ? remove(row.symbol) : add(row.symbol, 'earnings'); }}>
           <Star size={16} fill={inList ? 'var(--accent-orange)' : 'none'} color={inList ? 'var(--accent-orange)' : 'var(--text-muted)'} />
         </button>
@@ -169,6 +162,12 @@ export default function EarningsPage() {
     [visibleCols]
   );
 
+  const scoreMap = useMemo(() => {
+    const m = {};
+    earnings.forEach(e => { m[`${e.symbol}-${e.date}`] = calcTradeScore(e); });
+    return m;
+  }, [earnings]);
+
   // Filter — completely independent of columns
   const filtered = useMemo(() => {
     return earnings.filter(e => {
@@ -211,15 +210,17 @@ export default function EarningsPage() {
     if (!spec) return filtered;
     const getValue = spec.sortValue || (row => row[sortCol]);
     return [...filtered].sort((a, b) => {
-      const va = getValue(a);
-      const vb = getValue(b);
+      const keyA = `${a.symbol}-${a.date}`;
+      const keyB = `${b.symbol}-${b.date}`;
+      const va = sortCol === 'score' ? (scoreMap[keyA] ?? getValue(a)) : getValue(a);
+      const vb = sortCol === 'score' ? (scoreMap[keyB] ?? getValue(b)) : getValue(b);
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
       if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
       return sortDir === 'asc' ? va - vb : vb - va;
     });
-  }, [filtered, sortCol, sortDir]);
+  }, [filtered, sortCol, sortDir, scoreMap]);
 
   const handleSort = useCallback((key) => {
     if (sortCol === key) {
@@ -275,7 +276,7 @@ export default function EarningsPage() {
     };
     const headers = colKeys.map(k => colLabels[k] || k);
     const rows = sorted.map(e => colKeys.map(k => {
-      if (k === 'score') return calcTradeScore(e);
+      if (k === 'score') return scoreMap[`${e.symbol}-${e.date}`] ?? calcTradeScore(e);
       if (k === 'hour') return (e.hour || '').toUpperCase();
       return e[k] ?? '';
     }));
@@ -290,7 +291,7 @@ export default function EarningsPage() {
   };
 
   const rowClassName = (row) => {
-    const score = calcTradeScore(row);
+    const score = scoreMap[`${row.symbol}-${row.date}`] ?? calcTradeScore(row);
     let cls = '';
     if (row.epsActual != null && row.epsEstimate != null) {
       cls = row.epsActual > row.epsEstimate ? 'row--beat' : row.epsActual < row.epsEstimate ? 'row--miss' : '';
@@ -443,7 +444,7 @@ export default function EarningsPage() {
                         {col.key === 'select' ? (
                           <input type="checkbox" checked={selectedRows.has(`${row.symbol}-${row.date}`)}
                             onChange={() => toggleRow(row)} style={{ accentColor: 'var(--accent-blue)' }} />
-                        ) : renderCell(col.key, row, wlHelpers)}
+                        ) : renderCell(col.key, row, { ...wlHelpers, score: scoreMap[`${row.symbol}-${row.date}`] })}
                       </td>
                     ))}
                   </tr>
