@@ -106,7 +106,8 @@
         button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        }
+                        const detail = data.error || data.detail || `Login failed (HTTP ${response.status}). Please try again.`;
+                        showError(detail);
 
         button:active:not(:disabled) {
             transform: translateY(0);
@@ -231,12 +232,14 @@
         </div>
     </div>
 
+    <script src="/js/config.js"></script>
     <script>
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
         const errorMessage = document.getElementById('errorMessage');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
+        const API_BASE = window.CONFIG?.API_BASE || window.location.origin;
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -253,23 +256,28 @@
             }
 
             try {
-                const response = await fetch('/api/users/login', {
+                const headers = { 'Content-Type': 'application/json' };
+                if (window.API_KEY) headers['x-api-key'] = window.API_KEY;
+
+                const response = await fetch(`${API_BASE}/api/users/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers,
                     body: JSON.stringify({ identifier: username, password })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.warn('Login response was not JSON:', parseError);
+                }
 
                 if (response.ok && data.token) {
-                    // Store token in localStorage
                     localStorage.setItem('authToken', data.token);
-                    // Redirect to dashboard
                     window.location.href = '/index.html';
                 } else {
-                    showError(data.error || 'Login failed. Please try again.');
+                    const detail = data.error || data.detail || `Login failed (HTTP ${response.status}). Please try again.`;
+                    showError(detail);
                 }
             } catch (error) {
                 showError('Network error. Please check your connection.');
@@ -284,7 +292,6 @@
             errorMessage.classList.add('show');
         }
 
-        // Check if already logged in
         if (localStorage.getItem('authToken')) {
             window.location.href = '/index.html';
         }
