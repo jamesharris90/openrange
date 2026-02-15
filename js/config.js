@@ -4,15 +4,10 @@ const CONFIG = {
     API_BASE: location.hostname === 'localhost'
         ? 'http://localhost:3000'
         : window.location.origin,
-    // Saxo API Configuration (use server-side proxy; do NOT expose tokens in client)
-    // NOTE: These values will be loaded from the server's /api/config endpoint
-    SAXO: {
-        environment: 'live',
-        // Frontend should point to the server proxy which forwards requests to the Saxo OpenAPI
-        apiUrl: '/api/saxo',
-        // These will be populated from server config
-        accountNumber: null,
-        clientKey: null
+    // Broker API Configuration (monitoring-only via server proxy)
+    BROKER: {
+        apiUrl: '/api/broker',
+        providers: []
     },
 
     // API key for demo/public mode (set by server or inline script)
@@ -53,9 +48,8 @@ configReady = (async function loadServerConfig() {
         const response = await fetch(`${CONFIG.API_BASE}/api/config`);
         if (response.ok) {
             const serverConfig = await response.json();
-            if (serverConfig.clientKey) CONFIG.SAXO.clientKey = serverConfig.clientKey;
-            if (serverConfig.accountNumber) CONFIG.SAXO.accountNumber = serverConfig.accountNumber;
-            console.log('Server config loaded:', { clientKey: CONFIG.SAXO.clientKey, accountNumber: CONFIG.SAXO.accountNumber });
+            if (Array.isArray(serverConfig.brokers)) CONFIG.BROKER.providers = serverConfig.brokers;
+            console.log('Server config loaded:', { brokers: CONFIG.BROKER.providers });
         }
     } catch (error) {
         console.warn('Failed to load server config:', error.message);

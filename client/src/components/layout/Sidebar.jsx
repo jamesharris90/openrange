@@ -1,39 +1,47 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart2, Search, Star, Sunrise, LayoutGrid, Sunset, Globe2, TrendingUp, Newspaper, Target, Microscope, Bot, Gauge, Calendar } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink } from 'react-router-dom';
+import { BarChart2, Calendar, Gauge, LayoutGrid, Newspaper, Star, Sunrise, Target, Bot, Globe2, Clock3, Search } from 'lucide-react';
 
-const vanillaLinks = [
-  { section: 'Main', links: [
-    { href: '/index.html', icon: BarChart2, label: 'Dashboard' },
-    { href: '/screeners.html', icon: Search, label: 'Screeners' },
-  ]},
-  { section: 'Market Sessions', links: [
-    { href: '/premarket.html', icon: Sunrise, label: 'Pre-Market' },
-    { href: '/open-market.html', icon: LayoutGrid, label: 'Open Market' },
-    { href: '/postmarket.html', icon: Sunset, label: 'Post-Market' },
-  ]},
-  { section: 'Tools', links: [
-    { href: '/market-overview.html', icon: Globe2, label: 'Market Overview' },
-    { href: '/market-hours.html', icon: TrendingUp, label: 'Market Hours' },
-    { href: '/news-scanner.html', icon: Newspaper, label: 'News Scanner' },
-    { href: '/advanced-screener.html', icon: Target, label: 'Advanced Screener' },
-    { href: '/research.html', icon: Microscope, label: 'Research' },
-  ]},
-];
-
-const reactLinks = [
-  { to: '/watchlist', icon: Star, label: 'Watchlist', afterSection: 'Main' },
-  { to: '/ai-quant', icon: Bot, label: 'Intelligence Engine', afterSection: 'Tools' },
-  { href: '/options-expected-move.html', icon: Gauge, label: 'Expected Move', afterSection: 'Tools' },
-  { to: '/earnings', icon: Calendar, label: 'Earnings Calendar', afterSection: 'Tools' },
+const navSections = [
+  {
+    id: 'main',
+    label: 'Main',
+    items: [
+      { to: '/watchlist', icon: BarChart2, label: 'Dashboard' },
+      { to: '/screeners', icon: LayoutGrid, label: 'Screeners' },
+      { to: '/watchlist', icon: Star, label: 'Watchlist' },
+    ],
+  },
+  {
+    id: 'sessions',
+    label: 'Market Sessions',
+    items: [
+      { to: '/premarket', icon: Sunrise, label: 'Pre-Market' },
+      { to: '/open-market', icon: LayoutGrid, label: 'Open Market' },
+      { to: '/postmarket', icon: LayoutGrid, label: 'Post-Market' },
+    ],
+  },
+  {
+    id: 'tools',
+    label: 'Tools',
+    items: [
+      { to: '/market-overview', icon: Globe2, label: 'Market Overview' },
+      { to: '/market-hours', icon: Clock3, label: 'Market Hours' },
+      { to: '/news-scanner', icon: Newspaper, label: 'News Scanner' },
+      { to: '/advanced-screener', icon: Target, label: 'Advanced Screener' },
+      { to: '/research', icon: Search, label: 'Research' },
+      { to: '/expected-move', icon: Gauge, label: 'Expected Move' },
+      { to: '/earnings', icon: Calendar, label: 'Earnings Calendar' },
+      { to: '/ai-quant', icon: Bot, label: 'Intelligence Engine' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
-  const location = useLocation();
-
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <a href="/index.html" className="logo">
+        <NavLink to="/watchlist" className="logo">
           <div className="logo-icon">
             <img src="/logo pack/openrange_icon.png" alt="OpenRange Trader" />
           </div>
@@ -43,37 +51,31 @@ export default function Sidebar() {
             </div>
             <div className="brand-tagline">TRADER</div>
           </div>
-        </a>
+        </NavLink>
       </div>
 
       <nav className="nav-section">
-        {vanillaLinks.map(({ section, links }) => (
-          <div key={section}>
-            <div className="nav-label" style={section !== 'Main' ? { marginTop: 24 } : undefined}>{section}</div>
-            {links.map(({ href, icon: Icon, label }) => (
-              <a key={href} href={href} className="nav-link">
-                <Icon className="icon" size={18} />
-                <span className="label">{label}</span>
-              </a>
-            ))}
-            {reactLinks.filter(r => r.afterSection === section).map(({ to, href, icon: Icon, label }) => {
-              if (to) {
+        {navSections.map(({ id, label, items }) => (
+          <div key={id}>
+            <div className="nav-label" style={id !== 'main' ? { marginTop: 24 } : undefined}>{label}</div>
+            {items.map(({ to, icon: Icon, label: text, disabled }) => {
+              if (disabled) {
                 return (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-                  >
+                  <div key={to} className="nav-link nav-link--disabled" aria-disabled="true">
                     <Icon className="icon" size={18} />
-                    <span className="label">{label}</span>
-                  </NavLink>
+                    <span className="label">{text}</span>
+                  </div>
                 );
               }
               return (
-                <a key={href} href={href} className="nav-link">
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                >
                   <Icon className="icon" size={18} />
-                  <span className="label">{label}</span>
-                </a>
+                  <span className="label">{text}</span>
+                </NavLink>
               );
             })}
           </div>
@@ -86,39 +88,57 @@ export default function Sidebar() {
 }
 
 function UserPanel() {
-  let username = 'Guest';
-  let isLoggedIn = false;
-  let isAdmin = false;
+  const [user, setUser] = useState({ username: 'Guest', isLoggedIn: false, isAdmin: false });
 
-  try {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      username = payload.username || 'User';
-      isLoggedIn = true;
-      isAdmin = !!payload.is_admin;
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUser({
+          username: payload.username || 'User',
+          isLoggedIn: true,
+          isAdmin: !!payload.is_admin,
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to parse auth token', e);
     }
-  } catch {}
+    setUser({ username: 'Guest', isLoggedIn: false, isAdmin: false });
+  }, []);
+
+  const actions = useMemo(() => {
+    if (!user.isLoggedIn) {
+      return (
+        <>
+          <a href="/login.html" className="sidebar-user__btn">Login</a>
+          <a href="/register.html" className="sidebar-user__btn">Register</a>
+        </>
+      );
+    }
+    return (
+      <>
+        <a href="/user.html" className="sidebar-user__btn">Profile</a>
+        {user.isAdmin && <a href="/admin.html" className="sidebar-user__btn">Admin</a>}
+        <button
+          className="sidebar-user__btn sidebar-user__btn--logout"
+          onClick={() => {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login.html';
+          }}
+        >
+          Logout
+        </button>
+      </>
+    );
+  }, [user]);
 
   return (
     <div className="sidebar-user">
-      <div className="sidebar-user__name">{username}</div>
-      <div className="sidebar-user__role">{isLoggedIn ? 'Signed in' : 'Not signed in'}</div>
-      <div className="sidebar-user__actions">
-        {!isLoggedIn && (
-          <>
-            <a href="/login.html" className="sidebar-user__btn">Login</a>
-            <a href="/register.html" className="sidebar-user__btn">Register</a>
-          </>
-        )}
-        {isLoggedIn && (
-          <>
-            <a href="/user.html" className="sidebar-user__btn">Profile</a>
-            {isAdmin && <a href="/admin.html" className="sidebar-user__btn">Admin</a>}
-            <button className="sidebar-user__btn sidebar-user__btn--logout" onClick={() => { localStorage.removeItem('authToken'); window.location.href = '/login.html'; }}>Logout</button>
-          </>
-        )}
-      </div>
+      <div className="sidebar-user__name">{user.username}</div>
+      <div className="sidebar-user__role">{user.isLoggedIn ? 'Signed in' : 'Not signed in'}</div>
+      <div className="sidebar-user__actions">{actions}</div>
     </div>
   );
 }

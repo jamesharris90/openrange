@@ -8,6 +8,22 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
 require('dotenv').config();
+const { withRetry } = require('./utils/retry');
+
+// New layered architecture pieces
+const loggingMiddleware = require('./middleware/logging');
+const authMiddleware = require('./middleware/auth');
+const { generalLimiter, registerLimiter } = require('./middleware/rateLimit');
+const usageMiddleware = require('./middleware/usage');
+const quotesRoutes = require('./routes/quotes');
+const newsRoutes = require('./routes/news');
+const gappersRoutes = require('./routes/gappers');
+const historicalRoutes = require('./routes/historical');
+const optionsRoutes = require('./routes/options');
+const adminRoutes = require('./routes/admin');
+const earningsRoutes = require('./routes/earnings');
+const brokerRoutes = require('./routes/broker');
+const marketService = require('./services/marketDataService');
 
 // Logger
 const logger = require('./logger');
@@ -27,6 +43,8 @@ let finvizNewsCache = { data: null, ts: 0 };
 const FINVIZ_NEWS_CACHE_MS = 60 * 1000; // 1 minute
 let finvizNewsScannerCache = {};
 const FINVIZ_NEWS_SCANNER_CACHE_MS = 2 * 60 * 1000; // 2 minutes
+const FINVIZ_CSV_CACHE_MS = 90 * 1000;
+const finvizCsvCache = {};
 
 async function fetchFinvizNews() {
   if (!FINVIZ_NEWS_URL) {
@@ -67,14 +85,52 @@ if (FINVIZ_NEWS_TOKEN) {
   setInterval(fetchFinvizNews, FINVIZ_NEWS_CACHE_MS);
 }
 
+function shouldRetryFinviz(err) {
+  const status = err?.response?.status;
+  return status === 429 || (status >= 500 && status < 600);
+}
+
+async function fetchFinvizCsv(url, cacheKey, timeout = 12000) {
+  const cached = cacheKey ? finvizCsvCache[cacheKey] : null;
+  const now = Date.now();
+  if (cached && now - cached.ts < FINVIZ_CSV_CACHE_MS) return cached.data;
+
+  try {
+    const response = await withRetry(
+      () => axios.get(url, { responseType: 'text', timeout }),
+      {
+        retries: 4,
+        baseDelay: 400,
+        factor: 2,
+        shouldRetry: shouldRetryFinviz,
+        onError: (err, attempt) => logger.warn('Finviz fetch retry', {
+          cacheKey,
+          attempt,
+          status: err?.response?.status,
+          error: err.message,
+        }),
+      }
+    );
+
+    const csvData = await csv().fromString(response.data);
+    if (cacheKey) finvizCsvCache[cacheKey] = { data: csvData, ts: now };
+    return csvData;
+  } catch (err) {
+    if (cacheKey && cached) {
+      logger.warn('Finviz fetch failed, serving stale cache', { cacheKey, error: err.message });
+      return cached.data;
+    }
+    throw err;
+  }
+}
+
 async function loadScannerContext() {
   if (!FINVIZ_NEWS_TOKEN) {
     return { available: false, text: 'Scanner context unavailable: FINVIZ token missing.' };
   }
   try {
     const url = `https://elite.finviz.com/export.ashx?v=111&auth=${FINVIZ_NEWS_TOKEN}&f=sh_avgvol_o500,ta_change_u5`;
-    const response = await axios.get(url, { responseType: 'text', timeout: 12000 });
-    const csvData = await csv().fromString(response.data);
+    const csvData = await fetchFinvizCsv(url, 'scanner:context');
     const compact = (csvData || []).slice(0, 20).map(row => {
       const ticker = row.Ticker || row.ticker || row.Symbol || row.symbol || 'N/A';
       const price = row.Price || row.Last || row['Price'] || row['Last'];
@@ -136,6 +192,9 @@ const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
+// New logging middleware
+app.use(loggingMiddleware);
+
 // CORS configuration - restrict in production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
@@ -147,7 +206,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Security headers middleware
+// Security hcurl -k https://localhost:5001/v1/portal/iserver/auth/statuseaders middleware
 app.use((req, res, next) => {
   // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -169,7 +228,7 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://gateway.saxobank.com https://finnhub.io https://elite.finviz.com; " +
+      "connect-src 'self' https://finnhub.io https://elite.finviz.com; " +
       "frame-src 'self' https://s3.tradingview.com"
     );
   }
@@ -200,8 +259,6 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const SAXO_BASE = process.env.SAXO_API_URL || 'https://gateway.saxobank.com/openapi';
-const SAXO_CLIENT_KEY = process.env.SAXO_CLIENT_KEY;
 const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const FRONTEND_PATH = path.join(__dirname, '..');
@@ -275,25 +332,19 @@ function computeHVMetrics(closes) {
   };
 }
 
-// Initialize Saxo OAuth
-const SaxoOAuth = require('./saxo-oauth');
-const saxoAuth = new SaxoOAuth({
-  appKey: process.env.SAXO_APP_KEY,
-  appSecret: process.env.SAXO_APP_SECRET,
-  authUrl: process.env.SAXO_AUTH_URL,
-  tokenUrl: process.env.SAXO_TOKEN_URL,
-  redirectUri: process.env.SAXO_REDIRECT_URI
-});
-
-// Load existing tokens on startup
-saxoAuth.initialize().catch(err => {
-  logger.warn('Failed to initialize Saxo OAuth:', err.message);
-});
-
 // Serve static files (HTML, CSS, JS) from parent directory FIRST
 app.use(express.static(FRONTEND_PATH, {
   index: ['login.html']  // Default to login.html if no file specified
 }));
+    
+  // New modular routes
+  app.use(quotesRoutes);
+  app.use(newsRoutes);
+  app.use(gappersRoutes);
+  app.use(historicalRoutes);
+  app.use(optionsRoutes);
+  app.use(earningsRoutes);
+  app.use(adminRoutes);
 
 // Serve React app (Vite build) at /app/* (allow SPA fallthrough)
 const REACT_BUILD = path.join(__dirname, '..', 'client-dist');
@@ -360,8 +411,8 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/config', (req, res) => {
   res.json({
-    clientKey: process.env.SAXO_CLIENT_KEY || null,
-    accountNumber: process.env.SAXO_ACCOUNT_NUMBER || null
+    brokers: ['ibkr', 'saxo'],
+    proxyApi: !!PROXY_API_KEY
   });
 });
 
@@ -393,72 +444,9 @@ app.get('/api/ai-quant/status', (req, res) => {
 
 // Market Context: SPY, QQQ, VIX, DXY with technical analysis & bias
 app.get('/api/ai-quant/market-context', async (req, res) => {
-  const cached = yahooCacheGet('__market_ctx', 'context');
-  if (cached) return res.json(cached);
-
   try {
-    const tickers = ['SPY', 'QQQ', '^VIX', 'DX-Y.NYB'];
-    const quoteResults = await Promise.allSettled(tickers.map(t => yahooFinance.quote(t)));
-
-    const indices = tickers.map((sym, i) => {
-      const r = quoteResults[i];
-      if (r.status !== 'fulfilled' || !r.value) return { ticker: sym, error: true };
-      const q = r.value;
-      return {
-        ticker: q.symbol || sym, name: q.shortName || sym,
-        price: q.regularMarketPrice || 0,
-        change: q.regularMarketChange != null ? +q.regularMarketChange.toFixed(2) : 0,
-        changePercent: q.regularMarketChangePercent != null ? +q.regularMarketChangePercent.toFixed(2) : 0,
-      };
-    });
-
-    // Fetch 100-day charts for SPY/QQQ MA calculations
-    const chartStart = new Date(); chartStart.setDate(chartStart.getDate() - 100);
-    const chartResults = await Promise.allSettled(
-      ['SPY', 'QQQ'].map(t => yahooFinance.chart(t, { period1: chartStart, period2: new Date(), interval: '1d' }))
-    );
-
-    const smaCalc = (arr, p) => arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null;
-    const techMap = {};
-    ['SPY', 'QQQ'].forEach((sym, i) => {
-      const r = chartResults[i];
-      if (r.status !== 'fulfilled' || !r.value) return;
-      const quotes = (r.value.quotes || []).filter(q => q.close != null);
-      if (quotes.length < 20) return;
-      const closes = quotes.map(q => q.close);
-      const cp = closes[closes.length - 1];
-      const s9 = smaCalc(closes, 9), s20 = smaCalc(closes, 20), s50 = smaCalc(closes, 50);
-      techMap[sym] = {
-        price: cp, sma9: s9, sma20: s20, sma50: s50,
-        aboveSMA9: s9 != null ? cp > s9 : null,
-        aboveSMA20: s20 != null ? cp > s20 : null,
-        aboveSMA50: s50 != null ? cp > s50 : null,
-      };
-    });
-
-    // Rule-based market bias
-    const spy = techMap['SPY'] || {};
-    const qqq = techMap['QQQ'] || {};
-    const vixObj = indices.find(i => (i.ticker || '').includes('VIX'));
-    const vixPrice = vixObj?.price || 0;
-    const spyIdx = indices.find(i => i.ticker === 'SPY');
-
-    let bull = 0, bear = 0;
-    const reasons = [];
-    if (spy.aboveSMA20) { bull++; reasons.push('SPY > 20-SMA'); } else if (spy.aboveSMA20 === false) { bear++; reasons.push('SPY < 20-SMA'); }
-    if (spy.aboveSMA50) { bull++; reasons.push('SPY > 50-SMA'); } else if (spy.aboveSMA50 === false) { bear++; reasons.push('SPY < 50-SMA'); }
-    if (qqq.aboveSMA20) bull++; else if (qqq.aboveSMA20 === false) bear++;
-    if (qqq.aboveSMA50) bull++; else if (qqq.aboveSMA50 === false) bear++;
-    if (vixPrice > 25) { bear += 2; reasons.push(`VIX elevated (${vixPrice.toFixed(1)})`); }
-    else if (vixPrice > 20) { bear++; reasons.push(`VIX cautious (${vixPrice.toFixed(1)})`); }
-    else if (vixPrice < 15) { bull++; reasons.push(`VIX low (${vixPrice.toFixed(1)})`); }
-    if (spyIdx?.changePercent > 0.5) { bull++; reasons.push('SPY up today'); }
-    else if (spyIdx?.changePercent < -0.5) { bear++; reasons.push('SPY down today'); }
-
-    const bias = bull >= bear + 2 ? 'bullish' : bear >= bull + 2 ? 'bearish' : 'neutral';
-    const data = { indices, technicals: techMap, bias, biasReasons: reasons, timestamp: Date.now() };
-    yahooCacheSet('__market_ctx', 'context', data);
-    res.json(data);
+    const ctx = await marketService.getMarketContext();
+    res.json(ctx);
   } catch (err) {
     logger.warn('Market context error', { error: err.message });
     res.status(502).json({ error: 'Failed to fetch market context', detail: err.message });
@@ -1032,878 +1020,6 @@ app.get('/api/premarket/report-md', async (req, res) => {
   }
 });
 
-// =====================================================
-// Yahoo Finance proxy endpoints (public, before auth)
-// =====================================================
-
-// Lightweight quote: current price + change
-app.get('/api/yahoo/quote', async (req, res) => {
-  const ticker = (req.query.t || '').trim().toUpperCase();
-  if (!ticker || !/^[A-Z0-9.^-]{1,10}$/.test(ticker)) {
-    return res.status(400).json({ error: 'Invalid ticker symbol' });
-  }
-
-  const cached = yahooCacheGet(ticker, 'quote');
-  if (cached) return res.json(cached);
-
-  try {
-    const q = await yahooFinance.quote(ticker);
-    if (!q) return res.status(404).json({ error: `No data for ${ticker}` });
-
-    const data = {
-      ticker: q.symbol || ticker,
-      price: q.regularMarketPrice || 0,
-      previousClose: q.regularMarketPreviousClose || 0,
-      change: q.regularMarketChange != null ? +q.regularMarketChange.toFixed(2) : 0,
-      changePercent: q.regularMarketChangePercent != null ? +q.regularMarketChangePercent.toFixed(2) : 0,
-      currency: q.currency || 'USD',
-      exchangeName: q.fullExchangeName || q.exchange || ''
-    };
-    yahooCacheSet(ticker, 'quote', data);
-    res.json(data);
-  } catch (err) {
-    logger.warn('Yahoo quote error', { ticker, error: err.message });
-    res.status(502).json({ error: 'Failed to fetch Yahoo quote', detail: err.message });
-  }
-});
-
-// Options chain: nearest expiry with ATM straddle and expected move
-app.get('/api/yahoo/options', async (req, res) => {
-  const ticker = (req.query.t || '').trim().toUpperCase();
-  if (!ticker || !/^[A-Z0-9.^-]{1,10}$/.test(ticker)) {
-    return res.status(400).json({ error: 'Invalid ticker symbol' });
-  }
-  const dateParam = req.query.date || '';
-  const cacheKey = dateParam ? `options:${dateParam}` : 'options';
-  const cached = yahooCacheGet(ticker, cacheKey);
-  if (cached) return res.json(cached);
-
-  try {
-    const queryOptions = {};
-    if (dateParam) queryOptions.date = new Date(parseInt(dateParam) * 1000);
-
-    let result = await yahooFinance.options(ticker, queryOptions);
-    if (!result) return res.status(404).json({ error: `No options data for ${ticker}` });
-
-    // If the nearest expiry is today (0 DTE) or past, try the next expiration
-    if (!dateParam && result.expirationDates?.length > 1) {
-      const firstExpiry = result.options?.[0]?.expirationDate;
-      if (firstExpiry) {
-        const exMs = firstExpiry instanceof Date ? firstExpiry.getTime() : firstExpiry * 1000;
-        const dte = Math.ceil((exMs - Date.now()) / 86400000);
-        if (dte <= 0) {
-          const nextExpiry = result.expirationDates[1];
-          if (nextExpiry) {
-            const nextDate = nextExpiry instanceof Date ? nextExpiry : new Date(nextExpiry * 1000);
-            result = await yahooFinance.options(ticker, { date: nextDate });
-          }
-        }
-      }
-    }
-
-    const quote = result.quote || {};
-    const price = quote.regularMarketPrice || 0;
-    const opts = result.options?.[0] || {};
-    const calls = opts.calls || [];
-    const puts = opts.puts || [];
-    const expirationDate = opts.expirationDate || null;
-    const allExpirations = result.expirationDates || [];
-
-    // Find ATM strike (closest to current price)
-    const allStrikes = [...new Set([
-      ...calls.map(c => c.strike),
-      ...puts.map(p => p.strike)
-    ])].sort((a, b) => a - b);
-
-    const atmStrike = allStrikes.length
-      ? allStrikes.reduce((best, s) => Math.abs(s - price) < Math.abs(best - price) ? s : best, allStrikes[0])
-      : price;
-
-    const atmCall = calls.find(c => c.strike === atmStrike);
-    const atmPut = puts.find(p => p.strike === atmStrike);
-
-    // Average IV from ATM options (computed first for IV-based fallback)
-    const ivValues = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(v => v != null);
-    const avgIV = ivValues.length ? +(ivValues.reduce((a, b) => a + b, 0) / ivValues.length).toFixed(4) : null;
-
-    // Earnings date
-    const earningsDateRaw = quote.earningsTimestamp || null;
-    const earningsDateStr = earningsDateRaw ? (earningsDateRaw instanceof Date ? earningsDateRaw.toISOString().split('T')[0] : new Date(earningsDateRaw * 1000).toISOString().split('T')[0]) : null;
-    const earningsMs = earningsDateRaw instanceof Date ? earningsDateRaw.getTime() : (earningsDateRaw ? earningsDateRaw * 1000 : null);
-    const earningsInDays = earningsMs ? Math.ceil((earningsMs - Date.now()) / 86400000) : null;
-
-    // Expiration date handling
-    const expiryMs = expirationDate instanceof Date ? expirationDate.getTime() : (expirationDate ? expirationDate * 1000 : 0);
-    const expiryStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
-    const daysToExpiry = expiryMs ? Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000)) : 0;
-
-    // ATM mid prices — use lastPrice as fallback when bid/ask are 0 (off-hours)
-    const callBidAsk = atmCall ? ((atmCall.bid || 0) + (atmCall.ask || 0)) / 2 : 0;
-    const callMid = callBidAsk > 0 ? callBidAsk : (atmCall?.lastPrice || 0);
-    const putBidAsk = atmPut ? ((atmPut.bid || 0) + (atmPut.ask || 0)) / 2 : 0;
-    const putMid = putBidAsk > 0 ? putBidAsk : (atmPut?.lastPrice || 0);
-    const straddleMid = +(callMid + putMid).toFixed(2);
-
-    // IV-based expected move as secondary calculation
-    const ivExpectedMove = avgIV && price ? +(price * avgIV * Math.sqrt(Math.max(daysToExpiry, 1) / 365)).toFixed(2) : 0;
-
-    // Use straddle price if available, else IV-based
-    const expectedMove = straddleMid > 0 ? straddleMid : ivExpectedMove;
-    const expectedMovePercent = price ? +((expectedMove / price) * 100).toFixed(2) : 0;
-
-    const data = {
-      ticker: quote.symbol || ticker,
-      price,
-      previousClose: quote.regularMarketPreviousClose || 0,
-      change: quote.regularMarketChange != null ? +Number(quote.regularMarketChange).toFixed(2) : 0,
-      changePercent: quote.regularMarketChangePercent != null ? +Number(quote.regularMarketChangePercent).toFixed(2) : 0,
-      marketCap: quote.marketCap || null,
-      expirationDate: expiryStr,
-      daysToExpiry,
-      allExpirations: allExpirations.map(d => d instanceof Date ? Math.floor(d.getTime() / 1000) : d),
-      earningsDate: earningsDateStr,
-      earningsInDays,
-      atmStrike,
-      atmCall: atmCall ? {
-        strike: atmCall.strike, bid: atmCall.bid || 0, ask: atmCall.ask || 0,
-        mid: +callMid.toFixed(2), lastPrice: atmCall.lastPrice || 0,
-        iv: atmCall.impliedVolatility || null,
-        volume: atmCall.volume || 0, openInterest: atmCall.openInterest || 0
-      } : null,
-      atmPut: atmPut ? {
-        strike: atmPut.strike, bid: atmPut.bid || 0, ask: atmPut.ask || 0,
-        mid: +putMid.toFixed(2), lastPrice: atmPut.lastPrice || 0,
-        iv: atmPut.impliedVolatility || null,
-        volume: atmPut.volume || 0, openInterest: atmPut.openInterest || 0
-      } : null,
-      expectedMove,
-      expectedMovePercent,
-      ivExpectedMove,
-      rangeHigh: +(price + expectedMove).toFixed(2),
-      rangeLow: +(price - expectedMove).toFixed(2),
-      avgIV,
-      callsCount: calls.length,
-      putsCount: puts.length
-    };
-
-    yahooCacheSet(ticker, cacheKey, data);
-    res.json(data);
-  } catch (err) {
-    logger.warn('Yahoo options error', { ticker, error: err.message });
-    res.status(502).json({ error: 'Failed to fetch options chain', detail: err.message });
-  }
-});
-
-// 1-year price history with historical volatility metrics
-app.get('/api/yahoo/history', async (req, res) => {
-  const ticker = (req.query.t || '').trim().toUpperCase();
-  if (!ticker || !/^[A-Z0-9.^-]{1,10}$/.test(ticker)) {
-    return res.status(400).json({ error: 'Invalid ticker symbol' });
-  }
-
-  const cached = yahooCacheGet(ticker, 'history');
-  if (cached) return res.json(cached);
-
-  try {
-    const now = new Date();
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-    const results = await yahooFinance.chart(ticker, {
-      period1: oneYearAgo,
-      period2: now,
-      interval: '1d'
-    });
-
-    const quotes = results?.quotes || [];
-    if (!quotes.length) return res.status(404).json({ error: `No history for ${ticker}` });
-
-    const closes = quotes.map(q => q.close).filter(c => c != null);
-    const hv = computeHVMetrics(closes);
-
-    const data = {
-      ticker,
-      count: closes.length,
-      ...(hv || { hvCurrent20: null, hvHigh52w: null, hvLow52w: null, hvRank: null })
-    };
-
-    yahooCacheSet(ticker, 'history', data);
-    res.json(data);
-  } catch (err) {
-    logger.warn('Yahoo history error', { ticker, error: err.message });
-    res.status(502).json({ error: 'Failed to fetch price history', detail: err.message });
-  }
-});
-
-// Yahoo symbol search for autocomplete (company name → ticker)
-app.get('/api/yahoo/search', async (req, res) => {
-  const query = (req.query.q || '').trim();
-  if (!query || query.length < 2) return res.json([]);
-
-  const cacheKey = `search:${query.toLowerCase()}`;
-  const cached = yahooCacheGet(cacheKey, 'search');
-  if (cached) return res.json(cached);
-
-  try {
-    const result = await yahooFinance.search(query, { quotesCount: 10, newsCount: 0 });
-    const quotes = (result.quotes || [])
-      .filter(q => q.quoteType === 'EQUITY' && q.symbol)
-      .slice(0, 10)
-      .map(q => ({
-        symbol: q.symbol,
-        name: q.shortname || q.longname || '',
-        exchange: q.exchange || ''
-      }));
-    yahooCacheSet(cacheKey, 'search', quotes);
-    res.json(quotes);
-  } catch (err) {
-    logger.warn('Yahoo search error', { query, error: err.message });
-    res.json([]);
-  }
-});
-
-// Batch Yahoo quotes (for watchlist stats)
-app.get('/api/yahoo/quote-batch', async (req, res) => {
-  const raw = (req.query.symbols || '').trim();
-  if (!raw) return res.json({ quotes: [] });
-  const symbols = raw.split(',').map(s => s.trim().toUpperCase()).filter(s => /^[A-Z0-9.^-]{1,10}$/.test(s)).slice(0, 50);
-  if (!symbols.length) return res.json({ quotes: [] });
-
-  const quotes = [];
-  const batchSize = 10;
-  for (let i = 0; i < symbols.length; i += batchSize) {
-    const batch = symbols.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(async (ticker) => {
-      const cached = yahooCacheGet(ticker, 'quote');
-      if (cached) return cached;
-      const quote = await yahooFinance.quote(ticker);
-      const data = {
-        ticker: quote.symbol || ticker,
-        price: quote.regularMarketPrice || 0,
-        previousClose: quote.regularMarketPreviousClose || 0,
-        change: quote.regularMarketChange != null ? +Number(quote.regularMarketChange).toFixed(2) : 0,
-        changePercent: quote.regularMarketChangePercent != null ? +Number(quote.regularMarketChangePercent).toFixed(2) : 0,
-        marketCap: quote.marketCap || null,
-        shortName: quote.shortName || '',
-        analystRating: quote.averageAnalystRating || null,
-        currency: quote.currency || 'USD',
-        exchangeName: quote.fullExchangeName || ''
-      };
-      yahooCacheSet(ticker, 'quote', data);
-      return data;
-    }));
-    results.forEach(r => { if (r.status === 'fulfilled') quotes.push(r.value); });
-  }
-  res.json({ quotes });
-});
-
-// Earnings calendar (Finnhub + Yahoo enrichment)
-const earningsCache = {};
-const EARNINGS_CACHE_MS = 15 * 60 * 1000;
-
-app.get('/api/earnings/calendar', async (req, res) => {
-  const FHKEY = process.env.FINNHUB_API_KEY;
-  if (!FHKEY) return res.status(500).json({ error: 'FINNHUB_API_KEY not set' });
-
-  const from = req.query.from || new Date().toISOString().split('T')[0];
-  const to = req.query.to || from;
-  const cacheKey = `${from}:${to}`;
-
-  if (earningsCache[cacheKey] && Date.now() - earningsCache[cacheKey].ts < EARNINGS_CACHE_MS) {
-    return res.json(earningsCache[cacheKey].data);
-  }
-
-  try {
-    const url = `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${FHKEY}`;
-    const fhRes = await axios.get(url, { timeout: 15000 });
-    const calendar = fhRes.data?.earningsCalendar || [];
-
-    // Enrich with Yahoo quotes (batched, 10 concurrent)
-    const uniqueSymbols = [...new Set(calendar.map(e => e.symbol).filter(Boolean))];
-    const quoteMap = {};
-    const batchSize = 10;
-    for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
-      const batch = uniqueSymbols.slice(i, i + batchSize);
-      const results = await Promise.allSettled(batch.map(async (ticker) => {
-        const cached = yahooCacheGet(ticker, 'earnings-quote');
-        if (cached) return { ticker, ...cached };
-        try {
-          const quote = await yahooFinance.quote(ticker);
-          const avgVol = quote.averageDailyVolume3Month || quote.averageDailyVolume10Day || null;
-          const curVol = quote.regularMarketVolume || null;
-          const rvol = (avgVol && curVol && avgVol > 0) ? +(curVol / avgVol).toFixed(2) : null;
-          const high52 = quote.fiftyTwoWeekHigh || null;
-          const ma200 = quote.twoHundredDayAverage || null;
-          const curPrice = quote.regularMarketPrice || 0;
-          const dist200MA = (ma200 && curPrice) ? +(((curPrice - ma200) / ma200) * 100).toFixed(2) : null;
-          const dist52WH = (high52 && curPrice) ? +(((curPrice - high52) / high52) * 100).toFixed(2) : null;
-          const data = {
-            ticker: quote.symbol || ticker,
-            price: curPrice,
-            change: quote.regularMarketChange != null ? +Number(quote.regularMarketChange).toFixed(2) : 0,
-            changePercent: quote.regularMarketChangePercent != null ? +Number(quote.regularMarketChangePercent).toFixed(2) : 0,
-            marketCap: quote.marketCap || null,
-            shortName: quote.shortName || '',
-            exchange: quote.exchange || null,
-            fullExchangeName: quote.fullExchangeName || null,
-            market: quote.market || null,
-            analystRating: quote.averageAnalystRating || null,
-            floatShares: quote.floatShares || null,
-            sharesShort: quote.sharesShort || null,
-            shortPercentOfFloat: quote.shortPercentOfFloat != null ? +(quote.shortPercentOfFloat * 100).toFixed(2) : null,
-            avgVolume: avgVol,
-            volume: curVol,
-            rvol,
-            preMarketPrice: quote.preMarketPrice || null,
-            preMarketChange: quote.preMarketChange != null ? +Number(quote.preMarketChange).toFixed(2) : null,
-            preMarketChangePercent: quote.preMarketChangePercent != null ? +Number(quote.preMarketChangePercent).toFixed(2) : null,
-            fiftyTwoWeekHigh: high52,
-            twoHundredDayAverage: ma200,
-            dist200MA,
-            dist52WH,
-          };
-          yahooCacheSet(ticker, 'earnings-quote', data);
-          return { ticker, ...data };
-        } catch { return { ticker }; }
-      }));
-      results.forEach(r => { if (r.status === 'fulfilled') quoteMap[r.value.ticker] = r.value; });
-    }
-
-    // Deduplicate Finnhub entries (same symbol+date)
-    const seen = new Set();
-    const dedupedCalendar = calendar.filter(e => {
-      const key = `${e.symbol}:${e.date}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    const allowedShortExchanges = new Set([
-      'NYQ','NYS','NYSE','NMS','NSQ','NAS','NGM','NCM','ASE','BATS','PCX','ARC','AMEX','PSE','LSE','IOB','XLON'
-    ]);
-    const allowedFullExchanges = [
-      'NASDAQ','NYSE','LONDON STOCK EXCHANGE','LSE','BATS','NYSE ARCA','NYSE MKT','AMEX'
-    ];
-    const isUsUkSymbol = (symbol, quote = {}) => {
-      const sym = (symbol || '').toUpperCase();
-      const ex = (quote.exchange || '').toUpperCase();
-      const full = (quote.fullExchangeName || '').toUpperCase();
-      const market = (quote.market || '').toUpperCase();
-      const suffix = sym.includes('.') ? sym.split('.').pop() : '';
-      const ukSuffix = ['L', 'LN', 'LON', 'LSE'].includes(suffix);
-      const usSuffix = suffix === 'US' || !sym.includes('.');
-      if (allowedShortExchanges.has(ex)) return true;
-      if (allowedFullExchanges.some(f => full.includes(f))) return true;
-      if (market.includes('NYSE') || market.includes('NASDAQ') || market.includes('LSE')) return true;
-      if (ukSuffix) return true;
-      if (usSuffix) return true;
-      return false;
-    };
-
-    const filteredCalendar = dedupedCalendar.filter(e => isUsUkSymbol(e.symbol, quoteMap[e.symbol] || {}));
-
-    const earnings = filteredCalendar.map(e => {
-      const q = quoteMap[e.symbol] || {};
-      const surprisePercent = (e.epsActual != null && e.epsEstimate != null && e.epsEstimate !== 0)
-        ? +((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate) * 100).toFixed(2)
-        : null;
-      return {
-        symbol: e.symbol,
-        companyName: q.shortName || '',
-        date: e.date,
-        epsEstimate: e.epsEstimate ?? null,
-        epsActual: e.epsActual ?? null,
-        surprisePercent,
-        revenueEstimate: e.revenueEstimate ?? null,
-        revenueActual: e.revenueActual ?? null,
-        hour: e.hour || 'tns',
-        quarter: e.quarter,
-        year: e.year,
-        price: q.price ?? null,
-        change: q.change ?? null,
-        changePercent: q.changePercent ?? null,
-        marketCap: q.marketCap ?? null,
-        analystRating: q.analystRating || null,
-        // Screener enrichment fields
-        floatShares: q.floatShares ?? null,
-        sharesShort: q.sharesShort ?? null,
-        shortPercentOfFloat: q.shortPercentOfFloat ?? null,
-        avgVolume: q.avgVolume ?? null,
-        volume: q.volume ?? null,
-        rvol: q.rvol ?? null,
-        preMarketPrice: q.preMarketPrice ?? null,
-        preMarketChange: q.preMarketChange ?? null,
-        preMarketChangePercent: q.preMarketChangePercent ?? null,
-        fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? null,
-        twoHundredDayAverage: q.twoHundredDayAverage ?? null,
-        dist200MA: q.dist200MA ?? null,
-        dist52WH: q.dist52WH ?? null,
-      };
-    });
-
-    // Batch-fetch historical earnings beats from Finnhub
-    const beatsMap = {};
-    const beatsSymbols = [...new Set(earnings.map(e => e.symbol).filter(Boolean))].slice(0, 150); // expanded so AI Quant scoring has beat history for more names
-    for (let i = 0; i < beatsSymbols.length; i += batchSize) {
-      const batch = beatsSymbols.slice(i, i + batchSize);
-      const beatsResults = await Promise.allSettled(
-        batch.map(sym =>
-          axios.get(`https://finnhub.io/api/v1/stock/earnings?symbol=${sym}&limit=4&token=${FHKEY}`, { timeout: 8000 })
-            .then(r => {
-              const hist = r.data || [];
-              const beats = hist.filter(h => h.actual != null && h.estimate != null && h.actual > h.estimate).length;
-              return { sym, beats, total: hist.filter(h => h.actual != null && h.estimate != null).length };
-            })
-        )
-      );
-      beatsResults.forEach(r => {
-        if (r.status === 'fulfilled') beatsMap[r.value.sym] = r.value;
-      });
-    }
-    // Attach beatsInLast4 to each earnings entry
-    for (const e of earnings) {
-      const b = beatsMap[e.symbol];
-      e.beatsInLast4 = b ? b.beats : null;
-    }
-
-    const data = { earnings, from, to };
-
-    // Fallback enrich: pull surprise/eps from Yahoo when Finnhub missing
-    const needYahoo = [...new Set(earnings
-      .filter(e => e.symbol && (e.surprisePercent == null || e.epsActual == null || e.epsEstimate == null || e.beatsInLast4 == null))
-      .map(e => e.symbol)
-    )].slice(0, 300); // expanded cap for 5-day windows
-
-    if (needYahoo.length) {
-      for (const sym of needYahoo) {
-        try {
-          const summary = await yahooFinance.quoteSummary(sym, { modules: ['earnings'] });
-          const qtrs = summary?.earnings?.earningsChart?.quarterly || [];
-          if (!qtrs.length) continue;
-          const last = qtrs[qtrs.length - 1];
-          const act = last?.actual?.raw ?? last?.actual ?? null;
-          const est = last?.estimate?.raw ?? last?.estimate ?? null;
-          let surprise = null;
-          if (act != null && est != null && est !== 0) surprise = +(((act - est) / Math.abs(est)) * 100).toFixed(2);
-          if (surprise == null && last?.surprisePct != null && !Number.isNaN(parseFloat(last.surprisePct))) {
-            surprise = +parseFloat(last.surprisePct).toFixed(2);
-          }
-          const beats = qtrs.filter(q => {
-            const qa = q?.actual?.raw ?? q?.actual;
-            const qe = q?.estimate?.raw ?? q?.estimate;
-            return qa != null && qe != null && qa >= qe;
-          }).length;
-
-          earnings.forEach(e => {
-            if (e.symbol !== sym) return;
-            if (e.surprisePercent == null && surprise != null) e.surprisePercent = surprise;
-            if (e.epsActual == null && act != null) e.epsActual = act;
-            if (e.epsEstimate == null && est != null) e.epsEstimate = est;
-            if ((e.beatsInLast4 == null || Number.isNaN(e.beatsInLast4)) && beats) e.beatsInLast4 = beats;
-          });
-        } catch (err) {
-          logger.debug('earnings yahoo fallback failed', { sym, error: err.message });
-        }
-      }
-    }
-
-    earningsCache[cacheKey] = { data, ts: Date.now() };
-    // Evict old cache entries
-    const keys = Object.keys(earningsCache);
-    if (keys.length > 20) {
-      keys.sort((a, b) => earningsCache[a].ts - earningsCache[b].ts);
-      keys.slice(0, keys.length - 20).forEach(k => delete earningsCache[k]);
-    }
-    res.json(data);
-  } catch (err) {
-    logger.warn('Earnings calendar error', { error: err.message });
-    // Fail soft with empty payload so the UI does not block
-    res.json({ earnings: [], from, to, error: 'Failed to fetch earnings calendar', detail: err.message });
-  }
-});
-
-// =====================================================
-// Earnings Research Panel — comprehensive per-ticker data
-// =====================================================
-app.get('/api/earnings-research/:ticker', async (req, res) => {
-  const ticker = (req.params.ticker || '').trim().toUpperCase();
-  if (!ticker || !/^[A-Z0-9.^-]{1,10}$/.test(ticker)) {
-    return res.status(400).json({ error: 'Invalid ticker symbol' });
-  }
-
-  const cached = yahooCacheGet(ticker, 'earnings-research');
-  if (cached) return res.json(cached);
-
-  const FHKEY = process.env.FINNHUB_API_KEY;
-  const now = new Date();
-  const oneYearAgo = new Date(now);
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const today = now.toISOString().split('T')[0];
-  const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
-
-  // Helper: safe date to string
-  const toDateStr = (d) => {
-    if (!d) return null;
-    if (d instanceof Date) return d.toISOString().split('T')[0];
-    if (typeof d === 'number') return new Date(d > 1e10 ? d : d * 1000).toISOString().split('T')[0];
-    return String(d);
-  };
-
-  try {
-    // Parallel fetch all data sources
-    const [summaryResult, optionsResult, chartResult, newsResult] = await Promise.allSettled([
-      yahooFinance.quoteSummary(ticker, {
-        modules: ['price', 'summaryProfile', 'defaultKeyStatistics', 'financialData',
-                  'earnings', 'calendarEvents', 'recommendationTrend',
-                  'majorHoldersBreakdown', 'insiderTransactions', 'upgradeDowngradeHistory']
-      }),
-      yahooFinance.options(ticker),
-      yahooFinance.chart(ticker, { period1: oneYearAgo, period2: now, interval: '1d' }),
-      FHKEY
-        ? axios.get(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${twoWeeksAgo}&to=${today}&token=${FHKEY}`, { timeout: 8000 }).then(r => r.data)
-        : Promise.resolve([]),
-    ]);
-
-    const summary = summaryResult.status === 'fulfilled' ? summaryResult.value : {};
-    const optionsRaw = optionsResult.status === 'fulfilled' ? optionsResult.value : null;
-    const chartRaw = chartResult.status === 'fulfilled' ? chartResult.value : null;
-    const newsItems = newsResult.status === 'fulfilled' ? (newsResult.value || []) : [];
-
-    // Extract Yahoo modules (defensive)
-    const priceData = summary.price || {};
-    const profile = summary.summaryProfile || {};
-    const keyStats = summary.defaultKeyStatistics || {};
-    const finData = summary.financialData || {};
-    const earningsModule = summary.earnings || {};
-    const calEvents = summary.calendarEvents || {};
-    const recTrend = summary.recommendationTrend || {};
-    const holders = summary.majorHoldersBreakdown || {};
-    const insiderTxns = (summary.insiderTransactions || {}).transactions || [];
-    const upgradeHistory = (summary.upgradeDowngradeHistory || {}).history || [];
-
-    const currentPrice = priceData.regularMarketPrice ?? 0;
-
-    // ── Section A: Earnings Intelligence ──
-    const quarterlyEarnings = (earningsModule.earningsChart?.quarterly || []).map(q => ({
-      quarter: q.date || '',
-      actual: q.actual?.raw ?? q.actual ?? null,
-      estimate: q.estimate?.raw ?? q.estimate ?? null,
-      surprise: (q.actual != null && q.estimate != null && q.estimate !== 0)
-        ? +(((q.actual?.raw ?? q.actual) - (q.estimate?.raw ?? q.estimate)) / Math.abs(q.estimate?.raw ?? q.estimate) * 100).toFixed(2)
-        : null,
-      beat: q.actual != null && q.estimate != null
-        ? (q.actual?.raw ?? q.actual) >= (q.estimate?.raw ?? q.estimate) : null,
-    }));
-
-    const quarterlyRevenue = (earningsModule.financialsChart?.quarterly || []).map(q => ({
-      quarter: q.date || '',
-      revenue: q.revenue?.raw ?? q.revenue ?? null,
-      earnings: q.earnings?.raw ?? q.earnings ?? null,
-    }));
-
-    const earningsDateRaw = calEvents.earnings?.earningsDate;
-    const earningsDate = Array.isArray(earningsDateRaw) && earningsDateRaw.length
-      ? earningsDateRaw[0] : earningsDateRaw || null;
-
-    const earnings = {
-      earningsDate: toDateStr(earningsDate),
-      epsEstimate: calEvents.earnings?.earningsAverage ?? earningsModule.earningsChart?.currentQuarterEstimate ?? null,
-      epsHigh: calEvents.earnings?.earningsHigh ?? null,
-      epsLow: calEvents.earnings?.earningsLow ?? null,
-      revenueEstimate: calEvents.earnings?.revenueAverage ?? null,
-      revenueGrowth: finData.revenueGrowth != null ? +(finData.revenueGrowth * 100).toFixed(2) : null,
-      quarterlyHistory: quarterlyEarnings,
-      quarterlyRevenue,
-      beatsInLast4: quarterlyEarnings.filter(q => q.beat === true).length,
-      missesInLast4: quarterlyEarnings.filter(q => q.beat === false).length,
-    };
-
-    // ── Section B: Expected Move ──
-    let expectedMove = { available: false };
-    if (optionsRaw) {
-      const oQuote = optionsRaw.quote || {};
-      const opts = optionsRaw.options?.[0] || {};
-      const calls = opts.calls || [];
-      const puts = opts.puts || [];
-      const opPrice = oQuote.regularMarketPrice || currentPrice;
-      const allStrikes = [...new Set([...calls.map(c => c.strike), ...puts.map(p => p.strike)])].sort((a, b) => a - b);
-      const atmStrike = allStrikes.length
-        ? allStrikes.reduce((best, s) => Math.abs(s - opPrice) < Math.abs(best - opPrice) ? s : best, allStrikes[0])
-        : opPrice;
-      const atmCall = calls.find(c => c.strike === atmStrike);
-      const atmPut = puts.find(p => p.strike === atmStrike);
-      const ivValues = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(v => v != null);
-      const avgIV = ivValues.length ? +(ivValues.reduce((a, b) => a + b, 0) / ivValues.length).toFixed(4) : null;
-
-      const callBidAsk = atmCall ? ((atmCall.bid || 0) + (atmCall.ask || 0)) / 2 : 0;
-      const callMid = callBidAsk > 0 ? callBidAsk : (atmCall?.lastPrice || 0);
-      const putBidAsk = atmPut ? ((atmPut.bid || 0) + (atmPut.ask || 0)) / 2 : 0;
-      const putMid = putBidAsk > 0 ? putBidAsk : (atmPut?.lastPrice || 0);
-      const straddle = +(callMid + putMid).toFixed(2);
-
-      const expiryDate = opts.expirationDate;
-      const expiryMs = expiryDate instanceof Date ? expiryDate.getTime() : (expiryDate ? expiryDate * 1000 : 0);
-      const expiryStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
-      const dte = expiryMs ? Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000)) : 0;
-      const ivEM = avgIV && opPrice ? +(opPrice * avgIV * Math.sqrt(Math.max(dte, 1) / 365)).toFixed(2) : 0;
-      const em = straddle > 0 ? straddle : ivEM;
-
-      expectedMove = {
-        available: true,
-        atmStrike,
-        straddle,
-        avgIV,
-        ivPercent: avgIV ? +(avgIV * 100).toFixed(1) : null,
-        expectedMove: em,
-        expectedMovePercent: opPrice ? +((em / opPrice) * 100).toFixed(2) : 0,
-        rangeHigh: +(opPrice + em).toFixed(2),
-        rangeLow: +(opPrice - em).toFixed(2),
-        expiryDate: expiryStr,
-        daysToExpiry: dte,
-        callIV: atmCall?.impliedVolatility ? +(atmCall.impliedVolatility * 100).toFixed(1) : null,
-        putIV: atmPut?.impliedVolatility ? +(atmPut.impliedVolatility * 100).toFixed(1) : null,
-      };
-    }
-
-    // ── Section C: Company Snapshot ──
-    const avgVol = priceData.averageDailyVolume3Month || priceData.averageDailyVolume10Day || null;
-    const company = {
-      name: priceData.shortName || priceData.longName || '',
-      sector: profile.sector || '',
-      industry: profile.industry || '',
-      marketCap: priceData.marketCap ?? null,
-      floatShares: keyStats.floatShares ?? null,
-      avgVolume: avgVol,
-      sharesShort: keyStats.sharesShort ?? null,
-      shortPercentOfFloat: keyStats.shortPercentOfFloat != null ? +(keyStats.shortPercentOfFloat * 100).toFixed(2) : null,
-      shortRatio: keyStats.shortRatio ?? null,
-      insiderPercent: holders.insidersPercentHeld != null ? +(holders.insidersPercentHeld * 100).toFixed(2)
-        : keyStats.heldPercentInsiders != null ? +(keyStats.heldPercentInsiders * 100).toFixed(2) : null,
-      institutionalPercent: holders.institutionsPercentHeld != null ? +(holders.institutionsPercentHeld * 100).toFixed(2)
-        : keyStats.heldPercentInstitutions != null ? +(keyStats.heldPercentInstitutions * 100).toFixed(2) : null,
-      institutionCount: holders.institutionsCount ?? null,
-      beta: keyStats.beta ?? null,
-      recentInsiderTxns: insiderTxns.slice(0, 5).map(t => ({
-        name: t.filerName || '',
-        relation: t.filerRelation || '',
-        type: t.transactionText || '',
-        shares: t.shares ?? null,
-        value: t.value ?? null,
-        date: toDateStr(t.startDate),
-      })),
-    };
-
-    // ── Section D: Sentiment ──
-    const currentMonth = (recTrend.trend || []).find(t => t.period === '0m') || {};
-    const prevMonth = (recTrend.trend || []).find(t => t.period === '-1m') || {};
-    const cutoff90d = Date.now() - 90 * 86400000;
-    const recentUpgrades = upgradeHistory.filter(u => {
-      const ts = u.epochGradeDate instanceof Date ? u.epochGradeDate.getTime() : ((u.epochGradeDate || 0) * 1000);
-      return ts > cutoff90d;
-    }).slice(0, 10).map(u => ({
-      firm: u.firm || '',
-      toGrade: u.toGrade || '',
-      fromGrade: u.fromGrade || '',
-      action: u.action || '',
-      date: toDateStr(u.epochGradeDate),
-    }));
-
-    const sentiment = {
-      recommendationKey: finData.recommendationKey || null,
-      recommendationMean: finData.recommendationMean ?? null,
-      numberOfAnalysts: finData.numberOfAnalystOpinions ?? null,
-      targetMeanPrice: finData.targetMeanPrice ?? null,
-      targetHighPrice: finData.targetHighPrice ?? null,
-      targetLowPrice: finData.targetLowPrice ?? null,
-      targetMedianPrice: finData.targetMedianPrice ?? null,
-      targetVsPrice: finData.targetMeanPrice && currentPrice
-        ? +(((finData.targetMeanPrice - currentPrice) / currentPrice) * 100).toFixed(2) : null,
-      currentMonth: {
-        strongBuy: currentMonth.strongBuy || 0, buy: currentMonth.buy || 0,
-        hold: currentMonth.hold || 0, sell: currentMonth.sell || 0, strongSell: currentMonth.strongSell || 0,
-      },
-      prevMonth: {
-        strongBuy: prevMonth.strongBuy || 0, buy: prevMonth.buy || 0,
-        hold: prevMonth.hold || 0, sell: prevMonth.sell || 0, strongSell: prevMonth.strongSell || 0,
-      },
-      recentUpgrades,
-    };
-
-    // ── Section E: News ──
-    const news = (Array.isArray(newsItems) ? newsItems : []).slice(0, 10).map(n => ({
-      headline: n.headline || '',
-      source: n.source || '',
-      url: n.url || '',
-      datetime: n.datetime || 0,
-      category: n.category || '',
-      summary: (n.summary || '').slice(0, 200),
-    }));
-
-    // ── Section F: Technicals ──
-    let technicals = { available: false };
-    const quotes = chartRaw?.quotes || [];
-    const validQuotes = quotes.filter(q => q.close != null && q.high != null && q.low != null);
-    if (validQuotes.length >= 20) {
-      const closes = validQuotes.map(q => q.close);
-      const cp = closes[closes.length - 1];
-
-      const sma = (arr, period) => {
-        if (arr.length < period) return null;
-        return +(arr.slice(-period).reduce((a, b) => a + b, 0) / period).toFixed(2);
-      };
-
-      // RSI(14) — Wilder smoothing
-      const computeRSI = (closes, period = 14) => {
-        if (closes.length < period + 1) return null;
-        const recent = closes.slice(-(period + 1));
-        let gains = 0, losses = 0;
-        for (let i = 1; i < recent.length; i++) {
-          const diff = recent[i] - recent[i - 1];
-          if (diff > 0) gains += diff; else losses -= diff;
-        }
-        const avgGain = gains / period;
-        const avgLoss = losses / period;
-        if (avgLoss === 0) return 100;
-        return +(100 - 100 / (1 + avgGain / avgLoss)).toFixed(2);
-      };
-
-      // ATR(14) — Average True Range
-      const computeATR = (bars, period = 14) => {
-        if (bars.length < period + 1) return null;
-        const recent = bars.slice(-(period + 1));
-        let sum = 0;
-        for (let i = 1; i < recent.length; i++) {
-          const tr = Math.max(
-            recent[i].high - recent[i].low,
-            Math.abs(recent[i].high - recent[i - 1].close),
-            Math.abs(recent[i].low - recent[i - 1].close)
-          );
-          sum += tr;
-        }
-        return +(sum / period).toFixed(2);
-      };
-
-      const sma20 = sma(closes, 20);
-      const sma50 = sma(closes, 50);
-      const sma200 = sma(closes, 200);
-      const rsi = computeRSI(closes);
-      const atr = computeATR(validQuotes);
-
-      const year52 = validQuotes.slice(-252);
-      const high52w = year52.length ? +Math.max(...year52.map(q => q.high)).toFixed(2) : null;
-      const low52w = year52.length ? +Math.min(...year52.map(q => q.low)).toFixed(2) : null;
-
-      const recent20 = validQuotes.slice(-20);
-      const recentHigh = recent20.length ? +Math.max(...recent20.map(q => q.high)).toFixed(2) : null;
-      const recentLow = recent20.length ? +Math.min(...recent20.map(q => q.low)).toFixed(2) : null;
-
-      const aboveSMA20 = sma20 ? cp > sma20 : null;
-      const aboveSMA50 = sma50 ? cp > sma50 : null;
-      const aboveSMA200 = sma200 ? cp > sma200 : null;
-      let trend = 'mixed';
-      if (aboveSMA20 && aboveSMA50 && aboveSMA200) trend = 'bullish';
-      else if (aboveSMA20 === false && aboveSMA50 === false && aboveSMA200 === false) trend = 'bearish';
-
-      technicals = {
-        available: true, currentPrice: cp,
-        sma20, sma50, sma200,
-        distSMA20: sma20 ? +(((cp - sma20) / sma20) * 100).toFixed(2) : null,
-        distSMA50: sma50 ? +(((cp - sma50) / sma50) * 100).toFixed(2) : null,
-        distSMA200: sma200 ? +(((cp - sma200) / sma200) * 100).toFixed(2) : null,
-        aboveSMA20, aboveSMA50, aboveSMA200,
-        rsi, atr,
-        atrPercent: atr && cp ? +((atr / cp) * 100).toFixed(2) : null,
-        high52w, low52w,
-        distHigh52w: high52w && cp ? +(((cp - high52w) / high52w) * 100).toFixed(2) : null,
-        distLow52w: low52w && cp ? +(((cp - low52w) / low52w) * 100).toFixed(2) : null,
-        recentHigh, recentLow, trend,
-      };
-    }
-
-    // ── Earnings Setup Score (0–100) ──
-    const computeSetupScore = () => {
-      const b = {};
-
-      // Earnings Track Record (0–20)
-      let et = 10;
-      quarterlyEarnings.slice(0, 4).forEach(q => { if (q.beat === true) et += 3; else if (q.beat === false) et -= 3; });
-      b.earningsTrack = Math.max(0, Math.min(20, et));
-
-      // Expected Move / Options (0–15)
-      let emScore = 7;
-      if (expectedMove.available) {
-        if (expectedMove.expectedMovePercent > 0 && expectedMove.expectedMovePercent < 15) emScore += 4;
-        if (expectedMove.avgIV && expectedMove.avgIV < 1.0) emScore += 2;
-        if (expectedMove.straddle > 0) emScore += 2;
-      }
-      b.expectedMove = Math.max(0, Math.min(15, emScore));
-
-      // Liquidity (0–15)
-      let liq = 5;
-      if (company.avgVolume > 2e6) liq += 5;
-      else if (company.avgVolume > 500e3) liq += 3;
-      else if (company.avgVolume && company.avgVolume < 200e3) liq -= 3;
-      if (company.floatShares && company.floatShares < 50e6) liq += 2;
-      if (company.marketCap && company.marketCap > 1e9) liq += 3;
-      else if (company.marketCap && company.marketCap > 300e6) liq += 1;
-      b.liquidity = Math.max(0, Math.min(15, liq));
-
-      // Short Interest Catalyst (0–10)
-      let si = 3;
-      if (company.shortPercentOfFloat > 20) si += 5;
-      else if (company.shortPercentOfFloat > 10) si += 3;
-      else if (company.shortPercentOfFloat > 5) si += 1;
-      b.shortInterest = Math.max(0, Math.min(10, si));
-
-      // Analyst Sentiment (0–15)
-      let an = 7;
-      if (sentiment.recommendationMean) {
-        if (sentiment.recommendationMean <= 2.0) an += 4;
-        else if (sentiment.recommendationMean <= 2.5) an += 2;
-        else if (sentiment.recommendationMean >= 3.5) an -= 2;
-      }
-      if (sentiment.targetVsPrice > 20) an += 3;
-      else if (sentiment.targetVsPrice > 10) an += 1;
-      else if (sentiment.targetVsPrice && sentiment.targetVsPrice < -10) an -= 2;
-      b.analystSentiment = Math.max(0, Math.min(15, an));
-
-      // Technical Setup (0–15)
-      let tech = 7;
-      if (technicals.available) {
-        if (technicals.trend === 'bullish') tech += 4;
-        else if (technicals.trend === 'bearish') tech -= 2;
-        if (technicals.rsi && technicals.rsi > 30 && technicals.rsi < 70) tech += 2;
-        if (technicals.distHigh52w && technicals.distHigh52w > -10) tech += 2;
-      }
-      b.technicals = Math.max(0, Math.min(15, tech));
-
-      // News Momentum (0–10)
-      let nm = 3;
-      if (news.length >= 5) nm += 4;
-      else if (news.length >= 2) nm += 2;
-      const freshNews = news.filter(n => (Date.now() / 1000 - n.datetime) < 3 * 86400);
-      if (freshNews.length > 0) nm += 3;
-      b.newsMomentum = Math.max(0, Math.min(10, nm));
-
-      const total = Object.values(b).reduce((a, v) => a + v, 0);
-      return { score: Math.max(0, Math.min(100, total)), breakdown: b };
-    };
-
-    const setupScore = computeSetupScore();
-
-    const data = {
-      ticker, price: currentPrice, name: company.name,
-      earnings, expectedMove, company, sentiment, news, technicals, setupScore,
-    };
-
-    yahooCacheSet(ticker, 'earnings-research', data);
-    res.json(data);
-  } catch (err) {
-    logger.warn('Earnings research error', { ticker, error: err.message });
-    res.status(502).json({ error: 'Failed to fetch earnings research data', detail: err.message });
-  }
-});
-
 app.post('/api/ai-quant/query', limiter, async (req, res) => {
   const { prompt, contextSource = 'none' } = req.body || {};
   if (!prompt || typeof prompt !== 'string') {
@@ -1971,52 +1087,6 @@ app.get('/api/auth/verify', (req, res) => {
   }
 });
 
-// Saxo OAuth endpoints
-app.get('/auth/saxo/login', (req, res) => {
-  const { url, state } = saxoAuth.getAuthorizationUrl();
-  // Store state in session or cookie for CSRF protection
-  res.cookie('saxo_oauth_state', state, { httpOnly: true, maxAge: 600000 }); // 10 minutes
-  res.redirect(url);
-});
-
-app.get('/auth/callback', async (req, res) => {
-  const { code, state, error } = req.query;
-
-  if (error) {
-    logger.error('Saxo OAuth error:', error);
-    return res.redirect('/index.html?error=oauth_failed');
-  }
-
-  // Verify state to prevent CSRF
-  const savedState = req.cookies.saxo_oauth_state;
-  if (!savedState || savedState !== state) {
-    logger.error('OAuth state mismatch');
-    return res.redirect('/index.html?error=oauth_state_mismatch');
-  }
-
-  try {
-    await saxoAuth.getTokensFromCode(code);
-    res.clearCookie('saxo_oauth_state');
-    res.redirect('/index.html?saxo_connected=true');
-  } catch (error) {
-    logger.error('Failed to get Saxo tokens:', error.message);
-    res.redirect('/index.html?error=oauth_token_failed');
-  }
-});
-
-app.get('/api/saxo/auth/status', (req, res) => {
-  res.json({
-    authenticated: saxoAuth.isAuthenticated(),
-    hasTokens: saxoAuth.tokens !== null,
-    expiresAt: saxoAuth.tokens?.expires_at || null
-  });
-});
-
-app.post('/api/saxo/auth/disconnect', async (req, res) => {
-  await saxoAuth.clearTokens();
-  res.json({ success: true, message: 'Saxo account disconnected' });
-});
-
 // Finviz news endpoint
 app.get('/api/finviz/news', async (req, res) => {
   if (!FINVIZ_NEWS_TOKEN) {
@@ -2034,180 +1104,7 @@ app.get('/api/finviz/news', async (req, res) => {
   }
 });
 
-// User management API (handles its own auth, but apply rate limiting to registration)
-app.use('/api/users/register', registrationLimiter);
-app.use('/api/users', userRoutes);
-
-// General rate limiting for other endpoints
-app.use(limiter);
-
-// API-key auth middleware for protected API endpoints only
-app.use((req, res, next) => {
-  // Only apply auth to /api/ routes — let static files pass through
-  if (!req.path.startsWith('/api/')) return next();
-
-  // Allowlisted endpoints (public data) skip auth
-  const publicPaths = [
-    '/api/finviz/screener',
-    '/api/finviz/news-scanner',
-    '/api/finviz/quote',
-    '/api/finviz/news',
-    '/api/news',
-    '/api/news/snippet',
-    '/api/premarket/report',
-    '/api/premarket/report-md',
-    '/api/scanner/status',
-    '/api/yahoo/quote',
-    '/api/yahoo/quote-batch',
-    '/api/yahoo/options',
-    '/api/yahoo/history',
-    '/api/yahoo/search',
-    '/api/earnings/calendar',
-    '/api/finnhub/news/symbol',
-    '/api/expected-move-enhanced'
-  ];
-  if (publicPaths.includes(req.path)) return next();
-  if (req.path.startsWith('/api/earnings-research/')) return next();
-  if (req.path.startsWith('/api/ai-quant/')) return next();
-
-  // Saxo proxy handles its own OAuth authentication
-  if (req.path.startsWith('/api/saxo/')) return next();
-
-  // For other endpoints: check JWT token OR API key
-  const token = req.get('Authorization')?.replace('Bearer ', '');
-  const apiKey = req.get('x-api-key') || req.query['api_key'];
-
-  // If JWT token is provided, verify it
-  if (token) {
-    try {
-      jwt.verify(token, JWT_SECRET);
-      return next(); // JWT valid, allow request
-    } catch (err) {
-      // JWT invalid or expired, fall through to API key check
-    }
-  }
-
-  // If no JWT, require API key
-  if (!PROXY_API_KEY) {
-    return res.status(502).json({ error: 'Proxy API key not configured on server' });
-  }
-
-  if (!apiKey || apiKey !== PROXY_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized - provide valid JWT or API key' });
-  }
-
-  next();
-});
-
-// News endpoint: provide market news (stub data for now)
-app.get('/api/saxo/news', async (req, res) => {
-  try {
-    // Return sample market news
-    const news = [
-      {
-        id: 1,
-        headline: 'Federal Reserve Announces Interest Rate Decision',
-        summary: 'The Fed decided to hold interest rates steady amid mixed economic signals.',
-        source: 'Reuters',
-        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
-        category: 'economics'
-      },
-      {
-        id: 2,
-        headline: 'Tech Stocks Rally on Positive Earnings',
-        summary: 'Major technology companies exceed quarterly earnings expectations, driving markets higher.',
-        source: 'Bloomberg',
-        timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
-        category: 'stocks'
-      },
-      {
-        id: 3,
-        headline: 'Oil Prices Drop on Supply Concerns',
-        summary: 'Crude oil futures decline as OPEC signals potential production increases.',
-        source: 'CNBC',
-        timestamp: new Date(Date.now() - 6 * 3600000).toISOString(),
-        category: 'commodities'
-      },
-      {
-        id: 4,
-        headline: 'European Markets Mixed as Inflation Data Released',
-        summary: 'European stocks show mixed performance following latest inflation figures across the region.',
-        source: 'MarketWatch',
-        timestamp: new Date(Date.now() - 8 * 3600000).toISOString(),
-        category: 'forex'
-      }
-    ];
-    
-    res.json(news);
-  } catch (err) {
-    logger.error('News endpoint error:', { error: err.message, stack: err.stack });
-    res.status(500).json({ error: 'Failed to fetch news', detail: err.message });
-  }
-});
-
-// Finnhub News Proxy Endpoint
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
-const newsCache = { data: null, ts: 0 };
-const NEWS_CACHE_MS = 5 * 60 * 1000; // 5 min
-
-app.get('/api/news', async (req, res) => {
-  if (!FINNHUB_API_KEY) {
-    return res.status(500).json({ error: 'FINNHUB_API_KEY not set in server environment' });
-  }
-  // Use cache if fresh
-  if (newsCache.data && Date.now() - newsCache.ts < NEWS_CACHE_MS) {
-    return res.json(newsCache.data);
-  }
-  try {
-    // US market news (general)
-    const url = `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`;
-    const response = await axios.get(url, { timeout: 10000 });
-    newsCache.data = response.data;
-    newsCache.ts = Date.now();
-    res.json(response.data);
-  } catch (err) {
-    res.status(502).json({ error: 'Failed to fetch news', detail: err.message });
-  }
-});
-
-// Finnhub company-specific news
-const symbolNewsCache = {};
-const SYMBOL_NEWS_CACHE_MS = 5 * 60 * 1000;
-
-app.get('/api/finnhub/news/symbol', async (req, res) => {
-  if (!FINNHUB_API_KEY) return res.status(500).json({ error: 'FINNHUB_API_KEY not set' });
-  const symbol = (req.query.symbol || '').trim().toUpperCase();
-  if (!symbol) return res.json([]);
-
-  const today = new Date().toISOString().split('T')[0];
-  const weekAgo = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
-  const from = req.query.from || weekAgo;
-  const to = req.query.to || today;
-  const cacheKey = `${symbol}:${from}:${to}`;
-
-  if (symbolNewsCache[cacheKey] && Date.now() - symbolNewsCache[cacheKey].ts < SYMBOL_NEWS_CACHE_MS) {
-    return res.json(symbolNewsCache[cacheKey].data);
-  }
-
-  try {
-    const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`;
-    const response = await axios.get(url, { timeout: 10000 });
-    const data = (response.data || []).slice(0, 50);
-    symbolNewsCache[cacheKey] = { data, ts: Date.now() };
-    // Evict old entries
-    const keys = Object.keys(symbolNewsCache);
-    if (keys.length > 100) {
-      keys.sort((a, b) => symbolNewsCache[a].ts - symbolNewsCache[b].ts);
-      keys.slice(0, keys.length - 50).forEach(k => delete symbolNewsCache[k]);
-    }
-    res.json(data);
-  } catch (err) {
-    logger.warn('Finnhub company news error', { symbol, error: err.message });
-    res.json([]);
-  }
-});
-
-// Finviz screener export endpoint
+// Finviz screener export endpoint (public)
 app.get('/api/finviz/screener', async (req, res) => {
   if (!FINVIZ_NEWS_TOKEN) {
     return res.status(500).json({ error: 'FINVIZ_NEWS_TOKEN not set in server environment' });
@@ -2229,20 +1126,167 @@ app.get('/api/finviz/screener', async (req, res) => {
     if (tickers) url += `&t=${tickers}`;
 
     logger.info('Fetching Finviz screener:', { filters: filters || 'none', view, tickers: tickers ? tickers.substring(0, 100) : 'none' });
-
-    const response = await axios.get(url, {
-      responseType: 'text',
-      timeout: 10000
-    });
-
-    // Parse CSV to JSON
-    const csvData = await csv().fromString(response.data);
+    const cacheKey = `screener:${view}:${filters || 'none'}:${order || 'none'}:${tickers || 'none'}`;
+    const csvData = await fetchFinvizCsv(url, cacheKey, 12000);
     res.json(csvData);
 
   } catch (err) {
     logger.error('Finviz screener fetch error:', { error: err.message, stack: err.stack });
     res.status(502).json({ error: 'Failed to fetch Finviz screener', detail: err.message });
   }
+});
+
+// User management API (handles its own auth, but apply rate limiting to registration)
+app.use('/api/users/register', registrationLimiter);
+app.use('/api/users', userRoutes);
+
+// General rate limiting for other endpoints (new wrapper)
+app.use(generalLimiter);
+
+// API-key/JWT auth middleware
+app.use(authMiddleware);
+
+// Broker abstraction routes (monitoring-only)
+app.use(brokerRoutes);
+
+// Usage metrics (after auth so user is available)
+app.use(usageMiddleware);
+
+// Finnhub news endpoints moved to routes/news.js
+
+// Premarket gappers endpoint (Finviz tickers + Yahoo enrich)
+const GAP_DEFAULT_FILTERS = 'sh_price_o1,sh_avgvol_o500,ta_gap_u';
+const GAP_BATCH_SIZE = 8;
+
+function tagCatalyst(headline = '') {
+  const h = headline.toLowerCase();
+  if (!h) return null;
+  if (h.includes('fda') || h.includes('phase') || h.includes('trial')) return 'FDA/Drug';
+  if (h.includes('offering') || h.includes('pricing')) return 'Offering';
+  if (h.includes('guid') || h.includes('forecast')) return 'Guidance';
+  if (h.includes('earnings') || h.includes('results')) return 'Earnings';
+  if (h.includes('upgrade') || h.includes('downgrade')) return 'Upgrade/Downgrade';
+  if (h.includes('merger') || h.includes('acquire') || h.includes('acquisition')) return 'M&A';
+  return 'News';
+}
+
+app.get('/api/gappers', async (req, res) => {
+  if (!FINVIZ_NEWS_TOKEN) {
+    return res.status(500).json({ error: 'FINVIZ_NEWS_TOKEN not set in server environment' });
+  }
+
+  const limit = Math.min(Number(req.query.limit) || 60, 200);
+  const filters = req.query.f || GAP_DEFAULT_FILTERS;
+  const view = req.query.v || '111';
+  const order = req.query.o || '-change'; // order by change to bring movers to top
+  const includeNews = req.query.news === '1';
+
+  let rows = [];
+  try {
+    let url = `https://elite.finviz.com/export.ashx?v=${view}&auth=${FINVIZ_NEWS_TOKEN}`;
+    if (filters) url += `&f=${filters}`;
+    if (order) url += `&o=${order}`;
+
+    logger.info('Fetching Finviz gappers list', { filters, view, order });
+    const cacheKey = `gappers:${view}:${filters}:${order}`;
+    rows = await fetchFinvizCsv(url, cacheKey, 12000);
+  } catch (err) {
+    logger.error('Gappers Finviz fetch error', { error: err.message, stack: err.stack });
+    return res.status(502).json({ error: 'Failed to fetch gappers list', detail: err.message });
+  }
+
+  const tickers = rows
+    .map(r => (r.Ticker || r.ticker || r.Symbol || '').trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, limit);
+
+  if (!tickers.length) return res.json({ gappers: [] });
+
+  const FHKEY = process.env.FINNHUB_API_KEY;
+  const gappers = [];
+
+  for (let i = 0; i < tickers.length; i += GAP_BATCH_SIZE) {
+    const batch = tickers.slice(i, i + GAP_BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map(async (ticker) => {
+      const cached = yahooCacheGet(ticker, 'gappers-quote');
+      if (cached) return { ticker, quote: cached };
+      const quote = await yahooFinance.quote(ticker);
+      yahooCacheSet(ticker, 'gappers-quote', quote);
+      return { ticker, quote };
+    }));
+
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value?.quote) continue;
+      const { ticker, quote } = r.value;
+      const prevClose = quote.regularMarketPreviousClose ?? null;
+      const pmPrice = quote.preMarketPrice ?? null;
+      const pmChange = (pmPrice != null && prevClose != null) ? +(pmPrice - prevClose).toFixed(2) : quote.preMarketChange ?? null;
+      const pmChangePercent = (pmPrice != null && prevClose != null && prevClose !== 0)
+        ? +(((pmPrice - prevClose) / prevClose) * 100).toFixed(2)
+        : (quote.preMarketChangePercent != null ? +Number(quote.preMarketChangePercent).toFixed(2) : null);
+      const avgVol = quote.averageDailyVolume10Day || quote.averageDailyVolume3Month || null;
+      const curVol = quote.regularMarketVolume || null;
+      const rvol = (avgVol && curVol && avgVol > 0) ? +(curVol / avgVol).toFixed(2) : null;
+
+      gappers.push({
+        symbol: ticker,
+        shortName: quote.shortName || '',
+        price: quote.regularMarketPrice ?? null,
+        prevClose,
+        preMarketPrice: pmPrice,
+        preMarketChange: pmChange,
+        preMarketChangePercent: pmChangePercent,
+        marketCap: quote.marketCap ?? null,
+        floatShares: quote.floatShares ?? null,
+        avgVolume: avgVol,
+        volume: curVol,
+        rvol,
+        fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh ?? null,
+        twoHundredDayAverage: quote.twoHundredDayAverage ?? null,
+        source: 'finviz'
+      });
+    }
+  }
+
+  // Optional headline enrichment for the top few names
+  if (includeNews && FHKEY) {
+    const newsTargets = gappers.slice(0, Math.min(10, gappers.length));
+    const now = new Date();
+    const from = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const to = now.toISOString().slice(0, 10);
+
+    const newsResults = await Promise.allSettled(newsTargets.map(async (g) => {
+      const url = `https://finnhub.io/api/v1/company-news?symbol=${g.symbol}&from=${from}&to=${to}&token=${FHKEY}`;
+      const resp = await axios.get(url, { timeout: 8000 });
+      const item = Array.isArray(resp.data) ? resp.data.find(n => n.headline) : null;
+      return { sym: g.symbol, headline: item?.headline || null, datetime: item?.datetime || null };
+    }));
+
+    const newsMap = {};
+    newsResults.forEach(r => {
+      if (r.status === 'fulfilled' && r.value) newsMap[r.value.sym] = r.value;
+    });
+
+    gappers.forEach(g => {
+      const n = newsMap[g.symbol];
+      if (n?.headline) {
+        g.headline = n.headline;
+        g.headlineTime = n.datetime ? n.datetime * 1000 : null;
+        g.catalyst = tagCatalyst(n.headline);
+      }
+    });
+  }
+
+  const sorted = gappers.sort((a, b) => {
+    const ap = a.preMarketChangePercent;
+    const bp = b.preMarketChangePercent;
+    if (ap == null && bp == null) return 0;
+    if (ap == null) return 1;
+    if (bp == null) return -1;
+    return bp - ap;
+  }).slice(0, limit);
+
+  res.json({ gappers: sorted });
 });
 
 // Finviz news scanner endpoint
@@ -2424,74 +1468,6 @@ app.get('/api/news/snippet', async (req, res) => {
   }
 });
 
-// Proxy endpoint: forwards requests to Saxo OpenAPI
-app.all('/api/saxo/*', async (req, res) => {
-  try {
-    // Get OAuth access token
-    let accessToken;
-    try {
-      accessToken = await saxoAuth.getAccessToken();
-    } catch (error) {
-      return res.status(401).json({
-        error: 'Saxo not authenticated',
-        message: 'Please connect your Saxo account',
-        authUrl: '/auth/saxo/login'
-      });
-    }
-
-    const targetPath = req.originalUrl.replace(/^\/api\/saxo/, '');
-    const targetUrl = `${SAXO_BASE}${targetPath}`;
-
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': req.get('content-type') || 'application/json'
-    };
-
-    // Query params are already in targetUrl, don't duplicate them
-    const axiosConfig = {
-      method: req.method,
-      url: targetUrl,
-      headers,
-      data: req.body,
-      timeout: parseInt(process.env.REQUEST_TIMEOUT || '10000', 10),
-      validateStatus: () => true
-    };
-
-    const response = await axios(axiosConfig);
-
-    // Log response for debugging
-    if (response.status !== 200) {
-      logger.warn('Saxo API returned non-200:', {
-        status: response.status,
-        url: targetUrl,
-        data: response.data
-      });
-    }
-
-    // Forward status and data
-    res.status(response.status);
-    // Avoid forwarding certain hop-by-hop headers
-    const excluded = ['transfer-encoding', 'content-encoding', 'content-length', 'connection'];
-    Object.entries(response.headers || {}).forEach(([k, v]) => {
-      if (!excluded.includes(k.toLowerCase())) {
-        res.setHeader(k, v);
-      }
-    });
-
-    if (response.data && typeof response.data === 'object') {
-      return res.json(response.data);
-    }
-
-    return res.send(response.data);
-  } catch (err) {
-    logger.error('Proxy error:', { error: err.message || err, stack: err.stack });
-    if (err.response) {
-      return res.status(err.response.status).json(err.response.data || { error: 'Upstream error' });
-    }
-    return res.status(500).json({ error: 'Proxy failed', detail: err.message });
-  }
-});
-
 // Final SPA catch-all for /app/* deep links (watchlist, earnings, etc.)
 app.get('/app/*', (req, res) => {
   const indexPath = path.join(REACT_BUILD, 'index.html');
@@ -2503,4 +1479,4 @@ app.get('/app/*', (req, res) => {
   }
 });
 
-app.listen(PORT, () => logger.info(`Saxo proxy listening on http://localhost:${PORT}`));
+app.listen(PORT, () => logger.info(`Broker monitor listening on http://localhost:${PORT}`));

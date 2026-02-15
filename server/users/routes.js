@@ -277,8 +277,12 @@ router.get('/admin/user/:id', requireAuth, requireAdmin, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Remove password from response
-    const { password, saxo_access_token, saxo_refresh_token, ...safeUser } = user;
-    safeUser.hasSaxo = !!saxo_access_token;
+    const { password, saxo_access_token, saxo_refresh_token, broker_access_token, broker_refresh_token, ...safeUser } = user;
+    safeUser.broker = {
+      type: user.broker_type || null,
+      status: user.broker_status || 'disconnected',
+      connectedAt: user.broker_connected_at || null
+    };
 
     res.json(safeUser);
   } catch (err) {
@@ -390,49 +394,6 @@ router.post('/admin/settings', requireAuth, requireAdmin, async (req, res) => {
   try {
     await model.setSetting(key, value);
     model.logActivity(req.user.id, 'admin_update_setting', `Updated setting: ${key}`, getClientIp(req));
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Disconnect Saxo for a user (admin)
-router.post('/admin/disconnect-saxo', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.body;
-  if (!id) return res.status(400).json({ error: 'User ID required' });
-
-  try {
-    await model.clearSaxoTokens(id);
-    model.logActivity(req.user.id, 'admin_disconnect_saxo', `Disconnected Saxo for user ${id}`, getClientIp(req));
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================
-// USER SAXO ROUTES
-// ============================================
-
-// Check if current user has Saxo connected
-router.get('/saxo/status', requireAuth, async (req, res) => {
-  try {
-    const hasConnection = await model.hasSaxoConnected(req.user.id);
-    const tokens = hasConnection ? await model.getSaxoTokens(req.user.id) : null;
-
-    res.json({
-      connected: hasConnection,
-      expiresAt: tokens?.expiresAt || null
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Disconnect Saxo for current user
-router.post('/saxo/disconnect', requireAuth, async (req, res) => {
-  try {
-    await model.clearSaxoTokens(req.user.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

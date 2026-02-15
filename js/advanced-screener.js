@@ -100,14 +100,90 @@ class AdvancedScreener {
         this.presets = this.loadPresets();
         this.newsData = {}; // Store news data by ticker
         this.newsFreshnessFilter = null; // Track active news freshness filter
+        this.filterSchema = null;
+        this.filterState = null;
     }
 
     init() {
         this.ensureNewsPopover();
         this.renderTabs();
-        this.renderFilters();
-        this.renderPresets();
+        this.initFilterLayout();
         this.renderNewsLegend();
+    }
+
+    buildFilterSchema() {
+        const sections = {};
+        Object.entries(this.filterDefinitions).forEach(([filterName, def]) => {
+            const sectionId = def.section || 'Other';
+            if (!sections[sectionId]) {
+                sections[sectionId] = { id: sectionId, title: sectionId, fields: [] };
+            }
+
+            const field = { id: filterName, label: filterName };
+            if (def.type === 'multiselect') {
+                field.type = 'multi';
+                field.options = (def.options || []).map((opt) => ({ value: opt, label: opt }));
+            } else if (def.type === 'select') {
+                field.type = 'select';
+                field.options = (def.options || []).map((opt) => ({ value: opt === 'Any' ? '' : opt, label: opt }));
+            } else if (def.type === 'number') {
+                field.type = 'number';
+                field.placeholder = def.placeholder || '';
+                field.step = 'any';
+            }
+
+            sections[sectionId].fields.push(field);
+        });
+
+        return { sections };
+    }
+
+    buildFilterDefaults(schema) {
+        const defaults = {};
+        Object.values(schema.sections || {}).forEach((section) => {
+            (section.fields || []).forEach((field) => {
+                defaults[field.id] = field.type === 'multi' ? [] : null;
+            });
+        });
+        return defaults;
+    }
+
+    initFilterLayout() {
+        if (!window.FilterFramework || !window.FilterLayoutConfig) return;
+        this.filterSchema = this.buildFilterSchema();
+        const defaults = this.buildFilterDefaults(this.filterSchema);
+
+        const pageConfig = window.FilterLayoutConfig.pages['advanced-screener'] || {};
+        const tabOrder = pageConfig.tabOrder || Object.keys(this.filterSchema.sections || {});
+        const tabSections = pageConfig.sectionMap || tabOrder.reduce((acc, tabId) => {
+            acc[tabId] = [tabId];
+            return acc;
+        }, {});
+
+        const tabLabels = tabOrder.reduce((acc, tabId) => {
+            const label = window.FilterLayoutConfig.tabs?.[tabId]?.label || tabId;
+            acc[tabId] = { label };
+            return acc;
+        }, {});
+
+        const panelContainer = document.getElementById('filtersPanel');
+        if (!panelContainer) return;
+
+        this.filterState = FilterFramework.createTabbedFilterPanel(panelContainer, {
+            pageKey: pageConfig.pageKey || 'advanced-screener',
+            title: 'Filter Engine',
+            schema: this.filterSchema,
+            defaults,
+            layoutConfig: window.FilterLayoutConfig.layout,
+            tabOrder,
+            tabSections,
+            tabLabels,
+            scoringPlacement: 'none',
+            onApply: (values) => this.applyAllFilters(values),
+            onChange: (snapshot) => {
+                this.filters = { ...snapshot.values };
+            },
+        });
     }
 
     ensureNewsPopover() {
@@ -710,38 +786,44 @@ class AdvancedScreener {
         }
     }
 
-    applyAllFilters() {
-        // Collect filter values
+    applyAllFilters(valuesFromState) {
+        const sourceValues = valuesFromState || (this.filterState ? this.filterState.values : null);
         this.filters = {};
 
-        // Group inputs by filter name to handle multi-select
-        const filterGroups = {};
-        document.querySelectorAll('[data-filter]').forEach(input => {
-            const filterName = input.dataset.filter;
-            if (!filterGroups[filterName]) {
-                filterGroups[filterName] = [];
-            }
-            filterGroups[filterName].push(input);
-        });
+        if (sourceValues) {
+            Object.entries(sourceValues).forEach(([key, value]) => {
+                const isEmptyArray = Array.isArray(value) && value.length === 0;
+                const isEmptyScalar = value === null || value === '';
+                if (isEmptyArray || isEmptyScalar) return;
+                this.filters[key] = value;
+            });
+        } else {
+            // Fallback to legacy DOM collection if state is unavailable
+            const filterGroups = {};
+            document.querySelectorAll('[data-filter]').forEach(input => {
+                const filterName = input.dataset.filter;
+                if (!filterGroups[filterName]) {
+                    filterGroups[filterName] = [];
+                }
+                filterGroups[filterName].push(input);
+            });
 
-        // Process each filter group
-        Object.entries(filterGroups).forEach(([filterName, inputs]) => {
-            if (inputs[0].type === 'checkbox') {
-                // Multi-select: collect all checked values
-                const checkedValues = inputs
-                    .filter(input => input.checked)
-                    .map(input => input.value);
-                if (checkedValues.length > 0) {
-                    this.filters[filterName] = checkedValues;
+            Object.entries(filterGroups).forEach(([filterName, inputs]) => {
+                if (inputs[0].type === 'checkbox') {
+                    const checkedValues = inputs
+                        .filter(input => input.checked)
+                        .map(input => input.value);
+                    if (checkedValues.length > 0) {
+                        this.filters[filterName] = checkedValues;
+                    }
+                } else {
+                    const value = inputs[0].value;
+                    if (value && value !== 'Any' && value !== '') {
+                        this.filters[filterName] = value;
+                    }
                 }
-            } else {
-                // Single value
-                const value = inputs[0].value;
-                if (value && value !== 'Any' && value !== '') {
-                    this.filters[filterName] = value;
-                }
-            }
-        });
+            });
+        }
 
         // Apply filters to data
         if (!this.data) return;
@@ -889,11 +971,8 @@ class AdvancedScreener {
 
         this.render();
 
-        // Close filters panel after applying
         const panel = document.getElementById('filtersPanel');
-        if (panel) {
-            panel.classList.remove('active');
-        }
+        if (panel) panel.classList.add('active');
     }
 
     parseMarketCap(mcapStr) {
@@ -926,17 +1005,10 @@ class AdvancedScreener {
     }
 
     clearAllFilters() {
-        const filterInputs = document.querySelectorAll('[data-filter]');
-        filterInputs.forEach(input => {
-            if (input.type === 'checkbox') {
-                input.checked = false;
-            } else if (input.tagName === 'SELECT') {
-                input.value = 'Any';
-            } else {
-                input.value = '';
-            }
-        });
-
+        if (this.filterState && this.filterSchema) {
+            const defaults = this.buildFilterDefaults(this.filterSchema);
+            this.filterState.reset(defaults);
+        }
         this.filters = {};
         this.filteredData = this.data;
         this.render();

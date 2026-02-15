@@ -1,9 +1,11 @@
 .env
+server/.env
 node_modules/
 server/node_modules/
 .DS_Store
 .vscode/
 npm-debug.log
+server/*.db
 server/users/*.db
 server/users/*.db-shm
 server/users/*.db-wal

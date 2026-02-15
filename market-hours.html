@@ -162,17 +162,12 @@
                     </div>
                 </div>
 
-                <!-- Saxo Positions -->
+                <!-- Broker Positions -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="icon">💼</span>
-                            My Open Positions
-                        </div>
-                        <div class="card-actions">
-                            <a href="https://www.home.saxo/platforms/saxotradergo" target="_blank" class="btn-secondary">
-                                Open Saxo →
-                            </a>
+                            My Open Positions (Read-only)
                         </div>
                     </div>
                     <div class="card-body">
@@ -238,10 +233,8 @@
 
     <!-- Authentication -->
     <script src="js/auth.js"></script>
-
-    <!-- Core Modules -->
     <script src="js/config.js"></script>
-    <script src="js/saxoAPI.js"></script>
+    <script src="js/broker.js"></script>
 
     <script>
         function updateMarketStatus() {
@@ -292,45 +285,48 @@
         updateMarketStatus();
         setInterval(updateMarketStatus, 60000);
 
-        // Load Saxo positions
+        function formatCurrency(val) {
+            const num = Number(val) || 0;
+            return `${CONFIG.CURRENCY_SYMBOL}${num.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        }
+
+        // Load broker positions
         async function loadPositions() {
             const container = document.getElementById('positionsContainer');
             const chartsGrid = document.getElementById('chartsGrid');
             if (!container) return;
 
             try {
-                // Wait for config to load
-                if (window.configReady) {
-                    await window.configReady;
-                }
+                await AUTH.protect();
+                const res = await AUTH.fetchAPI('/api/broker/positions');
+                if (!res.ok) throw new Error('Positions request failed');
+                const positions = await res.json();
 
-                const positions = await saxoAPI.getPositions();
-
-                if (!positions || !positions.Data || positions.Data.length === 0) {
+                if (!positions || positions.length === 0) {
                     container.innerHTML = '<div class="loading">No open positions</div>';
                     chartsGrid.innerHTML = '<div class="loading" style="grid-column: 1 / -1; text-align: center; padding: 48px;">No open positions to display charts</div>';
                     return;
                 }
 
                 // Display positions
-                const positionsHTML = positions.Data.map(pos => {
-                    const pnl = pos.ProfitLossOnTrade || 0;
+                const positionsHTML = positions.map(pos => {
+                    const pnl = pos.unrealizedDollar || 0;
                     const pnlClass = pnl >= 0 ? 'positive' : 'negative';
                     const pnlSign = pnl >= 0 ? '+' : '';
                     return `
                         <div class="position-item" style="padding: 12px; border-bottom: 1px solid var(--bg-hover); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <div style="font-weight: 600;">${pos.DisplayAndFormat?.Symbol || 'Unknown'}</div>
+                                <div style="font-weight: 600;">${pos.symbol || 'Unknown'}</div>
                                 <div style="font-size: 0.85em; color: var(--text-muted);">
-                                    ${pos.Amount || 0} @ ${pos.DisplayAndFormat?.AveragePrice || '0'}
+                                    ${pos.quantity || 0} @ ${formatCurrency(pos.averagePrice || 0)}
                                 </div>
                             </div>
                             <div style="text-align: right;">
                                 <div class="${pnlClass}" style="font-weight: 600;">
-                                    ${pnlSign}£${Math.abs(pnl).toFixed(2)}
+                                    ${pnlSign}${formatCurrency(Math.abs(pnl))}
                                 </div>
                                 <div style="font-size: 0.85em; color: var(--text-muted);">
-                                    ${pos.DisplayAndFormat?.CurrentPrice || '0'}
+                                    ${formatCurrency(pos.currentPrice || 0)}
                                 </div>
                             </div>
                         </div>
@@ -340,7 +336,7 @@
                 container.innerHTML = positionsHTML;
 
                 // Load charts for open positions
-                loadPositionCharts(positions.Data);
+                loadPositionCharts(positions);
             } catch (error) {
                 console.error('Failed to load positions:', error);
                 container.innerHTML = '<div style="padding: 12px; color: var(--accent-red);">Error loading positions</div>';
@@ -360,7 +356,7 @@
             const positionsToChart = positions.slice(0, 4);
 
             positionsToChart.forEach((pos, index) => {
-                const symbol = pos.DisplayAndFormat?.Symbol || 'Unknown';
+                const symbol = pos.symbol || 'Unknown';
                 const containerId = `chart_${index}`;
 
                 // Create card for chart

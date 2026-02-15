@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Saxo OAuth Demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+  <main class="container">
+    <header style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Sample Saxo OpenAPI response (port/v1/accounts/me).</p>
+      </div>
+      <a class="button secondary" href="/logout">Log out</a>
+    </header>
+    <section style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <a class="button" href="/ibkr/accounts" target="_blank">View IBKR Accounts (JSON)</a>
+      <button id="ibkrWsBtn" class="secondary">Connect IBKR Live Data</button>
+      <span id="ibkrWsStatus" style="font-size:0.9rem;color:gray;">Idle</span>
+    </section>
+    <article>
+      <pre><code><%= JSON.stringify(data, null, 2) %></code></pre>
+    </article>
+    <script>
+      const btn = document.getElementById('ibkrWsBtn');
+      const statusEl = document.getElementById('ibkrWsStatus');
+      btn?.addEventListener('click', async () => {
+        statusEl.textContent = 'Connecting...';
+        try {
+          const res = await fetch('/ibkr/ws/start');
+          const json = await res.json();
+          statusEl.textContent = json.connected ? 'Connected (server WS established)' : 'Not connected';
+        } catch (err) {
+          statusEl.textContent = 'Error starting IBKR WS';
+        }
+      });
+    </script>
+  </main>
+</body>
+</html>

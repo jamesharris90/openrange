@@ -35,37 +35,29 @@ const AUTH = {
   },
 
   /**
-   * Make authenticated API call to Saxo proxy
+   * Make authenticated API call (JWT + optional API key). Keeps legacy fetchSaxo compatible.
    */
-  async fetchSaxo(endpoint, options = {}) {
+  async fetchAPI(endpoint, options = {}) {
     const token = this.getToken();
-    // Try JWT first, fallback to API key if no token
-    let headers = {
+    const headers = {
       'Content-Type': 'application/json',
       ...options.headers
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // Always send API key when available so data endpoints still work if a JWT expires
-    if (window.API_KEY) {
-      headers['x-api-key'] = window.API_KEY;
-    }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (window.API_KEY) headers['x-api-key'] = window.API_KEY;
 
     try {
-      const response = await fetch(endpoint, {
-        ...options,
-        headers
-      });
-
-      // Note: Don't logout on 401 from Saxo API - just means Saxo isn't connected
-      // User auth token is still valid
+      const response = await fetch(endpoint, { ...options, headers });
       return response;
     } catch (error) {
       console.error('Auth fetch error:', error);
       throw error;
     }
+  },
+
+  // Backwards compatibility for existing calls
+  async fetchSaxo(endpoint, options = {}) {
+    return this.fetchAPI(endpoint, options);
   },
 
   /**

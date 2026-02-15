@@ -23,7 +23,7 @@
     <!-- Core Modules -->
     <script src="js/config.js"></script>
     <script src="js/marketStatus.js"></script>
-    <script src="js/saxoAPI.js"></script>
+    <script src="js/broker.js"></script>
     <script src="js/news.js"></script>
     <script src="js/alerts.js"></script>
     
@@ -226,6 +226,77 @@
         .no-news a:hover {
             text-decoration: underline;
         }
+
+        /* Broker widgets */
+        #brokerConnectPanel .broker-connect-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .positions-viewport {
+            height: 360px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            position: relative;
+        }
+
+        #positionsVirtualFiller { position: relative; width: 100%; }
+
+        #positionsVirtualContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .positions-header, .position-row {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1fr 1.2fr 0.8fr 1fr;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            min-height: 44px;
+        }
+
+        .positions-header {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .position-row { border-bottom: 1px solid var(--border-color); }
+        .position-row:nth-child(even) { background: var(--bg-card); }
+        .position-row .col { font-size: 0.9em; }
+        .position-row .side.long { color: var(--accent-green); text-transform: uppercase; font-weight: 700; }
+        .position-row .side.short { color: var(--accent-red); text-transform: uppercase; font-weight: 700; }
+
+        .exposure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .exposure-pill {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .mini-chart { display: flex; align-items: flex-end; gap: 4px; height: 120px; }
+        .mini-chart .bar { flex: 1; background: var(--accent-blue); border-radius: 4px 4px 0 0; }
+        .mini-chart .bar:hover { background: var(--accent-green); }
+
+        .empty-state { color: var(--text-muted); padding: 12px 0; text-align: center; }
     </style>
 </head>
 <body>
@@ -360,104 +431,214 @@
 
             <!-- Content Container -->
             <div class="content-container">
-                <!-- Saxo Connection Status Banner -->
-                <div id="saxoConnectionBanner" style="display:none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                        <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--accent-red);"></i>
-                        <span style="color: var(--text-primary); font-weight: 600;">Saxo Bank not connected</span>
+                <div id="brokerSection">
+                    <div id="brokerConnectPanel" class="card" style="margin-bottom: 16px;">
+                        <div class="card-header">
+                            <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                                <i data-lucide="plug" style="width: 20px; height: 20px;"></i>
+                                Connect Broker
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="broker-connect-grid">
+                                <div>
+                                    <label style="display:block;font-weight:600;margin-bottom:6px;">Provider</label>
+                                    <select id="brokerSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                                        <option value="ibkr">IBKR (read-only)</option>
+                                        <option value="saxo">Saxo (monitoring)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display:block;font-weight:600;margin-bottom:6px;">Access Token (optional)</label>
+                                    <input id="brokerAccessToken" type="password" placeholder="Paste session/access token" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                                </div>
+                                <div>
+                                    <label style="display:block;font-weight:600;margin-bottom:6px;">Refresh Token (optional)</label>
+                                    <input id="brokerRefreshToken" type="password" placeholder="Paste refresh token" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                                </div>
+                                <div style="align-self:flex-end;display:flex;gap:8px;">
+                                    <button class="btn-primary" id="brokerConnectBtn" style="flex:1;">Connect</button>
+                                    <button class="btn-secondary" id="brokerDisconnectBtn" style="flex:1;">Disconnect</button>
+                                </div>
+                            </div>
+                            <div class="helper-text" style="margin-top:8px;">Tokens are sent directly to the server, never stored in the browser. Monitoring only—no trade actions.</div>
+                        </div>
                     </div>
-                    <p style="margin: 8px 0; color: var(--text-secondary);">Connect your Saxo Bank account to view live trading data.</p>
-                    <button onclick="window.location.href='/auth/saxo/login'" style="background: var(--accent-blue); color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px;">
-                        Connect Saxo Account
-                    </button>
+
+                    <div id="brokerWidgets" style="display:none;">
+                        <div class="card" style="margin-bottom: 12px;">
+                            <div class="card-header">
+                                <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                                    <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
+                                    Broker Connected
+                                </div>
+                                <div class="card-actions">
+                                    <span class="helper-text">Live read-only broker data</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stat Cards Row -->
+                        <div class="grid-4">
+                            <!-- Account Balance -->
+                            <div class="stat-card" id="balanceCard">
+                                <button class="expand-btn" onclick="toggleCardExpand('balanceCard')" title="Expand">
+                                    <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <div class="stat-icon" style="background: var(--gradient-blue);">
+                                    <i data-lucide="wallet" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Account Balance</div>
+                                    <div class="stat-value" id="accountBalance">--</div>
+                                    <div class="stat-change">Broker feed</div>
+                                </div>
+                            </div>
+
+                            <!-- Today's P&L -->
+                            <div class="stat-card" id="pnlCard">
+                                <button class="expand-btn" onclick="toggleCardExpand('pnlCard')" title="Expand">
+                                    <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <div class="stat-icon" style="background: var(--gradient-purple);">
+                                    <i data-lucide="trending-up" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Today's P&L</div>
+                                    <div class="stat-value" id="accountDailyPnL">--</div>
+                                    <div class="stat-change">Marked to market</div>
+                                </div>
+                            </div>
+
+                            <!-- Open Positions -->
+                            <div class="stat-card" id="positionsCard">
+                                <button class="expand-btn" onclick="toggleCardExpand('positionsCard')" title="Expand">
+                                    <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <div class="stat-icon" style="background: var(--gradient-orange);">
+                                    <i data-lucide="activity" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Open Positions</div>
+                                    <div class="stat-value" id="openPositions">0</div>
+                                    <div class="stat-change">Live positions</div>
+                                </div>
+                            </div>
+
+                            <!-- Win Rate -->
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: var(--gradient-multi);">
+                                    <i data-lucide="target" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Win Rate</div>
+                                    <div class="stat-value" id="winRate">--</div>
+                                    <div class="stat-change">Rolling</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Metrics Row -->
+                        <div class="grid-4" style="margin-top: 16px;">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: var(--gradient-green);">
+                                    <i data-lucide="credit-card" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Buying Power</div>
+                                    <div class="stat-value" id="accountBuyingPower">--</div>
+                                    <div class="stat-change">Available</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: var(--gradient-yellow);">
+                                    <i data-lucide="coins" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Cash</div>
+                                    <div class="stat-value" id="accountCash">--</div>
+                                    <div class="stat-change">Settled</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: var(--gradient-grey);">
+                                    <i data-lucide="layers" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Unrealized P&L</div>
+                                    <div class="stat-value" id="accountUnrealized">--</div>
+                                    <div class="stat-change">Open exposure</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: var(--gradient-blue);">
+                                    <i data-lucide="percent" style="width: 24px; height: 24px; color: white;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Margin Used</div>
+                                    <div class="stat-value" id="accountMarginUsed">--</div>
+                                    <div class="stat-change">Leverage</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Positions & Exposure Row -->
+                        <div class="grid-2" style="margin-top: 16px;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                                        <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+                                        Positions (virtualized)
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="positions-header">
+                                        <div>Symbol</div>
+                                        <div>Side</div>
+                                        <div>Qty</div>
+                                        <div>Last</div>
+                                        <div>Market Value</div>
+                                        <div>Unrealized</div>
+                                        <div>Weight</div>
+                                        <div>Day P&L</div>
+                                    </div>
+                                    <div class="positions-viewport" id="positionsViewport">
+                                        <div id="positionsVirtualFiller">
+                                            <div id="positionsVirtualContainer"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                                        <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+                                        Exposure & Weekly P&L
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="exposure-grid">
+                                        <div class="exposure-pill">Long <span id="exposureLong">0%</span></div>
+                                        <div class="exposure-pill">Short <span id="exposureShort">0%</span></div>
+                                        <div class="exposure-pill">Net <span id="exposureNet">0%</span></div>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:700;margin-bottom:8px;">Weekly Equity Curve</div>
+                                        <div id="weeklyChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Stat Cards Row -->
-                <div class="grid-4">
-                    <!-- Account Balance -->
-                    <div class="stat-card" id="balanceCard">
-                        <button class="expand-btn" onclick="toggleCardExpand('balanceCard')" title="Expand">
-                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <div class="stat-icon" style="background: var(--gradient-blue);">
-                            <i data-lucide="wallet" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Account Balance</div>
-                            <div class="stat-value" id="accountBalance">Loading...</div>
-                            <div class="stat-change">Live from Saxo Bank</div>
-                        </div>
-                    </div>
-
-                    <!-- Today's P&L -->
-                    <div class="stat-card" id="pnlCard">
-                        <button class="expand-btn" onclick="toggleCardExpand('pnlCard')" title="Expand">
-                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <div class="stat-icon" style="background: var(--gradient-purple);">
-                            <i data-lucide="trending-up" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Today's P&L</div>
-                            <div class="stat-value" id="todayPnL">Loading...</div>
-                            <div class="stat-change" id="pnlPercentage">0.00%</div>
-                        </div>
-                    </div>
-
-                    <!-- Open Positions -->
-                    <div class="stat-card" id="positionsCard">
-                        <button class="expand-btn" onclick="toggleCardExpand('positionsCard')" title="Expand">
-                            <i data-lucide="maximize-2" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <div class="stat-icon" style="background: var(--gradient-orange);">
-                            <i data-lucide="activity" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Open Positions</div>
-                            <div class="stat-value" id="openPositions">0</div>
-                            <div class="stat-change">Live positions</div>
-                        </div>
-                    </div>
-
-                    <!-- Win Rate -->
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: var(--gradient-multi);">
-                            <i data-lucide="target" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Win Rate</div>
-                            <div class="stat-value" id="winRate">--</div>
-                            <div class="stat-change">This month</div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Advanced Analytics Row -->
                 <div class="grid-4" style="margin-top: 16px;">
-                    <!-- Historical Performance -->
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: var(--gradient-green);">
-                            <i data-lucide="bar-chart" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Historical P&L</div>
-                            <div class="stat-value" id="historicalPnL">Loading...</div>
-                            <div class="stat-change">Last 30 days</div>
-                        </div>
-                    </div>
-
-                    <!-- Market Movers -->
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: var(--gradient-yellow);">
-                            <i data-lucide="arrow-up-right" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Top Movers</div>
-                            <div class="stat-value" id="marketMovers">Loading...</div>
-                            <div class="stat-change">Today</div>
-                        </div>
-                    </div>
-
                     <!-- Trade Journal -->
                     <div class="stat-card">
                         <div class="stat-icon" style="background: var(--gradient-grey);">
@@ -788,64 +969,31 @@
         marketStatus.init();
         marketStatus.startCountdown();
 
-        // Check Saxo connection status
-        async function checkSaxoConnection() {
-            try {
-                const response = await fetch('/api/saxo/auth/status');
-                const status = await response.json();
-                console.log('Saxo connection status:', status);
-
-                const banner = document.getElementById('saxoConnectionBanner');
-                if (!status.authenticated || !status.hasTokens) {
-                    if (banner) banner.style.display = 'block';
-                    return false;
-                } else {
-                    if (banner) banner.style.display = 'none';
-                    return true;
-                }
-            } catch (error) {
-                console.error('Failed to check Saxo connection status:', error);
-                return false;
-            }
-        }
-
-        // Load Saxo dashboard data
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('Dashboard loading...');
 
-            // Check Saxo connection first
-            const isConnected = await checkSaxoConnection();
-
-            if (isConnected) {
-                try {
-                    await loadSaxoDashboard();
-                    console.log('Saxo dashboard data loaded successfully');
-                } catch (error) {
-                    console.error('Failed to load dashboard:', error);
-                }
-            } else {
-                console.log('Saxo not connected - showing connection prompt');
-                // Set placeholder values for stat cards
-                const balanceEl = document.getElementById('accountBalance');
-                const pnlEl = document.getElementById('todayPnL');
-                const posEl = document.getElementById('openPositions');
-                if (balanceEl) balanceEl.textContent = '--';
-                if (pnlEl) pnlEl.textContent = '--';
-                if (posEl) posEl.textContent = '--';
+            // Load broker widgets (connect/status + data)
+            if (window.BrokerUI) {
+                BrokerUI.load();
             }
 
             // Load news
             newsLoader.displayNews('newsFeed', 10);
+
             // Refresh Lucide icons after dynamic content loads
             setTimeout(() => {
                 lucide.createIcons();
             }, 1000);
-            // Load advanced analytics (mock for now)
-            document.getElementById('historicalPnL').textContent = '+£1,250';
-            document.getElementById('marketMovers').textContent = 'NVDA, TSLA, AAPL';
-            document.getElementById('winRate').textContent = '68%';
+
             // Trade journal count
-            document.getElementById('tradeJournalCount').textContent = `${getTradeJournalCount()} entries`;
+            const journalCountEl = document.getElementById('tradeJournalCount');
+            if (journalCountEl) {
+                journalCountEl.textContent = `${getTradeJournalCount()} entries`;
+            }
+
+            // Default placeholders
+            const winRateEl = document.getElementById('winRate');
+            if (winRateEl) winRateEl.textContent = '--';
         });
 
         // Trade Journal logic

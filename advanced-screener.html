@@ -20,6 +20,8 @@
     <!-- Core Modules -->
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/filtering/filter-framework.js"></script>
+    <script src="config/filterConfig.js"></script>
     <script src="js/watchlist-store.js"></script>
     <script src="js/advanced-screener.js"></script>
 
@@ -419,7 +421,7 @@
             </div>
 
             <!-- Content Container -->
-            <div class="content-container">
+            <div class="content-container content-constrained">
                 <!-- Filters Toggle -->
                 <div class="filters-toggle">
                     <button class="btn-icon" id="filtersToggleBtn" onclick="toggleFilters()" title="Filters">
@@ -428,23 +430,7 @@
                 </div>
 
                 <!-- Filters Panel -->
-                <div id="filtersPanel" class="filters-panel">
-                    <!-- Presets Section -->
-                    <div id="presetsContainer" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
-                        <!-- Presets will be dynamically generated -->
-                    </div>
-
-                    <!-- Filter Sections -->
-                    <div class="filter-sections" id="filterSections">
-                        <!-- Filters will be dynamically generated -->
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div style="margin-top: 16px; display: flex; gap: 8px;">
-                        <button class="btn-primary" onclick="advancedScreener.applyAllFilters()">Apply Filters</button>
-                        <button class="btn-secondary" onclick="advancedScreener.clearAllFilters()">Clear All</button>
-                    </div>
-                </div>
+                <div id="filtersPanel" class="filters-panel filter-layout-shell"></div>
 
                 <!-- News Legend -->
                 <div id="newsLegendContainer" style="padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 16px;">

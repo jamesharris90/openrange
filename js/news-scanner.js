@@ -10,6 +10,11 @@ class NewsScanner {
         this.filters = {
             tickers: [],
             catalysts: [], // array of catalyst types
+            newsFreshness: null,
+            newsType: [],
+            scoreType: null,
+            scoreMin: null,
+            scoreMax: null,
             priceMin: null,
             priceMax: null,
             changeMin: null,
@@ -18,7 +23,14 @@ class NewsScanner {
             floatMax: null,
             marketCapMin: null,
             marketCapMax: null,
-            relVolMin: null
+            relVolMin: null,
+            sentimentScore: null,
+            shortFloatPct: null,
+            daysToCover: null,
+            floatTradedPct: null,
+            unusualOptions: null,
+            minScore: null,
+            tickersInput: ''
         };
 
         // Catalyst keywords for detection
@@ -112,9 +124,14 @@ class NewsScanner {
                 params.set('t', this.filters.tickers.join(','));
             }
 
-            const response = await AUTH.fetchSaxo(`/api/finviz/news-scanner?${params}`, {
-                method: 'GET'
-            });
+            const endpoint = `/api/finviz/news-scanner?${params}`;
+
+            // First try with auth helper; if a 401/403 occurs, retry without auth headers in case
+            // the route is public and the token/API key is missing or stale.
+            let response = await AUTH.fetchSaxo(endpoint, { method: 'GET' });
+            if (response.status === 401 || response.status === 403) {
+                response = await fetch(endpoint, { method: 'GET' });
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -192,6 +209,73 @@ class NewsScanner {
         return detected.length > 0 ? detected : ['general'];
     }
 
+    computeNewsFreshnessPass(dateStr) {
+        if (!this.filters.newsFreshness) return true;
+        const date = this.parseFinvizDate(dateStr);
+        if (!date || isNaN(date.getTime())) return true;
+        const diffMs = Date.now() - date.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+        switch (this.filters.newsFreshness) {
+            case 'breaking': return diffHours <= 1;
+            case 'fresh1h': return diffHours <= 2;
+            case 'today': return diffHours <= 24 && new Date().getDate() === date.getDate();
+            case '24h': return diffHours <= 24;
+            case '48h': return diffHours <= 48;
+            case 'week': return diffHours <= 24 * 7;
+            default: return true;
+        }
+    }
+
+    computeStockScore(stock) {
+        if (!stock) return 0;
+        const price = parseFloat(stock.Price) || 0;
+        const change = parseFloat((stock.Change || '').replace('%', '')) || 0;
+        const volume = parseInt(stock.Volume) || 0;
+        const relVol = parseFloat(stock['Rel Volume'] || stock['Relative Volume']) || 0;
+        const atr = parseFloat(stock.ATR || stock['ATR (14)']) || 0;
+        let score = 0;
+        score += Math.min(relVol * 10, 25);
+        score += Math.min(change + 10, 20);
+        score += Math.min(volume / 1_000_000 * 2, 20);
+        score += Math.min(atr * 5, 15);
+        if (price >= 5 && price <= 150) score += 10;
+        return Math.max(0, Math.min(100, score));
+    }
+
+    buildBadges(catalysts, score, stock) {
+        const badges = [];
+        if (score >= 75) badges.push({ label: 'High Expansion Potential', cls: 'badge-expansion' });
+        if (score >= 60 && (stock?.['Rel Volume'] || stock?.['Relative Volume']) >= 2) badges.push({ label: 'Momentum Continuation', cls: 'badge-momentum' });
+        const shortFloat = parseFloat(stock?.['Short Float'] || stock?.['Short Float %'] || stock?.['Short Interest']) || 0;
+        const daysToCover = parseFloat(stock?.['Short Ratio'] || stock?.['Days to Cover']) || 0;
+        if (shortFloat >= 10 || daysToCover >= 3) badges.push({ label: 'Squeeze Candidate', cls: 'badge-squeeze' });
+        if (catalysts.includes('earnings')) badges.push({ label: 'Earnings Play', cls: 'badge-earnings' });
+        if (catalysts.includes('guidance') || catalysts.includes('upgrade')) badges.push({ label: 'Reversal Candidate', cls: 'badge-reversal' });
+        if (catalysts.includes('merger')) badges.push({ label: 'M&A', cls: 'badge-ma' });
+        return badges;
+    }
+
+    applyUnifiedFilters(values) {
+        this.filters = {
+            ...this.filters,
+            ...values,
+            tickers: this.parseTickers(values.tickersInput || ''),
+            catalysts: Array.isArray(values.newsType) ? values.newsType : [],
+            scoreType: values.scoreType || null,
+            scoreMin: values.scoreMin ?? values.minScore ?? null,
+            scoreMax: values.scoreMax ?? null,
+        };
+        if (!this.newsData) return;
+        // If tickers changed, refresh feed to get ticker-specific news
+        if (values.tickersInput && values.tickersInput.length) {
+            this.fetchNews();
+        } else {
+            this.applyFilters();
+            this.render();
+            this.updateFilterSummary();
+        }
+    }
+
     applyFilters() {
         if (!this.newsData) {
             this.filteredNews = [];
@@ -207,6 +291,9 @@ class NewsScanner {
             // Detect catalysts
             const catalysts = this.detectCatalysts(newsItem.Title);
 
+            // News freshness gate
+            if (!this.computeNewsFreshnessPass(newsItem.Date)) return false;
+
             // Apply ticker filter (matches any provided ticker)
             if (this.filters.tickers.length > 0) {
                 const matchesTicker = tickers.some(t => this.filters.tickers.includes(t));
@@ -220,10 +307,18 @@ class NewsScanner {
                 }
             }
 
+            // News type filter (multi-select)
+            if (Array.isArray(this.filters.newsType) && this.filters.newsType.length > 0) {
+                if (!catalysts.some(c => this.filters.newsType.includes(c))) return false;
+            }
+
             // If no stock data available, include if no stock filters are active
             if (!stock) {
                 const hasStockFilters = this.filters.priceMin || this.filters.priceMax ||
-                                       this.filters.volumeMin || this.filters.floatMin;
+                    this.filters.volumeMin || this.filters.floatMin || this.filters.floatMax ||
+                    this.filters.marketCapMin || this.filters.marketCapMax || this.filters.relVolMin ||
+                    this.filters.shortFloatPct || this.filters.daysToCover || this.filters.floatTradedPct ||
+                    this.filters.minScore;
                 return !hasStockFilters;
             }
 
@@ -234,6 +329,11 @@ class NewsScanner {
             const floatVal = parseFloat(stock['Float'] || stock['Shs Float']);
             const marketCap = parseFloat(stock['Market Cap']);
             const relVol = parseFloat(stock['Rel Volume'] || stock['Relative Volume']);
+            const shortFloat = parseFloat(stock['Short Float'] || stock['Short Float %'] || stock['Short Interest']) || null;
+            const daysToCover = parseFloat(stock['Short Ratio'] || stock['Days to Cover']) || null;
+            const floatRotation = floatVal && volume ? (volume / (floatVal * 1_000_000)) * 100 : null;
+            const stockScore = this.computeStockScore(stock);
+            newsItem._score = stockScore;
 
             // Apply stock filters
             if (this.filters.priceMin !== null && price < this.filters.priceMin) return false;
@@ -245,6 +345,14 @@ class NewsScanner {
             if (this.filters.marketCapMin !== null && marketCap < this.filters.marketCapMin) return false;
             if (this.filters.marketCapMax !== null && marketCap > this.filters.marketCapMax) return false;
             if (this.filters.relVolMin !== null && relVol < this.filters.relVolMin) return false;
+            if (this.filters.shortFloatPct !== null && shortFloat !== null && shortFloat < this.filters.shortFloatPct) return false;
+            if (this.filters.daysToCover !== null && daysToCover !== null && daysToCover < this.filters.daysToCover) return false;
+            if (this.filters.floatTradedPct !== null && floatRotation !== null && floatRotation < this.filters.floatTradedPct) return false;
+            if (this.filters.unusualOptions && stock['Unusual Options'] !== true) return false;
+            const minScore = this.filters.scoreMin ?? this.filters.minScore;
+            const maxScore = this.filters.scoreMax;
+            if (minScore !== null && stockScore < minScore) return false;
+            if (maxScore !== null && stockScore > maxScore) return false;
 
             return true;
         });
@@ -362,76 +470,100 @@ class NewsScanner {
         const catalysts = this.detectCatalysts(newsItem.Title);
 
         const item = document.createElement('div');
-        item.className = 'news-scanner-item';
+        // Keep legacy class for any existing hooks, add new structured class
+        item.className = 'news-card news-scanner-item';
 
         // Time ago - parse Finviz date (US Eastern Time)
         const date = this.parseFinvizDate(newsItem.Date);
         const timeAgo = this.getTimeAgo(date);
         const timeStamp = date.toLocaleString();
+        const freshnessBadge = `<span class="freshness-badge" title="${timeStamp}">${timeAgo}</span>`;
 
         // Handle multiple tickers (comma or space separated)
-            const tickerString = newsItem.Ticker || '';
-            const tickers = this.parseTickers(tickerString);
+        const tickerString = newsItem.Ticker || '';
+        const tickers = this.parseTickers(tickerString);
+
+        // Primary stock/score for badges and chips
+        const primaryStock = tickers.length ? this.stockData[tickers[0]] : null;
+        const score = newsItem._score ?? this.computeStockScore(primaryStock);
 
         // Stock info section - display all tickers
-        let stockInfoHTML = '';
-        if (tickers.length > 0) {
-            stockInfoHTML = '<div class="stock-info-container">';
-
-            tickers.forEach(ticker => {
-                const stock = this.stockData[ticker];
-
-                if (stock) {
-                    const price = parseFloat(stock.Price);
-                    const change = parseFloat((stock.Change || '').replace('%', ''));
-                    const changeClass = change >= 0 ? 'positive' : 'negative';
-                    const changeSign = change >= 0 ? '+' : '';
-
-                    stockInfoHTML += `
-                        <div class="stock-info" data-watchlist-slot="${ticker}">
-                            <div class="stock-ticker">${ticker}</div>
-                            <div class="stock-price">$${price.toFixed(2)}</div>
-                            <div class="stock-change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+        const stockBoxes = tickers.length ? tickers.map((ticker) => {
+            const stock = this.stockData[ticker];
+            const price = stock ? parseFloat(stock.Price) : null;
+            const change = stock ? parseFloat((stock.Change || '').replace('%', '')) : null;
+            const changeClass = change !== null && !isNaN(change) ? (change >= 0 ? 'positive' : 'negative') : '';
+            const changeSign = change !== null && !isNaN(change) && change >= 0 ? '+' : '';
+            const priceLabel = price !== null && !isNaN(price) ? `$${price.toFixed(2)}` : '--';
+            const changeLabel = change !== null && !isNaN(change) ? `${changeSign}${change.toFixed(2)}%` : '--';
+            const companyName = stock?.Name || stock?.Company || stock?.['Company Name'] || ticker;
+            const scoreBadge = `<span class="score-badge" title="">${Math.round(score)}%</span>`;
+            return `
+                <div class="ticker-box" data-watchlist-slot="${ticker}" title="${companyName}">
+                    <div class="ticker-top">
+                        <span class="ticker-symbol">${ticker}</span>
+                        <button class="news-star" type="button" data-ticker="${ticker}" aria-label="Toggle watchlist">
+                            <i data-lucide="star"></i>
+                        </button>
+                    </div>
+                    <div class="ticker-bottom">
+                        <div class="price-line">
+                            <span class="price">${priceLabel}</span>
+                            <span class="change ${changeClass}">${changeLabel}</span>
                         </div>
-                    `;
-                } else {
-                    stockInfoHTML += `
-                        <div class="stock-info" data-watchlist-slot="${ticker}">
-                            <div class="stock-ticker">${ticker}</div>
-                            <div class="stock-price">--</div>
-                            <div class="stock-change">--</div>
-                        </div>
-                    `;
-                }
-            });
-
-            stockInfoHTML += '</div>';
-        } else {
-            stockInfoHTML = `
-                <div class="stock-info-container">
-                    <div class="stock-info">
-                        <div class="stock-ticker">N/A</div>
-                        <div class="stock-price">--</div>
-                        <div class="stock-change">--</div>
+                        ${scoreBadge}
                     </div>
                 </div>
             `;
-        }
+        }).join('') : `
+            <div class="ticker-box" data-watchlist-slot="N/A" title="No ticker provided">
+                <div class="ticker-top">
+                    <span class="ticker-symbol">N/A</span>
+                </div>
+                <div class="ticker-bottom">
+                    <div class="price-line">
+                        <span class="price">--</span>
+                        <span class="change">--</span>
+                    </div>
+                    <span class="score-badge">--</span>
+                </div>
+            </div>
+        `;
+
+        const stockInfoHTML = `
+            <div class="news-left">
+                <div class="ticker-grid">
+                    ${stockBoxes}
+                </div>
+            </div>
+        `;
 
         // Catalyst badges
         const catalystBadges = catalysts.map(c =>
             `<span class="catalyst-badge catalyst-${c}">${c}</span>`
         ).join('');
+        const stock = primaryStock;
+        const tagBadges = this.buildBadges(catalysts, score, stock).map(b =>
+            `<span class="tag-badge ${b.cls}">${b.label}</span>`
+        ).join('');
+        const relVol = primaryStock ? (primaryStock['Rel Volume'] || primaryStock['Relative Volume']) : null;
+        const changeVal = primaryStock ? parseFloat((primaryStock.Change || '').replace('%', '')) : null;
+        const vol = primaryStock ? primaryStock.Volume : null;
+        const atr = primaryStock ? primaryStock.ATR || primaryStock['ATR (14)'] : null;
+        const scoreTooltip = `RelVol: ${relVol ?? 'n/a'}, Change: ${changeVal ?? 'n/a'}%, Volume: ${vol ?? 'n/a'}, ATR: ${atr ?? 'n/a'}`;
+        const scoreDetailTooltip = `Catalyst: ${catalysts.join(', ') || 'n/a'} | Sentiment: ${newsItem.Sentiment ?? 'n/a'} | Freshness: ${timeAgo} | Factors: ${scoreTooltip}`;
 
         item.innerHTML = `
             ${stockInfoHTML}
-            <div class="news-content">
-                <div class="news-header">
+            <div class="news-right">
+                <div class="news-topline">
                     ${catalystBadges}
+                    ${tagBadges}
                     <span class="news-source">${newsItem.Source}</span>
-                    <span class="news-time">${timeAgo} 30 ${timeStamp}</span>
+                    <span class="news-time" title="${timeStamp}">${timeAgo}</span>
+                    ${freshnessBadge}
                 </div>
-                <div class="news-title">
+                <div class="news-headline" title="${this.escapeHtml(newsItem.Title)}">
                     <a href="#" onclick="openNewsModal('${newsItem.Url}', '${this.escapeHtml(newsItem.Title).replace(/'/g, "\\'")}'); return false;">
                         ${this.escapeHtml(newsItem.Title)}
                     </a>
@@ -439,33 +571,33 @@ class NewsScanner {
             </div>
         `;
 
-        // Add watchlist controls
-        tickers.forEach(ticker => {
-            const slot = item.querySelector(`[data-watchlist-slot="${ticker}"]`);
-            if (!slot || !window.WATCHLIST) return;
-
-            const btn = document.createElement('button');
-            btn.className = 'watchlist-btn';
-
-            const setState = () => {
-                const isInList = window.WATCHLIST.has(ticker);
-                btn.textContent = isInList ? '✓ In Watchlist' : '+ Watchlist';
-                btn.classList.toggle('added', isInList);
+        // Add star watchlist controls
+        tickers.forEach((ticker) => {
+            const btn = item.querySelector(`.news-star[data-ticker="${ticker}"]`);
+            if (!btn || !window.WATCHLIST) return;
+            const sync = () => {
+                const active = window.WATCHLIST.has(ticker);
+                btn.classList.toggle('active', active);
+                btn.title = active ? 'Remove from watchlist' : 'Add to watchlist';
             };
-
-            btn.onclick = (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isInList = window.WATCHLIST.has(ticker);
-                if (isInList) {
+                const active = window.WATCHLIST.has(ticker);
+                if (active) {
                     window.WATCHLIST.remove(ticker);
                 } else {
                     window.WATCHLIST.add(ticker, 'news');
                 }
-                setState();
-            };
+                sync();
+            });
+            sync();
+        });
 
-            setState();
-            slot.appendChild(btn);
+        // Add tooltip to score badges (absolute, non-shifting)
+        item.querySelectorAll('.score-badge').forEach((badge) => {
+            badge.removeAttribute('title');
+            badge.setAttribute('data-tooltip', scoreDetailTooltip);
+            badge.setAttribute('aria-label', scoreDetailTooltip);
         });
 
         return item;
@@ -555,46 +687,61 @@ class NewsScanner {
 
 // Global instance
 window.newsScanner = new NewsScanner();
+function initUnifiedNewsFilters() {
+    if (!window.FilterFramework || !window.FilterConfigs || !window.FilterLayoutConfig) return;
+    const container = document.getElementById('unified-filter-panel');
+    if (!container) return;
 
-// Helper functions
-function toggleCatalystFilter(catalyst) {
-    const btn = event.target.closest('.catalyst-filter');
-    btn.classList.toggle('active');
-    newsScanner.updateFilter('catalysts', catalyst);
-}
+    const sectionIds = ['liquidity', 'volatility', 'structure', 'catalyst', 'squeeze'];
+    const schema = FilterConfigs.buildSchema(sectionIds);
+    schema.sections.quick = {
+        id: 'quick',
+        title: 'Ticker & Score',
+        fields: [
+            { id: 'tickersInput', label: 'Tickers', type: 'text', placeholder: 'e.g. NVDA, TSLA' },
+            { id: 'scoreType', label: 'Score Type', type: 'select', options: [
+                { value: '', label: 'Any' },
+                { value: 'expansion', label: 'Expansion' },
+                { value: 'momentum', label: 'Momentum' },
+                { value: 'squeeze', label: 'Squeeze' },
+                { value: 'liquidity', label: 'Liquidity' },
+            ] },
+            { id: 'scoreMin', label: 'Score Min', type: 'slider', min: 0, max: 100, step: 5, format: (v) => `${v}%` },
+            { id: 'scoreMax', label: 'Score Max', type: 'slider', min: 0, max: 100, step: 5, format: (v) => `${v}%` },
+        ],
+    };
 
-function applyNewsFilter(filterName, value) {
-    // Convert to appropriate type
-    let filterValue = value;
-    if (value === '') {
-        filterValue = null;
-    } else if (!isNaN(value) && value !== '') {
-        filterValue = parseFloat(value);
-    }
+    const defaults = {
+        ...FilterConfigs.defaultValues(sectionIds),
+        tickersInput: '',
+        scoreType: '',
+        scoreMin: null,
+        scoreMax: null,
+    };
 
-    newsScanner.updateFilter(filterName, filterValue);
-}
+    const pageConfig = window.FilterLayoutConfig.pages['news-scanner'] || {};
+    const tabOrder = pageConfig.tabOrder || Object.keys(schema.sections || {});
+    const tabSections = pageConfig.sectionMap || tabOrder.reduce((acc, tabId) => {
+        acc[tabId] = [tabId];
+        return acc;
+    }, {});
+    const tabLabels = tabOrder.reduce((acc, tabId) => {
+        const label = window.FilterLayoutConfig.tabs?.[tabId]?.label || tabId;
+        acc[tabId] = { label };
+        return acc;
+    }, {});
 
-function applyTickerFilter(value) {
-    const tickers = newsScanner.parseTickers(value);
-    newsScanner.updateFilter('tickers', tickers);
-    const input = document.getElementById('ticker-filter-input');
-    if (input) input.value = tickers.join(', ');
-    // Fetch ticker-specific news so we are not limited by the general feed
-    newsScanner.fetchNews();
-}
-
-function clearTickerFilter() {
-    newsScanner.updateFilter('tickers', []);
-    const input = document.getElementById('ticker-filter-input');
-    if (input) input.value = '';
-    newsScanner.fetchNews();
-}
-
-function clearNewsFilters() {
-    newsScanner.clearFilters();
-}
-
-function refreshNewsScanner() {
-    newsScanner.fetchNews();
+    window.newsFilterState = FilterFramework.createTabbedFilterPanel(container, {
+        pageKey: pageConfig.pageKey || 'news-scanner',
+        title: 'News Filters',
+        schema,
+        defaults,
+        weights: { catalyst: 1.2, liquidity: 1, volatility: 1 },
+        layoutConfig: window.FilterLayoutConfig.layout,
+        tabOrder,
+        tabSections,
+        tabLabels,
+        scoringPlacement: 'none',
+        onApply: (vals) => window.newsScanner.applyUnifiedFilters(vals),
+    });
 }

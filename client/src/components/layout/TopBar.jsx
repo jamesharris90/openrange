@@ -3,7 +3,19 @@ import { useState, useEffect } from 'react';
 
 const PAGE_TITLES = {
   '/watchlist': 'Watchlist',
+  '/gappers': 'Gappers',
   '/earnings': 'Earnings Calendar',
+  '/screeners': 'Screeners',
+  '/premarket': 'Pre-Market Scanner',
+  '/open-market': 'Open Market',
+  '/postmarket': 'Post-Market',
+  '/market-overview': 'Market Overview',
+  '/market-hours': 'Market Hours',
+  '/news-scanner': 'News Scanner',
+  '/advanced-screener': 'Advanced Screener',
+  '/research': 'Research',
+  '/expected-move': 'Expected Move',
+  '/intelligence-engine': 'Intelligence Engine',
   '/ai-quant': 'Intelligence Engine',
 };
 

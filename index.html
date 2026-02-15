@@ -24,8 +24,7 @@
     <!-- Core Modules -->
     <script src="js/config.js"></script>
     <script src="js/marketStatus.js"></script>
-    <script src="js/saxoAPI.js"></script>
-    <script src="js/saxo-widgets.js"></script>
+    <script src="js/broker.js"></script>
     <script src="js/news.js"></script>
     
     <style>
@@ -258,17 +257,8 @@
 
             <!-- Content Container -->
             <div class="content-container">
-                <!-- Saxo Connection Status Banner -->
-                <div id="saxoConnectionBanner" style="display:none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                        <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--accent-red);"></i>
-                        <span style="color: var(--text-primary); font-weight: 600;">Saxo Bank not connected</span>
-                    </div>
-                    <p style="margin: 8px 0; color: var(--text-secondary);">Connect your Saxo Bank account to view live trading data.</p>
-                    <button onclick="window.location.href='/auth/saxo/login'" style="background: var(--accent-blue); color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px;">
-                        Connect Saxo Account
-                    </button>
-                </div>
+                <!-- Broker widgets still load from broker.js, but connection is handled on Profile page -->
+                <div id="brokerSection" style="display:none;"></div>
 
                 <!-- Stat Cards Row -->
                 <div class="grid-4">
@@ -280,7 +270,7 @@
                         <div class="stat-content">
                             <div class="stat-label">Account Balance</div>
                             <div class="stat-value" id="accountBalance">Loading...</div>
-                            <div class="stat-change">Live from Saxo Bank</div>
+                            <div class="stat-change">Broker feed</div>
                         </div>
                     </div>
 
@@ -449,49 +439,11 @@
         marketStatus.init();
         marketStatus.startCountdown();
 
-        // Check Saxo connection status (uses user-level check if logged in)
-        async function checkSaxoConnection() {
-            try {
-                // Use SaxoWidgets utility for user-level check
-                const isConnected = await SaxoWidgets.checkConnection();
-                console.log('Saxo connection status:', isConnected);
-
-                const banner = document.getElementById('saxoConnectionBanner');
-                if (!isConnected) {
-                    if (banner) banner.style.display = 'block';
-                    return false;
-                } else {
-                    if (banner) banner.style.display = 'none';
-                    return true;
-                }
-            } catch (error) {
-                console.error('Failed to check Saxo connection status:', error);
-                return false;
-            }
-        }
-
-        // Load Saxo dashboard data
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('Dashboard loading...');
+            if (window.BrokerUI) BrokerUI.load();
 
-            // Check Saxo connection first (checks user-level credentials)
-            const isConnected = await checkSaxoConnection();
-
-            if (isConnected) {
-                try {
-                    await loadSaxoDashboard();
-                    console.log('Saxo dashboard data loaded successfully');
-                } catch (error) {
-                    console.error('Failed to load dashboard:', error);
-                    // Show placeholders on error
-                    setPlaceholderValues();
-                }
-            } else {
-                console.log('Saxo not connected - showing connection prompt');
-                setPlaceholderValues();
-            }
-
-            // Load news (always loads, not dependent on Saxo)
+            // Load news (always loads)
             newsLoader.displayNews('newsFeed', 10);
 
             // Refresh Lucide icons after dynamic content loads
@@ -513,11 +465,7 @@
         // Auto-refresh dashboard every 30 seconds (only if connected)
         setInterval(async () => {
             try {
-                const isConnected = await SaxoWidgets.checkConnection();
-                if (isConnected) {
-                    await loadSaxoDashboard();
-                    lucide.createIcons();
-                }
+                if (window.BrokerUI) await BrokerUI.load();
             } catch (error) {
                 console.error('Auto-refresh failed:', error);
             }

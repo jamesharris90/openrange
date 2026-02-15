@@ -5,10 +5,12 @@
     let interval = '5';
     const chartRefs = {};
     let newsCache = [];
+    let seenNewsKeys = new Set();
     let newsSortDescending = true;
     let fundData = [];
     let fundSort = { col: 'Ticker', dir: 'asc' };
     let tickerStats = {};
+    let watchlistEl;
 
     function parseTickers(raw) {
         return (raw || '')
@@ -48,6 +50,58 @@
         wrap.innerHTML = tickers.map(t => `<span class="ticker-badge">${t}</span>`).join('');
     }
 
+    function renderWatchlistTray() {
+        watchlistEl = document.getElementById('om-watchlist');
+        if (!watchlistEl) return;
+        const list = (window.WATCHLIST && typeof WATCHLIST.getList === 'function') ? WATCHLIST.getList() : [];
+        if (!list || !list.length) {
+            watchlistEl.innerHTML = '<div class="helper-text">No symbols yet. Add from Screeners, Advanced Screener, or News Scanner.</div>';
+            return;
+        }
+        watchlistEl.innerHTML = list.map(item => {
+            const src = item.source ? `<span class="watchlist-pill__source">${item.source}</span>` : '';
+            return `<div class="watchlist-pill" draggable="true" data-symbol="${item.symbol}" title="Drag to a chart slot">${item.symbol}${src}</div>`;
+        }).join('');
+
+        watchlistEl.querySelectorAll('[draggable="true"]').forEach(el => {
+            el.addEventListener('dragstart', (e) => {
+                const sym = el.getAttribute('data-symbol') || '';
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', sym);
+            });
+            el.addEventListener('click', () => fillNextInput(el.getAttribute('data-symbol')));
+        });
+    }
+
+    function fillNextInput(symbol) {
+        if (!symbol) return;
+        const ids = ['om-t1', 'om-t2', 'om-t3', 'om-t4'];
+        const empty = ids.map(id => document.getElementById(id)).find(el => el && !el.value.trim());
+        const target = empty || document.getElementById('om-t1');
+        if (!target) return;
+        target.value = symbol;
+        applyTickers();
+    }
+
+    function bindDropTargets() {
+        const ids = ['om-t1', 'om-t2', 'om-t3', 'om-t4'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.add('drop-target');
+            el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drop-active'); });
+            el.addEventListener('dragleave', () => el.classList.remove('drop-active'));
+            el.addEventListener('drop', (e) => {
+                e.preventDefault();
+                el.classList.remove('drop-active');
+                const sym = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || '';
+                if (!sym) return;
+                el.value = sym;
+                applyTickers();
+            });
+        });
+    }
+
     function buildChart(containerId, symbol) {
         const target = document.getElementById(containerId);
         if (!target || typeof TradingView === 'undefined') return;
@@ -64,7 +118,7 @@
             toolbar_bg: '#0a0e1a',
             enable_publishing: false,
             hide_side_toolbar: false,
-            allow_symbol_change: true,
+            allow_symbol_change: false,
             container_id: containerId,
             studies: ['STD;VWAP', 'STD;Volume'],
             backgroundColor: 'rgba(26, 31, 46, 0)'
@@ -113,7 +167,8 @@
         const fetcher = (window.AUTH && AUTH.fetchSaxo) ? AUTH.fetchSaxo : fetch;
 
         try {
-            const url = `/api/finviz/screener?t=${encodeURIComponent(tickers.join(','))}&v=111`;
+            // Use richer view for fundamentals to reduce missing fields
+            const url = `/api/finviz/screener?t=${encodeURIComponent(tickers.join(','))}&v=152`;
             const res = await fetcher(url, { method: 'GET' });
             if (!res.ok) {
                 let detail = '';
@@ -345,6 +400,7 @@
             return newsSortDescending ? db - da : da - db;
         }).slice(0, 80);
 
+        const firstPass = seenNewsKeys.size === 0;
         wrap.innerHTML = sorted.map(item => {
             const title = item.Title || item.Headline || 'News';
             const url = item.Url || item.Link || '#';
@@ -357,8 +413,11 @@
             const changeClass = change === null ? '' : (change >= 0 ? 'news-change-up' : 'news-change-down');
             const changeDisplay = change === null ? '--' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
             const avatarText = tick ? tick.slice(0, 4).toUpperCase() : '---';
+            const key = url || `${title}-${tick}-${item.Date || ''}`;
+            const isNew = !firstPass && key && !seenNewsKeys.has(key);
+            if (key) seenNewsKeys.add(key);
             return `
-                <div class="news-row" onclick="window.open('${url}', '_blank')" style="cursor:pointer;">
+                <div class="news-row${isNew ? ' news-new' : ''}" onclick="window.open('${url}', '_blank')">
                     <div class="news-row-content">
                         <div class="news-avatar">${avatarText}</div>
                         <div>
@@ -448,6 +507,9 @@
         renderCharts();
         refreshFundamentals();
         refreshNews();
+
+        // auto-refresh news every minute without reloading the page
+        setInterval(() => refreshNews(), 60 * 1000);
     }
 
     function resetTickers() {
@@ -496,10 +558,16 @@
     function init() {
         loadTickers();
         renderBadges();
+        renderWatchlistTray();
         bindInput();
+        bindDropTargets();
         renderCharts();
         refreshFundamentals();
         refreshNews();
+
+        if (window.WATCHLIST && typeof WATCHLIST.onChange === 'function') {
+            WATCHLIST.onChange(() => renderWatchlistTray());
+        }
     }
 
     window.openMarket = {

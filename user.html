@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
 </head>
 <body>
         <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card,#141b2d);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
@@ -49,107 +51,380 @@
         });
         </script>
     <div class="app-container">
-        <main class="main-content">
-            <div class="card" style="max-width: 500px; margin: 40px auto;">
-                <div class="card-header">
-                    <div class="card-title">User Profile</div>
-                </div>
-                <div class="card-body">
-                    <div id="userDetails">
-                        <p><strong>Username:</strong> <span id="profileUsername">Loading...</span></p>
-                        <p><strong>Email:</strong> <span id="profileEmail">Loading...</span></p>
-                    </div>
+        <main class="main-content" style="max-width: 980px; margin: 32px auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="font-weight:700;font-size:20px;">Account & Settings</div>
+                <a href="index.html" class="btn-secondary" style="padding:8px 12px;">← Back to dashboard</a>
+            </div>
 
-                    <div style="margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
-                        <h3 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-primary);">Saxo Bank Connection</h3>
-                        <div id="saxoStatus" style="margin-bottom: 12px;">
-                            <p style="margin: 0; color: var(--text-muted); font-size: 13px;">Checking connection...</p>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;flex-wrap:wrap;">
+                <!-- Account Card -->
+                <div class="card" style="min-height:240px;">
+                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <div class="card-title">Account</div>
+                        <span class="pill" id="accountStatus" style="padding:6px 10px;border-radius:20px;background:var(--bg-secondary);color:var(--text-muted);font-size:12px;">Profile</span>
+                    </div>
+                    <div class="card-body" style="display:grid;gap:12px;">
+                        <div>
+                            <label class="label">Username</label>
+                            <div class="input" style="background:var(--bg-secondary);border:1px solid var(--border-color);padding:10px;border-radius:10px;" id="profileUsername">Loading...</div>
                         </div>
-                        <button id="saxoConnectBtn" class="btn-primary" style="display: none;" onclick="connectSaxo()">
-                            Connect Saxo Account
-                        </button>
-                        <button id="saxoDisconnectBtn" class="btn-secondary" style="display: none;" onclick="disconnectSaxo()">
-                            Disconnect Saxo
-                        </button>
+                        <div>
+                            <label class="label">Email</label>
+                            <div class="input" style="background:var(--bg-secondary);border:1px solid var(--border-color);padding:10px;border-radius:10px;" id="profileEmail">Loading...</div>
+                        </div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <button class="btn-primary" id="changePasswordBtn">Change password</button>
+                            <button class="btn-secondary" onclick="AUTH.logout()">Log Out</button>
+                            <button class="btn-secondary" onclick="location.href='forgot-password.html'">Forgot Password?</button>
+                        </div>
                     </div>
+                </div>
 
-                    <button class="btn-primary" onclick="AUTH.logout()">Log Out</button>
-                    <button class="btn-secondary" onclick="location.href='forgot-password.html'">Forgot Password?</button>
+                <!-- Trading Preferences -->
+                <div class="card" style="min-height:240px;">
+                    <div class="card-header">
+                        <div class="card-title">Trading preferences</div>
+                    </div>
+                    <div class="card-body" style="display:grid;gap:12px;">
+                        <div>
+                            <label class="label">Default account currency</label>
+                            <select id="currencySelect" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                                <option value="GBP">GBP</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                            <div class="helper-text">Used for default position sizing and P&L display.</div>
+                        </div>
+                        <div>
+                            <label class="label">Time zone</label>
+                            <input id="timeZoneInput" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                            <div class="helper-text">Adapts market open countdown across the app.</div>
+                        </div>
+                        <div>
+                            <label class="label">Default risk per trade</label>
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                                    <input type="radio" name="riskType" value="percent" checked> Percent of equity
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                                    <input type="radio" name="riskType" value="amount"> Fixed £ amount
+                                </label>
+                            </div>
+                            <input id="riskValueInput" type="number" min="0" step="0.1" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);" placeholder="e.g. 1 for 1% or 500 for £500">
+                            <div class="helper-text">Used to calculate default position size on the dashboard.</div>
+                        </div>
+                        <button class="btn-primary" id="saveSettingsBtn">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Broker Connections -->
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="plug" style="width:18px;height:18px;"></i>
+                        Broker connections
+                    </div>
+                    <span id="brokerStatusPill" class="pill" style="padding:6px 12px;border-radius:20px;font-size:12px;background:var(--bg-secondary);color:var(--accent-orange);">Not connected</span>
+                </div>
+                <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+                    <div class="broker-tile" data-provider="ibkr" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-secondary);min-width:200px;">
+                        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c91818,#700000);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;">IB</div>
+                        <div>
+                            <div style="font-weight:700;">IBKR</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Username / password or session token</div>
+                        </div>
+                    </div>
+                    <div class="broker-tile" data-provider="saxo" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-secondary);min-width:200px;">
+                        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#1a6ff0,#0d3ea6);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;">SX</div>
+                        <div>
+                            <div style="font-weight:700;">Saxo Trader</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Username / password or session token</div>
+                        </div>
+                    </div>
+                    <div style="flex:1;min-width:240px;">
+                        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Tokens are stored server-side, read-only.</div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <button class="btn-secondary" id="disconnectBrokerBtn" style="display:none;">Disconnect</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- Broker Modal -->
+    <div id="brokerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:2000;">
+        <div class="card" style="width:420px;">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-title" id="brokerModalTitle">Connect Broker</div>
+                <button class="btn-secondary" style="padding:6px 10px;" onclick="closeBrokerModal()">Close</button>
+            </div>
+                <div class="card-body" style="display:grid;gap:12px;">
+                    <div id="brokerModalStatus" class="helper-text" style="color:var(--text-muted);">Sign in with broker credentials or paste an existing session token.</div>
+                    <div>
+                        <label class="label">Username</label>
+                        <input id="modalUsername" type="text" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);" placeholder="Broker username">
+                    </div>
+                    <div>
+                        <label class="label">Password</label>
+                        <input id="modalPassword" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);" placeholder="Broker password">
+                    </div>
+                <div>
+                    <label class="label">Access token</label>
+                    <input id="modalAccessToken" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);" placeholder="Paste access token">
+                </div>
+                <div>
+                    <label class="label">Refresh token (optional)</label>
+                    <input id="modalRefreshToken" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);" placeholder="Paste refresh token">
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button class="btn-secondary" onclick="closeBrokerModal()">Cancel</button>
+                    <button class="btn-primary" id="modalConnectBtn">Save</button>
+                </div>
+                <div class="helper-text">Tokens stay server-side and are used only for read-only monitoring.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="passwordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:2100;">
+        <div class="card" style="width:420px;">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-title">Change password</div>
+                <button class="btn-secondary" style="padding:6px 10px;" onclick="closePasswordModal()">Close</button>
+            </div>
+            <div class="card-body" style="display:grid;gap:12px;">
+                <div>
+                    <label class="label">Current password</label>
+                    <input id="currentPassword" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                </div>
+                <div>
+                    <label class="label">New password</label>
+                    <input id="newPassword" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                </div>
+                <div>
+                    <label class="label">Confirm new password</label>
+                    <input id="confirmPassword" type="password" class="input" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);">
+                </div>
+                <div id="passwordStatus" class="helper-text" style="color:var(--text-muted);"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button class="btn-secondary" onclick="closePasswordModal()">Cancel</button>
+                    <button class="btn-primary" id="passwordSaveBtn">Save password</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
     <script>
-    // Load user details from token
-    document.addEventListener('DOMContentLoaded', function() {
-        const token = AUTH.getToken();
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                document.getElementById('profileUsername').textContent = payload.username || 'Unknown';
-                document.getElementById('profileEmail').textContent = payload.email || 'Not set';
-            } catch (e) {
-                document.getElementById('profileUsername').textContent = 'Unknown';
-                document.getElementById('profileEmail').textContent = 'Not set';
-            }
-        }
+    const userSettings = {
+        account: { username: 'Loading...', email: 'Loading...' },
+        trading: { currency: 'USD', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', riskType: 'percent', riskValue: 1 },
+        broker: { connected: false, provider: null }
+    };
+    let activeBrokerProvider = null;
 
-        // Check Saxo connection status
-        checkSaxoStatus();
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (window.lucide?.createIcons) window.lucide.createIcons();
 
-        // Check for OAuth callback success
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('saxo_connected') === 'true') {
-            document.getElementById('saxoStatus').innerHTML = '<p style="margin: 0; color: var(--accent-green);">✓ Successfully connected to Saxo!</p>';
-            // Clear URL parameter
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setTimeout(checkSaxoStatus, 1000);
-        }
+        initTimeZone();
+        attachListeners();
+        loadProfile();
+        await loadBrokerStatus();
     });
 
-    async function checkSaxoStatus() {
+    function attachListeners() {
+        document.getElementById('currencySelect').addEventListener('change', (e) => {
+            userSettings.trading.currency = e.target.value;
+        });
+        document.getElementById('timeZoneInput').addEventListener('input', (e) => {
+            userSettings.trading.timeZone = e.target.value;
+        });
+        document.querySelectorAll('input[name="riskType"]').forEach(r => {
+            r.addEventListener('change', (e) => {
+                userSettings.trading.riskType = e.target.value;
+                updateRiskPlaceholder();
+            });
+        });
+        document.getElementById('riskValueInput').addEventListener('input', (e) => {
+            userSettings.trading.riskValue = Number(e.target.value) || 0;
+        });
+        document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+            console.log('userSettings', userSettings);
+        });
+        document.querySelectorAll('.broker-tile').forEach(tile => tile.addEventListener('click', () => openBrokerModal(tile.dataset.provider)));
+        document.getElementById('disconnectBrokerBtn').addEventListener('click', disconnectBroker);
+        document.getElementById('modalConnectBtn').addEventListener('click', connectBrokerFromModal);
+        document.getElementById('changePasswordBtn').addEventListener('click', openPasswordModal);
+        document.getElementById('passwordSaveBtn').addEventListener('click', savePassword);
+    }
+
+    function initTimeZone() {
+        document.getElementById('timeZoneInput').value = userSettings.trading.timeZone;
+        document.getElementById('currencySelect').value = userSettings.trading.currency;
+        document.getElementById('riskValueInput').value = userSettings.trading.riskValue;
+        updateRiskPlaceholder();
+    }
+
+    function updateRiskPlaceholder() {
+        const type = userSettings.trading.riskType;
+        const input = document.getElementById('riskValueInput');
+        input.placeholder = type === 'percent' ? 'e.g. 1 for 1%' : 'e.g. 500 for £500';
+    }
+
+    function authHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = AUTH.getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (window.API_KEY) headers['x-api-key'] = window.API_KEY;
+        return headers;
+    }
+
+    function loadProfile() {
+        const token = AUTH.getToken();
+        if (!token) return;
         try {
-            const response = await fetch('/api/saxo/auth/status');
-            const status = await response.json();
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userSettings.account.username = payload.username || 'Unknown';
+            userSettings.account.email = payload.email || 'Not set';
+        } catch (_) {
+            userSettings.account.username = 'Unknown';
+            userSettings.account.email = 'Not set';
+        }
+        document.getElementById('profileUsername').textContent = userSettings.account.username;
+        document.getElementById('profileEmail').textContent = userSettings.account.email;
+    }
 
-            const statusDiv = document.getElementById('saxoStatus');
-            const connectBtn = document.getElementById('saxoConnectBtn');
-            const disconnectBtn = document.getElementById('saxoDisconnectBtn');
+    function setBrokerPill(connected, provider) {
+        const pill = document.getElementById('brokerStatusPill');
+        pill.textContent = connected ? `Connected · ${provider || 'broker'}` : 'Not connected';
+        pill.style.color = connected ? 'var(--accent-green)' : 'var(--accent-orange)';
+    }
 
-            if (status.authenticated) {
-                const expiresAt = new Date(status.expiresAt);
-                const expiresIn = Math.round((expiresAt - Date.now()) / 1000 / 60 / 60); // hours
-                statusDiv.innerHTML = `<p style="margin: 0; color: var(--accent-green);">✓ Connected (expires in ${expiresIn}h)</p>`;
-                connectBtn.style.display = 'none';
-                disconnectBtn.style.display = 'inline-block';
-            } else {
-                statusDiv.innerHTML = '<p style="margin: 0; color: var(--accent-orange);">⚠ Not connected</p>';
-                connectBtn.style.display = 'inline-block';
-                disconnectBtn.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Failed to check Saxo status:', error);
-            document.getElementById('saxoStatus').innerHTML = '<p style="margin: 0; color: var(--accent-red);">Error checking status</p>';
+    async function loadBrokerStatus() {
+        try {
+            await AUTH.protect();
+            const res = await fetch('/api/broker/status', { headers: authHeaders() });
+            const status = await res.json();
+            userSettings.broker.connected = !!status.connected;
+            userSettings.broker.provider = status.provider || status.broker || null;
+            setBrokerPill(status.connected, (status.provider || status.broker || '').toUpperCase());
+            document.getElementById('disconnectBrokerBtn').style.display = status.connected ? 'inline-flex' : 'none';
+        } catch (err) {
+            console.error('Failed to load broker status', err);
+            setBrokerPill(false);
         }
     }
 
-    function connectSaxo() {
-        window.location.href = '/auth/saxo/login';
+    function openBrokerModal(provider) {
+        activeBrokerProvider = provider || 'ibkr';
+        document.getElementById('brokerModalTitle').textContent = `Connect ${activeBrokerProvider.toUpperCase()}`;
+        document.getElementById('brokerModalStatus').textContent = 'Sign in with broker credentials or paste an existing session token.';
+        document.getElementById('modalUsername').value = '';
+        document.getElementById('modalPassword').value = '';
+        document.getElementById('modalAccessToken').value = '';
+        document.getElementById('modalRefreshToken').value = '';
+        document.getElementById('brokerModal').style.display = 'flex';
     }
 
-    async function disconnectSaxo() {
-        if (!confirm('Are you sure you want to disconnect your Saxo account?')) return;
+    function closeBrokerModal() {
+        document.getElementById('brokerModal').style.display = 'none';
+    }
 
+    async function connectBrokerFromModal() {
+        const username = document.getElementById('modalUsername').value || null;
+        const password = document.getElementById('modalPassword').value || null;
+        const accessToken = document.getElementById('modalAccessToken').value || null;
+        const refreshToken = document.getElementById('modalRefreshToken').value || null;
+        const statusEl = document.getElementById('brokerModalStatus');
+        statusEl.textContent = 'Connecting...';
         try {
-            const response = await fetch('/api/saxo/auth/disconnect', { method: 'POST' });
-            if (response.ok) {
-                await checkSaxoStatus();
-                alert('Saxo account disconnected successfully');
+            const res = await fetch(`/api/broker/connect/${activeBrokerProvider}`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ username, password, accessToken, refreshToken })
+            });
+            if (!res.ok) {
+                const detail = await res.json().catch(() => ({}));
+                throw new Error(detail.error || 'Connection failed');
             }
-        } catch (error) {
-            console.error('Failed to disconnect Saxo:', error);
-            alert('Failed to disconnect Saxo account');
+            statusEl.textContent = 'Connected. Widgets will refresh automatically.';
+            userSettings.broker.connected = true;
+            userSettings.broker.provider = activeBrokerProvider;
+            await loadBrokerStatus();
+            closeBrokerModal();
+        } catch (err) {
+            statusEl.textContent = err.message || 'Connection failed';
+        }
+    }
+
+    async function disconnectBroker() {
+        const btn = document.getElementById('disconnectBrokerBtn');
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/broker/disconnect', { method: 'POST', headers: authHeaders() });
+            if (!res.ok) {
+                const detail = await res.json().catch(() => ({}));
+                throw new Error(detail.error || 'Disconnect failed');
+            }
+            userSettings.broker.connected = false;
+            userSettings.broker.provider = null;
+            setBrokerPill(false);
+        } catch (err) {
+            console.error('Disconnect broker failed', err);
+        } finally {
+            btn.disabled = false;
+            await loadBrokerStatus();
+        }
+    }
+
+    function openPasswordModal() {
+        document.getElementById('passwordStatus').textContent = '';
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('passwordModal').style.display = 'flex';
+    }
+
+    function closePasswordModal() {
+        document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    async function savePassword() {
+        const current = document.getElementById('currentPassword').value;
+        const next = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const statusEl = document.getElementById('passwordStatus');
+        if (!current || !next) {
+            statusEl.textContent = 'Please enter your current and new password.';
+            statusEl.style.color = 'var(--accent-orange)';
+            return;
+        }
+        if (next !== confirm) {
+            statusEl.textContent = 'New passwords do not match.';
+            statusEl.style.color = 'var(--accent-red)';
+            return;
+        }
+        statusEl.textContent = 'Saving...';
+        statusEl.style.color = 'var(--text-muted)';
+        try {
+            const res = await fetch('/api/users/password', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ currentPassword: current, newPassword: next })
+            });
+            if (!res.ok) {
+                const detail = await res.json().catch(() => ({}));
+                throw new Error(detail.error || 'Password change failed');
+            }
+            statusEl.textContent = 'Password updated.';
+            statusEl.style.color = 'var(--accent-green)';
+            setTimeout(closePasswordModal, 800);
+        } catch (err) {
+            statusEl.textContent = err.message || 'Password change failed';
+            statusEl.style.color = 'var(--accent-red)';
         }
     }
     </script>

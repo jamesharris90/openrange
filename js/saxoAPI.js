@@ -1,25 +1,19 @@
-// Saxo Bank API Integration Module
-// Handles all communication with Saxo Bank OpenAPI
+// Broker monitoring adapter (keeps legacy Saxo API surface for compatibility)
 
 class SaxoAPI {
     constructor() {
-        this.baseUrl = CONFIG.SAXO.apiUrl;
-        this.accountKey = null; // Will be fetched from /accounts/me
+        this.baseUrl = '/api/broker';
         this.cache = {};
-        this.cacheDuration = 30000; // 30 seconds cache
+        this.cacheDuration = 15000; // 15 seconds cache
+        this.currencySymbol = '$';
     }
 
-    // Use getters to always get current config values
-    get token() {
-        return CONFIG.SAXO.token;
-    }
-
-    get clientKey() {
-        return CONFIG.SAXO.clientKey;
-    }
-
-    get accountNumber() {
-        return CONFIG.SAXO.accountNumber;
+    authHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = AUTH.getToken && AUTH.getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (window.API_KEY) headers['x-api-key'] = window.API_KEY;
+        return headers;
     }
     
     /**
@@ -35,19 +29,16 @@ class SaxoAPI {
         }
         
         const url = `${this.baseUrl}${endpoint}`;
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers
-        };
+        const headers = { ...this.authHeaders(), ...options.headers };
         
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
             
             // Use AUTH helper to make authenticated call through proxy
-            const response = await AUTH.fetchSaxo(url, { 
+            const response = await fetch(url, {
                 method: options.method || 'GET',
-                headers, 
+                headers,
                 signal: controller.signal,
                 body: options.body ? JSON.stringify(options.body) : undefined
             });
@@ -56,7 +47,7 @@ class SaxoAPI {
             
             if (!response || !response.ok) {
                 const status = response ? response.status : 'unknown';
-                throw new Error(`Saxo API Error: ${status}`);
+                throw new Error(`Broker API Error: ${status}`);
             }
             
             const data = await response.json();
@@ -70,88 +61,61 @@ class SaxoAPI {
             return data;
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.error('Saxo API request timeout:', endpoint);
+                console.error('Broker API request timeout:', endpoint);
                 throw new Error('Request timeout - please try again');
             }
-            console.error('Saxo API call failed:', error);
+            console.error('Broker API call failed:', error);
             throw error;
         }
-    }
-    
-    /**
-     * Get AccountKey from server (cached)
-     */
-    async getAccountKey() {
-        if (this.accountKey) return this.accountKey;
-
-        try {
-            const accounts = await this.call(`/port/v1/accounts/me`);
-            if (accounts && accounts.Data && accounts.Data.length > 0) {
-                this.accountKey = accounts.Data[0].AccountKey;
-                return this.accountKey;
-            }
-        } catch (error) {
-            console.warn('Failed to get AccountKey, using ClientKey fallback:', error);
-        }
-        return this.clientKey; // Fallback to clientKey
     }
 
     /**
      * Get account balance information
      */
     async getBalance() {
-        // Use ClientKey for client-level balance (covers all accounts)
-        return this.call(`/port/v1/balances?ClientKey=${encodeURIComponent(this.clientKey)}`);
+        return this.call(`/account`);
     }
     
     /**
      * Get open positions
      */
     async getPositions() {
-        return this.call(`/port/v1/positions?ClientKey=${encodeURIComponent(this.clientKey)}&FieldGroups=DisplayAndFormat,PositionBase,PositionView`);
+        return this.call(`/positions`);
     }
     
     /**
      * Get closed positions (historical)
      */
     async getClosedPositions(fromDate, toDate) {
-        const from = fromDate || this.getTodayStart();
-        const to = toDate || new Date().toISOString();
-        return this.call(`/hist/v3/positions?ClientKey=${encodeURIComponent(this.clientKey)}&FromDate=${from}&ToDate=${to}`);
+        return [];
     }
     
     /**
      * Get account summary
      */
     async getAccountSummary() {
-        return this.call(`/port/v1/accounts/me`);
+        return this.call(`/account`);
     }
     
     /**
      * Get account performance metrics
      */
     async getPerformance(fromDate, toDate) {
-        const from = fromDate || this.getTodayStart();
-        // Format ToDate as YYYY-MM-DD for Saxo API
-        const to = toDate || new Date().toISOString().split('T')[0];
-        const accountKey = await this.getAccountKey();
-        return this.call(`/hist/v4/performance/summary?ClientKey=${encodeURIComponent(this.clientKey)}&AccountKey=${encodeURIComponent(accountKey)}&FromDate=${encodeURIComponent(from)}&ToDate=${encodeURIComponent(to)}`);
+        return this.call(`/performance/weekly`);
     }
     
     /**
      * Get account values (historical)
      */
     async getAccountValues() {
-        return this.call(`/hist/v3/accountvalues?ClientKey=${encodeURIComponent(this.clientKey)}`);
+        return [];
     }
     
     /**
      * Get today's transactions
      */
     async getTodayTransactions() {
-        const from = this.getTodayStart();
-        const to = new Date().toISOString();
-        return this.call(`/hist/v1/transactions?ClientKey=${encodeURIComponent(this.clientKey)}&FromDate=${from}&ToDate=${to}`);
+        return [];
     }
     
     /**
@@ -159,26 +123,8 @@ class SaxoAPI {
      */
     async getTodayPnL() {
         try {
-            const [positions, performance] = await Promise.all([
-                this.getPositions(),
-                this.getPerformance()
-            ]);
-            
-            let totalPnL = 0;
-            
-            // Add P&L from open positions
-            if (positions.Data && positions.Data.length > 0) {
-                positions.Data.forEach(pos => {
-                    totalPnL += (pos.ProfitLossOnTrade || 0);
-                });
-            }
-            
-            // Add P&L from performance data
-            if (performance && performance.TodayProfitLoss !== undefined) {
-                totalPnL = performance.TodayProfitLoss;
-            }
-            
-            return totalPnL;
+            const pnl = await this.call('/pnl/daily');
+            return pnl?.net || pnl?.gross || 0;
         } catch (error) {
             console.error('Error calculating today P&L:', error);
             return 0;
@@ -190,7 +136,7 @@ class SaxoAPI {
      */
     convertToGBP(eurAmount) {
         if (typeof eurAmount !== 'number') return 0;
-        return eurAmount * CONFIG.EUR_TO_GBP;
+        return eurAmount;
     }
     
     /**
@@ -199,6 +145,7 @@ class SaxoAPI {
     formatCurrency(amount, showSign = false) {
         const absAmount = Math.abs(amount);
         const formatted = `${CONFIG.CURRENCY_SYMBOL}${absAmount.toLocaleString('en-GB', {
+            // Use locale formatting; currency symbol from config if present
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         })}`;
@@ -239,43 +186,30 @@ class SaxoAPI {
      */
     async getDashboardData() {
         try {
-            const [balance, positions, performance] = await Promise.all([
+            const [snapshot, positions, pnl] = await Promise.all([
                 this.getBalance(),
                 this.getPositions(),
-                this.getPerformance()
+                this.getTodayPnL()
             ]);
-            
-            // Process balance
-            const cashBalance = balance.CashBalance || 0;
-            const totalValue = balance.TotalValue || cashBalance;
-            
-            // Process positions
-            const openPositions = positions.Data || [];
+
+            const totalValue = snapshot?.netLiquidation ?? snapshot?.cash ?? 0;
+            const cashBalance = snapshot?.cash ?? 0;
+            const openPositions = Array.isArray(positions) ? positions : (positions?.Data || []);
             const positionCount = openPositions.length;
-            
-            // Calculate today's P&L
-            let todayPnL = 0;
-            openPositions.forEach(pos => {
-                todayPnL += (pos.ProfitLossOnTrade || 0);
-            });
-            
-            // Convert to GBP
+
             return {
                 balance: {
-                    eur: cashBalance,
-                    gbp: this.convertToGBP(cashBalance),
-                    formatted: this.formatCurrency(this.convertToGBP(cashBalance))
+                    value: cashBalance,
+                    formatted: this.formatCurrency(cashBalance)
                 },
                 totalValue: {
-                    eur: totalValue,
-                    gbp: this.convertToGBP(totalValue),
-                    formatted: this.formatCurrency(this.convertToGBP(totalValue))
+                    value: totalValue,
+                    formatted: this.formatCurrency(totalValue)
                 },
                 todayPnL: {
-                    eur: todayPnL,
-                    gbp: this.convertToGBP(todayPnL),
-                    formatted: this.formatCurrency(this.convertToGBP(todayPnL), true),
-                    percentage: totalValue > 0 ? (todayPnL / totalValue) * 100 : 0
+                    value: pnl,
+                    formatted: this.formatCurrency(pnl, true),
+                    percentage: totalValue > 0 ? (pnl / totalValue) * 100 : 0
                 },
                 positions: {
                     count: positionCount,

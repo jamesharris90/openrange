@@ -21,6 +21,8 @@
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
     <script src="js/watchlist-store.js"></script>
+    <script src="js/filtering/filter-configs.js"></script>
+    <script src="js/filtering/filter-framework.js"></script>
     <script src="js/screeners.js"></script>
 
     <style>
@@ -417,6 +419,11 @@
                     </div>
                 </div>
 
+                <!-- Unified Filter Panel -->
+                <div class="card">
+                    <div class="card-body" id="screener-filter-panel"></div>
+                </div>
+
                 <!-- Screener Grid -->
                 <div class="screener-grid">
                     <!-- Screener 1 -->
@@ -756,6 +763,9 @@
 
             // Initialize screener instances
             initScreeners();
+
+            // Build unified filter panel
+            setupUnifiedFilters();
 
             // Load all screeners
             loadAllScreeners();

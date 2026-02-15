@@ -14,6 +14,8 @@
     <script src="js/sidebar.js"></script>
     <script src="https://s3.tradingview.com/tv.js"></script>
 
+    <script src="js/watchlist-store.js"></script>
+
     <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
@@ -122,6 +124,14 @@
             align-items: center;
             flex: 1;
         }
+            .news-row:hover {
+                border-color: rgba(74, 158, 255, 0.35);
+                box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.08);
+            }
+            .news-row.news-new {
+                border-color: rgba(80, 201, 123, 0.7);
+                box-shadow: 0 0 0 2px rgba(80, 201, 123, 0.15);
+                background: linear-gradient(135deg, rgba(80, 201, 123, 0.08), rgba(26, 31, 46, 0.2));
 
         .news-avatar {
             width: 36px;
@@ -184,6 +194,41 @@
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
             align-items: end;
+        }
+
+        .watchlist-tray {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .watchlist-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 700;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .watchlist-pill__source {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+        }
+
+        .drop-target {
+            border: 1px dashed transparent;
+        }
+
+        .drop-target.drop-active {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.25);
         }
 
         .ticker-field label {
@@ -362,6 +407,20 @@
                     </div>
                 </div>
 
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Watchlist Dock</div>
+                        <div class="card-actions" style="gap:8px;">
+                            <span class="helper-text">Drag a name onto any chart slot.</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="om-watchlist" class="watchlist-tray">
+                            <div class="helper-text">Loading watchlist...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="charts-grid" id="om-charts"></div>
 
                 <div class="card">
@@ -371,6 +430,7 @@
                             Live Fundamentals
                         </div>
                         <div class="card-actions" style="gap: 8px;">
+                            <span class="helper-text">Linked to Chart 1–4 symbols. Use Apply/drag to update.</span>
                             <button class="btn-secondary" onclick="openMarket.refreshFundamentals()">Refresh Fundamentals</button>
                         </div>
                     </div>

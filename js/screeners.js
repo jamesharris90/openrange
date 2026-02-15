@@ -122,6 +122,30 @@ class FinvizScreener {
         this.updateFilterSummary();
     }
 
+    setUnifiedFilters(values = {}) {
+        const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+        const sectorVal = values.sector || 'all';
+        this.filters = {
+            ...this.filters,
+            changeMin: num(values.changeMin),
+            changeMax: num(values.changeMax),
+            priceMin: num(values.priceMin),
+            priceMax: num(values.priceMax),
+            volumeMin: num(values.volumeMin),
+            floatMin: num(values.floatMin),
+            floatMax: num(values.floatMax),
+            relVolMin: num(values.relVolMin),
+            gapMin: num(values.gapMin),
+            gapMax: num(values.gapMax),
+            sector: sectorVal || 'all'
+        };
+        if (this.data) {
+            this.applyFilters();
+            this.render();
+        }
+        this.updateFilterSummary();
+    }
+
     updateFilterSummary() {
         const summary = document.getElementById(`${this.containerId}-filter-summary`);
         if (!summary) return;
@@ -475,6 +499,86 @@ function mapPresetToFinvizFilters(preset) {
     return filters.size ? Array.from(filters).join(',') : null;
 }
 
+const SCREENER_FILTER_SCHEMA = {
+    sections: {
+        liquidity: {
+            id: 'liquidity',
+            title: 'Liquidity',
+            fields: [
+                { id: 'priceMin', label: 'Price Min', type: 'number', min: 0, step: 0.01 },
+                { id: 'priceMax', label: 'Price Max', type: 'number', min: 0, step: 0.01 },
+                { id: 'volumeMin', label: 'Volume Min', type: 'number', min: 0, step: 1000 },
+                { id: 'floatMin', label: 'Float Min (M)', type: 'number', min: 0, step: 0.1 },
+                { id: 'floatMax', label: 'Float Max (M)', type: 'number', min: 0, step: 0.1 },
+                { id: 'relVolMin', label: 'Relative Volume Min', type: 'slider', min: 0, max: 10, step: 0.1, format: (v) => `${v}x` }
+            ]
+        },
+        momentum: {
+            id: 'momentum',
+            title: 'Momentum',
+            fields: [
+                { id: 'changeMin', label: 'Change % Min', type: 'slider', min: -10, max: 25, step: 0.5, format: (v) => `${v}%` },
+                { id: 'changeMax', label: 'Change % Max', type: 'slider', min: -10, max: 50, step: 0.5, format: (v) => `${v}%` },
+                { id: 'gapMin', label: 'Gap % Min', type: 'slider', min: -5, max: 20, step: 0.5, format: (v) => `${v}%` },
+                { id: 'gapMax', label: 'Gap % Max', type: 'slider', min: 0, max: 40, step: 0.5, format: (v) => `${v}%` }
+            ]
+        },
+        profile: {
+            id: 'profile',
+            title: 'Profile',
+            fields: [
+                { id: 'sector', label: 'Sector', type: 'select', options: [
+                    { value: 'all', label: 'All Sectors' },
+                    { value: 'Technology', label: 'Technology' },
+                    { value: 'Healthcare', label: 'Healthcare' },
+                    { value: 'Financial', label: 'Financial' },
+                    { value: 'Consumer Cyclical', label: 'Consumer Cyclical' },
+                    { value: 'Consumer Defensive', label: 'Consumer Defensive' },
+                    { value: 'Energy', label: 'Energy' },
+                    { value: 'Industrials', label: 'Industrials' },
+                    { value: 'Real Estate', label: 'Real Estate' },
+                    { value: 'Utilities', label: 'Utilities' }
+                ] }
+            ]
+        }
+    }
+};
+
+const SCREENER_FILTER_DEFAULTS = {
+    priceMin: null,
+    priceMax: null,
+    volumeMin: null,
+    floatMin: null,
+    floatMax: null,
+    relVolMin: null,
+    changeMin: null,
+    changeMax: null,
+    gapMin: null,
+    gapMax: null,
+    sector: 'all'
+};
+
+let screenerFilterState = null;
+
+function applyUnifiedFilters(values) {
+    Object.values(screeners || {}).forEach((screener) => {
+        if (screener) screener.setUnifiedFilters(values);
+    });
+}
+
+function setupUnifiedFilters() {
+    const container = document.getElementById('screener-filter-panel');
+    if (!container || !window.FilterFramework) return;
+
+    screenerFilterState = FilterFramework.createFilterPanel(container, {
+        pageKey: 'screeners',
+        title: 'Screeners Filters',
+        schema: SCREENER_FILTER_SCHEMA,
+        defaults: SCREENER_FILTER_DEFAULTS,
+        onApply: applyUnifiedFilters
+    });
+}
+
 // Initialize screeners
 function initScreeners() {
     const fallbackConfigs = {
@@ -546,30 +650,9 @@ function refreshScreener(id) {
 
 // Toggle filter panel
 function toggleFilters(id) {
-    const panel = document.getElementById(`${id}-filter-panel`);
-    const btn = document.querySelector(`[onclick="toggleFilters('${id}')"]`);
-
-    if (panel.style.display === 'none' || !panel.style.display) {
-        panel.style.display = 'block';
-        if (btn) btn.classList.add('active');
-
-        // Populate sector dropdown if empty
-        const sectorSelect = panel.querySelector('select[data-filter="sector"]');
-        if (sectorSelect && sectorSelect.options.length === 1) {
-            const screener = screeners[id];
-            if (screener) {
-                const sectors = screener.getUniqueSectors();
-                sectors.forEach(sector => {
-                    const option = document.createElement('option');
-                    option.value = sector;
-                    option.textContent = sector;
-                    sectorSelect.appendChild(option);
-                });
-            }
-        }
-    } else {
-        panel.style.display = 'none';
-        if (btn) btn.classList.remove('active');
+    const container = document.getElementById('screener-filter-panel');
+    if (container) {
+        container.scrollIntoView({ behavior: 'smooth' });
     }
 }
 

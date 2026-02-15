@@ -4,287 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>News Scanner - OpenRange Trader</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="logo pack/favicon.ico">
+    <script>
+        // Redirect legacy static page to the React SPA route
+        window.location.replace('/app/news-scanner');
+    </script>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" type="image/x-icon" href="/logo pack/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="js/sidebar.js"></script>
+    <script src="/js/sidebar.js"></script>
 
-    <!-- API Config -->
     <script>window.API_KEY = 'openrange-test-key-secure-2026';</script>
 
-    <!-- Core Modules -->
-    <script src="js/auth.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/watchlist-store.js"></script>
-    <script src="js/news-scanner.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/watchlist-store.js"></script>
+    <script src="/js/filtering/filter-framework.js"></script>
+    <script src="/config/filterConfig.js"></script>
+    <script src="/js/filtering/filter-configs.js"></script>
+    <script src="/js/news-scanner.js"></script>
 
     <style>
-        .filter-panel {
-            background: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .filter-section {
-            margin-bottom: 24px;
-        }
-
-        .filter-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .filter-section-title {
-            font-size: 0.9em;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .catalyst-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .catalyst-filter {
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            color: var(--text-primary);
-            transition: all 0.2s;
-        }
-
-        .catalyst-filter:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--accent-blue);
-        }
-
-        .catalyst-filter.active {
-            background: var(--accent-blue);
-            color: white;
-            border-color: var(--accent-blue);
-        }
-
-        .stock-filters {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-label {
-            font-size: 0.8em;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .filter-input {
-            padding: 8px 12px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 0.9em;
-        }
-
-        .filter-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        .btn-filter-action {
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            border: 1px solid var(--border-color);
-            transition: all 0.2s;
-        }
-
-        .btn-filter-action.clear {
-            background: transparent;
-            color: var(--accent-red);
-            border-color: var(--accent-red);
-        }
-
-        .btn-filter-action.clear:hover {
-            background: var(--accent-red);
-            color: white;
-        }
-
-        .btn-filter-action.apply {
-            background: var(--accent-blue);
-            color: white;
-            border-color: var(--accent-blue);
-        }
-
-        .btn-filter-action.apply:hover {
-            opacity: 0.9;
-        }
-
-        .filter-summary {
-            display: none;
-            margin-left: 12px;
-            padding: 4px 12px;
-            background: var(--accent-blue);
-            color: white;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .news-list {
-            background: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-        }
-
-        .result-count {
-            padding: 16px 20px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .news-scanner-item {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            gap: 20px;
-            transition: background 0.2s;
-        }
-
-        .news-scanner-item:hover {
-            background: var(--bg-card-hover);
-        }
-
-        .news-scanner-item:last-child {
-            border-bottom: none;
-        }
-
-        .stock-info-container {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(120px, 1fr));
-            gap: 12px 16px;
-        }
-
-        @media (max-width: 1100px) {
-            .stock-info-container {
-                grid-template-columns: repeat(3, minmax(120px, 1fr));
-            }
-        }
-
-        @media (max-width: 800px) {
-            .stock-info-container {
-                grid-template-columns: repeat(2, minmax(120px, 1fr));
-            }
-        }
-
-        .stock-info {
-            display: flex;
-            flex-direction: column;
-            min-width: 120px;
-            gap: 6px;
-        }
-
-        .watchlist-btn {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            font-size: 0.75em;
-            font-weight: 600;
-            transition: all 0.2s;
-            width: fit-content;
-        }
-
-        .watchlist-btn:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--accent-blue);
-        }
-
-        .watchlist-btn.added {
-            background: rgba(0, 200, 83, 0.12);
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-        }
-
-        .stock-ticker {
-            font-size: 1.1em;
-            font-weight: 700;
-            color: var(--accent-blue);
-        }
-
-        .stock-price {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .stock-change {
-            font-size: 0.95em;
-            font-weight: 600;
-        }
-
-        .stock-change.positive {
-            color: var(--accent-green);
-        }
-
-        .stock-change.negative {
-            color: var(--accent-red);
-        }
-
-        .news-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .news-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .catalyst-badge {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
         .catalyst-earnings { background: #4f46e5; color: white; }
         .catalyst-fda { background: #10b981; color: white; }
         .catalyst-product { background: #f59e0b; color: white; }
@@ -295,204 +38,101 @@
         .catalyst-guidance { background: #6366f1; color: white; }
         .catalyst-general { background: var(--bg-secondary); color: var(--text-secondary); }
 
-        .news-source {
-            color: var(--text-secondary);
-            font-size: 0.85em;
-            font-weight: 500;
-        }
+        .news-source { color: var(--text-secondary); font-size: 0.85em; font-weight: 500; }
+        .news-time { color: var(--text-muted); font-size: 0.8em; }
+        .news-title { font-size: 1.05em; line-height: 1.5; }
+        .news-title a { color: var(--text-primary); text-decoration: none; font-weight: 500; }
+        .news-title a:hover { color: var(--accent-blue); }
 
-        .news-time {
-            color: var(--text-muted);
-            font-size: 0.8em;
-        }
+        .no-data, .screener-error { padding: 60px; text-align: center; color: var(--text-muted); }
+        .screener-error { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .screener-error button { padding: 10px 24px; background: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
 
-        .news-title {
-            font-size: 1.05em;
-            line-height: 1.5;
-        }
+        .news-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 10000; backdrop-filter: blur(4px); }
+        .news-modal.active { display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        .news-modal-content { width: 90vw; height: 90vh; background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+        .news-modal-header { padding: 20px 24px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .news-modal-title { font-size: 1.1em; font-weight: 600; color: var(--text-primary); flex: 1; }
+        .news-modal-close { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .news-modal-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .news-modal-iframe { flex: 1; border: none; background: white; }
 
-        .news-title a {
-            color: var(--text-primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .news-title a:hover {
-            color: var(--accent-blue);
-        }
-
-        .no-data, .screener-error {
-            padding: 60px;
-            text-align: center;
-            color: var(--text-muted);
-        }
-
-        .screener-error {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .screener-error button {
-            padding: 10px 24px;
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        /* News Article Modal */
-        .news-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10000;
-            backdrop-filter: blur(4px);
-        }
-
-        .news-modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .news-modal-content {
-            width: 90vw;
-            height: 90vh;
-            background: var(--bg-card);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-            animation: slideUp 0.3s ease;
-        }
-
-        .news-modal-header {
-            padding: 20px 24px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .news-modal-title {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: var(--text-primary);
-            flex: 1;
-        }
-
-        .news-modal-close {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .news-modal-close:hover {
-            background: var(--bg-card-hover);
-            color: var(--text-primary);
-        }
-
-        .news-modal-iframe {
-            flex: 1;
-            border: none;
-            background: white;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 1200px) {
-            .stock-filters {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .news-scanner-item {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .news-modal-content {
-                width: 95vw;
-                height: 95vh;
-            }
+            .stock-filters { grid-template-columns: repeat(2, 1fr); }
+            .news-scanner-item { flex-direction: column; gap: 12px; }
+            .news-modal-content { width: 95vw; height: 95vh; }
         }
+
+        /* News Scanner layout tweaks */
+        .filter-sections.layout-horizontal {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-sections.layout-horizontal .filter-section {
+            min-width: 300px;
+            flex: 1;
+        }
+
+        .scoring-section .scoring-panel {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .scoring-body .score-row { justify-content: space-between; }
+
+        #filter-wrapper { display: none; }
+
+        .filter-toggle-btn { margin-left: 8px; }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
-            <span id="userMenuName">Guest</span>
-            <a href="login.html" id="loginLink">Login</a>
-            <a href="register.html" id="registerLink">Register</a>
-            <a href="user.html" id="profileLink" style="display:none;">Profile</a>
-            <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
-            <a href="#" id="logoutLink" style="display:none;">Logout</a>
-        </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let token = localStorage.getItem('authToken');
-            let userMenuName = document.getElementById('userMenuName');
-            let loginLink = document.getElementById('loginLink');
-            let registerLink = document.getElementById('registerLink');
-            let profileLink = document.getElementById('profileLink');
-            let adminLink = document.getElementById('adminLink');
-            let logoutLink = document.getElementById('logoutLink');
-            if (token) {
-                try {
-                    let payload = JSON.parse(atob(token.split('.')[1]));
-                    userMenuName.textContent = payload.username || 'User';
-                    loginLink.style.display = 'none';
-                    registerLink.style.display = 'none';
-                    profileLink.style.display = '';
-                    logoutLink.style.display = '';
-                    if (payload.is_admin) adminLink.style.display = '';
-                } catch(e) {}
-            } else {
-                profileLink.style.display = 'none';
-                adminLink.style.display = 'none';
-                logoutLink.style.display = 'none';
-            }
-            logoutLink && logoutLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                localStorage.removeItem('authToken');
-                window.location.href = 'login.html';
-            });
+    <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px;min-width:220px;text-align:right;">
+        <span id="userMenuName">Guest</span>
+        <a href="login.html" id="loginLink">Login</a>
+        <a href="register.html" id="registerLink">Register</a>
+        <a href="user.html" id="profileLink" style="display:none;">Profile</a>
+        <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+        <a href="#" id="logoutLink" style="display:none;">Logout</a>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('authToken');
+        const userMenuName = document.getElementById('userMenuName');
+        const loginLink = document.getElementById('loginLink');
+        const registerLink = document.getElementById('registerLink');
+        const profileLink = document.getElementById('profileLink');
+        const adminLink = document.getElementById('adminLink');
+        const logoutLink = document.getElementById('logoutLink');
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                userMenuName.textContent = payload.username || 'User';
+                loginLink.style.display = 'none';
+                registerLink.style.display = 'none';
+                profileLink.style.display = '';
+                logoutLink.style.display = '';
+                if (payload.is_admin) adminLink.style.display = '';
+            } catch (e) {}
+        } else {
+            profileLink.style.display = 'none';
+            adminLink.style.display = 'none';
+            logoutLink.style.display = 'none';
+        }
+        logoutLink && logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('authToken');
+            window.location.href = 'login.html';
         });
-        </script>
+    });
+    </script>
 
-        <!-- Sidebar Navigation -->
+    <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="index.html" class="logo">
@@ -538,6 +178,10 @@
                 </a>
 
                 <div class="nav-label" style="margin-top: 24px;">Tools</div>
+                <a href="advanced-screener.html" class="nav-link">
+                    <i data-lucide="filter" class="icon"></i>
+                    <span class="label">Advanced Screener</span>
+                </a>
                 <a href="news-scanner.html" class="nav-link active">
                     <i data-lucide="newspaper" class="icon"></i>
                     <span class="label">News Scanner</span>
@@ -557,154 +201,43 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Top Bar -->
             <div class="top-bar">
-                <h1 class="page-title">
-                    News Scanner
-                    <span id="news-filter-summary" class="filter-summary"></span>
-                </h1>
+                <h1 class="page-title">News Scanner</h1>
                 <div class="top-bar-actions">
-                    <button class="btn-primary" onclick="refreshNewsScanner()">
+                    <button class="btn-primary" onclick="newsScanner.fetchNews()" style="margin-right: 12px;">
                         <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                        Refresh
+                        Refresh Feed
                     </button>
+                    <button id="toggle-filters" class="btn ghost filter-toggle-btn">Show Filters</button>
+                    <div class="market-status">
+                        <div class="status-dot"></div>
+                        <span class="status-text" id="marketStatus">Market Status</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Content Container -->
-            <div class="content-container">
-                <!-- Info Card -->
+            <div class="content-container content-constrained">
                 <div class="card">
                     <div class="card-body">
                         <p style="color: var(--text-secondary); margin: 0;">
-                            <strong>Catalyst News Scanner</strong> - Filter market-moving news by catalyst type and stock fundamentals. Click any news title to read the full article.
+                            Catalyst-focused news feed with unified filters, scoring, and ticker-level controls. Apply filters below to refresh results and export as CSV or text.
                         </p>
                     </div>
                 </div>
 
-                <!-- Ticker Filter -->
-                <div class="filter-panel" style="margin-bottom: 16px;">
-                    <div class="filter-section" style="margin-bottom: 0;">
-                        <div class="filter-section-title">Ticker Filter (comma separated)</div>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                            <input
-                                type="text"
-                                id="ticker-filter-input"
-                                class="filter-input news-filter-input"
-                                placeholder="e.g. INTC, AMD, TSLA, GME"
-                                style="flex: 1; min-width: 260px;"
-                                onkeydown="if(event.key==='Enter'){applyTickerFilter(this.value);}"
-                            >
-                            <button class="btn-filter-action apply" style="margin: 0;" onclick="applyTickerFilter(document.getElementById('ticker-filter-input').value)">
-                                Apply Tickers
-                            </button>
-                            <button class="btn-filter-action clear" style="margin: 0;" onclick="clearTickerFilter()">
-                                Clear
-                            </button>
-                        </div>
-                        <div id="ticker-filter-helper" style="margin-top: 6px; font-size: 0.85em; color: var(--text-secondary);">
-                            Enter one or more tickers separated by commas to show news for those symbols only.
-                        </div>
-                    </div>
+                <div id="filter-wrapper">
+                    <div id="unified-filter-panel" class="filter-panel"></div>
+                </div>
+                <div class="filter-actions" style="justify-content:flex-end; margin-bottom:12px;">
+                    <button class="btn-filter-action apply" onclick="newsScanner.exportResults('csv')">
+                        Export CSV
+                    </button>
+                    <button class="btn-filter-action" onclick="newsScanner.exportResults('text')">
+                        Export Text
+                    </button>
                 </div>
 
-                <!-- Filter Panel -->
-                <div class="filter-panel">
-                    <!-- Catalyst Filters -->
-                    <div class="filter-section">
-                        <div class="filter-section-title">Catalysts</div>
-                        <div class="catalyst-filters">
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('earnings')">
-                                <i data-lucide="trending-up" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                Earnings
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('fda')">
-                                <i data-lucide="heart-pulse" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                FDA/Clinical
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('product')">
-                                <i data-lucide="package" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                New Product
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('merger')">
-                                <i data-lucide="git-merge" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                M&A
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('contract')">
-                                <i data-lucide="file-signature" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                Contracts
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('upgrade')">
-                                <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                Rating Change
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('offering')">
-                                <i data-lucide="dollar-sign" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                Offering/IPO
-                            </button>
-                            <button class="catalyst-filter" onclick="toggleCatalystFilter('guidance')">
-                                <i data-lucide="compass" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                Guidance
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Stock Filters -->
-                    <div class="filter-section">
-                        <div class="filter-section-title">Stock Filters</div>
-                        <div class="stock-filters">
-                            <div class="filter-group">
-                                <label class="filter-label">Price Min ($)</label>
-                                <input type="number" step="0.01" class="filter-input news-filter-input" placeholder="e.g. 1" oninput="applyNewsFilter('priceMin', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Price Max ($)</label>
-                                <input type="number" step="0.01" class="filter-input news-filter-input" placeholder="e.g. 50" oninput="applyNewsFilter('priceMax', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Change Min (%)</label>
-                                <input type="number" class="filter-input news-filter-input" placeholder="e.g. 5" oninput="applyNewsFilter('changeMin', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Volume Min</label>
-                                <input type="number" class="filter-input news-filter-input" placeholder="e.g. 1000000" oninput="applyNewsFilter('volumeMin', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Float Min (M)</label>
-                                <input type="number" class="filter-input news-filter-input" placeholder="e.g. 5" oninput="applyNewsFilter('floatMin', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Float Max (M)</label>
-                                <input type="number" class="filter-input news-filter-input" placeholder="e.g. 100" oninput="applyNewsFilter('floatMax', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Market Cap Min (M)</label>
-                                <input type="number" class="filter-input news-filter-input" placeholder="e.g. 50" oninput="applyNewsFilter('marketCapMin', this.value)">
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Relative Volume Min</label>
-                                <input type="number" step="0.1" class="filter-input news-filter-input" placeholder="e.g. 2" oninput="applyNewsFilter('relVolMin', this.value)">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Filter Actions -->
-                    <div class="filter-actions">
-                        <button class="btn-filter-action apply" onclick="newsScanner.exportResults('csv')">
-                            Export CSV
-                        </button>
-                        <button class="btn-filter-action" onclick="newsScanner.exportResults('text')">
-                            Export Text
-                        </button>
-                        <button class="btn-filter-action clear" onclick="clearNewsFilters()">
-                            Clear All Filters
-                        </button>
-                    </div>
-                </div>
-
-                <!-- News List -->
                 <div id="news-scanner-content">
                     <div class="loading" style="padding: 60px; text-align: center; color: var(--text-muted);">
                         Loading catalyst news...
@@ -715,29 +248,32 @@
     </div>
 
     <script>
-        // Initialize Lucide icons
         lucide.createIcons();
 
-        // Load news when page loads
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Initializing news scanner...');
-
-            // Wait for config to load
             if (window.configReady) {
                 await window.configReady;
             }
-
-            // Load news
+            initUnifiedNewsFilters();
             newsScanner.fetchNews();
+            setTimeout(() => { lucide.createIcons(); }, 300);
 
-            // Refresh icons
-            setTimeout(() => {
-                lucide.createIcons();
-            }, 1000);
+            const filterWrapper = document.getElementById('filter-wrapper');
+            const toggleBtn = document.getElementById('toggle-filters');
+            if (toggleBtn && filterWrapper) {
+                const toggle = () => {
+                    const isHidden = filterWrapper.style.display === 'none' || filterWrapper.style.display === '';
+                    filterWrapper.style.display = isHidden ? 'block' : 'none';
+                    toggleBtn.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
+                };
+                toggleBtn.addEventListener('click', toggle);
+                // Initialize hidden
+                filterWrapper.style.display = 'none';
+                toggleBtn.textContent = 'Show Filters';
+            }
         });
     </script>
 
-    <!-- News Article Modal -->
     <div id="newsModal" class="news-modal">
         <div class="news-modal-content">
             <div class="news-modal-header">
@@ -746,53 +282,51 @@
                     <i data-lucide="x" style="width: 24px; height: 24px;"></i>
                 </button>
             </div>
+            <div class="news-modal-status">
+                <span id="newsModalStatus">Loading article...</span>
+                <a id="newsModalFallback" class="news-modal-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none;">Open original</a>
+            </div>
             <iframe id="newsModalIframe" class="news-modal-iframe"></iframe>
         </div>
     </div>
 
     <script>
-        // Modal functions
         function openNewsModal(url, title) {
             const modal = document.getElementById('newsModal');
             const iframe = document.getElementById('newsModalIframe');
             const titleEl = document.getElementById('newsModalTitle');
-
+            const statusEl = document.getElementById('newsModalStatus');
+            const fallbackEl = document.getElementById('newsModalFallback');
             titleEl.textContent = title || 'Article';
+            statusEl.textContent = 'Loading article...';
+            fallbackEl.style.display = 'none';
+            fallbackEl.href = url;
             iframe.src = url;
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
+            if (window.lucide) { lucide.createIcons(); }
 
-            // Refresh icons for the close button
-            if (window.lucide) {
-                lucide.createIcons();
-            }
+            // Show a fallback link if the frame stays blank due to X-Frame-Options
+            setTimeout(() => {
+                statusEl.textContent = 'If the article is blank, open in a new tab.';
+                fallbackEl.style.display = 'inline-flex';
+            }, 2000);
         }
 
         function closeNewsModal() {
             const modal = document.getElementById('newsModal');
             const iframe = document.getElementById('newsModalIframe');
-
             modal.classList.remove('active');
             document.body.style.overflow = '';
-
-            // Clear iframe after animation
-            setTimeout(() => {
-                iframe.src = '';
-            }, 300);
+            setTimeout(() => { iframe.src = ''; }, 300);
         }
 
-        // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeNewsModal();
-            }
+            if (e.key === 'Escape') { closeNewsModal(); }
         });
 
-        // Close modal when clicking outside
         document.getElementById('newsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeNewsModal();
-            }
+            if (e.target === this) { closeNewsModal(); }
         });
     </script>
 </body>

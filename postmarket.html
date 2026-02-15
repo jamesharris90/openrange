@@ -366,70 +366,56 @@
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/saxoAPI.js"></script>
+    <script src="js/broker.js"></script>
     <script src="js/news.js"></script>
     <script>
-        // Load real trading data from Saxo
+        function formatCurrency(val) {
+            const num = Number(val) || 0;
+            return `${CONFIG.CURRENCY_SYMBOL}${num.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        }
+
+        // Load broker monitoring stats
         async function loadTodayStats() {
             try {
-                // Wait for config to load
-                if (window.configReady) {
-                    await window.configReady;
+                await AUTH.protect();
+                const [accountRes, pnlRes, positionsRes] = await Promise.all([
+                    AUTH.fetchAPI('/api/broker/account'),
+                    AUTH.fetchAPI('/api/broker/pnl/daily'),
+                    AUTH.fetchAPI('/api/broker/positions')
+                ]);
+
+                if (!accountRes.ok || !pnlRes.ok || !positionsRes.ok) {
+                    throw new Error('Broker data request failed');
                 }
 
-                const data = await saxoAPI.getDashboardData();
+                const account = await accountRes.json();
+                const pnl = await pnlRes.json();
+                const positions = await positionsRes.json();
 
-                // Update Day P&L
+                const dayPnLValue = pnl.net ?? pnl.gross ?? 0;
+                const equity = account.netLiquidation ?? account.cash ?? 0;
+                const pnlPercent = equity > 0 ? (dayPnLValue / equity) * 100 : 0;
+
                 const pnlEl = document.getElementById('dayPnL');
                 const pnlChangeEl = document.getElementById('dayPnLChange');
-                pnlEl.textContent = data.todayPnL.formatted;
-                pnlChangeEl.textContent = `${data.todayPnL.percentage >= 0 ? '+' : ''}${data.todayPnL.percentage.toFixed(2)}% today`;
-                pnlEl.style.color = data.todayPnL.gbp >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                pnlEl.textContent = formatCurrency(dayPnLValue);
+                pnlChangeEl.textContent = `${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}% today`;
+                pnlEl.style.color = dayPnLValue >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
 
-                // Load closed positions for trades analysis
-                const closedPos = await saxoAPI.getClosedPositions();
-                const trades = closedPos.Data || [];
-                const tradesCount = trades.length;
+                const tradeCount = Array.isArray(positions) ? positions.length : 0;
+                document.getElementById('tradesTaken').textContent = tradeCount;
+                document.getElementById('winRate').textContent = '--% Win Rate';
+                document.getElementById('avgHoldTime').textContent = '--';
 
-                // Update Trades Taken
-                document.getElementById('tradesTaken').textContent = tradesCount;
-
-                // Calculate win rate
-                const winners = trades.filter(p => (p.ProfitLoss || 0) > 0).length;
-                const winRatePercent = tradesCount > 0 ? ((winners / tradesCount) * 100).toFixed(0) : 0;
-                document.getElementById('winRate').textContent = `${winRatePercent}% Win Rate`;
-
-                // Calculate avg hold time (if data available)
-                if (trades.length > 0 && trades[0].OpenTime && trades[0].CloseTime) {
-                    const totalMinutes = trades.reduce((sum, trade) => {
-                        if (trade.OpenTime && trade.CloseTime) {
-                            const open = new Date(trade.OpenTime);
-                            const close = new Date(trade.CloseTime);
-                            return sum + (close - open) / (1000 * 60);
-                        }
-                        return sum;
-                    }, 0);
-                    const avgMinutes = Math.round(totalMinutes / trades.length);
-                    const hours = Math.floor(avgMinutes / 60);
-                    const mins = avgMinutes % 60;
-                    document.getElementById('avgHoldTime').textContent =
-                        hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-                } else {
-                    document.getElementById('avgHoldTime').textContent = '--';
-                }
-
-                // Find best trade
-                if (trades.length > 0) {
-                    const bestTrade = trades.reduce((best, trade) =>
-                        (trade.ProfitLoss || 0) > (best.ProfitLoss || 0) ? trade : best
-                    );
-                    const bestPnL = saxoAPI.formatCurrency(saxoAPI.convertToGBP(bestTrade.ProfitLoss || 0), true);
-                    document.getElementById('bestTrade').textContent = bestPnL;
-                    document.getElementById('bestTradeSymbol').textContent =
-                        `${bestTrade.Symbol || 'N/A'}`;
+                if (tradeCount > 0) {
+                    const best = positions.reduce((best, p) => (
+                        (p.dayChangeDollar || 0) > (best.dayChangeDollar || 0) ? p : best
+                    ), positions[0]);
+                    document.getElementById('bestTrade').textContent = formatCurrency(best.dayChangeDollar || 0);
+                    document.getElementById('bestTradeSymbol').textContent = best.symbol || 'N/A';
                 } else {
                     document.getElementById('bestTrade').textContent = '--';
-                    document.getElementById('bestTradeSymbol').textContent = 'No trades';
+                    document.getElementById('bestTradeSymbol').textContent = 'No positions';
                 }
 
             } catch (error) {
