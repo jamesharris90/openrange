@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "cd ../client && npm install && npm run build",
+    "build": "echo Backend build step",
     "dev": "nodemon index.js",
     "start-detached": "./scripts/start.sh",
     "stop-detached": "./scripts/stop.sh",
