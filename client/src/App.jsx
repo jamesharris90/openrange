@@ -19,7 +19,7 @@ const AIQuantPage = lazy(() => import('./components/ai-quant/AIQuantPage'));
 
 export default function App() {
   return (
-    <BrowserRouter basename="/app">
+    <BrowserRouter>
       <AppShell>
         <Routes>
           <Route path="/premarket" element={<PreMarketPage />} />

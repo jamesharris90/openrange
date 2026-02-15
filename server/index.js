@@ -262,6 +262,7 @@ const PORT = process.env.PORT || 3000;
 const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const FRONTEND_PATH = path.join(__dirname, '..');
+const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 const PPLX_MODEL = process.env.PPLX_MODEL || 'sonar-pro';
 const SEC_JSON_PATH = path.join(__dirname, 'data', 'sec-earnings-today.json');
@@ -348,31 +349,6 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(earningsRoutes);
   app.use(adminRoutes);
 
-// Serve React app (Vite build) at /app/* (allow SPA fallthrough)
-const REACT_BUILD = path.join(__dirname, '..', 'client-dist');
-app.use('/app', express.static(REACT_BUILD, { fallthrough: true }));
-app.get('/app/*', (req, res) => {
-  const indexPath = path.join(REACT_BUILD, 'index.html');
-  const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('React app not built. Run: cd client && npm run build');
-  }
-});
-// Friendly aliases for SPA deep links (earnings & watchlist) with optional trailing segments
-app.get([
-  '/earnings', '/earnings/*', '/app/earnings', '/app/earnings/*',
-  '/watchlist', '/watchlist/*', '/app/watchlist', '/app/watchlist/*'
-], (req, res) => {
-  const indexPath = path.join(REACT_BUILD, 'index.html');
-  const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('React app not built. Run: cd client && npm run build');
-  }
-});
 
 // Rate limiting for registration endpoint (more strict)
 const registrationLimiter = rateLimit({
@@ -1470,20 +1446,8 @@ app.get('/api/news/snippet', async (req, res) => {
   }
 });
 
-// Final SPA catch-all for /app/* deep links (watchlist, earnings, etc.)
-app.get('/app/*', (req, res) => {
-  const indexPath = path.join(REACT_BUILD, 'index.html');
-  const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('React app not built. Run: cd client && npm run build');
-  }
-});
-
 // Production: serve Vite/React frontend from client/dist
 if (process.env.NODE_ENV === 'production') {
-  const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
   app.use(express.static(CLIENT_DIST));
   app.get('*', (req, res) => {
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));

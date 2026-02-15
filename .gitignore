@@ -12,3 +12,5 @@ server/users/*.db-wal
 server/logs/
 server/*.log
 *.log
+client/dist/
+client-dist/
