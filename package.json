@@ -1,0 +1,11 @@
+{
+  "name": "openrange",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "cd server && npm ci && cd ../client && npm install && npm run build",
+    "start": "cd server && node index.js"
+  }
+}
