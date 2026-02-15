@@ -332,10 +332,12 @@ function computeHVMetrics(closes) {
   };
 }
 
-// Serve static files (HTML, CSS, JS) from parent directory FIRST
-app.use(express.static(FRONTEND_PATH, {
-  index: ['login.html']  // Default to login.html if no file specified
-}));
+// In development, serve vanilla HTML/CSS/JS from parent directory
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(FRONTEND_PATH, {
+    index: ['login.html']
+  }));
+}
     
   // New modular routes
   app.use(quotesRoutes);
@@ -1478,5 +1480,14 @@ app.get('/app/*', (req, res) => {
     res.status(404).send('React app not built. Run: cd client && npm run build');
   }
 });
+
+// Production: serve Vite/React frontend from client/dist
+if (process.env.NODE_ENV === 'production') {
+  const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
+  app.use(express.static(CLIENT_DIST));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => logger.info(`Broker monitor listening on http://localhost:${PORT}`));
