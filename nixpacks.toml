@@ -1,1 +1,8 @@
-providers = ['node']
+[phases.setup]
+nixPkgs = ['nodejs_22']
+
+[phases.build]
+cmds = ['cd server && npm ci && cd ../client && npm install && npm run build']
+
+[start]
+cmd = 'cd server && node index.js'
