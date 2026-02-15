@@ -262,7 +262,7 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const FRONTEND_PATH = path.join(__dirname, '..');
+const FRONTEND_PATH = path.join(__dirname, '..', 'pages');
 const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 const PPLX_MODEL = process.env.PPLX_MODEL || 'sonar-pro';
@@ -334,11 +334,13 @@ function computeHVMetrics(closes) {
   };
 }
 
-// In development, serve vanilla HTML/CSS/JS from parent directory
+// In development, serve vanilla HTML/CSS/JS
 if (process.env.NODE_ENV !== 'production') {
   app.use(express.static(FRONTEND_PATH, {
     index: ['login.html']
   }));
+  // Serve JS, CSS, and other assets from repo root
+  app.use(express.static(path.join(__dirname, '..')));
 }
     
   // New modular routes
