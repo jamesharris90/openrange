@@ -32,7 +32,7 @@ COPY --from=build /app/client/dist ./client/dist
 COPY pages ./pages
 COPY js ./js
 COPY styles.css ./
-COPY "logo pack" "./logo pack"
+COPY ["logo pack", "./logo pack/"]
 
 # Railway provides $PORT; server/index.js uses process.env.PORT
 EXPOSE 3000
