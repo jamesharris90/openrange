@@ -28,6 +28,12 @@ RUN cd server && npm ci --omit=dev
 COPY server ./server
 COPY --from=build /app/client/dist ./client/dist
 
+# Copy legacy static assets referenced by production server
+COPY pages ./pages
+COPY js ./js
+COPY styles.css ./
+COPY "logo pack" "./logo pack"
+
 # Railway provides $PORT; server/index.js uses process.env.PORT
 EXPOSE 3000
 CMD ["node", "server/index.js"]

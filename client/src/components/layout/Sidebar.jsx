@@ -112,20 +112,20 @@ function UserPanel() {
     if (!user.isLoggedIn) {
       return (
         <>
-          <a href="/login.html" className="sidebar-user__btn">Login</a>
-          <a href="/register.html" className="sidebar-user__btn">Register</a>
+          <a href="/pages/login.html" className="sidebar-user__btn">Login</a>
+          <a href="/pages/register.html" className="sidebar-user__btn">Register</a>
         </>
       );
     }
     return (
       <>
-        <a href="/user.html" className="sidebar-user__btn">Profile</a>
-        {user.isAdmin && <a href="/admin.html" className="sidebar-user__btn">Admin</a>}
+        <a href="/pages/user.html" className="sidebar-user__btn">Profile</a>
+        {user.isAdmin && <a href="/pages/admin.html" className="sidebar-user__btn">Admin</a>}
         <button
           className="sidebar-user__btn sidebar-user__btn--logout"
           onClick={() => {
             localStorage.removeItem('authToken');
-            window.location.href = '/login.html';
+            window.location.href = '/pages/login.html';
           }}
         >
           Logout

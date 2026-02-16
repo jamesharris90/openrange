@@ -51,7 +51,7 @@
             result.textContent = 'Loading...';
             
             try {
-                const response = await fetch('http://localhost:8080/api/stock/AAPL');
+                const response = await fetch('/api/yahoo/quote?t=AAPL');
                 const data = await response.json();
                 result.textContent = JSON.stringify(data, null, 2);
             } catch (error) {

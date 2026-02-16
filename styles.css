@@ -2,31 +2,74 @@
 
 :root {
     /* Color Palette */
-    --bg-primary: #0b1220;
-    --bg-secondary: #111827;
-    --bg-card: #1f2937;
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #141824;
+    --bg-card: #1a1f2e;
     --bg-card-hover: #202637;
     --bg-surface: #111827;
     --bg-elevated: #1f2937;
+    --bg-sidebar: #0f1419;
+
+    /* Accent Colors */
+    --accent-blue: #4a9eff;
+    --accent-purple: #a855f7;
+    --accent-orange: #f97316;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+
+    /* Gradients */
+    --gradient-blue: linear-gradient(135deg, #4a9eff 0%, #2563eb 100%);
+    --gradient-purple: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+    --gradient-orange: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    --gradient-multi: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+
+    /* Text Colors */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Borders */
+    --border-color: #2d3748;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --market-bar-height: 56px;
+
     /* Sidebar */
     --sidebar-width: 238px;
     --sidebar-collapsed: 80px;
-    /* Borders */
-    --border-color: rgba(255, 255, 255, 0.06);
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    /* Text */
-    --text-primary: #e5e7eb;
-    --text-secondary: #94a3b8;
-    --text-muted: #9ca3af;
-    /* Accent */
-    --accent-blue: #3b82f6;
+
+    /* Icons */
+    --icon-color: #64748b;
+    --icon-color-hover: #94a3b8;
+    --icon-color-active: #4a9eff;
+    --icon-stroke-width: 1.5;
+}
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    font-family: Inter, system-ui, -apple-system, sans-serif;
 }
 
 /* Layout shells */

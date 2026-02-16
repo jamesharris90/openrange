@@ -199,7 +199,7 @@ app.use(loggingMiddleware);
 // CORS configuration - restrict in production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
+    ? process.env.ALLOWED_ORIGINS?.split(',') || ['https://openrangetrading.co.uk', 'https://www.openrangetrading.co.uk']
     : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -207,7 +207,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Security hcurl -k https://localhost:5001/v1/portal/iserver/auth/statuseaders middleware
+// Security headers middleware
 app.use((req, res, next) => {
   // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -229,7 +229,7 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://finnhub.io https://elite.finviz.com; " +
+      "connect-src 'self' https://finnhub.io https://elite.finviz.com https://gateway.saxobank.com; " +
       "frame-src 'self' https://s3.tradingview.com"
     );
   }
@@ -262,6 +262,9 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  logger.warn('JWT_SECRET not set — using insecure default. Set JWT_SECRET env var in production.');
+}
 const FRONTEND_PATH = path.join(__dirname, '..', 'pages');
 const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
@@ -388,6 +391,21 @@ async function resolvePplxConfig(req) {
 // Public endpoints (no auth required)
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
+});
+
+app.get('/api/market-status', (req, res) => {
+  const now = new Date();
+  const nyOptions = { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hour12: false };
+  const parts = new Intl.DateTimeFormat('en-US', nyOptions).formatToParts(now);
+  const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  const nyTime = hour * 60 + minute;
+  const dayOfWeek = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay();
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+  const isOpen = isWeekday && nyTime >= 570 && nyTime < 960; // 9:30-16:00 ET
+  const isPreMarket = isWeekday && nyTime >= 240 && nyTime < 570; // 4:00-9:30 ET
+  const isAfterHours = isWeekday && nyTime >= 960 && nyTime < 1200; // 16:00-20:00 ET
+  res.json({ isOpen, isPreMarket, isAfterHours });
 });
 
 app.get('/api/config', (req, res) => {
@@ -1462,12 +1480,10 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
   app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
   app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
-  app.get('/openrange.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'openrange.css')));
-  app.get('/site.webmanifest', (req, res) => res.sendFile(path.join(__dirname, '..', 'site.webmanifest')));
 
   app.get('*', (req, res) => {
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
   });
 }
 
-app.listen(PORT, () => logger.info(`Broker monitor listening on http://localhost:${PORT}`));
+app.listen(PORT, () => logger.info(`OpenRange server listening on port ${PORT}`));
