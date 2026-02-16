@@ -393,7 +393,10 @@ app.get('/api/health', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     brokers: ['ibkr', 'saxo'],
-    proxyApi: !!PROXY_API_KEY
+    proxyApi: !!PROXY_API_KEY,
+    finvizEnabled: !!FINVIZ_NEWS_TOKEN,
+    finnhubEnabled: !!process.env.FINNHUB_API_KEY,
+    pplxEnabled: !!PPLX_API_KEY
   });
 });
 
@@ -1452,6 +1455,16 @@ app.get('/api/news/snippet', async (req, res) => {
 // Production: serve Vite/React frontend from client/dist
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(CLIENT_DIST));
+
+  // Also serve legacy static assets (pages/, js/, and root CSS) so deep links and
+  // older HTML pages don't lose styling/scripts in production.
+  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
+  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
+  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
+  app.get('/openrange.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'openrange.css')));
+  app.get('/site.webmanifest', (req, res) => res.sendFile(path.join(__dirname, '..', 'site.webmanifest')));
+
   app.get('*', (req, res) => {
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
   });
