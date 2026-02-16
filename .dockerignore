@@ -1,0 +1,12 @@
+**/node_modules
+**/.DS_Store
+server/logs
+server/users/users.db
+server/saxo-tokens.json
+.env
+**/.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+**/.vite
+client/dist

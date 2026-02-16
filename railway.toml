@@ -1,0 +1,12 @@
+# Railway config to avoid Staticfile detection and run the Node backend.
+# If your service is currently set to "Static" in the Railway UI,
+# switch it to "Dockerfile" (or re-create the service) so this repo's
+# root Dockerfile is used.
+
+[build]
+builder = "DOCKERFILE"
+
+[deploy]
+startCommand = "node server/index.js"
+healthcheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"
