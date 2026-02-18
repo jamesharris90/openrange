@@ -1,56 +1,68 @@
-import React from 'react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import TabbedFilterPanel from '../shared/TabbedFilterPanel';
 
-const FILTER_FIELDS = [
-  { key: 'priceMin', label: 'Price Min', placeholder: '5', type: 'number', step: '1' },
-  { key: 'priceMax', label: 'Price Max', placeholder: '500', type: 'number', step: '1' },
-  { key: 'gapMin', label: 'Gap% Min', placeholder: '2', type: 'number', step: '0.5' },
-  { key: 'rvolMin', label: 'RVOL Min', placeholder: '1.5', type: 'number', step: '0.1' },
-  { key: 'avgVolMin', label: 'Avg Vol Min', placeholder: '500000', type: 'number', step: '100000' },
-  { key: 'emMin', label: 'Exp Move% Min', placeholder: '3', type: 'number', step: '1' },
-  { key: 'minConfirmations', label: 'Min Confirmations', placeholder: '1', type: 'number', step: '1' },
-];
+const STRATEGY_UNIVERSE = {
+  orb: { label: 'ORB Intraday', rules: 'Avg Volume > 500K · Change > 3%' },
+  earnings: { label: 'Earnings Momentum', rules: 'Earnings Calendar · Next 5 Days' },
+  continuation: { label: 'Continuation', rules: 'Above 20-SMA · Above 50-SMA · Avg Vol > 500K' },
+};
 
-export default function GlobalFiltersPanel({ filters, setFilters, validationMode, setValidationMode, collapsed, setCollapsed }) {
-  const update = (key, val) => {
-    const v = val === '' ? undefined : Number(val);
-    setFilters(prev => ({ ...prev, [key]: v }));
-  };
+export default function GlobalFiltersPanel({
+  filters, setFilters, validationMode, setValidationMode,
+  collapsed, setCollapsed, activeStrategy,
+}) {
+  const activeCount = Object.entries(filters).filter(([, v]) => {
+    if (Array.isArray(v)) return v.length > 0;
+    return v !== '' && v != null;
+  }).length + (validationMode ? 1 : 0);
 
-  const activeCount = Object.values(filters).filter(v => v != null).length + (validationMode ? 1 : 0);
-  const clearAll = () => { setFilters({}); setValidationMode(false); };
+  const universe = STRATEGY_UNIVERSE[activeStrategy];
+
+  if (collapsed) {
+    return (
+      <button className="aiq-filter-toggle-btn" onClick={() => setCollapsed(false)} type="button">
+        <SlidersHorizontal size={14} />
+        <span>Filters</span>
+        {activeCount > 0 && <span className="filter-count-badge">{activeCount}</span>}
+      </button>
+    );
+  }
 
   return (
     <div className="aiq-filters-panel">
-      <div className="aiq-filters-header" onClick={() => setCollapsed(!collapsed)}>
-        <span className="aiq-filters-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-          Filters {activeCount > 0 && <span className="aiq-filters-count">{activeCount}</span>}
-        </span>
-        <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {activeCount > 0 && <button className="aiq-filters-clear" onClick={e => { e.stopPropagation(); clearAll(); }}>Clear</button>}
-          <span className="aiq-filters-chevron">{collapsed ? '▸' : '▾'}</span>
-        </span>
+      <div className="aiq-filters-panel__header">
+        <div className="aiq-filters-panel__title">
+          <SlidersHorizontal size={14} />
+          <span>Filters</span>
+          {activeCount > 0 && <span className="filter-count-badge">{activeCount}</span>}
+        </div>
+        <button className="aiq-icon-btn" onClick={() => setCollapsed(true)} title="Collapse"><X size={14} /></button>
       </div>
-      {!collapsed && (
-        <div className="aiq-filters-body">
-          <div className="aiq-filters-grid">
-            {FILTER_FIELDS.map(f => (
-              <label key={f.key} className="aiq-filter-field">
-                <span>{f.label}</span>
-                <input type={f.type} step={f.step} placeholder={f.placeholder}
-                  value={filters[f.key] ?? ''} onChange={e => update(f.key, e.target.value)} />
-              </label>
-            ))}
-          </div>
-          <label className="aiq-validation-toggle">
-            <input type="checkbox" checked={validationMode} onChange={e => setValidationMode(e.target.checked)} />
-            <span className="aiq-validation-label">
-              <strong>Validation Mode</strong>
-              <small>≥2 confirmations · Avg Vol ≥500K · Complete data only</small>
-            </span>
-          </label>
+
+      {/* Strategy Universe Rules */}
+      {universe && (
+        <div className="aiq-filters-universe">
+          <span className="aiq-filters-universe__label">Strategy Universe:</span>
+          <span className="aiq-filters-universe__rules">{universe.rules}</span>
         </div>
       )}
+
+      {/* Full TabbedFilterPanel with all filters */}
+      <TabbedFilterPanel
+        filters={filters}
+        setFilters={setFilters}
+        collapsed={false}
+        setCollapsed={null}
+      />
+
+      {/* Validation Mode */}
+      <label className="aiq-validation-toggle">
+        <input type="checkbox" checked={validationMode} onChange={e => setValidationMode(e.target.checked)} />
+        <span className="aiq-validation-label">
+          <strong>Validation Mode</strong>
+          <small>2+ confirmations · Avg Vol 500K+ · Complete data only</small>
+        </span>
+      </label>
     </div>
   );
 }

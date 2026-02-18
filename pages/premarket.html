@@ -400,27 +400,66 @@
         <aside class="sidebar"></aside>
 
         <!-- Main Content -->
-        <main class="main-content">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                <h1 class="page-title">
-                    <i data-lucide="sunrise" style="width:24px;height:24px;margin-right:10px;vertical-align:middle;"></i>
-                    Pre-Market Analysis
-                </h1>
-                <div class="top-bar-actions" style="gap:8px;align-items:center;">
-                    <div class="market-status">
-                        <div class="status-dot" style="background:var(--accent-orange);"></div>
-                        <span class="status-text" id="marketStatus">Loading...</span>
+        <main class="main-content" style="display:flex;flex-direction:row;min-height:100vh;">
+            <!-- Market Context (Left Panel) -->
+            <aside class="market-context-panel" style="width:320px;min-width:280px;max-width:340px;margin-right:32px;">
+                <div class="card" style="margin-bottom:24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="activity" style="width:20px;height:20px;margin-right:8px;"></i>
+                            Market Context
+                        </div>
                     </div>
-                    <button class="btn-secondary" onclick="exportLiveNews('csv')">
-                        <i data-lucide="download" style="width:15px;height:15px;margin-right:5px;vertical-align:middle;"></i>
-                        Export
-                    </button>
+                    <div class="card-body">
+                        <div style="margin-bottom:16px;">
+                            <span class="badge badge-neutral" style="background:var(--accent-orange);color:#fff;padding:4px 10px;border-radius:6px;font-weight:600;">NEUTRAL</span>
+                            <span style="margin-left:10px;color:var(--text-muted);font-size:0.92em;">• VIX cautious (21.20)</span>
+                        </div>
+                        <div style="margin-bottom:18px;">
+                            <b>SPY</b> <span style="color:var(--accent-green);">681.75 <b>+0.07%</b></span><br>
+                            <b>QQQ</b> <span style="color:var(--accent-green);">601.92 <b>+0.21%</b></span><br>
+                            <b>VIX</b> <span style="color:var(--accent-green);">21.20 <b>+1.83%</b></span><br>
+                            <b>DX-Y.NYB</b> <span style="color:var(--accent-green);">97.10 <b>+0.18%</b></span>
+                        </div>
+                        <div style="margin-bottom:18px;">
+                            <b>Technicals</b><br>
+                            <span style="font-size:0.95em;">SPY <span style="color:var(--accent-red);">9</span> <span style="color:var(--accent-orange);">20</span> <span style="color:var(--accent-blue);">50</span></span><br>
+                            <span style="font-size:0.95em;">QQQ <span style="color:var(--accent-red);">9</span> <span style="color:var(--accent-orange);">20</span> <span style="color:var(--accent-blue);">50</span></span>
+                        </div>
+                        <div>
+                            <b>Sector Performance</b>
+                            <ul style="margin:8px 0 0 0;padding:0;list-style:none;">
+                                <li><span style="color:var(--accent-green);">Crypto</span> <b>+5.08%</b></li>
+                                <li><span style="color:var(--accent-green);">Utilities</span> <b>+2.76%</b></li>
+                                <li><span style="color:var(--accent-green);">Real Estate</span> <b>+1.47%</b></li>
+                                <li><span style="color:var(--accent-green);">Healthcare</span> <b>+1.07%</b></li>
+                                <li><span style="color:var(--accent-green);">Materials</span> <b>+0.91%</b></li>
+                                <li><span style="color:var(--accent-green);">Industrials</span> <b>+0.82%</b></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </aside>
 
-            <!-- Content -->
-            <div class="content-container">
+            <!-- Main Dashboard Area -->
+            <section style="flex:1;min-width:0;">
+                <!-- Top Bar -->
+                <div class="top-bar" style="display:flex;align-items:center;justify-content:space-between;">
+                    <h1 class="page-title">
+                        <i data-lucide="sunrise" style="width:24px;height:24px;margin-right:10px;vertical-align:middle;"></i>
+                        Pre-Market Analysis
+                    </h1>
+                    <div class="top-bar-actions" style="gap:8px;align-items:center;display:flex;">
+                        <div class="market-status">
+                            <div class="status-dot" style="background:var(--accent-orange);"></div>
+                            <span class="status-text" id="marketStatus">Loading...</span>
+                        </div>
+                        <button class="btn-secondary" onclick="exportLiveNews('csv')">
+                            <i data-lucide="download" style="width:15px;height:15px;margin-right:5px;vertical-align:middle;"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Stat Cards -->
                 <div class="grid-3">
@@ -450,9 +489,27 @@
                     </div>
                 </div>
 
+                <!-- 2x2 Chart Grid -->
+                <div class="card" style="margin:32px 0 24px 0;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="line-chart" style="width:20px;height:20px;margin-right:8px;"></i>
+                            Live Market Charts
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div class="chart-grid-2x2" style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px;height:700px;">
+                            <div class="widget-container" style="height:100%;width:100%;"><div id="chart1" style="height:100%;width:100%;"></div></div>
+                            <div class="widget-container" style="height:100%;width:100%;"><div id="chart2" style="height:100%;width:100%;"></div></div>
+                            <div class="widget-container" style="height:100%;width:100%;"><div id="chart3" style="height:100%;width:100%;"></div></div>
+                            <div class="widget-container" style="height:100%;width:100%;"><div id="chart4" style="height:100%;width:100%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Main Grid: Scanner + Sidebar -->
                 <div class="grid-2-1">
-                    <!-- LEFT: Scanner + Charts -->
+                    <!-- LEFT: Scanner -->
                     <div>
                         <!-- Scanner Card -->
                         <div class="card">
@@ -467,7 +524,6 @@
                                 <div id="premarketStatus" class="pm-status-bar">
                                     Loading scanner...
                                 </div>
-
                                 <!-- Collapsible Filters -->
                                 <details class="pm-filter-panel" open>
                                     <summary class="pm-filter-toggle">
@@ -486,7 +542,6 @@
                                                 <input id="scannerFilterText" class="filter-input" placeholder="Filter by ticker or headline" />
                                             </div>
                                         </div>
-
                                         <!-- Stock Filters -->
                                         <div class="pm-filter-row pm-filter-row--5col">
                                             <div class="pm-filter-field">
@@ -547,7 +602,6 @@
                                                 </select>
                                             </div>
                                         </div>
-
                                         <!-- Catalysts -->
                                         <div class="pm-filter-section-label">Catalysts</div>
                                         <div class="pm-catalyst-row">
@@ -576,7 +630,6 @@
                                                 <i data-lucide="compass" style="width:14px;height:14px;"></i> Guidance
                                             </button>
                                         </div>
-
                                         <!-- Freshness -->
                                         <div class="pm-filter-section-label">News Freshness</div>
                                         <div class="pm-freshness-row" id="premarketFreshnessFilters">
@@ -591,7 +644,6 @@
                                             <button class="freshness-pill" data-freshness="lt30d">&lt;30d</button>
                                             <button class="freshness-pill freshness-clear" data-freshness="">Clear</button>
                                         </div>
-
                                         <!-- Filter Actions -->
                                         <div class="pm-filter-actions">
                                             <button class="btn-primary" onclick="fetchLiveNewsFromInput()">
@@ -605,43 +657,11 @@
                                         </div>
                                     </div>
                                 </details>
-
                                 <!-- Scanner Results -->
                                 <div id="premarketLiveNews" class="pm-scanner-table"></div>
                             </div>
                         </div>
-
-                        <!-- SPY Chart -->
-                        <div class="card" style="margin-top:24px;">
-                            <div class="card-header">
-                                <div class="card-title">
-                                    <i data-lucide="line-chart" style="width:20px;height:20px;margin-right:8px;"></i>
-                                    SPY - 15 Minute Chart
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding:0;">
-                                <div class="widget-container" style="height:450px;">
-                                    <div id="spyChartWidget" style="height:100%;width:100%;"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Market Heatmap -->
-                        <div class="card" style="margin-top:24px;">
-                            <div class="card-header">
-                                <div class="card-title">
-                                    <i data-lucide="grid-3x3" style="width:20px;height:20px;margin-right:8px;"></i>
-                                    Market Heatmap
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding:0;">
-                                <div class="widget-container" style="height:400px;">
-                                    <div id="heatmapWidget" style="height:100%;width:100%;"></div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
                     <!-- RIGHT: News + Checklist -->
                     <div>
                         <!-- Breaking News -->
@@ -666,7 +686,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <!-- Pre-Market Checklist -->
                         <div class="card" style="margin-top:24px;">
                             <div class="card-header">
@@ -708,7 +727,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 </body>

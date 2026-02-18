@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+const ROWS_PER_BATCH = 80;
 import useEarningsCalendar from '../../hooks/useEarningsCalendar';
 import useWatchlist from '../../hooks/useWatchlist';
 import WeekSelector from './WeekSelector';
@@ -140,7 +141,9 @@ export default function EarningsPage() {
   const [visibleCols, setVisibleCols] = useState(() => new Set(DEFAULT_VISIBLE_COLUMNS));
   const [compact, setCompact] = useState(false);
   const [showColMenu, setShowColMenu] = useState(false);
+  const [renderedCount, setRenderedCount] = useState(ROWS_PER_BATCH);
   const colMenuRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   // Persist filters to sessionStorage (survives SPA navigation, clears on tab close)
   useEffect(() => {
@@ -221,6 +224,24 @@ export default function EarningsPage() {
       return sortDir === 'asc' ? va - vb : vb - va;
     });
   }, [filtered, sortCol, sortDir, scoreMap]);
+
+  // Reset rendered count when data/filters change
+  useEffect(() => { setRenderedCount(ROWS_PER_BATCH); }, [sorted.length]);
+
+  // Progressive rendering: auto-load more rows as user scrolls
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setRenderedCount(prev => Math.min(prev + ROWS_PER_BATCH, sorted.length));
+      }
+    }, { rootMargin: '200px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [sorted.length]);
+
+  const displayedRows = useMemo(() => sorted.slice(0, renderedCount), [sorted, renderedCount]);
 
   const handleSort = useCallback((key) => {
     if (sortCol === key) {
@@ -430,11 +451,21 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.length === 0 ? (
+                {loading && sorted.length === 0 ? (
+                  Array.from({ length: 12 }).map((_, i) => (
+                    <tr key={`skel-${i}`}>
+                      {visibleSpecs.map(col => (
+                        <td key={col.key}>
+                          <div className="skeleton-bar" style={{ height: 14, width: `${40 + Math.random() * 50}%` }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : sorted.length === 0 ? (
                   <tr><td colSpan={visibleSpecs.length} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                    {loading ? 'Loading earnings data…' : 'No earnings match your filters'}
+                    No earnings match your filters
                   </td></tr>
-                ) : sorted.map(row => (
+                ) : displayedRows.map(row => (
                   <tr key={`${row.symbol}-${row.date}`} className={rowClassName(row)}>
                     {visibleSpecs.map(col => (
                       <td key={col.key}
@@ -449,6 +480,11 @@ export default function EarningsPage() {
                     ))}
                   </tr>
                 ))}
+                {renderedCount < sorted.length && (
+                  <tr ref={sentinelRef}><td colSpan={visibleSpecs.length} style={{ textAlign: 'center', padding: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                    Loading more rows...
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </div>

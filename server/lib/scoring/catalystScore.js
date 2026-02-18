@@ -158,9 +158,9 @@ function score(data) {
     }
   }
 
-  const score = Math.max(0, Math.min(pts, max));
-
-  return { score, max, breakdown };
+  const finalScore = Math.max(0, Math.min(pts, max));
+  const available = hasEarnings || news.length > 0;
+  return { score: finalScore, max, breakdown, available };
 }
 
 module.exports = { score };

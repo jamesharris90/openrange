@@ -1115,20 +1115,24 @@ app.get('/api/finviz/screener', async (req, res) => {
   try {
     // Get filter parameters from query string
     const tickers = req.query.t || ''; // Optional ticker list
-    const filters = req.query.f !== undefined ? req.query.f : (tickers ? '' : 'sh_avgvol_o500,ta_change_u5'); // Default filters only if no tickers specified
+    // When f= is explicitly passed (even empty string), use it as-is.
+    // Only apply defaults when f is completely absent from the query.
+    const filters = req.query.f !== undefined ? req.query.f : (tickers ? '' : 'sh_avgvol_o500,ta_change_u5');
     const view = req.query.v || '111'; // Default view
     const columns = req.query.c || ''; // Optional custom columns
     const order = req.query.o || ''; // Optional ordering
+    const page = parseInt(req.query.r) || 0; // Row offset for pagination (Finviz uses r= param)
 
-    // Build Finviz export URL - use filters only if provided or if no tickers
+    // Build Finviz export URL - always include f= if filters are non-empty
     let url = `https://elite.finviz.com/export.ashx?v=${view}&auth=${FINVIZ_NEWS_TOKEN}`;
     if (filters) url += `&f=${filters}`;
     if (columns) url += `&c=${columns}`;
     if (order) url += `&o=${order}`;
     if (tickers) url += `&t=${tickers}`;
+    if (page > 0) url += `&r=${page}`;
 
-    logger.info('Fetching Finviz screener:', { filters: filters || 'none', view, tickers: tickers ? tickers.substring(0, 100) : 'none' });
-    const cacheKey = `screener:${view}:${filters || 'none'}:${order || 'none'}:${tickers || 'none'}`;
+    logger.info('Fetching Finviz screener:', { filters: filters || 'none', view, page, tickers: tickers ? tickers.substring(0, 100) : 'none' });
+    const cacheKey = `screener:${view}:${filters || 'none'}:${order || 'none'}:${tickers || 'none'}:${page}`;
     const csvData = await fetchFinvizCsv(url, cacheKey, 12000);
     res.json(csvData);
 
@@ -1136,6 +1140,74 @@ app.get('/api/finviz/screener', async (req, res) => {
     logger.error('Finviz screener fetch error:', { error: err.message, stack: err.stack });
     res.status(502).json({ error: 'Failed to fetch Finviz screener', detail: err.message });
   }
+});
+
+// Batch news freshness for screener tickers (public)
+const newsFreshnessCache = {};
+const NEWS_FRESHNESS_CACHE_MS = 120 * 1000; // 2 minutes
+app.get('/api/finviz/news-freshness', async (req, res) => {
+  const tickers = (req.query.t || '').trim().toUpperCase();
+  if (!tickers) return res.json({});
+  if (!FINVIZ_NEWS_TOKEN) return res.json({});
+
+  const tickerList = tickers.split(',').slice(0, 100); // max 100 tickers
+  const now = Date.now();
+  const result = {};
+  const missing = [];
+
+  // Check cache first
+  for (const t of tickerList) {
+    const cached = newsFreshnessCache[t];
+    if (cached && now - cached.ts < NEWS_FRESHNESS_CACHE_MS) {
+      result[t] = cached.data;
+    } else {
+      missing.push(t);
+    }
+  }
+
+  // Fetch missing from Finviz news scanner (batch by ticker list)
+  if (missing.length > 0) {
+    try {
+      const batchTickers = missing.join(',');
+      const url = `https://elite.finviz.com/news_export.ashx?v=3&auth=${FINVIZ_NEWS_TOKEN}&t=${batchTickers}`;
+      const response = await axios.get(url, { responseType: 'text', timeout: 10000 });
+      const csvData = await csv().fromString(response.data);
+
+      // Group by ticker, find most recent article per ticker
+      const byTicker = {};
+      for (const row of csvData) {
+        const ticker = (row.Ticker || '').trim().toUpperCase();
+        if (!ticker) continue;
+        const datetime = row.Date && row.Time
+          ? new Date(`${row.Date} ${row.Time}`).getTime()
+          : null;
+        if (!datetime) continue;
+        if (!byTicker[ticker] || datetime > byTicker[ticker].datetime) {
+          byTicker[ticker] = {
+            datetime,
+            ageHours: (now - datetime) / (1000 * 60 * 60),
+            headline: row.Headline || row.Title || '',
+            source: row.Source || 'Finviz',
+          };
+        }
+      }
+
+      for (const t of missing) {
+        const info = byTicker[t] || { ageHours: null, headline: null, source: null, datetime: null };
+        result[t] = info;
+        newsFreshnessCache[t] = { data: info, ts: now };
+      }
+    } catch (err) {
+      logger.warn('News freshness batch fetch error:', { error: err.message });
+      // Return what we have from cache
+      for (const t of missing) {
+        const stale = newsFreshnessCache[t];
+        result[t] = stale ? stale.data : { ageHours: null, headline: null, source: null, datetime: null };
+      }
+    }
+  }
+
+  res.json(result);
 });
 
 // User management API (handles its own auth, but apply rate limiting to registration)
@@ -1150,6 +1222,14 @@ app.use(authMiddleware);
 
 // Broker abstraction routes (monitoring-only)
 app.use(brokerRoutes);
+
+// Trade Intelligence routes
+const tradesRoutes = require('./routes/trades');
+const dailyReviewsRoutes = require('./routes/dailyReviews');
+const demoRoutes = require('./routes/demo');
+app.use(tradesRoutes);
+app.use(dailyReviewsRoutes);
+app.use(demoRoutes);
 
 // Usage metrics (after auth so user is available)
 app.use(usageMiddleware);
@@ -1485,5 +1565,9 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
   });
 }
+
+// Start daily review cron
+const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
+startDailyReviewCron();
 
 app.listen(PORT, () => logger.info(`OpenRange server listening on port ${PORT}`));

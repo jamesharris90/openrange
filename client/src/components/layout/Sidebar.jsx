@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { BarChart2, Calendar, Gauge, LayoutGrid, Newspaper, Star, Sunrise, Target, Bot, Globe2, Clock3, Search } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const navSections = [
   {
     id: 'main',
     label: 'Main',
     items: [
-      { to: '/watchlist', icon: BarChart2, label: 'Dashboard' },
+      { to: '/watchlist', key: 'dashboard', icon: BarChart2, label: 'Dashboard' },
       { to: '/screeners', icon: LayoutGrid, label: 'Screeners' },
-      { to: '/watchlist', icon: Star, label: 'Watchlist' },
+      { to: '/watchlist', key: 'watchlist', icon: Star, label: 'Watchlist' },
     ],
   },
   {
@@ -42,15 +42,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <NavLink to="/watchlist" className="logo">
-          <div className="logo-icon">
-            <img src="/logo pack/openrange_icon.png" alt="OpenRange Trader" />
-          </div>
-          <div className="logo-text">
-            <div className="brand-name">
-              <span className="open">Open</span><span className="range">Range</span>
-            </div>
-            <div className="brand-tagline">TRADER</div>
-          </div>
+          <img src="/OpenRange_Logo_White.png" alt="OpenRange Trader" className="logo-img" />
         </NavLink>
       </div>
 
@@ -58,10 +50,10 @@ export default function Sidebar() {
         {navSections.map(({ id, label, items }) => (
           <div key={id}>
             <div className="nav-label" style={id !== 'main' ? { marginTop: 24 } : undefined}>{label}</div>
-            {items.map(({ to, icon: Icon, label: text, disabled }) => {
+            {items.map(({ to, key, icon: Icon, label: text, disabled }) => {
               if (disabled) {
                 return (
-                  <div key={to} className="nav-link nav-link--disabled" aria-disabled="true">
+                  <div key={key || to} className="nav-link nav-link--disabled" aria-disabled="true">
                     <Icon className="icon" size={18} />
                     <span className="label">{text}</span>
                   </div>
@@ -69,7 +61,7 @@ export default function Sidebar() {
               }
               return (
                 <NavLink
-                  key={to}
+                  key={key || to}
                   to={to}
                   className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                 >
@@ -88,57 +80,28 @@ export default function Sidebar() {
 }
 
 function UserPanel() {
-  const [user, setUser] = useState({ username: 'Guest', isLoggedIn: false, isAdmin: false });
-
-  useEffect(() => {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({
-          username: payload.username || 'User',
-          isLoggedIn: true,
-          isAdmin: !!payload.is_admin,
-        });
-        return;
-      }
-    } catch (e) {
-      console.warn('Failed to parse auth token', e);
-    }
-    setUser({ username: 'Guest', isLoggedIn: false, isAdmin: false });
-  }, []);
-
-  const actions = useMemo(() => {
-    if (!user.isLoggedIn) {
-      return (
-        <>
-          <a href="/pages/login.html" className="sidebar-user__btn">Login</a>
-          <a href="/pages/register.html" className="sidebar-user__btn">Register</a>
-        </>
-      );
-    }
-    return (
-      <>
-        <a href="/pages/user.html" className="sidebar-user__btn">Profile</a>
-        {user.isAdmin && <a href="/pages/admin.html" className="sidebar-user__btn">Admin</a>}
-        <button
-          className="sidebar-user__btn sidebar-user__btn--logout"
-          onClick={() => {
-            localStorage.removeItem('authToken');
-            window.location.href = '/pages/login.html';
-          }}
-        >
-          Logout
-        </button>
-      </>
-    );
-  }, [user]);
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
   return (
     <div className="sidebar-user">
-      <div className="sidebar-user__name">{user.username}</div>
-      <div className="sidebar-user__role">{user.isLoggedIn ? 'Signed in' : 'Not signed in'}</div>
-      <div className="sidebar-user__actions">{actions}</div>
+      <div className="sidebar-user__name">{isAuthenticated ? user.username : 'Guest'}</div>
+      <div className="sidebar-user__role">{isAuthenticated ? 'Signed in' : 'Not signed in'}</div>
+      <div className="sidebar-user__actions">
+        {!isAuthenticated ? (
+          <>
+            <Link to="/login" className="sidebar-user__btn">Login</Link>
+            <Link to="/register" className="sidebar-user__btn">Register</Link>
+          </>
+        ) : (
+          <>
+            <Link to="/profile" className="sidebar-user__btn">Profile</Link>
+            {isAdmin && <Link to="/admin" className="sidebar-user__btn">Admin</Link>}
+            <button className="sidebar-user__btn sidebar-user__btn--logout" onClick={logout}>
+              Logout
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

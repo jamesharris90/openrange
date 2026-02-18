@@ -3,18 +3,38 @@ import { Zap, TrendingUp, BarChart3, Download, ListPlus } from 'lucide-react';
 import ORBModule from './ORBModule';
 import EarningsModule from './EarningsModule';
 import ContinuationModule from './ContinuationModule';
+import StrategyManager from './StrategyManager';
 import { exportToCSV } from './scoring';
 
-const TABS = [
+const SYSTEM_TABS = [
   { id: 'orb', label: 'ORB Intraday', icon: Zap, desc: 'Opening Range Breakout — gap + volume momentum' },
   { id: 'earnings', label: 'Earnings Momentum', icon: BarChart3, desc: 'Post-earnings moves — expected move + surprise' },
   { id: 'continuation', label: 'Continuation', icon: TrendingUp, desc: 'Multi-day trend — MA alignment + breakout' },
 ];
 
+const SYSTEM_MODULES = {
+  orb: ORBModule,
+  earnings: EarningsModule,
+  continuation: ContinuationModule,
+};
+
 export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSelectTicker,
-  filters, selected, onToggleSelect, onDataReady, allData, addToast, watchlist }) {
+  filters, selected, onToggleSelect, onDataReady, allData, addToast, watchlist,
+  strategyPrefs, setStrategyPrefs, customStrategies, onAddCustom, CustomModuleComponent }) {
 
   const [exportOpen, setExportOpen] = useState(false);
+
+  // Build ordered, filtered tab list
+  const orderedTabs = (strategyPrefs?.order || SYSTEM_TABS.map(t => t.id))
+    .filter(id => strategyPrefs?.active?.[id] !== false)
+    .map(id => {
+      const sys = SYSTEM_TABS.find(t => t.id === id);
+      if (sys) return sys;
+      const custom = customStrategies?.find(c => c.id === id);
+      if (custom) return { id: custom.id, label: custom.name, icon: Zap, desc: `Custom: ${custom.name}` };
+      return null;
+    })
+    .filter(Boolean);
 
   const currentRows = allData?.[activeStrategy] || [];
 
@@ -41,7 +61,7 @@ export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSele
   return (
     <div className="aiq-panel aiq-strategy">
       <div className="aiq-tabs">
-        {TABS.map(t => {
+        {orderedTabs.map(t => {
           const Icon = t.icon;
           const count = (allData?.[t.id] || []).length;
           return (
@@ -54,11 +74,12 @@ export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSele
             </button>
           );
         })}
+        <StrategyManager prefs={strategyPrefs} setPrefs={setStrategyPrefs} onAddCustom={onAddCustom} />
       </div>
 
-      {/* Toolbar: description + export + bulk watchlist */}
+      {/* Toolbar */}
       <div className="aiq-toolbar">
-        <div className="aiq-tab-desc">{TABS.find(t => t.id === activeStrategy)?.desc}</div>
+        <div className="aiq-tab-desc">{orderedTabs.find(t => t.id === activeStrategy)?.desc}</div>
         <div className="aiq-toolbar-actions">
           <div style={{ position: 'relative' }}>
             <button className="aiq-btn aiq-btn--sm" onClick={() => setExportOpen(!exportOpen)}>
@@ -88,6 +109,12 @@ export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSele
         {activeStrategy === 'continuation' && <ContinuationModule onSelectTicker={onSelectTicker}
           filters={filters} selected={selected} onToggleSelect={onToggleSelect}
           onDataReady={onDataReady} watchlist={watchlist} />}
+        {CustomModuleComponent && !SYSTEM_MODULES[activeStrategy] && (
+          <CustomModuleComponent strategyId={activeStrategy} onSelectTicker={onSelectTicker}
+            filters={filters} selected={selected} onToggleSelect={onToggleSelect}
+            onDataReady={onDataReady} watchlist={watchlist}
+            customStrategy={customStrategies?.find(c => c.id === activeStrategy)} />
+        )}
       </div>
     </div>
   );

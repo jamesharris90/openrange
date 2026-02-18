@@ -42,16 +42,7 @@
         const list = load().filter(item => item.symbol !== sym);
         save(list);
 
-        // Bi-directional sync: also remove from emWatchlist (Expected Move page)
-        try {
-            const emRaw = localStorage.getItem('emWatchlist');
-            if (emRaw) {
-                const emList = JSON.parse(emRaw);
-                if (Array.isArray(emList) && emList.includes(sym)) {
-                    localStorage.setItem('emWatchlist', JSON.stringify(emList.filter(t => t !== sym)));
-                }
-            }
-        } catch (_) { /* ignore */ }
+        // No longer syncs with emWatchlist; unified under userWatchlist
     }
 
     function has(symbol) {

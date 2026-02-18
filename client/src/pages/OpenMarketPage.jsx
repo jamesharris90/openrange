@@ -24,7 +24,7 @@ export default function OpenMarketPage() {
         </div>
       </div>
 
-      <div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 12 }}>
+      <div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {symbols.map((s, i) => (
           <div key={`${s}-${i}`}>
             <div className="muted" style={{ marginBottom: 6 }}>{s || `Chart ${i + 1}`}</div>

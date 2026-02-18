@@ -17,13 +17,13 @@ function score(data) {
 
   if (!sectorPerformance || !sectorETF) {
     breakdown.push({ factor: 'Sector Relative Strength', value: 'N/A', note: 'Sector data unavailable', points: 0 });
-    return { score: 0, max, breakdown };
+    return { score: 0, max, breakdown, available: false };
   }
 
   const sectorData = sectorPerformance.find(s => s.etf === sectorETF);
   if (!sectorData) {
     breakdown.push({ factor: 'Sector Relative Strength', value: 'N/A', note: `Sector ETF ${sectorETF} not found`, points: 0 });
-    return { score: 0, max, breakdown };
+    return { score: 0, max, breakdown, available: false };
   }
 
   const sectorChange = sectorData.changePercent || 0;
@@ -105,7 +105,7 @@ function score(data) {
     }
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  return { score: Math.min(pts, max), max, breakdown, available: true };
 }
 
 module.exports = { score };

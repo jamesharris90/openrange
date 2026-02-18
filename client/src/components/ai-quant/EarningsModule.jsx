@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Star } from 'lucide-react';
 import { computeEarningsMomentumScore, getScoreColor, fmtVol, applyGlobalFilters } from './scoring';
+import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
 
@@ -105,11 +107,25 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
         <span className="aiq-module__universe">📅 Universe: Earnings Calendar · Next 5 Days · Options-Enriched</span>
         <span className="aiq-module__count">{sorted.length} / {data.length}</span>
       </div>
+      <ExportButtons
+        data={sorted}
+        columns={[
+          { key: 'ticker', label: 'Ticker' },
+          { key: 'score', label: 'Score' },
+          { key: 'date', label: 'Date' },
+          { key: 'expectedMovePercent', label: 'Exp Move%', accessor: r => r.expectedMovePercent != null ? `±${r.expectedMovePercent.toFixed(1)}%` : '' },
+          { key: 'price', label: 'Price', accessor: r => r.price?.toFixed(2) || '' },
+          { key: 'epsEstimate', label: 'EPS Est', accessor: r => r.epsEstimate?.toFixed(2) || '' },
+          { key: 'epsActual', label: 'EPS Act', accessor: r => r.epsActual?.toFixed(2) || '' },
+          { key: 'surprise', label: 'Surprise%', accessor: r => r.surprise != null ? `${r.surprise.toFixed(1)}%` : '' },
+        ]}
+        filename="earnings-scanner"
+      />
       <div className="aiq-table-wrap">
         <table className="aiq-table">
           <thead>
             <tr>
-              <th className="aiq-th aiq-th--check"><input type="checkbox" onChange={e => sorted.forEach(r => onToggleSelect?.(r.ticker, e.target.checked))} /></th>
+              <th className="aiq-th" style={{ width: 40 }}></th>
               <SortHeader k="score" label="Score" />
               <th className="aiq-th">Ticker</th>
               <th className="aiq-th">Date</th>
@@ -125,10 +141,16 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
             {sorted.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
-                <td className="aiq-td--check" onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={selected?.has(row.ticker) || false} onChange={() => onToggleSelect?.(row.ticker)} />
+                <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    className={`btn-icon${watchlist?.has(row.ticker) ? ' active' : ''}`}
+                    title={watchlist?.has(row.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
+                    onClick={() => watchlist?.has(row.ticker) ? watchlist.remove(row.ticker) : watchlist?.add(row.ticker, 'ai-quant')}
+                  >
+                    <Star size={16} />
+                  </button>
                 </td>
-                <td className="aiq-td--score">
+                <td className="aiq-td--score" data-tooltip="Earnings Momentum Score (0-100)">
                   <span className="aiq-score-pill" style={{ background: getScoreColor(row.score) + '22', color: getScoreColor(row.score), borderColor: getScoreColor(row.score) }}>
                     {row.score}
                   </span>
@@ -137,7 +159,6 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
                   <ScoreBreakdown breakdown={row.breakdown} score={row.score} />
                 </td>
                 <td className="aiq-td--ticker">
-                  {watchlist?.has(row.ticker) && <span className="aiq-wl-dot" title="In watchlist">★</span>}
                   {row.ticker}
                 </td>
                 <td className="aiq-td--date">{row.date} {row.hour === 'bmo' ? '🌅' : row.hour === 'amc' ? '🌙' : ''}</td>

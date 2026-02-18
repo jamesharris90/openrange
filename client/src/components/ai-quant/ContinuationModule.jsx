@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Star } from 'lucide-react';
 import { computeContinuationScore, normalizeFinvizRow, parsePct, parseVolume, getScoreColor, fmtVol, fmtPct, applyGlobalFilters } from './scoring';
+import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
 
@@ -77,14 +79,28 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
   return (
     <div className="aiq-module">
       <div className="aiq-module__bar">
-        <span className="aiq-module__universe">📈 Universe: Finviz Trend · Above 20 &amp; 50 SMA · Avg Vol &gt; 500K</span>
+        <span className="aiq-module__universe">Continuation Universe: Above 20 &amp; 50 SMA · Avg Vol &gt; 500K</span>
         <span className="aiq-module__count">{sorted.length} / {data.length}</span>
       </div>
+      <ExportButtons
+        data={sorted}
+        columns={[
+          { key: 'ticker', label: 'Ticker' },
+          { key: 'score', label: 'Score' },
+          { key: 'price', label: 'Price', accessor: r => r.price?.toFixed(2) || '' },
+          { key: 'change', label: 'Change%', accessor: r => r.change != null ? `${r.change.toFixed(2)}%` : '' },
+          { key: 'sma20', label: 'vs 20-SMA', accessor: r => r.sma20 != null ? `${r.sma20.toFixed(1)}%` : '' },
+          { key: 'sma50', label: 'vs 50-SMA', accessor: r => r.sma50 != null ? `${r.sma50.toFixed(1)}%` : '' },
+          { key: 'rsi', label: 'RSI', accessor: r => r.rsi?.toFixed(0) || '' },
+          { key: 'rvol', label: 'RVOL', accessor: r => r.rvol?.toFixed(2) || '' },
+        ]}
+        filename="continuation-scanner"
+      />
       <div className="aiq-table-wrap">
         <table className="aiq-table">
           <thead>
             <tr>
-              <th className="aiq-th aiq-th--check"><input type="checkbox" onChange={e => sorted.forEach(r => onToggleSelect?.(r.ticker, e.target.checked))} /></th>
+              <th className="aiq-th" style={{ width: 40 }}></th>
               <SortHeader k="score" label="Score" />
               <th className="aiq-th">Ticker</th>
               <SortHeader k="price" label="Price" />
@@ -100,10 +116,16 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
             {sorted.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
-                <td className="aiq-td--check" onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={selected?.has(row.ticker) || false} onChange={() => onToggleSelect?.(row.ticker)} />
+                <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    className={`btn-icon${watchlist?.has(row.ticker) ? ' active' : ''}`}
+                    title={watchlist?.has(row.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
+                    onClick={() => watchlist?.has(row.ticker) ? watchlist.remove(row.ticker) : watchlist?.add(row.ticker, 'ai-quant')}
+                  >
+                    <Star size={16} />
+                  </button>
                 </td>
-                <td className="aiq-td--score">
+                <td className="aiq-td--score" data-tooltip="Continuation Score: SMA + RVOL + RSI + Volume (0-100)">
                   <span className="aiq-score-pill" style={{ background: getScoreColor(row.score) + '22', color: getScoreColor(row.score), borderColor: getScoreColor(row.score) }}>
                     {row.score}
                   </span>
@@ -112,7 +134,6 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
                   <ScoreBreakdown breakdown={row.breakdown} score={row.score} />
                 </td>
                 <td className="aiq-td--ticker">
-                  {watchlist?.has(row.ticker) && <span className="aiq-wl-dot" title="In watchlist">★</span>}
                   {row.ticker}
                 </td>
                 <td>{row.price != null ? `$${row.price.toFixed(2)}` : '—'}</td>

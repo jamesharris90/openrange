@@ -84,7 +84,8 @@ function score(data) {
     breakdown.push({ factor: 'Move Consistency', value: 'N/A', note: 'Insufficient price data', points: 0 });
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  const available = (hvHigh52w != null && hvLow52w != null) || (closes && closes.length >= 30);
+  return { score: Math.min(pts, max), max, breakdown, available };
 }
 
 module.exports = { score };

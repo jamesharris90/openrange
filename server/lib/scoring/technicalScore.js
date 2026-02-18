@@ -89,7 +89,8 @@ function score(data) {
     breakdown.push({ factor: '52W Position', value: 'N/A', note: 'Insufficient data', points: 0 });
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  const available = (sma20 != null || sma50 != null) || (high52w != null && low52w != null);
+  return { score: Math.min(pts, max), max, breakdown, available };
 }
 
 module.exports = { score };

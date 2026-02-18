@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Play,
   RefreshCcw,
-  Download,
   FilterX,
   Flame,
   BarChart2,
@@ -12,10 +11,11 @@ import {
   ChevronRight,
   ExternalLink,
   Star,
-  ListChecks,
-  Check,
 } from 'lucide-react';
 import useWatchlist from '../hooks/useWatchlist';
+import TabbedFilterPanel from '../components/shared/TabbedFilterPanel';
+import ExportButtons from '../components/shared/ExportButtons';
+import { buildFinvizFilterString, buildFilterDefaults } from '../features/news/FilterConfigs';
 import { formatNumber, formatVolume, getTimeAgo } from '../utils/formatters';
 
 const PAGE_SIZE = 20;
@@ -201,6 +201,8 @@ function computeTimeToOpen() {
 
 export default function PreMarketPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [finvizFilters, setFinvizFilters] = useState(buildFilterDefaults);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [scannerRows, setScannerRows] = useState([]);
   const [latestNewsMap, setLatestNewsMap] = useState({});
   const [allNewsMap, setAllNewsMap] = useState({});
@@ -218,19 +220,9 @@ export default function PreMarketPage() {
   const [lastRun, setLastRun] = useState(null);
   const [spyQuote, setSpyQuote] = useState(null);
   const [autocomplete, setAutocomplete] = useState({ options: [], open: false });
-  const [checklist, setChecklist] = useState(() => {
-    try {
-      const raw = localStorage.getItem('pmChecklist');
-      return raw ? JSON.parse(raw) : [false, false, false, false, false];
-    } catch (_) {
-      return [false, false, false, false, false];
-    }
-  });
 
   const tickerInputRef = useRef(null);
   const autoTimer = useRef(null);
-  const spyWidgetRef = useRef(null);
-  const heatmapRef = useRef(null);
   const { add: addWatchlist, remove: removeWatchlist, has: hasWatchlist } = useWatchlist();
 
   const filteredRows = useMemo(() => {
@@ -353,7 +345,10 @@ export default function PreMarketPage() {
       const rows = [];
       let errorCode = null;
       while (rows.length < MAX_STOCKS) {
-        const params = new URLSearchParams({ v: '111', o: '-change', r: offset + 1, f: 'sh_avgvol_o100' });
+        const baseF = 'sh_avgvol_o100';
+        const fvF = buildFinvizFilterString(finvizFilters);
+        const combinedF = fvF ? `${baseF},${fvF}` : baseF;
+        const params = new URLSearchParams({ v: '111', o: '-change', r: offset + 1, f: combinedF });
         if (tickers.length) params.set('t', tickers.join(','));
         const res = await fetch(`/api/finviz/screener?${params.toString()}`);
         if (!res.ok) { errorCode = res.status; break; }
@@ -531,15 +526,6 @@ export default function PreMarketPage() {
     }
   }, []);
 
-  const handleChecklistToggle = (idx) => {
-    setChecklist(prev => {
-      const next = [...prev];
-      next[idx] = !next[idx];
-      localStorage.setItem('pmChecklist', JSON.stringify(next));
-      return next;
-    });
-  };
-
   useEffect(() => {
     handleRunScanner();
     loadBreakingNews();
@@ -594,60 +580,6 @@ export default function PreMarketPage() {
     return () => document.removeEventListener('click', clickHandler);
   }, []);
 
-  useEffect(() => {
-    if (!spyWidgetRef.current || spyWidgetRef.current.dataset.loaded) return;
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.textContent = JSON.stringify({
-      autosize: true,
-      symbol: 'AMEX:SPY',
-      interval: '15',
-      timezone: 'America/New_York',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      backgroundColor: 'rgba(26, 31, 46, 0)',
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-    });
-    const container = document.createElement('div');
-    container.className = 'tradingview-widget-container__widget';
-    spyWidgetRef.current.appendChild(container);
-    spyWidgetRef.current.appendChild(script);
-    spyWidgetRef.current.dataset.loaded = 'true';
-  }, []);
-
-  useEffect(() => {
-    if (!heatmapRef.current || heatmapRef.current.dataset.loaded) return;
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.textContent = JSON.stringify({
-      exchanges: [],
-      dataSource: 'SPX500',
-      grouping: 'sector',
-      blockSize: 'market_cap_basic',
-      blockColor: 'change',
-      locale: 'en',
-      colorTheme: 'dark',
-      hasTopBar: false,
-      isDataSetEnabled: false,
-      isZoomEnabled: true,
-      hasSymbolTooltip: true,
-      width: '100%',
-      height: '100%',
-    });
-    const container = document.createElement('div');
-    container.className = 'tradingview-widget-container__widget';
-    heatmapRef.current.appendChild(container);
-    heatmapRef.current.appendChild(script);
-    heatmapRef.current.dataset.loaded = 'true';
-  }, []);
-
   const renderHeadline = (stock) => {
     const news = latestNewsMap[stock.Ticker];
     if (!news) return '—';
@@ -681,11 +613,8 @@ export default function PreMarketPage() {
           <button className="btn-secondary" onClick={() => setShowFilters(s => !s)}>
             <SlidersHorizontal size={16} /> {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
-          <button className="btn-secondary" onClick={() => exportLiveNews('text')} title="Export as text">
-            <Download size={16} /> Export Text
-          </button>
-          <button className="btn-secondary" onClick={() => exportLiveNews('csv')} title="Export CSV">
-            <Download size={16} /> Export CSV
+          <button className={`btn-secondary${showAdvancedFilters ? ' btn-secondary--active' : ''}`} onClick={() => setShowAdvancedFilters(s => !s)}>
+            <SlidersHorizontal size={16} /> Advanced Filters
           </button>
           <button className="btn-primary" onClick={handleRunScanner} disabled={loading}>
             <Play size={16} /> {loading ? 'Running…' : 'Run Scanner'}
@@ -694,22 +623,25 @@ export default function PreMarketPage() {
       </div>
 
       <div className="pm-stat-grid">
-        <div className="pm-stat-card accent">
-          <div className="pm-stat-label"><Flame size={14} /> Top Gainer</div>
-          <div className="pm-stat-value">{topGainer ? topGainer.Ticker : '--'}</div>
-          <div className="pm-stat-sub">{topGainer ? topGainer.Change : 'Pre-market movers'}</div>
+        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}>
+          <div className="pm-hero-icon"><Flame size={20} /></div>
+          <div className="pm-hero-label">Top Gainer</div>
+          <div className="pm-hero-value">{topGainer ? topGainer.Ticker : '--'}</div>
+          <div className="pm-hero-sub">{topGainer ? topGainer.Change : 'Pre-market movers'}</div>
         </div>
-        <div className="pm-stat-card">
-          <div className="pm-stat-label"><BarChart2 size={14} /> SPY Pre-Market</div>
-          <div className="pm-stat-value">{spyQuote ? `$${spyQuote.price?.toFixed(2)}` : '$---'}</div>
-          <div className="pm-stat-sub" style={{ color: spyQuote?.changePercent >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+          <div className="pm-hero-icon"><BarChart2 size={20} /></div>
+          <div className="pm-hero-label">SPY Pre-Market</div>
+          <div className="pm-hero-value">{spyQuote ? `$${spyQuote.price?.toFixed(2)}` : '$---'}</div>
+          <div className="pm-hero-sub" style={{ opacity: 0.9 }}>
             {spyQuote ? `${spyQuote.changePercent >= 0 ? '+' : ''}${spyQuote.changePercent?.toFixed(2)}%` : '---%'}
           </div>
         </div>
-        <div className="pm-stat-card purple">
-          <div className="pm-stat-label"><Clock size={14} /> Time to Open</div>
-          <div className="pm-stat-value">{timeToOpen}</div>
-          <div className="pm-stat-sub">US market 9:30 AM ET</div>
+        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}>
+          <div className="pm-hero-icon"><Clock size={20} /></div>
+          <div className="pm-hero-label">Time to Open</div>
+          <div className="pm-hero-value">{timeToOpen}</div>
+          <div className="pm-hero-sub">US market 9:30 AM ET</div>
         </div>
       </div>
 
@@ -875,11 +807,33 @@ export default function PreMarketPage() {
             </div>
           </details>
 
+          {showAdvancedFilters && (
+            <TabbedFilterPanel
+              filters={finvizFilters}
+              setFilters={setFinvizFilters}
+              tabs={['descriptive', 'fundamentals', 'technical', 'all']}
+            />
+          )}
+
           {error && (
             <div className="panel" style={{ border: '1px solid var(--accent-red)', marginTop: 12 }}>
               <span style={{ color: 'var(--accent-red)' }}>Failed to load scanner: {error}</span>
             </div>
           )}
+
+          <ExportButtons
+            data={rowsToRender}
+            columns={[
+              { key: 'Ticker', label: 'Ticker' },
+              { key: 'Price', label: 'Price' },
+              { key: 'Change', label: 'Change' },
+              { key: 'Volume', label: 'Volume' },
+              { key: 'RelVol', label: 'Rel Vol', accessor: r => r['Relative Volume'] || r['Rel Volume'] || '' },
+              { key: 'Float', label: 'Float', accessor: r => r['Shares Float'] || r['Shs Float'] || r.Float || '' },
+              { key: 'AvgVol', label: 'Avg Vol', accessor: r => r['Average Volume'] || '' },
+            ]}
+            filename="premarket-scanner"
+          />
 
           <div className="pm-table" style={{ marginTop: 16 }}>
             <table>
@@ -967,24 +921,6 @@ export default function PreMarketPage() {
         </div>
 
         <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <div className="panel" style={{ padding: 12 }}>
-              <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ListChecks size={16} /> Pre-Market Checklist
-                </div>
-              </div>
-              <div className="pm-checklist">
-                {['Review AI Morning Briefing', 'Check Pre-Market Movers', 'Review Economic Calendar', 'Update Watchlist', 'Set Price Alerts'].map((item, idx) => (
-                  <label key={item} className="pm-check-item">
-                    <input type="checkbox" checked={checklist[idx]} onChange={() => handleChecklistToggle(idx)} />
-                    <span>{item}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <div className="panel" style={{ padding: 12 }}>
             <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1024,18 +960,6 @@ export default function PreMarketPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          <div className="panel" style={{ padding: 0 }}>
-            <div className="widget-container" style={{ height: 340 }}>
-              <div ref={spyWidgetRef} className="tradingview-widget-container" style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-
-          <div className="panel" style={{ padding: 0 }}>
-            <div className="widget-container" style={{ height: 320 }}>
-              <div ref={heatmapRef} className="tradingview-widget-container" style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         </div>

@@ -95,7 +95,8 @@ function score(data) {
     breakdown.push({ factor: 'Market Cap', value: 'N/A', note: 'Unavailable', points: 0 });
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  const available = totalOI > 0 || (marketCap != null && marketCap > 0);
+  return { score: Math.min(pts, max), max, breakdown, available };
 }
 
 function formatCap(n) {
