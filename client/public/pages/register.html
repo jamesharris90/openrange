@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OpenRange Trader - Register</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+			background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #e2e8f0;
+		}
+
+		.register-container {
+			width: 100%;
+			max-width: 400px;
+			padding: 24px;
+		}
+
+		.register-box {
+			background: rgba(15, 23, 42, 0.9);
+			border: 1px solid rgba(148, 163, 184, 0.2);
+			border-radius: 12px;
+			padding: 40px;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			backdrop-filter: blur(10px);
+		}
+
+		.logo {
+			text-align: center;
+			margin-bottom: 32px;
+		}
+
+		.logo h1 {
+			font-size: 28px;
+			font-weight: 700;
+			background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.logo p {
+			font-size: 12px;
+			color: #94a3b8;
+			margin-top: 4px;
+			letter-spacing: 1px;
+		}
+
+		.form-group {
+			margin-bottom: 20px;
+		}
+
+		label {
+			display: block;
+			font-size: 14px;
+			font-weight: 500;
+			margin-bottom: 8px;
+			color: #cbd5e1;
+		}
+
+		input[type="text"],
+		input[type="email"],
+		input[type="password"] {
+			width: 100%;
+			padding: 12px 16px;
+			border: 1px solid rgba(148, 163, 184, 0.2);
+			border-radius: 8px;
+			background: rgba(30, 41, 59, 0.8);
+			color: #e2e8f0;
+			font-size: 14px;
+			transition: all 0.3s ease;
+		}
+
+		input[type="text"]:focus,
+		input[type="email"]:focus,
+		input[type="password"]:focus {
+			outline: none;
+			border-color: #3b82f6;
+			background: rgba(30, 41, 59, 1);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		}
+
+		button {
+			width: 100%;
+			padding: 12px 16px;
+			margin-top: 24px;
+			background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+
+		button:hover:not(:disabled) {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+		}
+
+		button:active:not(:disabled) {
+			transform: translateY(0);
+		}
+
+		button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		.error-message {
+			color: #ef4444;
+			font-size: 13px;
+			margin-top: 8px;
+			display: none;
+		}
+
+		.error-message.show {
+			display: block;
+		}
+
+		.footer {
+			text-align: center;
+			margin-top: 24px;
+			font-size: 12px;
+			color: #64748b;
+		}
+	</style>
+</head>
+<body>
+		<div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card,#141b2d);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+			<span id="userMenuName">Guest</span>
+			<a href="login.html" id="loginLink">Login</a>
+			<a href="register.html" id="registerLink">Register</a>
+			<a href="user.html" id="profileLink" style="display:none;">Profile</a>
+			<a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+			<a href="#" id="logoutLink" style="display:none;">Logout</a>
+		</div>
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			let token = localStorage.getItem('authToken');
+			let userMenuName = document.getElementById('userMenuName');
+			let loginLink = document.getElementById('loginLink');
+			let registerLink = document.getElementById('registerLink');
+			let profileLink = document.getElementById('profileLink');
+			let adminLink = document.getElementById('adminLink');
+			let logoutLink = document.getElementById('logoutLink');
+			if (token) {
+				try {
+					let payload = JSON.parse(atob(token.split('.')[1]));
+					userMenuName.textContent = payload.username || 'User';
+					loginLink.style.display = 'none';
+					registerLink.style.display = 'none';
+					profileLink.style.display = '';
+					logoutLink.style.display = '';
+					if (payload.is_admin) adminLink.style.display = '';
+				} catch(e) {}
+			} else {
+				profileLink.style.display = 'none';
+				adminLink.style.display = 'none';
+				logoutLink.style.display = 'none';
+			}
+			logoutLink && logoutLink.addEventListener('click', function(e) {
+				e.preventDefault();
+				localStorage.removeItem('authToken');
+				window.location.href = 'login.html';
+			});
+		});
+		</script>
+	<div class="register-container">
+		<div class="register-box">
+			<div class="logo">
+				<h1>OpenRange</h1>
+				<p>TRADER DASHBOARD</p>
+			</div>
+
+			<form id="registerForm">
+				<div class="form-group">
+					<label for="username">Username</label>
+					<input type="text" id="username" name="username" required autocomplete="username">
+				</div>
+				<div class="form-group">
+					<label for="email">Email</label>
+					<input type="email" id="email" name="email" required autocomplete="email">
+				</div>
+				<div class="form-group">
+					<label for="password">Password</label>
+					<input type="password" id="password" name="password" required autocomplete="new-password">
+				</div>
+				<div class="error-message" id="registerError"></div>
+				<button type="submit" class="btn-primary" style="width: 100%;">Register</button>
+			</form>
+
+			<div style="text-align:center;margin-top:18px;">
+				<span style="color:#94a3b8;font-size:13px;">Already have an account?</span>
+				<a href="login.html" style="color:#3b82f6;font-size:13px;text-decoration:underline;margin-left:4px;">Sign in here</a>
+			</div>
+
+			<div class="footer">
+				<p>&copy; 2025 OpenRange Trader</p>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	(function() {
+		try {
+			const form = document.getElementById('registerForm');
+			const errorDiv = document.getElementById('registerError');
+
+			if (!form || !errorDiv) {
+				console.error('Required form elements not found');
+				return;
+			}
+
+			form.addEventListener('submit', async function(e) {
+				e.preventDefault();
+
+				const usernameInput = document.getElementById('username');
+				const emailInput = document.getElementById('email');
+				const passwordInput = document.getElementById('password');
+
+				if (!usernameInput || !emailInput || !passwordInput) {
+					errorDiv.textContent = 'Form validation error. Please refresh the page.';
+					errorDiv.classList.add('show');
+					return;
+				}
+
+				const username = usernameInput.value.trim();
+				const email = emailInput.value.trim();
+				const password = passwordInput.value;
+
+				// Client-side validation
+				if (!username || username.length < 3) {
+					errorDiv.textContent = 'Username must be at least 3 characters';
+					errorDiv.classList.add('show');
+					return;
+				}
+
+				if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+					errorDiv.textContent = 'Please enter a valid email address';
+					errorDiv.classList.add('show');
+					return;
+				}
+
+				if (!password || password.length < 8) {
+					errorDiv.textContent = 'Password must be at least 8 characters';
+					errorDiv.classList.add('show');
+					return;
+				}
+
+				errorDiv.classList.remove('show');
+
+				try {
+					const res = await fetch('/api/users/register', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ username, email, password })
+					});
+
+					if (!res) {
+						throw new Error('Network error: No response received');
+					}
+
+					let data;
+					try {
+						data = await res.json();
+					} catch (jsonError) {
+						throw new Error('Server returned invalid response');
+					}
+
+					if (!res.ok) {
+						throw new Error(data.error || 'Registration failed');
+					}
+
+					// Success - redirect to login
+					window.location.href = 'login.html';
+				} catch (err) {
+					console.error('Registration error:', err);
+					errorDiv.textContent = err.message || 'An unexpected error occurred. Please try again.';
+					errorDiv.classList.add('show');
+				}
+			});
+		} catch (initError) {
+			console.error('Failed to initialize registration form:', initError);
+		}
+	})();
+	</script>
+</body>
+</html>

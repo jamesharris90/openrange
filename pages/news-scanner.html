@@ -226,18 +226,30 @@
                     </div>
                 </div>
 
-                <div id="filter-wrapper">
-                    <div id="unified-filter-panel" class="filter-panel"></div>
+                <div class="universal-filter-shell">
+                    <div class="universal-filter-header">
+                        <button class="filter-toggle-btn" id="universalFilterToggle">Show Filters ▾</button>
+                    </div>
+                    <div class="universal-filter-body collapsed" id="universalFilterBody">
+                        <div id="unified-filter-panel" class="filter-panel"></div>
+                    </div>
                 </div>
-                <div class="filter-actions" style="justify-content:flex-end; margin-bottom:12px;">
-                    <button class="btn-filter-action apply" onclick="newsScanner.exportResults('csv')">
-                        Export CSV
+                <div class="filter-actions" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;">
+                    <button class="btn-clear-filters" style="background:#f87171;color:white;padding:8px 18px;border:none;border-radius:6px;font-weight:600;cursor:pointer;" onclick="newsScanner.clearFilters()">
+                        <i data-lucide="x-circle" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;"></i>
+                        Clear Filters
                     </button>
-                    <button class="btn-filter-action" onclick="newsScanner.exportResults('text')">
-                        Export Text
-                    </button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn-filter-action apply" onclick="newsScanner.exportResults('csv')">
+                            Export CSV
+                        </button>
+                        <button class="btn-filter-action" onclick="newsScanner.exportResults('text')">
+                            Export Text
+                        </button>
+                    </div>
                 </div>
 
+                <div id="news-filter-summary" style="display:none;margin-bottom:10px;font-size:1em;font-weight:500;color:var(--accent-blue);"></div>
                 <div id="news-scanner-content">
                     <div class="loading" style="padding: 60px; text-align: center; color: var(--text-muted);">
                         Loading catalyst news...

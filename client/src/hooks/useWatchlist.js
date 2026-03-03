@@ -31,6 +31,10 @@ function loadInitial() {
 export default function useWatchlist() {
   const [items, setItems] = useState(loadInitial);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
+
   // Cross-tab sync via StorageEvent
   useEffect(() => {
     const handler = (e) => {
@@ -47,11 +51,6 @@ export default function useWatchlist() {
     return () => window.removeEventListener('storage', handler);
   }, []);
 
-  const persist = useCallback((nextList) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
-    setItems(nextList);
-  }, []);
-
   const add = useCallback((symbol, source = 'manual') => {
     const sym = (symbol || '').trim().toUpperCase();
     if (!sym) return false;
@@ -59,18 +58,16 @@ export default function useWatchlist() {
     setItems(prev => {
       if (prev.some(i => i.symbol === sym)) return prev;
       const next = [...prev, { symbol: sym, source, addedAt: new Date().toISOString() }];
-      persist(next);
       added = true;
       return next;
     });
     return added;
-  }, [persist]);
+  }, []);
 
   const remove = useCallback((symbol) => {
     const sym = (symbol || '').trim().toUpperCase();
     setItems(prev => {
       const next = prev.filter(i => i.symbol !== sym);
-      persist(next);
       return next;
     });
 
@@ -84,7 +81,7 @@ export default function useWatchlist() {
         }
       }
     } catch (_) { /* ignore */ }
-  }, [persist]);
+  }, []);
 
   const has = useCallback((symbol) => {
     const sym = (symbol || '').trim().toUpperCase();

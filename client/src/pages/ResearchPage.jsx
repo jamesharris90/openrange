@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import ResearchPanel from '../components/watchlist/ResearchPanel';
+import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
+import { FilterGroup, InputField } from '../components/shared/filters/FilterPrimitives';
+import Card from '../components/shared/Card';
 
 const QUICK_TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'AMZN', 'TSLA', 'META'];
 
@@ -13,24 +16,28 @@ export default function ResearchPage() {
   };
 
   return (
-    <div className="page-container">
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Research & Analysis</h2>
-        <p className="muted" style={{ marginTop: 4 }}>Symbol-level fundamentals, charts, and recent news powered by TradingView and Finnhub.</p>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <input className="input-field" placeholder="Enter ticker" value={input} onChange={e => setInput(e.target.value)} style={{ maxWidth: 220 }} />
-          <button className="btn-primary" type="submit">Load</button>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {QUICK_TICKERS.map(t => (
-              <button key={t} type="button" className={`pill-btn${symbol === t ? ' pill-btn--active' : ''}`} onClick={() => { setSymbol(t); setInput(t); }}>
-                {t}
-              </button>
-            ))}
-          </div>
-        </form>
-      </div>
+    <PageContainer className="space-y-3">
+      <Card>
+        <PageHeader
+          title="Research & Analysis"
+          subtitle="Symbol-level fundamentals, charts, and recent news powered by TradingView and Finnhub."
+        />
+        <FilterGroup className="mt-3" title="Research Filters">
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
+            <InputField className="w-full sm:w-auto sm:min-w-[220px]" label="Ticker" placeholder="Enter ticker" value={input} onChange={e => setInput(e.target.value)} />
+            <button className="btn-primary" type="submit">Load</button>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_TICKERS.map(t => (
+                <button key={t} type="button" className={`pill-btn${symbol === t ? ' pill-btn--active' : ''}`} onClick={() => { setSymbol(t); setInput(t); }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </form>
+        </FilterGroup>
+      </Card>
 
       <ResearchPanel symbol={symbol} onClose={() => {}} />
-    </div>
+    </PageContainer>
   );
 }

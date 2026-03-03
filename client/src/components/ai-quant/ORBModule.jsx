@@ -1,7 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Star } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 import { computeORBScore, normalizeFinvizRow, parsePct, parseVolume, getScoreColor, fmtVol, fmtPct, applyGlobalFilters } from './scoring';
+import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
+
+function toPctString(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function mapCanonicalToFinvizRow(row) {
+  return {
+    Ticker: row?.symbol || '',
+    Price: Number.isFinite(Number(row?.price)) ? Number(row.price).toFixed(2) : '',
+    Change: toPctString(row?.changePercent),
+    Gap: toPctString(row?.gapPercent),
+    'Rel Volume': Number.isFinite(Number(row?.relativeVolume ?? row?.rvol)) ? Number(row.relativeVolume ?? row.rvol).toFixed(2) : '',
+    ATR: Number.isFinite(Number(row?.atr)) ? Number(row.atr).toFixed(2) : '',
+    RSI: Number.isFinite(Number(row?.rsi14)) ? Number(row.rsi14).toFixed(0) : '',
+    'Avg Volume': Number.isFinite(Number(row?.avgVolume)) ? Number(row.avgVolume) : '',
+    Volume: Number.isFinite(Number(row?.volume)) ? Number(row.volume) : '',
+  };
+}
 
 export default function ORBModule({ onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist }) {
   const [data, setData] = useState([]);
@@ -13,11 +37,16 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/finviz/screener?f=sh_avgvol_o500,ta_change_u3&v=152&c=0,1,2,3,4,5,6,7,8,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70')
+    authFetch('/api/v3/screener/technical?limit=500&volumeMin=500000&rvolMin=1.2')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(rows => {
+      .then(payload => {
         if (cancelled) return;
-        const scored = (rows || []).slice(0, 100).map(rawRow => {
+        const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const scored = rows
+          .map(mapCanonicalToFinvizRow)
+          .filter((rawRow) => parsePct(rawRow.Change) != null && parsePct(rawRow.Change) >= 3)
+          .slice(0, 100)
+          .map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeORBScore(row);
           return {
@@ -35,7 +64,7 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
             breakdown: result.breakdown,
             dataQuality: result.dataQuality,
           };
-        });
+          });
         setData(scored);
         onDataReady?.('orb', scored);
         setError(null);
@@ -74,14 +103,28 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
   return (
     <div className="aiq-module">
       <div className="aiq-module__bar">
-        <span className="aiq-module__universe">📡 Universe: Finviz Gappers · Avg Vol &gt; 500K · Change &gt; 3%</span>
+        <span className="aiq-module__universe">ORB Universe: Gappers · Avg Vol &gt; 500K · Change &gt; 3%</span>
         <span className="aiq-module__count">{sorted.length} / {data.length}</span>
       </div>
-      <div className="aiq-table-wrap">
-        <table className="aiq-table">
+      <ExportButtons
+        data={sorted}
+        columns={[
+          { key: 'ticker', label: 'Ticker' },
+          { key: 'score', label: 'Score' },
+          { key: 'price', label: 'Price' },
+          { key: 'gap', label: 'Gap%', accessor: r => r.gap != null ? `${r.gap.toFixed(2)}%` : '' },
+          { key: 'change', label: 'Change%', accessor: r => r.change != null ? `${r.change.toFixed(2)}%` : '' },
+          { key: 'rvol', label: 'RVOL', accessor: r => r.rvol?.toFixed(2) || '' },
+          { key: 'atr', label: 'ATR', accessor: r => r.atr?.toFixed(2) || '' },
+          { key: 'rsi', label: 'RSI', accessor: r => r.rsi?.toFixed(0) || '' },
+        ]}
+        filename="orb-scanner"
+      />
+      <div className="aiq-table-wrap overflow-x-auto">
+        <table className="aiq-table min-w-[900px]">
           <thead>
             <tr>
-              <th className="aiq-th aiq-th--check"><input type="checkbox" onChange={e => sorted.forEach(r => onToggleSelect?.(r.ticker, e.target.checked))} /></th>
+              <th className="aiq-th" style={{ width: 40 }}></th>
               <SortHeader k="score" label="Score" />
               <th className="aiq-th">Ticker</th>
               <SortHeader k="price" label="Price" />
@@ -97,10 +140,16 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
             {sorted.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
-                <td className="aiq-td--check" onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={selected?.has(row.ticker) || false} onChange={() => onToggleSelect?.(row.ticker)} />
+                <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    className={`btn-icon${watchlist?.has(row.ticker) ? ' active' : ''}`}
+                    title={watchlist?.has(row.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
+                    onClick={() => watchlist?.has(row.ticker) ? watchlist.remove(row.ticker) : watchlist?.add(row.ticker, 'ai-quant')}
+                  >
+                    <Star size={16} />
+                  </button>
                 </td>
-                <td className="aiq-td--score">
+                <td className="aiq-td--score" data-tooltip="ORB Strategy Score: Gap + RVOL + ATR + Volume + RSI (0-100)">
                   <span className="aiq-score-pill" style={{ background: getScoreColor(row.score) + '22', color: getScoreColor(row.score), borderColor: getScoreColor(row.score) }}>
                     {row.score}
                   </span>
@@ -109,7 +158,6 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
                   <ScoreBreakdown breakdown={row.breakdown} score={row.score} />
                 </td>
                 <td className="aiq-td--ticker">
-                  {watchlist?.has(row.ticker) && <span className="aiq-wl-dot" title="In watchlist">★</span>}
                   {row.ticker}
                 </td>
                 <td>{row.price != null ? `$${row.price.toFixed(2)}` : '—'}</td>

@@ -59,11 +59,11 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
 
   return (
     <div
-      className="table-wrapper"
+      className="table-wrapper overflow-x-auto"
       style={virtualize ? { maxHeight, overflow: 'auto' } : undefined}
       onScroll={virtualize ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
     >
-      <table className="data-table">
+      <table className="data-table min-w-[900px]">
         <thead>
           <tr>
             {columns.map(col => (

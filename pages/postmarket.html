@@ -164,6 +164,20 @@
                     </div>
                 </div>
 
+                <!-- Filter Panel (Universal) -->
+                <div id="filter-wrapper">
+                    <div id="unified-filter-panel" class="filter-panel"></div>
+                </div>
+                <script src="js/filtering/filter-framework.js"></script>
+                <script src="config/filterConfig.js"></script>
+                <script src="js/filtering/filter-configs.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (typeof initUnifiedNewsFilters === 'function') {
+                            initUnifiedNewsFilters();
+                        }
+                    });
+                </script>
                 <!-- Main Content Grid -->
                 <div class="grid-2-1">
                     <div>

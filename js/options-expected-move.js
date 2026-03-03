@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'emEngineWatchlist';
+  const STORAGE_KEY = 'userWatchlist';
   const LAST_TICKER_KEY = 'emEngineLastTicker';
   const REFRESH_INTERVAL = 5 * 60 * 1000;
   const FETCH_DELAY_MS = 400;
@@ -23,13 +23,12 @@
 
   // ── Persistence ──────────────────────────────────────
   function loadWatchlist() {
-    try { watchlist = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { watchlist = []; }
-    // Migrate from old key
-    if (!watchlist.length) {
-      try {
-        const old = JSON.parse(localStorage.getItem('emWatchlist'));
-        if (Array.isArray(old) && old.length) { watchlist = old; saveWatchlist(); }
-      } catch (e) { /* ignore */ }
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      watchlist = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      watchlist = [];
     }
   }
   function saveWatchlist() {
@@ -68,7 +67,8 @@
 
   async function fetchAllWatchlistData() {
     for (var i = 0; i < watchlist.length; i++) {
-      var t = watchlist[i];
+      var item = watchlist[i];
+      var t = (item && typeof item === 'object' && 'symbol' in item) ? item.symbol : item;
       await fetchTickerData(t);
       renderWatchlistRow(t);
       if (i < watchlist.length - 1) {
@@ -811,8 +811,21 @@
     init: init,
     lookupTicker: lookupTicker,
     quickLookup: quickLookup,
-    addTicker: addTicker,
-    removeTicker: removeTicker,
+    addTicker: function(symbol, source = 'expected-move') {
+      const sym = (symbol || '').trim().toUpperCase();
+      if (!sym) return false;
+      if (watchlist.some(item => ((typeof item === 'object' && item.symbol) ? item.symbol : item) === sym)) return false;
+      watchlist.push({ symbol: sym, source, addedAt: new Date().toISOString() });
+      saveWatchlist();
+      fetchAllWatchlistData();
+      return true;
+    },
+    removeTicker: function(symbol) {
+      const sym = (symbol || '').trim().toUpperCase();
+      watchlist = watchlist.filter(item => ((typeof item === 'object' && item.symbol) ? item.symbol : item) !== sym);
+      saveWatchlist();
+      fetchAllWatchlistData();
+    },
     refreshAll: refreshAll,
     sortWatchlist: sortWatchlist,
     exportWatchlist: exportWatchlist

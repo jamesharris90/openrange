@@ -102,7 +102,8 @@ function score(data) {
     breakdown.push({ factor: 'Earnings IV Crush', value: 'No near-term earnings', note: 'No crush catalyst', points: 0 });
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  const available = hvRank != null || avgIV != null;
+  return { score: Math.min(pts, max), max, breakdown, available };
 }
 
 module.exports = { score };

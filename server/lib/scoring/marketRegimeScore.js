@@ -19,7 +19,7 @@ function score(data) {
 
   if (!marketContext) {
     breakdown.push({ factor: 'Market Regime', value: 'N/A', note: 'Market context unavailable', points: 0 });
-    return { score: 0, max, breakdown };
+    return { score: 0, max, breakdown, available: false };
   }
 
   const { technicals, bias, indices } = marketContext;
@@ -119,7 +119,7 @@ function score(data) {
     breakdown.push({ factor: 'Market Bias', value: 'N/A', note: 'Unavailable', points: 0 });
   }
 
-  return { score: Math.min(pts, max), max, breakdown };
+  return { score: Math.min(pts, max), max, breakdown, available: true };
 }
 
 module.exports = { score };

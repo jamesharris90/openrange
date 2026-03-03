@@ -1,0 +1,305 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OpenRange Trader - Sign In</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+			background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #e2e8f0;
+		}
+
+		.login-container {
+			width: 100%;
+			max-width: 400px;
+			padding: 24px;
+		}
+
+		.login-box {
+			background: rgba(15, 23, 42, 0.9);
+			border: 1px solid rgba(148, 163, 184, 0.2);
+			border-radius: 12px;
+			padding: 40px;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			backdrop-filter: blur(10px);
+		}
+
+		.logo {
+			text-align: center;
+			margin-bottom: 32px;
+		}
+
+		.logo h1 {
+			font-size: 28px;
+			font-weight: 700;
+			background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.logo p {
+			font-size: 12px;
+			color: #94a3b8;
+			margin-top: 4px;
+			letter-spacing: 1px;
+		}
+
+		.form-group {
+			margin-bottom: 20px;
+		}
+
+		label {
+			display: block;
+			font-size: 14px;
+			font-weight: 500;
+			margin-bottom: 8px;
+			color: #cbd5e1;
+		}
+
+		input[type="text"],
+		input[type="password"] {
+			width: 100%;
+			padding: 12px 16px;
+			border: 1px solid rgba(148, 163, 184, 0.2);
+			border-radius: 8px;
+			background: rgba(30, 41, 59, 0.8);
+			color: #e2e8f0;
+			font-size: 14px;
+			transition: all 0.3s ease;
+		}
+
+		input[type="text"]:focus,
+		input[type="password"]:focus {
+			outline: none;
+			border-color: #3b82f6;
+			background: rgba(30, 41, 59, 1);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		}
+
+		button {
+			width: 100%;
+			padding: 12px 16px;
+			margin-top: 24px;
+			background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+
+		button:hover:not(:disabled) {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+		}
+
+		button:active:not(:disabled) {
+			transform: translateY(0);
+		}
+
+		button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		.error-message {
+			color: #ef4444;
+			font-size: 13px;
+			margin-top: 8px;
+			display: none;
+		}
+
+		.error-message.show {
+			display: block;
+		}
+
+		.loading {
+			display: inline-block;
+			width: 14px;
+			height: 14px;
+			border: 2px solid rgba(255, 255, 255, 0.3);
+			border-top-color: white;
+			border-radius: 50%;
+			animation: spin 0.6s linear infinite;
+			margin-right: 8px;
+		}
+
+		@keyframes spin {
+			to { transform: rotate(360deg); }
+		}
+
+		.footer {
+			text-align: center;
+			margin-top: 24px;
+			font-size: 12px;
+			color: #64748b;
+		}
+	</style>
+</head>
+<body>
+		<div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card,#141b2d);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
+			<span id="userMenuName">Guest</span>
+			<a href="register.html" id="registerLink">Register</a>
+			<a href="user.html" id="profileLink" style="display:none;">Profile</a>
+			<a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+			<a href="#" id="logoutLink" style="display:none;">Logout</a>
+		</div>
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			let token = localStorage.getItem('authToken');
+			let userMenuName = document.getElementById('userMenuName');
+			let registerLink = document.getElementById('registerLink');
+			let profileLink = document.getElementById('profileLink');
+			let adminLink = document.getElementById('adminLink');
+			let logoutLink = document.getElementById('logoutLink');
+			if (token) {
+				try {
+					let payload = JSON.parse(atob(token.split('.')[1]));
+					userMenuName.textContent = payload.username || 'User';
+					registerLink.style.display = 'none';
+					profileLink.style.display = '';
+					logoutLink.style.display = '';
+					if (payload.is_admin) adminLink.style.display = '';
+				} catch(e) {}
+			} else {
+				profileLink.style.display = 'none';
+				adminLink.style.display = 'none';
+				logoutLink.style.display = 'none';
+			}
+			logoutLink && logoutLink.addEventListener('click', function(e) {
+				e.preventDefault();
+				localStorage.removeItem('authToken');
+				window.location.href = 'login.html';
+			});
+		});
+		</script>
+	<div class="login-container">
+		<div class="login-box">
+			<div class="logo">
+				<h1>OpenRange</h1>
+				<p>TRADER DASHBOARD</p>
+			</div>
+
+			<form id="loginForm">
+				<div class="form-group">
+					<label for="username">Username</label>
+					<input 
+						type="text" 
+						id="username" 
+						name="username" 
+						placeholder="Enter your username" 
+						required
+						autocomplete="username"
+					>
+				</div>
+
+				<div class="form-group">
+					<label for="password">Password</label>
+					<input 
+						type="password" 
+						id="password" 
+						name="password" 
+						placeholder="Enter your password" 
+						required
+						autocomplete="current-password"
+					>
+				</div>
+
+				<div class="error-message" id="errorMessage"></div>
+
+				<button type="submit" id="loginBtn">Sign In</button>
+			</form>
+
+			<div style="text-align:center;margin-top:18px;">
+				<span style="color:#94a3b8;font-size:13px;">Don't have an account?</span>
+				<a href="register.html" style="color:#3b82f6;font-size:13px;text-decoration:underline;margin-left:4px;">Register here</a>
+			</div>
+
+			<div class="footer">
+				<p>&copy; 2025 OpenRange Trader</p>
+			</div>
+		</div>
+	</div>
+
+	<script src="/js/config.js"></script>
+	<script>
+		const loginForm = document.getElementById('loginForm');
+		const loginBtn = document.getElementById('loginBtn');
+		const errorMessage = document.getElementById('errorMessage');
+		const usernameInput = document.getElementById('username');
+		const passwordInput = document.getElementById('password');
+		const API_BASE = window.CONFIG?.API_BASE || window.location.origin;
+
+		loginForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			errorMessage.classList.remove('show');
+			loginBtn.disabled = true;
+
+			const username = usernameInput.value.trim();
+			const password = passwordInput.value;
+
+			if (!username || !password) {
+				showError('Please enter both username and password');
+				loginBtn.disabled = false;
+				return;
+			}
+
+			try {
+				const headers = { 'Content-Type': 'application/json' };
+				if (window.API_KEY) headers['x-api-key'] = window.API_KEY;
+
+				const response = await fetch(`${API_BASE}/api/users/login`, {
+					method: 'POST',
+					headers,
+					body: JSON.stringify({ identifier: username, password })
+				});
+
+				let data = {};
+				try {
+					data = await response.json();
+				} catch (parseError) {
+					console.warn('Login response was not JSON:', parseError);
+				}
+
+				if (response.ok && data.token) {
+					localStorage.setItem('authToken', data.token);
+					window.location.href = '/index.html';
+				} else {
+					const detail = data.error || data.detail || `Login failed (HTTP ${response.status}). Please try again.`;
+					showError(detail);
+				}
+			} catch (error) {
+				showError('Network error. Please check your connection.');
+				console.error('Login error:', error);
+			} finally {
+				loginBtn.disabled = false;
+			}
+		});
+
+		function showError(message) {
+			errorMessage.textContent = message;
+			errorMessage.classList.add('show');
+		}
+
+		if (localStorage.getItem('authToken')) {
+			window.location.href = '/index.html';
+		}
+	</script>
+</body>
+</html>

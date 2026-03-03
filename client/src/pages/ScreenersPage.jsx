@@ -1,62 +1,68 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Flame, Rocket, BarChart2, Target, Newspaper } from 'lucide-react';
+import { TrendingUp, ArrowUpRight, Activity, Rocket, Zap, BarChart2 } from 'lucide-react';
+import ScannerSection from './ScannerSection';
+import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 
-const CARDS = [
+const SCANNERS = [
   {
-    title: 'Small Cap Momentum',
-    description: 'High RVOL, sub-$30 names with 5%+ intraday momentum and liquid floats.',
+    title: 'High Volume Breakouts',
+    icon: <TrendingUp size={18} />,
+    description: 'Stocks hitting new 20-day highs with 2x+ relative volume.',
+    queryPreset: { rvolMin: 2, volumeMin: 500000, priceMin: 5 }
+  },
+  {
+    title: 'Gap Up Movers',
+    icon: <ArrowUpRight size={18} />,
+    description: 'Stocks gapping up 3%+ on above-average volume.',
+    queryPreset: { gapMin: 3, rvolMin: 1.5, volumeMin: 200000, priceMin: 3 }
+  },
+  {
+    title: 'High Volatility',
+    icon: <Activity size={18} />,
+    description: 'Names with 5%+ weekly volatility and strong volume.',
+    queryPreset: { rvolMin: 1.8, volumeMin: 300000, priceMin: 2 }
+  },
+  {
+    title: 'Small Cap Gainers',
     icon: <Rocket size={18} />,
-    link: '/advanced-screener',
+    description: 'Small-cap stocks up 5%+ with solid average volume.',
+    queryPreset: { marketCapMax: 2000000000, rvolMin: 2, priceMin: 1 }
   },
   {
-    title: 'Day Gainers',
-    description: 'Large/mid-cap leaders with strong relative volume and clean trends.',
-    icon: <Flame size={18} />,
-    link: '/advanced-screener',
+    title: 'Momentum Continuation',
+    icon: <Zap size={18} />,
+    description: 'Trading above SMA20 with positive weekly performance.',
+    queryPreset: { rvolMin: 1.5, volumeMin: 250000, priceMin: 2 }
   },
   {
-    title: 'Value & Quality',
-    description: 'Large-cap names with solid balance sheets and reasonable valuations.',
+    title: 'Unusual Volume',
     icon: <BarChart2 size={18} />,
-    link: '/advanced-screener',
-  },
-  {
-    title: 'News Scanner',
-    description: 'Breaking catalysts, sentiment scores, and instant watchlist adds.',
-    icon: <Newspaper size={18} />,
-    link: '/news-scanner',
-  },
-  {
-    title: 'Custom Filters',
-    description: 'Build your own filter set and export to CSV directly.',
-    icon: <Target size={18} />,
-    link: '/advanced-screener',
+    description: 'Stocks with 3x+ relative volume signaling unusual activity.',
+    queryPreset: { rvolMin: 3, volumeMin: 300000, priceMin: 1 }
   },
 ];
 
 export default function ScreenersPage() {
   return (
-    <div className="page-container">
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Market Screeners</h2>
-        <p className="muted" style={{ marginTop: 4 }}>Pick a preset or jump into the advanced screener. All results support watchlist sync and CSV export.</p>
-      </div>
+    <PageContainer className="space-y-4">
+      <PageHeader
+        title="Market Screeners"
+        subtitle="6 live scanners with preset strategies. Toggle filters per scanner, star tickers to add to your watchlist."
+      />
 
-      <div className="panel">
-        <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-          {CARDS.map(card => (
-            <div key={card.title} className="panel" style={{ padding: 16, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
-                {card.icon}
-                <h3 style={{ margin: 0 }}>{card.title}</h3>
-              </div>
-              <p className="muted" style={{ margin: 0, marginBottom: 10 }}>{card.description}</p>
-              <NavLink className="btn-primary btn-sm" to={card.link}>Open</NavLink>
-            </div>
-          ))}
-        </div>
+      <div className="screeners-grid">
+        {SCANNERS.map((scanner, idx) => (
+          <ScannerSection
+            key={scanner.title}
+            title={scanner.title}
+            icon={scanner.icon}
+            description={scanner.description}
+            filters={scanner.filters}
+            sortParam={scanner.sortParam}
+            delay={idx * 300}
+          />
+        ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

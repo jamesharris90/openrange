@@ -134,7 +134,6 @@ class AdvancedScreener {
 
             sections[sectionId].fields.push(field);
         });
-
         return { sections };
     }
 
@@ -168,6 +167,29 @@ class AdvancedScreener {
 
         const panelContainer = document.getElementById('filtersPanel');
         if (!panelContainer) return;
+
+        // Add styled search bar above filters if not present
+        let searchRow = panelContainer.querySelector('.filter-search-row');
+        if (!searchRow) {
+            searchRow = document.createElement('div');
+            searchRow.className = 'filter-search-row';
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'filter-search-bar';
+            searchInput.placeholder = 'Search filters...';
+            searchInput.setAttribute('autocomplete', 'off');
+            searchInput.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                document.querySelectorAll('.filter-layout-shell .filter-field').forEach(field => {
+                    const label = field.querySelector('.filter-field-label');
+                    if (!label) return;
+                    const text = label.textContent.toLowerCase();
+                    field.style.display = val && !text.includes(val) ? 'none' : '';
+                });
+            });
+            searchRow.appendChild(searchInput);
+            panelContainer.prepend(searchRow);
+        }
 
         this.filterState = FilterFramework.createTabbedFilterPanel(panelContainer, {
             pageKey: pageConfig.pageKey || 'advanced-screener',

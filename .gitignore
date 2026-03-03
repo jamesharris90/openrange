@@ -14,3 +14,29 @@ server/*.log
 *.log
 client/dist/
 client-dist/
+
+# SQLite databases
+server/db/*.db
+server/db/*.db-shm
+server/db/*.db-wal
+
+# Large data / warehouse files
+server/data/daily-metrics-cache.json
+server/data/__pycache__/
+server/dataWarehouse/
+
+# State and temp files
+.ingestion-milestone-state.json
+.tmp/
+server/scripts/candleDepthOccurrences.txt
+
+# Audit reports (generated)
+ACCEPTANCE-REPORT*.md
+EXTERNAL-DATA-SOURCE-AUDIT.md
+CANONICAL-MARKET-DATA-MIGRATION-ROADMAP.md
+PROVIDER-CANONICAL-MAPPING-MATRIX.csv
+audit-readable.txt
+
+# Dev browser extensions
+client/perplexity-ext/
+client/devtools/

@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
@@ -7,7 +9,6 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
-require('dotenv').config();
 const { withRetry } = require('./utils/retry');
 
 // New layered architecture pieces
@@ -16,14 +17,41 @@ const authMiddleware = require('./middleware/auth');
 const { generalLimiter, registerLimiter } = require('./middleware/rateLimit');
 const usageMiddleware = require('./middleware/usage');
 const quotesRoutes = require('./routes/quotes');
+const quotesBatchRoutes = require('./routes/quotesBatch');
 const newsRoutes = require('./routes/news');
 const gappersRoutes = require('./routes/gappers');
 const historicalRoutes = require('./routes/historical');
 const optionsRoutes = require('./routes/options');
 const adminRoutes = require('./routes/admin');
 const earningsRoutes = require('./routes/earnings');
+const optionsApiRoutes = require('./routes/optionsRoutes');
+const earningsIntelligenceRoutes = require('./routes/earningsRoutes');
 const brokerRoutes = require('./routes/broker');
 const marketService = require('./services/marketDataService');
+const expectedMoveService = require('./services/expectedMoveService');
+const { buildUniverseDataset } = require('./services/fmpService');
+const { isCacheFresh, setUniverse, getUniverse, getLastUpdated } = require('./services/dataStore');
+const { startScheduler, rebuildEngine } = require('./data-engine/scheduler');
+const engineCache = require('./data-engine/cacheManager');
+const { applyFilters } = require('./data-engine/filterEngine');
+const { startPhaseScheduler } = require('./scheduler/phaseScheduler');
+const profileRoutes = require('./routes/profile');
+const systemStatusRoutes = require('./routes/systemStatus');
+const screenerV3Routes = require('./routes/screenerV3');
+const screenerV3EngineRoutes = require('./routes/screenerV3Engine.ts');
+const canonicalNewsRoutes = require('./routes/canonical/news.ts');
+const canonicalQuotesRoutes = require('./routes/canonical/quotes.ts');
+const canonicalFmpScreenerRoutes = require('./routes/canonical/fmpScreener.ts');
+const canonicalUniverseRoutes = require('./routes/canonical/universe.ts');
+const canonicalUniverseV2Routes = require('./routes/canonical/universeV2.ts');
+const directoryV1Routes = require('./routes/directoryV1.ts');
+const newsV4Routes = require('./routes/newsV4.ts');
+const exportV1Routes = require('./routes/exportV1.ts');
+const chartV2Routes = require('./routes/chartV2.ts');
+const newsV3Routes = require('./routes/newsV3');
+const testNewsDbRoute = require('./routes/testNewsDb');
+const { startSchedulerService } = require('./services/schedulerService.ts');
+const intelligenceRoutes = require('./routes/intelligence');
 
 // Logger
 const logger = require('./logger');
@@ -45,6 +73,31 @@ let finvizNewsScannerCache = {};
 const FINVIZ_NEWS_SCANNER_CACHE_MS = 2 * 60 * 1000; // 2 minutes
 const FINVIZ_CSV_CACHE_MS = 90 * 1000;
 const finvizCsvCache = {};
+
+// FMP screener cache (in-memory)
+const FMP_SCREENER_CACHE_KEY = 'fmp_screener';
+const FMP_SCREENER_CACHE_MS = 60 * 1000;
+const fmpScreenerCache = { key: FMP_SCREENER_CACHE_KEY, data: null, ts: 0 };
+const FMP_FULL_UNIVERSE_CACHE_MS = 60 * 1000;
+const fmpFullUniverseCache = { data: null, ts: 0 };
+const FMP_QUOTES_CACHE_MS = 60 * 1000;
+const fmpQuotesCache = new Map();
+
+async function fetchFmpJson(url) {
+  const response = await axios.get(url, { timeout: 15000 });
+  return response.data;
+}
+
+async function fetchFmpBatches(baseUrl, symbols, batchSize = 500) {
+  const all = [];
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const batch = symbols.slice(i, i + batchSize);
+    const url = `${baseUrl}/${batch.join(',')}?apikey=${FMP_API_KEY}`;
+    const data = await fetchFmpJson(url);
+    if (Array.isArray(data)) all.push(...data);
+  }
+  return all;
+}
 
 async function fetchFinvizNews() {
   if (!FINVIZ_NEWS_URL) {
@@ -188,6 +241,66 @@ async function buildContext(contextSource = 'none') {
   return { usedContext: 'none', text: '', available: false };
 }
 
+function logUniverseDiagnostics(universe) {
+  if (!Array.isArray(universe)) {
+    console.error('Universe is not an array');
+    return;
+  }
+
+  const total = universe.length;
+
+  const symbolSet = new Set();
+  const exchangeCounts = {};
+  let nullExchange = 0;
+  let nullPrice = 0;
+  let nullMarketCap = 0;
+  let duplicateCount = 0;
+
+  let suffixW = 0;
+  let suffixU = 0;
+  let suffixR = 0;
+  let suffixP = 0;
+
+  for (const row of universe) {
+    const symbol = row?.symbol;
+
+    if (!symbolSet.has(symbol)) {
+      symbolSet.add(symbol);
+    } else {
+      duplicateCount++;
+    }
+
+    const exchange = row?.exchange;
+    if (!exchange) {
+      nullExchange++;
+    } else {
+      exchangeCounts[exchange] = (exchangeCounts[exchange] || 0) + 1;
+    }
+
+    if (row?.price == null) nullPrice++;
+    if (row?.marketCap == null) nullMarketCap++;
+
+    if (symbol?.endsWith('W')) suffixW++;
+    if (symbol?.endsWith('U')) suffixU++;
+    if (symbol?.endsWith('R')) suffixR++;
+    if (symbol?.includes('-P')) suffixP++;
+  }
+
+  console.log('========== UNIVERSE DIAGNOSTICS ==========');
+  console.log('Total rows:', total);
+  console.log('Unique symbols:', symbolSet.size);
+  console.log('Duplicate count:', duplicateCount);
+  console.log('Exchange counts:', exchangeCounts);
+  console.log('Null exchange count:', nullExchange);
+  console.log('Null price count:', nullPrice);
+  console.log('Null marketCap count:', nullMarketCap);
+  console.log('Suffix W:', suffixW);
+  console.log('Suffix U:', suffixU);
+  console.log('Suffix R:', suffixR);
+  console.log('Suffix -P:', suffixP);
+  console.log('==========================================');
+}
+
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
@@ -260,8 +373,9 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const FMP_API_KEY = process.env.FMP_API_KEY || null;
+logger.info(`FMP_API_KEY exists: ${!!FMP_API_KEY}`);
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   logger.warn('JWT_SECRET not set — using insecure default. Set JWT_SECRET env var in production.');
 }
@@ -348,12 +462,31 @@ if (process.env.NODE_ENV !== 'production') {
     
   // New modular routes
   app.use(quotesRoutes);
+  app.use(quotesBatchRoutes);
   app.use(newsRoutes);
   app.use(gappersRoutes);
   app.use(historicalRoutes);
   app.use(optionsRoutes);
   app.use(earningsRoutes);
+  app.use('/api/options', optionsApiRoutes);
+  app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
   app.use(adminRoutes);
+  // Phase-aware architecture routes
+  app.use('/api', profileRoutes);
+  app.use('/api', testNewsDbRoute);
+  app.use('/api/system', systemStatusRoutes);
+  app.use('/api/data', screenerV3Routes);
+  app.use('/api/v3/screener', screenerV3EngineRoutes);
+  app.use('/api/canonical/news', canonicalNewsRoutes);
+  app.use('/api/canonical/quotes', canonicalQuotesRoutes);
+  app.use('/api/canonical/fmp-screener', canonicalFmpScreenerRoutes);
+  app.use('/api/canonical/universe', canonicalUniverseRoutes);
+  app.use('/api/canonical/universe-v2', canonicalUniverseV2Routes);
+  app.use('/api/v4/directory', directoryV1Routes);
+  app.use('/api/v4', newsV4Routes);
+  app.use('/api/v4', exportV1Routes);
+  app.use('/api/v5', chartV2Routes);
+  app.use(newsV3Routes);
 
 
 // Rate limiting for registration endpoint (more strict)
@@ -411,7 +544,6 @@ app.get('/api/market-status', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     brokers: ['ibkr', 'saxo'],
-    proxyApi: !!PROXY_API_KEY,
     finvizEnabled: !!FINVIZ_NEWS_TOKEN,
     finnhubEnabled: !!process.env.FINNHUB_API_KEY,
     pplxEnabled: !!PPLX_API_KEY
@@ -515,10 +647,6 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing ticker parameter' });
   }
 
-  // Check cache first (2-minute TTL for enhanced analysis)
-  const cached = yahooCacheGet(ticker, 'em-enhanced');
-  if (cached) return res.json(cached);
-
   try {
     // ── 1. Parallel data fetching ──────────────────────────────────
     const now = new Date();
@@ -526,11 +654,9 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
     const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
     const newsFrom = new Date(now); newsFrom.setDate(now.getDate() - 3);
 
-    const [quoteResult, optionsResult, chartResult, chart30dResult, marketCtxResult, sectorResult, newsResult, earningsSummaryResult] = await Promise.allSettled([
+    const [quoteResult, chartResult, chart30dResult, marketCtxResult, sectorResult, newsResult, earningsSummaryResult] = await Promise.allSettled([
       // Full quote (includes beta, sector, marketCap, volume)
       yahooFinance.quote(ticker),
-      // Options chain (nearest expiry)
-      yahooFinance.options(ticker, {}),
       // 1-year chart for HV + 52W levels + SMA200
       yahooFinance.chart(ticker, { period1: oneYearAgo, period2: now, interval: '1d' }),
       // 30-day chart for ATR + SMA20
@@ -610,7 +736,6 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
 
     // ── 2. Extract data ────────────────────────────────────────────
     const quote = quoteResult.status === 'fulfilled' ? quoteResult.value : null;
-    const optionsRaw = optionsResult.status === 'fulfilled' ? optionsResult.value : null;
     const chartData = chartResult.status === 'fulfilled' ? chartResult.value : null;
     const chart30d = chart30dResult.status === 'fulfilled' ? chart30dResult.value : null;
     const marketCtx = marketCtxResult.status === 'fulfilled' ? marketCtxResult.value : null;
@@ -631,58 +756,26 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
 
     // ── 3. Options parsing ─────────────────────────────────────────
     let optionsData = null;
-    if (optionsRaw) {
-      // If nearest expiry is today or past, try next
-      let opts = optionsRaw.options?.[0] || {};
-      if (optionsRaw.options?.length > 1) {
-        const firstExpiry = opts.expirationDate;
-        const exMs = firstExpiry instanceof Date ? firstExpiry.getTime() : (firstExpiry ? firstExpiry * 1000 : 0);
-        const dte = Math.ceil((exMs - Date.now()) / 86400000);
-        if (dte <= 0 && optionsRaw.expirationDates?.length > 1) {
-          const nextDate = optionsRaw.expirationDates[1];
-          const nd = nextDate instanceof Date ? nextDate : new Date(nextDate * 1000);
-          try {
-            const nextResult = await yahooFinance.options(ticker, { date: nd });
-            opts = nextResult?.options?.[0] || opts;
-          } catch (e) { /* use first */ }
-        }
-      }
-
-      const calls = opts.calls || [];
-      const puts = opts.puts || [];
-      const expirationDate = opts.expirationDate || null;
-      const expiryMs = expirationDate instanceof Date ? expirationDate.getTime() : (expirationDate ? expirationDate * 1000 : 0);
-      const expiryStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
-      const daysToExpiry = expiryMs ? Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000)) : 0;
-
-      const allStrikes = [...new Set([...calls.map(c => c.strike), ...puts.map(p => p.strike)])].sort((a, b) => a - b);
-      const atmStrike = allStrikes.length ? allStrikes.reduce((best, s) => Math.abs(s - price) < Math.abs(best - price) ? s : best, allStrikes[0]) : price;
-
-      const atmCall = calls.find(c => c.strike === atmStrike) || null;
-      const atmPut = puts.find(p => p.strike === atmStrike) || null;
-
-      const ivVals = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(v => v != null);
-      const avgIV = ivVals.length ? +(ivVals.reduce((a, b) => a + b, 0) / ivVals.length).toFixed(4) : null;
-
-      const callMidRaw = atmCall ? ((atmCall.bid || 0) + (atmCall.ask || 0)) / 2 : 0;
-      const callMid = callMidRaw > 0 ? callMidRaw : (atmCall?.lastPrice || 0);
-      const putMidRaw = atmPut ? ((atmPut.bid || 0) + (atmPut.ask || 0)) / 2 : 0;
-      const putMid = putMidRaw > 0 ? putMidRaw : (atmPut?.lastPrice || 0);
-      const straddleMid = +(callMid + putMid).toFixed(2);
-      const ivExpectedMove = avgIV && price ? +(price * avgIV * Math.sqrt(Math.max(daysToExpiry, 1) / 365)).toFixed(2) : 0;
-      const expectedMove = straddleMid > 0 ? straddleMid : ivExpectedMove;
-      const expectedMovePercent = price ? +((expectedMove / price) * 100).toFixed(2) : 0;
-
-      // Earnings
+    const canonicalMove = await expectedMoveService.getExpectedMove(ticker, null, 'screener');
+    if (canonicalMove?.data) {
+      const expectedMove = canonicalMove.data.impliedMoveDollar;
+      const expectedMovePercent = canonicalMove.data.impliedMovePct != null
+        ? +(canonicalMove.data.impliedMovePct * 100).toFixed(2)
+        : null;
       optionsData = {
-        atmStrike, daysToExpiry, expirationDate: expiryStr,
-        atmCall: atmCall ? { strike: atmCall.strike, bid: atmCall.bid || 0, ask: atmCall.ask || 0, mid: +callMid.toFixed(2), lastPrice: atmCall.lastPrice || 0, iv: atmCall.impliedVolatility || null, volume: atmCall.volume || 0, openInterest: atmCall.openInterest || 0 } : null,
-        atmPut: atmPut ? { strike: atmPut.strike, bid: atmPut.bid || 0, ask: atmPut.ask || 0, mid: +putMid.toFixed(2), lastPrice: atmPut.lastPrice || 0, iv: atmPut.impliedVolatility || null, volume: atmPut.volume || 0, openInterest: atmPut.openInterest || 0 } : null,
-        straddleMid, avgIV, ivExpectedMove,
+        atmStrike: canonicalMove.data.strike,
+        daysToExpiry: canonicalMove.data.daysToExpiry,
+        expirationDate: canonicalMove.data.expiration,
+        atmCall: null,
+        atmPut: null,
+        straddleMid: null,
+        avgIV: canonicalMove.data.iv,
+        ivExpectedMove: expectedMove,
         expectedMove, expectedMovePercent,
-        rangeHigh: +(price + expectedMove).toFixed(2),
-        rangeLow: +(price - expectedMove).toFixed(2),
-        callsCount: calls.length, putsCount: puts.length,
+        rangeHigh: expectedMove != null ? +(price + expectedMove).toFixed(2) : null,
+        rangeLow: expectedMove != null ? +(price - expectedMove).toFixed(2) : null,
+        callsCount: null,
+        putsCount: null,
         earningsDate: null, earningsInDays: null,
       };
     }
@@ -707,7 +800,6 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
     if (!earningsDateMs && optionsData?.earningsInDays != null && optionsData.earningsInDays > 0) {
       earningsDateMs = Date.now() + optionsData.earningsInDays * 86400000;
     }
-    if (!earningsDateMs && optionsRaw?.quote?.earningsTimestamp) earningsDateMs = normalizeDateMs(optionsRaw.quote.earningsTimestamp);
     if (!earningsDateMs && quote?.earningsTimestamp) earningsDateMs = normalizeDateMs(quote.earningsTimestamp);
 
     const earningsDateStr = earningsDateMs ? new Date(earningsDateMs).toISOString().split('T')[0] : optionsData?.earningsDate || null;
@@ -771,9 +863,9 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
     // SPY expected move for beta-adjusted comparison
     let spyExpectedMovePercent = null;
     if (marketCtx?.technicals?.SPY) {
-      const spyCached = yahooCacheGet('SPY', 'options');
-      if (spyCached) {
-        spyExpectedMovePercent = spyCached.expectedMovePercent || null;
+      const spyEm = await expectedMoveService.getExpectedMove('SPY', null, 'screener');
+      if (spyEm?.data?.impliedMovePct != null) {
+        spyExpectedMovePercent = +(spyEm.data.impliedMovePct * 100).toFixed(2);
       }
     }
 
@@ -929,7 +1021,6 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
       timestamp: Date.now(),
     };
 
-    yahooCacheSet(ticker, 'em-enhanced', response);
     res.json(response);
   } catch (err) {
     logger.warn('Expected move enhanced error', { ticker, error: err.message });
@@ -1106,6 +1197,217 @@ app.get('/api/finviz/news', async (req, res) => {
   }
 });
 
+const isDev = process.env.NODE_ENV !== 'production';
+const SYNC_HIT_LOG_THROTTLE_MS = 60 * 1000;
+let lastSyncLogTime = 0;
+
+// Build/rebuild universe cache on demand.
+app.get('/api/data/sync', isDev ? (req, res, next) => next() : authMiddleware, async (req, res) => {
+  try {
+    if (engineCache.isFresh('enrichedUniverse', 10 * 60 * 1000)) {
+      const cached = engineCache.getEnrichedUniverse();
+      const now = Date.now();
+      if (now - lastSyncLogTime > SYNC_HIT_LOG_THROTTLE_MS) {
+        const requesterIp = req?.ip || null;
+        const forwardedFor = req?.headers?.['x-forwarded-for'] || null;
+        const userAgent = req?.get?.('user-agent') || null;
+        const host = req?.headers?.host || null;
+        const method = req?.method || null;
+
+        logger.info('Data sync caller trace (throttled)', {
+          route: '/api/data/sync',
+          requesterIp,
+          forwardedFor,
+          userAgent,
+          host,
+          method,
+          timestamp: new Date().toISOString(),
+        });
+
+        lastSyncLogTime = now;
+      }
+      return res.json({ status: 'ok', source: 'cache', count: cached.length, lastUpdated: engineCache.getLastUpdated('enrichedUniverse') });
+    }
+
+    logger.info('Data sync cache rebuild starting');
+    const dataset = await rebuildEngine(FMP_API_KEY, logger);
+    logUniverseDiagnostics(dataset);
+    logger.info('Data sync cache rebuild complete', { count: dataset.length });
+    return res.json({ status: 'ok', source: 'rebuild', count: dataset.length, lastUpdated: engineCache.getLastUpdated('enrichedUniverse') });
+  } catch (err) {
+    logger.error('Data sync failed', { error: err.message });
+    return res.status(500).json({ error: 'Data sync failed', message: err.message });
+  }
+});
+
+app.get('/api/data/debug', async (_req, res) => {
+  const base = engineCache.getBaseUniverse();
+  const enriched = engineCache.getEnrichedUniverse();
+  return res.json({
+    baseUniverseCount: Array.isArray(base) ? base.length : 0,
+    enrichedUniverseCount: Array.isArray(enriched) ? enriched.length : 0,
+    sampleRow: Array.isArray(enriched) && enriched.length ? enriched[0] : null,
+  });
+});
+
+// Server-side screener using cached enriched universe.
+// Read-only: never triggers a rebuild. Serves from cache only.
+app.get('/api/data/screener', authMiddleware, async (req, res) => {
+  try {
+    const fullUniverse    = engineCache.getBaseUniverse();
+    const enrichedUniverse = engineCache.getEnrichedUniverse();
+    const operationalUniverse = engineCache.getDataset('operationalUniverse') || [];
+
+    // useOperational=true → filter from operationalUniverse (preset-scoped)
+    const useOperational = req.query.useOperational === 'true';
+    let sourceDataset;
+    if (useOperational && operationalUniverse.length) {
+      // Resolve enriched rows for operational symbols
+      const enrichedMap = new Map((enrichedUniverse.length ? enrichedUniverse : fullUniverse)
+        .map((r) => [r.symbol, r]));
+      sourceDataset = operationalUniverse.map((r) => enrichedMap.get(r.symbol) || r);
+    } else {
+      sourceDataset = enrichedUniverse.length ? enrichedUniverse : fullUniverse;
+    }
+
+    if (!Array.isArray(sourceDataset) || !sourceDataset.length) {
+      return res.json({
+        data: [], total: 0, page: 1, pageSize: 25, lastUpdated: null,
+        totalFullUniverse: fullUniverse.length,
+        totalOperationalUniverse: operationalUniverse.length,
+        activeRefreshMode: 'no-data',
+      });
+    }
+
+    const normalized = sourceDataset.map((row) => ({
+      ...row,
+      price:         row.price        ?? row.currentPrice ?? null,
+      volume:        row.volume       ?? row.currentVolume ?? null,
+      changePercent: row.changePercent ?? row.changesPercentage ?? row.changePercentage ?? row.dayChange ?? null,
+    }));
+
+    // Strip internal-only params before passing to filterEngine
+    const { useOperational: _ignored, page: _p, pageSize: _ps, ...filterRest } = req.query;
+    const filterPayload = {
+      ...filterRest,
+      exchange: filterRest.exchange ? String(filterRest.exchange).toUpperCase() : undefined,
+    };
+    const filtered = applyFilters(normalized, filterPayload);
+
+    const page     = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize, 10) || 25, 1), 100);
+    const start    = (page - 1) * pageSize;
+    const paginatedRows = filtered.slice(start, start + pageSize);
+
+    logger.info('Screener response generated', {
+      total: filtered.length,
+      page,
+      pageSize,
+      useOperational,
+    });
+
+    return res.json({
+      data: paginatedRows,
+      total: filtered.length,
+      page,
+      pageSize,
+      lastUpdated:              engineCache.getLastUpdated('enrichedUniverse'),
+      totalFullUniverse:        fullUniverse.length,
+      totalOperationalUniverse: operationalUniverse.length,
+      activeRefreshMode:        useOperational ? 'operational' : 'full',
+    });
+  } catch (err) {
+    logger.error('Screener route failed', { error: err.message });
+    return res.json({
+      data: [],
+      total: 0,
+      page: 1,
+      pageSize: 25,
+      lastUpdated: engineCache.getLastUpdated('enrichedUniverse'),
+    });
+  }
+});
+
+app.get('/api/fmp/screener', async (req, res) => {
+  console.log("Screener route hit");
+  return res.status(410).json({
+    error: 'Deprecated endpoint',
+    message: 'Use /api/fmp/full-universe + /api/fmp/quotes'
+  });
+});
+
+// Fetch the complete symbol universe from raw FMP stock-list endpoint.
+app.get('/api/fmp/full-universe', async (_req, res) => {
+  try {
+    const response = await axios.get('https://financialmodelingprep.com/api/v3/stock-list', {
+      params: { apikey: process.env.FMP_API_KEY || '' },
+      validateStatus: () => true,
+    });
+
+    if (response.status !== 200) {
+      const errorBody = response.data;
+      console.error('FMP FULL UNIVERSE ERROR BODY:', errorBody);
+      return res.status(response.status).json(errorBody);
+    }
+
+    const data = Array.isArray(response.data) ? response.data : [];
+    console.log('Raw FMP length:', data.length);
+    return res.json(data);
+  } catch (err) {
+    const errorBody = err.response?.data || { error: err.message };
+    const status = err.response?.status || 500;
+    console.error('FMP FULL UNIVERSE ERROR BODY:', errorBody);
+    return res.status(status).json(errorBody);
+  }
+});
+
+// Fetch batched quotes for a comma-separated symbol list.
+app.get('/api/fmp/quotes', async (req, res) => {
+  try {
+    const symbols = String(req.query.symbols || '')
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 500);
+
+    if (!symbols.length) {
+      return res.status(400).json({ error: 'symbols query param is required' });
+    }
+
+    const cacheKey = symbols.join(',');
+    const cached = fmpQuotesCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < FMP_QUOTES_CACHE_MS) {
+      return res.json(cached.data);
+    }
+
+    const url = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(cacheKey)}&apikey=${process.env.FMP_API_KEY || ''}`;
+    console.log('FMP URL:', url);
+    const response = await axios.get(url, { validateStatus: () => true });
+    if (response.status !== 200) {
+      const errorBody = response.data;
+      console.error('FMP QUOTES ERROR BODY:', errorBody);
+      if (cached?.data) return res.json(cached.data);
+      return res.status(response.status).json(errorBody);
+    }
+    const payload = Array.isArray(response.data) ? response.data : [];
+    fmpQuotesCache.set(cacheKey, { data: payload, ts: Date.now() });
+    return res.json(payload);
+  } catch (err) {
+    const errorBody = err.response?.data || { error: err.message };
+    const status = err.response?.status || 500;
+    console.error('FMP QUOTES ERROR BODY:', errorBody);
+    const symbols = String(req.query.symbols || '')
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 500)
+      .join(',');
+    const cached = fmpQuotesCache.get(symbols);
+    if (cached?.data) return res.json(cached.data);
+    return res.status(status).json(errorBody);
+  }
+});
+
 // Finviz screener export endpoint (public)
 app.get('/api/finviz/screener', async (req, res) => {
   if (!FINVIZ_NEWS_TOKEN) {
@@ -1115,20 +1417,24 @@ app.get('/api/finviz/screener', async (req, res) => {
   try {
     // Get filter parameters from query string
     const tickers = req.query.t || ''; // Optional ticker list
-    const filters = req.query.f !== undefined ? req.query.f : (tickers ? '' : 'sh_avgvol_o500,ta_change_u5'); // Default filters only if no tickers specified
+    // When f= is explicitly passed (even empty string), use it as-is.
+    // Only apply defaults when f is completely absent from the query.
+    const filters = req.query.f !== undefined ? req.query.f : (tickers ? '' : 'sh_avgvol_o500,ta_change_u5');
     const view = req.query.v || '111'; // Default view
     const columns = req.query.c || ''; // Optional custom columns
     const order = req.query.o || ''; // Optional ordering
+    const page = parseInt(req.query.r) || 0; // Row offset for pagination (Finviz uses r= param)
 
-    // Build Finviz export URL - use filters only if provided or if no tickers
+    // Build Finviz export URL - always include f= if filters are non-empty
     let url = `https://elite.finviz.com/export.ashx?v=${view}&auth=${FINVIZ_NEWS_TOKEN}`;
     if (filters) url += `&f=${filters}`;
     if (columns) url += `&c=${columns}`;
     if (order) url += `&o=${order}`;
     if (tickers) url += `&t=${tickers}`;
+    if (page > 0) url += `&r=${page}`;
 
-    logger.info('Fetching Finviz screener:', { filters: filters || 'none', view, tickers: tickers ? tickers.substring(0, 100) : 'none' });
-    const cacheKey = `screener:${view}:${filters || 'none'}:${order || 'none'}:${tickers || 'none'}`;
+    logger.info('Fetching Finviz screener:', { filters: filters || 'none', view, page, tickers: tickers ? tickers.substring(0, 100) : 'none' });
+    const cacheKey = `screener:${view}:${filters || 'none'}:${order || 'none'}:${tickers || 'none'}:${page}`;
     const csvData = await fetchFinvizCsv(url, cacheKey, 12000);
     res.json(csvData);
 
@@ -1138,9 +1444,80 @@ app.get('/api/finviz/screener', async (req, res) => {
   }
 });
 
+// Batch news freshness for screener tickers (public)
+const newsFreshnessCache = {};
+const NEWS_FRESHNESS_CACHE_MS = 120 * 1000; // 2 minutes
+app.get('/api/finviz/news-freshness', async (req, res) => {
+  const tickers = (req.query.t || '').trim().toUpperCase();
+  if (!tickers) return res.json({});
+  if (!FINVIZ_NEWS_TOKEN) return res.json({});
+
+  const tickerList = tickers.split(',').slice(0, 100); // max 100 tickers
+  const now = Date.now();
+  const result = {};
+  const missing = [];
+
+  // Check cache first
+  for (const t of tickerList) {
+    const cached = newsFreshnessCache[t];
+    if (cached && now - cached.ts < NEWS_FRESHNESS_CACHE_MS) {
+      result[t] = cached.data;
+    } else {
+      missing.push(t);
+    }
+  }
+
+  // Fetch missing from Finviz news scanner (batch by ticker list)
+  if (missing.length > 0) {
+    try {
+      const batchTickers = missing.join(',');
+      const url = `https://elite.finviz.com/news_export.ashx?v=3&auth=${FINVIZ_NEWS_TOKEN}&t=${batchTickers}`;
+      const response = await axios.get(url, { responseType: 'text', timeout: 10000 });
+      const csvData = await csv().fromString(response.data);
+
+      // Group by ticker, find most recent article per ticker
+      const byTicker = {};
+      for (const row of csvData) {
+        const ticker = (row.Ticker || '').trim().toUpperCase();
+        if (!ticker) continue;
+        const datetime = row.Date && row.Time
+          ? new Date(`${row.Date} ${row.Time}`).getTime()
+          : null;
+        if (!datetime) continue;
+        if (!byTicker[ticker] || datetime > byTicker[ticker].datetime) {
+          byTicker[ticker] = {
+            datetime,
+            ageHours: (now - datetime) / (1000 * 60 * 60),
+            headline: row.Headline || row.Title || '',
+            source: row.Source || 'Finviz',
+          };
+        }
+      }
+
+      for (const t of missing) {
+        const info = byTicker[t] || { ageHours: null, headline: null, source: null, datetime: null };
+        result[t] = info;
+        newsFreshnessCache[t] = { data: info, ts: now };
+      }
+    } catch (err) {
+      logger.warn('News freshness batch fetch error:', { error: err.message });
+      // Return what we have from cache
+      for (const t of missing) {
+        const stale = newsFreshnessCache[t];
+        result[t] = stale ? stale.data : { ageHours: null, headline: null, source: null, datetime: null };
+      }
+    }
+  }
+
+  res.json(result);
+});
+
 // User management API (handles its own auth, but apply rate limiting to registration)
 app.use('/api/users/register', registrationLimiter);
 app.use('/api/users', userRoutes);
+
+// Intelligence ingestion — own key auth, must be before JWT middleware
+app.use(intelligenceRoutes);
 
 // General rate limiting for other endpoints (new wrapper)
 app.use(generalLimiter);
@@ -1150,6 +1527,36 @@ app.use(authMiddleware);
 
 // Broker abstraction routes (monitoring-only)
 app.use(brokerRoutes);
+
+app.post('/api/gpt/analyse-cockpit', async (req, res) => {
+  try {
+    const screenshotBase64 = String(req.body?.screenshotBase64 || '');
+    const metadata = req.body?.metadata || {};
+
+    if (!screenshotBase64 || !screenshotBase64.startsWith('data:image')) {
+      return res.status(400).json({ error: 'screenshotBase64 image payload required' });
+    }
+
+    return res.json({
+      ok: true,
+      message: 'Cockpit analysis request received. GPT processing not implemented in this route yet.',
+      received: {
+        screenshotBytesApprox: Math.round((screenshotBase64.length * 3) / 4),
+        metadataKeys: Object.keys(metadata),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to process cockpit analysis payload', detail: err.message });
+  }
+});
+
+// Trade Intelligence routes
+const tradesRoutes = require('./routes/trades');
+const dailyReviewsRoutes = require('./routes/dailyReviews');
+const demoRoutes = require('./routes/demo');
+app.use(tradesRoutes);
+app.use(dailyReviewsRoutes);
+app.use(demoRoutes);
 
 // Usage metrics (after auth so user is available)
 app.use(usageMiddleware);
@@ -1486,4 +1893,41 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => logger.info(`OpenRange server listening on port ${PORT}`));
+// Start daily review cron
+const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
+startDailyReviewCron();
+
+// Phase-aware scheduler (replaces the old fixed-interval startScheduler)
+if (FMP_API_KEY) {
+  // Resolve the scheduler user (whose active preset drives the engine).
+  // Falls back to user ID from env, then first admin user in DB.
+  const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
+    ? Number(process.env.SCHEDULER_USER_ID)
+    : null;
+
+  (async () => {
+    try {
+      let schedulerUserId = SCHEDULER_USER_ID;
+      if (!schedulerUserId) {
+        const adminUser = await userModel.findByUsernameOrEmail(
+          process.env.ADMIN_EMAIL || 'admin'
+        ).catch(() => null);
+        schedulerUserId = adminUser?.id || 1;
+      }
+      await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
+    } catch (err) {
+      logger.error('Phase scheduler failed to start', { error: err.message });
+      // Fallback: old scheduler still available if needed
+      startScheduler(FMP_API_KEY, logger);
+    }
+  })();
+}
+
+if (FMP_API_KEY) {
+  startSchedulerService();
+}
+
+app.listen(PORT, () => {
+  logger.info(`OpenRange server listening on port ${PORT}`);
+  console.log('[Intelligence] Ingestion endpoint ready');
+});

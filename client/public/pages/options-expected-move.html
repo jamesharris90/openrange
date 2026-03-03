@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Expected Move Engine — Harris Trading</title>
+	<link rel="stylesheet" href="styles.css" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@latest/font/lucide.min.css" />
+	<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+	<script src="js/sidebar.js" defer></script>
+	<style>
+		/* =====================================================
+			 Expected Move Engine — Complete Stylesheet
+			 ===================================================== */
+		/* Search Bar */
+		.em-search-container { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 20px 24px; }
+		.em-search-container input[type="text"] { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 16px; border-radius: 8px; font-size: 1rem; width: 180px; text-transform: uppercase; }
+		.em-search-container input:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+		.em-search-btn { background: var(--accent-blue); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.15s; }
+		.em-search-btn:hover { background: #2563eb; }
+		.em-quick-symbols { display: flex; gap: 6px; flex-wrap: wrap; }
+		.em-quick-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: all 0.15s; }
+		.em-quick-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(59,130,246,0.08); }
+		/* ...rest of the CSS and full HTML content from /Users/jamesharris/Server/pages/options-expected-move.html... */
+	</style>
+</head>
+<body>
+	<div class="app-container">
+		<aside id="sidebar-container" class="sidebar"></aside>
+		<div class="main-content" id="mainContent">
+			<div class="top-bar">
+				<button class="menu-toggle" onclick="document.getElementById('sidebar-container').classList.toggle('open')">
+					<i data-lucide="menu"></i>
+				</button>
+				<h2>Expected Move Engine</h2>
+				<div style="flex:1;"></div>
+				<span id="emCountdownText" class="em-countdown"></span>
+			</div>
+			<div class="em-search-container">
+				<input type="text" id="emTickerInput" placeholder="Enter ticker…" onkeydown="if(event.key==='Enter') ExpectedMove.lookupTicker()" />
+				<button class="em-search-btn" onclick="ExpectedMove.lookupTicker()">Analyze</button>
+				<div class="em-quick-symbols">
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('SPY')">SPY</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('QQQ')">QQQ</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AAPL')">AAPL</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('TSLA')">TSLA</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('NVDA')">NVDA</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('AMZN')">AMZN</button>
+					<button class="em-quick-btn" onclick="ExpectedMove.quickLookup('META')">META</button>
+				</div>
+			</div>
+			<!-- ...rest of the HTML content from /Users/jamesharris/Server/pages/options-expected-move.html... -->
+		</div>
+	</div>
+	<script src="js/config.js"></script>
+	<script src="js/marketStatus.js"></script>
+	<script src="js/watchlist-store.js"></script>
+	<script src="js/options-expected-move.js"></script>
+</body>
+</html>

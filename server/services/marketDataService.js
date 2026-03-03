@@ -4,6 +4,7 @@ const yahoo = require('../providers/yahooProvider');
 const polygon = require('../providers/polygonProvider');
 const finviz = require('../providers/finvizProvider');
 const finnhub = require('../providers/finnhubProvider');
+const expectedMoveService = require('./expectedMoveService');
 const cache = require('../utils/cache');
 const { POLYGON_API_KEY, FINNHUB_API_KEY } = require('../utils/config');
 
@@ -19,7 +20,6 @@ const GAP_TTL = 45 * 1000;
 const MARKET_CTX_TTL = 5 * 60 * 1000;
 const EARNINGS_TTL = 15 * 60 * 1000;
 const SEARCH_TTL = 5 * 60 * 1000;
-const OPTIONS_TTL = 5 * 60 * 1000;
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -136,110 +136,54 @@ async function getHistorical(symbol, timeframe = { interval: '1d', range: '1mo' 
 }
 
 async function getOptions(ticker, dateParam) {
-  const key = `svc:options:${ticker}:${dateParam || 'nearest'}`;
-  const cached = cache.get(key);
-  if (cached) return cached;
-
-  const queryOptions = {};
-  if (dateParam) queryOptions.date = new Date(parseInt(dateParam, 10) * 1000);
-
-  const loadOptions = async (optionsDate) => {
-    if (optionsDate) queryOptions.date = optionsDate;
-    return yahooFinance.options(ticker, queryOptions);
-  };
-
-  let result = await loadOptions(queryOptions.date);
-  if (!result) throw new Error('No options data');
-
-  if (!dateParam && result.expirationDates?.length > 1) {
-    const firstExpiry = result.options?.[0]?.expirationDate;
-    if (firstExpiry) {
-      const exMs = firstExpiry instanceof Date ? firstExpiry.getTime() : firstExpiry * 1000;
-      const dte = Math.ceil((exMs - Date.now()) / 86400000);
-      if (dte <= 0) {
-        const nextExpiry = result.expirationDates[1];
-        if (nextExpiry) {
-          const nextDate = nextExpiry instanceof Date ? nextExpiry : new Date(nextExpiry * 1000);
-          result = await loadOptions(nextDate);
-        }
-      }
-    }
+  let earningsDate = null;
+  if (dateParam) {
+    const parsed = new Date(parseInt(dateParam, 10) * 1000);
+    earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
   }
 
-  const quote = result.quote || {};
-  const price = quote.regularMarketPrice || 0;
-  const opts = result.options?.[0] || {};
-  const calls = opts.calls || [];
-  const puts = opts.puts || [];
-  const expirationDate = opts.expirationDate || null;
-  const allExpirations = result.expirationDates || [];
-
-  const allStrikes = [...new Set([...calls.map(c => c.strike), ...puts.map(p => p.strike)])].sort((a, b) => a - b);
-  const atmStrike = allStrikes.length
-    ? allStrikes.reduce((best, s) => Math.abs(s - price) < Math.abs(best - price) ? s : best, allStrikes[0])
-    : price;
-  const atmCall = calls.find(c => c.strike === atmStrike);
-  const atmPut = puts.find(p => p.strike === atmStrike);
-
-  const ivValues = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(v => v != null);
-  const avgIV = ivValues.length ? +(ivValues.reduce((a, b) => a + b, 0) / ivValues.length).toFixed(4) : null;
-
-  const earningsDateRaw = quote.earningsTimestamp || null;
-  const earningsDateStr = earningsDateRaw ? (earningsDateRaw instanceof Date ? earningsDateRaw.toISOString().split('T')[0] : new Date(earningsDateRaw * 1000).toISOString().split('T')[0]) : null;
-  const earningsMs = earningsDateRaw instanceof Date ? earningsDateRaw.getTime() : (earningsDateRaw ? earningsDateRaw * 1000 : null);
-  const earningsInDays = earningsMs ? Math.ceil((earningsMs - Date.now()) / 86400000) : null;
-
-  const expiryMs = expirationDate instanceof Date ? expirationDate.getTime() : (expirationDate ? expirationDate * 1000 : 0);
-  const expiryStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
-  const daysToExpiry = expiryMs ? Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000)) : 0;
-
-  const callBidAsk = atmCall ? ((atmCall.bid || 0) + (atmCall.ask || 0)) / 2 : 0;
-  const callMid = callBidAsk > 0 ? callBidAsk : (atmCall?.lastPrice || 0);
-  const putBidAsk = atmPut ? ((atmPut.bid || 0) + (atmPut.ask || 0)) / 2 : 0;
-  const putMid = putBidAsk > 0 ? putBidAsk : (atmPut?.lastPrice || 0);
-  const straddleMid = +(callMid + putMid).toFixed(2);
-
-  const ivExpectedMove = avgIV && price ? +(price * avgIV * Math.sqrt(Math.max(daysToExpiry, 1) / 365)).toFixed(2) : 0;
-  const expectedMove = straddleMid > 0 ? straddleMid : ivExpectedMove;
-  const expectedMovePercent = price ? +((expectedMove / price) * 100).toFixed(2) : 0;
+  const result = await expectedMoveService.getExpectedMove(ticker, earningsDate, 'research');
+  if (!result?.data) {
+    return {
+      ticker,
+      expectedMove: null,
+      expectedMovePercent: null,
+      ivExpectedMove: null,
+      avgIV: null,
+      expirationDate: null,
+      daysToExpiry: null,
+      reason: result?.reason || 'unavailable',
+      source: result?.source || 'provider',
+    };
+  }
 
   const data = {
-    ticker: quote.symbol || ticker,
-    price,
-    previousClose: quote.regularMarketPreviousClose || 0,
-    change: quote.regularMarketChange != null ? +Number(quote.regularMarketChange).toFixed(2) : 0,
-    changePercent: quote.regularMarketChangePercent != null ? +Number(quote.regularMarketChangePercent).toFixed(2) : 0,
-    marketCap: quote.marketCap || null,
-    expirationDate: expiryStr,
-    daysToExpiry,
-    allExpirations: allExpirations.map(d => d instanceof Date ? Math.floor(d.getTime() / 1000) : d),
-    earningsDate: earningsDateStr,
-    earningsInDays,
-    atmStrike,
-    atmCall: atmCall ? {
-      strike: atmCall.strike, bid: atmCall.bid || 0, ask: atmCall.ask || 0,
-      mid: +callMid.toFixed(2), lastPrice: atmCall.lastPrice || 0,
-      iv: atmCall.impliedVolatility || null,
-      volume: atmCall.volume || 0, openInterest: atmCall.openInterest || 0
-    } : null,
-    atmPut: atmPut ? {
-      strike: atmPut.strike, bid: atmPut.bid || 0, ask: atmPut.ask || 0,
-      mid: +putMid.toFixed(2), lastPrice: atmPut.lastPrice || 0,
-      iv: atmPut.impliedVolatility || null,
-      volume: atmPut.volume || 0, openInterest: atmPut.openInterest || 0
-    } : null,
-    expectedMove,
-    expectedMovePercent,
-    ivExpectedMove,
-    rangeHigh: +(price + expectedMove).toFixed(2),
-    rangeLow: +(price - expectedMove).toFixed(2),
-    avgIV,
-    callsCount: calls.length,
-    putsCount: puts.length,
+    ticker: result.data.symbol || ticker,
+    price: null,
+    previousClose: null,
+    change: null,
+    changePercent: null,
+    marketCap: null,
+    expirationDate: result.data.expiration,
+    daysToExpiry: result.data.daysToExpiry,
+    allExpirations: result.data.expiration != null ? [result.data.expiration] : [],
+    earningsDate: earningsDate,
+    earningsInDays: null,
+    atmStrike: result.data.strike,
+    atmCall: null,
+    atmPut: null,
+    expectedMove: result.data.impliedMoveDollar,
+    expectedMovePercent: result.data.impliedMovePct != null ? +(result.data.impliedMovePct * 100).toFixed(2) : null,
+    ivExpectedMove: result.data.impliedMoveDollar,
+    rangeHigh: null,
+    rangeLow: null,
+    avgIV: result.data.iv,
+    callsCount: null,
+    putsCount: null,
+    source: result.source,
+    fetchedAt: result.data.fetchedAt,
   };
 
-  cache.set(key, data, OPTIONS_TTL);
-  recordSuccess('yahoo');
   return data;
 }
 
@@ -554,13 +498,12 @@ async function getEarningsResearch(ticker) {
   const today = now.toISOString().split('T')[0];
   const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
 
-  const [summaryResult, optionsResult, chartResult, newsResult] = await Promise.allSettled([
+  const [summaryResult, chartResult, newsResult] = await Promise.allSettled([
     yahooFinance.quoteSummary(ticker, {
       modules: ['price', 'summaryProfile', 'defaultKeyStatistics', 'financialData',
         'earnings', 'calendarEvents', 'recommendationTrend',
         'majorHoldersBreakdown', 'insiderTransactions', 'upgradeDowngradeHistory']
     }),
-    yahooFinance.options(ticker),
     yahooFinance.chart(ticker, { period1: oneYearAgo, period2: now, interval: '1d' }),
     FINNHUB_API_KEY
       ? axios.get(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${twoWeeksAgo}&to=${today}&token=${FINNHUB_API_KEY}`, { timeout: 8000 }).then(r => r.data)
@@ -568,7 +511,6 @@ async function getEarningsResearch(ticker) {
   ]);
 
   const summary = summaryResult.status === 'fulfilled' ? summaryResult.value : {};
-  const optionsRaw = optionsResult.status === 'fulfilled' ? optionsResult.value : null;
   const chartRaw = chartResult.status === 'fulfilled' ? chartResult.value : null;
   const newsItems = newsResult.status === 'fulfilled' ? (newsResult.value || []) : [];
 
@@ -620,48 +562,24 @@ async function getEarningsResearch(ticker) {
   };
 
   let expectedMove = { available: false };
-  if (optionsRaw) {
-    const oQuote = optionsRaw.quote || {};
-    const opts = optionsRaw.options?.[0] || {};
-    const calls = opts.calls || [];
-    const puts = opts.puts || [];
-    const opPrice = oQuote.regularMarketPrice || currentPrice;
-    const allStrikes = [...new Set([...calls.map(c => c.strike), ...puts.map(p => p.strike)])].sort((a, b) => a - b);
-    const atmStrike = allStrikes.length
-      ? allStrikes.reduce((best, s) => Math.abs(s - opPrice) < Math.abs(best - opPrice) ? s : best, allStrikes[0])
-      : opPrice;
-    const atmCall = calls.find(c => c.strike === atmStrike);
-    const atmPut = puts.find(p => p.strike === atmStrike);
-    const ivValues = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(v => v != null);
-    const avgIV = ivValues.length ? +(ivValues.reduce((a, b) => a + b, 0) / ivValues.length).toFixed(4) : null;
-
-    const callBidAsk = atmCall ? ((atmCall.bid || 0) + (atmCall.ask || 0)) / 2 : 0;
-    const callMid = callBidAsk > 0 ? callBidAsk : (atmCall?.lastPrice || 0);
-    const putBidAsk = atmPut ? ((atmPut.bid || 0) + (atmPut.ask || 0)) / 2 : 0;
-    const putMid = putBidAsk > 0 ? putBidAsk : (atmPut?.lastPrice || 0);
-    const straddle = +(callMid + putMid).toFixed(2);
-
-    const expiryDate = opts.expirationDate;
-    const expiryMs = expiryDate instanceof Date ? expiryDate.getTime() : (expiryDate ? expiryDate * 1000 : 0);
-    const expiryStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
-    const dte = expiryMs ? Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000)) : 0;
-    const ivEM = avgIV && opPrice ? +(opPrice * avgIV * Math.sqrt(Math.max(dte, 1) / 365)).toFixed(2) : 0;
-    const em = straddle > 0 ? straddle : ivEM;
-
+  const emCanonical = await expectedMoveService.getExpectedMove(ticker, earnings.earningsDate || null, 'research');
+  if (emCanonical?.data) {
+    const em = emCanonical.data.impliedMoveDollar;
     expectedMove = {
       available: true,
-      atmStrike,
-      straddle,
-      avgIV,
-      ivPercent: avgIV ? +(avgIV * 100).toFixed(1) : null,
+      atmStrike: emCanonical.data.strike,
+      straddle: null,
+      avgIV: emCanonical.data.iv,
+      ivPercent: emCanonical.data.iv != null ? +(emCanonical.data.iv * 100).toFixed(1) : null,
       expectedMove: em,
-      expectedMovePercent: opPrice ? +((em / opPrice) * 100).toFixed(2) : 0,
-      rangeHigh: +(opPrice + em).toFixed(2),
-      rangeLow: +(opPrice - em).toFixed(2),
-      expiryDate: expiryStr,
-      daysToExpiry: dte,
-      callIV: atmCall?.impliedVolatility ? +(atmCall.impliedVolatility * 100).toFixed(1) : null,
-      putIV: atmPut?.impliedVolatility ? +(atmPut.impliedVolatility * 100).toFixed(1) : null,
+      expectedMovePercent: emCanonical.data.impliedMovePct != null ? +(emCanonical.data.impliedMovePct * 100).toFixed(2) : null,
+      rangeHigh: currentPrice && em != null ? +(currentPrice + em).toFixed(2) : null,
+      rangeLow: currentPrice && em != null ? +(currentPrice - em).toFixed(2) : null,
+      expiryDate: emCanonical.data.expiration,
+      daysToExpiry: emCanonical.data.daysToExpiry,
+      callIV: emCanonical.data.iv != null ? +(emCanonical.data.iv * 100).toFixed(1) : null,
+      putIV: null,
+      source: emCanonical.source,
     };
   }
 

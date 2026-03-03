@@ -1,3 +1,23 @@
+// Universal Filter Shell toggle logic
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('universalFilterToggle');
+    const filterBody = document.getElementById('universalFilterBody');
+    if (toggleBtn && filterBody) {
+        toggleBtn.addEventListener('click', function() {
+            const collapsed = filterBody.classList.contains('collapsed');
+            if (collapsed) {
+                filterBody.classList.remove('collapsed');
+                toggleBtn.textContent = 'Hide Filters ▴';
+            } else {
+                filterBody.classList.add('collapsed');
+                toggleBtn.textContent = 'Show Filters ▾';
+            }
+        });
+        // Start collapsed
+        filterBody.classList.add('collapsed');
+        toggleBtn.textContent = 'Show Filters ▾';
+    }
+});
 // News Scanner Module
 // Handles catalyst news with stock filtering
 
@@ -16,55 +36,56 @@ class NewsScanner {
             scoreMin: null,
             scoreMax: null,
             priceMin: null,
-            priceMax: null,
-            changeMin: null,
-            volumeMin: null,
-            floatMin: null,
-            floatMax: null,
-            marketCapMin: null,
-            marketCapMax: null,
-            relVolMin: null,
-            sentimentScore: null,
-            shortFloatPct: null,
-            daysToCover: null,
-            floatTradedPct: null,
-            unusualOptions: null,
-            minScore: null,
-            tickersInput: ''
-        };
+            clearFilters() {
+                // Always reset array-type filters to []
+                this.filters = {
+                    tickers: [],
+                    catalysts: [],
+                    newsFreshness: null,
+                    newsType: [],
+                    scoreType: null,
+                    scoreMin: null,
+                    scoreMax: null,
+                    priceMin: null,
+                    priceMax: null,
+                    changeMin: null,
+                    volumeMin: null,
+                    floatMin: null,
+                    floatMax: null,
+                    marketCapMin: null,
+                    marketCapMax: null,
+                    relVolMin: null,
+                    sentimentScore: null,
+                    shortFloatPct: null,
+                    daysToCover: null,
+                    floatTradedPct: null,
+                    unusualOptions: null,
+                    minScore: null,
+                    tickersInput: ''
+                };
 
-        // Catalyst keywords for detection
-        this.catalystKeywords = {
-            earnings: ['earnings', 'q1', 'q2', 'q3', 'q4', 'quarterly', 'revenue', 'eps'],
-            fda: ['fda', 'approval', 'clinical trial', 'phase', 'drug'],
-            product: ['launches', 'unveils', 'introduces', 'new product', 'release'],
-            merger: ['merger', 'acquisition', 'acquires', 'buys', 'takes over', 'm&a'],
-            contract: ['wins contract', 'awarded', 'deal', 'partnership', 'agreement'],
-            upgrade: ['upgrade', 'rating', 'initiated', 'target', 'buy', 'sell', 'downgrade'],
-            offering: ['offering', 'ipo', 'secondary', 'raises', 'funding'],
-            guidance: ['guidance', 'outlook', 'forecast', 'expects']
-        };
-    }
+                // Clear all filter inputs (including dynamic ones)
+                document.querySelectorAll('.news-filter-input, .filter-panel input, .filter-panel textarea, .filter-panel select').forEach(input => {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                });
+                document.querySelectorAll('.catalyst-filter').forEach(btn => btn.classList.remove('active'));
 
-    exportResults(format = 'csv') {
-        const data = this.filteredNews || this.newsData || [];
-        if (!data.length) {
-            alert('No news to export. Apply filters or refresh the feed first.');
-            return;
-        }
+                // Remove any filter state from local/session storage if used
+                try {
+                    localStorage.removeItem('news-scanner-filters');
+                    sessionStorage.removeItem('news-scanner-filters');
+                } catch (e) {}
 
-        const rows = [];
-        data.forEach(item => {
-            const tickers = this.parseTickers(item.Ticker || '');
-            const catalysts = this.detectCatalysts(item.Title).join('|');
-            const headline = item.Title || '';
-            const url = item.Url || item.URL || '';
-            const source = item.Source || '';
-            const timestamp = item.Date || '';
-
-            if (tickers.length === 0) {
-                rows.push({ ticker: 'N/A', headline, url, catalysts, source, timestamp });
-            } else {
+                this.applyFilters();
+                this.render();
+                this.updateFilterSummary();
+                // Refetch news with no filters
+                this.fetchNews();
+            }
                 tickers.forEach(ticker => {
                     rows.push({ ticker, headline, url, catalysts, source, timestamp });
                 });
@@ -149,6 +170,7 @@ class NewsScanner {
             this.renderError(error.message);
         } finally {
             this.isLoading = false;
+            this.updateFilterSummary();
         }
     }
 
@@ -376,6 +398,7 @@ class NewsScanner {
         this.applyFilters();
         this.render();
         this.updateFilterSummary();
+        this.updateFilterSummary();
     }
 
     clearFilters() {
@@ -430,6 +453,9 @@ class NewsScanner {
     }
 
     render() {
+
+        // Always update filter summary when rendering
+        this.updateFilterSummary();
         const container = document.getElementById('news-scanner-content');
         if (!container) return;
 
@@ -688,6 +714,30 @@ class NewsScanner {
 // Global instance
 window.newsScanner = new NewsScanner();
 function initUnifiedNewsFilters() {
+        // Helper to inject persistent Clear Filters button
+        function injectClearFiltersButton() {
+            let clearBtn = document.getElementById('news-clear-filters-btn');
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.id = 'news-clear-filters-btn';
+                clearBtn.textContent = 'Clear Filters';
+                clearBtn.style.background = '#f87171';
+                clearBtn.style.color = 'white';
+                clearBtn.style.padding = '8px 18px';
+                clearBtn.style.border = 'none';
+                clearBtn.style.borderRadius = '6px';
+                clearBtn.style.fontWeight = '600';
+                clearBtn.style.cursor = 'pointer';
+                clearBtn.style.marginBottom = '10px';
+                clearBtn.onclick = () => {
+                    window.newsScanner.clearFilters();
+                };
+                const filterPanel = document.getElementById('unified-filter-panel');
+                if (filterPanel) {
+                    filterPanel.insertBefore(clearBtn, filterPanel.firstChild);
+                }
+            }
+        }
     if (!window.FilterFramework || !window.FilterConfigs || !window.FilterLayoutConfig) return;
     const container = document.getElementById('unified-filter-panel');
     if (!container) return;
@@ -698,7 +748,7 @@ function initUnifiedNewsFilters() {
         id: 'quick',
         title: 'Ticker & Score',
         fields: [
-            { id: 'tickersInput', label: 'Tickers', type: 'text', placeholder: 'e.g. NVDA, TSLA' },
+            { id: 'tickersInput', label: 'Tickers', type: 'textarea', placeholder: 'Paste or type tickers, separated by comma, space, or newline', rows: 2 },
             { id: 'scoreType', label: 'Score Type', type: 'select', options: [
                 { value: '', label: 'Any' },
                 { value: 'expansion', label: 'Expansion' },
@@ -744,4 +794,6 @@ function initUnifiedNewsFilters() {
         scoringPlacement: 'none',
         onApply: (vals) => window.newsScanner.applyUnifiedFilters(vals),
     });
+    // Inject Clear Filters button after panel is rendered
+    setTimeout(injectClearFiltersButton, 200);
 }

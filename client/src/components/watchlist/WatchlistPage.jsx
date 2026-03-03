@@ -1,15 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useWatchlist from '../../hooks/useWatchlist';
-import useApi from '../../hooks/useApi';
 import SourceFilter from './SourceFilter';
-import ResearchPanel from './ResearchPanel';
+import ResearchModal from './ResearchModal';
 import TickerChip from '../shared/TickerChip';
 import SourceBadge from '../shared/SourceBadge';
 import SortableTable from '../shared/SortableTable';
-import { formatCurrency, formatPercent, formatMarketCap, getTimeAgo } from '../../utils/formatters';
+import ExportButtons from '../shared/ExportButtons';
+import { PageHeader } from '../layout/PagePrimitives';
+import { formatCurrency, formatPercent, formatMarketCap, formatNumber, formatVolume, getTimeAgo } from '../../utils/formatters';
 import { renderSymbolLink, renderPrice, renderPercentColor, renderMarketCapCell } from '../../utils/tableCells.jsx';
 import { SOURCE_COLORS } from '../../utils/constants';
-import { Plus, Download } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 
 export default function WatchlistPage() {
   const { items, add, remove } = useWatchlist();
@@ -37,12 +39,65 @@ export default function WatchlistPage() {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  // Batch quote fetch
-  const symbols = items.map(i => i.symbol).join(',');
-  const { data: quoteData } = useApi(symbols ? `/api/yahoo/quote-batch?symbols=${symbols}` : null);
+  const [quoteData, setQuoteData] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuotes() {
+      if (!items.length) {
+        setQuoteData([]);
+        return;
+      }
+
+      try {
+        const quotes = await Promise.all(items.map(async (item) => {
+          const symbol = String(item.symbol || '').toUpperCase();
+          const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
+          const response = await authFetch(`/api/v5/chart?${query}`);
+          if (!response.ok) {
+            return { symbol, shortName: symbol, price: null, changePercent: null, marketCap: null, volume: null };
+          }
+
+          const payload = await response.json();
+          const candles = Array.isArray(payload?.candles) ? payload.candles : [];
+          const latest = candles[candles.length - 1];
+          const previous = candles[candles.length - 2];
+          const latestClose = Number(latest?.close);
+          const previousClose = Number(previous?.close);
+          const changePercent = Number.isFinite(latestClose) && Number.isFinite(previousClose) && previousClose !== 0
+            ? ((latestClose - previousClose) / previousClose) * 100
+            : null;
+
+          return {
+            symbol,
+            shortName: symbol,
+            price: Number.isFinite(latestClose) ? latestClose : null,
+            changePercent,
+            marketCap: null,
+            volume: Number.isFinite(Number(latest?.volume)) ? Number(latest.volume) : null,
+          };
+        }));
+
+        if (!cancelled) {
+          setQuoteData(quotes);
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setQuoteData([]);
+        }
+      }
+    }
+
+    loadQuotes();
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
+
   const quoteMap = useMemo(() => {
     const m = {};
-    quoteData?.quotes?.forEach(q => { m[q.ticker] = q; });
+    quoteData?.forEach(q => { m[q.symbol] = q; });
     return m;
   }, [quoteData]);
 
@@ -61,28 +116,18 @@ export default function WatchlistPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (!tableData.length) return;
-    const headers = ['Symbol', 'Company', 'Price', 'Change %', 'Market Cap', 'Source', 'Added'];
-    const rows = tableData.map(row => [
-      row.symbol || '',
-      `"${(row.shortName || '').replace(/"/g, '""')}"`,
-      row.price != null ? row.price : '',
-      row.changePercent != null ? row.changePercent.toFixed(2) : '',
-      row.marketCap || '',
-      row.source || '',
-      row.addedAt || '',
-    ].join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const filterLabel = sourceFilter === 'all' ? 'all' : sourceFilter;
-    a.download = `watchlist-${filterLabel}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportColumns = [
+    { key: 'symbol', label: 'Symbol' },
+    { key: 'shortName', label: 'Company', accessor: r => r.shortName || '' },
+    { key: 'price', label: 'Price', accessor: r => r.price != null ? r.price : '' },
+    { key: 'changePercent', label: 'Change %', accessor: r => r.changePercent != null ? r.changePercent.toFixed(2) : '' },
+    { key: 'marketCap', label: 'Market Cap', accessor: r => r.marketCap || '' },
+    { key: 'volume', label: 'Volume', accessor: r => r.volume || '' },
+    { key: 'rvol', label: 'RVol', accessor: r => r.rvol || '' },
+    { key: 'floatShares', label: 'Float', accessor: r => r.floatShares || '' },
+    { key: 'source', label: 'Source', accessor: r => r.source || '' },
+    { key: 'addedAt', label: 'Added', accessor: r => r.addedAt || '' },
+  ];
 
   const columns = [
     {
@@ -103,6 +148,25 @@ export default function WatchlistPage() {
       key: 'marketCap', label: 'Market Cap', align: 'right',
       render: (row) => renderMarketCapCell(row.marketCap),
       sortValue: (row) => row.marketCap,
+    },
+    {
+      key: 'volume', label: 'Volume', align: 'right',
+      render: (row) => row.volume != null ? formatVolume(row.volume) : '--',
+      sortValue: (row) => row.volume || 0,
+    },
+    {
+      key: 'rvol', label: 'RVol', align: 'right',
+      render: (row) => row.rvol != null ? (
+        <span style={{ color: row.rvol >= 2 ? 'var(--accent-green)' : row.rvol >= 1.5 ? 'var(--accent-orange)' : undefined }}>
+          {row.rvol.toFixed(2)}
+        </span>
+      ) : '--',
+      sortValue: (row) => row.rvol || 0,
+    },
+    {
+      key: 'floatShares', label: 'Float', align: 'right',
+      render: (row) => row.floatShares != null ? formatNumber(row.floatShares) : '--',
+      sortValue: (row) => row.floatShares || 0,
     },
     {
       key: 'source', label: 'Source',
@@ -128,23 +192,31 @@ export default function WatchlistPage() {
   ];
 
   return (
-    <div className="watchlist-page">
-      <div className="watchlist-page__controls">
-        <SourceFilter active={sourceFilter} onChange={setSourceFilter} />
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button className="btn-secondary btn-sm" onClick={handleExportCSV} title="Export CSV" disabled={!tableData.length}>
-            <Download size={16} /> Export CSV
-          </button>
-          <form className="watchlist-add-form" onSubmit={handleAdd}>
-            <input
-              type="text"
-              placeholder="Add ticker..."
-              value={addInput}
-              onChange={e => setAddInput(e.target.value.toUpperCase())}
-              className="input-field"
+    <div className="page-container watchlist-page space-y-4">
+      <div className="panel space-y-3">
+        <PageHeader
+          title="Watchlists"
+          subtitle="Track symbols from scanners and manual adds in one unified board."
+        />
+        <div className="watchlist-page__controls">
+          <SourceFilter active={sourceFilter} onChange={setSourceFilter} />
+          <div className="flex items-center gap-2">
+            <ExportButtons
+              data={tableData}
+              columns={exportColumns}
+              filename={`watchlist-${sourceFilter === 'all' ? 'all' : sourceFilter}-${new Date().toISOString().split('T')[0]}`}
             />
-            <button type="submit" className="btn-primary btn-sm"><Plus size={16} /> Add</button>
-          </form>
+            <form className="watchlist-add-form" onSubmit={handleAdd}>
+              <input
+                type="text"
+                placeholder="Add ticker..."
+                value={addInput}
+                onChange={e => setAddInput(e.target.value.toUpperCase())}
+                className="input-field"
+              />
+              <button type="submit" className="btn-primary btn-sm"><Plus size={16} /> Add</button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -177,24 +249,20 @@ export default function WatchlistPage() {
         )}
       </div>
 
-      <div className="watchlist-page__content">
-        <div className={`watchlist-page__table ${selectedTicker ? 'watchlist-page__table--narrow' : ''}`}>
-          <SortableTable
-            columns={columns}
-            data={tableData}
-            rowKey={(row) => row.symbol}
-            onRowClick={(row) => setSelectedTicker(row.symbol)}
-            rowClassName={(row) => selectedTicker === row.symbol ? 'row--selected' : ''}
-            virtualizeThreshold={400}
-          />
-        </div>
-        {selectedTicker && (
-          <ResearchPanel
-            symbol={selectedTicker}
-            onClose={() => setSelectedTicker(null)}
-          />
-        )}
-      </div>
+      <SortableTable
+        columns={columns}
+        data={tableData}
+        rowKey={(row) => row.symbol}
+        onRowClick={(row) => setSelectedTicker(row.symbol)}
+        rowClassName={(row) => selectedTicker === row.symbol ? 'row--selected' : ''}
+        virtualizeThreshold={400}
+      />
+      {selectedTicker && (
+        <ResearchModal
+          symbol={selectedTicker}
+          onClose={() => setSelectedTicker(null)}
+        />
+      )}
     </div>
   );
 }
