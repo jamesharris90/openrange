@@ -93,8 +93,6 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
 
 // GET /api/intelligence/list — last 50 entries, JWT protected
 router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
-  // TEMP: diagnosis — remove after confirming production connectivity
-  console.log('[IntelList] auth header present =', !!req.headers.authorization);
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -111,9 +109,6 @@ router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
       ORDER BY received_at DESC
       LIMIT 50
     `);
-    // TEMP: diagnosis — remove after confirming production connectivity
-    console.log('[IntelList] rows returned =', rows.length);
-    // TEMP END
     res.json({ ok: true, items: rows });
   } catch (err) {
     console.error('[intelligence] list error:', err.message);

@@ -60,15 +60,6 @@ export default function IntelligencePage() {
     try {
       const res = await authFetch('/api/intelligence/list');
 
-      // TEMP: diagnosis logging — remove after confirming production connectivity
-      console.log('[IntelInbox] list url =', (import.meta.env.VITE_API_BASE_URL ?? '') + '/api/intelligence/list');
-      console.log('[IntelInbox] status =', res.status);
-      if (!res.ok) {
-        const preview = await res.clone().text().then(t => t.slice(0, 200)).catch(() => '');
-        console.log('[IntelInbox] body preview =', preview);
-      }
-      // TEMP END
-
       if (res.status === 401) { logout(); navigate('/login', { replace: true }); return; }
       if (res.status === 403) { setError('Forbidden — you do not have access to this resource.'); return; }
       if (!res.ok) { setError(`Server error (${res.status}) — please try again later.`); return; }
