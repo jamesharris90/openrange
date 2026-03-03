@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Mail, RefreshCw, X } from 'lucide-react';
 import { authFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 
 type IntelItem = {
@@ -46,6 +47,7 @@ function SourceBadge({ tag }: { tag: string }) {
 
 export default function IntelligencePage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [items, setItems]       = useState<IntelItem[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
@@ -57,7 +59,19 @@ export default function IntelligencePage() {
     setError(null);
     try {
       const res = await authFetch('/api/intelligence/list');
-      if (res.status === 401) { navigate('/login', { replace: true }); return; }
+
+      // TEMP: diagnosis logging — remove after confirming production connectivity
+      console.log('[IntelInbox] list url =', (import.meta.env.VITE_API_BASE_URL ?? '') + '/api/intelligence/list');
+      console.log('[IntelInbox] status =', res.status);
+      if (!res.ok) {
+        const preview = await res.clone().text().then(t => t.slice(0, 200)).catch(() => '');
+        console.log('[IntelInbox] body preview =', preview);
+      }
+      // TEMP END
+
+      if (res.status === 401) { logout(); navigate('/login', { replace: true }); return; }
+      if (res.status === 403) { setError('Forbidden — you do not have access to this resource.'); return; }
+      if (!res.ok) { setError(`Server error (${res.status}) — please try again later.`); return; }
       const data = await res.json();
       if (!data.ok) throw new Error(data.error ?? 'Failed to load');
       setItems(data.items);
@@ -66,7 +80,7 @@ export default function IntelligencePage() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, logout]);
 
   useEffect(() => { load(); }, [load]);
 

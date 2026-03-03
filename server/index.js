@@ -310,13 +310,18 @@ app.use(cookieParser());
 app.use(loggingMiddleware);
 
 // CORS configuration - restrict in production
+// Set EXTRA_ALLOWED_ORIGINS (comma-separated) on Railway to permit local dev origins,
+// e.g. EXTRA_ALLOWED_ORIGINS=http://localhost:5173
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.ALLOWED_ORIGINS?.split(',') || ['https://openrangetrading.co.uk', 'https://www.openrangetrading.co.uk']
+    ? [
+        ...(process.env.ALLOWED_ORIGINS?.split(',') || ['https://openrangetrading.co.uk', 'https://www.openrangetrading.co.uk']),
+        ...(process.env.EXTRA_ALLOWED_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || []),
+      ]
     : true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-intel-key']
 };
 app.use(cors(corsOptions));
 
