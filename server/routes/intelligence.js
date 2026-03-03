@@ -33,7 +33,22 @@ router.get('/api/intelligence/ping', requireIntelKey, (req, res) => {
 });
 
 // POST /api/intelligence/email-ingest — store inbound email intel
-router.post('/api/intelligence/email-ingest', requireIntelKey, async (req, res) => {
+router.post('/api/intelligence/email-ingest', async (req, res) => {
+  if (!process.env.INTEL_INGEST_KEY) {
+    console.error("INTEL_INGEST_KEY missing from environment");
+    return res.status(500).json({ error: "INTEL_INGEST_KEY not configured on server" });
+  }
+
+  const incomingKey = req.headers["x-intel-key"];
+
+  if (!incomingKey) {
+    return res.status(401).json({ error: "Missing x-intel-key header" });
+  }
+
+  if (incomingKey !== process.env.INTEL_INGEST_KEY) {
+    return res.status(401).json({ error: "Unauthorized - invalid ingest key" });
+  }
+
   try {
     const {
       sender = null,

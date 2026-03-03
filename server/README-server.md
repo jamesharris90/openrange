@@ -15,7 +15,7 @@ npm install
 
 ```bash
 cp .env.example .env
-# Edit .env to set SAXO_TOKEN, SAXO_CLIENT_KEY, PROXY_API_KEY, etc.
+# Edit .env to set SAXO_TOKEN, SAXO_CLIENT_KEY, INTEL_INGEST_KEY, etc.
 ```
 
 - For AI Quant (Perplexity), set `PPLX_API_KEY` (required) and optionally `PPLX_MODEL` (default: pplx-70b-online).
@@ -92,7 +92,7 @@ Example client
 
 There is a small example script that makes two test requests:
 
-- `server/examples/request_example.js` — calls `/api/health` and `/api/saxo/` using `PROXY_API_KEY` from `.env` or `process.env`.
+- `server/examples/request_example.js` — calls `/api/health` and `/api/saxo/`.
 
 Run it with:
 
@@ -103,7 +103,7 @@ node server/examples/request_example.js
 Security
 --------
 - Do not commit your `.env` with live secrets. Use `.env.example` for placeholders.
-- Keep `PROXY_API_KEY` secret and set different keys for production.
+- Keep `INTEL_INGEST_KEY` and other secrets out of version control.
 
 Stopping the server
 -------------------
@@ -117,5 +117,5 @@ kill <PID>
 
 Notes
 -----
-- The proxy will return `502` if `PROXY_API_KEY` or `SAXO_TOKEN` are not configured appropriately.
+- The server requires `SAXO_TOKEN` for Saxo API forwarding and `INTEL_INGEST_KEY` for the intelligence ingest route.
 - The example request may return a `404` from Saxo for root path — that is expected unless a valid Saxo endpoint is used.
