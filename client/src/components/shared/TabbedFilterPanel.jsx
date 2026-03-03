@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Filter as FilterIcon, Save, FolderOpen, ChevronDown, Search, Zap } from 'lucide-react';
+import { X, Filter as FilterIcon, Save, FolderOpen, ChevronDown, Search, Zap, Check } from 'lucide-react';
 import {
   FILTER_TABS,
   FILTER_DEFINITIONS,
@@ -51,6 +51,128 @@ function MultiSelectDropdown({ def, values, onChange }) {
           ))}
           {selected.length > 0 && (
             <button type="button" className="multiselect-clear" onClick={() => onChange([])}>Clear All</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatCurrencyValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 100) / 100;
+  return `$${rounded.toLocaleString()}`;
+}
+
+function formatPriceRangeLabel(minValue, maxValue) {
+  const hasMin = minValue !== '' && minValue != null;
+  const hasMax = maxValue !== '' && maxValue != null;
+  if (!hasMin && !hasMax) return '';
+  if (hasMin && hasMax) return `${formatCurrencyValue(minValue)} – ${formatCurrencyValue(maxValue)}`;
+  if (hasMin) return `≥ ${formatCurrencyValue(minValue)}`;
+  return `≤ ${formatCurrencyValue(maxValue)}`;
+}
+
+function SingleSelectDropdown({ def, value, filters, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [priceMinDraft, setPriceMinDraft] = useState(filters.priceMin || '');
+  const [priceMaxDraft, setPriceMaxDraft] = useState(filters.priceMax || '');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  useEffect(() => {
+    setPriceMinDraft(filters.priceMin || '');
+    setPriceMaxDraft(filters.priceMax || '');
+  }, [filters.priceMin, filters.priceMax]);
+
+  const options = def.options || [];
+  const selectedOption = options.find((opt) => opt.value === value);
+  const isPriceFilter = def.key === 'sh_price';
+  const customPriceRangeLabel = isPriceFilter ? formatPriceRangeLabel(filters.priceMin, filters.priceMax) : '';
+
+  function handleSelect(nextValue) {
+    onChange(nextValue);
+    if (isPriceFilter) {
+      onChange('', 'priceMin');
+      onChange('', 'priceMax');
+    }
+    setOpen(false);
+  }
+
+  function applyCustomPriceRange() {
+    const cleanedMin = priceMinDraft === '' ? '' : String(Number(priceMinDraft));
+    const cleanedMax = priceMaxDraft === '' ? '' : String(Number(priceMaxDraft));
+    onChange('', 'sh_price');
+    onChange(cleanedMin === 'NaN' ? '' : cleanedMin, 'priceMin');
+    onChange(cleanedMax === 'NaN' ? '' : cleanedMax, 'priceMax');
+    setOpen(false);
+  }
+
+  const triggerLabel = customPriceRangeLabel || selectedOption?.label || 'Any';
+
+  return (
+    <div className="form-field" ref={ref}>
+      <label>{def.label}</label>
+      <button
+        type="button"
+        className="select-popover-trigger"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span>{triggerLabel}</span>
+        <ChevronDown size={12} />
+      </button>
+      {open && (
+        <div className="select-popover-menu">
+          <div className="select-popover-options">
+            {options.map((opt) => {
+              const selected = value === opt.value && !customPriceRangeLabel;
+              return (
+                <button
+                  key={opt.value || '__any'}
+                  type="button"
+                  className={`select-popover-option ${selected ? 'select-popover-option--active' : ''}`}
+                  onClick={() => handleSelect(opt.value)}
+                >
+                  <span>{opt.label}</span>
+                  {selected && <Check size={12} />}
+                </button>
+              );
+            })}
+          </div>
+          {isPriceFilter && (
+            <div className="select-popover-custom">
+              <div className="select-popover-custom__title">Custom Range</div>
+              <div className="select-popover-custom__inputs">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="Min"
+                  value={priceMinDraft}
+                  onChange={(e) => setPriceMinDraft(e.target.value)}
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="Max"
+                  value={priceMaxDraft}
+                  onChange={(e) => setPriceMaxDraft(e.target.value)}
+                />
+              </div>
+              <button type="button" className="btn-primary btn-sm select-popover-custom__apply" onClick={applyCustomPriceRange}>
+                Apply
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -177,17 +299,13 @@ export default function TabbedFilterPanel({
 
     if (def.type === 'select') {
       return (
-        <div key={def.key} className="form-field">
-          <label>{def.label}</label>
-          <select
-            value={filters[def.key] || ''}
-            onChange={e => handleInputChange(def.key, e.target.value)}
-          >
-            {(def.options || []).map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
+        <SingleSelectDropdown
+          key={def.key}
+          def={def}
+          value={filters[def.key] || ''}
+          filters={filters}
+          onChange={(val, overrideKey) => handleInputChange(overrideKey || def.key, val)}
+        />
       );
     }
 

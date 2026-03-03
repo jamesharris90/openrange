@@ -202,7 +202,7 @@ export default function ExpectedMovePage() {
   const dashOffset = circumference - (composite / 100) * circumference;
 
   return (
-    <div className="em-page">
+    <div className="page-container page-stack em-page">
       {/* Header bar */}
       <div className="em-header-bar">
         <form onSubmit={handleSubmit} className="em-search">
@@ -379,8 +379,8 @@ export default function ExpectedMovePage() {
             {watchlist.length === 0 ? (
               <div className="em-empty">No tickers in watchlist. Add tickers above to track expected moves.</div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="em-wl-table">
+              <div className="overflow-x-auto" style={{ overflowX: 'auto' }}>
+                <table className="em-wl-table min-w-[900px]">
                   <thead>
                     <tr>
                       <th>Ticker</th><th>Price</th><th>Exp Move $</th><th>Exp Move %</th>

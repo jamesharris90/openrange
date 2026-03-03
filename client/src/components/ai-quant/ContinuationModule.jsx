@@ -1,9 +1,44 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 import { computeContinuationScore, normalizeFinvizRow, parsePct, parseVolume, getScoreColor, fmtVol, fmtPct, applyGlobalFilters } from './scoring';
 import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
+
+function toPctString(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function mapCanonicalToFinvizRow(row) {
+  const price = Number(row?.price);
+  const sma20 = Number(row?.sma20);
+  const sma50 = Number(row?.sma50);
+  const sma200 = Number(row?.sma200);
+
+  const sma20Pct = Number.isFinite(price) && Number.isFinite(sma20) && sma20 !== 0 ? ((price - sma20) / sma20) * 100 : null;
+  const sma50Pct = Number.isFinite(price) && Number.isFinite(sma50) && sma50 !== 0 ? ((price - sma50) / sma50) * 100 : null;
+  const sma200Pct = Number.isFinite(price) && Number.isFinite(sma200) && sma200 !== 0 ? ((price - sma200) / sma200) * 100 : null;
+
+  return {
+    Ticker: row?.symbol || '',
+    Price: Number.isFinite(price) ? price.toFixed(2) : '',
+    Change: toPctString(row?.changePercent),
+    SMA20: toPctString(sma20Pct),
+    SMA50: toPctString(sma50Pct),
+    SMA200: toPctString(sma200Pct),
+    'Rel Volume': Number.isFinite(Number(row?.relativeVolume ?? row?.rvol)) ? Number(row.relativeVolume ?? row.rvol).toFixed(2) : '',
+    RSI: Number.isFinite(Number(row?.rsi14)) ? Number(row.rsi14).toFixed(0) : '',
+    '52W High': Number.isFinite(Number(row?.high52Week)) && Number.isFinite(price) && Number(row.high52Week) !== 0
+      ? `${(((price - Number(row.high52Week)) / Number(row.high52Week)) * 100).toFixed(1)}%`
+      : '',
+    Beta: Number.isFinite(Number(row?.beta)) ? Number(row.beta).toFixed(2) : '',
+    'Avg Volume': Number.isFinite(Number(row?.avgVolume)) ? Number(row.avgVolume) : '',
+  };
+}
 
 export default function ContinuationModule({ onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist }) {
   const [data, setData] = useState([]);
@@ -15,11 +50,20 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/finviz/screener?f=ta_sma20_pa,ta_sma50_pa,sh_avgvol_o500&v=152&c=0,1,2,3,4,5,6,7,8,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70&o=-relativevolume')
+    authFetch('/api/v3/screener/technical?limit=500&volumeMin=500000')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(rows => {
+      .then(payload => {
         if (cancelled) return;
-        const scored = (rows || []).slice(0, 100).map(rawRow => {
+        const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const scored = rows
+          .map(mapCanonicalToFinvizRow)
+          .filter((rawRow) => {
+            const s20 = parsePct(rawRow.SMA20);
+            const s50 = parsePct(rawRow.SMA50);
+            return s20 != null && s20 > 0 && s50 != null && s50 > 0;
+          })
+          .slice(0, 100)
+          .map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeContinuationScore(row);
           return {
@@ -40,7 +84,7 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
             breakdown: result.breakdown,
             dataQuality: result.dataQuality,
           };
-        });
+          });
         setData(scored);
         onDataReady?.('continuation', scored);
         setError(null);
@@ -96,8 +140,8 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
         ]}
         filename="continuation-scanner"
       />
-      <div className="aiq-table-wrap">
-        <table className="aiq-table">
+      <div className="aiq-table-wrap overflow-x-auto">
+        <table className="aiq-table min-w-[900px]">
           <thead>
             <tr>
               <th className="aiq-th" style={{ width: 40 }}></th>

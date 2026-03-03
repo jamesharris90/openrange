@@ -1,5 +1,5 @@
 const express = require('express');
-const market = require('../services/marketDataService');
+const expectedMoveService = require('../services/expectedMoveService');
 const router = express.Router();
 
 router.get('/api/yahoo/options', async (req, res) => {
@@ -9,7 +9,12 @@ router.get('/api/yahoo/options', async (req, res) => {
   }
   const dateParam = req.query.date || '';
   try {
-    const data = await market.getOptions(ticker, dateParam);
+    let earningsDate = null;
+    if (dateParam) {
+      const parsed = new Date(Number(dateParam) * 1000);
+      earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+    }
+    const data = await expectedMoveService.getExpectedMove(ticker, earningsDate, 'research');
     res.json(data);
   } catch (err) {
     res.status(502).json({ error: 'Failed to fetch options chain', detail: err.message });

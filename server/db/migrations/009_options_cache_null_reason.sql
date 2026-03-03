@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE options_cache
+  ADD COLUMN IF NOT EXISTS null_reason TEXT;
+
+COMMIT;

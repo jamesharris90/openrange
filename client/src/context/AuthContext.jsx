@@ -38,6 +38,34 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    const nativeFetch = window.fetch.bind(window);
+
+    window.fetch = (input, init = {}) => {
+      const requestUrl = typeof input === 'string' ? input : input?.url || '';
+      const isApiRequest = requestUrl.startsWith('/api/') || requestUrl.includes('/api/');
+      if (!isApiRequest) {
+        return nativeFetch(input, init);
+      }
+
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        return nativeFetch(input, init);
+      }
+
+      const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined) || {});
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+
+      return nativeFetch(input, { ...init, headers });
+    };
+
+    return () => {
+      window.fetch = nativeFetch;
+    };
+  }, []);
+
   // Cross-tab sync
   useEffect(() => {
     const handleStorage = (e) => {

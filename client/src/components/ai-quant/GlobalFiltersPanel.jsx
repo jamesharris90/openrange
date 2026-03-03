@@ -1,5 +1,6 @@
 import { SlidersHorizontal, X } from 'lucide-react';
 import TabbedFilterPanel from '../shared/TabbedFilterPanel';
+import Card from '../shared/Card';
 
 const STRATEGY_UNIVERSE = {
   orb: { label: 'ORB Intraday', rules: 'Avg Volume > 500K · Change > 3%' },
@@ -29,7 +30,7 @@ export default function GlobalFiltersPanel({
   }
 
   return (
-    <div className="aiq-filters-panel">
+    <Card className="aiq-filters-panel">
       <div className="aiq-filters-panel__header">
         <div className="aiq-filters-panel__title">
           <SlidersHorizontal size={14} />
@@ -63,6 +64,6 @@ export default function GlobalFiltersPanel({
           <small>2+ confirmations · Avg Vol 500K+ · Complete data only</small>
         </span>
       </label>
-    </div>
+    </Card>
   );
 }

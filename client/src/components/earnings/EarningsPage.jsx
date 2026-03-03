@@ -5,6 +5,8 @@ import useWatchlist from '../../hooks/useWatchlist';
 import WeekSelector from './WeekSelector';
 import EarningsFilters from './EarningsFilters';
 import EarningsResearchPanel from './EarningsResearchPanel';
+import { PageHeader } from '../layout/PagePrimitives';
+import Card from '../shared/Card';
 import { formatCurrency, formatPercent, formatMarketCap, formatVolume, formatFloat } from '../../utils/formatters';
 import { EARNINGS_TIME_LABELS, EARNINGS_TIME_COLORS } from '../../utils/constants';
 import { calcTradeScore, getScoreColor, getScoreLabel, DEFAULT_VISIBLE_COLUMNS, ALL_COLUMN_KEYS } from '../../utils/earningsScoring';
@@ -346,7 +348,14 @@ export default function EarningsPage() {
   const wlHelpers = { has, add, remove };
 
   return (
-    <div className="earnings-page">
+    <div className="page-container earnings-page space-y-3">
+      <Card>
+        <PageHeader
+          title="Earnings"
+          subtitle="Calendar, scoring, filters, and watchlist actions in a unified table workflow."
+        />
+      </Card>
+
       <WeekSelector
         days={days}
         selectedDay={selectedDay}
@@ -425,8 +434,8 @@ export default function EarningsPage() {
       {/* Content: Table + Research Panel */}
       <div className="earnings-page__content">
         <div className={`earnings-page__table-wrap${selectedTicker ? ' earnings-page__table-wrap--narrow' : ''}`}>
-          <div className={`table-wrapper es-table-wrapper${compact ? ' es-compact' : ''}`}>
-            <table className="data-table es-table">
+          <div className={`table-wrapper es-table-wrapper overflow-x-auto${compact ? ' es-compact' : ''}`}>
+            <table className="data-table es-table min-w-[900px]">
               <thead>
                 <tr>
                   {visibleSpecs.map(col => (

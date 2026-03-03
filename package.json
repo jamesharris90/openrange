@@ -6,15 +6,27 @@
   },
   "scripts": {
     "build": "cd server && npm ci && cd ../client && npm install && npm run build",
-    "start": "cd server && node index.js"
+    "start": "cd server && node index.js",
+    "calibrate": "ts-node server/scripts/runCalibration.ts",
+    "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",
+    "check:canonical-schema": "cd server && npm run check:canonical-schema",
+    "healthcheck": "ts-node server/scripts/healthcheck.ts",
+    "ingest:full": "ts-node scripts/fullMarketIngestion.ts",
+    "ingest:news": "node scripts/newsSmokeInsert.js",
+    "db:migrate": "node server/db/migrate.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^16.4.7",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "node-fetch": "^3.3.2",
     "pdf-parse": "^2.4.5",
+    "pg": "^8.18.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2"
   }
 }

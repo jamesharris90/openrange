@@ -1,16 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useWatchlist from '../../hooks/useWatchlist';
-import useApi from '../../hooks/useApi';
 import SourceFilter from './SourceFilter';
 import ResearchModal from './ResearchModal';
 import TickerChip from '../shared/TickerChip';
 import SourceBadge from '../shared/SourceBadge';
 import SortableTable from '../shared/SortableTable';
 import ExportButtons from '../shared/ExportButtons';
+import { PageHeader } from '../layout/PagePrimitives';
 import { formatCurrency, formatPercent, formatMarketCap, formatNumber, formatVolume, getTimeAgo } from '../../utils/formatters';
 import { renderSymbolLink, renderPrice, renderPercentColor, renderMarketCapCell } from '../../utils/tableCells.jsx';
 import { SOURCE_COLORS } from '../../utils/constants';
 import { Plus } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 
 export default function WatchlistPage() {
   const { items, add, remove } = useWatchlist();
@@ -38,12 +39,65 @@ export default function WatchlistPage() {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  // Batch quote fetch
-  const symbols = items.map(i => i.symbol).join(',');
-  const { data: quoteData } = useApi(symbols ? `/api/yahoo/quote-batch?symbols=${symbols}` : null);
+  const [quoteData, setQuoteData] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuotes() {
+      if (!items.length) {
+        setQuoteData([]);
+        return;
+      }
+
+      try {
+        const quotes = await Promise.all(items.map(async (item) => {
+          const symbol = String(item.symbol || '').toUpperCase();
+          const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
+          const response = await authFetch(`/api/v5/chart?${query}`);
+          if (!response.ok) {
+            return { symbol, shortName: symbol, price: null, changePercent: null, marketCap: null, volume: null };
+          }
+
+          const payload = await response.json();
+          const candles = Array.isArray(payload?.candles) ? payload.candles : [];
+          const latest = candles[candles.length - 1];
+          const previous = candles[candles.length - 2];
+          const latestClose = Number(latest?.close);
+          const previousClose = Number(previous?.close);
+          const changePercent = Number.isFinite(latestClose) && Number.isFinite(previousClose) && previousClose !== 0
+            ? ((latestClose - previousClose) / previousClose) * 100
+            : null;
+
+          return {
+            symbol,
+            shortName: symbol,
+            price: Number.isFinite(latestClose) ? latestClose : null,
+            changePercent,
+            marketCap: null,
+            volume: Number.isFinite(Number(latest?.volume)) ? Number(latest.volume) : null,
+          };
+        }));
+
+        if (!cancelled) {
+          setQuoteData(quotes);
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setQuoteData([]);
+        }
+      }
+    }
+
+    loadQuotes();
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
+
   const quoteMap = useMemo(() => {
     const m = {};
-    quoteData?.quotes?.forEach(q => { m[q.symbol] = q; });
+    quoteData?.forEach(q => { m[q.symbol] = q; });
     return m;
   }, [quoteData]);
 
@@ -138,25 +192,31 @@ export default function WatchlistPage() {
   ];
 
   return (
-    <div className="watchlist-page">
-      <div className="watchlist-page__controls">
-        <SourceFilter active={sourceFilter} onChange={setSourceFilter} />
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <ExportButtons
-            data={tableData}
-            columns={exportColumns}
-            filename={`watchlist-${sourceFilter === 'all' ? 'all' : sourceFilter}-${new Date().toISOString().split('T')[0]}`}
-          />
-          <form className="watchlist-add-form" onSubmit={handleAdd}>
-            <input
-              type="text"
-              placeholder="Add ticker..."
-              value={addInput}
-              onChange={e => setAddInput(e.target.value.toUpperCase())}
-              className="input-field"
+    <div className="page-container watchlist-page space-y-4">
+      <div className="panel space-y-3">
+        <PageHeader
+          title="Watchlists"
+          subtitle="Track symbols from scanners and manual adds in one unified board."
+        />
+        <div className="watchlist-page__controls">
+          <SourceFilter active={sourceFilter} onChange={setSourceFilter} />
+          <div className="flex items-center gap-2">
+            <ExportButtons
+              data={tableData}
+              columns={exportColumns}
+              filename={`watchlist-${sourceFilter === 'all' ? 'all' : sourceFilter}-${new Date().toISOString().split('T')[0]}`}
             />
-            <button type="submit" className="btn-primary btn-sm"><Plus size={16} /> Add</button>
-          </form>
+            <form className="watchlist-add-form" onSubmit={handleAdd}>
+              <input
+                type="text"
+                placeholder="Add ticker..."
+                value={addInput}
+                onChange={e => setAddInput(e.target.value.toUpperCase())}
+                className="input-field"
+              />
+              <button type="submit" className="btn-primary btn-sm"><Plus size={16} /> Add</button>
+            </form>
+          </div>
         </div>
       </div>
 

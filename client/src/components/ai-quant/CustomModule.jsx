@@ -1,9 +1,81 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 import { computeCustomScore, normalizeFinvizRow, parsePct, parseVolume, getScoreColor, fmtVol, fmtPct, applyGlobalFilters } from './scoring';
 import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
+
+function toPctString(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function mapCanonicalToFinvizRow(row) {
+  return {
+    Ticker: row?.symbol || '',
+    Price: Number.isFinite(Number(row?.price)) ? Number(row.price).toFixed(2) : '',
+    Change: toPctString(row?.changePercent),
+    Gap: toPctString(row?.gapPercent),
+    'Rel Volume': Number.isFinite(Number(row?.relativeVolume ?? row?.rvol)) ? Number(row.relativeVolume ?? row.rvol).toFixed(2) : '',
+    ATR: Number.isFinite(Number(row?.atr)) ? Number(row.atr).toFixed(2) : '',
+    RSI: Number.isFinite(Number(row?.rsi14)) ? Number(row.rsi14).toFixed(0) : '',
+    'Avg Volume': Number.isFinite(Number(row?.avgVolume)) ? Number(row.avgVolume) : '',
+    Volume: Number.isFinite(Number(row?.volume)) ? Number(row.volume) : '',
+    SMA20: Number.isFinite(Number(row?.sma20)) && Number.isFinite(Number(row?.price)) && Number(row.sma20) !== 0
+      ? `${(((Number(row.price) - Number(row.sma20)) / Number(row.sma20)) * 100).toFixed(1)}%`
+      : '',
+    SMA50: Number.isFinite(Number(row?.sma50)) && Number.isFinite(Number(row?.price)) && Number(row.sma50) !== 0
+      ? `${(((Number(row.price) - Number(row.sma50)) / Number(row.sma50)) * 100).toFixed(1)}%`
+      : '',
+  };
+}
+
+function applyLightFilterString(rows, filterString) {
+  if (!filterString) return rows;
+  const tokens = String(filterString)
+    .split(',')
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+
+  return rows.filter((row) => {
+    const change = parsePct(row.Change) ?? 0;
+    const rvol = Number.parseFloat(String(row['Rel Volume'] || 0));
+    const avgVolume = Number(row['Avg Volume'] || 0);
+    const sma20 = parsePct(row.SMA20);
+    const sma50 = parsePct(row.SMA50);
+
+    for (const token of tokens) {
+      const avgVolMatch = token.match(/^sh_avgvol_o(\d+(?:\.\d+)?)$/);
+      if (avgVolMatch) {
+        const threshold = Number(avgVolMatch[1]) * 1000;
+        if (!(Number.isFinite(avgVolume) && avgVolume >= threshold)) return false;
+        continue;
+      }
+
+      const relVolMatch = token.match(/^sh_relvol_o(\d+(?:\.\d+)?)$/);
+      if (relVolMatch) {
+        const threshold = Number(relVolMatch[1]);
+        if (!(Number.isFinite(rvol) && rvol >= threshold)) return false;
+        continue;
+      }
+
+      const changeUpMatch = token.match(/^ta_change_u(\d+(?:\.\d+)?)$/);
+      if (changeUpMatch) {
+        const threshold = Number(changeUpMatch[1]);
+        if (!(Number.isFinite(change) && change >= threshold)) return false;
+        continue;
+      }
+
+      if (token === 'ta_sma20_pa' && !(sma20 != null && sma20 > 0)) return false;
+      if (token === 'ta_sma50_pa' && !(sma50 != null && sma50 > 0)) return false;
+    }
+
+    return true;
+  });
+}
 
 export default function CustomModule({ strategyId, onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist, customStrategy }) {
   const [data, setData] = useState([]);
@@ -19,11 +91,13 @@ export default function CustomModule({ strategyId, onSelectTicker, filters, sele
     if (!filterString) { setLoading(false); setData([]); return; }
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/finviz/screener?f=${encodeURIComponent(filterString)}&v=152&c=0,1,2,3,4,5,6,7,8,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70`)
+    authFetch('/api/v3/screener/technical?limit=1500')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(rows => {
+      .then(payload => {
         if (cancelled) return;
-        const scored = (rows || []).slice(0, 100).map(rawRow => {
+        const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const finvizLikeRows = applyLightFilterString(rows.map(mapCanonicalToFinvizRow), filterString);
+        const scored = finvizLikeRows.slice(0, 100).map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeCustomScore(row, weights);
           return {
@@ -96,8 +170,8 @@ export default function CustomModule({ strategyId, onSelectTicker, filters, sele
         ]}
         filename={`custom-${strategyId}`}
       />
-      <div className="aiq-table-wrap">
-        <table className="aiq-table">
+      <div className="aiq-table-wrap overflow-x-auto">
+        <table className="aiq-table min-w-[900px]">
           <thead>
             <tr>
               <th className="aiq-th" style={{ width: 40 }}></th>

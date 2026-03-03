@@ -119,7 +119,7 @@ export default function AIQuantPage() {
     : null;
 
   return (
-    <div className="aiq-page-v2">
+    <div className="page-container page-stack aiq-page-v2">
       {/* Top Strip: Market Context */}
       <MarketContextStrip />
 

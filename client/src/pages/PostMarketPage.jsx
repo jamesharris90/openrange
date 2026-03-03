@@ -4,6 +4,7 @@ import TradeEntryPanel from '../components/trades/TradeEntryPanel';
 import DailySummaryCard from '../components/trades/DailySummaryCard';
 import DailyReviewPanel from '../components/trades/DailyReviewPanel';
 import TradeUploadPanel from '../components/trades/TradeUploadPanel';
+import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 
 export default function PostMarketPage() {
   const [showTradeEntry, setShowTradeEntry] = useState(true);
@@ -15,14 +16,13 @@ export default function PostMarketPage() {
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
   return (
-    <div className="page-container">
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <div className="page-header-row">
-          <div>
-            <h2 style={{ margin: 0 }}>Post-Market</h2>
-            <p className="muted" style={{ marginTop: 4 }}>Review your day, log trades, and prepare for tomorrow.</p>
-          </div>
-          <div className="page-actions">
+    <PageContainer className="space-y-3">
+      <div className="panel">
+        <PageHeader
+          title="Post-Market"
+          subtitle="Review your day, log trades, and prepare for tomorrow."
+          actions={(
+            <>
             <button className={`btn-primary btn-sm${showTradeEntry ? ' active' : ''}`} onClick={() => setShowTradeEntry(v => !v)}>
               <PlusCircle size={16} /> Log Trade
             </button>
@@ -32,8 +32,9 @@ export default function PostMarketPage() {
             <button className={`btn-secondary btn-sm${showReview ? ' active' : ''}`} onClick={() => setShowReview(v => !v)}>
               <BookOpen size={16} /> Daily Review
             </button>
-          </div>
-        </div>
+            </>
+          )}
+        />
       </div>
 
       {showTradeEntry && (
@@ -49,6 +50,6 @@ export default function PostMarketPage() {
       {showReview && (
         <DailyReviewPanel date={today} onClose={() => setShowReview(false)} />
       )}
-    </div>
+    </PageContainer>
   );
 }

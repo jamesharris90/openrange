@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { authFetch } from '../utils/api';
 
 // Lightweight fetch hook with optional polling and visibility pause
 // opts: { pollMs?: number, enabled?: boolean, pauseWhenHidden?: boolean, transform?: fn }
@@ -19,7 +20,7 @@ export default function useApi(url, deps = [], opts = {}) {
     setLoading(true);
     setError(null);
 
-    fetch(url, { signal: controller.signal })
+    authFetch(url, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { const next = transform ? transform(d) : d; setData(next); setError(null); })
       .catch(e => { if (e.name !== 'AbortError') setError(e.message); })

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import ResearchPanel from './ResearchPanel';
+import Portal from '../shared/Portal';
 
 export default function ResearchModal({ symbol, onClose }) {
   useEffect(() => {
@@ -16,10 +17,12 @@ export default function ResearchModal({ symbol, onClose }) {
   if (!symbol) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="research-modal" onClick={(e) => e.stopPropagation()}>
-        <ResearchPanel symbol={symbol} onClose={onClose} />
+    <Portal>
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="research-modal" onClick={(e) => e.stopPropagation()}>
+          <ResearchPanel symbol={symbol} onClose={onClose} />
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }

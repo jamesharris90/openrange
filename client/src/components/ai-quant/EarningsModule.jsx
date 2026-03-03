@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 import { computeEarningsMomentumScore, getScoreColor, fmtVol, applyGlobalFilters } from './scoring';
 import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
@@ -29,17 +30,43 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
         const calendar = Array.isArray(resp) ? resp : (resp.earnings || []);
         const entries = calendar.filter(e => e.symbol).slice(0, 120);
 
+        const symbolList = Array.from(new Set(entries.map((entry) => String(entry.symbol || '').trim().toUpperCase()).filter(Boolean)));
+        let technicalBySymbol = {};
+        try {
+          const techResp = await authFetch('/api/v3/screener/technical?limit=3000');
+          if (techResp.ok) {
+            const techPayload = await techResp.json();
+            const techRows = Array.isArray(techPayload?.data) ? techPayload.data : (Array.isArray(techPayload) ? techPayload : []);
+            const needed = new Set(symbolList);
+            technicalBySymbol = techRows.reduce((acc, row) => {
+              const symbol = String(row?.symbol || '').toUpperCase();
+              if (symbol && needed.has(symbol)) acc[symbol] = row;
+              return acc;
+            }, {});
+          }
+        } catch {
+          technicalBySymbol = {};
+        }
+
         const enriched = [];
         for (let i = 0; i < entries.length; i += 8) {
           const batch = entries.slice(i, i + 8);
           const results = await Promise.allSettled(
             batch.map(e =>
-              fetch(`/api/yahoo/options?t=${e.symbol}`)
+              authFetch(`/api/options/expected-move/${encodeURIComponent(e.symbol)}`)
                 .then(r => r.ok ? r.json() : null)
             )
           );
           batch.forEach((e, j) => {
-            const opts = results[j]?.status === 'fulfilled' ? results[j].value : null;
+            const optsPayload = results[j]?.status === 'fulfilled' ? results[j].value : null;
+            const opts = optsPayload?.data || null;
+            const tech = technicalBySymbol[String(e.symbol || '').toUpperCase()] || null;
+
+            const impliedMovePct = Number(opts?.impliedMovePct);
+            const expectedMovePercent = Number.isFinite(impliedMovePct)
+              ? (Math.abs(impliedMovePct) <= 1 ? impliedMovePct * 100 : impliedMovePct)
+              : null;
+
             enriched.push({
               ticker: e.symbol,
               date: e.date || from,
@@ -50,12 +77,12 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
               revenueActual: e.revenueActual ?? null,
               surprise: e.surprisePercent ?? null,
               beatsInLast4: e.beatsInLast4 ?? null,
-              expectedMovePercent: opts?.expectedMovePercent ?? null,
-              expectedMove: opts?.expectedMove ?? null,
-              avgIV: opts?.avgIV ?? null,
-              avgVolume: e.avgVolume || opts?.avgVolume || null,
-              price: opts?.price || e.price || null,
-              marketCap: opts?.marketCap || e.marketCap || null,
+              expectedMovePercent,
+              expectedMove: Number(opts?.impliedMoveDollar) || null,
+              avgIV: Number(opts?.iv) || null,
+              avgVolume: e.avgVolume || tech?.avgVolume || null,
+              price: e.price || tech?.price || null,
+              marketCap: e.marketCap || tech?.marketCap || null,
             });
           });
         }
@@ -121,8 +148,8 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
         ]}
         filename="earnings-scanner"
       />
-      <div className="aiq-table-wrap">
-        <table className="aiq-table">
+      <div className="aiq-table-wrap overflow-x-auto">
+        <table className="aiq-table min-w-[900px]">
           <thead>
             <tr>
               <th className="aiq-th" style={{ width: 40 }}></th>

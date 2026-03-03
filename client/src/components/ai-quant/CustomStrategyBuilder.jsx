@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
+import Portal from '../shared/Portal';
 
 const STORAGE_KEY = 'aiq-custom-strategies';
 
@@ -115,73 +116,75 @@ export default function CustomStrategyBuilder({ onClose, onSave, editing }) {
   };
 
   return (
-    <div className="aiq-modal-backdrop" onClick={onClose}>
-      <div className="aiq-modal aiq-csb" onClick={e => e.stopPropagation()}>
-        <div className="aiq-modal__header">
-          <h3>{editing ? 'Edit' : 'New'} Custom Strategy</h3>
-          <button className="aiq-icon-btn" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <div className="aiq-csb__body">
-          {/* Name */}
-          <div className="aiq-csb__field">
-            <label>Strategy Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Low Float Gappers" className="aiq-input" maxLength={30} />
+    <Portal>
+      <div className="aiq-modal-backdrop" onClick={onClose}>
+        <div className="aiq-modal aiq-csb" onClick={e => e.stopPropagation()}>
+          <div className="aiq-modal__header">
+            <h3>{editing ? 'Edit' : 'New'} Custom Strategy</h3>
+            <button className="aiq-icon-btn" onClick={onClose}><X size={16} /></button>
           </div>
 
-          {/* Filters */}
-          <div className="aiq-csb__section">
-            <div className="aiq-csb__section-title">Screening Filters</div>
-            <div className="aiq-csb__filters">
-              {FILTER_DEFS.map(f => (
-                <div key={f.id} className="aiq-csb__filter-row">
-                  <span className="aiq-csb__filter-label">{f.label}</span>
-                  {f.type === 'toggle' ? (
-                    <button className={`aiq-csb__toggle ${filterState[f.id] ? 'active' : ''}`}
-                      onClick={() => toggleFilter(f.id)}>
-                      {filterState[f.id] ? 'ON' : 'OFF'}
-                    </button>
-                  ) : (
-                    <select className="aiq-select aiq-select--sm" value={filterState[f.id] || ''}
-                      onChange={e => setSelectFilter(f.id, e.target.value)}>
-                      <option value="">Off</option>
-                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  )}
-                </div>
-              ))}
+          <div className="aiq-csb__body">
+            {/* Name */}
+            <div className="aiq-csb__field">
+              <label>Strategy Name</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Low Float Gappers" className="aiq-input" maxLength={30} />
+            </div>
+
+            {/* Filters */}
+            <div className="aiq-csb__section">
+              <div className="aiq-csb__section-title">Screening Filters</div>
+              <div className="aiq-csb__filters">
+                {FILTER_DEFS.map(f => (
+                  <div key={f.id} className="aiq-csb__filter-row">
+                    <span className="aiq-csb__filter-label">{f.label}</span>
+                    {f.type === 'toggle' ? (
+                      <button className={`aiq-csb__toggle ${filterState[f.id] ? 'active' : ''}`}
+                        onClick={() => toggleFilter(f.id)}>
+                        {filterState[f.id] ? 'ON' : 'OFF'}
+                      </button>
+                    ) : (
+                      <select className="aiq-select aiq-select--sm" value={filterState[f.id] || ''}
+                        onChange={e => setSelectFilter(f.id, e.target.value)}>
+                        <option value="">Off</option>
+                        {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Weights */}
+            <div className="aiq-csb__section">
+              <div className="aiq-csb__section-title">
+                Scoring Weights
+                <span className={`aiq-csb__weight-sum ${weightSum === 100 ? 'valid' : 'invalid'}`}>
+                  Sum: {weightSum}/100
+                </span>
+              </div>
+              <div className="aiq-csb__weights">
+                {WEIGHT_FIELDS.map(w => (
+                  <div key={w.id} className="aiq-csb__weight-row">
+                    <label>{w.label}</label>
+                    <input type="range" min="0" max="100" step="5" value={weights[w.id]}
+                      onChange={e => setWeight(w.id, e.target.value)} />
+                    <span className="aiq-csb__weight-val">{weights[w.id]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Weights */}
-          <div className="aiq-csb__section">
-            <div className="aiq-csb__section-title">
-              Scoring Weights
-              <span className={`aiq-csb__weight-sum ${weightSum === 100 ? 'valid' : 'invalid'}`}>
-                Sum: {weightSum}/100
-              </span>
-            </div>
-            <div className="aiq-csb__weights">
-              {WEIGHT_FIELDS.map(w => (
-                <div key={w.id} className="aiq-csb__weight-row">
-                  <label>{w.label}</label>
-                  <input type="range" min="0" max="100" step="5" value={weights[w.id]}
-                    onChange={e => setWeight(w.id, e.target.value)} />
-                  <span className="aiq-csb__weight-val">{weights[w.id]}</span>
-                </div>
-              ))}
-            </div>
+          <div className="aiq-modal__footer">
+            <button className="aiq-btn" onClick={onClose}>Cancel</button>
+            <button className="aiq-btn aiq-btn--primary" onClick={handleSave}
+              disabled={!name.trim() || weightSum !== 100 || buildFilterString().length === 0}>
+              <Save size={14} /> {editing ? 'Update' : 'Create'} Strategy
+            </button>
           </div>
-        </div>
-
-        <div className="aiq-modal__footer">
-          <button className="aiq-btn" onClick={onClose}>Cancel</button>
-          <button className="aiq-btn aiq-btn--primary" onClick={handleSave}
-            disabled={!name.trim() || weightSum !== 100 || buildFilterString().length === 0}>
-            <Save size={14} /> {editing ? 'Update' : 'Create'} Strategy
-          </button>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }

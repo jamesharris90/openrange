@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { RefreshCcw, SlidersHorizontal, Star } from 'lucide-react';
 import useWatchlist from '../hooks/useWatchlist';
+import { authFetch } from '../utils/api';
 import ExportButtons from '../components/shared/ExportButtons';
 import { formatCurrency, formatVolume, formatMarketCap } from '../utils/formatters';
 
@@ -9,7 +10,14 @@ function toNumber(val) {
   return Number.isNaN(n) ? 0 : n;
 }
 
-export default function ScannerSection({ title, icon, description, filters: presetFilters, sortParam, delay = 0 }) {
+function pickField(row, fields, fallback = null) {
+  for (const key of fields) {
+    if (row?.[key] != null && row?.[key] !== '') return row[key];
+  }
+  return fallback;
+}
+
+export default function ScannerSection({ title, icon, description, queryPreset = {}, delay = 0 }) {
   const { add, remove, has } = useWatchlist();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,17 +29,21 @@ export default function ScannerSection({ title, icon, description, filters: pres
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ v: '111', f: presetFilters, o: sortParam, l: '50' });
-      const res = await fetch(`/api/finviz/screener?${params.toString()}`);
+      const params = new URLSearchParams({
+        limit: '120',
+        ...Object.fromEntries(Object.entries(queryPreset || {}).map(([k, v]) => [k, String(v)])),
+      });
+      const res = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setRows(Array.isArray(data) ? data : []);
+      const nextRows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      setRows(nextRows);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [presetFilters, sortParam]);
+  }, [queryPreset]);
 
   useEffect(() => {
     const timer = setTimeout(fetchData, delay);
@@ -92,18 +104,18 @@ export default function ScannerSection({ title, icon, description, filters: pres
       <ExportButtons
         data={filtered}
         columns={[
-          { key: 'Ticker', label: 'Ticker' },
-          { key: 'Company', label: 'Company' },
-          { key: 'Price', label: 'Price' },
-          { key: 'Change', label: 'Change' },
-          { key: 'Volume', label: 'Volume' },
-          { key: 'Market Cap', label: 'Market Cap' },
+          { key: 'symbol', label: 'Ticker' },
+          { key: 'name', label: 'Company' },
+          { key: 'price', label: 'Price' },
+          { key: 'changePercent', label: 'Change' },
+          { key: 'volume', label: 'Volume' },
+          { key: 'marketCap', label: 'Market Cap' },
         ]}
         filename={`screener-${title.toLowerCase().replace(/\s+/g, '-')}`}
       />
 
-      <div className="scanner-section__table">
-        <table className="data-table data-table--compact">
+      <div className="scanner-section__table overflow-x-auto">
+        <table className="data-table data-table--compact min-w-[900px]">
           <thead>
             <tr>
               <th style={{ width: 32 }}></th>
@@ -123,22 +135,27 @@ export default function ScannerSection({ title, icon, description, filters: pres
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)' }}>No results</td></tr>
             )}
             {display.map(row => {
-              const inList = has(row.Ticker);
-              const changeVal = toNumber(row.Change);
+              const ticker = String(pickField(row, ['symbol', 'ticker', 'Ticker'], '')).toUpperCase();
+              const company = pickField(row, ['name', 'companyName', 'Company'], '--');
+              const price = toNumber(pickField(row, ['price', 'Price']));
+              const changeVal = toNumber(pickField(row, ['changePercent', 'Change']));
+              const volume = toNumber(pickField(row, ['volume', 'Volume']));
+              const marketCap = toNumber(pickField(row, ['marketCap', 'Market Cap']));
+              const inList = has(ticker);
               return (
-                <tr key={row.Ticker}>
+                <tr key={ticker}>
                   <td style={{ textAlign: 'center' }}>
                     <button className="btn-icon" title={inList ? 'Remove' : 'Add to watchlist'}
-                      onClick={() => inList ? remove(row.Ticker) : add(row.Ticker, 'screener')}>
+                      onClick={() => inList ? remove(ticker) : add(ticker, 'screener')}>
                       <Star size={14} fill={inList ? 'var(--accent-orange)' : 'none'} color={inList ? 'var(--accent-orange)' : 'var(--text-muted)'} />
                     </button>
                   </td>
-                  <td style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{row.Ticker}</td>
-                  <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.Company || '--'}</td>
-                  <td style={{ textAlign: 'right' }}>{formatCurrency(toNumber(row.Price))}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }} className={changeVal >= 0 ? 'text-positive' : 'text-negative'}>{row.Change || '--'}</td>
-                  <td style={{ textAlign: 'right' }}>{formatVolume(toNumber(row.Volume))}</td>
-                  <td style={{ textAlign: 'right' }}>{formatMarketCap(toNumber(row['Market Cap']))}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{ticker || '--'}</td>
+                  <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{company}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(price)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }} className={changeVal >= 0 ? 'text-positive' : 'text-negative'}>{Number.isFinite(changeVal) ? `${changeVal.toFixed(2)}%` : '--'}</td>
+                  <td style={{ textAlign: 'right' }}>{formatVolume(volume)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatMarketCap(marketCap)}</td>
                 </tr>
               );
             })}

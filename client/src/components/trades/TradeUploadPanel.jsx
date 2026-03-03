@@ -253,8 +253,8 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
             )}
           </div>
 
-          <div className="upload-table-wrap">
-            <table className="upload-table">
+          <div className="upload-table-wrap overflow-x-auto">
+            <table className="upload-table min-w-[900px]">
               <thead>
                 <tr>
                   <th style={{ width: 32 }}></th>

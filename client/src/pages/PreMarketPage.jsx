@@ -15,6 +15,8 @@ import {
 import useWatchlist from '../hooks/useWatchlist';
 import TabbedFilterPanel from '../components/shared/TabbedFilterPanel';
 import ExportButtons from '../components/shared/ExportButtons';
+import Card from '../components/shared/Card';
+import { authFetch } from '../utils/api';
 import { buildFinvizFilterString, buildFilterDefaults } from '../features/news/FilterConfigs';
 import { formatNumber, formatVolume, getTimeAgo } from '../utils/formatters';
 
@@ -87,16 +89,19 @@ function newsBadge(date) {
 function buildLatestNewsMap(newsItems) {
   const map = {};
   (newsItems || []).forEach(item => {
-    const tickers = parseTickers(item.Ticker || '');
-    const parsedDate = parseFinvizDate(item.Date);
+    const tickers = parseTickers(item.Ticker || item.symbol || '');
+    const parsedDate = parseFinvizDate(item.Date)
+      || (item.publishedAt ? new Date(item.publishedAt) : null)
+      || (item.publishedDate ? new Date(item.publishedDate) : null)
+      || (Number.isFinite(Number(item.time)) ? new Date(Number(item.time) * 1000) : null);
     tickers.forEach(ticker => {
       const existing = map[ticker];
       if (!parsedDate) return;
       if (!existing || parsedDate > existing.date) {
         const badge = newsBadge(parsedDate);
         map[ticker] = {
-          title: item.Title,
-          url: item.Url || item.URL || '#',
+          title: item.Title || item.headline || item.title || '',
+          url: item.Url || item.URL || item.url || '#',
           date: parsedDate,
           ageLabel: badge.ageLabel,
           icon: badge.icon,
@@ -110,18 +115,21 @@ function buildLatestNewsMap(newsItems) {
 function buildAllNewsMap(newsItems) {
   const map = {};
   (newsItems || []).forEach(item => {
-    const tickers = parseTickers(item.Ticker || '');
-    const parsedDate = parseFinvizDate(item.Date);
+    const tickers = parseTickers(item.Ticker || item.symbol || '');
+    const parsedDate = parseFinvizDate(item.Date)
+      || (item.publishedAt ? new Date(item.publishedAt) : null)
+      || (item.publishedDate ? new Date(item.publishedDate) : null)
+      || (Number.isFinite(Number(item.time)) ? new Date(Number(item.time) * 1000) : null);
     tickers.forEach(ticker => {
       if (!map[ticker]) map[ticker] = [];
       const badge = newsBadge(parsedDate);
       map[ticker].push({
-        title: item.Title,
-        url: item.Url || item.URL || '#',
+        title: item.Title || item.headline || item.title || '',
+        url: item.Url || item.URL || item.url || '#',
         date: parsedDate,
         ageLabel: badge.ageLabel,
         icon: badge.icon,
-        source: item.Source || 'Finviz',
+        source: item.Source || item.source || 'Internal',
       });
     });
   });
@@ -184,6 +192,27 @@ function sortRows(rows, sortState) {
     return dir * (aVal - bVal);
   });
   return data;
+}
+
+function formatPct(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function mapCanonicalToScannerRow(row) {
+  return {
+    Ticker: row?.symbol || '',
+    Price: Number.isFinite(Number(row?.price)) ? Number(row.price).toFixed(2) : '',
+    Change: formatPct(row?.changePercent),
+    Volume: Number.isFinite(Number(row?.volume)) ? Number(row.volume) : '',
+    'Relative Volume': Number.isFinite(Number(row?.relativeVolume ?? row?.rvol)) ? Number(row.relativeVolume ?? row.rvol).toFixed(2) : '',
+    'Average Volume': Number.isFinite(Number(row?.avgVolume)) ? Number(row.avgVolume) : '',
+    'Volatility (Week)': Number.isFinite(Number(row?.volatility)) ? formatPct(row.volatility) : '',
+    'Shares Float': Number.isFinite(Number(row?.floatShares ?? row?.sharesFloat)) ? Number(row.floatShares ?? row.sharesFloat) : '',
+    'Short Float': Number.isFinite(Number(row?.shortFloat)) ? formatPct(row.shortFloat) : '',
+  };
 }
 
 function computeTimeToOpen() {
@@ -280,56 +309,24 @@ export default function PreMarketPage() {
   };
 
   const fetchSupplementary = useCallback(async (tickerList) => {
-    const supplementMap = {};
-    if (!tickerList.length) return supplementMap;
-    const batchSize = 100;
-    for (let i = 0; i < tickerList.length; i += batchSize) {
-      const slice = tickerList.slice(i, i + batchSize).join(',');
-      try {
-        const [perfRes, ownRes] = await Promise.all([
-          fetch(`/api/finviz/screener?v=141&o=-change&t=${slice}`),
-          fetch(`/api/finviz/screener?v=131&o=-change&t=${slice}`),
-        ]);
-
-        if (perfRes.ok) {
-          const perfData = await perfRes.json();
-          (perfData || []).forEach(row => {
-            if (!row.Ticker) return;
-            if (!supplementMap[row.Ticker]) supplementMap[row.Ticker] = {};
-            supplementMap[row.Ticker]['Relative Volume'] = row['Relative Volume'] || '';
-            supplementMap[row.Ticker]['Average Volume'] = row['Average Volume'] || '';
-            supplementMap[row.Ticker]['Volatility (Week)'] = row['Volatility (Week)'] || '';
-          });
-        }
-
-        if (ownRes.ok) {
-          const ownData = await ownRes.json();
-          (ownData || []).forEach(row => {
-            if (!row.Ticker) return;
-            if (!supplementMap[row.Ticker]) supplementMap[row.Ticker] = {};
-            supplementMap[row.Ticker]['Shares Float'] = row['Shares Float'] || '';
-            supplementMap[row.Ticker]['Short Float'] = row['Short Float'] || '';
-          });
-        }
-      } catch (e) {
-        console.warn('Supplementary data fetch failed for batch', e);
-      }
-    }
-    return supplementMap;
+    return {};
   }, []);
 
   const batchNewsRequests = useCallback((tickerList) => {
-    const promises = [];
-    for (let i = 0; i < tickerList.length; i += NEWS_BATCH) {
-      const slice = tickerList.slice(i, i + NEWS_BATCH);
-      const params = new URLSearchParams({ v: '3', c: '1', t: slice.join(',') });
-      promises.push(
-        fetch(`/api/finviz/news-scanner?${params.toString()}`)
-          .then(res => (res.ok ? res.json() : []))
-          .catch(() => [])
-      );
-    }
-    return promises;
+    return tickerList.map((ticker) =>
+      authFetch(`/api/v5/news?symbol=${encodeURIComponent(ticker)}&limit=5`)
+        .then(res => (res.ok ? res.json() : []))
+        .then(items => (Array.isArray(items) ? items : []).map(item => ({
+          Ticker: ticker,
+          Title: item?.headline || item?.title || item?.summary || '',
+          Url: item?.url || '#',
+          Source: item?.source || 'Internal',
+          Date: item?.publishedAt || item?.publishedDate || '',
+          publishedAt: item?.publishedAt || item?.publishedDate || null,
+          symbol: ticker,
+        })))
+        .catch(() => [])
+    );
   }, []);
 
   const handleRunScanner = useCallback(async () => {
@@ -341,26 +338,34 @@ export default function PreMarketPage() {
     setExpanded(new Set());
 
     try {
-      let offset = 0;
-      const rows = [];
-      let errorCode = null;
-      while (rows.length < MAX_STOCKS) {
-        const baseF = 'sh_avgvol_o100';
-        const fvF = buildFinvizFilterString(finvizFilters);
-        const combinedF = fvF ? `${baseF},${fvF}` : baseF;
-        const params = new URLSearchParams({ v: '111', o: '-change', r: offset + 1, f: combinedF });
-        if (tickers.length) params.set('t', tickers.join(','));
-        const res = await fetch(`/api/finviz/screener?${params.toString()}`);
-        if (!res.ok) { errorCode = res.status; break; }
-        const page = await res.json();
-        if (!page || !page.length) break;
-        rows.push(...page);
-        if (page.length < PAGE_SIZE || tickers.length) break;
-        offset += PAGE_SIZE;
+      const params = new URLSearchParams({ limit: String(Math.max(MAX_STOCKS * 2, 1000)) });
+      if (filters.priceMin) params.set('priceMin', String(filters.priceMin));
+      if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
+      if (filters.relVolMin) params.set('rvolMin', String(filters.relVolMin));
+      if (filters.volumeMin) params.set('volumeMin', String(filters.volumeMin));
+
+      const res = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
+      if (!res.ok) throw new Error(`Screener HTTP ${res.status}`);
+      const payload = await res.json();
+      const canonicalRows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+
+      let rows = canonicalRows.map(mapCanonicalToScannerRow);
+      if (tickers.length) {
+        const allowed = new Set(tickers);
+        rows = rows.filter(row => allowed.has(String(row.Ticker || '').toUpperCase()));
       }
 
+      rows = rows.filter(row => {
+        const change = Math.abs(numericChange(row.Change));
+        const relVol = Number.parseFloat(String(row['Relative Volume'] || ''));
+        const vol = Number(String(row.Volume || 0));
+        if (filters.changeMin && change < Number(filters.changeMin)) return false;
+        if (filters.relVolMin && (!Number.isFinite(relVol) || relVol < Number(filters.relVolMin))) return false;
+        if (filters.volumeMin && (!Number.isFinite(vol) || vol < Number(filters.volumeMin))) return false;
+        return true;
+      });
+
       const deduped = dedupeByTicker(rows).slice(0, MAX_STOCKS);
-      if (!deduped.length && errorCode) throw new Error(`Screener HTTP ${errorCode}`);
 
       const allTickers = (tickers.length ? tickers : deduped.map(s => s.Ticker)).filter(Boolean);
       const [supplementMap, ...newsResults] = await Promise.all([
@@ -382,11 +387,7 @@ export default function PreMarketPage() {
       setAllNewsMap(allMap);
       setLastRun(new Date().toISOString());
 
-      if (errorCode) {
-        setStatus({ text: `Partial load: ${deduped.length} stocks (stopped at screener HTTP ${errorCode}).`, tone: 'error' });
-      } else {
-        setStatus({ text: `Loaded ${deduped.length} stocks${tickers.length ? ` for ${tickers.join(', ')}` : ''}.`, tone: 'success' });
-      }
+      setStatus({ text: `Loaded ${deduped.length} stocks${tickers.length ? ` for ${tickers.join(', ')}` : ''}.`, tone: 'success' });
     } catch (err) {
       console.error('Live scanner fetch failed', err);
       setError(err.message);
@@ -517,10 +518,22 @@ export default function PreMarketPage() {
 
   const loadSpyQuote = useCallback(async () => {
     try {
-      const res = await fetch('/api/yahoo/quote?t=SPY');
+      const res = await authFetch('/api/v5/chart?symbol=SPY&timeframe=1D&interval=1min');
       if (!res.ok) throw new Error('quote');
       const data = await res.json();
-      setSpyQuote(data);
+      const candles = Array.isArray(data?.candles) ? data.candles : [];
+      const latest = candles[candles.length - 1];
+      const previous = candles[candles.length - 2];
+      const latestClose = Number(latest?.close);
+      const prevClose = Number(previous?.close);
+      const changePercent = Number.isFinite(latestClose) && Number.isFinite(prevClose) && prevClose !== 0
+        ? ((latestClose - prevClose) / prevClose) * 100
+        : null;
+
+      setSpyQuote({
+        price: Number.isFinite(latestClose) ? latestClose : null,
+        changePercent,
+      });
     } catch (e) {
       // ignore
     }
@@ -556,7 +569,11 @@ export default function PreMarketPage() {
       clearTimeout(autoTimer.current);
       autoTimer.current = setTimeout(async () => {
         try {
-          const res = await fetch(`/api/yahoo/search?q=${encodeURIComponent(current)}`);
+          const res = await authFetch(`/api/v5/search?q=${encodeURIComponent(current)}`);
+          if (!res.ok) {
+            setAutocomplete({ options: [], open: false });
+            return;
+          }
           const results = await res.json();
           setAutocomplete({ options: results || [], open: true });
         } catch (e) {
@@ -585,7 +602,7 @@ export default function PreMarketPage() {
     if (!news) return '—';
     return (
       <span className="news-headline-inline">
-        <span style={{ marginRight: 6 }}>{news.icon}</span>
+        <span className="pm-news-icon">{news.icon}</span>
         <a href={news.url} target="_blank" rel="noreferrer">
           {news.title}
         </a>
@@ -597,14 +614,14 @@ export default function PreMarketPage() {
   const rowsToRender = sortedRows;
 
   return (
-    <div className="page-container premarket-page">
+    <div className="page-container premarket-page space-y-3">
       <div className="page-header">
         <div>
-          <h2>Pre-Market Scanner</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Live gapper feed with catalysts, filters, watchlist actions, and exports.</p>
-          {lastRun && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Updated {getTimeAgo(lastRun)}</div>}
+          <h2 className="m-0">Pre-Market Scanner</h2>
+          <p className="muted mt-1">Live gapper feed with catalysts, filters, watchlist actions, and exports.</p>
+          {lastRun && <div className="muted text-xs">Updated {getTimeAgo(lastRun)}</div>}
           {status.text && (
-            <div style={{ marginTop: 6, color: status.tone === 'error' ? 'var(--accent-red)' : status.tone === 'success' ? 'var(--accent-green)' : 'var(--text-secondary)' }}>
+            <div className={`pm-status${status.tone === 'error' ? ' pm-status--error' : status.tone === 'success' ? ' pm-status--success' : ''}`}>
               {status.text}
             </div>
           )}
@@ -623,21 +640,21 @@ export default function PreMarketPage() {
       </div>
 
       <div className="pm-stat-grid">
-        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}>
+        <div className="pm-hero-card pm-hero-card--gainer">
           <div className="pm-hero-icon"><Flame size={20} /></div>
           <div className="pm-hero-label">Top Gainer</div>
           <div className="pm-hero-value">{topGainer ? topGainer.Ticker : '--'}</div>
           <div className="pm-hero-sub">{topGainer ? topGainer.Change : 'Pre-market movers'}</div>
         </div>
-        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+        <div className="pm-hero-card pm-hero-card--spy">
           <div className="pm-hero-icon"><BarChart2 size={20} /></div>
           <div className="pm-hero-label">SPY Pre-Market</div>
           <div className="pm-hero-value">{spyQuote ? `$${spyQuote.price?.toFixed(2)}` : '$---'}</div>
-          <div className="pm-hero-sub" style={{ opacity: 0.9 }}>
+          <div className="pm-hero-sub pm-hero-sub--dim">
             {spyQuote ? `${spyQuote.changePercent >= 0 ? '+' : ''}${spyQuote.changePercent?.toFixed(2)}%` : '---%'}
           </div>
         </div>
-        <div className="pm-hero-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}>
+        <div className="pm-hero-card pm-hero-card--clock">
           <div className="pm-hero-icon"><Clock size={20} /></div>
           <div className="pm-hero-label">Time to Open</div>
           <div className="pm-hero-value">{timeToOpen}</div>
@@ -646,7 +663,7 @@ export default function PreMarketPage() {
       </div>
 
       <div className="pm-grid">
-        <div className="panel">
+        <Card>
           <details open={showFilters}>
             <summary className="pm-filter-toggle">
               <SlidersHorizontal size={16} /> Filters
@@ -655,7 +672,7 @@ export default function PreMarketPage() {
               <div className="pm-filter-row">
                 <div className="form-field">
                   <label>Tickers (optional)</label>
-                  <div style={{ position: 'relative' }}>
+                  <div className="pm-ticker-input-wrap">
                     <input
                       ref={tickerInputRef}
                       type="text"
@@ -760,8 +777,8 @@ export default function PreMarketPage() {
               </div>
 
               <div>
-                <div className="form-field" style={{ marginBottom: 6 }}>
-                  <label style={{ textTransform: 'uppercase', letterSpacing: '0.4px' }}>Catalysts</label>
+                <div className="form-field pm-filter-label-row">
+                  <label>Catalysts</label>
                 </div>
                 <div className="pm-catalyst-row">
                   {CATALYST_OPTIONS.map(opt => {
@@ -776,8 +793,8 @@ export default function PreMarketPage() {
               </div>
 
               <div>
-                <div className="form-field" style={{ marginBottom: 6 }}>
-                  <label style={{ textTransform: 'uppercase', letterSpacing: '0.4px' }}>News Freshness</label>
+                <div className="form-field pm-filter-label-row">
+                  <label>News Freshness</label>
                 </div>
                 <div className="pm-freshness-row">
                   {Object.entries(FRESHNESS_BUCKETS).map(([key, bucket]) => (
@@ -816,9 +833,9 @@ export default function PreMarketPage() {
           )}
 
           {error && (
-            <div className="panel" style={{ border: '1px solid var(--accent-red)', marginTop: 12 }}>
-              <span style={{ color: 'var(--accent-red)' }}>Failed to load scanner: {error}</span>
-            </div>
+            <Card className="pm-error-card">
+              <span className="pm-error-text">Failed to load scanner: {error}</span>
+            </Card>
           )}
 
           <ExportButtons
@@ -835,11 +852,11 @@ export default function PreMarketPage() {
             filename="premarket-scanner"
           />
 
-          <div className="pm-table" style={{ marginTop: 16 }}>
-            <table>
+          <div className="pm-table pm-table--mt overflow-x-auto">
+            <table className="min-w-[900px]">
               <thead>
                 <tr>
-                  <th style={{ width: 32 }}>
+                  <th className="pm-th-select">
                     <input type="checkbox" checked={selected.size === rowsToRender.length && rowsToRender.length > 0} onChange={e => handleSelectAll(e.target.checked)} />
                   </th>
                   <th onClick={() => handleSort('Ticker')}>Ticker</th>
@@ -850,15 +867,15 @@ export default function PreMarketPage() {
                   <th onClick={() => handleSort('Float')}>Float</th>
                   <th onClick={() => handleSort('AvgVol')}>Avg Vol</th>
                   <th>Headline</th>
-                  <th style={{ width: 90 }}>News</th>
+                  <th className="pm-th-news">News</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && !rowsToRender.length && (
-                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Loading pre-market scanner…</td></tr>
+                  <tr><td colSpan={10} className="pm-table-empty">Loading pre-market scanner…</td></tr>
                 )}
                 {!loading && rowsToRender.length === 0 && (
-                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No results. Adjust filters or refresh.</td></tr>
+                  <tr><td colSpan={10} className="pm-table-empty">No results. Adjust filters or refresh.</td></tr>
                 )}
                 {rowsToRender.map(row => {
                   const relVol = row['Relative Volume'] || row['Rel Volume'] || '--';
@@ -876,9 +893,9 @@ export default function PreMarketPage() {
                             onChange={() => handleToggleSelect(row.Ticker)}
                           />
                         </td>
-                        <td style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{row.Ticker}</td>
+                        <td className="pm-ticker-cell">{row.Ticker}</td>
                         <td>{row.Price || '--'}</td>
-                        <td style={{ color: numericChange(row.Change) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>{row.Change || '--'}</td>
+                        <td className={numericChange(row.Change) >= 0 ? 'pm-change-up' : 'pm-change-down'}>{row.Change || '--'}</td>
                         <td>{formatVolume(numeric(row.Volume))}</td>
                         <td>{relVol}</td>
                         <td>{floatVal}</td>
@@ -895,10 +912,10 @@ export default function PreMarketPage() {
                       {isExpanded && newsList.slice(0, 20).map((item, idx) => (
                         <tr key={`${row.Ticker}-news-${idx}`} className="pm-subrow">
                           <td colSpan={10}>
-                            <span style={{ marginRight: 6 }}>{item.icon}</span>
+                            <span className="pm-subrow-icon">{item.icon}</span>
                             <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
                             {item.ageLabel && <span className="muted"> ({item.ageLabel})</span>}
-                            <span className="muted" style={{ marginLeft: 8 }}>{item.source}</span>
+                            <span className="muted pm-subrow-source">{item.source}</span>
                           </td>
                         </tr>
                       ))}
@@ -918,19 +935,19 @@ export default function PreMarketPage() {
               <button className="btn-secondary" onClick={() => setSelected(new Set())}>Clear</button>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="panel" style={{ padding: 12 }}>
-            <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Card className="pm-news-panel">
+          <Card className="pm-news-card">
+            <div className="panel-heading pm-panel-heading">
+              <div className="pm-panel-title">
                 <ExternalLink size={16} /> Breaking News
               </div>
               <button className="btn-icon" onClick={loadBreakingNews} title="Refresh"><RefreshCcw size={14} /></button>
             </div>
             <div className="pm-news-feed">
-              {newsLoading && <div className="muted" style={{ padding: 12 }}>Loading news…</div>}
-              {newsError && <div style={{ color: 'var(--accent-red)', padding: 12 }}>Failed to load news: {newsError}</div>}
+              {newsLoading && <div className="muted pm-news-state">Loading news…</div>}
+              {newsError && <div className="pm-news-state pm-news-state--error">Failed to load news: {newsError}</div>}
               {!newsLoading && !newsError && breakingNews.slice(0, 30).map(item => {
                 const date = new Date(item.datetime * 1000);
                 const symbol = (item.symbol || item.related || '').split(',')[0].trim().toUpperCase();
@@ -961,8 +978,8 @@ export default function PreMarketPage() {
                 );
               })}
             </div>
-          </div>
-        </div>
+          </Card>
+        </Card>
       </div>
     </div>
   );

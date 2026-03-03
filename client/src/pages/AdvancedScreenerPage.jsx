@@ -1,10 +1,16 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { RefreshCcw, SlidersHorizontal, Star, AlertCircle, Columns3, X, Search, Plus } from 'lucide-react';
+import { RefreshCcw, Star, AlertCircle, Columns3, X, Search, Plus, Moon, Sun } from 'lucide-react';
 import useWatchlist from '../hooks/useWatchlist';
-import TabbedFilterPanel from '../components/shared/TabbedFilterPanel';
 import ExportButtons from '../components/shared/ExportButtons';
-import { buildFinvizFilterString, buildFilterDefaults } from '../features/news/FilterConfigs';
 import { formatNumber, formatCurrency, formatVolume, formatMarketCap } from '../utils/formatters';
+import FilterSection from '../components/screener/FilterSection';
+import { filterSchema } from '../components/screener/filterSchema';
+import { useAdvancedFilterStore } from '../store/advancedFilterStore';
+import { useAppStore } from '../store/useAppStore';
+import { authFetch } from '../utils/api';
+import Portal from '../components/shared/Portal';
+import Card from '../components/shared/Card';
+import { useShallow } from 'zustand/react/shallow';
 
 const VIEWS = [
   { id: 'overview', label: 'Overview', viewParam: '111', columns: ['Ticker', 'Company', 'Sector', 'Industry', 'Country', 'Market Cap', 'P/E', 'Price', 'Change', 'Volume'] },
@@ -65,6 +71,132 @@ function sortRows(rows, sort) {
     return dir * String(aVal).localeCompare(String(bVal));
   });
   return data;
+}
+
+const SCHEMA_FIELDS = Object.values(filterSchema).flat();
+const RANGE_FILTER_FIELDS = SCHEMA_FIELDS.filter(field => field.type === 'range' && field.dataKey);
+
+function parseNumericLike(value) {
+  if (value == null || value === '') return null;
+  const text = String(value).trim();
+  if (!text || text === '--' || text === 'N/A') return null;
+
+  const suffix = text.slice(-1).toUpperCase();
+  const unitMultiplier = suffix === 'K' ? 1e3 : suffix === 'M' ? 1e6 : suffix === 'B' ? 1e9 : suffix === 'T' ? 1e12 : 1;
+  const normalized = unitMultiplier === 1 ? text : text.slice(0, -1);
+
+  const parsed = Number(normalized.replace(/[$,%\s,]/g, ''));
+  if (Number.isNaN(parsed)) return null;
+  return parsed * unitMultiplier;
+}
+
+function toPercent(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return Number(pct.toFixed(digits));
+}
+
+function formatPercentString(value, digits = 2) {
+  const pct = toPercent(value, digits);
+  return Number.isFinite(pct) ? `${pct.toFixed(digits)}%` : '';
+}
+
+function mapCanonicalRowToLegacy(canonical) {
+  const price = Number(canonical?.price);
+  const sma20 = Number(canonical?.sma20);
+  const sma50 = Number(canonical?.sma50);
+  const sma200 = Number(canonical?.sma200);
+
+  const sma20Pct = Number.isFinite(price) && Number.isFinite(sma20) && sma20 !== 0
+    ? ((price - sma20) / sma20) * 100
+    : null;
+  const sma50Pct = Number.isFinite(price) && Number.isFinite(sma50) && sma50 !== 0
+    ? ((price - sma50) / sma50) * 100
+    : null;
+  const sma200Pct = Number.isFinite(price) && Number.isFinite(sma200) && sma200 !== 0
+    ? ((price - sma200) / sma200) * 100
+    : null;
+
+  return {
+    Ticker: canonical?.symbol || '',
+    Company: canonical?.name || '',
+    Sector: canonical?.sector || '',
+    Industry: canonical?.industry || '',
+    Country: canonical?.country || '',
+    'Market Cap': canonical?.marketCap ?? null,
+    'P/E': canonical?.pe ?? null,
+    'Forward P/E': canonical?.forwardPE ?? canonical?.forwardPe ?? null,
+    PEG: canonical?.pegRatio ?? canonical?.peg ?? null,
+    'P/S': canonical?.priceToSales ?? canonical?.ps ?? null,
+    'P/B': canonical?.priceToBook ?? canonical?.pb ?? null,
+    'P/Cash': canonical?.priceToCash ?? null,
+    'P/Free Cash Flow': canonical?.priceToFreeCashFlow ?? null,
+    Price: canonical?.price ?? null,
+    Change: formatPercentString(canonical?.changePercent),
+    Volume: canonical?.volume ?? null,
+    'Dividend Yield': formatPercentString(canonical?.dividendYield),
+    'Return on Assets': formatPercentString(canonical?.roa),
+    'Return on Equity': formatPercentString(canonical?.roe),
+    'Return on Invested Capital': formatPercentString(canonical?.roic),
+    'Current Ratio': canonical?.currentRatio ?? null,
+    'Quick Ratio': canonical?.quickRatio ?? null,
+    'LT Debt/Equity': canonical?.ltDebtEquity ?? null,
+    'Total Debt/Equity': canonical?.totalDebtEquity ?? canonical?.debtToEquity ?? null,
+    'Gross Margin': formatPercentString(canonical?.grossMargin),
+    'Operating Margin': formatPercentString(canonical?.operatingMargin),
+    'Profit Margin': formatPercentString(canonical?.netProfitMargin ?? canonical?.netMargin),
+    'Shares Outstanding': canonical?.sharesOutstanding ?? null,
+    'Shares Float': canonical?.floatShares ?? canonical?.sharesFloat ?? null,
+    'Insider Ownership': formatPercentString(canonical?.insiderOwnership),
+    'Insider Transactions': canonical?.insiderTransactions ?? null,
+    'Institutional Ownership': formatPercentString(canonical?.institutionalOwnership),
+    'Institutional Transactions': canonical?.institutionalTransactions ?? null,
+    'Short Float': formatPercentString(canonical?.shortFloat),
+    'Short Ratio': canonical?.shortRatio ?? null,
+    'Average Volume': canonical?.avgVolume ?? null,
+    'Performance (Week)': formatPercentString(canonical?.perfWeek),
+    'Performance (Month)': formatPercentString(canonical?.perfMonth),
+    'Performance (Quarter)': formatPercentString(canonical?.perfQuarter),
+    'Performance (Half Year)': formatPercentString(canonical?.perfHalfYear),
+    'Performance (YTD)': formatPercentString(canonical?.perfYtd),
+    'Performance (Year)': formatPercentString(canonical?.perfYear),
+    'Volatility (Week)': formatPercentString(canonical?.volatilityWeek ?? canonical?.volatility),
+    'Volatility (Month)': formatPercentString(canonical?.volatilityMonth),
+    'Relative Volume': canonical?.relativeVolume ?? canonical?.rvol ?? null,
+    Beta: canonical?.beta ?? null,
+    'Average True Range': canonical?.atr ?? null,
+    '20-Day Simple Moving Average': formatPercentString(sma20Pct),
+    '50-Day Simple Moving Average': formatPercentString(sma50Pct),
+    '200-Day Simple Moving Average': formatPercentString(sma200Pct),
+    '52-Week High': canonical?.high52Week ?? null,
+    '52-Week Low': canonical?.low52Week ?? null,
+    'Relative Strength Index (14)': canonical?.rsi14 ?? null,
+  };
+}
+
+function filterRowsByRangeValues(rows, values) {
+  return rows.filter((row) => {
+    for (const field of RANGE_FILTER_FIELDS) {
+      const current = values[field.key];
+      if (!current || typeof current !== 'object') continue;
+
+      const minRaw = current.min;
+      const maxRaw = current.max;
+      if (!minRaw && !maxRaw) continue;
+
+      const value = parseNumericLike(row[field.dataKey]);
+      if (value == null) return false;
+
+      const min = minRaw ? Number(minRaw) : null;
+      const max = maxRaw ? Number(maxRaw) : null;
+
+      if (min != null && !Number.isNaN(min) && value < min) return false;
+      if (max != null && !Number.isNaN(max) && value > max) return false;
+    }
+
+    return true;
+  });
 }
 
 const OVERVIEW_RENDERERS = {
@@ -186,9 +318,9 @@ function ColumnPicker({ activeView, currentVisibleCols, toggleColVisibility, all
 
 export default function AdvancedScreenerPage() {
   const watchlist = useWatchlist();
+  const theme = useAppStore((state) => state.theme);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const [activeView, setActiveView] = useState(VIEWS[0]);
-  const [finvizFilters, setFinvizFilters] = useState(buildFilterDefaults);
-  const [showFinvizFilters, setShowFinvizFilters] = useState(false);
   const [rows, setRows] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -200,6 +332,26 @@ export default function AdvancedScreenerPage() {
   const [newTickers, setNewTickers] = useState(new Set());
   const prevTickersRef = useRef(new Set());
   const [refreshCountdown, setRefreshCountdown] = useState(60);
+  const queryHydratedRef = useRef(false);
+  const lastQueryRef = useRef('');
+
+  const {
+    activeTab,
+    filterValues,
+    appliedValues,
+    applyNonce,
+    serializeToQueryString,
+    hydrateFromQueryString,
+  } = useAdvancedFilterStore(
+    useShallow((state) => ({
+      activeTab: state.activeTab,
+      filterValues: state.filterValues,
+      appliedValues: state.appliedValues,
+      applyNonce: state.applyNonce,
+      serializeToQueryString: state.serializeToQueryString,
+      hydrateFromQueryString: state.hydrateFromQueryString,
+    }))
+  );
 
   // Column visibility
   const [visibleCols, setVisibleCols] = useState(() => {
@@ -253,8 +405,9 @@ export default function AdvancedScreenerPage() {
       _newsHeadline: newsMap[r.Ticker]?.headline ?? null,
       _newsSource: newsMap[r.Ticker]?.source ?? null,
     }));
-    return sortRows(withNews, sort);
-  }, [rows, sort, newsMap]);
+    const filteredRows = filterRowsByRangeValues(withNews, appliedValues);
+    return sortRows(filteredRows, sort);
+  }, [rows, sort, newsMap, appliedValues]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
@@ -267,13 +420,32 @@ export default function AdvancedScreenerPage() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ v: activeView.viewParam });
-      const fStr = buildFinvizFilterString(finvizFilters);
-      params.set('f', fStr);
-      const resp = await fetch(`/api/finviz/screener?${params.toString()}`);
+      const params = new URLSearchParams({ limit: '1500' });
+
+      const exchangeCode = String(appliedValues?.exchange || '').toLowerCase();
+      if (exchangeCode === 'exch_nyse') params.set('exchange', 'NYSE');
+      if (exchangeCode === 'exch_nasd') params.set('exchange', 'NASDAQ');
+      if (exchangeCode === 'exch_amex') params.set('exchange', 'AMEX');
+
+      const priceMin = appliedValues?.price?.min;
+      const priceMax = appliedValues?.price?.max;
+      const marketCapMin = appliedValues?.marketCap?.min;
+      const marketCapMax = appliedValues?.marketCap?.max;
+      const volumeMin = appliedValues?.volume?.min;
+      const rvolMin = appliedValues?.relativeVolume?.min;
+
+      if (priceMin) params.set('priceMin', String(priceMin));
+      if (priceMax) params.set('priceMax', String(priceMax));
+      if (marketCapMin) params.set('marketCapMin', String(marketCapMin));
+      if (marketCapMax) params.set('marketCapMax', String(marketCapMax));
+      if (volumeMin) params.set('volumeMin', String(volumeMin));
+      if (rvolMin) params.set('rvolMin', String(rvolMin));
+
+      const resp = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      const newRows = Array.isArray(data) ? data : [];
+      const payload = await resp.json();
+      const rawRows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+      const newRows = rawRows.map(mapCanonicalRowToLegacy);
 
       // Track all column names
       if (newRows.length > 0) {
@@ -304,16 +476,42 @@ export default function AdvancedScreenerPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [activeView.viewParam, finvizFilters]);
+  }, [appliedValues]);
 
   // Fetch news freshness for visible page tickers
   const fetchNewsFreshness = useCallback(async (tickers) => {
     if (!tickers.length) return;
     try {
-      const resp = await fetch(`/api/finviz/news-freshness?t=${tickers.join(',')}`);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      setNewsMap(prev => ({ ...prev, ...data }));
+      const entries = await Promise.all(tickers.map(async (ticker) => {
+        try {
+          const resp = await authFetch(`/api/v5/news?symbol=${encodeURIComponent(ticker)}&limit=1`);
+          if (!resp.ok) return [ticker, null];
+          const payload = await resp.json();
+          const item = Array.isArray(payload) && payload.length ? payload[0] : null;
+          if (!item) return [ticker, null];
+
+          const headline = item.headline || item.title || item.summary || null;
+          const source = item.source || 'Internal';
+          const publishedRaw = item.publishedAt || item.publishedDate || item.time || null;
+          const publishedMs = Date.parse(String(publishedRaw || ''));
+          const ageHours = Number.isFinite(publishedMs)
+            ? Math.max(0, (Date.now() - publishedMs) / (1000 * 60 * 60))
+            : null;
+
+          return [ticker, { ageHours, headline, source }];
+        } catch {
+          return [ticker, null];
+        }
+      }));
+
+      const data = {};
+      entries.forEach(([ticker, value]) => {
+        if (ticker && value) data[ticker] = value;
+      });
+
+      if (Object.keys(data).length) {
+        setNewsMap(prev => ({ ...prev, ...data }));
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -323,11 +521,29 @@ export default function AdvancedScreenerPage() {
     if (missing.length > 0) fetchNewsFreshness(missing);
   }, [pageRows, fetchNewsFreshness]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (queryHydratedRef.current) return;
+    queryHydratedRef.current = true;
+    hydrateFromQueryString(window.location.search);
+  }, [hydrateFromQueryString]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const query = serializeToQueryString();
+      if (query === lastQueryRef.current) return;
+      lastQueryRef.current = query;
+      const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      window.history.replaceState(null, '', url);
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [activeTab, filterValues, serializeToQueryString]);
+
   // Initial load + view change
   useEffect(() => {
     setPage(0);
     fetchData();
-  }, [activeView.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeView.id, applyNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -346,13 +562,10 @@ export default function AdvancedScreenerPage() {
 
   function handleApplyFilters() {
     setPage(0);
-    fetchData();
   }
 
   function handleClearFilters() {
-    setFinvizFilters(buildFilterDefaults());
     setPage(0);
-    setTimeout(() => fetchData(), 0);
   }
 
   function setSortColumn(col) {
@@ -370,12 +583,12 @@ export default function AdvancedScreenerPage() {
   const showEnd = Math.min((page + 1) * PAGE_SIZE, sortedRows.length);
 
   return (
-    <div className="page-container screener-page">
+    <div className="page-container screener-page space-y-3">
       {/* Header */}
-      <div className="screener-header">
+      <div className="page-header screener-header">
         <div>
-          <h2 style={{ margin: 0 }}>Advanced Stock Screener</h2>
-          <p className="muted" style={{ marginTop: 4 }}>{totalCount.toLocaleString()} stocks loaded</p>
+          <h2 className="m-0">Advanced Stock Screener</h2>
+          <p className="muted mt-1">{totalCount.toLocaleString()} stocks loaded</p>
         </div>
         <div className="screener-header__actions">
           <span className="muted" style={{ fontSize: 12 }}>Refreshes in {refreshCountdown}s</span>
@@ -383,35 +596,15 @@ export default function AdvancedScreenerPage() {
         </div>
       </div>
 
-      {/* Filter toggle */}
-      {!showFinvizFilters && (
-        <div className="screener-filter-bar">
-          <button className="pill-btn" onClick={() => setShowFinvizFilters(true)}>
-            <SlidersHorizontal size={14} /> Show Filters
-          </button>
-        </div>
-      )}
-
-      {/* Filter panel with action buttons inside */}
-      {showFinvizFilters && (
-        <TabbedFilterPanel
-          filters={finvizFilters}
-          setFilters={setFinvizFilters}
-          tabs={['descriptive', 'fundamentals', 'technical', 'all']}
-          showActionButtons={true}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          onTogglePanel={() => setShowFinvizFilters(false)}
-        />
-      )}
+      <FilterSection onApply={handleApplyFilters} onReset={handleClearFilters} />
 
       {error && (
-        <div className="panel" style={{ marginBottom: 12 }}>
+        <Card style={{ marginBottom: 12 }}>
           <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertCircle size={16} />
             <span>Could not load screener data: {error}</span>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Toolbar: View tabs + Columns + Count — sits between filters and results */}
@@ -425,6 +618,9 @@ export default function AdvancedScreenerPage() {
           ))}
         </div>
         <div className="screener-toolbar__right">
+          <button className="pill-btn" onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} Theme
+          </button>
           <ColumnPicker
             activeView={activeView}
             currentVisibleCols={currentVisibleCols}
@@ -448,9 +644,9 @@ export default function AdvancedScreenerPage() {
       </div>
 
       {/* Data table */}
-      <div className="panel screener-table-panel">
-        <div className="table-wrapper" style={{ overflowX: 'auto' }}>
-          <table className="data-table">
+      <Card className="screener-table-panel">
+        <div className="table-wrapper overflow-x-auto" style={{ overflowX: 'auto' }}>
+          <table className="data-table min-w-[900px]">
             <thead>
               <tr>
                 <th style={{ width: 40 }}></th>
@@ -523,7 +719,7 @@ export default function AdvancedScreenerPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -550,17 +746,19 @@ export default function AdvancedScreenerPage() {
 
       {/* Deep Dive floating modal */}
       {selectedTicker && (
-        <div className="screener-dd-overlay" onClick={() => setSelectedTicker(null)}>
-          <div className="screener-dd-modal" onClick={e => e.stopPropagation()}>
-            <div className="screener-dd-modal__header">
-              <h3>{selectedTicker} Deep Dive</h3>
-              <button className="aiq-icon-btn" onClick={() => setSelectedTicker(null)}><X size={16} /></button>
-            </div>
-            <div className="screener-dd-modal__body">
-              <ScreenerDeepDive ticker={selectedTicker} watchlist={watchlist} />
+        <Portal>
+          <div className="screener-dd-overlay" onClick={() => setSelectedTicker(null)}>
+            <div className="screener-dd-modal" onClick={e => e.stopPropagation()}>
+              <div className="screener-dd-modal__header">
+                <h3>{selectedTicker} Deep Dive</h3>
+                <button className="aiq-icon-btn" onClick={() => setSelectedTicker(null)}><X size={16} /></button>
+              </div>
+              <div className="screener-dd-modal__body">
+                <ScreenerDeepDive ticker={selectedTicker} watchlist={watchlist} />
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );

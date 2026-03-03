@@ -140,8 +140,8 @@ export default function AdminPage() {
           <div className="admin-overview-grid">
             <div className="panel">
               <h3 className="panel-title">Recent Users</h3>
-              <div className="admin-table-wrap">
-                <table className="admin-table">
+              <div className="admin-table-wrap overflow-x-auto">
+                <table className="admin-table min-w-[900px]">
                   <thead><tr><th>Username</th><th>Email</th><th>Created</th></tr></thead>
                   <tbody>
                     {users.slice(0, 5).map(u => (
@@ -181,8 +181,8 @@ export default function AdminPage() {
             <button className="btn-primary btn-sm" onClick={() => setShowCreate(true)}><UserPlus size={14} /> Create User</button>
           </div>
           <div className="panel">
-            <div className="admin-table-wrap">
-              <table className="admin-table">
+            <div className="admin-table-wrap overflow-x-auto">
+              <table className="admin-table min-w-[900px]">
                 <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Broker</th><th>Created</th><th>Actions</th></tr></thead>
                 <tbody>
                   {filteredUsers.map(u => (

@@ -1,9 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 import { computeORBScore, normalizeFinvizRow, parsePct, parseVolume, getScoreColor, fmtVol, fmtPct, applyGlobalFilters } from './scoring';
 import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
+
+function toPctString(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function mapCanonicalToFinvizRow(row) {
+  return {
+    Ticker: row?.symbol || '',
+    Price: Number.isFinite(Number(row?.price)) ? Number(row.price).toFixed(2) : '',
+    Change: toPctString(row?.changePercent),
+    Gap: toPctString(row?.gapPercent),
+    'Rel Volume': Number.isFinite(Number(row?.relativeVolume ?? row?.rvol)) ? Number(row.relativeVolume ?? row.rvol).toFixed(2) : '',
+    ATR: Number.isFinite(Number(row?.atr)) ? Number(row.atr).toFixed(2) : '',
+    RSI: Number.isFinite(Number(row?.rsi14)) ? Number(row.rsi14).toFixed(0) : '',
+    'Avg Volume': Number.isFinite(Number(row?.avgVolume)) ? Number(row.avgVolume) : '',
+    Volume: Number.isFinite(Number(row?.volume)) ? Number(row.volume) : '',
+  };
+}
 
 export default function ORBModule({ onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist }) {
   const [data, setData] = useState([]);
@@ -15,11 +37,16 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/finviz/screener?f=sh_avgvol_o500,ta_change_u3&v=152&c=0,1,2,3,4,5,6,7,8,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70')
+    authFetch('/api/v3/screener/technical?limit=500&volumeMin=500000&rvolMin=1.2')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(rows => {
+      .then(payload => {
         if (cancelled) return;
-        const scored = (rows || []).slice(0, 100).map(rawRow => {
+        const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const scored = rows
+          .map(mapCanonicalToFinvizRow)
+          .filter((rawRow) => parsePct(rawRow.Change) != null && parsePct(rawRow.Change) >= 3)
+          .slice(0, 100)
+          .map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeORBScore(row);
           return {
@@ -37,7 +64,7 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
             breakdown: result.breakdown,
             dataQuality: result.dataQuality,
           };
-        });
+          });
         setData(scored);
         onDataReady?.('orb', scored);
         setError(null);
@@ -93,8 +120,8 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
         ]}
         filename="orb-scanner"
       />
-      <div className="aiq-table-wrap">
-        <table className="aiq-table">
+      <div className="aiq-table-wrap overflow-x-auto">
+        <table className="aiq-table min-w-[900px]">
           <thead>
             <tr>
               <th className="aiq-th" style={{ width: 40 }}></th>

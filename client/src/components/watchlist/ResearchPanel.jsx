@@ -3,6 +3,7 @@ import TradingViewChart from '../shared/TradingViewChart';
 import TradingViewProfile from '../shared/TradingViewProfile';
 import { formatCurrency, formatPercent, formatMarketCap, getTimeAgo } from '../../utils/formatters';
 import { X, ExternalLink } from 'lucide-react';
+import { authFetch } from '../../utils/api';
 
 export default function ResearchPanel({ symbol, onClose }) {
   const [quote, setQuote] = useState(null);
@@ -10,25 +11,63 @@ export default function ResearchPanel({ symbol, onClose }) {
 
   useEffect(() => {
     if (!symbol) return;
-    // Fetch quote
-    fetch(`/api/yahoo/quote-batch?symbols=${symbol}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d?.quotes?.[0] && setQuote(d.quotes[0]))
-      .catch(() => {});
+    let cancelled = false;
 
-    // Fetch news (last 7 days)
-    const to = new Date().toISOString().split('T')[0];
-    const from = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    fetch(`/api/finnhub/news/symbol?symbol=${symbol}&from=${from}&to=${to}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setNews(Array.isArray(d) ? d.slice(0, 10) : []))
-      .catch(() => {});
+    async function load() {
+      try {
+        const chartQuery = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
+        const [chartRes, newsRes] = await Promise.all([
+          authFetch(`/api/v5/chart?${chartQuery}`),
+          authFetch(`/api/v5/news?symbol=${encodeURIComponent(symbol)}&limit=10`),
+        ]);
+
+        const chartData = chartRes.ok ? await chartRes.json() : null;
+        const newsData = newsRes.ok ? await newsRes.json() : [];
+
+        if (!cancelled) {
+          const candles = Array.isArray(chartData?.candles) ? chartData.candles : [];
+          const latest = candles[candles.length - 1];
+          const previous = candles[candles.length - 2];
+          const latestClose = Number(latest?.close);
+          const previousClose = Number(previous?.close);
+          const changePercent = Number.isFinite(latestClose) && Number.isFinite(previousClose) && previousClose !== 0
+            ? ((latestClose - previousClose) / previousClose) * 100
+            : null;
+
+          setQuote({
+            shortName: symbol,
+            price: Number.isFinite(latestClose) ? latestClose : null,
+            changePercent,
+            marketCap: null,
+          });
+
+          setNews(
+            (Array.isArray(newsData) ? newsData : []).slice(0, 10).map((item) => ({
+              url: item?.url,
+              headline: item?.headline || item?.title || '',
+              source: item?.source || 'News',
+              datetime: item?.published_at ? new Date(item.published_at).getTime() : Date.now(),
+            })),
+          );
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setQuote(null);
+          setNews([]);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [symbol]);
 
   if (!symbol) return null;
 
   return (
-    <div className="research-panel">
+    <div className="research-panel or-card">
       <div className="research-panel__header">
         <h2>{symbol}</h2>
         {quote && <span className="research-panel__name">{quote.shortName}</span>}

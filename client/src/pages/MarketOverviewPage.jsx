@@ -1,27 +1,84 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TradingViewChart from '../components/shared/TradingViewChart';
-import useApi from '../hooks/useApi';
+import { authFetch } from '../utils/api';
 import { formatNumber, formatPercent } from '../utils/formatters';
+import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 
 const INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX'];
 
 export default function MarketOverviewPage() {
-  const { data, loading } = useApi(`/api/yahoo/quote-batch?symbols=${INDEX_SYMBOLS.join(',')}`);
+  const [quotesPayload, setQuotesPayload] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const results = await Promise.all(
+          INDEX_SYMBOLS.map(async (symbol) => {
+            const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
+            const response = await authFetch(`/api/v5/chart?${query}`);
+            if (!response.ok) {
+              return { ticker: symbol, shortName: symbol, price: null, changePercent: null };
+            }
+
+            const data = await response.json();
+            const candles = Array.isArray(data?.candles) ? data.candles : [];
+            const latest = candles[candles.length - 1];
+            const previous = candles[candles.length - 2];
+            const price = Number(latest?.close);
+            const prevClose = Number(previous?.close);
+
+            const changePercent = Number.isFinite(price) && Number.isFinite(prevClose) && prevClose !== 0
+              ? ((price - prevClose) / prevClose) * 100
+              : null;
+
+            return {
+              ticker: symbol,
+              shortName: symbol,
+              price: Number.isFinite(price) ? price : null,
+              changePercent,
+            };
+          }),
+        );
+
+        if (!cancelled) {
+          setQuotesPayload(results);
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setQuotesPayload(INDEX_SYMBOLS.map((ticker) => ({ ticker, shortName: ticker, price: null, changePercent: null })));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const quotes = useMemo(() => {
     const map = {};
-    data?.quotes?.forEach(q => { map[q.ticker] = q; });
-    return INDEX_SYMBOLS.map(sym => map[sym] || { ticker: sym });
-  }, [data]);
+    quotesPayload.forEach((q) => {
+      map[q.ticker] = q;
+    });
+    return INDEX_SYMBOLS.map((sym) => map[sym] || { ticker: sym, shortName: sym, price: null, changePercent: null });
+  }, [quotesPayload]);
 
   return (
-    <div className="page-container">
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Global Market Overview</h2>
-        <p className="muted" style={{ marginTop: 4 }}>Key indices, volatility gauge, and live SPY chart.</p>
-      </div>
+    <PageContainer className="space-y-3">
+      <PageHeader
+        title="Global Market Overview"
+        subtitle="Key indices, volatility gauge, and live SPY chart."
+      />
 
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+      <div className="panel">
+        <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           {quotes.map(q => (
             <div key={q.ticker} className="stat-card" style={{ padding: 12 }}>
               <div className="stat-label" style={{ marginBottom: 4 }}>{q.shortName || q.ticker}</div>
@@ -35,16 +92,16 @@ export default function MarketOverviewPage() {
         </div>
       </div>
 
-      <div className="panel" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 12 }}>
+      <div className="panel grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <h3 style={{ marginTop: 0 }}>SPY Live Chart</h3>
+          <h3 className="mt-0">SPY Live Chart</h3>
           <TradingViewChart symbol="SPY" height={420} range="1D" interval="5" hideSideToolbar />
         </div>
         <div>
-          <h3 style={{ marginTop: 0 }}>QQQ Trend</h3>
+          <h3 className="mt-0">QQQ Trend</h3>
           <TradingViewChart symbol="QQQ" height={420} range="5D" interval="60" hideSideToolbar />
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
