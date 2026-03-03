@@ -1,4 +1,4 @@
-import { BarChart2, Bot, Calendar, Clock3, Globe2, LayoutGrid, Newspaper, Search, Sunrise, Target, TrendingUp } from 'lucide-react';
+import { BarChart2, Bot, Calendar, Clock3, Globe2, LayoutGrid, Mail, Newspaper, Search, Sunrise, Target, TrendingUp } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
   { to: '/charts', label: 'Charts', icon: BarChart2 },
   { to: '/live', label: 'Cockpit', icon: LayoutGrid },
   { to: '/intelligence-engine', label: 'Intelligence', icon: Bot },
+  { to: '/intelligence-inbox', label: 'Intel Inbox', icon: Mail },
 ];
 
 export default function Sidebar() {

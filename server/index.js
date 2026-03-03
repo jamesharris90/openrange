@@ -1516,6 +1516,12 @@ app.get('/api/finviz/news-freshness', async (req, res) => {
 app.use('/api/users/register', registrationLimiter);
 app.use('/api/users', userRoutes);
 
+// TEMPORARY: request tracer for intelligence ingest diagnostics — remove after diagnosis
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.originalUrl);
+  next();
+});
+
 // Intelligence ingestion — own key auth, must be before JWT middleware
 app.use(intelligenceRoutes);
 

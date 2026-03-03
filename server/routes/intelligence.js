@@ -1,5 +1,6 @@
 const express = require('express');
 const { pool } = require('../db/pg');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -86,6 +87,48 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
     res.json({ ok: true, id: row.id, source_tag: row.source_tag, received_at: row.received_at });
   } catch (err) {
     console.error('[intelligence] email-ingest error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/intelligence/list — last 50 entries, JWT protected
+router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        id,
+        subject,
+        sender          AS "from",
+        source_tag,
+        received_at,
+        LEFT(raw_text, 300) AS summary,
+        NULL::numeric   AS sentiment_score,
+        raw_text,
+        processed
+      FROM intelligence_emails
+      ORDER BY received_at DESC
+      LIMIT 50
+    `);
+    res.json({ ok: true, items: rows });
+  } catch (err) {
+    console.error('[intelligence] list error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// PATCH /api/intelligence/:id/reviewed — mark as processed, JWT protected
+router.patch('/api/intelligence/:id/reviewed', authMiddleware, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || isNaN(id)) return res.status(400).json({ ok: false, error: 'Invalid id' });
+  try {
+    const { rowCount } = await pool.query(
+      `UPDATE intelligence_emails SET processed = TRUE WHERE id = $1`,
+      [id]
+    );
+    if (rowCount === 0) return res.status(404).json({ ok: false, error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[intelligence] reviewed error:', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
