@@ -1,4 +1,4 @@
-import { BarChart2, Bot, Calendar, Clock3, Globe2, LayoutGrid, Mail, Newspaper, Search, Sunrise, Target, TrendingUp } from 'lucide-react';
+import { Activity, BarChart2, Bot, Calendar, Clock3, Gauge, Globe2, LayoutGrid, LineChart, Mail, Moon, Newspaper, Search, Sunrise, Target, TrendingUp } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -10,25 +10,22 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { to: '/dashboard', label: 'Dashboard', icon: BarChart2 },
-  { to: '/screeners', label: 'Screeners', icon: LayoutGrid },
-  { to: '/watchlists', label: 'Watchlists', icon: TrendingUp },
-  { to: '/pre-market', label: 'Pre-Market', icon: Sunrise },
-  { to: '/open-market', label: 'Open Market', icon: LayoutGrid },
-  { to: '/post-market', label: 'Post-Market', icon: LayoutGrid },
-  { to: '/market-overview', label: 'Market Overview', icon: Globe2 },
-  { to: '/market-hours', label: 'Market Hours', icon: Clock3 },
-  { to: '/screener-v2', label: 'Screener V2', icon: Target },
-  { to: '/screener-v3', label: 'Screener V3', icon: Target },
-  { to: '/advanced-screener', label: 'Advanced', icon: Target },
-  { to: '/news-scanner', label: 'News Scanner', icon: Newspaper },
-  { to: '/news-v2', label: 'News Feed V2', icon: Newspaper },
-  { to: '/earnings', label: 'Earnings', icon: Calendar },
-  { to: '/research', label: 'Research', icon: Search },
-  { to: '/charts', label: 'Charts', icon: BarChart2 },
-  { to: '/live', label: 'Cockpit', icon: LayoutGrid },
-  { to: '/intelligence-engine', label: 'Intelligence', icon: Bot },
-  { to: '/intelligence-inbox', label: 'Intel Inbox', icon: Mail },
+  { to: '/dashboard',          label: 'Dashboard',       icon: BarChart2 },
+  { to: '/screeners',          label: 'Screeners',       icon: LayoutGrid },
+  { to: '/watchlists',         label: 'Watchlists',      icon: TrendingUp },
+  { to: '/pre-market',         label: 'Pre-Market',      icon: Sunrise },
+  { to: '/open-market',        label: 'Open Market',     icon: Activity },
+  { to: '/post-market',        label: 'Post-Market',     icon: Moon },
+  { to: '/market-overview',    label: 'Market Overview', icon: Globe2 },
+  { to: '/market-hours',       label: 'Market Hours',    icon: Clock3 },
+  { to: '/advanced-screener',  label: 'Advanced',        icon: Target },
+  { to: '/news-scanner',       label: 'News Scanner',    icon: Newspaper },
+  { to: '/earnings',           label: 'Earnings',        icon: Calendar },
+  { to: '/research',           label: 'Research',        icon: Search },
+  { to: '/charts',             label: 'Charts',          icon: LineChart },
+  { to: '/live',               label: 'Cockpit',         icon: Gauge },
+  { to: '/intelligence-engine', label: 'Intelligence',  icon: Bot },
+  { to: '/intelligence-inbox', label: 'Intel Inbox',     icon: Mail },
 ];
 
 export default function Sidebar() {

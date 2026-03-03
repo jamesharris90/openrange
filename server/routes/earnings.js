@@ -154,12 +154,62 @@ router.get('/api/earnings/calendar', async (req, res) => {
       return res.json({ earnings, from: from || null, to: to || null });
     }
 
-    // ── Fallback: Finnhub + Yahoo (live, existing path) with 60s timeout ──
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('earnings fallback timeout')), 60000)
-    );
-    const data = await Promise.race([market.getEarningsCalendar({ from, to }), timeout]);
-    return res.json(data);
+    // ── Fallback: FMP /stable/earnings-calendar ──
+    const apiKey = process.env.FMP_API_KEY;
+    if (!apiKey) {
+      return res.json({ earnings: [], from: from || null, to: to || null, error: 'FMP_API_KEY missing' });
+    }
+    const fmpRes = await axios.get(`${FMP_STABLE}/earnings-calendar`, {
+      params: { from, to, apikey: apiKey },
+      timeout: 15000,
+      validateStatus: () => true,
+    });
+    if (fmpRes.status < 200 || fmpRes.status >= 300) {
+      return res.json({ earnings: [], from: from || null, to: to || null, error: `FMP returned ${fmpRes.status}` });
+    }
+    const fmpRows = Array.isArray(fmpRes.data) ? fmpRes.data : [];
+    const fmpSymbols = [...new Set(fmpRows.map((r) => r.symbol).filter(Boolean))];
+    const fmpQuoteMap = fmpSymbols.length ? await fetchFmpQuoteMap(fmpSymbols) : new Map();
+    const earnings = fmpRows.map((item) => {
+      const q = fmpQuoteMap.get(String(item.symbol || '').toUpperCase()) || {};
+      const price  = Number.isFinite(Number(q.price))      ? Number(q.price)      : null;
+      const avg200 = Number.isFinite(Number(q.priceAvg200)) ? Number(q.priceAvg200) : null;
+      const high52 = Number.isFinite(Number(q.yearHigh))   ? Number(q.yearHigh)   : null;
+      const avgVol = Number.isFinite(Number(q.avgVolume))  ? Number(q.avgVolume)  : null;
+      const curVol = Number.isFinite(Number(q.volume))     ? Number(q.volume)     : null;
+      return {
+        symbol:              String(item.symbol || '').toUpperCase(),
+        date:                item.date || null,
+        hour:                item.time || null,
+        companyName:         String(q.name || item.name || '').trim() || null,
+        epsEstimate:         item.epsEstimated   != null ? Number(item.epsEstimated)   : null,
+        epsActual:           item.eps            != null ? Number(item.eps)            : null,
+        surprisePercent:     item.surprisePercent != null ? Number(item.surprisePercent) : null,
+        revenueEstimate:     item.revenueEstimated != null ? Number(item.revenueEstimated) : null,
+        revenueActual:       item.revenue        != null ? Number(item.revenue)        : null,
+        marketCap:           Number.isFinite(Number(q.marketCap)) ? Number(q.marketCap) : null,
+        price,
+        change:              Number.isFinite(Number(q.change)) ? Number(q.change) : null,
+        changePercent:       Number.isFinite(Number(q.changesPercentage)) ? Number(q.changesPercentage) : null,
+        avgVolume:           avgVol,
+        volume:              curVol,
+        rvol:                avgVol && curVol && avgVol > 0 ? +(curVol / avgVol).toFixed(2) : null,
+        floatShares:         null,
+        sharesShort:         null,
+        shortPercentOfFloat: null,
+        preMarketPrice:      null,
+        preMarketChange:     null,
+        preMarketChangePercent: null,
+        fiftyTwoWeekHigh:    high52,
+        twoHundredDayAverage: avg200,
+        dist200MA:           avg200 && price ? +(((price - avg200) / avg200) * 100).toFixed(2) : null,
+        dist52WH:            high52 && price ? +(((price - high52) / high52) * 100).toFixed(2) : null,
+        analystRating:       null,
+        sector:              null,
+        industry:            null,
+      };
+    });
+    return res.json({ earnings, from: from || null, to: to || null });
   } catch (err) {
     res.json({ earnings: [], from: from || null, to: to || null, error: 'Failed to fetch earnings calendar', detail: err.message });
   }
