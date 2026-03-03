@@ -9,6 +9,8 @@
     "dev": "nodemon index.js",
     "start-detached": "./scripts/start.sh",
     "stop-detached": "./scripts/stop.sh",
+    "check:canonical-schema": "tsc -p tsconfig.canonical.json --noEmit",
+    "smoke:canonical-shape": "node scripts/canonicalShapeSmoke.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -21,15 +23,22 @@
   "dependencies": {
     "axios": "^1.4.0",
     "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
     "csvtojson": "^2.0.14",
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
     "express-rate-limit": "^6.7.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.18.0",
     "winston": "^3.19.0",
+    "xlsx": "^0.18.5",
+    "typescript": "^5.6.3",
     "yahoo-finance2": "^3.13.0"
   },
   "devDependencies": {
