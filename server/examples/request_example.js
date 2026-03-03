@@ -2,7 +2,6 @@ const axios = require('axios');
 require('dotenv').config();
 
 const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:3000';
-const API_KEY = process.env.PROXY_API_KEY || null;
 
 async function health() {
   try {
@@ -15,7 +14,7 @@ async function health() {
 
 async function saxoRoot() {
   try {
-    const headers = API_KEY ? { 'x-api-key': API_KEY } : {};
+    const headers = {};
     const r = await axios.get(`${PROXY_URL}/api/saxo/`, { headers, timeout: 10000, validateStatus: () => true });
     console.log('/api/saxo/ ->', r.status, typeof r.data === 'object' ? JSON.stringify(r.data) : String(r.data).slice(0, 200));
   } catch (err) {
@@ -24,7 +23,7 @@ async function saxoRoot() {
 }
 
 async function run() {
-  console.log('Using PROXY_URL=', PROXY_URL, 'API_KEY=', API_KEY ? 'present' : 'missing');
+  console.log('Using PROXY_URL=', PROXY_URL);
   await health();
   await saxoRoot();
 }

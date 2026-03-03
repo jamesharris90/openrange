@@ -373,7 +373,6 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const FMP_API_KEY = process.env.FMP_API_KEY || null;
 logger.info(`FMP_API_KEY exists: ${!!FMP_API_KEY}`);
@@ -545,7 +544,6 @@ app.get('/api/market-status', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     brokers: ['ibkr', 'saxo'],
-    proxyApi: !!PROXY_API_KEY,
     finvizEnabled: !!FINVIZ_NEWS_TOKEN,
     finnhubEnabled: !!process.env.FINNHUB_API_KEY,
     pplxEnabled: !!PPLX_API_KEY

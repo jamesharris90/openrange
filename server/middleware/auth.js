@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { PROXY_API_KEY, JWT_SECRET } = require('../utils/config');
+const { JWT_SECRET } = require('../utils/config');
 
 const publicPaths = new Set([
   '/api/finviz/screener',
@@ -36,7 +36,6 @@ function authMiddleware(req, res, next) {
   if (req.path.startsWith('/api/ai-quant/')) return next();
 
   const token = req.get('Authorization')?.replace('Bearer ', '');
-  const apiKey = req.get('x-api-key') || req.query['api_key'];
 
   if (token) {
     try {
@@ -44,17 +43,11 @@ function authMiddleware(req, res, next) {
       req.user = payload;
       return next();
     } catch (err) {
-      // fall through to API key
+      // fall through to 401
     }
   }
 
-  if (!PROXY_API_KEY) {
-    return res.status(502).json({ error: 'Proxy API key not configured on server' });
-  }
-  if (!apiKey || apiKey !== PROXY_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized - provide valid JWT or API key' });
-  }
-  return next();
+  return res.status(401).json({ error: 'Unauthorized - provide valid JWT or API key' });
 }
 
 module.exports = authMiddleware;
