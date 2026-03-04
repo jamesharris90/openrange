@@ -57,7 +57,9 @@ const chartV2Routes = require('./routes/chartV2.ts');
 const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const { startSchedulerService } = require('./services/schedulerService.ts');
+const { startIngestionScheduler } = require('./ingestion/scheduler');
 const intelligenceRoutes = require('./routes/intelligence');
+const { pool } = require('./db/pg');
 
 // Logger
 const logger = require('./logger');
@@ -564,20 +566,61 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-app.get('/api/scanner', (req, res) => {
-  res.json([
-    {
-      ticker: 'NVDA',
-      price: 780,
-      change: 4.2,
-      volume: 24000000,
-      relativeVolume: 2.5,
-    },
-  ]);
+app.get('/api/scanner', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT symbol,
+              MAX(price) AS price,
+              SUM(volume)::bigint AS volume
+       FROM intraday_1m
+       WHERE timestamp >= NOW() - INTERVAL '1 day'
+       GROUP BY symbol
+       ORDER BY volume DESC
+       LIMIT 200`
+    );
+
+    const payload = rows.map((row) => ({
+      ticker: row.symbol,
+      price: Number(row.price) || 0,
+      change: 0,
+      volume: Number(row.volume) || 0,
+      relativeVolume: 1,
+    }));
+
+    res.json(payload);
+  } catch (err) {
+    logger.error('scanner endpoint db error', { error: err.message });
+    res.json([]);
+  }
 });
 
-app.get('/api/premarket', (req, res) => {
-  res.json({ status: 'ok', data: [] });
+app.get('/api/premarket', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT symbol,
+              MAX(price) AS price,
+              SUM(volume)::bigint AS volume,
+              MAX(timestamp) AS last_timestamp
+       FROM intraday_1m
+       WHERE timestamp >= NOW() - INTERVAL '12 hours'
+       GROUP BY symbol
+       ORDER BY last_timestamp DESC
+       LIMIT 200`
+    );
+
+    res.json({
+      status: 'ok',
+      data: rows.map((row) => ({
+        symbol: row.symbol,
+        price: Number(row.price) || 0,
+        volume: Number(row.volume) || 0,
+        timestamp: row.last_timestamp,
+      })),
+    });
+  } catch (err) {
+    logger.error('premarket endpoint db error', { error: err.message });
+    res.json({ status: 'ok', data: [] });
+  }
 });
 
 app.get('/api/intelligence', (req, res) => {
@@ -2032,6 +2075,10 @@ if (FMP_API_KEY) {
 
 if (FMP_API_KEY) {
   startSchedulerService();
+}
+
+if (process.env.ENABLE_INGESTION_SCHEDULER !== 'false') {
+  startIngestionScheduler();
 }
 
 app.listen(PORT, () => {
