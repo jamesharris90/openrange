@@ -63,6 +63,7 @@ const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
 const { getUniverseHealth } = require('./monitoring/universeHealth');
+const { getQueueHealth } = require('./monitoring/queueHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
@@ -599,6 +600,16 @@ app.get('/api/universe/health', async (req, res) => {
   } catch (err) {
     logger.error('universe health endpoint error', { error: err.message });
     res.status(500).json({ engine: 'universe', status: 'error', error: err.message });
+  }
+});
+
+app.get('/api/queue/health', async (req, res) => {
+  try {
+    const health = await getQueueHealth();
+    res.json(health);
+  } catch (err) {
+    logger.error('queue health endpoint error', { error: err.message });
+    res.status(500).json({ engine: 'queue', status: 'error', error: err.message });
   }
 });
 
@@ -2144,10 +2155,11 @@ app.listen(PORT, () => {
 
   (async () => {
     try {
-      const [metricsHealth, ingestionHealth, universeHealth] = await Promise.all([
+      const [metricsHealth, ingestionHealth, universeHealth, queueHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),
         getUniverseHealth(),
+        getQueueHealth(),
       ]);
 
       logger.info('OpenRange System Status', {
@@ -2155,6 +2167,7 @@ app.listen(PORT, () => {
         lastMetricsRun: metricsHealth.last_update,
         ingestionRows: ingestionHealth.tables,
         universeCount: universeHealth.total_symbols,
+        queueSize: queueHealth.queue_size,
       });
     } catch (err) {
       logger.error('OpenRange System Status failed', { error: err.message });

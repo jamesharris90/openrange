@@ -2,14 +2,75 @@ const fs = require('fs').promises;
 const path = require('path');
 const { pool } = require('../db/pg');
 const logger = require('../logger');
+const { queueSymbol, ensureQueueTable } = require('./queue_symbol');
 
 const BATCH_SIZE = 500;
 const WORKER_COUNT = 3;
+const QUEUE_LIMIT = 500;
 
 async function ensureMetricsTable() {
   const sqlPath = path.join(__dirname, '..', 'migrations', 'create_market_metrics.sql');
   const sql = await fs.readFile(sqlPath, 'utf8');
   await pool.query(sql);
+}
+
+async function seedQueueFromSources() {
+  const intradayRows = await pool.query(
+    `SELECT DISTINCT symbol
+     FROM intraday_1m
+     WHERE timestamp >= NOW() - INTERVAL '2 minutes'
+     ORDER BY symbol ASC
+     LIMIT 2000`
+  );
+
+  for (const row of intradayRows.rows) {
+    await queueSymbol(row.symbol, 'intraday_update', { silent: true });
+  }
+
+  return {
+    intradayQueued: intradayRows.rows.length,
+    newUniverseQueued: 0,
+  };
+}
+
+async function getQueueHealthSnapshot() {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS queue_size,
+            MIN(created_at) AS oldest_item
+     FROM symbol_queue`
+  );
+  const row = rows[0] || { queue_size: 0, oldest_item: null };
+  return {
+    queueSize: Number(row.queue_size) || 0,
+    oldestItem: row.oldest_item,
+  };
+}
+
+async function getQueuedSymbols(limit = QUEUE_LIMIT) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || QUEUE_LIMIT, QUEUE_LIMIT));
+  const { rows } = await pool.query(
+    `SELECT symbol
+     FROM symbol_queue
+     ORDER BY created_at ASC
+     LIMIT $1`,
+    [safeLimit]
+  );
+
+  return rows.map((row) => row.symbol);
+}
+
+async function clearProcessedQueue(symbols) {
+  if (!symbols.length) return 0;
+  const uniqueSymbols = Array.from(new Set(symbols.map((value) => String(value || '').trim().toUpperCase()).filter(Boolean)));
+  if (!uniqueSymbols.length) return 0;
+
+  const result = await pool.query(
+    `DELETE FROM symbol_queue
+     WHERE symbol = ANY($1::text[])`,
+    [uniqueSymbols]
+  );
+
+  return result.rowCount || 0;
 }
 
 async function getAllSymbols() {
@@ -219,6 +280,7 @@ async function processQueue(symbols, workerFn, batchSize = BATCH_SIZE, workerCou
   let processed = 0;
   let failedBatches = 0;
   let written = 0;
+  const processedSymbols = new Set();
 
   async function worker(workerId) {
     while (true) {
@@ -233,6 +295,9 @@ async function processQueue(symbols, workerFn, batchSize = BATCH_SIZE, workerCou
         const inserted = await upsertMetrics(metrics);
         processed += batch.length;
         written += inserted;
+        for (const row of metrics) {
+          if (row?.symbol) processedSymbols.add(String(row.symbol).toUpperCase());
+        }
 
         logger.info('metrics batch complete', {
           scope: 'metrics',
@@ -263,27 +328,76 @@ async function processQueue(symbols, workerFn, batchSize = BATCH_SIZE, workerCou
     processedSymbols: processed,
     writtenRows: written,
     failedBatches,
+    updatedSymbols: Array.from(processedSymbols),
   };
 }
 
-async function calculateMarketMetrics() {
+async function calculateMarketMetrics(options = {}) {
   const startedAt = Date.now();
   await ensureMetricsTable();
+  await ensureQueueTable();
 
-  const symbols = await getAllSymbols();
+  const mode = options.mode === 'full' ? 'full' : 'queue';
+
+  let symbols = [];
+  let seedSummary = { intradayQueued: 0, newUniverseQueued: 0 };
+  const beforeQueue = await getQueueHealthSnapshot();
+
+  if (mode === 'queue') {
+    seedSummary = await seedQueueFromSources();
+    symbols = await getQueuedSymbols(QUEUE_LIMIT);
+  } else {
+    symbols = await getAllSymbols();
+  }
+
   logger.info('metrics engine start', {
     scope: 'metrics',
+    mode,
     symbols: symbols.length,
+    queueSizeBefore: beforeQueue.queueSize,
+    oldestQueueItem: beforeQueue.oldestItem,
+    seedSummary,
     batchSize: BATCH_SIZE,
     workers: WORKER_COUNT,
   });
 
+  if (!symbols.length) {
+    const durationMs = Date.now() - startedAt;
+    const afterQueue = await getQueueHealthSnapshot();
+    const emptyResult = {
+      mode,
+      symbols: 0,
+      batches: 0,
+      processedSymbols: 0,
+      writtenRows: 0,
+      failedBatches: 0,
+      queueSizeBefore: beforeQueue.queueSize,
+      queueSizeAfter: afterQueue.queueSize,
+      queueCleared: 0,
+      runtimeMs: durationMs,
+      errors: 0,
+    };
+
+    logger.info('metrics engine complete', {
+      scope: 'metrics',
+      ...emptyResult,
+    });
+
+    return emptyResult;
+  }
+
   const queueResult = await processQueue(symbols, calculateBatchMetrics, BATCH_SIZE, WORKER_COUNT);
+  const queueCleared = await clearProcessedQueue(symbols);
+  const afterQueue = await getQueueHealthSnapshot();
 
   const durationMs = Date.now() - startedAt;
   const result = {
+    mode,
     symbols: symbols.length,
     ...queueResult,
+    queueSizeBefore: beforeQueue.queueSize,
+    queueSizeAfter: afterQueue.queueSize,
+    queueCleared,
     runtimeMs: durationMs,
     errors: queueResult.failedBatches,
   };

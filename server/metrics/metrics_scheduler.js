@@ -4,9 +4,9 @@ const { calculateMarketMetrics } = require('./calc_market_metrics');
 
 let started = false;
 
-async function runCycle(trigger = 'scheduler') {
+async function runCycle(trigger = 'scheduler', options = { mode: 'queue' }) {
   try {
-    const result = await calculateMarketMetrics();
+    const result = await calculateMarketMetrics(options);
     logger.info('metrics cycle complete', {
       scope: 'metrics',
       trigger,
@@ -36,12 +36,19 @@ function startMetricsScheduler() {
   started = true;
 
   cron.schedule('*/1 * * * *', async () => {
-    await runCycle('cron');
+    await runCycle('cron-queue', { mode: 'queue' });
+  });
+
+  cron.schedule('*/15 * * * *', async () => {
+    await runCycle('cron-full', { mode: 'full' });
   });
 
   logger.info('metrics scheduler started', {
     scope: 'metrics',
-    schedule: '*/1 * * * *',
+    schedules: {
+      queue: '*/1 * * * *',
+      full: '*/15 * * * *',
+    },
   });
 }
 

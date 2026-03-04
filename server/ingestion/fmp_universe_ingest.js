@@ -7,6 +7,7 @@ const { fmpFetch } = require('../services/fmpClient');
 const { fetchStockList } = require('../services/fmpService');
 const { supabaseAdmin } = require('../services/supabaseClient');
 const { batchInsert } = require('../utils/batchInsert');
+const { queueSymbol } = require('../metrics/queue_symbol');
 const logger = require('../utils/logger');
 const { pool } = require('../db/pg');
 
@@ -109,6 +110,24 @@ async function runUniverseIngestion() {
 
   const dedupedRows = Array.from(dedupMap.values());
   const duplicatesIgnored = rawRows.length - filteredOut - dedupedRows.length;
+  const incomingSymbols = dedupedRows.map((row) => row.symbol);
+
+  const existing = new Set();
+  for (let index = 0; index < incomingSymbols.length; index += 1000) {
+    const chunk = incomingSymbols.slice(index, index + 1000);
+    if (!chunk.length) continue;
+    const { rows } = await pool.query(
+      `SELECT symbol
+       FROM ticker_universe
+       WHERE symbol = ANY($1::text[])`,
+      [chunk]
+    );
+    for (const row of rows) {
+      existing.add(String(row.symbol || '').toUpperCase());
+    }
+  }
+
+  const newSymbols = incomingSymbols.filter((symbol) => !existing.has(String(symbol || '').toUpperCase()));
 
   let inserted = 0;
   if (dedupedRows.length > 0) {
@@ -169,11 +188,20 @@ async function runUniverseIngestion() {
     }
   }
 
+  for (const symbol of newSymbols) {
+    try {
+      await queueSymbol(symbol, 'new_symbol', { silent: true });
+    } catch (err) {
+      logger.warn('failed to queue new universe symbol', { symbol, error: err.message });
+    }
+  }
+
   const durationMs = Date.now() - startedAt;
   const summary = {
     jobName: 'fmp_universe_ingest',
     symbols_processed: rawRows.length,
     symbols_inserted: inserted,
+    new_symbols: newSymbols.length,
     duplicates_ignored: Math.max(0, duplicatesIgnored),
     filtered_out: filteredOut,
     durationMs,
