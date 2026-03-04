@@ -3,6 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -92,10 +93,21 @@ function parseBucketList(value) {
 }
 
 router.get('/technical', async (req, res) => {
+  const symbol = normalizeSearchTerm(req.query.symbol);
+  if (symbol && !/^[A-Z0-9.^-]{1,10}$/.test(symbol)) {
+    return res.status(400).json({ error: 'INVALID_SYMBOL', message: 'symbol must be 1-10 valid ticker characters' });
+  }
+
   try {
     const limit = parsePositiveIntOrDefault(req.query.limit, 100);
     const offset = parseNonNegativeIntOrDefault(req.query.offset, 0);
-    const symbol = normalizeSearchTerm(req.query.symbol);
+    if (limit > 500) {
+      return res.status(400).json({ error: 'INVALID_LIMIT', message: 'limit must be <= 500' });
+    }
+    if (offset > 100000) {
+      return res.status(400).json({ error: 'INVALID_OFFSET', message: 'offset must be <= 100000' });
+    }
+
     const buckets = parseBucketList(req.query.bucket);
 
     const filters = {
@@ -138,9 +150,19 @@ router.get('/technical', async (req, res) => {
       data,
     });
   } catch (error) {
-    return res.status(500).json({
-      error: 'SCREENER_V3_TECHNICAL_ERROR',
-      message: error?.message || 'Unknown error',
+    logger.error('Screener V3 technical failed', {
+      method: req.method,
+      path: req.originalUrl,
+      requestId: req.requestId,
+      error: error?.message,
+      stack: error?.stack,
+      upstreamStatus: error?.response?.status,
+    });
+    return res.status(502).json({
+      error: 'SCREENER_V3_TECHNICAL_UPSTREAM_ERROR',
+      message: 'Failed to fetch technical screener data from provider',
+      requestId: req.requestId,
+      detail: error?.message || 'Unknown upstream error',
     });
   }
 });

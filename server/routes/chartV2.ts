@@ -9,6 +9,7 @@ const { getChartMarketData, computeEMA, computeRSI, computeATR } = require('../s
 const { enrichWithIntraday } = require('../services/intradayEnrichmentService.ts');
 const { detectStructures } = require('../services/strategyDetectionEngineV1.ts');
 const { applyDepthPolicy } = require('../utils/candleDepthPolicy.ts');
+const logger = require('../logger');
 
 const router = express.Router();
 const yahooFinance = new YahooFinance();
@@ -498,13 +499,19 @@ router.get('/news', async (req, res) => {
 });
 
 router.get('/search', async (req, res) => {
-  try {
-    const query = String(req.query.q || '').trim();
-    if (!query || query.length < 1) return res.json([]);
+  const query = String(req.query.q || '').trim();
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 25) : 10;
 
+  if (!query) return res.json([]);
+  if (query.length > 64) {
+    return res.status(400).json({ error: 'INVALID_QUERY', message: 'q must be 1-64 characters' });
+  }
+
+  try {
     const upperQuery = query.toUpperCase();
     const searchResult = await yahooFinance.search(query, {
-      quotesCount: 50,
+      quotesCount: Math.max(limit * 3, 15),
       newsCount: 0,
       enableFuzzyQuery: false,
     });
@@ -580,12 +587,25 @@ router.get('/search', async (req, res) => {
         if (rightCap !== leftCap) return rightCap - leftCap;
         return String(left.symbol).localeCompare(String(right.symbol));
       })
-      .slice(0, 10)
+      .slice(0, limit)
       .map(({ symbol, name, exchange, marketCap }) => ({ symbol, name, exchange, marketCap }));
 
     return res.json(normalized);
   } catch (error) {
-    return res.status(500).json({ error: 'Search failed', detail: error?.message || 'Unknown error' });
+    logger.error('Chart search failed', {
+      method: req.method,
+      path: req.originalUrl,
+      requestId: req.requestId,
+      error: error?.message,
+      stack: error?.stack,
+      upstreamStatus: error?.response?.status,
+    });
+    return res.status(502).json({
+      error: 'UPSTREAM_SEARCH_FAILED',
+      message: 'Failed to fetch symbol search results from provider',
+      requestId: req.requestId,
+      detail: error?.message || 'Unknown upstream error',
+    });
   }
 });
 

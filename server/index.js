@@ -14,6 +14,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
+const { randomUUID } = require('crypto');
 const { withRetry } = require('./utils/retry');
 
 // New layered architecture pieces
@@ -314,21 +315,20 @@ app.use(cookieParser());
 // New logging middleware
 app.use(loggingMiddleware);
 
-// CORS configuration - restrict in production
-// Set EXTRA_ALLOWED_ORIGINS (comma-separated) on Railway to permit local dev origins,
-// e.g. EXTRA_ALLOWED_ORIGINS=http://localhost:5173
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? [
-        ...(process.env.ALLOWED_ORIGINS?.split(',') || ['https://openrangetrading.co.uk', 'https://www.openrangetrading.co.uk']),
-        ...(process.env.EXTRA_ALLOWED_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || []),
-      ]
-    : true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-intel-key']
-};
-app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  req.requestId = req.get('x-request-id') || randomUUID();
+  res.setHeader('x-request-id', req.requestId);
+  next();
+});
+
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://openrangetrading.co.uk'
+  ],
+  credentials: true
+}));
 
 // Security headers middleware
 app.use((req, res, next) => {
@@ -533,7 +533,11 @@ async function resolvePplxConfig(req) {
 
 // Public endpoints (no auth required)
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
+  res.json({
+    ok: true,
+    ts: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
 });
 
 app.get('/api/market-status', (req, res) => {
@@ -592,8 +596,21 @@ app.get('/api/ai-quant/market-context', async (req, res) => {
     const ctx = await marketService.getMarketContext();
     res.json(ctx);
   } catch (err) {
-    logger.warn('Market context error', { error: err.message });
-    res.status(502).json({ error: 'Failed to fetch market context', detail: err.message });
+    const upstreamStatus = Number(err?.response?.status);
+    logger.error('Market context error', {
+      method: req.method,
+      path: req.originalUrl,
+      requestId: req.requestId,
+      error: err?.message,
+      status: Number.isFinite(upstreamStatus) ? upstreamStatus : undefined,
+      stack: err?.stack,
+    });
+    res.status(502).json({
+      error: 'UPSTREAM_MARKET_CONTEXT_FAILED',
+      message: 'Failed to fetch market context from provider',
+      requestId: req.requestId,
+      detail: err?.message || 'Unknown upstream error'
+    });
   }
 });
 
@@ -1915,6 +1932,24 @@ app.get('/api/news/snippet', async (req, res) => {
     logger.warn('News snippet fetch error', { url, error: err.message });
     res.status(502).json({ error: 'Failed to fetch snippet' });
   }
+});
+
+app.use((err, req, res, next) => {
+  logger.error('Unhandled server error', {
+    method: req?.method,
+    path: req?.originalUrl || req?.path,
+    requestId: req?.requestId,
+    error: err?.message,
+    stack: err?.stack,
+  });
+
+  if (res.headersSent) return next(err);
+
+  res.status(err?.status || 500).json({
+    error: err?.code || 'INTERNAL_SERVER_ERROR',
+    message: err?.message || 'Internal server error',
+    requestId: req?.requestId,
+  });
 });
 
 // Production: serve Vite/React frontend from client/dist

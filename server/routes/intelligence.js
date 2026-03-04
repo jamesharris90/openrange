@@ -93,6 +93,9 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
 
 // GET /api/intelligence/list — last 50 entries, JWT protected
 router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -107,12 +110,24 @@ router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
         processed
       FROM intelligence_emails
       ORDER BY received_at DESC
-      LIMIT 50
-    `);
+      LIMIT $1
+    `, [limit]);
     res.json({ ok: true, items: rows });
   } catch (err) {
-    console.error('[intelligence] list error:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[intelligence] list error:', {
+      method: req.method,
+      path: req.originalUrl,
+      requestId: req.requestId,
+      error: err?.message,
+      stack: err?.stack,
+    });
+    res.status(500).json({
+      ok: false,
+      error: 'INTELLIGENCE_LIST_FAILED',
+      message: 'Failed to load intelligence list',
+      requestId: req.requestId,
+      detail: err?.message || 'Unknown error',
+    });
   }
 });
 
