@@ -8,6 +8,7 @@ import { filterSchema } from '../components/screener/filterSchema';
 import { useAdvancedFilterStore } from '../store/advancedFilterStore';
 import { useAppStore } from '../store/useAppStore';
 import { authFetch } from '../utils/api';
+import { apiFetch } from '@/config/api';
 import Portal from '../components/shared/Portal';
 import Card from '../components/shared/Card';
 import { useShallow } from 'zustand/react/shallow';
@@ -773,7 +774,7 @@ function ScreenerDeepDive({ ticker, watchlist }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/earnings-research/${ticker}`)
+    apiFetch(`/api/earnings-research/${ticker}`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { if (!cancelled) { setData(d); setError(null); } })
       .catch(e => { if (!cancelled) setError(e.message); })

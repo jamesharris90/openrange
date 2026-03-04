@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MessageSquareWarning, X, Loader, Bot } from 'lucide-react';
 import Portal from '../shared/Portal';
+import { apiFetch } from '@/config/api';
 
 export default function BiasChallenge({ ticker, onClose }) {
   const [thesis, setThesis] = useState('');
@@ -24,7 +25,7 @@ export default function BiasChallenge({ ticker, onClose }) {
     ].join('\n');
 
     try {
-      const r = await fetch('/api/ai-quant/query', {
+      const r = await apiFetch('/api/ai-quant/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, contextSource: 'scanner' }),

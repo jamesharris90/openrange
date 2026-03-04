@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { apiFetch } from '@/config/api';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -31,7 +32,7 @@ export default function ResetPasswordPage() {
 
     setSubmitting(true);
     try {
-      const resp = await fetch('/api/users/reset-password', {
+      const resp = await apiFetch('/api/users/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, newPassword: password }),

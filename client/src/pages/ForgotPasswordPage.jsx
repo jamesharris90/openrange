@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiFetch } from '@/config/api';
 
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('');
@@ -19,7 +20,7 @@ export default function ForgotPasswordPage() {
 
     setSubmitting(true);
     try {
-      const resp = await fetch('/api/users/forgot-password', {
+      const resp = await apiFetch('/api/users/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim() }),

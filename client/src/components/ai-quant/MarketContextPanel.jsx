@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import useMarketContext from '../../hooks/useMarketContext';
+import { apiFetch } from '@/config/api';
 
 const BIAS_CONFIG = {
   bullish: { icon: TrendingUp, color: 'var(--accent-green)', label: 'BULLISH', bg: 'rgba(34,197,94,0.10)' },
@@ -15,7 +16,7 @@ function SectorPerformance() {
 
   const fetchSectors = useCallback(async () => {
     try {
-      const r = await fetch('/api/ai-quant/sector-performance');
+      const r = await apiFetch('/api/ai-quant/sector-performance');
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       setSectors(json.sectors || []);

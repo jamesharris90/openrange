@@ -17,6 +17,7 @@ import TabbedFilterPanel from '../components/shared/TabbedFilterPanel';
 import ExportButtons from '../components/shared/ExportButtons';
 import Card from '../components/shared/Card';
 import { authFetch } from '../utils/api';
+import { apiFetch } from '@/config/api';
 import { buildFinvizFilterString, buildFilterDefaults } from '../features/news/FilterConfigs';
 import { formatNumber, formatVolume, getTimeAgo } from '../utils/formatters';
 
@@ -505,7 +506,7 @@ export default function PreMarketPage() {
     setNewsLoading(true);
     setNewsError(null);
     try {
-      const res = await fetch('/api/news');
+      const res = await apiFetch('/api/news');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const news = await res.json();
       setBreakingNews(news || []);

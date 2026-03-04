@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, MessageSquare } from 'lucide-react';
+import { apiFetch } from '@/config/api';
 
 export default function AIChatBar() {
   const [messages, setMessages] = useState([]);
@@ -23,7 +24,7 @@ export default function AIChatBar() {
     setLoading(true);
 
     try {
-      const r = await fetch('/api/ai-quant/query', {
+      const r = await apiFetch('/api/ai-quant/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text, contextSource: 'scanner' }),

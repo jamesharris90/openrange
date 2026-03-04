@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from '@/config/api';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -27,7 +28,7 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      const resp = await fetch('/api/users/register', {
+      const resp = await apiFetch('/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),

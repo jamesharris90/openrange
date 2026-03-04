@@ -11,6 +11,7 @@ import GlobalFiltersPanel from './GlobalFiltersPanel';
 import ToastContainer, { useToast } from './ToastContainer';
 import useWatchlist from '../../hooks/useWatchlist';
 import { buildFilterDefaults } from '../../features/news/FilterConfigs';
+import { apiFetch } from '@/config/api';
 
 export default function AIQuantPage() {
   const [activeChip, setActiveChip] = useState(null);
@@ -57,7 +58,7 @@ export default function AIQuantPage() {
         entryPrice: data?.price || null,
         atr: data?.atr || null,
       };
-      const r = await fetch('/api/ai-quant/build-plan', {
+      const r = await apiFetch('/api/ai-quant/build-plan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });

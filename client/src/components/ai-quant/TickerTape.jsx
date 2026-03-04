@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { apiFetch } from '@/config/api';
 
 // Badge colours per known symbol/ETF
 const BADGE_COLOR = {
@@ -111,8 +112,8 @@ export default function TickerTape() {
   async function loadData() {
     try {
       const [ctxRes, sectorRes] = await Promise.all([
-        fetch('/api/ai-quant/market-context'),
-        fetch('/api/ai-quant/sector-performance'),
+        apiFetch('/api/ai-quant/market-context'),
+        apiFetch('/api/ai-quant/sector-performance'),
       ]);
 
       const combined = [];

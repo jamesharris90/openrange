@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import TradingViewChart from '../shared/TradingViewChart';
 import { ScoreGauge, Section, StatRow, LoadingSkeleton, safeFix, safePercent } from '../shared/ResearchPanelWidgets';
 import { formatCurrency, formatPercent, formatMarketCap, formatVolume, formatFloat, getTimeAgo } from '../../utils/formatters';
+import { apiFetch } from '@/config/api';
 import {
   X, ExternalLink,
   TrendingUp, TrendingDown, Minus,
@@ -21,7 +22,7 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
     setData(null);
 
     const controller = new AbortController();
-    fetch(`/api/earnings-research/${symbol}`, { signal: controller.signal })
+    apiFetch(`/api/earnings-research/${symbol}`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => {
         if (d && typeof d === 'object') { setData(d); } else { throw new Error('Invalid response'); }

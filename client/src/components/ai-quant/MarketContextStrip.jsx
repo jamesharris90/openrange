@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 import useMarketContext from '../../hooks/useMarketContext';
+import { apiFetch } from '@/config/api';
 
 const BIAS_CONFIG = {
   bullish: { icon: TrendingUp, color: 'var(--accent-green)', label: 'BULL' },
@@ -14,7 +15,7 @@ function SectorPills() {
 
   const fetchSectors = useCallback(async () => {
     try {
-      const r = await fetch('/api/ai-quant/sector-performance');
+      const r = await apiFetch('/api/ai-quant/sector-performance');
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       setSectors(json.sectors || []);
