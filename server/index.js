@@ -60,6 +60,9 @@ const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
+const { getMetricsHealth } = require('./monitoring/metricsHealth');
+const { getIngestionHealth } = require('./monitoring/ingestionHealth');
+const { getSystemHealth } = require('./monitoring/systemHealth');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
 
@@ -566,6 +569,36 @@ app.get('/api/config', (req, res) => {
     finnhubEnabled: !!process.env.FINNHUB_API_KEY,
     pplxEnabled: !!PPLX_API_KEY
   });
+});
+
+app.get('/api/metrics/health', async (req, res) => {
+  try {
+    const health = await getMetricsHealth();
+    res.json(health);
+  } catch (err) {
+    logger.error('metrics health endpoint error', { error: err.message });
+    res.status(500).json({ engine: 'metrics', status: 'error', error: err.message });
+  }
+});
+
+app.get('/api/ingestion/health', async (req, res) => {
+  try {
+    const health = await getIngestionHealth();
+    res.json(health);
+  } catch (err) {
+    logger.error('ingestion health endpoint error', { error: err.message });
+    res.status(500).json({ engine: 'ingestion', status: 'error', error: err.message });
+  }
+});
+
+app.get('/api/system/health', async (req, res) => {
+  try {
+    const health = await getSystemHealth();
+    res.json(health);
+  } catch (err) {
+    logger.error('system health endpoint error', { error: err.message });
+    res.status(500).json({ system: 'openrange', status: 'error', error: err.message });
+  }
 });
 
 app.get('/api/scanner', async (req, res) => {
@@ -2093,4 +2126,21 @@ if (process.env.ENABLE_METRICS_SCHEDULER !== 'false') {
 app.listen(PORT, () => {
   logger.info(`OpenRange server listening on port ${PORT}`);
   console.log('[Intelligence] Ingestion endpoint ready');
+
+  (async () => {
+    try {
+      const [metricsHealth, ingestionHealth] = await Promise.all([
+        getMetricsHealth(),
+        getIngestionHealth(),
+      ]);
+
+      logger.info('OpenRange System Status', {
+        metricsRows: metricsHealth.rows,
+        lastMetricsRun: metricsHealth.last_update,
+        ingestionRows: ingestionHealth.tables,
+      });
+    } catch (err) {
+      logger.error('OpenRange System Status failed', { error: err.message });
+    }
+  })();
 });
