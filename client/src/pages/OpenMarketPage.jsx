@@ -5,7 +5,7 @@ import { FilterGroup, InputField } from '../components/shared/filters/FilterPrim
 import Card from '../components/shared/Card';
 
 export default function OpenMarketPage() {
-  const [symbols, setSymbols] = useState(['SPY', 'QQQ', 'AAPL', 'MSFT']);
+  const [symbols, setSymbols] = useState(['', '', '', '']);
 
   const updateSymbol = (idx, value) => {
     setSymbols(prev => {

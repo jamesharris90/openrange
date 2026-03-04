@@ -642,11 +642,49 @@ app.get('/api/queue/health', async (req, res) => {
 
 app.get('/api/system/health', async (req, res) => {
   try {
-    const health = await getSystemHealth();
+    const health = await Promise.race([
+      getSystemHealth(),
+      new Promise((resolve) => setTimeout(() => resolve({
+        system: 'openrange',
+        status: 'degraded',
+        detail: 'health timeout fallback',
+        checked_at: new Date().toISOString(),
+      }), 3000)),
+    ]);
     res.json(health);
   } catch (err) {
     logger.error('system health endpoint error', { error: err.message });
-    res.status(500).json({ system: 'openrange', status: 'error', error: err.message });
+    res.json({
+      system: 'openrange',
+      status: 'degraded',
+      error: err.message,
+      checked_at: new Date().toISOString(),
+    });
+  }
+});
+
+app.get('/api/system/report', async (req, res) => {
+  try {
+    const [metrics, setups, catalysts, universe, queue] = await Promise.all([
+      pool.query('SELECT COUNT(*)::int AS count FROM market_metrics'),
+      pool.query('SELECT COUNT(*)::int AS count FROM trade_setups'),
+      pool.query('SELECT COUNT(*)::int AS count FROM trade_catalysts'),
+      pool.query('SELECT COUNT(*)::int AS count FROM ticker_universe'),
+      pool.query('SELECT COUNT(*)::int AS count FROM symbol_queue'),
+    ]);
+
+    res.json({
+      status: 'ok',
+      metrics_rows: metrics.rows[0]?.count || 0,
+      setups_count: setups.rows[0]?.count || 0,
+      catalysts_count: catalysts.rows[0]?.count || 0,
+      ticker_universe_size: universe.rows[0]?.count || 0,
+      queue_size: queue.rows[0]?.count || 0,
+      checked_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    logger.error('system report endpoint error', { error: err.message });
+    res.status(500).json({ status: 'error', detail: err.message });
   }
 });
 
@@ -724,21 +762,23 @@ app.get('/api/catalysts', async (req, res) => {
 app.get('/api/scanner', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT d.symbol,
-              d.source,
-              d.score AS discovery_score,
+            `SELECT m.symbol,
               u.company_name,
               u.sector,
+              u.industry,
               m.price,
               m.gap_percent,
               m.relative_volume,
               m.atr,
-              m.float_rotation
-       FROM discovered_symbols d
-       JOIN market_metrics m
-         ON d.symbol = m.symbol
-       LEFT JOIN ticker_universe u
-         ON d.symbol = u.symbol
+              m.float_rotation,
+              s.setup,
+              s.grade,
+              s.score AS setup_score
+       FROM market_metrics m
+       JOIN ticker_universe u
+         ON m.symbol = u.symbol
+       JOIN trade_setups s
+         ON m.symbol = s.symbol
        WHERE m.relative_volume > 1.5
        ORDER BY m.relative_volume DESC
        LIMIT 50`

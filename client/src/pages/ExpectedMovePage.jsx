@@ -69,9 +69,9 @@ export default function ExpectedMovePage() {
   const { items: globalWatchlistItems } = useWatchlist();
   const quickSymbols = globalWatchlistItems.length > 0
     ? globalWatchlistItems.map(i => i.symbol)
-    : ['SPY', 'QQQ', 'AAPL', 'TSLA', 'NVDA', 'AMZN', 'META'];
-  const [ticker, setTicker] = useState(() => localStorage.getItem('emLastTicker') || 'AAPL');
-  const [input, setInput] = useState(() => localStorage.getItem('emLastTicker') || 'AAPL');
+    : [];
+  const [ticker, setTicker] = useState(() => localStorage.getItem('emLastTicker') || '');
+  const [input, setInput] = useState(() => localStorage.getItem('emLastTicker') || '');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -108,13 +108,17 @@ export default function ExpectedMovePage() {
 
   // Initial fetch + auto-refresh
   useEffect(() => {
-    fetchData(ticker);
+    if (ticker) {
+      fetchData(ticker);
+    }
     const startRefresh = () => {
       clearInterval(refreshRef.current);
       clearInterval(countdownRef.current);
       setCountdown(REFRESH_MS / 1000);
       refreshRef.current = setInterval(() => {
-        fetchData(ticker);
+        if (ticker) {
+          fetchData(ticker);
+        }
         setCountdown(REFRESH_MS / 1000);
       }, REFRESH_MS);
       countdownRef.current = setInterval(() => {

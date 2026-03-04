@@ -29,14 +29,26 @@ export default function ScannerSection({ title, icon, description, queryPreset =
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        limit: '120',
-        ...Object.fromEntries(Object.entries(queryPreset || {}).map(([k, v]) => [k, String(v)])),
-      });
-      const res = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
+      const res = await authFetch('/api/scanner');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const nextRows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      const rawRows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      const nextRows = rawRows.map((row) => ({
+        symbol: row?.symbol,
+        ticker: row?.symbol,
+        Ticker: row?.symbol,
+        name: row?.company_name || row?.name || row?.companyName || '',
+        companyName: row?.company_name || row?.name || row?.companyName || '',
+        Company: row?.company_name || row?.name || row?.companyName || '',
+        price: row?.price,
+        Price: row?.price,
+        changePercent: row?.gap_percent,
+        Change: row?.gap_percent,
+        volume: row?.relative_volume,
+        Volume: row?.relative_volume,
+        marketCap: row?.setup_score,
+        'Market Cap': row?.setup_score,
+      }));
       setRows(nextRows);
     } catch (e) {
       setError(e.message);

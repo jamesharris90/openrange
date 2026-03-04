@@ -47,7 +47,7 @@ router.get('/api/news', async (req, res) => {
 
     res.json(payload);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch news', detail: err.message });
+    res.json([]);
   }
 });
 
