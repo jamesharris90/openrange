@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { RefreshCcw, AlertCircle, Plus, Download, Trash2, Target } from 'lucide-react';
 import useWatchlist from '../hooks/useWatchlist';
+import { authFetch } from '../utils/api';
 
 // ── Utilities ────────────────────────────────────────
 function fmt(n, dec = 2) {
@@ -91,7 +92,7 @@ export default function ExpectedMovePage() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch(`/api/expected-move-enhanced?ticker=${encodeURIComponent(sym)}`);
+      const resp = await authFetch(`/api/expected-move-enhanced?ticker=${encodeURIComponent(sym)}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       setData(json);
@@ -127,7 +128,7 @@ export default function ExpectedMovePage() {
   // Fetch watchlist data
   const fetchWlTicker = useCallback(async (sym) => {
     try {
-      const resp = await fetch(`/api/expected-move-enhanced?ticker=${encodeURIComponent(sym)}`);
+      const resp = await authFetch(`/api/expected-move-enhanced?ticker=${encodeURIComponent(sym)}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       setWlData(prev => ({ ...prev, [sym]: json }));
@@ -250,11 +251,15 @@ export default function ExpectedMovePage() {
               )}
 
               <div className="em-move-section">
-                <div className="em-move-label">Expected Move ({options.expirationDate || 'nearest expiry'})</div>
+                <div className="em-move-label">
+                  Expected Move ({options.source === 'hv-derived' ? '30-day HV estimate' : options.expirationDate || 'nearest expiry'})
+                </div>
                 <div>
                   <span className="em-move-value">&plusmn;${fmt(data.expectedMove)}</span>
                   <span className="em-move-pct">&plusmn;{fmt(data.expectedMovePercent)}%</span>
-                  <span className="em-method-tag">{prob.method || 'ATM Straddle'}</span>
+                  <span className="em-method-tag" style={options.source === 'hv-derived' ? { color: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : {}}>
+                    {prob.method || 'ATM Straddle'}
+                  </span>
                 </div>
                 <div className="em-range-text">
                   Range: <strong>${fmt(data.rangeLow)}</strong> — <strong>${fmt(data.rangeHigh)}</strong>
@@ -268,8 +273,10 @@ export default function ExpectedMovePage() {
                   <div className="em-prob-badge"><span className="label">Breach Probability</span><span className="value clr-red">{fmt(prob.breach, 1)}%</span></div>
                 </div>
                 <div className="em-expiry-badge">
-                  {options.daysToExpiry || 0} day{(options.daysToExpiry || 0) !== 1 ? 's' : ''} to expiry
-                  {' · '}{options.callsCount || 0} calls · {options.putsCount || 0} puts
+                  {options.source === 'hv-derived'
+                    ? `30-day HV window · no options chain`
+                    : `${options.daysToExpiry || 0} day${(options.daysToExpiry || 0) !== 1 ? 's' : ''} to expiry · ${options.callsCount || 0} calls · ${options.putsCount || 0} puts`
+                  }
                   {data.beta != null && <> · &beta;={fmt(data.beta)}</>}
                 </div>
               </div>

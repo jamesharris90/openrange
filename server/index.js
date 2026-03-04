@@ -1,4 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+// Load from server/.env (works regardless of CWD at startup)
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+// Fallback: also try root .env in case server is started from project root
+if (!process.env.FMP_API_KEY) {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+}
 
 const express = require('express');
 const axios = require('axios');
@@ -6,7 +12,6 @@ const rateLimit = require('express-rate-limit');
 const csv = require('csvtojson');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
 const { withRetry } = require('./utils/retry');
@@ -865,6 +870,35 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
       atr14 = +(sum / 14).toFixed(2);
     }
 
+    // ── 4b. HV-derived fallback when options chain unavailable ───────
+    if (!optionsData && hvMetrics?.hvCurrent20 != null && price > 0) {
+      const hvIV = hvMetrics.hvCurrent20;
+      // Use 30 trading-day horizon (standard 1-month window)
+      const DTE = 30;
+      const hvMovePct = hvIV * Math.sqrt(DTE / 252);
+      const hvMoveDollar = +(price * hvMovePct).toFixed(2);
+      const hvMovePctRounded = +(hvMovePct * 100).toFixed(2);
+      optionsData = {
+        atmStrike: null,
+        daysToExpiry: DTE,
+        expirationDate: null,
+        atmCall: null,
+        atmPut: null,
+        straddleMid: null,
+        avgIV: hvIV,
+        ivExpectedMove: hvMoveDollar,
+        expectedMove: hvMoveDollar,
+        expectedMovePercent: hvMovePctRounded,
+        rangeHigh: +(price + hvMoveDollar).toFixed(2),
+        rangeLow: +(price - hvMoveDollar).toFixed(2),
+        callsCount: 0,
+        putsCount: 0,
+        earningsDate: null,
+        earningsInDays: null,
+        _source: 'hv-derived',
+      };
+    }
+
     // SPY expected move for beta-adjusted comparison
     let spyExpectedMovePercent = null;
     if (marketCtx?.technicals?.SPY) {
@@ -938,7 +972,7 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
       probability: {
         containment: +adjustedContainment.toFixed(1),
         breach: +(100 - adjustedContainment).toFixed(1),
-        method: optionsData?.straddleMid > 0 ? 'ATM Straddle' : 'IV-Derived',
+        method: optionsData?._source === 'hv-derived' ? 'HV-Derived' : optionsData?.straddleMid > 0 ? 'ATM Straddle' : 'IV-Derived',
       },
 
       // Options details
@@ -953,6 +987,7 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
         putsCount: optionsData.putsCount,
         earningsDate: optionsData.earningsDate,
         earningsInDays: optionsData.earningsInDays,
+        source: optionsData._source || 'iv-derived',
       } : null,
 
       // Earnings snapshot

@@ -470,6 +470,11 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* ─── Common Cards / Tables ──────────────────────────────── */
 .card {
   background: var(--bg-card);
@@ -646,94 +651,6 @@ tr:hover td {
 .tooltip,
 [role='tooltip'] {
   z-index: var(--z-tooltip);
-}
-
-.user-panel {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: var(--z-user-panel);
-  min-width: 220px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  background: var(--bg-card);
-  box-shadow: var(--shadow-md);
-  padding: 10px;
-}
-
-.user-panel--sidebar {
-  position: static;
-  right: auto;
-  bottom: auto;
-  min-width: 0;
-  width: 100%;
-  box-shadow: none;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-}
-
-.user-panel--compact {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-}
-
-.user-panel__avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(74, 158, 255, 0.16);
-  color: var(--accent-blue);
-  font-weight: 800;
-  text-decoration: none;
-  border: 1px solid rgba(74, 158, 255, 0.35);
-}
-
-.user-panel__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.user-panel__meta {
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.user-panel__actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.user-panel__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  text-decoration: none;
-  padding: 6px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.user-panel__btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
-
-.user-panel__btn--logout {
-  color: var(--accent-red);
 }
 
 .page-actions {
@@ -2587,6 +2504,13 @@ html:not(.dark) .news-scanner-page {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+}
+
+.aiq-chips-bar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
 }
 
 .aiq-main {

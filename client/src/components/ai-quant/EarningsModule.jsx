@@ -6,7 +6,7 @@ import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
 
-export default function EarningsModule({ onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist }) {
+export default function EarningsModule({ onSelectTicker, filters, selected, onToggleSelect, onDataReady, watchlist, strategyFilter }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,7 +20,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
     const today = new Date();
     const from = today.toISOString().split('T')[0];
     const toDate = new Date(today);
-    toDate.setDate(toDate.getDate() + 5);
+    toDate.setDate(toDate.getDate() + 14);
     const to = toDate.toISOString().split('T')[0];
 
     fetch(`/api/earnings/calendar?from=${from}&to=${to}`)
@@ -77,6 +77,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
               revenueActual: e.revenueActual ?? null,
               surprise: e.surprisePercent ?? null,
               beatsInLast4: e.beatsInLast4 ?? null,
+              rvol: e.rvol ?? tech?.rvol ?? null,
               expectedMovePercent,
               expectedMove: Number(opts?.impliedMoveDollar) || null,
               avgIV: Number(opts?.iv) || null,
@@ -104,14 +105,19 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
 
   const filtered = useMemo(() => applyGlobalFilters(data, filters), [data, filters]);
 
+  const strategyFiltered = useMemo(
+    () => strategyFilter ? filtered.filter(strategyFilter) : filtered,
+    [filtered, strategyFilter]
+  );
+
   const sorted = useMemo(() => {
-    const arr = [...filtered];
+    const arr = [...strategyFiltered];
     arr.sort((a, b) => {
       const av = a[sortKey] ?? -Infinity, bv = b[sortKey] ?? -Infinity;
       return sortAsc ? av - bv : bv - av;
     });
     return arr;
-  }, [filtered, sortKey, sortAsc]);
+  }, [strategyFiltered, sortKey, sortAsc]);
 
   const handleSort = (key) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -125,13 +131,23 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
   );
 
   if (loading) return <div className="aiq-module-loading">Scanning earnings candidates…</div>;
-  if (error) return <div className="aiq-module-error">Error: {error}</div>;
-  if (!data.length) return <div className="aiq-module-empty">No upcoming earnings found.</div>;
+  if (error) return (
+    <div className="aiq-module-error">
+      <div>Could not load earnings data.</div>
+      <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>{error}</div>
+    </div>
+  );
+  if (!data.length) return (
+    <div className="aiq-module-empty">
+      <div>No earnings events found for the next 14 days.</div>
+      <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Data requires FMP_API_KEY or a populated earnings_events database table.</div>
+    </div>
+  );
 
   return (
     <div className="aiq-module">
       <div className="aiq-module__bar">
-        <span className="aiq-module__universe">📅 Universe: Earnings Calendar · Next 5 Days · Options-Enriched</span>
+        <span className="aiq-module__universe">📅 Universe: Earnings Calendar · Next 14 Days · Options-Enriched</span>
         <span className="aiq-module__count">{sorted.length} / {data.length}</span>
       </div>
       <ExportButtons

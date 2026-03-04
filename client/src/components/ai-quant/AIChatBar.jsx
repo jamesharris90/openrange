@@ -49,7 +49,6 @@ export default function AIChatBar() {
     <div className={`aiq-chat ${expanded ? 'aiq-chat--expanded' : ''}`}>
       <div className="aiq-chat__header" onClick={() => setExpanded(!expanded)}>
         <MessageSquare size={15} />
-        <span>AI Chat</span>
         <span className="aiq-chat__toggle">{expanded ? '▼' : '▲'}</span>
       </div>
 

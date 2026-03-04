@@ -97,8 +97,18 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
   );
 
   if (loading) return <div className="aiq-module-loading">Scanning ORB candidates…</div>;
-  if (error) return <div className="aiq-module-error">Error: {error}</div>;
-  if (!data.length) return <div className="aiq-module-empty">No ORB candidates found. Markets may be closed.</div>;
+  if (error) return (
+    <div className="aiq-module-empty" style={{ flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>ORB scanner unavailable outside US market hours</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Gapper data requires a live intraday feed · Switch to <strong>Earnings Momentum</strong> for always-on data</div>
+    </div>
+  );
+  if (!data.length) return (
+    <div className="aiq-module-empty" style={{ flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No ORB candidates right now</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ORB finds gappers &gt;3% with RVOL &gt;1.2 · Best results 09:30–11:30 ET</div>
+    </div>
+  );
 
   return (
     <div className="aiq-module">

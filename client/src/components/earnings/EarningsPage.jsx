@@ -128,7 +128,7 @@ function isFilterActive(val) {
 }
 
 export default function EarningsPage() {
-  const { earnings, days, selectedDay, setSelectedDay, loading, error, prevWeek, nextWeek, thisWeek, timeZone, setTimeZone, todayKey } = useEarningsCalendar();
+  const { earnings, days, selectedDay, setSelectedDay, loading, error, apiError, prevWeek, nextWeek, thisWeek, todayKey } = useEarningsCalendar();
   const { add, remove, has } = useWatchlist();
   const [filters, setFilters] = useState(() => {
     try {
@@ -366,48 +366,55 @@ export default function EarningsPage() {
         todayKey={todayKey}
       />
 
-      <div className="earnings-page__tz-toggle">
-        <span className="earnings-page__tz-label">Time zone</span>
-        <div className="earnings-page__tz-buttons">
-          <button
-            className={`btn-secondary btn-sm${timeZone === 'America/New_York' ? ' btn-secondary--active' : ''}`}
-            onClick={() => setTimeZone('America/New_York')}
-          >
-            US / Eastern
-          </button>
-          <button
-            className={`btn-secondary btn-sm${timeZone === 'Europe/London' ? ' btn-secondary--active' : ''}`}
-            onClick={() => setTimeZone('Europe/London')}
-            style={{ marginLeft: 6 }}
-          >
-            UK / London
-          </button>
-        </div>
-      </div>
-
       <EarningsFilters filters={filters} onChange={setFilters} />
 
       {/* Toolbar */}
-      <div className="earnings-page__toolbar">
-        <span className="earnings-page__count">
-          {loading ? <Loader2 size={16} className="spin" /> : `${sorted.length} earnings`}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Left: count + bulk watchlist */}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)]">
+            {loading
+              ? <Loader2 size={14} className="spin" />
+              : <><span className="text-[var(--text-primary)]">{sorted.length}</span> earnings</>
+            }
+          </span>
           {selectedRows.size > 0 && (
-            <button className="btn-primary btn-sm" onClick={addSelectedToWatchlist} style={{ marginLeft: 8 }}>
-              <CheckSquare size={14} /> Add {selectedRows.size} to Watchlist
+            <button
+              onClick={addSelectedToWatchlist}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg bg-[var(--accent-blue)] text-white text-[11px] font-semibold hover:opacity-90 transition-opacity"
+            >
+              <CheckSquare size={12} /> Add {selectedRows.size} to Watchlist
             </button>
           )}
-        </span>
-        <div className="earnings-page__actions">
+        </div>
+
+        {/* Right: action buttons */}
+        <div className="flex items-center gap-1.5">
           {/* Density toggle */}
-          <button className="btn-icon-label" onClick={() => setCompact(c => !c)}
-            title={compact ? 'Comfortable view' : 'Compact view'}>
-            {compact ? <Plus size={14} /> : <Minus size={14} />}
+          <button
+            onClick={() => setCompact(c => !c)}
+            title={compact ? 'Switch to comfortable view' : 'Switch to compact view'}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-colors ${
+              compact
+                ? 'bg-[var(--accent-blue)]/10 border-[var(--accent-blue)] text-[var(--accent-blue)]'
+                : 'border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
+            }`}
+          >
+            {compact ? <Plus size={13} /> : <Minus size={13} />}
             {compact ? 'Comfortable' : 'Compact'}
           </button>
+
           {/* Column visibility */}
           <div className="col-menu-wrapper" ref={colMenuRef}>
-            <button className="btn-icon-label" onClick={() => setShowColMenu(v => !v)}>
-              <Columns3 size={14} /> Columns
+            <button
+              onClick={() => setShowColMenu(v => !v)}
+              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-colors ${
+                showColMenu
+                  ? 'bg-[var(--accent-blue)]/10 border-[var(--accent-blue)] text-[var(--accent-blue)]'
+                  : 'border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
+              }`}
+            >
+              <Columns3 size={13} /> Columns
             </button>
             {showColMenu && (
               <div className="col-menu">
@@ -421,21 +428,32 @@ export default function EarningsPage() {
               </div>
             )}
           </div>
-          <button className="btn-secondary btn-sm" onClick={exportCSV}>
-            <Download size={14} /> Export
+
+          {/* Export */}
+          <button
+            onClick={exportCSV}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
+          >
+            <Download size={13} /> Export
           </button>
         </div>
       </div>
 
-      {error && (
-        <div className="error-banner">Failed to load earnings data: {error}</div>
+      {(error || apiError) && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]">
+          <span className="font-semibold">⚠ Data unavailable:</span>
+          <span>{error || apiError}</span>
+          {apiError === 'FMP_API_KEY missing' && (
+            <span className="text-[var(--text-muted)]">— set FMP_API_KEY in your environment to enable live earnings data</span>
+          )}
+        </div>
       )}
 
       {/* Content: Table + Research Panel */}
       <div className="earnings-page__content">
         <div className={`earnings-page__table-wrap${selectedTicker ? ' earnings-page__table-wrap--narrow' : ''}`}>
           <div className={`table-wrapper es-table-wrapper overflow-x-auto${compact ? ' es-compact' : ''}`}>
-            <table className="data-table es-table min-w-[900px]">
+            <table className="data-table es-table w-full min-w-[900px]">
               <thead>
                 <tr>
                   {visibleSpecs.map(col => (
@@ -471,8 +489,11 @@ export default function EarningsPage() {
                     </tr>
                   ))
                 ) : sorted.length === 0 ? (
-                  <tr><td colSpan={visibleSpecs.length} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                    No earnings match your filters
+                  <tr><td colSpan={visibleSpecs.length} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                    {earnings.length === 0
+                      ? `No earnings events found for ${selectedDay ? selectedDay : 'this week'} — try navigating to a different week or deselecting the day filter`
+                      : 'No earnings match your filters — try adjusting or clearing the filters above'
+                    }
                   </td></tr>
                 ) : displayedRows.map(row => (
                   <tr key={`${row.symbol}-${row.date}`} className={rowClassName(row)}>

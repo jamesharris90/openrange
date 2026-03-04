@@ -10,6 +10,36 @@ const FMP_STABLE = 'https://financialmodelingprep.com/stable';
  * Batch-fetch FMP /stable/quote for up to 200 symbols at a time.
  * Returns a Map keyed by uppercase symbol.
  */
+/**
+ * Compute beatsInLast4 for a list of symbols using historical earnings_events data.
+ * Returns a Map<symbol, beatsInLast4_count>.
+ */
+async function fetchBeatsInLast4(symbols, beforeDate) {
+  if (!symbols.length) return new Map();
+  try {
+    const result = await pool.query(
+      `SELECT symbol, COUNT(*)::int FILTER (WHERE eps_actual > eps_estimate) AS beats
+       FROM (
+         SELECT symbol, eps_actual, eps_estimate,
+                ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY report_date DESC) AS rn
+         FROM earnings_events
+         WHERE symbol = ANY($1)
+           AND report_date < $2
+           AND eps_actual IS NOT NULL
+           AND eps_estimate IS NOT NULL
+       ) t
+       WHERE rn <= 4
+       GROUP BY symbol`,
+      [symbols, beforeDate],
+    );
+    const map = new Map();
+    for (const row of result.rows) map.set(row.symbol, row.beats);
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 async function fetchFmpQuoteMap(symbols) {
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey || !symbols.length) return new Map();
@@ -107,7 +137,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
 
     if (dbResult.rows.length > 0) {
       const symbols = [...new Set(dbResult.rows.map((r) => r.symbol))];
-      const quoteMap = await fetchFmpQuoteMap(symbols);
+      const [quoteMap, beatsMap] = await Promise.all([
+        fetchFmpQuoteMap(symbols),
+        fetchBeatsInLast4(symbols, from),
+      ]);
 
       const earnings = dbResult.rows.map((row) => {
         const q = quoteMap.get(row.symbol) || {};
@@ -148,6 +181,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
           analystRating:       null,
           sector:              row.sector || null,
           industry:            row.industry || null,
+          beatsInLast4:        beatsMap.get(row.symbol) ?? null,
         };
       });
 
@@ -169,7 +203,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
     }
     const fmpRows = Array.isArray(fmpRes.data) ? fmpRes.data : [];
     const fmpSymbols = [...new Set(fmpRows.map((r) => r.symbol).filter(Boolean))];
-    const fmpQuoteMap = fmpSymbols.length ? await fetchFmpQuoteMap(fmpSymbols) : new Map();
+    const [fmpQuoteMap, fmpBeatsMap] = fmpSymbols.length
+      ? await Promise.all([fetchFmpQuoteMap(fmpSymbols), fetchBeatsInLast4(fmpSymbols, from)])
+      : [new Map(), new Map()];
     const earnings = fmpRows.map((item) => {
       const q = fmpQuoteMap.get(String(item.symbol || '').toUpperCase()) || {};
       const price  = Number.isFinite(Number(q.price))      ? Number(q.price)      : null;
@@ -207,6 +243,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
         analystRating:       null,
         sector:              null,
         industry:            null,
+        beatsInLast4:        fmpBeatsMap.get(String(item.symbol || '').toUpperCase()) ?? null,
       };
     });
     return res.json({ earnings, from: from || null, to: to || null });

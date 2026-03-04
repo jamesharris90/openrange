@@ -21,6 +21,7 @@ export default function useEarningsCalendar() {
   const { data, loading, error } = useApi(`/api/earnings/calendar?from=${from}&to=${to}`);
 
   const earnings = data?.earnings || [];
+  const apiError = (!loading && data?.error) ? data.error : null;
 
   // Day counts for badges
   const dayCounts = useMemo(() => {
@@ -82,6 +83,7 @@ export default function useEarningsCalendar() {
     todayKey,
     loading,
     error,
+    apiError,
     prevWeek,
     nextWeek,
     thisWeek,

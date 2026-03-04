@@ -3,7 +3,7 @@ import { Settings, ChevronUp, ChevronDown, Eye, EyeOff, Plus } from 'lucide-reac
 
 const STORAGE_KEY = 'aiq-strategy-prefs';
 
-const SYSTEM_STRATEGIES = ['orb', 'earnings', 'continuation'];
+const SYSTEM_STRATEGIES = ['earnings', 'orb', 'continuation'];
 
 export function loadStrategyPrefs() {
   try {
