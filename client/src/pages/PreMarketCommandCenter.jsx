@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import OpportunityStream from '../components/opportunity/OpportunityStream';
 import { apiJSON } from '../config/api';
 
 function getSymbolMap(rows) {
@@ -214,6 +215,11 @@ export default function PreMarketCommandCenter() {
           </table>
         )}
       />
+
+      <Card>
+        <h3 className="m-0 mb-3">Opportunity Stream Preview</h3>
+        <OpportunityStream limit={8} compact />
+      </Card>
     </PageContainer>
   );
 }

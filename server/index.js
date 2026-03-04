@@ -62,6 +62,7 @@ const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
 const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
 const { startDiscoveryScheduler } = require('./discovery/discovery_scheduler');
+const { startOpportunityStreamScheduler } = require('./opportunity/stream_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
@@ -665,12 +666,13 @@ app.get('/api/system/health', async (req, res) => {
 
 app.get('/api/system/report', async (req, res) => {
   try {
-    const [metrics, setups, catalysts, universe, queue] = await Promise.all([
+    const [metrics, setups, catalysts, universe, queue, opportunityStream] = await Promise.all([
       pool.query('SELECT COUNT(*)::int AS count FROM market_metrics'),
       pool.query('SELECT COUNT(*)::int AS count FROM trade_setups'),
       pool.query('SELECT COUNT(*)::int AS count FROM trade_catalysts'),
       pool.query('SELECT COUNT(*)::int AS count FROM ticker_universe'),
       pool.query('SELECT COUNT(*)::int AS count FROM symbol_queue'),
+      pool.query('SELECT COUNT(*)::int AS count FROM opportunity_stream'),
     ]);
 
     res.json({
@@ -680,6 +682,7 @@ app.get('/api/system/report', async (req, res) => {
       catalysts_count: catalysts.rows[0]?.count || 0,
       ticker_universe_size: universe.rows[0]?.count || 0,
       queue_size: queue.rows[0]?.count || 0,
+      opportunity_stream_count: opportunityStream.rows[0]?.count || 0,
       checked_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -855,6 +858,27 @@ app.get('/api/scanner/status', async (req, res) => {
   }
   const ctx = await loadScannerContext();
   res.json({ available: ctx.available, message: ctx.available ? 'Scanner context loaded.' : 'Scanner context unavailable.' });
+});
+
+app.get('/api/opportunity-stream', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id,
+              symbol,
+              event_type,
+              headline,
+              score,
+              source,
+              created_at
+       FROM opportunity_stream
+       ORDER BY created_at DESC
+       LIMIT 50`
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('opportunity stream endpoint db error', { error: err.message });
+    res.json([]);
+  }
 });
 
 app.get('/api/sec-earnings-status', async (req, res) => {
@@ -2305,6 +2329,10 @@ if (process.env.ENABLE_CATALYST_SCHEDULER !== 'false') {
 
 if (process.env.ENABLE_DISCOVERY_SCHEDULER !== 'false') {
   startDiscoveryScheduler();
+}
+
+if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER !== 'false') {
+  startOpportunityStreamScheduler();
 }
 
 app.listen(PORT, () => {

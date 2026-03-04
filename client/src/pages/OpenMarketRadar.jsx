@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import OpportunityStream from '../components/opportunity/OpportunityStream';
 import { apiJSON } from '../config/api';
 
 function Panel({ title, loading, rows, emptyMessage, render }) {
@@ -77,7 +78,8 @@ export default function OpenMarketRadar() {
         />
       </Card>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
+        <div className="space-y-3">
         <Panel
           title="Momentum Leaders"
           loading={scanner.loading}
@@ -157,6 +159,12 @@ export default function OpenMarketRadar() {
             </table>
           )}
         />
+        </div>
+
+        <Card>
+          <h3 className="m-0 mb-3">Opportunity Stream</h3>
+          <OpportunityStream />
+        </Card>
       </div>
     </PageContainer>
   );
