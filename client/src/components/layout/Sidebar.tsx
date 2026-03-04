@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Bot, Calendar, Clock3, Globe2, LayoutGrid, LineChart, Mail, Moon, Newspaper, Search, Sunrise, Target, TrendingUp } from 'lucide-react';
+import { Activity, BarChart2, Moon, Search, Sunrise } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -16,33 +16,19 @@ type NavGroup = {
 
 const navGroups: NavGroup[] = [
   {
-    label: 'Main',
+    label: 'Command Centers',
     items: [
-      { to: '/dashboard',         label: 'Dashboard',         icon: BarChart2 },
-      { to: '/screeners',         label: 'Screeners',         icon: LayoutGrid },
-      { to: '/watchlists',        label: 'Watchlist',         icon: TrendingUp },
+      { to: '/pre-market-command', label: 'Pre-Market Command', icon: Sunrise },
+      { to: '/open-market-radar',  label: 'Open Market Radar',  icon: Activity },
+      { to: '/post-market-review', label: 'Post-Market Review', icon: Moon },
     ],
   },
   {
-    label: 'Market Sessions',
+    label: 'Workflows',
     items: [
-      { to: '/pre-market',        label: 'Pre-Market',        icon: Sunrise },
-      { to: '/open-market',       label: 'Open Market',       icon: Activity },
-      { to: '/post-market',       label: 'Post-Market',       icon: Moon },
-    ],
-  },
-  {
-    label: 'Tools',
-    items: [
-      { to: '/market-overview',   label: 'Market Overview',   icon: Globe2 },
-      { to: '/market-hours',      label: 'Market Hours',      icon: Clock3 },
-      { to: '/news-scanner',      label: 'News Scanner',      icon: Newspaper },
-      { to: '/advanced-screener', label: 'Advanced Screener', icon: Target },
+      { to: '/dashboard',         label: 'Dashboard',          icon: BarChart2 },
+      { to: '/screeners',         label: 'Scanner',            icon: BarChart2 },
       { to: '/research',          label: 'Research',          icon: Search },
-      { to: '/expected-move',     label: 'Expected Move',     icon: LineChart },
-      { to: '/earnings',          label: 'Earnings Calendar', icon: Calendar },
-      { to: '/intelligence-engine', label: 'Intelligence',    icon: Bot },
-      { to: '/intelligence-inbox',  label: 'Intel Inbox',     icon: Mail },
     ],
   },
 ];

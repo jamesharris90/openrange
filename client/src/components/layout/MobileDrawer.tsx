@@ -3,24 +3,12 @@ import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 
 const mobileItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/screeners', label: 'Screeners' },
-  { to: '/watchlists', label: 'Watchlists' },
-  { to: '/pre-market', label: 'Pre-Market' },
-  { to: '/open-market', label: 'Open Market' },
-  { to: '/post-market', label: 'Post-Market' },
-  { to: '/market-overview', label: 'Market Overview' },
-  { to: '/market-hours', label: 'Market Hours' },
-  { to: '/screener-v2', label: 'Screener V2' },
-  { to: '/screener-v3', label: 'Screener V3' },
-  { to: '/advanced-screener', label: 'Advanced Screener' },
-  { to: '/news-scanner', label: 'News Scanner' },
-  { to: '/news-v2', label: 'News Feed V2' },
-  { to: '/earnings', label: 'Earnings' },
+  { to: '/pre-market-command', label: 'Pre-Market Command' },
+  { to: '/open-market-radar', label: 'Open Market Radar' },
+  { to: '/post-market-review', label: 'Post-Market Review' },
+  { to: '/screeners', label: 'Scanner' },
   { to: '/research', label: 'Research' },
-  { to: '/charts', label: 'Charts' },
-  { to: '/live', label: 'Cockpit' },
-  { to: '/intelligence-engine', label: 'Intelligence Engine' },
+  { to: '/dashboard', label: 'Dashboard' },
 ];
 
 export default function MobileDrawer() {

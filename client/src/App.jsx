@@ -14,7 +14,7 @@ const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const WatchlistPage = lazy(() => import('./components/watchlist/WatchlistPage'));
 const EarningsPage = lazy(() => import('./components/earnings/EarningsPage'));
-const PreMarketPage = lazy(() => import('./pages/PreMarketPage'));
+const PreMarketCommandCenter = lazy(() => import('./pages/PreMarketCommandCenter'));
 const NewsScannerV2 = lazy(() => import('./pages/NewsScannerV2'));
 const AdvancedScreenerPage = lazy(() => import('./pages/AdvancedScreenerPage'));
 const ScreenerV2 = lazy(() => import('./pages/ScreenerV2'));
@@ -24,13 +24,11 @@ const ScreenersPage = lazy(() => import('./pages/ScreenersPage'));
 const MarketOverviewPage = lazy(() => import('./pages/MarketOverviewPage'));
 const MarketHoursPage = lazy(() => import('./pages/MarketHoursPage'));
 const ResearchPage = lazy(() => import('./pages/ResearchPage'));
-const OpenMarketPage = lazy(() => import('./pages/OpenMarketPage'));
-const PostMarketPage = lazy(() => import('./pages/PostMarketPage'));
+const OpenMarketRadar = lazy(() => import('./pages/OpenMarketRadar'));
+const PostMarketReview = lazy(() => import('./pages/PostMarketReview'));
 const Charts = lazy(() => import('./pages/Charts'));
-const AIQuantPage = lazy(() => import('./components/ai-quant/AIQuantPage'));
 const LiveCockpit = lazy(() => import('./pages/LiveCockpit'));
 const IntelligencePage = lazy(() => import('./pages/IntelligencePage'));
-const ExpectedMovePage = lazy(() => import('./pages/ExpectedMovePage'));
 const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
 
 export default function App() {
@@ -51,9 +49,12 @@ export default function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/screeners" element={<ScreenersPage />} />
                   <Route path="/watchlists" element={<WatchlistPage />} />
-                  <Route path="/pre-market" element={<PreMarketPage />} />
-                  <Route path="/open-market" element={<OpenMarketPage />} />
-                  <Route path="/post-market" element={<PostMarketPage />} />
+                  <Route path="/pre-market-command" element={<PreMarketCommandCenter />} />
+                  <Route path="/open-market-radar" element={<OpenMarketRadar />} />
+                  <Route path="/post-market-review" element={<PostMarketReview />} />
+                  <Route path="/pre-market" element={<Navigate to="/pre-market-command" replace />} />
+                  <Route path="/open-market" element={<Navigate to="/open-market-radar" replace />} />
+                  <Route path="/post-market" element={<Navigate to="/post-market-review" replace />} />
                   <Route path="/market-overview" element={<MarketOverviewPage />} />
                   <Route path="/market-hours" element={<MarketHoursPage />} />
                   <Route path="/screener-v2" element={<ScreenerV2 />} />
@@ -66,11 +67,11 @@ export default function App() {
                   <Route path="/research" element={<ResearchPage />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/live" element={<LiveCockpit />} />
-                  <Route path="/intelligence" element={<AIQuantPage />} />
-                  <Route path="/intelligence-engine" element={<AIQuantPage />} />
+                  <Route path="/intelligence" element={<Navigate to="/open-market-radar" replace />} />
+                  <Route path="/intelligence-engine" element={<Navigate to="/open-market-radar" replace />} />
                   <Route path="/intelligence-inbox" element={<IntelligencePage />} />
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
-                  <Route path="/expected-move" element={<ExpectedMovePage />} />
+                  <Route path="/expected-move" element={<Navigate to="/post-market-review" replace />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
