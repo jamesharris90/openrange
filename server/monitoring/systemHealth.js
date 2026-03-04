@@ -2,13 +2,15 @@ const { getMetricsHealth } = require('./metricsHealth');
 const { getIngestionHealth } = require('./ingestionHealth');
 const { getUniverseHealth } = require('./universeHealth');
 const { getQueueHealth } = require('./queueHealth');
+const { getSetupHealth } = require('./setupHealth');
 
 async function getSystemHealth() {
-  const [metrics, ingestion, universe, queue] = await Promise.all([
+  const [metrics, ingestion, universe, queue, setups] = await Promise.all([
     getMetricsHealth(),
     getIngestionHealth(),
     getUniverseHealth(),
     getQueueHealth(),
+    getSetupHealth(),
   ]);
 
   return {
@@ -18,8 +20,10 @@ async function getSystemHealth() {
     ingestion,
     universe,
     queue,
+    setups,
     universe_count: universe.total_symbols,
     queue_size: queue.queue_size,
+    setup_count: setups.setup_count,
     checked_at: new Date().toISOString(),
   };
 }

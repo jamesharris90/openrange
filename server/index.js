@@ -59,11 +59,13 @@ const testNewsDbRoute = require('./routes/testNewsDb');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
+const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
 const { getUniverseHealth } = require('./monitoring/universeHealth');
 const { getQueueHealth } = require('./monitoring/queueHealth');
+const { getSetupHealth } = require('./monitoring/setupHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
@@ -620,6 +622,37 @@ app.get('/api/system/health', async (req, res) => {
   } catch (err) {
     logger.error('system health endpoint error', { error: err.message });
     res.status(500).json({ system: 'openrange', status: 'error', error: err.message });
+  }
+});
+
+app.get('/api/setups', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT *
+       FROM trade_setups
+       ORDER BY score DESC NULLS LAST
+       LIMIT 50`
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('setups endpoint db error', { error: err.message });
+    res.json([]);
+  }
+});
+
+app.get('/api/setups/types', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT setup,
+              COUNT(*)::int AS count
+       FROM trade_setups
+       GROUP BY setup
+       ORDER BY count DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('setups types endpoint db error', { error: err.message });
+    res.json([]);
   }
 });
 
@@ -2149,17 +2182,22 @@ if (process.env.ENABLE_METRICS_SCHEDULER !== 'false') {
   startMetricsScheduler();
 }
 
+if (process.env.ENABLE_STRATEGY_SCHEDULER !== 'false') {
+  startStrategyScheduler();
+}
+
 app.listen(PORT, () => {
   logger.info(`OpenRange server listening on port ${PORT}`);
   console.log('[Intelligence] Ingestion endpoint ready');
 
   (async () => {
     try {
-      const [metricsHealth, ingestionHealth, universeHealth, queueHealth] = await Promise.all([
+      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),
         getUniverseHealth(),
         getQueueHealth(),
+        getSetupHealth(),
       ]);
 
       logger.info('OpenRange System Status', {
@@ -2168,6 +2206,7 @@ app.listen(PORT, () => {
         ingestionRows: ingestionHealth.tables,
         universeCount: universeHealth.total_symbols,
         queueSize: queueHealth.queue_size,
+        setupCount: setupHealth.setup_count,
       });
     } catch (err) {
       logger.error('OpenRange System Status failed', { error: err.message });
