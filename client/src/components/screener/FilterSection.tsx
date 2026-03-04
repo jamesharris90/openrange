@@ -1,9 +1,44 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AdvancedFilterTabs from './AdvancedFilterTabs';
 import FilterField from './FilterField';
 import { adaptiveFilterSchema, filterSchema, filterTabs } from './filterSchema';
 import { useAdvancedFilterStore } from '../../store/advancedFilterStore';
 import { useShallow } from 'zustand/react/shallow';
+import { apiJSON } from '../../config/api';
+
+const FILTER_REGISTRY_KEY_BY_FIELD: Record<string, string> = {
+  price: 'price',
+  marketCap: 'market_cap',
+  gapPercent: 'gap_percent',
+  relativeVolume: 'relative_volume',
+  atr: 'atr',
+  atrPercent: 'atr',
+  rsi14: 'rsi',
+  sharesFloat: 'float',
+  floatShares: 'float',
+  sector: 'sector',
+  country: 'country',
+  vwapDistance: 'vwap',
+  structureType: 'structure',
+  minGrade: 'min_grade',
+  adaptToSpy: 'spy_alignment',
+};
+
+const DEFAULT_FILTER_REGISTRY = [
+  'price',
+  'market_cap',
+  'gap_percent',
+  'relative_volume',
+  'atr',
+  'rsi',
+  'float',
+  'sector',
+  'country',
+  'vwap',
+  'structure',
+  'min_grade',
+  'spy_alignment',
+];
 
 function getActiveFilterCount(values: Record<string, unknown>) {
   return Object.values(values).reduce<number>((count, value) => {
@@ -27,6 +62,7 @@ type FilterSectionProps = {
 
 export default function FilterSection({ onApply, onReset }: FilterSectionProps) {
   const [filterMode, setFilterMode] = useState<'standard' | 'adaptive'>('standard');
+  const [registryFilters, setRegistryFilters] = useState<string[]>(DEFAULT_FILTER_REGISTRY);
 
   const {
     activeTab,
@@ -62,7 +98,39 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
   const activeCount = useMemo(() => getActiveFilterCount(filterValues), [filterValues]);
 
+  useEffect(() => {
+    let canceled = false;
+
+    async function loadFilterRegistry() {
+      try {
+        const payload = await apiJSON('/api/filters');
+        const list = Array.isArray(payload?.filters) ? payload.filters : [];
+        if (!canceled && list.length) {
+          setRegistryFilters(list);
+        }
+      } catch {
+      }
+    }
+
+    loadFilterRegistry();
+
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
   const fields = filterMode === 'adaptive' ? adaptiveFilterSchema : (filterSchema[activeTab] || []);
+
+  const registrySet = useMemo(() => new Set(registryFilters), [registryFilters]);
+
+  const visibleFields = useMemo(() => {
+    const filtered = fields.filter((field) => {
+      const registryKey = FILTER_REGISTRY_KEY_BY_FIELD[field.key];
+      return registryKey ? registrySet.has(registryKey) : false;
+    });
+
+    return filtered.length ? filtered : fields;
+  }, [fields, registrySet]);
 
   const handleSavePreset = () => {
     const name = window.prompt('Preset name');
@@ -162,7 +230,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
           )}
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {fields.map((field) => (
+            {visibleFields.map((field) => (
               <FilterField
                 key={field.key}
                 field={field}

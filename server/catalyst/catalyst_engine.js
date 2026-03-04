@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { pool } = require('../db/pg');
 const logger = require('../logger');
+const { getScoringRules } = require('../config/intelligenceConfig');
 
 const BATCH_SIZE = 500;
 const RECENT_WINDOW_HOURS = 24;
@@ -49,22 +50,27 @@ function classifySentiment(text) {
   return 'neutral';
 }
 
-function classifyCatalyst(text) {
+function classifyCatalyst(text, catalystScores) {
   const lower = String(text || '').toLowerCase();
 
+  const fdaScore = Number(catalystScores.fda || 6);
+  const earningsScore = Number(catalystScores.earnings || 5);
+  const analystScore = Number(catalystScores.analyst_upgrade || 4);
+  const generalScore = Number(catalystScores.general_news || 2);
+
   if (/(fda|approval|approved|clearance)/i.test(lower)) {
-    return { catalyst_type: 'FDA / approvals', score: 6 };
+    return { catalyst_type: 'FDA / approvals', score: fdaScore };
   }
 
   if (/(earnings|eps|revenue|guidance|beat|miss)/i.test(lower)) {
-    return { catalyst_type: 'earnings', score: 5 };
+    return { catalyst_type: 'earnings', score: earningsScore };
   }
 
   if (/(analyst|upgrade|downgrade)/i.test(lower)) {
-    return { catalyst_type: 'analyst upgrade', score: 4 };
+    return { catalyst_type: 'analyst upgrade', score: analystScore };
   }
 
-  return { catalyst_type: 'general news', score: 2 };
+  return { catalyst_type: 'general news', score: generalScore };
 }
 
 async function getUniverseSet() {
@@ -94,7 +100,7 @@ async function getRecentNewsRows() {
   return rows;
 }
 
-function buildCatalysts(newsRows, universeSet) {
+function buildCatalysts(newsRows, universeSet, catalystScores) {
   const catalystRows = [];
 
   for (const row of newsRows) {
@@ -108,7 +114,7 @@ function buildCatalysts(newsRows, universeSet) {
     if (!symbols.length || !headline || !row.published_at) continue;
 
     const sentiment = classifySentiment(combined);
-    const { catalyst_type, score } = classifyCatalyst(combined);
+    const { catalyst_type, score } = classifyCatalyst(combined, catalystScores);
 
     for (const symbol of symbols) {
       catalystRows.push({
@@ -181,7 +187,9 @@ async function runCatalystEngine() {
       getUniverseSet(),
     ]);
 
-    const catalystRows = buildCatalysts(newsRows, universeSet);
+    const catalystScores = getScoringRules()?.catalyst_scores || {};
+
+    const catalystRows = buildCatalysts(newsRows, universeSet, catalystScores);
 
     let inserted = 0;
     for (let index = 0; index < catalystRows.length; index += BATCH_SIZE) {

@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { authFetch } from '../utils/api';
+import { useFilterRegistry } from '../hooks/useFilterRegistry';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -69,6 +70,21 @@ const FILTER_DEFS = [
 ];
 
 const FILTER_MAP = Object.fromEntries(FILTER_DEFS.map(f => [f.id, f]));
+
+const FILTER_REGISTRY_KEY_MAP = {
+  price: 'price',
+  marketCap: 'market_cap',
+  float: 'float',
+  gapPercent: 'gap_percent',
+  relVol: 'relative_volume',
+  atrPercent: 'atr',
+  rsi14: 'rsi',
+  structures: 'structure',
+  minGrade: 'min_grade',
+  adaptSpy: 'spy_alignment',
+  sector: 'sector',
+  country: 'country',
+};
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -430,6 +446,7 @@ function FilterPanel({
   savedPresets, onSavePreset, onLoadPreset, onDeletePreset,
   width,
   onResizeStart,
+  filterDefs,
 }) {
   const [activeSection, setActiveSection] = useState('All');
   const [search, setSearch]               = useState('');
@@ -451,18 +468,18 @@ function FilterPanel({
   const sectionCounts = useMemo(() => {
     const c = {};
     SECTIONS.slice(1).forEach(sec => {
-      c[sec] = FILTER_DEFS.filter(f => f.section === sec && activeFilterIds.includes(f.id)).length;
+      c[sec] = filterDefs.filter(f => f.section === sec && activeFilterIds.includes(f.id)).length;
     });
     return c;
-  }, [activeFilterIds]);
+  }, [activeFilterIds, filterDefs]);
 
   // Available filters (not added, matching section + search)
-  const available = useMemo(() => FILTER_DEFS.filter(f => {
+  const available = useMemo(() => filterDefs.filter(f => {
     const inSec   = activeSection === 'All' || f.section === activeSection;
     const notAdded = !activeFilterIds.includes(f.id);
     const matches  = !search || f.label.toLowerCase().includes(search.toLowerCase());
     return inSec && notAdded && matches;
-  }), [activeSection, activeFilterIds, search]);
+  }), [activeSection, activeFilterIds, search, filterDefs]);
 
   const addFilter   = id  => !activeFilterIds.includes(id) && onFilterIdsChange([...activeFilterIds, id]);
   const removeFilter = id => {
@@ -1067,6 +1084,7 @@ function getInit() {
 
 export default function ScreenerV3() {
   const init = getInit();
+  const { filterSet } = useFilterRegistry();
 
   const [activeFilterIds, setActiveFilterIds] = useState(init.activeFilterIds);
   const [filterValues,    setFilterValues]    = useState(init.filterValues);
@@ -1095,6 +1113,20 @@ export default function ScreenerV3() {
   const payloadLoggedRef = useRef(false);
   const bodyRef = useRef(null);
   const resizingRef = useRef(false);
+
+  const enabledFilterDefs = useMemo(() => {
+    const filtered = FILTER_DEFS.filter((def) => {
+      const registryKey = FILTER_REGISTRY_KEY_MAP[def.id];
+      return registryKey ? filterSet.has(registryKey) : false;
+    });
+
+    return filtered.length ? filtered : FILTER_DEFS;
+  }, [filterSet]);
+
+  useEffect(() => {
+    const enabled = new Set(enabledFilterDefs.map((def) => def.id));
+    setActiveFilterIds((prev) => prev.filter((id) => enabled.has(id)));
+  }, [enabledFilterDefs]);
 
   // Build fetch URL from current state
   const buildPagedUrl = useCallback((requestLimit, requestOffset) => {
@@ -1512,6 +1544,7 @@ export default function ScreenerV3() {
 
         {/* Left: filter panel */}
         <FilterPanel
+          filterDefs={enabledFilterDefs}
           activeFilterIds={activeFilterIds}
           filterValues={filterValues}
           onFilterIdsChange={ids => { setActiveFilterIds(ids); setPage(0); }}

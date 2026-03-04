@@ -30,6 +30,7 @@ const AIQuantPage = lazy(() => import('./components/ai-quant/AIQuantPage'));
 const LiveCockpit = lazy(() => import('./pages/LiveCockpit'));
 const IntelligencePage = lazy(() => import('./pages/IntelligencePage'));
 const ExpectedMovePage = lazy(() => import('./pages/ExpectedMovePage'));
+const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
 
 export default function App() {
   const Dashboard = WatchlistPage;
@@ -69,6 +70,7 @@ export default function App() {
                   <Route path="/intelligence" element={<AIQuantPage />} />
                   <Route path="/intelligence-engine" element={<AIQuantPage />} />
                   <Route path="/intelligence-inbox" element={<IntelligencePage />} />
+                  <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
                   <Route path="/expected-move" element={<ExpectedMovePage />} />
                 </Route>
 

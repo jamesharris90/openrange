@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { pool } = require('../db/pg');
 const logger = require('../logger');
+const { getScoringRules } = require('../config/intelligenceConfig');
 
 const BATCH_SIZE = 500;
 
@@ -16,7 +17,12 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function classifySetup(metric) {
+function classifySetup(metric, rules) {
+  const gapGo = rules?.strategy?.gap_go || {};
+  const momentum = rules?.strategy?.momentum_continuation || {};
+  const vwapReclaim = rules?.strategy?.vwap_reclaim || {};
+  const grading = rules?.grading || {};
+
   const gapPercent = toNumber(metric.gap_percent);
   const relativeVolume = toNumber(metric.relative_volume);
   const floatRotation = toNumber(metric.float_rotation);
@@ -25,11 +31,21 @@ function classifySetup(metric) {
 
   let setup = null;
 
-  if (gapPercent > 3 && relativeVolume > 2 && floatRotation > 0.05) {
+  if (
+    gapPercent > toNumber(gapGo.gap_percent || 3)
+    && relativeVolume > toNumber(gapGo.relative_volume || 2)
+    && floatRotation > toNumber(gapGo.float_rotation || 0.05)
+  ) {
     setup = 'Gap & Go';
-  } else if (relativeVolume > 3 && gapPercent > 2) {
+  } else if (
+    relativeVolume > toNumber(momentum.relative_volume || 3)
+    && gapPercent > toNumber(momentum.gap_percent || 2)
+  ) {
     setup = 'Momentum Continuation';
-  } else if (relativeVolume > 1.5 && price > vwap) {
+  } else if (
+    relativeVolume > toNumber(vwapReclaim.relative_volume || 1.5)
+    && price > vwap
+  ) {
     setup = 'VWAP Reclaim';
   }
 
@@ -38,9 +54,9 @@ function classifySetup(metric) {
   const score = (relativeVolume * 2) + gapPercent + (floatRotation * 10);
 
   let grade = 'C';
-  if (score > 15) grade = 'A';
-  else if (score > 10) grade = 'B';
-  else if (score > 6) grade = 'C';
+  if (score > toNumber(grading.A || 15)) grade = 'A';
+  else if (score > toNumber(grading.B || 10)) grade = 'B';
+  else if (score > toNumber(grading.C || 6)) grade = 'C';
   else return null;
 
   return {
@@ -126,6 +142,7 @@ async function upsertSetups(rows) {
 async function runStrategyEngine() {
   const startedAt = Date.now();
   await ensureStrategyTable();
+  const scoringRules = getScoringRules();
 
   const metrics = await getMetricSymbols();
   let processedSymbols = 0;
@@ -133,7 +150,7 @@ async function runStrategyEngine() {
 
   for (let index = 0; index < metrics.length; index += BATCH_SIZE) {
     const batch = metrics.slice(index, index + BATCH_SIZE);
-    const setups = batch.map(classifySetup).filter(Boolean);
+    const setups = batch.map((metric) => classifySetup(metric, scoringRules)).filter(Boolean);
 
     processedSymbols += batch.length;
 

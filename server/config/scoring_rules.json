@@ -1,0 +1,27 @@
+{
+  "strategy": {
+    "gap_go": {
+      "gap_percent": 3,
+      "relative_volume": 2,
+      "float_rotation": 0.05
+    },
+    "vwap_reclaim": {
+      "relative_volume": 1.5
+    },
+    "momentum_continuation": {
+      "relative_volume": 3,
+      "gap_percent": 2
+    }
+  },
+  "grading": {
+    "A": 15,
+    "B": 10,
+    "C": 6
+  },
+  "catalyst_scores": {
+    "earnings": 5,
+    "fda": 6,
+    "analyst_upgrade": 4,
+    "general_news": 2
+  }
+}

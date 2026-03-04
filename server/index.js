@@ -69,6 +69,7 @@ const { getQueueHealth } = require('./monitoring/queueHealth');
 const { getSetupHealth } = require('./monitoring/setupHealth');
 const { getCatalystHealth } = require('./monitoring/catalystHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
+const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
 
@@ -575,6 +576,26 @@ app.get('/api/config', (req, res) => {
     finnhubEnabled: !!process.env.FINNHUB_API_KEY,
     pplxEnabled: !!PPLX_API_KEY
   });
+});
+
+app.get('/api/filters', (req, res) => {
+  try {
+    const registry = getFilterRegistry();
+    res.json(registry);
+  } catch (err) {
+    logger.error('filters registry endpoint error', { error: err.message });
+    res.json({ filters: [] });
+  }
+});
+
+app.get('/api/scoring-rules', (req, res) => {
+  try {
+    const rules = getScoringRules();
+    res.json(rules);
+  } catch (err) {
+    logger.error('scoring rules endpoint error', { error: err.message });
+    res.json({ strategy: {}, grading: {}, catalyst_scores: {} });
+  }
 });
 
 app.get('/api/metrics/health', async (req, res) => {

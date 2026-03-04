@@ -1,0 +1,17 @@
+{
+  "filters": [
+    "price",
+    "market_cap",
+    "gap_percent",
+    "relative_volume",
+    "atr",
+    "rsi",
+    "float",
+    "sector",
+    "country",
+    "vwap",
+    "structure",
+    "min_grade",
+    "spy_alignment"
+  ]
+}
