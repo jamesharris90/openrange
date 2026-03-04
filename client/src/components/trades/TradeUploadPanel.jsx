@@ -213,7 +213,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
                 className="upload-textarea"
                 value={pasteText}
                 onChange={e => setPasteText(e.target.value)}
-                placeholder={"Paste Saxo execution log, CSV data, or trade text here...\n\nExample formats:\n• Saxo: Position 123: Share trade executed to Buy 2 FSLY:xnas @ 16.92, cost 0.03...\n• CSV: ticker,side,qty,entry,exit,pnl\\nAAPL,long,10,150.00,155.00,50.00"}
+                placeholder={"Paste Saxo execution log, CSV data, or trade text here...\n\nExample formats:\n• Saxo: Position 123: Share trade executed to Buy 2 FSLY:xnas @ 16.92, cost 0.03...\n• CSV: ticker,side,qty,entry,exit,pnl\\nAMD,long,10,150.00,155.00,50.00"}
                 rows={10}
                 disabled={uploading}
               />

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export const ChartContext = createContext({
-  ticker: 'AAPL',
+  ticker: '',
   timeframe: '5min',
   chartRef: { current: null },
   candleSeriesRef: { current: null },

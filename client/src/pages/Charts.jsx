@@ -6,7 +6,7 @@ import { getProfileForTimeframe, normalizeTimeframe } from '../components/chartE
 import { useSymbolData } from '../context/symbol/useSymbolData';
 import { authFetch } from '../utils/api';
 
-const DEFAULT_WATCHLIST = ['NVDA', 'AAPL', 'MSFT', 'TSLA', 'SPY', 'QQQ', 'AMD', 'AMZN'];
+const DEFAULT_WATCHLIST = ['SPY', 'QQQ', 'AMD', 'AMZN'];
 const TIMEFRAME_BUTTONS = [
   { value: '1m', label: '1m' },
   { value: '3m', label: '3m' },
@@ -65,7 +65,7 @@ export default function Charts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, setSymbol, setTimeframe } = useSymbolData();
 
-  const initialSymbol = String(searchParams.get('symbol') || 'NVDA').toUpperCase();
+  const initialSymbol = String(searchParams.get('symbol') || 'SPY').toUpperCase();
   const initialTimeframe = normalizeTimeframe(String(searchParams.get('timeframe') || '5m'));
 
   const [symbolInput, setSymbolInput] = useState(state.symbol || initialSymbol);

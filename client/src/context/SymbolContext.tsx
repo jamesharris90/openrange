@@ -8,7 +8,7 @@ type SymbolContextType = {
 const SymbolContext = createContext<SymbolContextType | null>(null);
 
 export function SymbolProvider({ children }: { children: React.ReactNode }) {
-  const [symbol, setSymbol] = useState('AAPL');
+  const [symbol, setSymbol] = useState('');
 
   return (
     <SymbolContext.Provider value={{ symbol, setSymbol }}>

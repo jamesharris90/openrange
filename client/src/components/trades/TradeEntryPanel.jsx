@@ -67,7 +67,7 @@ export default function TradeEntryPanel({ onSaved, onClose }) {
           <div className="trade-entry-row">
             <div className="profile-field">
               <label className="profile-label">Symbol</label>
-              <input className="profile-input" value={form.symbol} onChange={e => update('symbol', e.target.value)} placeholder="AAPL" />
+              <input className="profile-input" value={form.symbol} onChange={e => update('symbol', e.target.value)} placeholder="Ticker" />
             </div>
             <div className="profile-field">
               <label className="profile-label">Side</label>

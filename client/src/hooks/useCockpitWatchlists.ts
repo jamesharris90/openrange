@@ -109,11 +109,11 @@ export function useCockpitWatchlists(options?: UseCockpitWatchlistsOptions) {
   const [staticSymbols, setStaticSymbols] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(STATIC_STORAGE_KEY);
-      if (!raw) return ['AAPL', 'NVDA', 'TSLA'];
+      if (!raw) return [];
       const parsed = JSON.parse(raw);
       return dedupeSymbols(Array.isArray(parsed) ? parsed : []).slice(0, STATIC_MAX);
     } catch {
-      return ['AAPL', 'NVDA', 'TSLA'];
+      return [];
     }
   });
 

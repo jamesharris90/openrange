@@ -4,7 +4,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import { FilterGroup, InputField } from '../components/shared/filters/FilterPrimitives';
 import Card from '../components/shared/Card';
 
-const QUICK_TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'AMZN', 'TSLA', 'META'];
+const QUICK_TICKERS = ['SPY', 'QQQ', 'AMD', 'AMZN', 'META'];
 
 export default function ResearchPage() {
   const [symbol, setSymbol] = useState('SPY');

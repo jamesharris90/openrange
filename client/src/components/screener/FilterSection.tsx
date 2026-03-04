@@ -24,21 +24,7 @@ const FILTER_REGISTRY_KEY_BY_FIELD: Record<string, string> = {
   adaptToSpy: 'spy_alignment',
 };
 
-const DEFAULT_FILTER_REGISTRY = [
-  'price',
-  'market_cap',
-  'gap_percent',
-  'relative_volume',
-  'atr',
-  'rsi',
-  'float',
-  'sector',
-  'country',
-  'vwap',
-  'structure',
-  'min_grade',
-  'spy_alignment',
-];
+const DEFAULT_FILTER_REGISTRY: string[] = [];
 
 function getActiveFilterCount(values: Record<string, unknown>) {
   return Object.values(values).reduce<number>((count, value) => {
@@ -124,12 +110,10 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
   const registrySet = useMemo(() => new Set(registryFilters), [registryFilters]);
 
   const visibleFields = useMemo(() => {
-    const filtered = fields.filter((field) => {
+    return fields.filter((field) => {
       const registryKey = FILTER_REGISTRY_KEY_BY_FIELD[field.key];
       return registryKey ? registrySet.has(registryKey) : false;
     });
-
-    return filtered.length ? filtered : fields;
   }, [fields, registrySet]);
 
   const handleSavePreset = () => {
@@ -233,7 +217,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
             {visibleFields.map((field) => (
               <FilterField
                 key={field.key}
-                field={field}
+                field={field as any}
                 value={filterValues[field.key] as never}
                 onSelectChange={setFilterValue}
                 onRangeChange={setRangeValue}

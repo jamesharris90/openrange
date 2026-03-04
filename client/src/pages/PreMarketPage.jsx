@@ -675,7 +675,7 @@ export default function PreMarketPage() {
                     <input
                       ref={tickerInputRef}
                       type="text"
-                      placeholder="e.g. INTC, AMD, TSLA"
+                      placeholder="e.g. INTC, AMD, SHOP"
                       value={filters.tickersInput}
                       onChange={e => handleFilterChange('tickersInput', e.target.value)}
                     />

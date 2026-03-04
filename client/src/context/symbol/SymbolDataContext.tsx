@@ -12,7 +12,7 @@ type SymbolDataContextValue = {
 };
 
 const INITIAL_STATE: SymbolDataState = {
-  symbol: 'NVDA',
+  symbol: '',
   timeframe: '5m',
   candles: {
     history: [],

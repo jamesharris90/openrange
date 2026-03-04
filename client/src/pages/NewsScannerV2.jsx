@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ExternalLink, Info, RefreshCw } from 'lucide-react';
 import Card from '../components/shared/Card';
 import NewsButton from '../components/shared/NewsButton';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { getTimeAgo } from '../features/news/NewsScannerLogic';
 import { apiJSON } from '@/config/api';
 
@@ -139,7 +140,7 @@ function NewsScannerV2() {
 
         <div className="ns-command-subrow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(180px, 1fr))', gap: 12 }}>
           <label className="muted text-sm">Symbols
-            <input type="text" value={filters.symbols} onChange={(e) => setFilters((prev) => ({ ...prev, symbols: e.target.value }))} placeholder="AAPL,MSFT" />
+            <input type="text" value={filters.symbols} onChange={(e) => setFilters((prev) => ({ ...prev, symbols: e.target.value }))} placeholder="AMD,SHOP" />
           </label>
 
           <label className="muted text-sm">Min Score
@@ -214,6 +215,7 @@ function NewsScannerV2() {
       )}
 
       <Card className="ns-feed-pane">
+        {loading && <LoadingSpinner message="Loading news intelligence…" />}
         {!loading && rows.length === 0 && <div className="ns-state-empty">No results for current filters.</div>}
         <div className="news-list ns-news-list">
           {rows.map((item) => {

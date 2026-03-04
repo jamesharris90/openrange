@@ -1115,12 +1115,10 @@ export default function ScreenerV3() {
   const resizingRef = useRef(false);
 
   const enabledFilterDefs = useMemo(() => {
-    const filtered = FILTER_DEFS.filter((def) => {
+    return FILTER_DEFS.filter((def) => {
       const registryKey = FILTER_REGISTRY_KEY_MAP[def.id];
       return registryKey ? filterSet.has(registryKey) : false;
     });
-
-    return filtered.length ? filtered : FILTER_DEFS;
   }, [filterSet]);
 
   useEffect(() => {
@@ -1572,7 +1570,7 @@ export default function ScreenerV3() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               <input
                 type="text"
-                placeholder="Search ticker (e.g. AAPL)"
+                placeholder="Search ticker (e.g. AMD)"
                 value={tickerSearch}
                 onChange={(e) => {
                   setTickerSearch(e.target.value);

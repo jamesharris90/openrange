@@ -1,24 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiJSON } from '../config/api';
 
-const FALLBACK_FILTERS = [
-  'price',
-  'market_cap',
-  'gap_percent',
-  'relative_volume',
-  'atr',
-  'rsi',
-  'float',
-  'sector',
-  'country',
-  'vwap',
-  'structure',
-  'min_grade',
-  'spy_alignment',
-];
-
 export function useFilterRegistry() {
-  const [filters, setFilters] = useState(FALLBACK_FILTERS);
+  const [filters, setFilters] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

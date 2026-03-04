@@ -11,6 +11,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const WatchlistPage = lazy(() => import('./components/watchlist/WatchlistPage'));
 const EarningsPage = lazy(() => import('./components/earnings/EarningsPage'));
 const PreMarketPage = lazy(() => import('./pages/PreMarketPage'));
@@ -33,8 +34,6 @@ const ExpectedMovePage = lazy(() => import('./pages/ExpectedMovePage'));
 const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
 
 export default function App() {
-  const Dashboard = WatchlistPage;
-
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -49,7 +48,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/screeners" element={<ScreenersPage />} />
                   <Route path="/watchlists" element={<WatchlistPage />} />
                   <Route path="/pre-market" element={<PreMarketPage />} />

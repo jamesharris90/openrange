@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { RefreshCcw, SlidersHorizontal, Star } from 'lucide-react';
 import useWatchlist from '../hooks/useWatchlist';
-import { authFetch } from '../utils/api';
+import { apiJSON } from '../config/api';
 import ExportButtons from '../components/shared/ExportButtons';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { formatCurrency, formatVolume, formatMarketCap } from '../utils/formatters';
 
 function toNumber(val) {
@@ -29,9 +30,7 @@ export default function ScannerSection({ title, icon, description, queryPreset =
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch('/api/scanner');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await apiJSON('/api/scanner');
       const rawRows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
       const nextRows = rawRows.map((row) => ({
         symbol: row?.symbol,
@@ -127,6 +126,7 @@ export default function ScannerSection({ title, icon, description, queryPreset =
       />
 
       <div className="scanner-section__table overflow-x-auto">
+        {loading && !rows.length && <LoadingSpinner message="Loading scanner data…" />}
         <table className="data-table data-table--compact min-w-[900px]">
           <thead>
             <tr>

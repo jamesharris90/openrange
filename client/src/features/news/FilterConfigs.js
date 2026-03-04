@@ -713,7 +713,7 @@ export const FILTER_DEFINITIONS = {
   ],
 
   news: [
-    { key: 'tickersInput', label: 'Tickers', type: 'text', clientSide: true, placeholder: 'e.g. NVDA, TSLA' },
+    { key: 'tickersInput', label: 'Tickers', type: 'text', clientSide: true, placeholder: 'e.g. AMD, SHOP' },
     {
       key: 'newsFreshness', label: 'News Freshness', type: 'select', clientSide: true,
       options: [
