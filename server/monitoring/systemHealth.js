@@ -1,10 +1,12 @@
 const { getMetricsHealth } = require('./metricsHealth');
 const { getIngestionHealth } = require('./ingestionHealth');
+const { getUniverseHealth } = require('./universeHealth');
 
 async function getSystemHealth() {
-  const [metrics, ingestion] = await Promise.all([
+  const [metrics, ingestion, universe] = await Promise.all([
     getMetricsHealth(),
     getIngestionHealth(),
+    getUniverseHealth(),
   ]);
 
   return {
@@ -12,6 +14,8 @@ async function getSystemHealth() {
     status: 'ok',
     metrics,
     ingestion,
+    universe,
+    universe_count: universe.total_symbols,
     checked_at: new Date().toISOString(),
   };
 }

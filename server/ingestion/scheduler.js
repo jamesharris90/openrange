@@ -4,6 +4,7 @@ const { runNewsIngestion } = require('./fmp_news_ingest');
 const { runPricesIngestion } = require('./fmp_prices_ingest');
 const { runEarningsIngestion } = require('./fmp_earnings_ingest');
 const { runProfilesIngestion } = require('./fmp_profiles_ingest');
+const { runUniverseIngestion } = require('./fmp_universe_ingest');
 const logger = require('../utils/logger');
 
 let started = false;
@@ -38,6 +39,7 @@ function startIngestionScheduler() {
   cron.schedule('5 0 * * *', safeRun('daily_ohlc', runPricesIngestion));
   cron.schedule('10 0 * * *', safeRun('earnings_events', runEarningsIngestion));
   cron.schedule('15 0 * * *', safeRun('company_profiles', runProfilesIngestion));
+  cron.schedule('20 0 * * *', safeRun('ticker_universe', runUniverseIngestion));
 
   logger.info('ingestion scheduler started', {
     schedules: {
@@ -46,6 +48,7 @@ function startIngestionScheduler() {
       prices: '5 0 * * *',
       earnings: '10 0 * * *',
       profiles: '15 0 * * *',
+      universe: '20 0 * * *',
     },
   });
 }

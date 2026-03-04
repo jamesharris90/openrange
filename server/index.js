@@ -62,6 +62,7 @@ const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
+const { getUniverseHealth } = require('./monitoring/universeHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
@@ -591,6 +592,16 @@ app.get('/api/ingestion/health', async (req, res) => {
   }
 });
 
+app.get('/api/universe/health', async (req, res) => {
+  try {
+    const health = await getUniverseHealth();
+    res.json(health);
+  } catch (err) {
+    logger.error('universe health endpoint error', { error: err.message });
+    res.status(500).json({ engine: 'universe', status: 'error', error: err.message });
+  }
+});
+
 app.get('/api/system/health', async (req, res) => {
   try {
     const health = await getSystemHealth();
@@ -604,15 +615,19 @@ app.get('/api/system/health', async (req, res) => {
 app.get('/api/scanner', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT symbol,
-              price,
-              gap_percent,
-              relative_volume,
-              atr,
-              float_rotation
-       FROM market_metrics
-       WHERE relative_volume > 1.5
-       ORDER BY relative_volume DESC
+      `SELECT m.symbol,
+              u.company_name,
+              u.sector,
+              m.price,
+              m.gap_percent,
+              m.relative_volume,
+              m.atr,
+              m.float_rotation
+       FROM market_metrics m
+       JOIN ticker_universe u
+         ON m.symbol = u.symbol
+       WHERE m.relative_volume > 1.5
+       ORDER BY m.relative_volume DESC
        LIMIT 50`
     );
     res.json(rows);
@@ -2129,15 +2144,17 @@ app.listen(PORT, () => {
 
   (async () => {
     try {
-      const [metricsHealth, ingestionHealth] = await Promise.all([
+      const [metricsHealth, ingestionHealth, universeHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),
+        getUniverseHealth(),
       ]);
 
       logger.info('OpenRange System Status', {
         metricsRows: metricsHealth.rows,
         lastMetricsRun: metricsHealth.last_update,
         ingestionRows: ingestionHealth.tables,
+        universeCount: universeHealth.total_symbols,
       });
     } catch (err) {
       logger.error('OpenRange System Status failed', { error: err.message });
