@@ -60,12 +60,14 @@ const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
+const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
 const { getUniverseHealth } = require('./monitoring/universeHealth');
 const { getQueueHealth } = require('./monitoring/queueHealth');
 const { getSetupHealth } = require('./monitoring/setupHealth');
+const { getCatalystHealth } = require('./monitoring/catalystHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
@@ -628,9 +630,27 @@ app.get('/api/system/health', async (req, res) => {
 app.get('/api/setups', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT *
-       FROM trade_setups
-       ORDER BY score DESC NULLS LAST
+      `SELECT s.*,
+              c.catalyst_type,
+              c.headline AS catalyst_headline,
+              c.source AS catalyst_source,
+              c.sentiment AS catalyst_sentiment,
+              c.published_at AS catalyst_published_at,
+              c.score AS catalyst_score
+       FROM trade_setups s
+       LEFT JOIN LATERAL (
+         SELECT catalyst_type,
+                headline,
+                source,
+                sentiment,
+                published_at,
+                score
+         FROM trade_catalysts tc
+         WHERE tc.symbol = s.symbol
+         ORDER BY tc.published_at DESC NULLS LAST
+         LIMIT 1
+       ) c ON TRUE
+       ORDER BY s.score DESC NULLS LAST
        LIMIT 50`
     );
     res.json(rows);
@@ -652,6 +672,28 @@ app.get('/api/setups/types', async (req, res) => {
     res.json(rows);
   } catch (err) {
     logger.error('setups types endpoint db error', { error: err.message });
+    res.json([]);
+  }
+});
+
+app.get('/api/catalysts', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT symbol,
+              catalyst_type,
+              headline,
+              source,
+              sentiment,
+              published_at,
+              score,
+              created_at
+       FROM trade_catalysts
+       ORDER BY published_at DESC NULLS LAST
+       LIMIT 100`
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('catalysts endpoint db error', { error: err.message });
     res.json([]);
   }
 });
@@ -2186,18 +2228,23 @@ if (process.env.ENABLE_STRATEGY_SCHEDULER !== 'false') {
   startStrategyScheduler();
 }
 
+if (process.env.ENABLE_CATALYST_SCHEDULER !== 'false') {
+  startCatalystScheduler();
+}
+
 app.listen(PORT, () => {
   logger.info(`OpenRange server listening on port ${PORT}`);
   console.log('[Intelligence] Ingestion endpoint ready');
 
   (async () => {
     try {
-      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth] = await Promise.all([
+      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),
         getUniverseHealth(),
         getQueueHealth(),
         getSetupHealth(),
+        getCatalystHealth(),
       ]);
 
       logger.info('OpenRange System Status', {
@@ -2207,6 +2254,7 @@ app.listen(PORT, () => {
         universeCount: universeHealth.total_symbols,
         queueSize: queueHealth.queue_size,
         setupCount: setupHealth.setup_count,
+        catalystCount: catalystHealth.catalyst_count,
       });
     } catch (err) {
       logger.error('OpenRange System Status failed', { error: err.message });
