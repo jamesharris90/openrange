@@ -47,7 +47,7 @@ export default function App() {
                 <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
                 <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/screeners" element={<ScreenersPage />} />
                   <Route path="/watchlists" element={<WatchlistPage />} />
