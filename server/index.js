@@ -61,6 +61,7 @@ const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
 const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
+const { startDiscoveryScheduler } = require('./discovery/discovery_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
@@ -68,6 +69,7 @@ const { getUniverseHealth } = require('./monitoring/universeHealth');
 const { getQueueHealth } = require('./monitoring/queueHealth');
 const { getSetupHealth } = require('./monitoring/setupHealth');
 const { getCatalystHealth } = require('./monitoring/catalystHealth');
+const { getDiscoveryHealth } = require('./monitoring/discoveryHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
@@ -722,7 +724,9 @@ app.get('/api/catalysts', async (req, res) => {
 app.get('/api/scanner', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT m.symbol,
+      `SELECT d.symbol,
+              d.source,
+              d.score AS discovery_score,
               u.company_name,
               u.sector,
               m.price,
@@ -730,9 +734,11 @@ app.get('/api/scanner', async (req, res) => {
               m.relative_volume,
               m.atr,
               m.float_rotation
-       FROM market_metrics m
-       JOIN ticker_universe u
-         ON m.symbol = u.symbol
+       FROM discovered_symbols d
+       JOIN market_metrics m
+         ON d.symbol = m.symbol
+       LEFT JOIN ticker_universe u
+         ON d.symbol = u.symbol
        WHERE m.relative_volume > 1.5
        ORDER BY m.relative_volume DESC
        LIMIT 50`
@@ -747,11 +753,15 @@ app.get('/api/scanner', async (req, res) => {
 app.get('/api/premarket', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT *
-       FROM market_metrics
-       WHERE gap_percent > 3
-         AND relative_volume > 2
-       ORDER BY gap_percent DESC
+      `SELECT m.*,
+              d.source,
+              d.score AS discovery_score
+       FROM discovered_symbols d
+       JOIN market_metrics m
+         ON d.symbol = m.symbol
+       WHERE m.gap_percent > 3
+         AND m.relative_volume > 2
+       ORDER BY m.gap_percent DESC
        LIMIT 50`
     );
     res.json(rows);
@@ -2253,19 +2263,24 @@ if (process.env.ENABLE_CATALYST_SCHEDULER !== 'false') {
   startCatalystScheduler();
 }
 
+if (process.env.ENABLE_DISCOVERY_SCHEDULER !== 'false') {
+  startDiscoveryScheduler();
+}
+
 app.listen(PORT, () => {
   logger.info(`OpenRange server listening on port ${PORT}`);
   console.log('[Intelligence] Ingestion endpoint ready');
 
   (async () => {
     try {
-      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth] = await Promise.all([
+      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),
         getUniverseHealth(),
         getQueueHealth(),
         getSetupHealth(),
         getCatalystHealth(),
+        getDiscoveryHealth(),
       ]);
 
       logger.info('OpenRange System Status', {
@@ -2276,6 +2291,7 @@ app.listen(PORT, () => {
         queueSize: queueHealth.queue_size,
         setupCount: setupHealth.setup_count,
         catalystCount: catalystHealth.catalyst_count,
+        discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
       });
     } catch (err) {
       logger.error('OpenRange System Status failed', { error: err.message });

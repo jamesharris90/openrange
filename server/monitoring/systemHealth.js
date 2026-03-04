@@ -4,16 +4,18 @@ const { getUniverseHealth } = require('./universeHealth');
 const { getQueueHealth } = require('./queueHealth');
 const { getSetupHealth } = require('./setupHealth');
 const { getCatalystHealth } = require('./catalystHealth');
+const { getDiscoveryHealth } = require('./discoveryHealth');
 const { getConfigLoadStatus } = require('../config/intelligenceConfig');
 
 async function getSystemHealth() {
-  const [metrics, ingestion, universe, queue, setups, catalysts] = await Promise.all([
+  const [metrics, ingestion, universe, queue, setups, catalysts, discovery] = await Promise.all([
     getMetricsHealth(),
     getIngestionHealth(),
     getUniverseHealth(),
     getQueueHealth(),
     getSetupHealth(),
     getCatalystHealth(),
+    getDiscoveryHealth(),
   ]);
   const configStatus = getConfigLoadStatus();
 
@@ -26,10 +28,12 @@ async function getSystemHealth() {
     queue,
     setups,
     catalysts,
+    discovery,
     universe_count: universe.total_symbols,
     queue_size: queue.queue_size,
     setup_count: setups.setup_count,
     catalyst_count: catalysts.catalyst_count,
+    discovered_symbol_count: discovery.discovered_symbol_count,
     scoring_config_loaded: configStatus.scoring_config_loaded,
     filter_registry_loaded: configStatus.filter_registry_loaded,
     checked_at: new Date().toISOString(),
