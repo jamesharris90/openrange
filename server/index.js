@@ -58,6 +58,8 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
+const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
+const { getExpectedMoveRows } = require('./metrics/expected_move');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool } = require('./db/pg');
 
@@ -570,24 +572,17 @@ app.get('/api/scanner', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT symbol,
-              MAX(price) AS price,
-              SUM(volume)::bigint AS volume
-       FROM intraday_1m
-       WHERE timestamp >= NOW() - INTERVAL '1 day'
-       GROUP BY symbol
-       ORDER BY volume DESC
-       LIMIT 200`
+              price,
+              gap_percent,
+              relative_volume,
+              atr,
+              float_rotation
+       FROM market_metrics
+       WHERE relative_volume > 1.5
+       ORDER BY relative_volume DESC
+       LIMIT 50`
     );
-
-    const payload = rows.map((row) => ({
-      ticker: row.symbol,
-      price: Number(row.price) || 0,
-      change: 0,
-      volume: Number(row.volume) || 0,
-      relativeVolume: 1,
-    }));
-
-    res.json(payload);
+    res.json(rows);
   } catch (err) {
     logger.error('scanner endpoint db error', { error: err.message });
     res.json([]);
@@ -597,29 +592,32 @@ app.get('/api/scanner', async (req, res) => {
 app.get('/api/premarket', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT symbol,
-              MAX(price) AS price,
-              SUM(volume)::bigint AS volume,
-              MAX(timestamp) AS last_timestamp
-       FROM intraday_1m
-       WHERE timestamp >= NOW() - INTERVAL '12 hours'
-       GROUP BY symbol
-       ORDER BY last_timestamp DESC
-       LIMIT 200`
+      `SELECT *
+       FROM market_metrics
+       WHERE gap_percent > 3
+         AND relative_volume > 2
+       ORDER BY gap_percent DESC
+       LIMIT 50`
     );
-
-    res.json({
-      status: 'ok',
-      data: rows.map((row) => ({
-        symbol: row.symbol,
-        price: Number(row.price) || 0,
-        volume: Number(row.volume) || 0,
-        timestamp: row.last_timestamp,
-      })),
-    });
+    res.json(rows);
   } catch (err) {
     logger.error('premarket endpoint db error', { error: err.message });
-    res.json({ status: 'ok', data: [] });
+    res.json([]);
+  }
+});
+
+app.get('/api/metrics', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT *
+       FROM market_metrics
+       ORDER BY relative_volume DESC NULLS LAST
+       LIMIT 100`
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('metrics endpoint db error', { error: err.message });
+    res.json([]);
   }
 });
 
@@ -631,8 +629,15 @@ app.get('/api/market', (req, res) => {
   res.json({ status: 'ok', data: [] });
 });
 
-app.get('/api/expected-move', (req, res) => {
-  res.json({ status: 'ok', data: [] });
+app.get('/api/expected-move', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const rows = await getExpectedMoveRows(limit);
+    res.json(rows);
+  } catch (err) {
+    logger.error('expected move endpoint db error', { error: err.message });
+    res.json([]);
+  }
 });
 
 app.get('/api/screener', (req, res) => {
@@ -2079,6 +2084,10 @@ if (FMP_API_KEY) {
 
 if (process.env.ENABLE_INGESTION_SCHEDULER !== 'false') {
   startIngestionScheduler();
+}
+
+if (process.env.ENABLE_METRICS_SCHEDULER !== 'false') {
+  startMetricsScheduler();
 }
 
 app.listen(PORT, () => {
