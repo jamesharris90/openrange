@@ -3,8 +3,6 @@
 # switch it to "Dockerfile" (or re-create the service) so this repo's
 # root Dockerfile is used.
 
-[build]
-builder = "DOCKERFILE"
 
 [deploy]
 healthcheckPath = "/api/health"
