@@ -3,7 +3,7 @@ import { X, AlertTriangle, Shield, Info, TrendingUp, CheckCircle, Activity, Star
 import { computeRiskFlags, computeUnifiedScore, computeCatalystDetail, getScoreColor, getScoreLabel } from './scoring';
 import { ConfidenceTierBadge, DataQualityDot } from './ConfirmationBadges';
 import { MiniScoreGauge } from '../shared/ResearchPanelWidgets';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 const FLAG_STYLES = {
   high: { color: 'var(--accent-red)', icon: AlertTriangle },
@@ -67,8 +67,7 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
     let cancelled = false;
     setLoading(true);
     setError(null);
-    apiFetch(`/api/earnings-research/${ticker}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    apiJSON(`/api/earnings-research/${ticker}`)
       .then(d => { if (!cancelled) { setData(d); setError(null); } })
       .catch(e => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });

@@ -66,6 +66,7 @@ export default function App() {
                   <Route path="/research" element={<ResearchPage />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/live" element={<LiveCockpit />} />
+                  <Route path="/intelligence" element={<AIQuantPage />} />
                   <Route path="/intelligence-engine" element={<AIQuantPage />} />
                   <Route path="/intelligence-inbox" element={<IntelligencePage />} />
                   <Route path="/expected-move" element={<ExpectedMovePage />} />

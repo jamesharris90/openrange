@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -22,22 +22,20 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      const resp = await apiFetch('/api/users/login', {
+      const data = await apiJSON('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: username.trim(), password }),
       });
 
-      const data = await resp.json().catch(() => ({}));
-
-      if (resp.ok && data.token) {
+      if (data.token) {
         login(data.token);
         navigate('/watchlist', { replace: true });
       } else {
-        setError(data.error || data.detail || `Login failed (HTTP ${resp.status})`);
+        setError(data.error || data.detail || 'Login failed');
       }
-    } catch {
-      setError('Network error. Please check your connection.');
+    } catch (err) {
+      setError(err?.message || 'Network error. Please check your connection.');
     } finally {
       setSubmitting(false);
     }

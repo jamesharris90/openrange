@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import AdvancedFilterTabs from './AdvancedFilterTabs';
 import FilterField from './FilterField';
-import { filterSchema, filterTabs } from './filterSchema';
+import { adaptiveFilterSchema, filterSchema, filterTabs } from './filterSchema';
 import { useAdvancedFilterStore } from '../../store/advancedFilterStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -26,6 +26,8 @@ type FilterSectionProps = {
 };
 
 export default function FilterSection({ onApply, onReset }: FilterSectionProps) {
+  const [filterMode, setFilterMode] = useState<'standard' | 'adaptive'>('standard');
+
   const {
     activeTab,
     collapsed,
@@ -60,7 +62,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
   const activeCount = useMemo(() => getActiveFilterCount(filterValues), [filterValues]);
 
-  const fields = filterSchema[activeTab] || [];
+  const fields = filterMode === 'adaptive' ? adaptiveFilterSchema : (filterSchema[activeTab] || []);
 
   const handleSavePreset = () => {
     const name = window.prompt('Preset name');
@@ -132,9 +134,32 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
       {!collapsed && (
         <>
-          <div className="mb-4">
-            <AdvancedFilterTabs tabs={filterTabs} activeTab={activeTab} onChange={setActiveTab} />
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterMode('standard')}
+              className={`rounded px-3 py-1.5 text-sm font-semibold ${filterMode === 'standard'
+                ? 'bg-indigo-600 text-white'
+                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              Standard Filters
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode('adaptive')}
+              className={`rounded px-3 py-1.5 text-sm font-semibold ${filterMode === 'adaptive'
+                ? 'bg-indigo-600 text-white'
+                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              Adaptive Filters
+            </button>
           </div>
+
+          {filterMode === 'standard' && (
+            <div className="mb-4">
+              <AdvancedFilterTabs tabs={filterTabs} activeTab={activeTab} onChange={setActiveTab} />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {fields.map((field) => (

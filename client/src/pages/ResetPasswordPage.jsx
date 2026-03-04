@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -32,22 +32,15 @@ export default function ResetPasswordPage() {
 
     setSubmitting(true);
     try {
-      const resp = await apiFetch('/api/users/reset-password', {
+      await apiJSON('/api/users/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, newPassword: password }),
       });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (resp.ok) {
-        setSuccess('Password reset successfully! Redirecting to login…');
-        setTimeout(() => navigate('/login', { replace: true }), 2000);
-      } else {
-        setError(data.error || 'Reset failed. The link may have expired.');
-      }
-    } catch {
-      setError('Network error. Please check your connection.');
+      setSuccess('Password reset successfully! Redirecting to login…');
+      setTimeout(() => navigate('/login', { replace: true }), 2000);
+    } catch (err) {
+      setError(err?.message || 'Network error. Please check your connection.');
     } finally {
       setSubmitting(false);
     }

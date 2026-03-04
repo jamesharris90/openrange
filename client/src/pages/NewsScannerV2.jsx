@@ -3,7 +3,7 @@ import { BarChart3, ExternalLink, Info, RefreshCw } from 'lucide-react';
 import Card from '../components/shared/Card';
 import NewsButton from '../components/shared/NewsButton';
 import { getTimeAgo } from '../features/news/NewsScannerLogic';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 const FRESHNESS_OPTIONS = ['1h', '6h', '24h'];
 const CATALYST_OPTIONS = ['earnings', 'guidance', 'merger', 'fda', 'contract', 'offering', 'analyst', 'general'];
@@ -81,9 +81,7 @@ function NewsScannerV2() {
     setError('');
     try {
       const query = buildQuery(nextFilters);
-      const response = await apiFetch(`/api/news/v3?${query}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      const data = await apiJSON(`/api/news/v3?${query}`);
       setRows(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || 'Failed to load news');
@@ -103,9 +101,7 @@ function NewsScannerV2() {
     setError('');
     try {
       const params = new URLSearchParams({ symbols: normalizedSymbols.join(',') });
-      const response = await apiFetch(`/api/news/v3/refresh?${params.toString()}`, { method: 'POST' });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      await apiJSON(`/api/news/v3/refresh?${params.toString()}`, { method: 'POST' });
       await loadNews(appliedFilters);
     } catch (err) {
       setError(err.message || 'Failed to refresh news');

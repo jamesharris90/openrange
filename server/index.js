@@ -564,6 +564,38 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+app.get('/api/scanner', (req, res) => {
+  res.json([
+    {
+      ticker: 'NVDA',
+      price: 780,
+      change: 4.2,
+      volume: 24000000,
+      relativeVolume: 2.5,
+    },
+  ]);
+});
+
+app.get('/api/premarket', (req, res) => {
+  res.json({ status: 'ok', data: [] });
+});
+
+app.get('/api/intelligence', (req, res) => {
+  res.json({ status: 'ok', data: [] });
+});
+
+app.get('/api/market', (req, res) => {
+  res.json({ status: 'ok', data: [] });
+});
+
+app.get('/api/expected-move', (req, res) => {
+  res.json({ status: 'ok', data: [] });
+});
+
+app.get('/api/screener', (req, res) => {
+  res.json({ status: 'ok', data: [] });
+});
+
 app.get('/api/scanner/status', async (req, res) => {
   if (!FINVIZ_NEWS_TOKEN) {
     return res.json({ available: false, message: 'Scanner context unavailable (FINVIZ token missing).' });

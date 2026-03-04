@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, MessageSquare } from 'lucide-react';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function AIChatBar() {
   const [messages, setMessages] = useState([]);
@@ -24,13 +24,11 @@ export default function AIChatBar() {
     setLoading(true);
 
     try {
-      const r = await apiFetch('/api/ai-quant/query', {
+      const data = await apiJSON('/api/ai-quant/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text, contextSource: 'scanner' }),
       });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
       setMessages(prev => [...prev, { role: 'assistant', content: data.answer, ts: Date.now() }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${e.message}`, ts: Date.now(), error: true }]);

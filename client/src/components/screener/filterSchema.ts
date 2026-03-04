@@ -106,3 +106,56 @@ export const filterTabs = [
   { id: 'news', label: 'News' },
   { id: 'etf', label: 'ETF' },
 ] as const;
+
+export const adaptiveFilterSchema = [
+  { key: 'gapPercent', label: 'Gap %', type: 'range', tab: 'technical', dataKey: 'Gap %', placeholderMin: 'Min %', placeholderMax: 'Max %' },
+  { key: 'relativeVolume', label: 'Relative Volume', type: 'range', tab: 'technical', dataKey: 'Relative Volume', placeholderMin: 'Min', placeholderMax: 'Max' },
+  { key: 'atrPercent', label: 'ATR %', type: 'range', tab: 'technical', dataKey: 'ATR %', placeholderMin: 'Min %', placeholderMax: 'Max %' },
+  { key: 'rsi14', label: 'RSI 14', type: 'range', tab: 'technical', dataKey: 'RSI 14', placeholderMin: 'Min', placeholderMax: 'Max' },
+  { key: 'vwapDistance', label: 'VWAP Distance %', type: 'range', tab: 'technical', dataKey: 'VWAP Distance %', placeholderMin: 'Min %', placeholderMax: 'Max %' },
+  { key: 'floatShares', label: 'Float Shares (M)', type: 'range', tab: 'technical', dataKey: 'Float Shares', placeholderMin: 'Min', placeholderMax: 'Max' },
+  {
+    key: 'structureType',
+    label: 'Structure Type',
+    type: 'select',
+    tab: 'technical',
+    options: [
+      { label: 'Any', value: '' },
+      { label: 'ORB', value: 'ORB' },
+      { label: 'Gap & Go', value: 'GapAndGo' },
+      { label: 'Trend Day', value: 'TrendDay' },
+      { label: 'VWAP Reclaim', value: 'VWAPReclaim' },
+      { label: 'Micro Pullback', value: 'MicroPullback' },
+      { label: 'Liquidity Sweep', value: 'LiquiditySweep' },
+      { label: 'Compression Breakout', value: 'CompressionBreakout' },
+      { label: 'Breakdown', value: 'Breakdown' },
+      { label: 'Mean Reversion', value: 'MeanReversion' },
+      { label: 'Squeeze', value: 'Squeeze' },
+      { label: 'Drift', value: 'Drift' },
+      { label: 'Reversal Base', value: 'ReversalBase' },
+    ],
+  },
+  {
+    key: 'minGrade',
+    label: 'Min Grade',
+    type: 'select',
+    tab: 'technical',
+    options: [
+      { label: 'Any', value: '' },
+      { label: 'A+', value: 'A+' },
+      { label: 'A', value: 'A' },
+      { label: 'B', value: 'B' },
+      { label: 'C', value: 'C' },
+    ],
+  },
+  {
+    key: 'adaptToSpy',
+    label: 'Adapt to SPY',
+    type: 'select',
+    tab: 'technical',
+    options: [
+      { label: 'Off', value: '' },
+      { label: 'On', value: 'true' },
+    ],
+  },
+] as const;

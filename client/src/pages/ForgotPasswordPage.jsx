@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('');
@@ -20,21 +20,14 @@ export default function ForgotPasswordPage() {
 
     setSubmitting(true);
     try {
-      const resp = await apiFetch('/api/users/forgot-password', {
+      const data = await apiJSON('/api/users/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim() }),
       });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (resp.ok) {
-        setSuccess(data.message || 'If an account exists with that username/email, a reset link has been sent.');
-      } else {
-        setError(data.error || 'Request failed. Please try again.');
-      }
-    } catch {
-      setError('Network error. Please check your connection.');
+      setSuccess(data.message || 'If an account exists with that username/email, a reset link has been sent.');
+    } catch (err) {
+      setError(err?.message || 'Network error. Please check your connection.');
     } finally {
       setSubmitting(false);
     }

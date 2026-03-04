@@ -8,7 +8,7 @@ import { filterSchema } from '../components/screener/filterSchema';
 import { useAdvancedFilterStore } from '../store/advancedFilterStore';
 import { useAppStore } from '../store/useAppStore';
 import { authFetch } from '../utils/api';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 import Portal from '../components/shared/Portal';
 import Card from '../components/shared/Card';
 import { useShallow } from 'zustand/react/shallow';
@@ -434,6 +434,19 @@ export default function AdvancedScreenerPage() {
       const marketCapMax = appliedValues?.marketCap?.max;
       const volumeMin = appliedValues?.volume?.min;
       const rvolMin = appliedValues?.relativeVolume?.min;
+      const gapMin = appliedValues?.gapPercent?.min;
+      const gapMax = appliedValues?.gapPercent?.max;
+      const atrMin = appliedValues?.atrPercent?.min;
+      const atrMax = appliedValues?.atrPercent?.max;
+      const rsiMin = appliedValues?.rsi14?.min;
+      const rsiMax = appliedValues?.rsi14?.max;
+      const vwapMin = appliedValues?.vwapDistance?.min;
+      const vwapMax = appliedValues?.vwapDistance?.max;
+      const floatMin = appliedValues?.floatShares?.min;
+      const floatMax = appliedValues?.floatShares?.max;
+      const structureType = appliedValues?.structureType;
+      const minGrade = appliedValues?.minGrade;
+      const adaptToSpy = appliedValues?.adaptToSpy;
 
       if (priceMin) params.set('priceMin', String(priceMin));
       if (priceMax) params.set('priceMax', String(priceMax));
@@ -441,6 +454,19 @@ export default function AdvancedScreenerPage() {
       if (marketCapMax) params.set('marketCapMax', String(marketCapMax));
       if (volumeMin) params.set('volumeMin', String(volumeMin));
       if (rvolMin) params.set('rvolMin', String(rvolMin));
+      if (gapMin) params.set('minGapPercent', String(gapMin));
+      if (gapMax) params.set('maxGapPercent', String(gapMax));
+      if (atrMin) params.set('minAtrPercent', String(atrMin));
+      if (atrMax) params.set('maxAtrPercent', String(atrMax));
+      if (rsiMin) params.set('minRsi14', String(rsiMin));
+      if (rsiMax) params.set('maxRsi14', String(rsiMax));
+      if (vwapMin) params.set('minVwapDistance', String(vwapMin));
+      if (vwapMax) params.set('maxVwapDistance', String(vwapMax));
+      if (floatMin) params.set('minFloat', String(floatMin));
+      if (floatMax) params.set('maxFloat', String(floatMax));
+      if (structureType) params.set('structures', String(structureType));
+      if (minGrade) params.set('minGrade', String(minGrade));
+      if (adaptToSpy === 'true') params.set('adaptFilters', 'true');
 
       const resp = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -774,8 +800,7 @@ function ScreenerDeepDive({ ticker, watchlist }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    apiFetch(`/api/earnings-research/${ticker}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    apiJSON(`/api/earnings-research/${ticker}`)
       .then(d => { if (!cancelled) { setData(d); setError(null); } })
       .catch(e => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });

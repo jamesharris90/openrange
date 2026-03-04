@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 // Badge colours per known symbol/ETF
 const BADGE_COLOR = {
@@ -111,25 +111,19 @@ export default function TickerTape() {
 
   async function loadData() {
     try {
-      const [ctxRes, sectorRes] = await Promise.all([
-        apiFetch('/api/ai-quant/market-context'),
-        apiFetch('/api/ai-quant/sector-performance'),
+      const [ctx, sec] = await Promise.all([
+        apiJSON('/api/ai-quant/market-context'),
+        apiJSON('/api/ai-quant/sector-performance'),
       ]);
 
       const combined = [];
 
-      if (ctxRes.ok) {
-        const ctx = await ctxRes.json();
-        for (const idx of ctx.indices || []) {
-          if (idx.price) combined.push({ ticker: idx.ticker, price: idx.price, change: idx.change, changePercent: idx.changePercent });
-        }
+      for (const idx of ctx.indices || []) {
+        if (idx.price) combined.push({ ticker: idx.ticker, price: idx.price, change: idx.change, changePercent: idx.changePercent });
       }
 
-      if (sectorRes.ok) {
-        const sec = await sectorRes.json();
-        for (const s of sec.sectors || []) {
-          combined.push({ ticker: s.etf, price: s.price, change: s.change, changePercent: s.changePercent });
-        }
+      for (const s of sec.sectors || []) {
+        combined.push({ ticker: s.etf, price: s.price, change: s.change, changePercent: s.changePercent });
       }
 
       if (combined.length) setItems(combined);

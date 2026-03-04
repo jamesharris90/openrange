@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
 import { authFetch } from '../../utils/api';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 import { computeEarningsMomentumScore, getScoreColor, fmtVol, applyGlobalFilters } from './scoring';
 import ExportButtons from '../shared/ExportButtons';
 import ScoreBreakdown from './ScoreBreakdown';
@@ -24,8 +24,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
     toDate.setDate(toDate.getDate() + 14);
     const to = toDate.toISOString().split('T')[0];
 
-    apiFetch(`/api/earnings/calendar?from=${from}&to=${to}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    apiJSON(`/api/earnings/calendar?from=${from}&to=${to}`)
       .then(async (resp) => {
         if (cancelled) return;
         const calendar = Array.isArray(resp) ? resp : (resp.earnings || []);

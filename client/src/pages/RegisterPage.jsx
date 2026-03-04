@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -28,22 +28,15 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      const resp = await apiFetch('/api/users/register', {
+      await apiJSON('/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),
       });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (resp.ok) {
-        setSuccess('Account created successfully! Redirecting to login…');
-        setTimeout(() => navigate('/login', { replace: true }), 1500);
-      } else {
-        setError(data.error || data.detail || `Registration failed (HTTP ${resp.status})`);
-      }
-    } catch {
-      setError('Network error. Please check your connection.');
+      setSuccess('Account created successfully! Redirecting to login…');
+      setTimeout(() => navigate('/login', { replace: true }), 1500);
+    } catch (err) {
+      setError(err?.message || 'Network error. Please check your connection.');
     } finally {
       setSubmitting(false);
     }

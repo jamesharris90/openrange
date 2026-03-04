@@ -80,7 +80,14 @@ router.get('/api/news', async (req, res) => {
 
   try {
     const news = await market.getMarketNews();
-    res.json(news);
+    const normalized = (Array.isArray(news) ? news : []).map((item) => ({
+      ...item,
+      ticker: item?.ticker || item?.symbol || null,
+      headline: item?.headline || item?.title || '',
+      source: item?.source || 'Unknown',
+      timestamp: item?.timestamp || item?.datetime || item?.publishedAt || null,
+    }));
+    res.json(normalized);
   } catch (err) {
     res.status(502).json({ error: 'Failed to fetch news', detail: err.message });
   }

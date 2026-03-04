@@ -11,7 +11,7 @@ import GlobalFiltersPanel from './GlobalFiltersPanel';
 import ToastContainer, { useToast } from './ToastContainer';
 import useWatchlist from '../../hooks/useWatchlist';
 import { buildFilterDefaults } from '../../features/news/FilterConfigs';
-import { apiFetch } from '@/config/api';
+import { apiJSON } from '@/config/api';
 
 export default function AIQuantPage() {
   const [activeChip, setActiveChip] = useState(null);
@@ -58,12 +58,10 @@ export default function AIQuantPage() {
         entryPrice: data?.price || null,
         atr: data?.atr || null,
       };
-      const r = await apiFetch('/api/ai-quant/build-plan', {
+      const plan = await apiJSON('/api/ai-quant/build-plan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const plan = await r.json();
-      if (!r.ok) throw new Error(plan.error || 'Failed to build plan');
       setTradePlan(plan);
     } catch (e) { console.error('Build plan error:', e); }
     finally { setPlanLoading(false); }
