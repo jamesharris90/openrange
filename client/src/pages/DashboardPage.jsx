@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [setups, setSetups] = useState([]);
   const [metricsRows, setMetricsRows] = useState([]);
   const [catalysts, setCatalysts] = useState([]);
+  const [systemReport, setSystemReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,22 +47,25 @@ export default function DashboardPage() {
       setLoading(true);
       setError('');
       try {
-        const [setupsPayload, metricsPayload, catalystsPayload] = await Promise.all([
+        const [setupsPayload, metricsPayload, catalystsPayload, systemReportPayload] = await Promise.all([
           apiJSON('/api/setups'),
           apiJSON('/api/metrics'),
           apiJSON('/api/catalysts'),
+          apiJSON('/api/system/report'),
         ]);
 
         if (cancelled) return;
         setSetups(Array.isArray(setupsPayload) ? setupsPayload : []);
         setMetricsRows(Array.isArray(metricsPayload) ? metricsPayload : []);
         setCatalysts(Array.isArray(catalystsPayload) ? catalystsPayload : []);
+        setSystemReport(systemReportPayload && typeof systemReportPayload === 'object' ? systemReportPayload : null);
       } catch (err) {
         if (!cancelled) {
           setError(err?.message || 'Failed to load dashboard intelligence');
           setSetups([]);
           setMetricsRows([]);
           setCatalysts([]);
+          setSystemReport({ status: 'degraded', detail: err?.message || 'System report unavailable' });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -122,6 +126,18 @@ export default function DashboardPage() {
           subtitle="Engine-driven opportunity feed with live catalyst and market context signals."
         />
       </Card>
+
+      {!loading && systemReport?.status === 'degraded' && (
+        <Card>
+          <div className="text-sm" style={{ color: 'var(--warning-text, #f59e0b)' }}>
+            System health warning: backend reported degraded status.
+            {Array.isArray(systemReport?.missing_tables) && systemReport.missing_tables.length > 0
+              ? ` Missing tables: ${systemReport.missing_tables.join(', ')}.`
+              : ''}
+            {systemReport?.detail ? ` ${systemReport.detail}` : ''}
+          </div>
+        </Card>
+      )}
 
       {loading && <LoadingSpinner message="Loading dashboard intelligence…" />}
       {!loading && error && <Card><div className="muted">{error}</div></Card>}
