@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-const TABS = ['Descriptive', 'Fundamental', 'Technical', 'Volume', 'Catalyst', 'Earnings', 'All'];
+const DEFAULT_TABS = ['Descriptive', 'Fundamental', 'Technical', 'Volume', 'Catalyst', 'Earnings', 'All'];
 
 function SelectField({ label, value, options, onChange }) {
   return (
@@ -29,20 +29,18 @@ const numberRangeOptions = [
 export default function StructuredFilters({ values, onChange, onApply, onClear, filterRegistry }) {
   const [activeTab, setActiveTab] = useState('Descriptive');
 
-  const sectorOptions = useMemo(() => {
-    const sectors = Array.isArray(filterRegistry?.sectors) ? filterRegistry.sectors : [];
-    return sectors.map((sector) => ({ value: sector, label: sector }));
-  }, [filterRegistry]);
+  const filters = useMemo(() => Array.isArray(filterRegistry?.filters) ? filterRegistry.filters : [], [filterRegistry]);
+  const tabs = useMemo(() => filterRegistry?.structured_tabs || DEFAULT_TABS, [filterRegistry]);
 
-  const countryOptions = useMemo(() => {
-    const countries = Array.isArray(filterRegistry?.countries) ? filterRegistry.countries : [];
-    return countries.map((country) => ({ value: country, label: country }));
-  }, [filterRegistry]);
+  const visibleFilters = useMemo(() => {
+    if (activeTab === 'All') return filters;
+    return filters.filter((filter) => filter.group === activeTab);
+  }, [activeTab, filters]);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             type="button"
@@ -58,154 +56,45 @@ export default function StructuredFilters({ values, onChange, onApply, onClear, 
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {(activeTab === 'Descriptive' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="Exchange"
-              value={values.exchange}
-              options={[
-                { value: 'NASDAQ', label: 'NASDAQ' },
-                { value: 'NYSE', label: 'NYSE' },
-                { value: 'AMEX', label: 'AMEX' },
-              ]}
-              onChange={(value) => onChange('exchange', value)}
-            />
-            <SelectField
-              label="Country"
-              value={values.country}
-              options={countryOptions}
-              onChange={(value) => onChange('country', value)}
-            />
-            <SelectField
-              label="Sector"
-              value={values.sector}
-              options={sectorOptions}
-              onChange={(value) => onChange('sector', value)}
-            />
-            <SelectField
-              label="Price Range"
-              value={values.priceRange}
-              options={numberRangeOptions}
-              onChange={(value) => onChange('priceRange', value)}
-            />
-          </>
-        )}
+        {visibleFilters.map((filter) => {
+          if (filter.type === 'number') {
+            return (
+              <SelectField
+                key={filter.field}
+                label={filter.label}
+                value={values[filter.field] || ''}
+                options={numberRangeOptions}
+                onChange={(value) => onChange(filter.field, value)}
+              />
+            );
+          }
 
-        {(activeTab === 'Fundamental' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="Market Cap"
-              value={values.marketCapRange}
-              options={numberRangeOptions}
-              onChange={(value) => onChange('marketCapRange', value)}
-            />
-            <SelectField
-              label="Float"
-              value={values.floatRange}
-              options={numberRangeOptions}
-              onChange={(value) => onChange('floatRange', value)}
-            />
-          </>
-        )}
+          if (filter.type === 'date') {
+            return (
+              <label key={filter.field} className="space-y-1">
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{filter.label}</div>
+                <input
+                  className="input-field h-9 w-full"
+                  placeholder="YYYY-MM-DD|YYYY-MM-DD"
+                  value={values[filter.field] || ''}
+                  onChange={(event) => onChange(filter.field, event.target.value)}
+                />
+              </label>
+            );
+          }
 
-        {(activeTab === 'Technical' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="RSI"
-              value={values.rsiRange}
-              options={[
-                { value: '0-30', label: 'Oversold (<30)' },
-                { value: '30-70', label: 'Neutral (30-70)' },
-                { value: '70-100', label: 'Overbought (>70)' },
-              ]}
-              onChange={(value) => onChange('rsiRange', value)}
-            />
-            <SelectField
-              label="VWAP Relation"
-              value={values.vwapRelation}
-              options={[
-                { value: 'above', label: 'Price Above VWAP' },
-                { value: 'below', label: 'Price Below VWAP' },
-              ]}
-              onChange={(value) => onChange('vwapRelation', value)}
-            />
-          </>
-        )}
-
-        {(activeTab === 'Volume' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="Relative Volume"
-              value={values.rvolRange}
-              options={[
-                { value: '1-2', label: '1 - 2' },
-                { value: '2-3', label: '2 - 3' },
-                { value: '3-999', label: '3+' },
-              ]}
-              onChange={(value) => onChange('rvolRange', value)}
-            />
-            <SelectField
-              label="Intraday Volume Surge"
-              value={values.volumeShockRange}
-              options={[
-                { value: '1-2', label: '1 - 2' },
-                { value: '2-3', label: '2 - 3' },
-                { value: '3-999', label: '3+' },
-              ]}
-              onChange={(value) => onChange('volumeShockRange', value)}
-            />
-          </>
-        )}
-
-        {(activeTab === 'Catalyst' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="Catalyst Type"
-              value={values.catalystType}
-              options={[
-                { value: 'earnings', label: 'Earnings' },
-                { value: 'news', label: 'News' },
-                { value: 'upgrade', label: 'Upgrade / Downgrade' },
-              ]}
-              onChange={(value) => onChange('catalystType', value)}
-            />
-            <SelectField
-              label="News Sentiment"
-              value={values.sentiment}
-              options={[
-                { value: 'positive', label: 'Positive' },
-                { value: 'neutral', label: 'Neutral' },
-                { value: 'negative', label: 'Negative' },
-              ]}
-              onChange={(value) => onChange('sentiment', value)}
-            />
-          </>
-        )}
-
-        {(activeTab === 'Earnings' || activeTab === 'All') && (
-          <>
-            <SelectField
-              label="Days Until Earnings"
-              value={values.daysUntilEarnings}
-              options={[
-                { value: '0-3', label: '0 - 3 days' },
-                { value: '4-7', label: '4 - 7 days' },
-                { value: '8-30', label: '8 - 30 days' },
-              ]}
-              onChange={(value) => onChange('daysUntilEarnings', value)}
-            />
-            <SelectField
-              label="Expected Move"
-              value={values.expectedMoveRange}
-              options={[
-                { value: '0-2', label: '0 - 2%' },
-                { value: '2-5', label: '2 - 5%' },
-                { value: '5-999', label: '5%+' },
-              ]}
-              onChange={(value) => onChange('expectedMoveRange', value)}
-            />
-          </>
-        )}
+          return (
+            <label key={filter.field} className="space-y-1">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{filter.label}</div>
+              <input
+                className="input-field h-9 w-full"
+                placeholder="Contains..."
+                value={values[filter.field] || ''}
+                onChange={(event) => onChange(filter.field, event.target.value)}
+              />
+            </label>
+          );
+        })}
       </div>
 
       <div className="flex flex-wrap gap-2">

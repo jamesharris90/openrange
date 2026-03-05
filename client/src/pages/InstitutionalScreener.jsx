@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, RefreshCw, Save, Search } from 'lucide-react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
@@ -8,46 +8,38 @@ import FilterSidebar from '../components/screener/FilterSidebar';
 import PresetSelector from '../components/screener/PresetSelector';
 import ColumnSelector from '../components/screener/ColumnSelector';
 import ScreenerTable, { defaultColumns } from '../components/screener/ScreenerTable';
-import { buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree } from '../utils/queryTree';
+import { buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree, mapQueryTreeToBackend } from '../utils/queryTree';
+import filterRegistrySource from '../config/filter_registry.json';
+import presetScannerSource from '../config/preset_scanners.json';
 
 const SAVED_FILTERS_KEY = 'openrange:institutional-screener:saved-filters';
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250, 'All'];
 
-const ADAPTIVE_FIELDS = [
-  { key: 'price', label: 'Price' },
-  { key: 'marketCap', label: 'Market Cap' },
-  { key: 'float', label: 'Float' },
-  { key: 'volume', label: 'Volume' },
-  { key: 'relativeVolume', label: 'Relative Volume' },
-  { key: 'dollarVolume', label: 'Dollar Volume' },
-  { key: 'gapPercent', label: 'Gap %' },
-  { key: 'changePercent', label: 'Change %' },
-  { key: 'atrPct', label: 'ATR %' },
-  { key: 'expectedMove', label: 'Expected Move' },
-  { key: 'expectedMoveVsAtr', label: 'Expected Move vs ATR' },
-  { key: 'priceVsVwap', label: 'Price vs VWAP' },
-  { key: 'vwapDistance', label: 'VWAP Distance' },
-  { key: 'rsi', label: 'RSI' },
-  { key: 'priceVsSma20', label: 'Price vs SMA20' },
-  { key: 'priceVsSma50', label: 'Price vs SMA50' },
-  { key: 'priceVsSma200', label: 'Price vs SMA200' },
-  { key: 'macdSignalDistance', label: 'MACD Signal Distance' },
-  { key: 'dist52wHigh', label: '52W High Distance' },
-  { key: 'dist52wLow', label: '52W Low Distance' },
-  { key: 'shortFloat', label: 'Short Float' },
-  { key: 'catalystScore', label: 'Catalyst Score' },
-  { key: 'catalystType', label: 'Catalyst Type' },
-  { key: 'newsSentiment', label: 'News Sentiment' },
-  { key: 'strategyScore', label: 'Strategy Score' },
-  { key: 'setupType', label: 'Setup Type' },
-  { key: 'momentumScore', label: 'Momentum Score' },
-  { key: 'volatilityExpansion', label: 'Volatility Expansion' },
-  { key: 'sectorStrength', label: 'Sector Strength' },
-  { key: 'marketRegimeAlignment', label: 'Market Regime Alignment' },
-  { key: 'daysUntilEarnings', label: 'Days Until Earnings' },
-  { key: 'earningsBeatRate', label: 'Earnings Beat Rate' },
-  { key: 'volumeShock', label: 'Intraday Volume Surge' },
-];
+const SHARED_FILTER_REGISTRY = filterRegistrySource;
+const SHARED_PRESETS = presetScannerSource;
+
+const ROW_FIELD_ACCESSORS = {
+  price: 'price',
+  market_cap: 'marketCap',
+  float: 'float',
+  volume: 'volume',
+  relative_volume: 'relativeVolume',
+  gap_percent: 'gapPercent',
+  change_percent: 'changePercent',
+  atr_percent: 'atrPct',
+  expected_move: 'expectedMove',
+  vwap_distance: 'vwapDistance',
+  rsi: 'rsi',
+  sma20_distance: 'sma20Distance',
+  sma50_distance: 'sma50Distance',
+  sma200_distance: 'sma200Distance',
+  short_float: 'shortFloat',
+  strategy_score: 'strategyScore',
+  setup_type: 'setupType',
+  catalyst_score: 'catalystScore',
+  news_sentiment: 'newsSentiment',
+  earnings_date: 'earningsDate',
+};
 
 function safeNumber(value) {
   const num = Number(value);
@@ -102,6 +94,9 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
   const price = safeNumber(scanner.price ?? metrics.price);
   const atr = safeNumber(metrics.atr);
   const vwap = safeNumber(metrics.vwap);
+  const sma20 = safeNumber(metrics.sma20 ?? metrics.sma_20);
+  const sma50 = safeNumber(metrics.sma50 ?? metrics.sma_50);
+  const sma200 = safeNumber(metrics.sma200 ?? metrics.sma_200);
   const expectedMoveValue = safeNumber(expectedMove.expected_move ?? expectedMove.expectedMove ?? expectedMove.move_percent);
 
   return {
@@ -119,6 +114,9 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
     atrPct: price && atr ? (atr / price) * 100 : null,
     vwapDistance: price && vwap ? ((price - vwap) / vwap) * 100 : null,
     rsi: safeNumber(metrics.rsi),
+    sma20Distance: safeNumber(metrics.sma20_distance) ?? (price && sma20 ? ((price - sma20) / sma20) * 100 : null),
+    sma50Distance: safeNumber(metrics.sma50_distance) ?? (price && sma50 ? ((price - sma50) / sma50) * 100 : null),
+    sma200Distance: safeNumber(metrics.sma200_distance) ?? (price && sma200 ? ((price - sma200) / sma200) * 100 : null),
     strategyScore: safeNumber(setup.score),
     setupType: setup.setup || setup.setup_type || '--',
     catalystScore: safeNumber(catalyst.score ?? setup.catalyst_score),
@@ -141,84 +139,69 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
   };
 }
 
-function createDefaultFilterRow() {
+function createDefaultFilterRow(filters = SHARED_FILTER_REGISTRY.filters) {
+  const first = filters?.[0] || { field: 'price', operators: ['between'] };
   return {
     id: crypto.randomUUID(),
     booleanOp: 'AND',
-    field: 'price',
-    operator: 'between',
+    field: first.field,
+    operator: first.operators?.includes('between') ? 'between' : (first.operators?.[0] || 'equals'),
     value: 3,
     valueTo: 50,
   };
 }
 
-function resolvePresetRows(preset) {
-  switch (preset) {
-    case 'top-gainers':
-      return [{ ...createDefaultFilterRow(), field: 'changePercent', operator: '>', value: 4, valueTo: '' }];
-    case 'top-losers':
-      return [{ ...createDefaultFilterRow(), field: 'changePercent', operator: '<', value: -4, valueTo: '' }];
-    case 'gap-up':
-      return [{ ...createDefaultFilterRow(), field: 'gapPercent', operator: '>', value: 3, valueTo: '' }];
-    case 'gap-down':
-      return [{ ...createDefaultFilterRow(), field: 'gapPercent', operator: '<', value: -3, valueTo: '' }];
-    case 'high-rvol':
-      return [{ ...createDefaultFilterRow(), field: 'relativeVolume', operator: '>', value: 2.5, valueTo: '' }];
-    case 'low-float-momentum':
-      return [
-        { ...createDefaultFilterRow(), field: 'float', operator: '<', value: 30000000, valueTo: '' },
-        { ...createDefaultFilterRow(), booleanOp: 'AND', field: 'strategyScore', operator: '>', value: 75, valueTo: '' },
-      ];
-    case 'pre-market-movers':
-      return [{ ...createDefaultFilterRow(), field: 'gapPercent', operator: '>', value: 2, valueTo: '' }];
-    case 'post-earnings-movers':
-      return [
-        { ...createDefaultFilterRow(), field: 'daysUntilEarnings', operator: 'between', value: 0, valueTo: 3 },
-        { ...createDefaultFilterRow(), booleanOp: 'AND', field: 'expectedMove', operator: '>', value: 2, valueTo: '' },
-      ];
-    case 'high-expected-move':
-      return [{ ...createDefaultFilterRow(), field: 'expectedMove', operator: '>', value: 5, valueTo: '' }];
-    case 'catalyst-technical':
-      return [
-        { ...createDefaultFilterRow(), field: 'catalystScore', operator: '>', value: 1.5, valueTo: '' },
-        { ...createDefaultFilterRow(), booleanOp: 'AND', field: 'strategyScore', operator: '>', value: 70, valueTo: '' },
-      ];
-    default:
-      return [createDefaultFilterRow()];
+function flattenTreeToRows(node, rows = [], boolOp = 'AND') {
+  if (!node) return rows;
+
+  if (node.field) {
+    const value = Array.isArray(node.value) ? node.value[0] : node.value;
+    const valueTo = Array.isArray(node.value) ? node.value[1] : '';
+    rows.push({
+      id: crypto.randomUUID(),
+      booleanOp: rows.length ? boolOp : 'AND',
+      field: node.field,
+      operator: node.operator,
+      value,
+      valueTo,
+    });
+    return rows;
   }
+
+  const nextOp = node.operator || 'AND';
+  (node.conditions || []).forEach((condition) => flattenTreeToRows(condition, rows, nextOp));
+  return rows;
+}
+
+function resolvePresetRows(presetKey) {
+  const selectedPreset = (SHARED_PRESETS.presets || []).find((preset) => preset.key === presetKey);
+  if (!selectedPreset?.query_tree) {
+    return [createDefaultFilterRow()];
+  }
+  const rows = flattenTreeToRows(selectedPreset.query_tree);
+  return rows.length ? rows : [createDefaultFilterRow()];
 }
 
 export default function InstitutionalScreener() {
+  const defaultPreset = SHARED_PRESETS.default_preset || 'high-rvol';
+  const initialPresetRows = resolvePresetRows(defaultPreset);
+  const abortRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
   const [tickerSearch, setTickerSearch] = useState('');
-  const [preset, setPreset] = useState('none');
+  const [preset, setPreset] = useState(defaultPreset);
   const [filterMode, setFilterMode] = useState('adaptive');
   const [rawRows, setRawRows] = useState([]);
   const [selectedSymbol, setSelectedSymbol] = useState('');
-  const [adaptiveRows, setAdaptiveRows] = useState([createDefaultFilterRow()]);
-  const [appliedAdaptiveRows, setAppliedAdaptiveRows] = useState([createDefaultFilterRow()]);
-  const [structuredValues, setStructuredValues] = useState({
-    exchange: '',
-    sector: '',
-    country: '',
-    priceRange: '',
-    marketCapRange: '',
-    floatRange: '',
-    rsiRange: '',
-    vwapRelation: '',
-    rvolRange: '',
-    volumeShockRange: '',
-    catalystType: '',
-    sentiment: '',
-    daysUntilEarnings: '',
-    expectedMoveRange: '',
-  });
+  const [adaptiveRows, setAdaptiveRows] = useState(initialPresetRows);
+  const [appliedAdaptiveRows, setAppliedAdaptiveRows] = useState(initialPresetRows);
+  const [structuredValues, setStructuredValues] = useState({});
   const [appliedStructuredValues, setAppliedStructuredValues] = useState(structuredValues);
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState('strategyScore');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [filterRegistry, setFilterRegistry] = useState({});
+  const [filterRegistry] = useState(SHARED_FILTER_REGISTRY);
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
   const [columnOrder, setColumnOrder] = useState(defaultColumns.map((column) => column.key));
   const [heatmapMode, setHeatmapMode] = useState(false);
@@ -230,8 +213,13 @@ export default function InstitutionalScreener() {
   const appliedQueryTree = useMemo(
     () => (filterMode === 'adaptive'
       ? buildQueryTreeFromRows(appliedAdaptiveRows)
-      : buildStructuredQueryTree(appliedStructuredValues)),
-    [filterMode, appliedAdaptiveRows, appliedStructuredValues]
+      : buildStructuredQueryTree(appliedStructuredValues, filterRegistry.filters)),
+    [filterMode, appliedAdaptiveRows, appliedStructuredValues, filterRegistry.filters]
+  );
+
+  const backendQueryTree = useMemo(
+    () => mapQueryTreeToBackend(appliedQueryTree, filterRegistry.filters, filterRegistry.backend_operator_support),
+    [appliedQueryTree, filterRegistry]
   );
 
   const debouncedQuerySignature = useDebouncedValue(JSON.stringify(appliedQueryTree), 300);
@@ -246,38 +234,77 @@ export default function InstitutionalScreener() {
     [columns, hiddenColumns]
   );
 
+  const adaptiveFields = useMemo(
+    () => (filterRegistry.filters || []).map((item) => ({ key: item.field, label: item.label, operators: item.operators })),
+    [filterRegistry]
+  );
+
+  const presetOptions = useMemo(
+    () => (SHARED_PRESETS.presets || []).map((item) => ({ key: item.key, label: item.label })),
+    []
+  );
+
   const loadData = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
 
-    const safe = async (path, fallback) => {
+    const safe = async (path, fallback, options = {}) => {
       try {
-        return await apiJSON(path);
-      } catch {
+        return await apiJSON(path, { ...options, signal: controller.signal });
+      } catch (error) {
+        if (error?.name === 'AbortError') throw error;
         return fallback;
       }
     };
 
-    const [
-      scanner,
-      setups,
-      catalysts,
-      metrics,
-      expectedMove,
-      earnings,
-      filters,
-      system,
-      narrative,
-    ] = await Promise.all([
-      safe('/api/scanner', []),
-      safe('/api/setups', []),
-      safe('/api/catalysts', []),
-      safe('/api/metrics', []),
-      safe('/api/expected-move', []),
-      safe('/api/earnings', []),
-      safe('/api/filters', {}),
-      safe('/api/system/report', null),
-      safe('/api/market-narrative', null),
-    ]);
+    let screenerResponse = null;
+    try {
+      screenerResponse = await safe('/api/screener', null, {
+        method: 'POST',
+        body: JSON.stringify({ query_tree: backendQueryTree }),
+      });
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+
+    let scanner;
+    let setups;
+    let catalysts;
+    let metrics;
+    let expectedMove;
+    let earnings;
+    let system;
+    let narrative;
+
+    try {
+      [
+        scanner,
+        setups,
+        catalysts,
+        metrics,
+        expectedMove,
+        earnings,
+        system,
+        narrative,
+      ] = await Promise.all([
+        safe('/api/scanner', []),
+        safe('/api/setups', []),
+        safe('/api/catalysts', []),
+        safe('/api/metrics', []),
+        safe('/api/expected-move', []),
+        safe('/api/earnings', []),
+        safe('/api/system/report', null),
+        safe('/api/market-narrative', null),
+      ]);
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      setLoading(false);
+      return;
+    }
+
+    if (controller.signal.aborted) return;
 
     const scannerMap = new Map((Array.isArray(scanner) ? scanner : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
     const setupMap = new Map((Array.isArray(setups) ? setups : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
@@ -294,17 +321,26 @@ export default function InstitutionalScreener() {
       ...expectedMoveMap.keys(),
     ]);
 
-    const rows = [...symbols]
+    const fallbackRows = [...symbols]
       .filter(Boolean)
       .map((symbol) => rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, expectedMoveMap, earningsMap, narrative))
       .filter((row) => row.symbol);
 
+    const rows = Array.isArray(screenerResponse?.rows)
+      ? screenerResponse.rows.map((row) => ({ ...row, symbol: String(row.symbol || '').toUpperCase() })).filter((row) => row.symbol)
+      : fallbackRows;
+
     setRawRows(rows);
-    setFilterRegistry(filters || {});
     setSystemReport(system);
     setLastRefresh(new Date().toISOString());
     setLoading(false);
     setSelectedSymbol((current) => current || rows[0]?.symbol || '');
+  }, [backendQueryTree]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -431,7 +467,7 @@ export default function InstitutionalScreener() {
       return;
     }
 
-    setPreset(found.preset || 'none');
+    setPreset(found.preset || defaultPreset);
     setFilterMode(found.filterMode || 'adaptive');
     setAdaptiveRows(Array.isArray(found.adaptiveRows) && found.adaptiveRows.length ? found.adaptiveRows : [createDefaultFilterRow()]);
     setAppliedAdaptiveRows(Array.isArray(found.adaptiveRows) && found.adaptiveRows.length ? found.adaptiveRows : [createDefaultFilterRow()]);
@@ -446,22 +482,7 @@ export default function InstitutionalScreener() {
   }
 
   function clearStructuredFilters() {
-    const empty = {
-      exchange: '',
-      sector: '',
-      country: '',
-      priceRange: '',
-      marketCapRange: '',
-      floatRange: '',
-      rsiRange: '',
-      vwapRelation: '',
-      rvolRange: '',
-      volumeShockRange: '',
-      catalystType: '',
-      sentiment: '',
-      daysUntilEarnings: '',
-      expectedMoveRange: '',
-    };
+    const empty = {};
     setStructuredValues(empty);
     setAppliedStructuredValues(empty);
   }
@@ -535,7 +556,7 @@ export default function InstitutionalScreener() {
             />
           </label>
 
-          <PresetSelector value={preset} onChange={setPreset} />
+          <PresetSelector value={preset} onChange={setPreset} presets={presetOptions} />
 
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={saveFilter}><Save size={15} className="mr-1 inline" />Save Filter</button>
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={loadFilter}>Load Filter</button>
@@ -565,14 +586,14 @@ export default function InstitutionalScreener() {
           mode={filterMode}
           onModeChange={setFilterMode}
           adaptiveProps={{
-            fields: ADAPTIVE_FIELDS,
+            fields: adaptiveFields,
             rows: adaptiveRows,
             onChangeRow: updateAdaptiveRow,
             onAddRow: addAdaptiveRow,
             onRemoveRow: removeAdaptiveRow,
             onApply: () => setAppliedAdaptiveRows(adaptiveRows),
             onClear: () => {
-              const next = [createDefaultFilterRow()];
+              const next = [createDefaultFilterRow(filterRegistry.filters)];
               setAdaptiveRows(next);
               setAppliedAdaptiveRows(next);
             },

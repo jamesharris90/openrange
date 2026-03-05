@@ -1,3 +1,56 @@
+const FIELD_ACCESSORS = {
+  price: 'price',
+  market_cap: 'marketCap',
+  float: 'float',
+  volume: 'volume',
+  relative_volume: 'relativeVolume',
+  gap_percent: 'gapPercent',
+  change_percent: 'changePercent',
+  atr_percent: 'atrPct',
+  expected_move: 'expectedMove',
+  vwap_distance: 'vwapDistance',
+  rsi: 'rsi',
+  sma20_distance: 'sma20Distance',
+  sma50_distance: 'sma50Distance',
+  sma200_distance: 'sma200Distance',
+  short_float: 'shortFloat',
+  strategy_score: 'strategyScore',
+  setup_type: 'setupType',
+  catalyst_score: 'catalystScore',
+  news_sentiment: 'newsSentiment',
+  earnings_date: 'earningsDate',
+};
+
+function normalizeFieldName(fieldName = '') {
+  const camelMap = {
+    marketCap: 'market_cap',
+    relativeVolume: 'relative_volume',
+    gapPercent: 'gap_percent',
+    changePercent: 'change_percent',
+    atrPct: 'atr_percent',
+    expectedMove: 'expected_move',
+    vwapDistance: 'vwap_distance',
+    sma20Distance: 'sma20_distance',
+    sma50Distance: 'sma50_distance',
+    sma200Distance: 'sma200_distance',
+    shortFloat: 'short_float',
+    strategyScore: 'strategy_score',
+    setupType: 'setup_type',
+    catalystScore: 'catalyst_score',
+    newsSentiment: 'news_sentiment',
+    earningsDate: 'earnings_date',
+  };
+
+  return camelMap[fieldName] || fieldName;
+}
+
+function toComparableDate(value) {
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  const stamp = date.getTime();
+  return Number.isFinite(stamp) ? stamp : null;
+}
+
 function compareWithOperator(actual, operator, value) {
   if (actual == null) return false;
 
@@ -14,8 +67,12 @@ function compareWithOperator(actual, operator, value) {
     return value.map((item) => String(item).toLowerCase()).includes(String(actual).toLowerCase());
   }
 
-  const numericActual = Number(actual);
-  const numericValue = Number(value);
+  const dateActual = toComparableDate(actual);
+  const dateValue = toComparableDate(value);
+  const isDateComparison = dateActual != null && (dateValue != null || (Array.isArray(value) && value.every((item) => toComparableDate(item) != null)));
+
+  const numericActual = isDateComparison ? dateActual : Number(actual);
+  const numericValue = isDateComparison ? dateValue : Number(value);
 
   if (!Number.isFinite(numericActual)) return false;
 
@@ -38,7 +95,7 @@ function toCondition(row) {
   if (!row || !row.field) return null;
   const conditionValue = row.operator === 'between' ? [row.value, row.valueTo] : row.value;
   return {
-    field: row.field,
+    field: normalizeFieldName(row.field),
     operator: row.operator || 'equals',
     value: conditionValue,
   };
@@ -89,33 +146,33 @@ function parseRange(textRange) {
   return [min, max];
 }
 
-export function buildStructuredQueryTree(values = {}) {
+export function buildStructuredQueryTree(values = {}, registryFilters = []) {
+  const filterMap = new Map((registryFilters || []).map((item) => [item.field, item]));
   const conditions = [];
 
-  const rangeFields = [
-    ['price', values.priceRange],
-    ['marketCap', values.marketCapRange],
-    ['float', values.floatRange],
-    ['rsi', values.rsiRange],
-    ['relativeVolume', values.rvolRange],
-    ['volumeShock', values.volumeShockRange],
-    ['daysUntilEarnings', values.daysUntilEarnings],
-    ['expectedMove', values.expectedMoveRange],
-  ];
+  Object.entries(values || {}).forEach(([field, rawValue]) => {
+    if (rawValue == null || rawValue === '') return;
+    const descriptor = filterMap.get(field);
+    const isNumericLike = descriptor?.type === 'number';
+    const isDate = descriptor?.type === 'date';
 
-  rangeFields.forEach(([field, rangeText]) => {
-    const range = parseRange(rangeText);
-    if (!range) return;
-    conditions.push({ field, operator: 'between', value: range });
+    if (isNumericLike && typeof rawValue === 'string' && rawValue.includes('-')) {
+      const range = parseRange(rawValue);
+      if (!range) return;
+      conditions.push({ field, operator: 'between', value: range });
+      return;
+    }
+
+    if (isDate && typeof rawValue === 'string' && rawValue.includes('|')) {
+      const [start, end] = rawValue.split('|');
+      if (!start || !end) return;
+      conditions.push({ field, operator: 'between', value: [start, end] });
+      return;
+    }
+
+    const defaultOperator = isNumericLike ? 'equals' : 'contains';
+    conditions.push({ field, operator: defaultOperator, value: rawValue });
   });
-
-  if (values.exchange) conditions.push({ field: 'exchange', operator: 'equals', value: values.exchange });
-  if (values.sector) conditions.push({ field: 'sector', operator: 'equals', value: values.sector });
-  if (values.country) conditions.push({ field: 'country', operator: 'equals', value: values.country });
-  if (values.vwapRelation === 'above') conditions.push({ field: 'vwapDistance', operator: '>', value: 0 });
-  if (values.vwapRelation === 'below') conditions.push({ field: 'vwapDistance', operator: '<', value: 0 });
-  if (values.catalystType) conditions.push({ field: 'catalystType', operator: 'contains', value: values.catalystType });
-  if (values.sentiment) conditions.push({ field: 'newsSentiment', operator: 'contains', value: values.sentiment });
 
   return {
     operator: 'AND',
@@ -123,11 +180,17 @@ export function buildStructuredQueryTree(values = {}) {
   };
 }
 
+function getRowValue(row, fieldName) {
+  const normalized = normalizeFieldName(fieldName);
+  const accessor = FIELD_ACCESSORS[normalized] || normalized;
+  return row?.[accessor];
+}
+
 export function evaluateQueryTree(tree, row) {
   if (!tree) return true;
 
   if (tree.field) {
-    return compareWithOperator(row?.[tree.field], tree.operator, tree.value);
+    return compareWithOperator(getRowValue(row, tree.field), tree.operator, tree.value);
   }
 
   const op = tree.operator || 'AND';
@@ -144,4 +207,33 @@ export function evaluateQueryTree(tree, row) {
   }
 
   return conditions.every((condition) => evaluateQueryTree(condition, row));
+}
+
+export function mapQueryTreeToBackend(tree, filters = [], logicalOperators = ['AND', 'OR', 'NOT']) {
+  if (!tree) return null;
+
+  const fieldMap = new Map((filters || []).map((filter) => [filter.field, filter.database_column]));
+  const validLogical = new Set(logicalOperators);
+
+  function walk(node) {
+    if (!node) return null;
+
+    if (node.field) {
+      const normalized = normalizeFieldName(node.field);
+      return {
+        field: normalized,
+        database_column: fieldMap.get(normalized) || normalized,
+        operator: node.operator,
+        value: node.value,
+      };
+    }
+
+    const logical = validLogical.has(node.operator) ? node.operator : 'AND';
+    return {
+      operator: logical,
+      conditions: (node.conditions || []).map(walk).filter(Boolean),
+    };
+  }
+
+  return walk(tree);
 }

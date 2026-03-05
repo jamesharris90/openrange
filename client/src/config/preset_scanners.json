@@ -1,0 +1,149 @@
+{
+  "presets": [
+    {
+      "key": "top-gainers",
+      "label": "Top Gainers",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "change_percent", "operator": ">", "value": 4 }
+        ]
+      }
+    },
+    {
+      "key": "top-losers",
+      "label": "Top Losers",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "change_percent", "operator": "<", "value": -4 }
+        ]
+      }
+    },
+    {
+      "key": "gap-up",
+      "label": "Gap Up",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "gap_percent", "operator": ">", "value": 3 }
+        ]
+      }
+    },
+    {
+      "key": "gap-down",
+      "label": "Gap Down",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "gap_percent", "operator": "<", "value": -3 }
+        ]
+      }
+    },
+    {
+      "key": "high-rvol",
+      "label": "High RVOL",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "relative_volume", "operator": ">", "value": 2 }
+        ]
+      }
+    },
+    {
+      "key": "low-float-momentum",
+      "label": "Low Float Momentum",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "float", "operator": "<", "value": 30000000 },
+          { "field": "strategy_score", "operator": ">", "value": 75 }
+        ]
+      }
+    },
+    {
+      "key": "pre-market-movers",
+      "label": "Pre-Market Movers",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "gap_percent", "operator": ">", "value": 2 },
+          { "field": "relative_volume", "operator": ">", "value": 1.5 }
+        ]
+      }
+    },
+    {
+      "key": "post-earnings-movers",
+      "label": "Post-Earnings Movers",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "expected_move", "operator": ">", "value": 2 },
+          { "field": "earnings_date", "operator": "between", "value": [0, 3] }
+        ]
+      }
+    },
+    {
+      "key": "high-expected-move",
+      "label": "High Expected Move",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "expected_move", "operator": ">", "value": 5 }
+        ]
+      }
+    },
+    {
+      "key": "catalyst-technical",
+      "label": "Catalyst + Technical",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "catalyst_score", "operator": ">", "value": 50 },
+          {
+            "operator": "OR",
+            "conditions": [
+              { "field": "strategy_score", "operator": ">", "value": 70 },
+              { "field": "change_percent", "operator": ">", "value": 3 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "vwap-reclaim",
+      "label": "VWAP Reclaim",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "vwap_distance", "operator": ">", "value": 0 },
+          { "field": "relative_volume", "operator": ">", "value": 1.8 }
+        ]
+      }
+    },
+    {
+      "key": "momentum-continuation",
+      "label": "Momentum Continuation",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "change_percent", "operator": ">", "value": 2 },
+          { "field": "strategy_score", "operator": ">", "value": 70 },
+          { "field": "relative_volume", "operator": ">", "value": 2 }
+        ]
+      }
+    },
+    {
+      "key": "mean-reversion",
+      "label": "Mean Reversion",
+      "query_tree": {
+        "operator": "AND",
+        "conditions": [
+          { "field": "rsi", "operator": "<", "value": 30 },
+          { "field": "change_percent", "operator": "<", "value": -2 }
+        ]
+      }
+    }
+  ],
+  "default_preset": "high-rvol"
+}

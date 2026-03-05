@@ -6,7 +6,7 @@ function parseValue(raw) {
   return Number.isFinite(asNum) ? asNum : String(raw).trim();
 }
 
-const OPERATORS = [
+const DEFAULT_OPERATORS = [
   { key: '>', label: '>' },
   { key: '>=', label: '>=' },
   { key: '<', label: '<' },
@@ -24,6 +24,10 @@ const BOOL_OPERATORS = [
 
 export default function FilterBuilder({ fields, rows, onChangeRow, onAddRow, onRemoveRow, onApply, onClear }) {
   const fieldOptions = useMemo(() => fields, [fields]);
+  const operatorMap = useMemo(
+    () => new Map(fieldOptions.map((field) => [field.key, field.operators || []])),
+    [fieldOptions]
+  );
 
   return (
     <div className="space-y-3">
@@ -67,9 +71,12 @@ export default function FilterBuilder({ fields, rows, onChangeRow, onAddRow, onR
                 value={row.operator}
                 onChange={(event) => onChangeRow(row.id, 'operator', event.target.value)}
               >
-                {OPERATORS.map((operator) => (
-                  <option key={operator.key} value={operator.key}>{operator.label}</option>
-                ))}
+                  {(operatorMap.get(row.field)?.length
+                    ? operatorMap.get(row.field).map((item) => ({ key: item, label: item }))
+                    : DEFAULT_OPERATORS
+                  ).map((operator) => (
+                    <option key={operator.key} value={operator.key}>{operator.label}</option>
+                  ))}
               </select>
 
               <input

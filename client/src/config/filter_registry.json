@@ -1,0 +1,166 @@
+{
+  "filters": [
+    {
+      "field": "price",
+      "label": "Price",
+      "type": "number",
+      "operators": [">", ">=", "<", "<=", "between"],
+      "database_column": "market_metrics.price",
+      "group": "Descriptive"
+    },
+    {
+      "field": "market_cap",
+      "label": "Market Cap",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.market_cap",
+      "group": "Fundamental"
+    },
+    {
+      "field": "float",
+      "label": "Float",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.float_shares",
+      "group": "Fundamental"
+    },
+    {
+      "field": "volume",
+      "label": "Volume",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.volume",
+      "group": "Volume"
+    },
+    {
+      "field": "relative_volume",
+      "label": "Relative Volume",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.relative_volume",
+      "group": "Volume"
+    },
+    {
+      "field": "gap_percent",
+      "label": "Gap %",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.gap_percent",
+      "group": "Descriptive"
+    },
+    {
+      "field": "change_percent",
+      "label": "Change %",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.change_percent",
+      "group": "Descriptive"
+    },
+    {
+      "field": "atr_percent",
+      "label": "ATR %",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.atr_percent",
+      "group": "Technical"
+    },
+    {
+      "field": "expected_move",
+      "label": "Expected Move",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "expected_move.expected_move",
+      "group": "Earnings"
+    },
+    {
+      "field": "vwap_distance",
+      "label": "VWAP Distance",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.vwap_distance",
+      "group": "Technical"
+    },
+    {
+      "field": "rsi",
+      "label": "RSI",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.rsi",
+      "group": "Technical"
+    },
+    {
+      "field": "sma20_distance",
+      "label": "SMA20 Distance",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.sma20_distance",
+      "group": "Technical"
+    },
+    {
+      "field": "sma50_distance",
+      "label": "SMA50 Distance",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.sma50_distance",
+      "group": "Technical"
+    },
+    {
+      "field": "sma200_distance",
+      "label": "SMA200 Distance",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.sma200_distance",
+      "group": "Technical"
+    },
+    {
+      "field": "short_float",
+      "label": "Short Float",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "market_metrics.short_percent_float",
+      "group": "Fundamental"
+    },
+    {
+      "field": "strategy_score",
+      "label": "Strategy Score",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "trade_setups.score",
+      "group": "Technical"
+    },
+    {
+      "field": "setup_type",
+      "label": "Setup Type",
+      "type": "string",
+      "operators": ["equals", "contains"],
+      "database_column": "trade_setups.setup",
+      "group": "Technical"
+    },
+    {
+      "field": "catalyst_score",
+      "label": "Catalyst Score",
+      "type": "number",
+      "operators": [">", "<", "between"],
+      "database_column": "trade_catalysts.score",
+      "group": "Catalyst"
+    },
+    {
+      "field": "news_sentiment",
+      "label": "News Sentiment",
+      "type": "string",
+      "operators": ["equals", "contains"],
+      "database_column": "trade_catalysts.sentiment",
+      "group": "Catalyst"
+    },
+    {
+      "field": "earnings_date",
+      "label": "Earnings Date",
+      "type": "date",
+      "operators": [">", "<", "between", "equals"],
+      "database_column": "earnings_events.date",
+      "group": "Earnings"
+    }
+  ],
+  "backend_operator_support": ["AND", "OR", "NOT"],
+  "structured_tabs": ["Descriptive", "Fundamental", "Technical", "Volume", "Catalyst", "Earnings", "All"]
+}

@@ -1,21 +1,10 @@
 import { useMemo } from 'react';
 
-const PRESETS = [
-  { key: 'none', label: 'Custom' },
-  { key: 'top-gainers', label: 'Top Gainers' },
-  { key: 'top-losers', label: 'Top Losers' },
-  { key: 'gap-up', label: 'Gap Up' },
-  { key: 'gap-down', label: 'Gap Down' },
-  { key: 'high-rvol', label: 'High RVOL' },
-  { key: 'low-float-momentum', label: 'Low Float Momentum' },
-  { key: 'pre-market-movers', label: 'Pre-Market Movers' },
-  { key: 'post-earnings-movers', label: 'Post-Earnings Movers' },
-  { key: 'high-expected-move', label: 'High Expected Move' },
-  { key: 'catalyst-technical', label: 'Catalyst + Technical' },
-];
-
-export default function PresetSelector({ value, onChange }) {
-  const options = useMemo(() => PRESETS, []);
+export default function PresetSelector({ value, onChange, presets = [] }) {
+  const options = useMemo(
+    () => [{ key: 'none', label: 'Custom' }, ...presets],
+    [presets]
+  );
 
   return (
     <label className="flex items-center gap-2">
@@ -32,5 +21,3 @@ export default function PresetSelector({ value, onChange }) {
     </label>
   );
 }
-
-export { PRESETS };

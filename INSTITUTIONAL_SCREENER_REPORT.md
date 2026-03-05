@@ -80,6 +80,19 @@ Implemented a new institutional-grade screener interface in the React client and
 - Added a 300ms debounce guard around query-driven API refresh to prevent excessive request bursts.
 - This prepares screener filters for direct reuse by future alert-rule execution without changing backend workers.
 
+## Screener Completion Phase
+- Added canonical filter registry: `client/src/config/filter_registry.json`.
+- Registry now contains required filter metadata for:
+  - `price`, `market_cap`, `float`, `volume`, `relative_volume`, `gap_percent`, `change_percent`, `atr_percent`, `expected_move`, `vwap_distance`, `rsi`, `sma20_distance`, `sma50_distance`, `sma200_distance`, `short_float`, `strategy_score`, `setup_type`, `catalyst_score`, `news_sentiment`, `earnings_date`.
+- Each filter entry includes: `field`, `label`, `type`, `operators`, `database_column`.
+- Added preset scanner library: `client/src/config/preset_scanners.json` with query-tree presets:
+  - Top Gainers, Top Losers, Gap Up, Gap Down, High RVOL, Low Float Momentum, Pre-Market Movers, Post-Earnings Movers, High Expected Move, Catalyst + Technical, VWAP Reclaim, Momentum Continuation, Mean Reversion.
+- Default screener behavior now auto-applies `High RVOL` on load.
+- Adaptive Builder and Structured Filters now both source definitions from the same registry.
+- Query trees now support backend translation (`AND`, `OR`, `NOT`) via `mapQueryTreeToBackend(...)` with field-to-database mapping from registry.
+- API refresh is debounced at 300ms and now aborts prior in-flight requests when new filter changes apply.
+- Layout constraints maintained: 320px filter sidebar, 320px intelligence panel, responsive center table with virtualization preserved.
+
 ## New/Updated Files
 
 ### New
@@ -92,6 +105,8 @@ Implemented a new institutional-grade screener interface in the React client and
 - `client/src/components/screener/ScreenerTable.jsx`
 - `client/src/components/charts/SparklineMini.jsx`
 - `client/src/utils/queryTree.js`
+- `client/src/config/filter_registry.json`
+- `client/src/config/preset_scanners.json`
 
 ### Updated
 - `client/src/App.jsx`
