@@ -39,6 +39,13 @@ Implemented a new institutional-grade screener interface in the React client and
 ### 4) Results table
 - Sortable institutional columns.
 - Row hover + selected-row behavior.
+- Sticky table header and keyboard row navigation.
+- Column resizing support.
+- In-table column visibility menu.
+- Row-level quick-action hover overlay (watchlist/chart/intelligence/catalysts).
+- Row sparklines beside ticker symbols.
+- Cell heatmap styling for `Change %`, `Gap %`, `Relative Volume`, `Strategy Score`, and `Catalyst Score`.
+- Optional heatmap mode toggle for stronger magnitude visualization.
 - Virtualization path enabled for large sets (`>100` rows).
 - Pagination footer with page-size options: `25`, `50`, `100`, `250`, `All`.
 - Displays “Showing x–y of z”.
@@ -54,6 +61,24 @@ Implemented a new institutional-grade screener interface in the React client and
 ### 6) Routing and navigation
 - Added route `/screener` in `client/src/App.jsx`.
 - Updated Sidebar Scanner link to `/screener` in `client/src/components/layout/Sidebar.tsx`.
+- Added legacy redirects:
+  - `/screeners` → `/screener`
+  - `/screener-v2` → `/screener`
+  - `/screener-v3` → `/screener`
+
+## Query Tree Architecture
+- Added `client/src/utils/queryTree.js` to standardize filter logic into a reusable boolean query tree.
+- Adaptive builder rows now compile into a normalized tree structure with nested `AND` / `OR` / `NOT` semantics.
+- Structured filters also compile to the same tree format for cross-mode consistency.
+- Row filtering executes against the query tree via a shared evaluator, reducing mode-specific branching.
+
+## Alert Engine Preparation
+- Saved filters now persist future-facing metadata:
+  - `filter_name`
+  - `query_tree`
+  - `timestamp`
+- Added a 300ms debounce guard around query-driven API refresh to prevent excessive request bursts.
+- This prepares screener filters for direct reuse by future alert-rule execution without changing backend workers.
 
 ## New/Updated Files
 
@@ -65,6 +90,8 @@ Implemented a new institutional-grade screener interface in the React client and
 - `client/src/components/screener/StructuredFilters.jsx`
 - `client/src/components/screener/FilterSidebar.jsx`
 - `client/src/components/screener/ScreenerTable.jsx`
+- `client/src/components/charts/SparklineMini.jsx`
+- `client/src/utils/queryTree.js`
 
 ### Updated
 - `client/src/App.jsx`

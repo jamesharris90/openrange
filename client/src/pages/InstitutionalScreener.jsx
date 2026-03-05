@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, RefreshCw, Save, Search } from 'lucide-react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
@@ -8,6 +8,7 @@ import FilterSidebar from '../components/screener/FilterSidebar';
 import PresetSelector from '../components/screener/PresetSelector';
 import ColumnSelector from '../components/screener/ColumnSelector';
 import ScreenerTable, { defaultColumns } from '../components/screener/ScreenerTable';
+import { buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree } from '../utils/queryTree';
 
 const SAVED_FILTERS_KEY = 'openrange:institutional-screener:saved-filters';
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250, 'All'];
@@ -53,35 +54,6 @@ function safeNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-function compareWithOperator(actual, operator, value, valueTo) {
-  if (actual == null) return false;
-
-  if (operator === 'contains') {
-    return String(actual).toLowerCase().includes(String(value ?? '').toLowerCase());
-  }
-
-  if (operator === 'equals') {
-    return String(actual).toLowerCase() === String(value ?? '').toLowerCase();
-  }
-
-  const numericActual = Number(actual);
-  const numericValue = Number(value);
-  const numericValueTo = Number(valueTo);
-
-  if (!Number.isFinite(numericActual)) return false;
-
-  if (operator === '>') return numericActual > numericValue;
-  if (operator === '>=') return numericActual >= numericValue;
-  if (operator === '<') return numericActual < numericValue;
-  if (operator === '<=') return numericActual <= numericValue;
-  if (operator === 'between') {
-    if (!Number.isFinite(numericValue) || !Number.isFinite(numericValueTo)) return false;
-    return numericActual >= numericValue && numericActual <= numericValueTo;
-  }
-
-  return true;
-}
-
 function useDebouncedValue(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);
 
@@ -91,6 +63,32 @@ function useDebouncedValue(value, delay = 250) {
   }, [value, delay]);
 
   return debounced;
+}
+
+function buildSparkline(scanner, metrics, setup, catalyst) {
+  const preferred =
+    scanner.sparkline ||
+    scanner.sparkline_1d ||
+    metrics.sparkline ||
+    metrics.sparkline_1d ||
+    setup.sparkline ||
+    catalyst.sparkline;
+
+  if (Array.isArray(preferred) && preferred.length > 1) return preferred;
+
+  const baseline = Number(scanner.price ?? metrics.price ?? 50) || 50;
+  const drift = Number(metrics.change_percent ?? scanner.change_percent ?? scanner.gap_percent ?? 0) || 0;
+  const scale = Math.max(0.2, Math.min(2.5, Math.abs(drift) / 6 + 0.35));
+
+  return [
+    baseline * (1 - 0.02 * scale),
+    baseline * (1 - 0.01 * scale),
+    baseline * (1 + 0.005 * scale),
+    baseline * (1 + (drift / 100) * 0.4),
+    baseline * (1 + (drift / 100) * 0.7),
+    baseline * (1 + (drift / 100) * 0.9),
+    baseline * (1 + drift / 100),
+  ];
 }
 
 function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, expectedMoveMap, earningsMap, narrative) {
@@ -109,6 +107,7 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
   return {
     symbol,
     companyName: scanner.company_name || metrics.company_name || '--',
+    exchange: scanner.exchange || metrics.exchange || '--',
     sector: scanner.sector || metrics.sector || '--',
     country: scanner.country || metrics.country || '--',
     price,
@@ -138,14 +137,8 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
     earningsBeatRate: safeNumber(earnings.beat_rate ?? earnings.beatRate),
     shortFloat: safeNumber(metrics.short_float ?? metrics.short_percent_float),
     marketCap: safeNumber(metrics.market_cap ?? scanner.market_cap),
+    sparkline: buildSparkline(scanner, metrics, setup, catalyst),
   };
-}
-
-function parseRange(rangeText) {
-  if (!rangeText) return null;
-  const [min, max] = String(rangeText).split('-').map(Number);
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
-  return { min, max };
 }
 
 function createDefaultFilterRow() {
@@ -228,10 +221,20 @@ export default function InstitutionalScreener() {
   const [filterRegistry, setFilterRegistry] = useState({});
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
   const [columnOrder, setColumnOrder] = useState(defaultColumns.map((column) => column.key));
+  const [heatmapMode, setHeatmapMode] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [systemReport, setSystemReport] = useState(null);
 
   const debouncedSearch = useDebouncedValue(tickerSearch, 250);
+
+  const appliedQueryTree = useMemo(
+    () => (filterMode === 'adaptive'
+      ? buildQueryTreeFromRows(appliedAdaptiveRows)
+      : buildStructuredQueryTree(appliedStructuredValues)),
+    [filterMode, appliedAdaptiveRows, appliedStructuredValues]
+  );
+
+  const debouncedQuerySignature = useDebouncedValue(JSON.stringify(appliedQueryTree), 300);
 
   const columns = useMemo(() => {
     const map = new Map(defaultColumns.map((column) => [column.key, column]));
@@ -243,7 +246,7 @@ export default function InstitutionalScreener() {
     [columns, hiddenColumns]
   );
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const safe = async (path, fallback) => {
@@ -301,12 +304,12 @@ export default function InstitutionalScreener() {
     setSystemReport(system);
     setLastRefresh(new Date().toISOString());
     setLoading(false);
-    if (!selectedSymbol && rows.length > 0) setSelectedSymbol(rows[0].symbol);
-  }
+    setSelectedSymbol((current) => current || rows[0]?.symbol || '');
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData, debouncedQuerySignature]);
 
   useEffect(() => {
     if (preset === 'none') return;
@@ -316,64 +319,14 @@ export default function InstitutionalScreener() {
   }, [preset]);
 
   const filteredRows = useMemo(() => {
-    const evaluateAdaptiveRow = (row, filterRow) => {
-      const value = row[filterRow.field];
-      return compareWithOperator(value, filterRow.operator, filterRow.value, filterRow.valueTo);
-    };
-
     return rawRows
       .filter((row) => {
         if (!debouncedSearch) return true;
         const query = debouncedSearch.trim().toLowerCase();
         return row.symbol.toLowerCase().includes(query) || String(row.companyName || '').toLowerCase().includes(query);
       })
-      .filter((row) => {
-        if (filterMode !== 'adaptive') return true;
-        if (!appliedAdaptiveRows.length) return true;
-
-        let acc = evaluateAdaptiveRow(row, appliedAdaptiveRows[0]);
-        for (let index = 1; index < appliedAdaptiveRows.length; index += 1) {
-          const f = appliedAdaptiveRows[index];
-          const current = evaluateAdaptiveRow(row, f);
-          if (f.booleanOp === 'AND') acc = acc && current;
-          else if (f.booleanOp === 'OR') acc = acc || current;
-          else if (f.booleanOp === 'NOT') acc = acc && !current;
-        }
-        return acc;
-      })
-      .filter((row) => {
-        if (filterMode !== 'structured') return true;
-
-        const checks = [];
-
-        const rangeChecks = [
-          ['priceRange', row.price],
-          ['marketCapRange', row.marketCap],
-          ['floatRange', row.float],
-          ['rsiRange', row.rsi],
-          ['rvolRange', row.relativeVolume],
-          ['volumeShockRange', row.volumeShock],
-          ['daysUntilEarnings', row.daysUntilEarnings],
-          ['expectedMoveRange', row.expectedMove],
-        ];
-
-        rangeChecks.forEach(([key, value]) => {
-          const range = parseRange(appliedStructuredValues[key]);
-          if (!range) return;
-          checks.push(Number(value) >= range.min && Number(value) <= range.max);
-        });
-
-        if (appliedStructuredValues.exchange) checks.push(String(row.exchange || '').toUpperCase() === appliedStructuredValues.exchange.toUpperCase());
-        if (appliedStructuredValues.sector) checks.push(String(row.sector || '').toLowerCase() === appliedStructuredValues.sector.toLowerCase());
-        if (appliedStructuredValues.country) checks.push(String(row.country || '').toLowerCase() === appliedStructuredValues.country.toLowerCase());
-        if (appliedStructuredValues.vwapRelation === 'above') checks.push((row.vwapDistance ?? -Infinity) > 0);
-        if (appliedStructuredValues.vwapRelation === 'below') checks.push((row.vwapDistance ?? Infinity) < 0);
-        if (appliedStructuredValues.catalystType) checks.push(String(row.catalystType || '').toLowerCase().includes(appliedStructuredValues.catalystType.toLowerCase()));
-        if (appliedStructuredValues.sentiment) checks.push(String(row.newsSentiment || '').toLowerCase().includes(appliedStructuredValues.sentiment.toLowerCase()));
-
-        return checks.every(Boolean);
-      });
-  }, [rawRows, debouncedSearch, filterMode, appliedAdaptiveRows, appliedStructuredValues]);
+      .filter((row) => evaluateQueryTree(appliedQueryTree, row));
+  }, [rawRows, debouncedSearch, appliedQueryTree]);
 
   const sortedRows = useMemo(() => {
     const next = [...filteredRows];
@@ -447,16 +400,18 @@ export default function InstitutionalScreener() {
 
     const saved = JSON.parse(localStorage.getItem(SAVED_FILTERS_KEY) || '[]');
     const payload = {
-      name,
+      filter_name: name,
       preset,
       filterMode,
       adaptiveRows,
       structuredValues,
+      query_tree: appliedQueryTree,
+      timestamp: new Date().toISOString(),
       hiddenColumns: [...hiddenColumns],
       columnOrder,
     };
 
-    const next = [...saved.filter((item) => item.name !== name), payload];
+    const next = [...saved.filter((item) => (item.filter_name || item.name) !== name), payload];
     localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(next));
   }
 
@@ -467,10 +422,10 @@ export default function InstitutionalScreener() {
       return;
     }
 
-    const selectedName = window.prompt(`Load filter name:\n${saved.map((item) => `• ${item.name}`).join('\n')}`);
+    const selectedName = window.prompt(`Load filter name:\n${saved.map((item) => `• ${item.filter_name || item.name}`).join('\n')}`);
     if (!selectedName) return;
 
-    const found = saved.find((item) => item.name === selectedName);
+    const found = saved.find((item) => (item.filter_name || item.name) === selectedName);
     if (!found) {
       window.alert('Filter not found.');
       return;
@@ -548,6 +503,16 @@ export default function InstitutionalScreener() {
     });
   }
 
+  function handleWatchlistAction(symbol) {
+    const saved = JSON.parse(localStorage.getItem('openrange:quick-watchlist') || '[]');
+    if (saved.includes(symbol)) return;
+    localStorage.setItem('openrange:quick-watchlist', JSON.stringify([...saved, symbol]));
+  }
+
+  function openPathForSymbol(path, symbol) {
+    window.location.assign(`${path}?symbol=${encodeURIComponent(symbol)}`);
+  }
+
   const startIndex = total === 0 ? 0 : pageSize === 'All' ? 1 : (safePage - 1) * Number(pageSize) + 1;
   const endIndex = pageSize === 'All' ? total : Math.min(total, safePage * Number(pageSize));
 
@@ -583,6 +548,13 @@ export default function InstitutionalScreener() {
               onToggleColumn={toggleColumn}
               onMoveColumn={moveColumn}
             />
+            <button
+              type="button"
+              className={`btn-secondary h-10 rounded-lg px-3 text-sm ${heatmapMode ? 'border-[var(--accent-blue)] text-[var(--accent-blue)]' : ''}`}
+              onClick={() => setHeatmapMode((current) => !current)}
+            >
+              Heatmap {heatmapMode ? 'On' : 'Off'}
+            </button>
             <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={loadData}><RefreshCw size={15} className="mr-1 inline" />Refresh</button>
           </div>
         </div>
@@ -631,12 +603,20 @@ export default function InstitutionalScreener() {
           ) : (
             <ScreenerTable
               rows={pagedRows}
+              allColumns={columns}
               visibleColumns={visibleColumns}
+              hiddenColumns={hiddenColumns}
               sortKey={sortKey}
               sortDirection={sortDirection}
               onSort={handleSort}
+              onToggleColumn={toggleColumn}
               onSelectSymbol={setSelectedSymbol}
               selectedSymbol={selectedSymbol}
+              heatmapMode={heatmapMode}
+              onAddWatchlist={handleWatchlistAction}
+              onOpenChart={(symbol) => openPathForSymbol('/charts', symbol)}
+              onViewIntelligence={(symbol) => openPathForSymbol('/intelligence-inbox', symbol)}
+              onViewCatalysts={(symbol) => openPathForSymbol('/open-market-radar', symbol)}
             />
           )}
 

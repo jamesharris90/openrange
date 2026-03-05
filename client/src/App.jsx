@@ -17,11 +17,8 @@ const EarningsPage = lazy(() => import('./components/earnings/EarningsPage'));
 const PreMarketCommandCenter = lazy(() => import('./pages/PreMarketCommandCenter'));
 const NewsScannerV2 = lazy(() => import('./pages/NewsScannerV2'));
 const AdvancedScreenerPage = lazy(() => import('./pages/AdvancedScreenerPage'));
-const ScreenerV2 = lazy(() => import('./pages/ScreenerV2'));
-const ScreenerV3 = lazy(() => import('./pages/ScreenerV3'));
 const ScreenerV3FMP = lazy(() => import('./pages/ScreenerV3FMP'));
 const InstitutionalScreener = lazy(() => import('./pages/InstitutionalScreener'));
-const ScreenersPage = lazy(() => import('./pages/ScreenersPage'));
 const MarketOverviewPage = lazy(() => import('./pages/MarketOverviewPage'));
 const MarketHoursPage = lazy(() => import('./pages/MarketHoursPage'));
 const ResearchPage = lazy(() => import('./pages/ResearchPage'));
@@ -48,7 +45,7 @@ export default function App() {
                 <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/screeners" element={<ScreenersPage />} />
+                  <Route path="/screeners" element={<Navigate to="/screener" replace />} />
                   <Route path="/watchlists" element={<WatchlistPage />} />
                   <Route path="/pre-market-command" element={<PreMarketCommandCenter />} />
                   <Route path="/open-market-radar" element={<OpenMarketRadar />} />
@@ -59,8 +56,8 @@ export default function App() {
                   <Route path="/market-overview" element={<MarketOverviewPage />} />
                   <Route path="/market-hours" element={<MarketHoursPage />} />
                   <Route path="/screener" element={<InstitutionalScreener />} />
-                  <Route path="/screener-v2" element={<ScreenerV2 />} />
-                  <Route path="/screener-v3" element={<ScreenerV3 />} />
+                  <Route path="/screener-v2" element={<Navigate to="/screener" replace />} />
+                  <Route path="/screener-v3" element={<Navigate to="/screener" replace />} />
                   <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />
                   <Route path="/advanced-screener" element={<AdvancedScreenerPage />} />
                   <Route path="/news-scanner" element={<NewsScannerV2 />} />

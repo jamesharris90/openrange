@@ -1,4 +1,6 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
+import { BarChart3, LineChart, Newspaper, Star } from 'lucide-react';
+import SparklineMini from '../charts/SparklineMini';
 
 const ROW_HEIGHT = 42;
 const BODY_HEIGHT = 520;
@@ -9,36 +11,103 @@ function fmt(value, digits = 2) {
   return number.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
-const TableRow = memo(function TableRow({ row, visibleColumns, onSelect, selected }) {
+function heatColor(key, value, enabled) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+
+  const baseIntensity = enabled ? 0.5 : 0.22;
+
+  if (key === 'changePercent' || key === 'gapPercent') {
+    const strength = Math.min(1, Math.abs(number) / 10);
+    const alpha = baseIntensity * strength;
+    return number >= 0
+      ? `rgba(34, 197, 94, ${alpha})`
+      : `rgba(239, 68, 68, ${alpha})`;
+  }
+
+  if (key === 'relativeVolume') {
+    const strength = Math.min(1, Math.max(0, (number - 1) / 3));
+    return `rgba(56, 189, 248, ${baseIntensity * strength})`;
+  }
+
+  if (key === 'strategyScore' || key === 'catalystScore') {
+    const clamped = Math.max(0, Math.min(100, number));
+    const strength = clamped / 100;
+    return `rgba(34, 197, 94, ${baseIntensity * strength})`;
+  }
+
+  if (!enabled) return null;
+  const genericStrength = Math.min(1, Math.abs(number) / 100);
+  return `rgba(74, 158, 255, ${0.15 * genericStrength})`;
+}
+
+const TableRow = memo(function TableRow({
+  row,
+  visibleColumns,
+  onSelect,
+  selected,
+  heatmapMode,
+  onAddWatchlist,
+  onOpenChart,
+  onViewIntelligence,
+  onViewCatalysts,
+}) {
   return (
     <tr
-      className={`cursor-pointer transition-colors ${selected ? 'bg-[rgba(74,158,255,0.14)]' : 'hover:bg-[rgba(74,158,255,0.08)]'}`}
+      className={`group cursor-pointer transition-colors ${selected ? 'bg-[rgba(74,158,255,0.14)]' : 'hover:bg-[rgba(74,158,255,0.08)]'}`}
       style={{ height: ROW_HEIGHT }}
       onClick={() => onSelect(row.symbol)}
     >
       {visibleColumns.map((column) => {
         const rendered = column.render ? column.render(row) : row[column.key];
+        const cellHeat = heatColor(column.key, row[column.key], heatmapMode);
         return (
-          <td key={column.key} style={{ textAlign: column.align || 'left' }}>
-            {column.key === 'symbol' ? <strong>{rendered || '--'}</strong> : rendered ?? '--'}
+          <td key={column.key} style={{ textAlign: column.align || 'left', background: cellHeat || undefined }}>
+            {column.key === 'symbol' ? (
+              <div className="flex items-center gap-2">
+                <strong>{rendered || '--'}</strong>
+                <SparklineMini points={row.sparkline} positive={(row.changePercent ?? 0) >= 0} />
+              </div>
+            ) : rendered ?? '--'}
           </td>
         );
       })}
+
+      <td className="sticky right-0 bg-[var(--bg-card)] py-0 pr-2 text-right" onClick={(event) => event.stopPropagation()}>
+        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button type="button" className="rounded border border-[var(--border-color)] p-1 hover:bg-[var(--bg-card-hover)]" title="Add to Watchlist" onClick={() => onAddWatchlist(row.symbol)}><Star size={13} /></button>
+          <button type="button" className="rounded border border-[var(--border-color)] p-1 hover:bg-[var(--bg-card-hover)]" title="Open Chart" onClick={() => onOpenChart(row.symbol)}><LineChart size={13} /></button>
+          <button type="button" className="rounded border border-[var(--border-color)] p-1 hover:bg-[var(--bg-card-hover)]" title="View Intelligence" onClick={() => onViewIntelligence(row.symbol)}><BarChart3 size={13} /></button>
+          <button type="button" className="rounded border border-[var(--border-color)] p-1 hover:bg-[var(--bg-card-hover)]" title="View Catalysts" onClick={() => onViewCatalysts(row.symbol)}><Newspaper size={13} /></button>
+        </div>
+      </td>
     </tr>
   );
 });
 
 export default function ScreenerTable({
   rows,
+  allColumns,
   visibleColumns,
+  hiddenColumns,
   sortKey,
   sortDirection,
   onSort,
+  onToggleColumn,
   onSelectSymbol,
   selectedSymbol,
+  heatmapMode,
+  onAddWatchlist,
+  onOpenChart,
+  onViewIntelligence,
+  onViewCatalysts,
 }) {
   const useVirtualization = rows.length > 100;
   const [scrollTop, setScrollTop] = useState(0);
+  const [showColumns, setShowColumns] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [columnWidths, setColumnWidths] = useState({});
+  const resizeRef = useRef({ key: null, startX: 0, startWidth: 0 });
 
   const { slice, topSpacerHeight, bottomSpacerHeight } = useMemo(() => {
     if (!useVirtualization) {
@@ -60,36 +129,110 @@ export default function ScreenerTable({
     };
   }, [rows, scrollTop, useVirtualization]);
 
+  function applyColumnResize(event) {
+    const active = resizeRef.current;
+    if (!active.key) return;
+    const nextWidth = Math.max(90, active.startWidth + (event.clientX - active.startX));
+    setColumnWidths((current) => ({ ...current, [active.key]: nextWidth }));
+  }
+
+  function stopColumnResize() {
+    resizeRef.current = { key: null, startX: 0, startWidth: 0 };
+    window.removeEventListener('mousemove', applyColumnResize);
+    window.removeEventListener('mouseup', stopColumnResize);
+  }
+
+  function startColumnResize(event, key) {
+    resizeRef.current = {
+      key,
+      startX: event.clientX,
+      startWidth: columnWidths[key] || 140,
+    };
+    window.addEventListener('mousemove', applyColumnResize);
+    window.addEventListener('mouseup', stopColumnResize);
+  }
+
+  function onTableKeyDown(event) {
+    if (!rows.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setFocusedIndex((current) => {
+        const next = Math.min(rows.length - 1, current + 1);
+        onSelectSymbol(rows[next].symbol);
+        return next;
+      });
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setFocusedIndex((current) => {
+        const next = Math.max(0, current - 1);
+        onSelectSymbol(rows[next].symbol);
+        return next;
+      });
+    }
+    if (event.key === 'Enter' && rows[focusedIndex]) {
+      onSelectSymbol(rows[focusedIndex].symbol);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-[0_8px_20px_rgba(12,14,18,0.12)]">
-      <div className="max-h-[560px] overflow-auto" onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
+      <div className="flex items-center justify-between border-b border-[var(--border-color)] px-3 py-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Institutional Results</div>
+        <div className="relative">
+          <button type="button" className="rounded border border-[var(--border-color)] px-2 py-1 text-xs" onClick={() => setShowColumns((current) => !current)}>Columns</button>
+          {showColumns && (
+            <div className="absolute right-0 top-8 z-20 w-56 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-2 shadow-[0_12px_24px_rgba(0,0,0,0.18)]">
+              {allColumns.map((column) => (
+                <label key={column.key} className="flex items-center gap-2 py-1 text-xs">
+                  <input type="checkbox" checked={!hiddenColumns.has(column.key)} onChange={() => onToggleColumn(column.key)} />
+                  <span>{column.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div tabIndex={0} className="max-h-[560px] overflow-auto outline-none" onKeyDown={onTableKeyDown} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
         <table className="data-table min-w-[1120px]">
           <thead>
             <tr>
               {visibleColumns.map((column) => {
                 const active = sortKey === column.key;
                 const arrow = !active ? '↕' : sortDirection === 'asc' ? '↑' : '↓';
+                const width = columnWidths[column.key] || (column.key === 'symbol' ? 180 : 140);
                 return (
                   <th
                     key={column.key}
-                    style={{ textAlign: column.align || 'left', whiteSpace: 'nowrap' }}
+                    className="sticky top-0 z-10 bg-[var(--bg-card)]"
+                    style={{ textAlign: column.align || 'left', whiteSpace: 'nowrap', width, minWidth: width }}
                   >
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 bg-transparent p-0 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
-                      onClick={() => onSort(column.key)}
-                    >
-                      {column.label} <span>{arrow}</span>
-                    </button>
+                    <div className="relative flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 bg-transparent p-0 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                        onClick={() => onSort(column.key)}
+                      >
+                        {column.label} <span>{arrow}</span>
+                      </button>
+                      <span
+                        role="separator"
+                        aria-orientation="vertical"
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize"
+                        onMouseDown={(event) => startColumnResize(event, column.key)}
+                      />
+                    </div>
                   </th>
                 );
               })}
+              <th className="sticky right-0 top-0 z-20 w-[120px] bg-[var(--bg-card)] text-right text-xs uppercase tracking-wide text-[var(--text-muted)]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {topSpacerHeight > 0 && (
               <tr>
-                <td colSpan={visibleColumns.length} style={{ height: topSpacerHeight, padding: 0, border: 'none' }} />
+                <td colSpan={visibleColumns.length + 1} style={{ height: topSpacerHeight, padding: 0, border: 'none' }} />
               </tr>
             )}
 
@@ -100,18 +243,23 @@ export default function ScreenerTable({
                 visibleColumns={visibleColumns}
                 onSelect={onSelectSymbol}
                 selected={selectedSymbol === row.symbol}
+                heatmapMode={heatmapMode}
+                onAddWatchlist={onAddWatchlist}
+                onOpenChart={onOpenChart}
+                onViewIntelligence={onViewIntelligence}
+                onViewCatalysts={onViewCatalysts}
               />
             ))}
 
             {bottomSpacerHeight > 0 && (
               <tr>
-                <td colSpan={visibleColumns.length} style={{ height: bottomSpacerHeight, padding: 0, border: 'none' }} />
+                <td colSpan={visibleColumns.length + 1} style={{ height: bottomSpacerHeight, padding: 0, border: 'none' }} />
               </tr>
             )}
 
             {rows.length === 0 && (
               <tr>
-                <td colSpan={visibleColumns.length} className="py-8 text-center text-sm text-[var(--text-muted)]">
+                <td colSpan={visibleColumns.length + 1} className="py-8 text-center text-sm text-[var(--text-muted)]">
                   No results match the current filter criteria.
                 </td>
               </tr>
@@ -121,7 +269,7 @@ export default function ScreenerTable({
       </div>
 
       <div className="border-t border-[var(--border-color)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Hover rows for quick scan. Click ticker row to open intelligence context.
+        Hover rows for quick actions. Use keyboard arrows to navigate rows.
       </div>
     </div>
   );
