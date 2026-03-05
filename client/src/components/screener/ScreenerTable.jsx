@@ -1,9 +1,11 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, LineChart, Newspaper, Star } from 'lucide-react';
 import SparklineMini from '../charts/SparklineMini';
+import MetricBar from '../ui/MetricBar';
 
 const ROW_HEIGHT = 42;
 const BODY_HEIGHT = 520;
+const NEW_ROW_HIGHLIGHT_MS = 1800;
 
 function fmt(value, digits = 2) {
   const number = Number(value);
@@ -46,6 +48,7 @@ const TableRow = memo(function TableRow({
   visibleColumns,
   onSelect,
   selected,
+  isNew,
   heatmapMode,
   onAddWatchlist,
   onOpenChart,
@@ -55,12 +58,24 @@ const TableRow = memo(function TableRow({
   return (
     <tr
       className={`group cursor-pointer transition-colors ${selected ? 'bg-[rgba(74,158,255,0.14)]' : 'hover:bg-[rgba(74,158,255,0.08)]'}`}
-      style={{ height: ROW_HEIGHT }}
+      style={{
+        height: ROW_HEIGHT,
+        backgroundColor: isNew ? 'rgba(56, 189, 248, 0.14)' : undefined,
+        transition: 'background-color 900ms ease',
+      }}
       onClick={() => onSelect(row.symbol)}
     >
       {visibleColumns.map((column) => {
         const rendered = column.render ? column.render(row) : row[column.key];
         const cellHeat = heatColor(column.key, row[column.key], heatmapMode);
+        const isMetricBar = ['gapPercent', 'changePercent', 'relativeVolume', 'strategyScore', 'catalystScore'].includes(column.key);
+        const metricColor = (column.key === 'gapPercent' || column.key === 'changePercent')
+          ? (Number(row[column.key]) >= 0 ? 'green' : 'red')
+          : (column.key === 'relativeVolume' ? 'blue' : 'green');
+        const metricMax = column.key === 'relativeVolume' ? 5 : (column.key === 'strategyScore' || column.key === 'catalystScore' ? 100 : 10);
+        const metricDigits = column.key === 'strategyScore' || column.key === 'catalystScore' ? 1 : 2;
+        const metricSuffix = (column.key === 'gapPercent' || column.key === 'changePercent') ? '%' : '';
+
         return (
           <td key={column.key} style={{ textAlign: column.align || 'left', background: cellHeat || undefined }}>
             {column.key === 'symbol' ? (
@@ -68,6 +83,19 @@ const TableRow = memo(function TableRow({
                 <strong>{rendered || '--'}</strong>
                 <SparklineMini points={row.sparkline} positive={(row.changePercent ?? 0) >= 0} />
               </div>
+            ) : column.key === 'sectorStrength' ? (
+              <div className="flex items-center gap-2">
+                <span className="truncate">{row.sector || '--'}</span>
+                <MetricBar value={row.sectorStrength} maxValue={10} colorScheme="blue" suffix="%" digits={1} />
+              </div>
+            ) : isMetricBar ? (
+              <MetricBar
+                value={row[column.key]}
+                maxValue={metricMax}
+                colorScheme={metricColor}
+                suffix={metricSuffix}
+                digits={metricDigits}
+              />
             ) : rendered ?? '--'}
           </td>
         );
@@ -107,7 +135,9 @@ export default function ScreenerTable({
   const [showColumns, setShowColumns] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [columnWidths, setColumnWidths] = useState({});
+  const [newSymbols, setNewSymbols] = useState(new Set());
   const resizeRef = useRef({ key: null, startX: 0, startWidth: 0 });
+  const previousRowsRef = useRef([]);
 
   const { slice, topSpacerHeight, bottomSpacerHeight } = useMemo(() => {
     if (!useVirtualization) {
@@ -128,6 +158,22 @@ export default function ScreenerTable({
       bottomSpacerHeight: Math.max(0, (rows.length - end) * ROW_HEIGHT),
     };
   }, [rows, scrollTop, useVirtualization]);
+
+  useEffect(() => {
+    const previousSet = new Set(previousRowsRef.current.map((row) => row.symbol));
+    const incoming = rows.filter((row) => row?.symbol && !previousSet.has(row.symbol)).map((row) => row.symbol);
+
+    if (!incoming.length) {
+      previousRowsRef.current = rows;
+      return;
+    }
+
+    setNewSymbols(new Set(incoming));
+    previousRowsRef.current = rows;
+
+    const timer = setTimeout(() => setNewSymbols(new Set()), NEW_ROW_HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [rows]);
 
   function applyColumnResize(event) {
     const active = resizeRef.current;
@@ -243,6 +289,7 @@ export default function ScreenerTable({
                 visibleColumns={visibleColumns}
                 onSelect={onSelectSymbol}
                 selected={selectedSymbol === row.symbol}
+                isNew={newSymbols.has(row.symbol)}
                 heatmapMode={heatmapMode}
                 onAddWatchlist={onAddWatchlist}
                 onOpenChart={onOpenChart}
@@ -276,7 +323,8 @@ export default function ScreenerTable({
 }
 
 export const defaultColumns = [
-  { key: 'symbol', label: 'Ticker' },
+  { key: 'symbol', label: 'Ticker', align: 'left' },
+  { key: 'sectorStrength', label: 'Sector Strength', align: 'left' },
   { key: 'price', label: 'Price', align: 'right', render: (row) => fmt(row.price, 2) },
   { key: 'changePercent', label: 'Change %', align: 'right', render: (row) => fmt(row.changePercent, 2) },
   { key: 'gapPercent', label: 'Gap %', align: 'right', render: (row) => fmt(row.gapPercent, 2) },

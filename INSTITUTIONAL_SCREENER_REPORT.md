@@ -93,6 +93,27 @@ Implemented a new institutional-grade screener interface in the React client and
 - API refresh is debounced at 300ms and now aborts prior in-flight requests when new filter changes apply.
 - Layout constraints maintained: 320px filter sidebar, 320px intelligence panel, responsive center table with virtualization preserved.
 
+## Final UX Enhancements
+- Added reusable metric context bars via `client/src/components/ui/MetricBar.jsx`.
+- Upgraded table cells for `Gap %`, `Change %`, `Relative Volume`, `Strategy Score`, and `Catalyst Score` to include horizontal bar indicators for faster visual scanning.
+- Added `Sector Strength` column with combined sector name + mini strength bar display.
+- Added screener summary strip via `client/src/components/screener/ScreenerStats.jsx` showing:
+  - Results Found
+  - Average RVOL
+  - Average Gap
+  - Average Strategy Score
+- Added dev-only QA visibility panel via `client/src/components/debug/QueryDebugPanel.jsx` (collapsible, bottom-right):
+  - Active `query_tree`
+  - Backend query mapping output
+- Added row change detection highlight for new tickers entering result set.
+- Maintained institutional alignment rules:
+  - Numeric columns right-aligned
+  - Ticker and sector context left-aligned
+- Performance guardrails verified in current implementation:
+  - Virtualization active for large result sets
+  - Filter debounce at 300ms
+  - `AbortController` cancellation for pending API requests
+
 ## New/Updated Files
 
 ### New
@@ -107,6 +128,9 @@ Implemented a new institutional-grade screener interface in the React client and
 - `client/src/utils/queryTree.js`
 - `client/src/config/filter_registry.json`
 - `client/src/config/preset_scanners.json`
+- `client/src/components/ui/MetricBar.jsx`
+- `client/src/components/screener/ScreenerStats.jsx`
+- `client/src/components/debug/QueryDebugPanel.jsx`
 
 ### Updated
 - `client/src/App.jsx`

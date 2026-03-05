@@ -7,7 +7,9 @@ import { apiJSON } from '../config/api';
 import FilterSidebar from '../components/screener/FilterSidebar';
 import PresetSelector from '../components/screener/PresetSelector';
 import ColumnSelector from '../components/screener/ColumnSelector';
+import ScreenerStats from '../components/screener/ScreenerStats';
 import ScreenerTable, { defaultColumns } from '../components/screener/ScreenerTable';
+import QueryDebugPanel from '../components/debug/QueryDebugPanel';
 import { buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree, mapQueryTreeToBackend } from '../utils/queryTree';
 import filterRegistrySource from '../config/filter_registry.json';
 import presetScannerSource from '../config/preset_scanners.json';
@@ -17,29 +19,6 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, 250, 'All'];
 
 const SHARED_FILTER_REGISTRY = filterRegistrySource;
 const SHARED_PRESETS = presetScannerSource;
-
-const ROW_FIELD_ACCESSORS = {
-  price: 'price',
-  market_cap: 'marketCap',
-  float: 'float',
-  volume: 'volume',
-  relative_volume: 'relativeVolume',
-  gap_percent: 'gapPercent',
-  change_percent: 'changePercent',
-  atr_percent: 'atrPct',
-  expected_move: 'expectedMove',
-  vwap_distance: 'vwapDistance',
-  rsi: 'rsi',
-  sma20_distance: 'sma20Distance',
-  sma50_distance: 'sma50Distance',
-  sma200_distance: 'sma200Distance',
-  short_float: 'shortFloat',
-  strategy_score: 'strategyScore',
-  setup_type: 'setupType',
-  catalyst_score: 'catalystScore',
-  news_sentiment: 'newsSentiment',
-  earnings_date: 'earningsDate',
-};
 
 function safeNumber(value) {
   const num = Number(value);
@@ -608,6 +587,8 @@ export default function InstitutionalScreener() {
         />
 
         <div className="space-y-3">
+          <ScreenerStats rows={sortedRows} />
+
           {systemReport?.status === 'degraded' && (
             <Card className="rounded-xl border border-[rgba(245,158,11,0.5)] bg-[rgba(245,158,11,0.08)] p-2.5 text-sm">
               Backend reported degraded status. Results may be partial.
@@ -713,6 +694,8 @@ export default function InstitutionalScreener() {
           </div>
         </Card>
       </div>
+
+      <QueryDebugPanel queryTree={appliedQueryTree} backendQuery={backendQueryTree} />
     </PageContainer>
   );
 }
