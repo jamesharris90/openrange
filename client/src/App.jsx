@@ -27,8 +27,12 @@ const OpenMarketRadar = lazy(() => import('./pages/OpenMarketRadar'));
 const PostMarketReview = lazy(() => import('./pages/PostMarketReview'));
 const Charts = lazy(() => import('./pages/Charts'));
 const LiveCockpit = lazy(() => import('./pages/LiveCockpit'));
-const IntelligencePage = lazy(() => import('./pages/IntelligencePage'));
 const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
+const EarningsCalendar = lazy(() => import('./pages/EarningsCalendar'));
+const ExpectedMove = lazy(() => import('./pages/ExpectedMove'));
+const IntelInbox = lazy(() => import('./pages/IntelInbox'));
+const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
+const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
 
 export default function App() {
   return (
@@ -64,15 +68,17 @@ export default function App() {
                   <Route path="/news-scanner" element={<NewsScannerV2 />} />
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
                   <Route path="/earnings" element={<EarningsPage />} />
+                  <Route path="/earnings-calendar" element={<EarningsCalendar />} />
                   <Route path="/research" element={<ResearchPage />} />
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/live" element={<LiveCockpit />} />
-                  <Route path="/intelligence" element={<Navigate to="/open-market-radar" replace />} />
-                  <Route path="/intelligence-engine" element={<Navigate to="/open-market-radar" replace />} />
-                  <Route path="/intelligence-inbox" element={<IntelligencePage />} />
+                  <Route path="/intelligence" element={<IntelligenceEngine />} />
+                  <Route path="/intelligence-engine" element={<IntelligenceEngine />} />
+                  <Route path="/intelligence-inbox" element={<IntelInbox />} />
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
-                  <Route path="/expected-move" element={<Navigate to="/post-market-review" replace />} />
+                  <Route path="/expected-move" element={<ExpectedMove />} />
+                  <Route path="/sector-heatmap" element={<SectorHeatmap />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

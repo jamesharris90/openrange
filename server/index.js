@@ -65,7 +65,6 @@ const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
 const { startDiscoveryScheduler } = require('./discovery/discovery_scheduler');
 const { startOpportunityStreamScheduler } = require('./opportunity/stream_scheduler');
 const { startNarrativeScheduler } = require('./narrative/narrative_scheduler');
-const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
 const { getUniverseHealth } = require('./monitoring/universeHealth');
@@ -990,14 +989,13 @@ app.get('/api/earnings/today', async (req, res) => {
   try {
     const { rows } = await queryWithTimeout(
       `SELECT symbol,
-              report_date::text AS date,
-              report_time,
+              earnings_date::text AS date,
+              company,
               eps_estimate,
-              eps_actual,
-              rev_estimate,
-              rev_actual
+              revenue_estimate,
+              updated_at
        FROM earnings_events
-       WHERE report_date = CURRENT_DATE
+       WHERE earnings_date = CURRENT_DATE
        ORDER BY symbol ASC
        LIMIT 200`,
       [],
@@ -1006,6 +1004,33 @@ app.get('/api/earnings/today', async (req, res) => {
         maxRetries: 0,
         slowQueryMs: 120,
         label: 'api.earnings.today',
+      }
+    );
+    return res.json({ earnings: rows });
+  } catch (error) {
+    return res.json({ earnings: [] });
+  }
+});
+
+app.get('/api/earnings/week', async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol,
+              company,
+              earnings_date::text AS date,
+              eps_estimate,
+              revenue_estimate,
+              updated_at
+       FROM earnings_events
+       WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+       ORDER BY earnings_date ASC, symbol ASC
+       LIMIT 1000`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 120,
+        label: 'api.earnings.week',
       }
     );
     return res.json({ earnings: rows });
@@ -1092,18 +1117,17 @@ app.get('/api/market/sectors', async (req, res) => {
   try {
     const { rows } = await queryWithTimeout(
       `SELECT sector,
-              COUNT(*)::int AS symbols,
-              AVG(change_percent)::numeric AS avg_change_percent,
-              SUM(volume)::bigint AS total_volume,
-              MAX(updated_at) AS last_updated
-       FROM market_quotes
-       WHERE sector IS NOT NULL AND sector <> ''
-       GROUP BY sector
-       ORDER BY total_volume DESC NULLS LAST`,
+              stocks AS symbols,
+              avg_change AS avg_change_percent,
+              total_volume,
+              leaders,
+              updated_at AS last_updated
+       FROM sector_heatmap
+       ORDER BY avg_change DESC NULLS LAST`,
       [],
       { label: 'api.market.sectors', timeoutMs: 10000 }
     );
-    res.json(rows);
+    res.json({ sectors: rows, leaders: rows.slice(0, 2) });
   } catch (err) {
     logger.error('market sectors endpoint error', { error: err.message });
     res.status(500).json({ error: 'Failed to load market sectors', detail: err.message });
@@ -1112,9 +1136,33 @@ app.get('/api/market/sectors', async (req, res) => {
 
 app.get('/api/expected-move', async (req, res) => {
   try {
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
-    const rows = await getExpectedMoveRows(limit);
-    res.json(rows);
+
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol,
+              price,
+              atr_percent,
+              expected_move,
+              CASE
+                WHEN COALESCE(price, 0) > 0 THEN (expected_move / price) * 100
+                ELSE NULL
+              END AS expected_move_percent,
+              earnings_date,
+              updated_at
+       FROM expected_moves
+       WHERE ($1::text = '' OR symbol = $1)
+       ORDER BY expected_move DESC NULLS LAST
+       LIMIT $2`,
+      [symbol, limit],
+      { label: 'api.expected_move', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
+    );
+
+    if (symbol) {
+      return res.json(rows[0] || null);
+    }
+
+    return res.json(rows);
   } catch (err) {
     logger.error('expected move endpoint db error', { error: err.message });
     res.json([]);
@@ -1180,25 +1228,28 @@ app.get('/api/opportunity-stream', async (req, res) => {
 
 app.get('/api/opportunities', async (req, res) => {
   try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
     const { rows } = await queryWithTimeout(
-      `SELECT id,
+      `SELECT
               symbol,
-              event_type,
-              headline,
               score,
-              source,
-              created_at,
-              created_at AS timestamp
-       FROM opportunity_stream
-       ORDER BY created_at DESC
-       LIMIT 50`,
-      [],
+              strategy,
+              change_percent,
+              relative_volume,
+              gap_percent,
+              volume,
+              updated_at,
+              updated_at AS timestamp
+       FROM opportunities_v2
+       ORDER BY score DESC NULLS LAST
+       LIMIT $1`,
+      [limit],
       { label: 'api.opportunities', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
     );
-    return res.json(rows);
+    return res.json({ opportunities: rows });
   } catch (err) {
     logger.error('opportunities endpoint db error', { error: err.message });
-    return res.json([]);
+    return res.json({ opportunities: [] });
   }
 });
 
@@ -2227,15 +2278,15 @@ app.get('/api/intelligence/feed', async (req, res) => {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
     const { rows } = await queryWithTimeout(
       `SELECT
-        id,
-        subject,
-        sender AS "from",
-        source_tag,
-        received_at,
-        LEFT(raw_text, 300) AS summary,
-        processed
-      FROM intelligence_emails
-      ORDER BY received_at DESC
+        symbol,
+        headline,
+        source,
+        url,
+        published_at,
+        sentiment,
+        updated_at
+      FROM intel_news
+      ORDER BY published_at DESC NULLS LAST
       LIMIT $1`,
       [limit],
       { label: 'api.intelligence.feed', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
@@ -2249,6 +2300,83 @@ app.get('/api/intelligence/feed', async (req, res) => {
       items: [],
       warning: 'INTELLIGENCE_FEED_FALLBACK',
       detail: error.message,
+    });
+  }
+});
+
+app.get('/api/intelligence/summary', async (req, res) => {
+  try {
+    const [sectors, opportunities, earningsToday, earningsWeek, news] = await Promise.all([
+      fastRowsQuery(
+        `SELECT sector, avg_change, total_volume, stocks, leaders, updated_at
+         FROM sector_heatmap
+         ORDER BY avg_change DESC NULLS LAST
+         LIMIT 5`,
+        [],
+        'api.intelligence.summary.sectors',
+        300
+      ),
+      fastRowsQuery(
+        `SELECT symbol, score, strategy, change_percent, relative_volume, gap_percent, updated_at
+         FROM opportunities_v2
+         ORDER BY score DESC NULLS LAST
+         LIMIT 10`,
+        [],
+        'api.intelligence.summary.opportunities',
+        300
+      ),
+      fastRowsQuery(
+        `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
+         FROM earnings_events
+         WHERE earnings_date = CURRENT_DATE
+         ORDER BY symbol ASC
+         LIMIT 50`,
+        [],
+        'api.intelligence.summary.earnings_today',
+        300
+      ),
+      fastRowsQuery(
+        `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
+         FROM earnings_events
+         WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+         ORDER BY earnings_date ASC, symbol ASC
+         LIMIT 200`,
+        [],
+        'api.intelligence.summary.earnings_week',
+        300
+      ),
+      fastRowsQuery(
+        `SELECT symbol, headline, source, url, published_at, sentiment
+         FROM intel_news
+         ORDER BY published_at DESC NULLS LAST
+         LIMIT 15`,
+        [],
+        'api.intelligence.summary.news',
+        300
+      ),
+    ]);
+
+    return res.json({
+      success: true,
+      summary: {
+        sectors,
+        opportunities,
+        earnings: {
+          today: earningsToday,
+          week: earningsWeek,
+        },
+        news,
+      },
+      generated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('intelligence summary endpoint error', { error: error.message });
+    return res.json({
+      success: true,
+      summary: { sectors: [], opportunities: [], earnings: { today: [], week: [] }, news: [] },
+      warning: 'INTELLIGENCE_SUMMARY_FALLBACK',
+      detail: error.message,
+      generated_at: new Date().toISOString(),
     });
   }
 });
