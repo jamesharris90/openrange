@@ -184,6 +184,7 @@ export default function InstitutionalScreener() {
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
   const [columnOrder, setColumnOrder] = useState(defaultColumns.map((column) => column.key));
   const [heatmapMode, setHeatmapMode] = useState(false);
+  const [enableAlertOnSave, setEnableAlertOnSave] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [systemReport, setSystemReport] = useState(null);
 
@@ -409,7 +410,7 @@ export default function InstitutionalScreener() {
     URL.revokeObjectURL(url);
   }
 
-  function saveFilter() {
+  async function saveFilter() {
     const name = window.prompt('Save filter as:');
     if (!name) return;
 
@@ -421,6 +422,7 @@ export default function InstitutionalScreener() {
       adaptiveRows,
       structuredValues,
       query_tree: appliedQueryTree,
+      enable_alert: enableAlertOnSave,
       timestamp: new Date().toISOString(),
       hiddenColumns: [...hiddenColumns],
       columnOrder,
@@ -428,6 +430,25 @@ export default function InstitutionalScreener() {
 
     const next = [...saved.filter((item) => (item.filter_name || item.name) !== name), payload];
     localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(next));
+
+    if (enableAlertOnSave) {
+      const token = localStorage.getItem('token');
+      try {
+        await apiJSON('/api/alerts/create', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: JSON.stringify({
+            alert_name: name,
+            query_tree: appliedQueryTree,
+            message_template: `[${name}] {symbol} entered screener results`,
+            frequency: 60,
+            enable_alert: true,
+          }),
+        });
+      } catch (error) {
+        window.alert(`Filter saved, but alert creation failed: ${error.message}`);
+      }
+    }
   }
 
   function loadFilter() {
@@ -538,6 +559,14 @@ export default function InstitutionalScreener() {
           <PresetSelector value={preset} onChange={setPreset} presets={presetOptions} />
 
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={saveFilter}><Save size={15} className="mr-1 inline" />Save Filter</button>
+          <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+            <input
+              type="checkbox"
+              checked={enableAlertOnSave}
+              onChange={(event) => setEnableAlertOnSave(event.target.checked)}
+            />
+            <span>Create Alert</span>
+          </label>
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={loadFilter}>Load Filter</button>
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={exportCsv}><Download size={15} className="mr-1 inline" />Export CSV</button>
 

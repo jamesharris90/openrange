@@ -56,6 +56,7 @@ const exportV1Routes = require('./routes/exportV1.ts');
 const chartV2Routes = require('./routes/chartV2.ts');
 const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
+const alertsRoutes = require('./routes/alerts');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
@@ -73,6 +74,7 @@ const { getSetupHealth } = require('./monitoring/setupHealth');
 const { getCatalystHealth } = require('./monitoring/catalystHealth');
 const { getDiscoveryHealth } = require('./monitoring/discoveryHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
+const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
@@ -1954,6 +1956,9 @@ app.use(generalLimiter);
 // API-key/JWT auth middleware
 app.use(authMiddleware);
 
+// Alert engine routes
+app.use('/api', alertsRoutes);
+
 // Broker abstraction routes (monitoring-only)
 app.use(brokerRoutes);
 
@@ -2400,6 +2405,10 @@ if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER !== 'false') {
 
 if (process.env.ENABLE_NARRATIVE_SCHEDULER !== 'false') {
   startNarrativeScheduler();
+}
+
+if (process.env.ENABLE_ALERT_SCHEDULER !== 'false') {
+  startAlertScheduler();
 }
 
 app.listen(PORT, () => {
