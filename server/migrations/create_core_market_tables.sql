@@ -35,14 +35,20 @@ CREATE TABLE IF NOT EXISTS intraday_ohlc (
 
 CREATE TABLE IF NOT EXISTS market_metrics (
   symbol TEXT PRIMARY KEY,
+  price NUMERIC,
+  change_percent NUMERIC,
   gap_percent NUMERIC,
   relative_volume NUMERIC,
+  volume BIGINT,
   avg_volume_30d NUMERIC,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS price NUMERIC;
+ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS change_percent NUMERIC;
 ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS gap_percent NUMERIC;
 ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS relative_volume NUMERIC;
+ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS volume BIGINT;
 ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS avg_volume_30d NUMERIC;
 ALTER TABLE market_metrics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 

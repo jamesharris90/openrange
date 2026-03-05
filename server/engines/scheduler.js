@@ -4,19 +4,25 @@ const {
   ingestMarketQuotesBootstrap,
   ingestMarketQuotesRefresh,
 } = require('./fmpMarketIngestion');
+const { runMetricsEngine } = require('./metricsEngine');
 
 let started = false;
 let ingestionInterval = null;
+let metricsInterval = null;
 let ingestionInFlight = false;
+let metricsInFlight = false;
 let bootstrapCompleted = false;
 const BOOTSTRAP_MIN_ROWS = 2000;
 
 const state = {
   started: false,
   ingestionEverySeconds: 60,
+  metricsEverySeconds: 60,
   bootstrapCompleted: false,
   lastIngestionRunAt: null,
   lastIngestionError: null,
+  lastMetricsRunAt: null,
+  lastMetricsError: null,
   bootstrapTargetRows: BOOTSTRAP_MIN_ROWS,
 };
 
@@ -77,6 +83,26 @@ async function runIngestionNow() {
   }
 }
 
+async function runMetricsNow() {
+  if (metricsInFlight) {
+    logger.warn('Skipping metrics run; previous run still in flight');
+    return null;
+  }
+
+  metricsInFlight = true;
+  state.lastMetricsRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('metricsEngine', runMetricsEngine);
+    state.lastMetricsError = null;
+    return result;
+  } catch (error) {
+    state.lastMetricsError = error.message;
+    return null;
+  } finally {
+    metricsInFlight = false;
+  }
+}
+
 function startEngineScheduler() {
   if (started) return;
   started = true;
@@ -86,11 +112,19 @@ function startEngineScheduler() {
     runIngestionNow();
   }, state.ingestionEverySeconds * 1000);
 
+  metricsInterval = setInterval(() => {
+    runMetricsNow();
+  }, state.metricsEverySeconds * 1000);
+
   if (typeof ingestionInterval.unref === 'function') ingestionInterval.unref();
+  if (typeof metricsInterval.unref === 'function') metricsInterval.unref();
+
+  runMetricsNow();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
-    mode: 'ingestion_only',
+    metricsEverySeconds: state.metricsEverySeconds,
+    mode: 'ingestion_and_metrics',
   });
 }
 
@@ -98,12 +132,13 @@ function getEngineSchedulerStatus() {
   return {
     ...state,
     ingestionTimerActive: Boolean(ingestionInterval),
-    metricsTimerActive: false,
+    metricsTimerActive: Boolean(metricsInterval),
   };
 }
 
 module.exports = {
   startEngineScheduler,
   runIngestionNow,
+  runMetricsNow,
   getEngineSchedulerStatus,
 };

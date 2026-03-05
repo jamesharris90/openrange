@@ -952,9 +952,12 @@ app.get('/api/pre-market/bias', async (req, res) => {
 
 app.get('/api/pre-market/gap-leaders', async (req, res) => {
   const leaders = await fastRowsQuery(
-    `SELECT symbol, price, change_percent, volume, updated_at
-     FROM market_quotes
-     ORDER BY change_percent DESC NULLS LAST
+    `SELECT symbol,
+            gap_percent,
+            volume,
+            updated_at
+     FROM market_metrics
+     ORDER BY gap_percent DESC NULLS LAST
      LIMIT 10`,
     [],
     'api.pre_market.gap_leaders',
@@ -1124,13 +1127,14 @@ async function loadScreenerRows() {
       symbol,
       price,
       change_percent,
+      relative_volume,
       volume
-     FROM market_quotes
+     FROM market_metrics
      ORDER BY change_percent DESC NULLS LAST
      LIMIT 50`,
     [],
     'api.screener',
-    180
+    1200
   );
 }
 
