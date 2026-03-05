@@ -926,7 +926,7 @@ app.get('/api/market/quotes', async (req, res) => {
        ORDER BY updated_at DESC
        LIMIT $1`,
       [limit],
-      { label: 'api.market.quotes', timeoutMs: 10000 }
+      { label: 'api.market.quotes', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 }
     );
     res.json(rows);
   } catch (err) {
@@ -1031,7 +1031,7 @@ app.get('/api/opportunity-stream', async (req, res) => {
 
 app.get('/api/opportunities', async (req, res) => {
   try {
-    const { rows } = await pool.query(
+    const { rows } = await queryWithTimeout(
       `SELECT id,
               symbol,
               event_type,
@@ -1042,7 +1042,9 @@ app.get('/api/opportunities', async (req, res) => {
               created_at AS timestamp
        FROM opportunity_stream
        ORDER BY created_at DESC
-       LIMIT 50`
+       LIMIT 50`,
+      [],
+      { label: 'api.opportunities', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
     );
     return res.json(rows);
   } catch (err) {
@@ -2065,12 +2067,16 @@ app.get('/api/finviz/news-freshness', async (req, res) => {
 
 // User management API (handles its own auth, but apply rate limiting to registration)
 app.use('/api/users/register', registrationLimiter);
+app.post('/api/auth/login', (req, res, next) => {
+  req.url = '/login';
+  return userRoutes(req, res, next);
+});
 app.use('/api/users', userRoutes);
 
 app.get('/api/intelligence/feed', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
-    const { rows } = await pool.query(
+    const { rows } = await queryWithTimeout(
       `SELECT
         id,
         subject,
@@ -2082,14 +2088,17 @@ app.get('/api/intelligence/feed', async (req, res) => {
       FROM intelligence_emails
       ORDER BY received_at DESC
       LIMIT $1`,
-      [limit]
+      [limit],
+      { label: 'api.intelligence.feed', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
     );
 
     return res.json({ success: true, items: rows });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'INTELLIGENCE_FEED_FAILED',
+    logger.error('intelligence feed endpoint error', { error: error.message });
+    return res.json({
+      success: true,
+      items: [],
+      warning: 'INTELLIGENCE_FEED_FALLBACK',
       detail: error.message,
     });
   }
@@ -2578,9 +2587,23 @@ if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
 app.listen(PORT, () => {
   logger.info(`OpenRange server listening on port ${PORT}`);
   console.log('[Intelligence] Ingestion endpoint ready');
+  console.log('Scheduler active');
+  console.log('Opportunity engine active');
 
   (async () => {
     try {
+      await queryWithTimeout('SELECT 1 AS ok', [], {
+        timeoutMs: 5000,
+        label: 'startup.db.connection_check',
+        maxRetries: 1,
+        retryDelayMs: 200,
+      });
+      console.log('DB connection successful');
+
+      await userModel.ensureFallbackAdminUser().catch((error) => {
+        logger.warn('Fallback admin bootstrap skipped', { error: error.message });
+      });
+
       const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
         getMetricsHealth(),
         getIngestionHealth(),

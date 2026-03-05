@@ -89,8 +89,6 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    await model.ensureFallbackAdminUser();
-
     const user = await model.findByUsernameOrEmail(username);
     if (!user) {
       return res.status(401).json({
