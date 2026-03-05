@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import OpportunityStream from '../components/opportunity/OpportunityStream';
+import MarketNarrative from '../components/narrative/MarketNarrative';
 import { apiJSON } from '../config/api';
 
 function getSymbolMap(rows) {
@@ -114,6 +115,11 @@ export default function PreMarketCommandCenter() {
           title="Pre-Market Command Center"
           subtitle="Session preparation with bias, catalysts, gaps, setups, and earnings context."
         />
+      </Card>
+
+      <Card>
+        <h3 className="m-0 mb-3">Market Narrative</h3>
+        <MarketNarrative />
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-2">

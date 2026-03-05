@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import OpportunityStream from '../components/opportunity/OpportunityStream';
+import MarketNarrative from '../components/narrative/MarketNarrative';
 import { apiJSON } from '../config/api';
 
 function Panel({ title, loading, rows, emptyMessage, render }) {
@@ -76,6 +77,11 @@ export default function OpenMarketRadar() {
           title="Open Market Radar"
           subtitle="Live market action board across momentum, strategy, catalyst, and volume signals."
         />
+      </Card>
+
+      <Card>
+        <h3 className="m-0 mb-3">Market Narrative</h3>
+        <MarketNarrative />
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">

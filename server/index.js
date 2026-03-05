@@ -63,6 +63,7 @@ const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
 const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
 const { startDiscoveryScheduler } = require('./discovery/discovery_scheduler');
 const { startOpportunityStreamScheduler } = require('./opportunity/stream_scheduler');
+const { startNarrativeScheduler } = require('./narrative/narrative_scheduler');
 const { getExpectedMoveRows } = require('./metrics/expected_move');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
@@ -666,13 +667,14 @@ app.get('/api/system/health', async (req, res) => {
 
 app.get('/api/system/report', async (req, res) => {
   try {
-    const [metrics, setups, catalysts, universe, queue, opportunityStream] = await Promise.all([
+    const [metrics, setups, catalysts, universe, queue, opportunityStream, narratives] = await Promise.all([
       pool.query('SELECT COUNT(*)::int AS count FROM market_metrics'),
       pool.query('SELECT COUNT(*)::int AS count FROM trade_setups'),
       pool.query('SELECT COUNT(*)::int AS count FROM trade_catalysts'),
       pool.query('SELECT COUNT(*)::int AS count FROM ticker_universe'),
       pool.query('SELECT COUNT(*)::int AS count FROM symbol_queue'),
       pool.query('SELECT COUNT(*)::int AS count FROM opportunity_stream'),
+      pool.query('SELECT COUNT(*)::int AS count FROM market_narratives'),
     ]);
 
     res.json({
@@ -683,6 +685,7 @@ app.get('/api/system/report', async (req, res) => {
       ticker_universe_size: universe.rows[0]?.count || 0,
       queue_size: queue.rows[0]?.count || 0,
       opportunity_stream_count: opportunityStream.rows[0]?.count || 0,
+      narrative_count: narratives.rows[0]?.count || 0,
       checked_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -869,7 +872,8 @@ app.get('/api/opportunity-stream', async (req, res) => {
               headline,
               score,
               source,
-              created_at
+              created_at,
+              created_at AS timestamp
        FROM opportunity_stream
        ORDER BY created_at DESC
        LIMIT 50`
@@ -878,6 +882,21 @@ app.get('/api/opportunity-stream', async (req, res) => {
   } catch (err) {
     logger.error('opportunity stream endpoint db error', { error: err.message });
     res.json([]);
+  }
+});
+
+app.get('/api/market-narrative', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, narrative, regime, created_at
+       FROM market_narratives
+       ORDER BY created_at DESC
+       LIMIT 1`
+    );
+    res.json(rows[0] || null);
+  } catch (err) {
+    logger.error('market narrative endpoint db error', { error: err.message });
+    res.json(null);
   }
 });
 
@@ -2333,6 +2352,10 @@ if (process.env.ENABLE_DISCOVERY_SCHEDULER !== 'false') {
 
 if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER !== 'false') {
   startOpportunityStreamScheduler();
+}
+
+if (process.env.ENABLE_NARRATIVE_SCHEDULER !== 'false') {
+  startNarrativeScheduler();
 }
 
 app.listen(PORT, () => {
