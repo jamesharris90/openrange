@@ -129,4 +129,17 @@ router.post('/alerts/run-now', async (req, res) => {
   }
 });
 
+router.post('/alerts/test', async (req, res) => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
+
+  const { alert_id } = req.body || {};
+  return res.json({
+    success: true,
+    tested: Boolean(alert_id),
+    alert_id: alert_id || null,
+    triggered_at: new Date().toISOString(),
+  });
+});
+
 module.exports = router;

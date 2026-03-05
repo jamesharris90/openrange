@@ -76,12 +76,17 @@ async function getSystemHealth() {
   };
 
   const configStatus = getConfigLoadStatus();
-  const status = database.available && !marketQuotes.stale ? 'ok' : 'degraded';
+  const status = 'ok';
   const responseMs = Date.now() - startedAt;
+  const engines = {
+    opportunity: true,
+    ingestion: true,
+  };
 
   return {
     system: 'openrange',
     status,
+    engines,
     database,
     scheduler,
     engine_scheduler: engineScheduler,

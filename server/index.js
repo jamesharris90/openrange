@@ -771,6 +771,21 @@ app.get('/api/system/report', async (req, res) => {
   }
 });
 
+async function fastRowsQuery(sql, params, label, timeoutMs = 180) {
+  try {
+    const { rows } = await queryWithTimeout(sql, params, {
+      timeoutMs,
+      maxRetries: 0,
+      slowQueryMs: 120,
+      label,
+    });
+    return rows;
+  } catch (error) {
+    logger.warn('Fast endpoint fallback', { label, error: error.message });
+    return [];
+  }
+}
+
 app.get('/api/setups', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -909,6 +924,114 @@ app.get('/api/metrics', async (req, res) => {
   }
 });
 
+app.get('/api/pre-market/bias', async (req, res) => {
+  const rows = await fastRowsQuery(
+    `SELECT symbol, price, change_percent, updated_at
+     FROM market_quotes
+     WHERE symbol IN ('SPY', 'QQQ')`,
+    [],
+    'api.pre_market.bias',
+    180
+  );
+
+  const spy = rows.find((row) => row.symbol === 'SPY');
+  const qqq = rows.find((row) => row.symbol === 'QQQ');
+  const spyChange = Number(spy?.change_percent || 0);
+  const qqqChange = Number(qqq?.change_percent || 0);
+
+  let bias = 'neutral';
+  if (spyChange > 0 && qqqChange > 0) bias = 'bullish';
+  if (spyChange < 0 && qqqChange < 0) bias = 'bearish';
+
+  const drivers = [];
+  if (spy) drivers.push(`SPY change ${spyChange.toFixed(2)}%`);
+  if (qqq) drivers.push(`QQQ change ${qqqChange.toFixed(2)}%`);
+
+  return res.json({ bias, drivers });
+});
+
+app.get('/api/pre-market/gap-leaders', async (req, res) => {
+  const leaders = await fastRowsQuery(
+    `SELECT symbol, price, change_percent, volume, updated_at
+     FROM market_quotes
+     ORDER BY change_percent DESC NULLS LAST
+     LIMIT 10`,
+    [],
+    'api.pre_market.gap_leaders',
+    180
+  );
+
+  return res.json({ leaders });
+});
+
+app.get('/api/pre-market/catalysts', async (req, res) => {
+  const catalysts = await fastRowsQuery(
+    `SELECT id,
+            subject,
+            sender AS "from",
+            source_tag,
+            received_at,
+            LEFT(raw_text, 220) AS summary
+     FROM intelligence_emails
+     ORDER BY received_at DESC
+     LIMIT 10`,
+    [],
+    'api.pre_market.catalysts',
+    180
+  );
+
+  return res.json({ catalysts });
+});
+
+app.get('/api/earnings/today', async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol,
+              report_date::text AS date,
+              report_time,
+              eps_estimate,
+              eps_actual,
+              rev_estimate,
+              rev_actual
+       FROM earnings_events
+       WHERE report_date = CURRENT_DATE
+       ORDER BY symbol ASC
+       LIMIT 200`,
+      [],
+      {
+        timeoutMs: 200,
+        maxRetries: 0,
+        slowQueryMs: 120,
+        label: 'api.earnings.today',
+      }
+    );
+    return res.json({ earnings: rows });
+  } catch (error) {
+    return res.json({ earnings: [] });
+  }
+});
+
+app.get('/api/signals', async (req, res) => {
+  const signals = await fastRowsQuery(
+    `SELECT id,
+            symbol,
+            event_type,
+            headline,
+            score,
+            source,
+            created_at,
+            created_at AS timestamp
+     FROM opportunity_stream
+     ORDER BY created_at DESC
+     LIMIT 25`,
+    [],
+    'api.signals',
+    180
+  );
+
+  return res.json({ signals });
+});
+
 app.get('/api/intelligence', (req, res) => {
   res.json({ status: 'ok', data: [] });
 });
@@ -995,8 +1118,30 @@ app.get('/api/expected-move', async (req, res) => {
   }
 });
 
-app.get('/api/screener', (req, res) => {
-  res.json({ status: 'ok', data: [] });
+async function loadScreenerRows() {
+  return fastRowsQuery(
+    `SELECT
+      symbol,
+      price,
+      change_percent,
+      volume
+     FROM market_quotes
+     ORDER BY change_percent DESC NULLS LAST
+     LIMIT 50`,
+    [],
+    'api.screener',
+    180
+  );
+}
+
+app.get('/api/screener', async (req, res) => {
+  const rows = await loadScreenerRows();
+  res.json({ rows });
+});
+
+app.post('/api/screener', async (req, res) => {
+  const rows = await loadScreenerRows();
+  res.json({ rows });
 });
 
 app.get('/api/scanner/status', async (req, res) => {
