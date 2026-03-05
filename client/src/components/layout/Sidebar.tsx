@@ -27,7 +27,7 @@ const navGroups: NavGroup[] = [
     label: 'Workflows',
     items: [
       { to: '/dashboard',         label: 'Dashboard',          icon: BarChart2 },
-      { to: '/screeners',         label: 'Scanner',            icon: BarChart2 },
+      { to: '/screener',          label: 'Scanner',            icon: BarChart2 },
       { to: '/research',          label: 'Research',          icon: Search },
     ],
   },
