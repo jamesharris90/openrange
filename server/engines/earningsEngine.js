@@ -10,6 +10,7 @@ async function ensureEarningsTable() {
       earnings_date DATE,
       eps_estimate NUMERIC,
       revenue_estimate NUMERIC,
+      sector TEXT,
       updated_at TIMESTAMPTZ DEFAULT now()
     )`,
     [],
@@ -22,6 +23,7 @@ async function ensureEarningsTable() {
       ADD COLUMN IF NOT EXISTS earnings_date DATE,
       ADD COLUMN IF NOT EXISTS eps_estimate NUMERIC,
       ADD COLUMN IF NOT EXISTS revenue_estimate NUMERIC,
+      ADD COLUMN IF NOT EXISTS sector TEXT,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`,
     [],
     { timeoutMs: 5000, label: 'engines.earningsEngine.ensure_columns', maxRetries: 0 }
@@ -48,6 +50,7 @@ function normalizeEarningsRow(row) {
     earnings_date: dateValue,
     eps_estimate: row?.epsEstimated ?? row?.epsEstimate ?? null,
     revenue_estimate: row?.revenueEstimated ?? row?.revenueEstimate ?? null,
+    sector: row?.sector || row?.industry || null,
   };
 }
 
@@ -73,15 +76,16 @@ async function runEarningsEngine() {
 
   for (const row of rows) {
     await queryWithTimeout(
-      `INSERT INTO earnings_events (symbol, company, earnings_date, eps_estimate, revenue_estimate, updated_at)
-       VALUES ($1, $2, $3, $4, $5, now())
+      `INSERT INTO earnings_events (symbol, company, earnings_date, eps_estimate, revenue_estimate, sector, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
        ON CONFLICT (symbol, earnings_date)
        DO UPDATE SET
          company = EXCLUDED.company,
          eps_estimate = EXCLUDED.eps_estimate,
          revenue_estimate = EXCLUDED.revenue_estimate,
+         sector = EXCLUDED.sector,
          updated_at = now()`,
-      [row.symbol, row.company, row.earnings_date, row.eps_estimate, row.revenue_estimate],
+      [row.symbol, row.company, row.earnings_date, row.eps_estimate, row.revenue_estimate, row.sector],
       { timeoutMs: 5000, label: 'engines.earningsEngine.upsert', maxRetries: 0 }
     );
   }

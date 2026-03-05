@@ -83,6 +83,7 @@ export default function Charts() {
   const [marketOverlay, setMarketOverlay] = useState('none');
   const [patternMode, setPatternMode] = useState(false);
   const [drawingsBusy, setDrawingsBusy] = useState(false);
+  const [drawTool, setDrawTool] = useState('hline');
   const [sectorEtfSymbol, setSectorEtfSymbol] = useState(null);
   const symbol = state.symbol || initialSymbol;
   const timeframe = state.timeframe || initialTimeframe;
@@ -138,11 +139,48 @@ export default function Charts() {
         ...existing,
         {
           id: `${symbol}-${timeframe}-${Date.now()}`,
-          type: 'hline',
+          type: drawTool,
           price,
-          label: `${symbol} ${price.toFixed(2)}`,
+          label: `${drawTool.toUpperCase()} ${symbol} ${price.toFixed(2)}`,
         },
       ];
+      await saveDrawings(next);
+    } finally {
+      setDrawingsBusy(false);
+    }
+  };
+
+  const detectTrend = async () => {
+    setDrawingsBusy(true);
+    try {
+      const response = await authFetch(`/api/chart/trend/${encodeURIComponent(symbol)}`);
+      if (!response.ok) throw new Error('Failed to detect trend');
+      const payload = await response.json();
+
+      const supports = Array.isArray(payload?.support) ? payload.support : [];
+      const resistances = Array.isArray(payload?.resistance) ? payload.resistance : [];
+
+      const existing = await fetchDrawings();
+      const next = [...existing];
+
+      supports.forEach((price, index) => {
+        next.push({
+          id: `${symbol}-${timeframe}-support-${index}-${Date.now()}`,
+          type: 'hline',
+          price: Number(price),
+          label: `Support ${Number(price).toFixed(2)}`,
+        });
+      });
+
+      resistances.forEach((price, index) => {
+        next.push({
+          id: `${symbol}-${timeframe}-resistance-${index}-${Date.now()}`,
+          type: 'hline',
+          price: Number(price),
+          label: `Resistance ${Number(price).toFixed(2)}`,
+        });
+      });
+
       await saveDrawings(next);
     } finally {
       setDrawingsBusy(false);
@@ -275,7 +313,22 @@ export default function Charts() {
               onClick={addLastCloseLine}
               className="rounded-md border border-white/20 bg-[var(--bg-input)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-white/5 disabled:opacity-50"
             >
-              Add Line
+              Add Tool
+            </button>
+
+            <div className="flex items-center gap-2 rounded-md border border-white/20 bg-[var(--bg-input)] px-2 py-1 text-xs">
+              <button type="button" onClick={() => setDrawTool('trendline')} className={`rounded px-2 py-1 ${drawTool === 'trendline' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>TrendLineTool</button>
+              <button type="button" onClick={() => setDrawTool('hline')} className={`rounded px-2 py-1 ${drawTool === 'hline' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>HorizontalLineTool</button>
+              <button type="button" onClick={() => setDrawTool('rectangle')} className={`rounded px-2 py-1 ${drawTool === 'rectangle' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>RectangleTool</button>
+            </div>
+
+            <button
+              type="button"
+              disabled={drawingsBusy}
+              onClick={detectTrend}
+              className="rounded-md border border-emerald-500/40 bg-emerald-600/20 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-600/30 disabled:opacity-50"
+            >
+              Detect Trend
             </button>
 
             <button

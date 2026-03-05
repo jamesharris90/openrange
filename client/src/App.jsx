@@ -33,6 +33,7 @@ const ExpectedMove = lazy(() => import('./pages/ExpectedMove'));
 const IntelInbox = lazy(() => import('./pages/IntelInbox'));
 const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
 const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
+const ScreenerFull = lazy(() => import('./pages/ScreenerFull'));
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
                   <Route path="/market-overview" element={<MarketOverviewPage />} />
                   <Route path="/market-hours" element={<MarketHoursPage />} />
                   <Route path="/screener" element={<InstitutionalScreener />} />
+                  <Route path="/screener-full" element={<ScreenerFull />} />
                   <Route path="/screener-v2" element={<Navigate to="/screener" replace />} />
                   <Route path="/screener-v3" element={<Navigate to="/screener" replace />} />
                   <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />

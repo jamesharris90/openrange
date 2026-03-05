@@ -81,6 +81,7 @@ const {
   runUniverseBuilderNow,
   runStrategyEngineNow,
 } = require('./engines/scheduler');
+const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
@@ -990,12 +991,34 @@ app.get('/api/pre-market/catalysts', async (req, res) => {
 
 app.get('/api/earnings/today', async (req, res) => {
   try {
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS earnings_events (
+        symbol TEXT,
+        company TEXT,
+        earnings_date DATE,
+        eps_estimate NUMERIC,
+        revenue_estimate NUMERIC,
+        sector TEXT,
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )`,
+      [],
+      { timeoutMs: 5000, label: 'api.earnings.ensure_table', maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `ALTER TABLE earnings_events
+        ADD COLUMN IF NOT EXISTS sector TEXT`,
+      [],
+      { timeoutMs: 5000, label: 'api.earnings.ensure_sector', maxRetries: 0 }
+    );
+
     const { rows } = await queryWithTimeout(
       `SELECT symbol,
               earnings_date::text AS date,
               company,
               eps_estimate,
               revenue_estimate,
+              sector,
               updated_at
        FROM earnings_events
        WHERE earnings_date = CURRENT_DATE
@@ -1011,18 +1034,40 @@ app.get('/api/earnings/today', async (req, res) => {
     );
     return res.json({ earnings: rows });
   } catch (error) {
-    return res.json({ earnings: [] });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load earnings today' });
   }
 });
 
 app.get('/api/earnings/week', async (req, res) => {
   try {
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS earnings_events (
+        symbol TEXT,
+        company TEXT,
+        earnings_date DATE,
+        eps_estimate NUMERIC,
+        revenue_estimate NUMERIC,
+        sector TEXT,
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )`,
+      [],
+      { timeoutMs: 5000, label: 'api.earnings.ensure_table.week', maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `ALTER TABLE earnings_events
+        ADD COLUMN IF NOT EXISTS sector TEXT`,
+      [],
+      { timeoutMs: 5000, label: 'api.earnings.ensure_sector.week', maxRetries: 0 }
+    );
+
     const { rows } = await queryWithTimeout(
       `SELECT symbol,
               company,
               earnings_date::text AS date,
               eps_estimate,
               revenue_estimate,
+              sector,
               updated_at
        FROM earnings_events
        WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
@@ -1038,7 +1083,7 @@ app.get('/api/earnings/week', async (req, res) => {
     );
     return res.json({ earnings: rows });
   } catch (error) {
-    return res.json({ earnings: [] });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load earnings week' });
   }
 });
 
@@ -1065,6 +1110,50 @@ app.get('/api/signals', async (req, res) => {
   );
 
   return res.json({ signals });
+});
+
+app.get('/api/signals/:symbol', async (req, res) => {
+  try {
+    const symbol = String(req.params.symbol || '').trim().toUpperCase();
+    if (!symbol) return res.status(400).json({ success: false, error: 'symbol is required' });
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+        s.symbol,
+        s.strategy,
+        s.score,
+        s.class,
+        s.gap_percent,
+        s.relative_volume,
+        q.sector,
+        COALESCE(n.headline, e.subject, 'No catalyst available') AS catalyst
+       FROM strategy_signals s
+       LEFT JOIN market_quotes q ON q.symbol = s.symbol
+       LEFT JOIN LATERAL (
+         SELECT headline
+         FROM intel_news i
+         WHERE i.symbol = s.symbol
+         ORDER BY i.published_at DESC NULLS LAST
+         LIMIT 1
+       ) n ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT subject
+         FROM intelligence_emails ie
+         WHERE ie.subject ILIKE ('%' || s.symbol || '%')
+         ORDER BY ie.received_at DESC NULLS LAST
+         LIMIT 1
+       ) e ON TRUE
+       WHERE s.symbol = $1
+       LIMIT 1`,
+      [symbol],
+      { label: 'api.signals.symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 150 }
+    );
+
+    if (!rows.length) return res.status(404).json({ success: false, error: `No signal found for ${symbol}` });
+    return res.json(rows[0]);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load signal explanation' });
+  }
 });
 
 app.get('/api/intelligence', (req, res) => {
@@ -1123,21 +1212,108 @@ app.get('/api/market/movers', async (req, res) => {
 app.get('/api/market/sectors', async (req, res) => {
   try {
     const { rows } = await queryWithTimeout(
-      `SELECT sector,
-              stocks AS symbols,
-              avg_change AS avg_change_percent,
-              total_volume,
-              leaders,
-              updated_at AS last_updated
-       FROM sector_heatmap
+      `WITH base AS (
+         SELECT
+           COALESCE(q.sector, 'Unknown') AS sector,
+           m.symbol,
+           COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+           COALESCE(m.volume, q.volume, 0) AS volume
+         FROM market_metrics m
+         LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       ),
+       ranked AS (
+         SELECT
+           sector,
+           symbol,
+           change_percent,
+           volume,
+           ROW_NUMBER() OVER (PARTITION BY sector ORDER BY change_percent DESC NULLS LAST) AS rank_in_sector
+         FROM base
+       )
+       SELECT
+         sector,
+         AVG(change_percent)::numeric AS avg_change,
+         AVG(change_percent)::numeric AS avg_change_percent,
+         SUM(volume)::bigint AS total_volume,
+         COUNT(symbol)::int AS symbols,
+         COALESCE(
+           jsonb_agg(
+             jsonb_build_object('symbol', symbol, 'change_percent', change_percent)
+             ORDER BY change_percent DESC
+           ) FILTER (WHERE rank_in_sector <= 3),
+           '[]'::jsonb
+         ) AS leaders
+       FROM ranked
+       GROUP BY sector
        ORDER BY avg_change DESC NULLS LAST`,
       [],
       { label: 'api.market.sectors', timeoutMs: 10000 }
     );
-    res.json({ sectors: rows, leaders: rows.slice(0, 2) });
+    res.json({ sectors: rows, leaders: rows.slice(0, 3) });
   } catch (err) {
     logger.error('market sectors endpoint error', { error: err.message });
-    res.status(500).json({ error: 'Failed to load market sectors', detail: err.message });
+    res.status(500).json({ success: false, error: err.message || 'Failed to load market sectors' });
+  }
+});
+
+app.get('/api/sector/:sector', async (req, res) => {
+  try {
+    const sector = String(req.params.sector || '').trim();
+    if (!sector) return res.status(400).json({ success: false, error: 'sector is required' });
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+        m.symbol,
+        COALESCE(m.price, q.price) AS price,
+        COALESCE(m.change_percent, q.change_percent) AS change_percent,
+        m.gap_percent,
+        m.relative_volume,
+        COALESCE(m.volume, q.volume) AS volume,
+        COALESCE(q.sector, 'Unknown') AS sector
+       FROM market_metrics m
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       WHERE COALESCE(q.sector, '') ILIKE $1
+       ORDER BY COALESCE(m.change_percent, q.change_percent, 0) DESC NULLS LAST
+       LIMIT 500`,
+      [`%${sector}%`],
+      { label: 'api.market.sector_detail', timeoutMs: 10000 }
+    );
+
+    return res.json({ success: true, sector, stocks: rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load sector stocks' });
+  }
+});
+
+app.get('/api/market/indices', async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, price, change_percent
+       FROM market_quotes
+       WHERE symbol = ANY($1::text[])
+       ORDER BY array_position($1::text[], symbol)`,
+      [['SPY', 'QQQ', 'IWM', 'DIA', 'VIX']],
+      { label: 'api.market.indices', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 150 }
+    );
+    return res.json({ success: true, indices: rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load market indices' });
+  }
+});
+
+app.get('/api/market/tickers', async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, change_percent, sector
+       FROM market_quotes
+       ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST
+       LIMIT 20`,
+      [],
+      { label: 'api.market.tickers', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 150 }
+    );
+    return res.json({ success: true, tickers: rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load market tickers' });
   }
 });
 
@@ -1147,18 +1323,39 @@ app.get('/api/expected-move', async (req, res) => {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
 
     const { rows } = await queryWithTimeout(
-      `SELECT symbol,
-              price,
-              atr_percent,
-              expected_move,
-              CASE
-                WHEN COALESCE(price, 0) > 0 THEN (expected_move / price) * 100
-                ELSE NULL
-              END AS expected_move_percent,
-              earnings_date,
-              updated_at
-       FROM expected_moves
-       WHERE ($1::text = '' OR symbol = $1)
+      `SELECT
+        e.symbol,
+        COALESCE(m.price, q.price, 0) AS price,
+        COALESCE(
+          m.atr_percent,
+          ABS(m.gap_percent),
+          ABS(COALESCE(m.change_percent, q.change_percent)),
+          0
+        ) AS atr_percent,
+        (COALESCE(m.price, q.price, 0)
+          * COALESCE(
+            m.atr_percent,
+            ABS(m.gap_percent),
+            ABS(COALESCE(m.change_percent, q.change_percent)),
+            0
+          )
+        ) / 100 AS expected_move,
+        CASE
+          WHEN COALESCE(m.price, q.price, 0) > 0 THEN COALESCE(
+            m.atr_percent,
+            ABS(m.gap_percent),
+            ABS(COALESCE(m.change_percent, q.change_percent)),
+            0
+          )
+          ELSE NULL
+        END AS expected_move_percent,
+        e.earnings_date,
+        COALESCE(m.updated_at, q.updated_at, now()) AS updated_at
+      FROM earnings_events e
+      LEFT JOIN market_metrics m ON m.symbol = e.symbol
+      LEFT JOIN market_quotes q ON q.symbol = e.symbol
+      WHERE e.earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+        AND ($1::text = '' OR e.symbol = $1)
        ORDER BY expected_move DESC NULLS LAST
        LIMIT $2`,
       [symbol, limit],
@@ -1172,7 +1369,7 @@ app.get('/api/expected-move', async (req, res) => {
     return res.json(rows);
   } catch (err) {
     logger.error('expected move endpoint db error', { error: err.message });
-    res.json([]);
+    return res.status(500).json({ success: false, error: err.message || 'Failed to load expected move' });
   }
 });
 
@@ -1196,6 +1393,62 @@ async function loadScreenerRows() {
 app.get('/api/screener', async (req, res) => {
   const rows = await loadScreenerRows();
   res.json({ rows });
+});
+
+app.get('/api/screener/full', async (req, res) => {
+  try {
+    const where = [];
+    const params = [];
+
+    const addCondition = (condition, value) => {
+      params.push(value);
+      where.push(condition.replace('?', `$${params.length}`));
+    };
+
+    const priceMin = Number(req.query.price_min);
+    const priceMax = Number(req.query.price_max);
+    const rvolMin = Number(req.query.rvol_min);
+    const gapMin = Number(req.query.gap_min);
+    const marketCapMin = Number(req.query.market_cap);
+    const sector = String(req.query.sector || '').trim();
+    const strategy = String(req.query.strategy || '').trim();
+
+    if (Number.isFinite(priceMin)) addCondition('COALESCE(tu.price, 0) >= ?', priceMin);
+    if (Number.isFinite(priceMax)) addCondition('COALESCE(tu.price, 0) <= ?', priceMax);
+    if (Number.isFinite(rvolMin)) addCondition('COALESCE(tu.relative_volume, 0) >= ?', rvolMin);
+    if (Number.isFinite(gapMin)) addCondition('COALESCE(tu.gap_percent, 0) >= ?', gapMin);
+    if (Number.isFinite(marketCapMin)) addCondition('COALESCE(q.market_cap, 0) >= ?', marketCapMin);
+    if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
+    if (strategy) addCondition("COALESCE(ss.strategy, '') ILIKE ?", `%${strategy}%`);
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+        tu.symbol,
+        tu.price,
+        tu.change_percent,
+        tu.gap_percent,
+        tu.relative_volume,
+        tu.volume,
+        tu.avg_volume_30d,
+        q.sector,
+        q.market_cap,
+        ss.strategy
+      FROM tradable_universe tu
+      LEFT JOIN market_quotes q ON q.symbol = tu.symbol
+      LEFT JOIN strategy_signals ss ON ss.symbol = tu.symbol
+      ${whereClause}
+      ORDER BY COALESCE(tu.relative_volume, 0) DESC NULLS LAST
+      LIMIT 200`,
+      params,
+      { label: 'api.screener.full', timeoutMs: 10000, maxRetries: 1, retryDelayMs: 200 }
+    );
+
+    return res.json({ success: true, rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load full screener' });
+  }
 });
 
 app.post('/api/screener', async (req, res) => {
@@ -2308,6 +2561,91 @@ app.get('/api/intelligence/feed', async (req, res) => {
       warning: 'INTELLIGENCE_FEED_FALLBACK',
       detail: error.message,
     });
+  }
+});
+
+app.get('/api/intelligence/news', async (req, res) => {
+  try {
+    const where = [];
+    const params = [];
+
+    const addCondition = (condition, value) => {
+      params.push(value);
+      where.push(condition.replace('?', `$${params.length}`));
+    };
+
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+    const sector = String(req.query.sector || '').trim();
+    const sentiment = String(req.query.sentiment || '').trim().toLowerCase();
+    const hours = Number(req.query.hours);
+
+    if (symbol) addCondition('n.symbol = ?', symbol);
+    if (sentiment) addCondition("COALESCE(n.sentiment, '') ILIKE ?", `%${sentiment}%`);
+    if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
+    if (Number.isFinite(hours) && hours > 0) addCondition('n.published_at >= now() - make_interval(hours => ?)', Math.min(hours, 168));
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+        n.symbol,
+        q.sector,
+        n.headline,
+        n.source,
+        n.url,
+        n.sentiment,
+        n.published_at
+       FROM intel_news n
+       LEFT JOIN market_quotes q ON q.symbol = n.symbol
+       ${whereClause}
+       ORDER BY n.published_at DESC NULLS LAST
+       LIMIT 50`,
+      params,
+      { label: 'api.intelligence.news', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 150 }
+    );
+
+    return res.json({ success: true, items: rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load intelligence news' });
+  }
+});
+
+app.get('/api/chart/trend/:symbol', async (req, res) => {
+  try {
+    const symbol = String(req.params.symbol || '').trim().toUpperCase();
+    if (!symbol) return res.status(400).json({ success: false, error: 'symbol is required' });
+
+    await ensureTrendTable();
+
+    const cached = await queryWithTimeout(
+      `SELECT symbol, trend, support, resistance, channel, breakouts, updated_at
+       FROM chart_trends
+       WHERE symbol = $1
+       LIMIT 1`,
+      [symbol],
+      { label: 'api.chart.trend.cached', timeoutMs: 1000, maxRetries: 0 }
+    );
+
+    if (cached.rows.length) {
+      return res.json({
+        symbol,
+        trend: cached.rows[0].trend || 'sideways',
+        support: cached.rows[0].support || [],
+        resistance: cached.rows[0].resistance || [],
+        channel: cached.rows[0].channel || [],
+        breakouts: cached.rows[0].breakouts || [],
+        updated_at: cached.rows[0].updated_at,
+      });
+    }
+
+    const detected = await detectTrendForSymbol(symbol);
+    if (!detected) {
+      return res.status(404).json({ success: false, error: `Insufficient data to detect trend for ${symbol}` });
+    }
+
+    return res.json(detected);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to detect chart trend' });
   }
 });
 
