@@ -1,14 +1,21 @@
 const { Pool } = require('pg');
 
+const poolMax = Number(process.env.PG_POOL_MAX) || 30;
+const poolIdleTimeoutMillis = Number(process.env.PG_IDLE_TIMEOUT_MS) || 60000;
+const poolConnectionTimeoutMillis = Number(process.env.PG_CONNECTION_TIMEOUT_MS) || 10000;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL?.includes('supabase')
     ? { rejectUnauthorized: false }
     : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: poolMax,
+  idleTimeoutMillis: poolIdleTimeoutMillis,
+  connectionTimeoutMillis: poolConnectionTimeoutMillis,
+  application_name: 'openrange-trader',
 });
+
+console.info('DB pool initialized');
 
 pool.on('error', (err) => {
   console.error('Unexpected PG pool error:', err.message);

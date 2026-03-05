@@ -75,6 +75,10 @@ const { getCatalystHealth } = require('./monitoring/catalystHealth');
 const { getDiscoveryHealth } = require('./monitoring/discoveryHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const { startAlertScheduler } = require('./alerts/alert_scheduler');
+const {
+  startEngineScheduler,
+  runIngestionNow,
+} = require('./engines/scheduler');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
@@ -87,6 +91,41 @@ const userModel = require('./users/model');
 
 // User management
 const userRoutes = require('./users/routes');
+
+function warnIfMissingRequiredEnv() {
+  const missing = [];
+
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key-change-in-production') {
+    missing.push('JWT_SECRET');
+  }
+
+  if (!process.env.DATABASE_URL) {
+    missing.push('DATABASE_URL');
+  }
+
+  if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL === 'REQUIRED') {
+    missing.push('SUPABASE_URL');
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY === 'REQUIRED') {
+    missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  if (!process.env.SUPABASE_KEY || process.env.SUPABASE_KEY === 'REQUIRED') {
+    missing.push('SUPABASE_KEY');
+  }
+
+  if (!process.env.FMP_API_KEY || process.env.FMP_API_KEY === 'REQUIRED') {
+    missing.push('FMP_API_KEY');
+    logger.warn('FMP_API_KEY missing – ingestion disabled');
+  }
+
+  if (!missing.length) return;
+
+  logger.warn('Startup environment warning: missing required environment variables', { missing });
+}
+
+warnIfMissingRequiredEnv();
 
 // Finviz Elite News Endpoint (CSV export)
 const FINVIZ_NEWS_TOKEN = process.env.FINVIZ_NEWS_TOKEN;
@@ -646,15 +685,7 @@ app.get('/api/queue/health', async (req, res) => {
 
 app.get('/api/system/health', async (req, res) => {
   try {
-    const health = await Promise.race([
-      getSystemHealth(),
-      new Promise((resolve) => setTimeout(() => resolve({
-        system: 'openrange',
-        status: 'degraded',
-        detail: 'health timeout fallback',
-        checked_at: new Date().toISOString(),
-      }), 3000)),
-    ]);
+    const health = await getSystemHealth();
     res.json(health);
   } catch (err) {
     logger.error('system health endpoint error', { error: err.message });
@@ -886,6 +917,73 @@ app.get('/api/market', (req, res) => {
   res.json({ status: 'ok', data: [] });
 });
 
+app.get('/api/market/quotes', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 200, 5000));
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, price, change_percent, volume, market_cap, sector, updated_at
+       FROM market_quotes
+       ORDER BY updated_at DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'api.market.quotes', timeoutMs: 10000 }
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('market quotes endpoint error', { error: err.message });
+    res.status(500).json({ error: 'Failed to load market quotes', detail: err.message });
+  }
+});
+
+app.get('/api/market/movers', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 500));
+    const { rows } = await queryWithTimeout(
+      `SELECT q.symbol,
+              q.price,
+              q.change_percent,
+              q.volume,
+              q.market_cap,
+              q.sector,
+              m.relative_volume,
+              m.gap_percent,
+              m.updated_at
+       FROM market_quotes q
+       LEFT JOIN market_metrics m ON m.symbol = q.symbol
+       ORDER BY ABS(COALESCE(q.change_percent, 0)) DESC, COALESCE(m.relative_volume, 0) DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'api.market.movers', timeoutMs: 10000 }
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('market movers endpoint error', { error: err.message });
+    res.status(500).json({ error: 'Failed to load market movers', detail: err.message });
+  }
+});
+
+app.get('/api/market/sectors', async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT sector,
+              COUNT(*)::int AS symbols,
+              AVG(change_percent)::numeric AS avg_change_percent,
+              SUM(volume)::bigint AS total_volume,
+              MAX(updated_at) AS last_updated
+       FROM market_quotes
+       WHERE sector IS NOT NULL AND sector <> ''
+       GROUP BY sector
+       ORDER BY total_volume DESC NULLS LAST`,
+      [],
+      { label: 'api.market.sectors', timeoutMs: 10000 }
+    );
+    res.json(rows);
+  } catch (err) {
+    logger.error('market sectors endpoint error', { error: err.message });
+    res.status(500).json({ error: 'Failed to load market sectors', detail: err.message });
+  }
+});
+
 app.get('/api/expected-move', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
@@ -928,6 +1026,28 @@ app.get('/api/opportunity-stream', async (req, res) => {
   } catch (err) {
     logger.error('opportunity stream endpoint db error', { error: err.message });
     res.json([]);
+  }
+});
+
+app.get('/api/opportunities', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id,
+              symbol,
+              event_type,
+              headline,
+              score,
+              source,
+              created_at,
+              created_at AS timestamp
+       FROM opportunity_stream
+       ORDER BY created_at DESC
+       LIMIT 50`
+    );
+    return res.json(rows);
+  } catch (err) {
+    logger.error('opportunities endpoint db error', { error: err.message });
+    return res.json([]);
   }
 });
 
@@ -1947,6 +2067,34 @@ app.get('/api/finviz/news-freshness', async (req, res) => {
 app.use('/api/users/register', registrationLimiter);
 app.use('/api/users', userRoutes);
 
+app.get('/api/intelligence/feed', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    const { rows } = await pool.query(
+      `SELECT
+        id,
+        subject,
+        sender AS "from",
+        source_tag,
+        received_at,
+        LEFT(raw_text, 300) AS summary,
+        processed
+      FROM intelligence_emails
+      ORDER BY received_at DESC
+      LIMIT $1`,
+      [limit]
+    );
+
+    return res.json({ success: true, items: rows });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'INTELLIGENCE_FEED_FAILED',
+      detail: error.message,
+    });
+  }
+});
+
 // Intelligence ingestion — own key auth, must be before JWT middleware
 app.use(intelligenceRoutes);
 
@@ -2329,6 +2477,14 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.use('/api', (req, res) => {
+  return res.status(404).json({
+    success: false,
+    error: 'API route not found',
+    path: req.originalUrl,
+  });
+});
+
 // Production: serve Vite/React frontend from client/dist
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(CLIENT_DIST));
@@ -2349,8 +2505,8 @@ if (process.env.NODE_ENV === 'production') {
 const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
 startDailyReviewCron();
 
-// Phase-aware scheduler (replaces the old fixed-interval startScheduler)
-if (FMP_API_KEY) {
+// Phase-aware scheduler (legacy mode, opt-in)
+if (FMP_API_KEY && process.env.ENABLE_PHASE_SCHEDULER === 'true') {
   // Resolve the scheduler user (whose active preset drives the engine).
   // Falls back to user ID from env, then first admin user in DB.
   const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
@@ -2375,40 +2531,48 @@ if (FMP_API_KEY) {
   })();
 }
 
-if (FMP_API_KEY) {
+if (FMP_API_KEY && process.env.ENABLE_LEGACY_SCHEDULER_SERVICE === 'true') {
   startSchedulerService();
 }
 
-if (process.env.ENABLE_INGESTION_SCHEDULER !== 'false') {
+if (process.env.ENABLE_INGESTION_SCHEDULER === 'true') {
   startIngestionScheduler();
 }
 
-if (process.env.ENABLE_METRICS_SCHEDULER !== 'false') {
+if (process.env.ENABLE_METRICS_SCHEDULER === 'true') {
   startMetricsScheduler();
 }
 
-if (process.env.ENABLE_STRATEGY_SCHEDULER !== 'false') {
+if (process.env.ENABLE_STRATEGY_SCHEDULER === 'true') {
   startStrategyScheduler();
 }
 
-if (process.env.ENABLE_CATALYST_SCHEDULER !== 'false') {
+if (process.env.ENABLE_CATALYST_SCHEDULER === 'true') {
   startCatalystScheduler();
 }
 
-if (process.env.ENABLE_DISCOVERY_SCHEDULER !== 'false') {
+if (process.env.ENABLE_DISCOVERY_SCHEDULER === 'true') {
   startDiscoveryScheduler();
 }
 
-if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER !== 'false') {
+if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER === 'true') {
   startOpportunityStreamScheduler();
 }
 
-if (process.env.ENABLE_NARRATIVE_SCHEDULER !== 'false') {
+if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
   startNarrativeScheduler();
 }
 
-if (process.env.ENABLE_ALERT_SCHEDULER !== 'false') {
+if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
   startAlertScheduler();
+}
+
+if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
+  logger.info('OpenRange backend starting in bootstrap mode');
+  startEngineScheduler();
+  runIngestionNow().catch((error) => {
+    logger.error('Initial market ingestion failed', { error: error.message });
+  });
 }
 
 app.listen(PORT, () => {

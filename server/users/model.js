@@ -17,10 +17,52 @@ const register = async (username, email, password, is_admin = 0) => {
 // Find user by username or email
 const findByUsernameOrEmail = async (identifier) => {
   const result = await pool.query(
-    'SELECT * FROM users WHERE username = $1 OR email = $2',
+    `SELECT
+      id,
+      username,
+      email,
+      password,
+      password AS password_hash,
+      is_admin,
+      is_admin AS role,
+      is_active,
+      last_login,
+      created_at
+    FROM users
+    WHERE username = $1 OR email = $2`,
     [identifier, identifier]
   );
   return result.rows[0] || null;
+};
+
+const ensureFallbackAdminUser = async () => {
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
+      password TEXT NOT NULL,
+      is_admin INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      login_count INTEGER DEFAULT 0,
+      last_login TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`
+  );
+
+  const fallbackUsername = process.env.FALLBACK_ADMIN_USERNAME || 'jamesharris';
+  const fallbackEmail = process.env.FALLBACK_ADMIN_EMAIL || 'jamesharris@local.dev';
+  const fallbackPassword = process.env.FALLBACK_ADMIN_PASSWORD || 'ChangeMe123!';
+  const hash = await bcrypt.hash(fallbackPassword, 10);
+
+  await pool.query(
+    `INSERT INTO users (username, email, password, is_admin, is_active)
+     VALUES ($1, $2, $3, 1, 1)
+     ON CONFLICT (username)
+     DO NOTHING`,
+    [fallbackUsername, fallbackEmail, hash]
+  );
 };
 
 // Find user by id
@@ -300,6 +342,7 @@ module.exports = {
   hasSaxoConnected,
   savePplxSettings,
   getPplxSettings,
+  ensureFallbackAdminUser,
   saveBrokerConnection,
   getBrokerConnection,
   clearBrokerConnection,

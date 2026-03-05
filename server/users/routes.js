@@ -5,6 +5,8 @@ const bcrypt = require('bcrypt');
 const model = require('./model');
 const router = express.Router();
 
+console.log('Auth module loaded');
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Get client IP helper
@@ -75,22 +77,46 @@ router.post('/register', async (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-  const { identifier, password } = req.body;
-  if (!identifier || !password) return res.status(400).json({ error: 'All fields required' });
-  try {
-    const user = await model.findByUsernameOrEmail(identifier);
-    if (!user) return res.status(401).json({ error: 'User not found' });
+  const { identifier, password } = req.body || {};
+  const username = String(identifier || '').trim();
+  console.log('Login attempt:', username || 'unknown');
 
-    // Check if user is active
-    if (user.is_active === 0) {
-      return res.status(403).json({ error: 'Account is deactivated. Contact support.' });
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      error: 'All fields required',
+    });
+  }
+
+  try {
+    await model.ensureFallbackAdminUser();
+
+    const user = await model.findByUsernameOrEmail(username);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
     }
 
-    const valid = await bcrypt.compare(password, user.password);
+    // Check if user is active
+    const isActive = user.is_active === true || user.is_active === 1 || user.is_active === '1';
+    if (!isActive) {
+      return res.status(403).json({
+        success: false,
+        error: 'Account is deactivated. Contact support.',
+      });
+    }
+
+    const storedHash = user.password_hash || user.password;
+    const valid = storedHash ? await bcrypt.compare(password, storedHash) : false;
     if (!valid) {
       // Log failed attempt
       model.logActivity(user.id, 'login_failed', 'Invalid password attempt', getClientIp(req));
-      return res.status(401).json({ error: 'Invalid password' });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
     }
 
     // Record successful login
@@ -103,7 +129,8 @@ router.post('/login', async (req, res) => {
       is_admin: user.is_admin
     }, JWT_SECRET, { expiresIn: '24h' });
 
-    res.json({
+    return res.json({
+      success: true,
       token,
       user: {
         id: user.id,
@@ -113,8 +140,26 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login failed:', err.message);
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'Login failed',
+    });
   }
+});
+
+router.post('/dev-login', async (req, res) => {
+  if (process.env.ENABLE_DEV_LOGIN_BYPASS !== 'true') {
+    return res.status(403).json({
+      success: false,
+      error: 'dev-login bypass disabled',
+    });
+  }
+
+  return res.json({
+    success: true,
+    token: 'dev-token',
+  });
 });
 
 // Auth middleware

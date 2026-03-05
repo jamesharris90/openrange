@@ -1,45 +1,23 @@
-import { logApiCall } from '../utils/apiDiagnostics';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function apiFetch(path, options = {}) {
-  logApiCall(path);
+  const url = `${API_BASE}${path}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(url, {
+    credentials: 'include',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
     ...options,
   });
 
-  const text = await res.text();
-  const trimmed = text.trim();
-
-  if (trimmed.startsWith('<!DOCTYPE html')) {
-    console.error('Frontend API misrouting detected', {
-      path,
-      preview: trimmed.slice(0, 200),
-    });
-    throw new Error('Invalid JSON response');
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API error ${response.status}: ${text}`);
   }
 
-  let payload;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    console.error('API returned non-JSON:', trimmed.slice(0, 200));
-    throw new Error('Invalid JSON response');
-  }
-
-  if (!res.ok) {
-    const message = typeof payload?.detail === 'string'
-      ? payload.detail
-      : JSON.stringify(payload);
-    throw new Error(`API ${res.status}: ${message}`);
-  }
-
-  return payload;
+  return response.json();
 }
 
 export async function apiJSON(path, options = {}) {
