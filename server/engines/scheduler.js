@@ -8,6 +8,7 @@ const { runMetricsEngine } = require('./metricsEngine');
 const { runUniverseBuilder } = require('./universeBuilder');
 const { runSectorEngine } = require('./sectorEngine');
 const { runOpportunityEngine } = require('./opportunityEngine');
+const { runStrategyEngine } = require('./strategyEngine');
 const { runEarningsEngine } = require('./earningsEngine');
 const { runExpectedMoveEngine } = require('./expectedMoveEngine');
 const { runIntelNewsEngine } = require('./intelNewsEngine');
@@ -18,6 +19,7 @@ let metricsInterval = null;
 let universeInterval = null;
 let sectorInterval = null;
 let opportunityInterval = null;
+let strategyInterval = null;
 let earningsInterval = null;
 let expectedMoveInterval = null;
 let intelNewsInterval = null;
@@ -26,6 +28,7 @@ let metricsInFlight = false;
 let universeInFlight = false;
 let sectorInFlight = false;
 let opportunityInFlight = false;
+let strategyInFlight = false;
 let earningsInFlight = false;
 let expectedMoveInFlight = false;
 let intelNewsInFlight = false;
@@ -39,6 +42,7 @@ const state = {
   universeEverySeconds: 600,
   sectorEverySeconds: 120,
   opportunityEverySeconds: 60,
+  strategyEverySeconds: 60,
   earningsEverySeconds: 3600,
   expectedMoveEverySeconds: 300,
   intelNewsEverySeconds: 300,
@@ -53,6 +57,8 @@ const state = {
   lastSectorError: null,
   lastOpportunityRunAt: null,
   lastOpportunityError: null,
+  lastStrategyRunAt: null,
+  lastStrategyError: null,
   lastEarningsRunAt: null,
   lastEarningsError: null,
   lastExpectedMoveRunAt: null,
@@ -199,6 +205,26 @@ async function runOpportunityNow() {
   }
 }
 
+async function runStrategyNow() {
+  if (strategyInFlight) {
+    logger.warn('Skipping strategy run; previous run still in flight');
+    return null;
+  }
+
+  strategyInFlight = true;
+  state.lastStrategyRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('strategyEngine', runStrategyEngine);
+    state.lastStrategyError = null;
+    return result;
+  } catch (error) {
+    state.lastStrategyError = error.message;
+    return null;
+  } finally {
+    strategyInFlight = false;
+  }
+}
+
 async function runEarningsNow() {
   if (earningsInFlight) {
     logger.warn('Skipping earnings run; previous run still in flight');
@@ -284,6 +310,10 @@ function startEngineScheduler() {
     runOpportunityNow();
   }, state.opportunityEverySeconds * 1000);
 
+  strategyInterval = setInterval(() => {
+    runStrategyNow();
+  }, state.strategyEverySeconds * 1000);
+
   earningsInterval = setInterval(() => {
     runEarningsNow();
   }, state.earningsEverySeconds * 1000);
@@ -301,6 +331,7 @@ function startEngineScheduler() {
   if (typeof universeInterval.unref === 'function') universeInterval.unref();
   if (typeof sectorInterval.unref === 'function') sectorInterval.unref();
   if (typeof opportunityInterval.unref === 'function') opportunityInterval.unref();
+  if (typeof strategyInterval.unref === 'function') strategyInterval.unref();
   if (typeof earningsInterval.unref === 'function') earningsInterval.unref();
   if (typeof expectedMoveInterval.unref === 'function') expectedMoveInterval.unref();
   if (typeof intelNewsInterval.unref === 'function') intelNewsInterval.unref();
@@ -309,6 +340,7 @@ function startEngineScheduler() {
   runUniverseNow();
   runSectorNow();
   runOpportunityNow();
+  runStrategyNow();
   runEarningsNow();
   runExpectedMoveNow();
   runIntelNewsNow();
@@ -319,6 +351,7 @@ function startEngineScheduler() {
     universeEverySeconds: state.universeEverySeconds,
     sectorEverySeconds: state.sectorEverySeconds,
     opportunityEverySeconds: state.opportunityEverySeconds,
+    strategyEverySeconds: state.strategyEverySeconds,
     earningsEverySeconds: state.earningsEverySeconds,
     expectedMoveEverySeconds: state.expectedMoveEverySeconds,
     intelNewsEverySeconds: state.intelNewsEverySeconds,
@@ -334,6 +367,7 @@ function getEngineSchedulerStatus() {
     universeTimerActive: Boolean(universeInterval),
     sectorTimerActive: Boolean(sectorInterval),
     opportunityTimerActive: Boolean(opportunityInterval),
+    strategyTimerActive: Boolean(strategyInterval),
     earningsTimerActive: Boolean(earningsInterval),
     expectedMoveTimerActive: Boolean(expectedMoveInterval),
     intelNewsTimerActive: Boolean(intelNewsInterval),
@@ -347,6 +381,7 @@ module.exports = {
   runUniverseNow,
   runSectorNow,
   runOpportunityNow,
+  runStrategyNow,
   runEarningsNow,
   runExpectedMoveNow,
   runIntelNewsNow,

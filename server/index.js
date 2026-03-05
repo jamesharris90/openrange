@@ -1041,17 +1041,21 @@ app.get('/api/earnings/week', async (req, res) => {
 
 app.get('/api/signals', async (req, res) => {
   const signals = await fastRowsQuery(
-    `SELECT id,
+    `SELECT
             symbol,
-            event_type,
-            headline,
+            strategy,
+            class,
             score,
-            source,
-            created_at,
-            created_at AS timestamp
-     FROM opportunity_stream
-     ORDER BY created_at DESC
-     LIMIT 25`,
+            probability,
+            change_percent,
+            gap_percent,
+            relative_volume,
+            volume,
+            updated_at,
+            updated_at AS timestamp
+     FROM strategy_signals
+     ORDER BY score DESC NULLS LAST
+     LIMIT 50`,
     [],
     'api.signals',
     180
@@ -2306,7 +2310,7 @@ app.get('/api/intelligence/feed', async (req, res) => {
 
 app.get('/api/intelligence/summary', async (req, res) => {
   try {
-    const [sectors, opportunities, earningsToday, earningsWeek, news] = await Promise.all([
+    const [sectors, opportunities, earningsToday, earningsWeek, news, topStrategies] = await Promise.all([
       fastRowsQuery(
         `SELECT sector, avg_change, total_volume, stocks, leaders, updated_at
          FROM sector_heatmap
@@ -2354,6 +2358,20 @@ app.get('/api/intelligence/summary', async (req, res) => {
         'api.intelligence.summary.news',
         300
       ),
+      fastRowsQuery(
+        `SELECT strategy,
+                class,
+                COUNT(*)::int AS count,
+                AVG(score)::numeric AS avg_score,
+                MAX(probability)::numeric AS max_probability
+         FROM strategy_signals
+         GROUP BY strategy, class
+         ORDER BY avg_score DESC NULLS LAST, count DESC
+         LIMIT 10`,
+        [],
+        'api.intelligence.summary.top_strategies',
+        300
+      ),
     ]);
 
     return res.json({
@@ -2366,6 +2384,7 @@ app.get('/api/intelligence/summary', async (req, res) => {
           week: earningsWeek,
         },
         news,
+        top_strategies: topStrategies,
       },
       generated_at: new Date().toISOString(),
     });
@@ -2373,7 +2392,7 @@ app.get('/api/intelligence/summary', async (req, res) => {
     logger.error('intelligence summary endpoint error', { error: error.message });
     return res.json({
       success: true,
-      summary: { sectors: [], opportunities: [], earnings: { today: [], week: [] }, news: [] },
+      summary: { sectors: [], opportunities: [], earnings: { today: [], week: [] }, news: [], top_strategies: [] },
       warning: 'INTELLIGENCE_SUMMARY_FALLBACK',
       detail: error.message,
       generated_at: new Date().toISOString(),
