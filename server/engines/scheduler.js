@@ -16,10 +16,8 @@ const { runIntelNewsEngine } = require('./intelNewsEngine');
 let started = false;
 let ingestionInterval = null;
 let metricsInterval = null;
-let universeInterval = null;
 let sectorInterval = null;
 let opportunityInterval = null;
-let strategyInterval = null;
 let earningsInterval = null;
 let expectedMoveInterval = null;
 let intelNewsInterval = null;
@@ -39,7 +37,7 @@ const state = {
   started: false,
   ingestionEverySeconds: 60,
   metricsEverySeconds: 60,
-  universeEverySeconds: 600,
+  universeEverySeconds: 60,
   sectorEverySeconds: 120,
   opportunityEverySeconds: 60,
   strategyEverySeconds: 60,
@@ -285,6 +283,20 @@ async function runIntelNewsNow() {
   }
 }
 
+async function runUniverseBuilderNow() {
+  return runUniverseNow();
+}
+
+async function runStrategyEngineNow() {
+  return runStrategyNow();
+}
+
+async function runCorePipelineNow() {
+  await runMetricsNow();
+  await runUniverseBuilderNow();
+  await runStrategyEngineNow();
+}
+
 function startEngineScheduler() {
   if (started) return;
   started = true;
@@ -295,12 +307,8 @@ function startEngineScheduler() {
   }, state.ingestionEverySeconds * 1000);
 
   metricsInterval = setInterval(() => {
-    runMetricsNow();
+    runCorePipelineNow();
   }, state.metricsEverySeconds * 1000);
-
-  universeInterval = setInterval(() => {
-    runUniverseNow();
-  }, state.universeEverySeconds * 1000);
 
   sectorInterval = setInterval(() => {
     runSectorNow();
@@ -310,9 +318,6 @@ function startEngineScheduler() {
     runOpportunityNow();
   }, state.opportunityEverySeconds * 1000);
 
-  strategyInterval = setInterval(() => {
-    runStrategyNow();
-  }, state.strategyEverySeconds * 1000);
 
   earningsInterval = setInterval(() => {
     runEarningsNow();
@@ -328,19 +333,15 @@ function startEngineScheduler() {
 
   if (typeof ingestionInterval.unref === 'function') ingestionInterval.unref();
   if (typeof metricsInterval.unref === 'function') metricsInterval.unref();
-  if (typeof universeInterval.unref === 'function') universeInterval.unref();
   if (typeof sectorInterval.unref === 'function') sectorInterval.unref();
   if (typeof opportunityInterval.unref === 'function') opportunityInterval.unref();
-  if (typeof strategyInterval.unref === 'function') strategyInterval.unref();
   if (typeof earningsInterval.unref === 'function') earningsInterval.unref();
   if (typeof expectedMoveInterval.unref === 'function') expectedMoveInterval.unref();
   if (typeof intelNewsInterval.unref === 'function') intelNewsInterval.unref();
 
-  runMetricsNow();
-  runUniverseNow();
+  runCorePipelineNow();
   runSectorNow();
   runOpportunityNow();
-  runStrategyNow();
   runEarningsNow();
   runExpectedMoveNow();
   runIntelNewsNow();
@@ -364,10 +365,10 @@ function getEngineSchedulerStatus() {
     ...state,
     ingestionTimerActive: Boolean(ingestionInterval),
     metricsTimerActive: Boolean(metricsInterval),
-    universeTimerActive: Boolean(universeInterval),
+    universeTimerActive: Boolean(metricsInterval),
     sectorTimerActive: Boolean(sectorInterval),
     opportunityTimerActive: Boolean(opportunityInterval),
-    strategyTimerActive: Boolean(strategyInterval),
+    strategyTimerActive: Boolean(metricsInterval),
     earningsTimerActive: Boolean(earningsInterval),
     expectedMoveTimerActive: Boolean(expectedMoveInterval),
     intelNewsTimerActive: Boolean(intelNewsInterval),
@@ -378,10 +379,13 @@ module.exports = {
   startEngineScheduler,
   runIngestionNow,
   runMetricsNow,
+  runCorePipelineNow,
   runUniverseNow,
+  runUniverseBuilderNow,
   runSectorNow,
   runOpportunityNow,
   runStrategyNow,
+  runStrategyEngineNow,
   runEarningsNow,
   runExpectedMoveNow,
   runIntelNewsNow,

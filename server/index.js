@@ -77,6 +77,9 @@ const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
   runIngestionNow,
+  runMetricsNow,
+  runUniverseBuilderNow,
+  runStrategyEngineNow,
 } = require('./engines/scheduler');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
@@ -2875,9 +2878,17 @@ if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
 if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
   logger.info('OpenRange backend starting in bootstrap mode');
   startEngineScheduler();
-  runIngestionNow().catch((error) => {
-    logger.error('Initial market ingestion failed', { error: error.message });
-  });
+
+  (async () => {
+    try {
+      await runIngestionNow();
+      await runMetricsNow();
+      await runUniverseBuilderNow();
+      await runStrategyEngineNow();
+    } catch (error) {
+      logger.error('Initial engine bootstrap failed', { error: error.message });
+    }
+  })();
 }
 
 app.listen(PORT, () => {
