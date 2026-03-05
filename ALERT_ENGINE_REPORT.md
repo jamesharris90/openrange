@@ -82,3 +82,41 @@ Implemented backend alert infrastructure that reuses screener query-tree logic a
 ## Constraints Compliance
 - No modifications were made to ingestion workers, metrics engine, strategy engine, or catalyst engine.
 - Alert logic reuses screener query-tree architecture (`query_tree` JSON-based filtering model).
+
+## Alert Dashboard UI
+
+Implemented a dedicated Alerts Command Center frontend at `/alerts` with a two-column management layout and screener-aligned card styling.
+
+### Delivered UI Components
+- `client/src/pages/AlertsPage.jsx`
+  - Top summary bar + two-column body layout.
+  - Left: active alerts management cards.
+  - Right: triggered alerts timeline/history.
+- `client/src/components/alerts/AlertsSummary.jsx`
+  - Displays: Active Alerts, Triggered Today, Total Alerts, Last Trigger Time.
+  - Data source: `/api/alerts` and `/api/alerts/history`.
+- `client/src/components/alerts/AlertsList.jsx`
+  - Card view with: Alert Name, Query Summary, Frequency, Enabled toggle.
+  - Actions: Edit, Disable, Delete, Test Alert.
+  - Visual state: left border green when enabled, gray when disabled.
+- `client/src/components/alerts/AlertHistory.jsx`
+  - Timeline format with: Ticker, Alert Name, Triggered Time, Message.
+  - Actions: Open Chart, View Screener.
+- `client/src/components/alerts/EditAlertModal.jsx`
+  - Editable fields: Alert Name, Frequency, Enabled status, Message template.
+  - Query tree is preserved unchanged.
+
+### API Interaction Behavior
+- Enabled toggle:
+  - Disable path: `POST /api/alerts/disable`
+  - Enable path: `POST /api/alerts/create` (recreates enabled alert from existing query tree)
+- Test alert action:
+  - Calls `POST /api/alerts/test`
+  - If unavailable, UI still presents a simulated alert notification.
+
+### Navigation Updates
+- Added Alerts route in `client/src/App.jsx`:
+  - `/alerts` → `AlertsPage`
+- Updated sidebar workflows to include Alerts:
+  - Dashboard, Scanner, Alerts, Research
+

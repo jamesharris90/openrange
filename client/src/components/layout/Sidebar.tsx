@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Moon, Search, Sunrise } from 'lucide-react';
+import { Activity, BarChart2, Bell, Moon, Search, Sunrise } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -28,6 +28,7 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/dashboard',         label: 'Dashboard',          icon: BarChart2 },
       { to: '/screener',          label: 'Scanner',            icon: BarChart2 },
+      { to: '/alerts',            label: 'Alerts',             icon: Bell },
       { to: '/research',          label: 'Research',          icon: Search },
     ],
   },

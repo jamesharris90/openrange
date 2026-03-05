@@ -22,6 +22,7 @@ const InstitutionalScreener = lazy(() => import('./pages/InstitutionalScreener')
 const MarketOverviewPage = lazy(() => import('./pages/MarketOverviewPage'));
 const MarketHoursPage = lazy(() => import('./pages/MarketHoursPage'));
 const ResearchPage = lazy(() => import('./pages/ResearchPage'));
+const AlertsPage = lazy(() => import('./pages/AlertsPage'));
 const OpenMarketRadar = lazy(() => import('./pages/OpenMarketRadar'));
 const PostMarketReview = lazy(() => import('./pages/PostMarketReview'));
 const Charts = lazy(() => import('./pages/Charts'));
@@ -64,6 +65,7 @@ export default function App() {
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
                   <Route path="/earnings" element={<EarningsPage />} />
                   <Route path="/research" element={<ResearchPage />} />
+                  <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/live" element={<LiveCockpit />} />
                   <Route path="/intelligence" element={<Navigate to="/open-market-radar" replace />} />

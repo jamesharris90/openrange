@@ -6,9 +6,10 @@ const mobileItems = [
   { to: '/pre-market-command', label: 'Pre-Market Command' },
   { to: '/open-market-radar', label: 'Open Market Radar' },
   { to: '/post-market-review', label: 'Post-Market Review' },
-  { to: '/screeners', label: 'Scanner' },
-  { to: '/research', label: 'Research' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/screener', label: 'Scanner' },
+  { to: '/alerts', label: 'Alerts' },
+  { to: '/research', label: 'Research' },
 ];
 
 export default function MobileDrawer() {
