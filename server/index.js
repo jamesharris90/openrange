@@ -75,7 +75,7 @@ const { getDiscoveryHealth } = require('./monitoring/discoveryHealth');
 const { getSystemHealth } = require('./monitoring/systemHealth');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
-const { pool } = require('./db/pg');
+const { pool, queryWithTimeout } = require('./db/pg');
 
 // Logger
 const logger = require('./logger');
@@ -666,31 +666,75 @@ app.get('/api/system/health', async (req, res) => {
 });
 
 app.get('/api/system/report', async (req, res) => {
+  const requiredTables = [
+    'daily_ohlc',
+    'intraday_1m',
+    'market_metrics',
+    'trade_setups',
+    'trade_catalysts',
+    'opportunity_stream',
+    'market_narratives',
+    'ticker_universe',
+  ];
+
   try {
-    const [metrics, setups, catalysts, universe, queue, opportunityStream, narratives] = await Promise.all([
-      pool.query('SELECT COUNT(*)::int AS count FROM market_metrics'),
-      pool.query('SELECT COUNT(*)::int AS count FROM trade_setups'),
-      pool.query('SELECT COUNT(*)::int AS count FROM trade_catalysts'),
-      pool.query('SELECT COUNT(*)::int AS count FROM ticker_universe'),
-      pool.query('SELECT COUNT(*)::int AS count FROM symbol_queue'),
-      pool.query('SELECT COUNT(*)::int AS count FROM opportunity_stream'),
-      pool.query('SELECT COUNT(*)::int AS count FROM market_narratives'),
-    ]);
+    const tablesResult = await queryWithTimeout(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema='public'",
+      [],
+      { label: 'system.report.table_scan', timeoutMs: 5000 }
+    );
+
+    const availableTables = new Set(tablesResult.rows.map((row) => row.table_name));
+    const missingTables = requiredTables.filter((tableName) => !availableTables.has(tableName));
+
+    const countTargets = [
+      ['market_metrics', 'metrics_rows'],
+      ['trade_setups', 'setups_count'],
+      ['trade_catalysts', 'catalysts_count'],
+      ['ticker_universe', 'ticker_universe_size'],
+      ['symbol_queue', 'queue_size'],
+      ['opportunity_stream', 'opportunity_stream_count'],
+      ['market_narratives', 'narrative_count'],
+    ];
+
+    const counts = {};
+    const queryErrors = [];
+
+    await Promise.all(countTargets.map(async ([tableName, outputKey]) => {
+      if (!availableTables.has(tableName)) {
+        counts[outputKey] = null;
+        return;
+      }
+      try {
+        const countResult = await queryWithTimeout(
+          `SELECT COUNT(*)::int AS count FROM ${tableName}`,
+          [],
+          { label: `system.report.count.${tableName}`, timeoutMs: 5000 }
+        );
+        counts[outputKey] = countResult.rows[0]?.count ?? 0;
+      } catch (error) {
+        counts[outputKey] = null;
+        queryErrors.push({ table: tableName, detail: error.message });
+      }
+    }));
+
+    const degraded = missingTables.length > 0 || queryErrors.length > 0;
 
     res.json({
-      status: 'ok',
-      metrics_rows: metrics.rows[0]?.count || 0,
-      setups_count: setups.rows[0]?.count || 0,
-      catalysts_count: catalysts.rows[0]?.count || 0,
-      ticker_universe_size: universe.rows[0]?.count || 0,
-      queue_size: queue.rows[0]?.count || 0,
-      opportunity_stream_count: opportunityStream.rows[0]?.count || 0,
-      narrative_count: narratives.rows[0]?.count || 0,
+      status: degraded ? 'degraded' : 'ok',
+      missing_tables: missingTables,
+      query_errors: queryErrors,
+      ...counts,
       checked_at: new Date().toISOString(),
     });
   } catch (err) {
     logger.error('system report endpoint error', { error: err.message });
-    res.status(500).json({ status: 'error', detail: err.message });
+    res.json({
+      status: 'degraded',
+      missing_tables: requiredTables,
+      detail: err.message,
+      checked_at: new Date().toISOString(),
+    });
   }
 });
 

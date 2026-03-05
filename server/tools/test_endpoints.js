@@ -3,11 +3,14 @@ const BASE_URL = process.env.TEST_BASE_URL || 'https://openrange-backend-product
 
 const ENDPOINTS = [
   '/api/system/health',
+  '/api/system/report',
   '/api/metrics',
   '/api/scanner',
   '/api/premarket',
   '/api/news',
   '/api/setups',
+  '/api/opportunity-stream',
+  '/api/market-narrative',
   '/api/expected-move',
 ];
 
