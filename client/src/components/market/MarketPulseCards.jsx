@@ -5,7 +5,9 @@ import MarketIndexCard from './MarketIndexCard';
 const TARGETS = ['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y'];
 
 function normalizeIndices(payload) {
-  const rows = Array.isArray(payload?.indices) ? payload.indices : [];
+  const rows = Array.isArray(payload)
+    ? payload
+    : (Array.isArray(payload?.indices) ? payload.indices : []);
   const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
 
   return TARGETS.map((symbol) => {

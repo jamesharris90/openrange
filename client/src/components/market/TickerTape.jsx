@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiJSON } from '../../config/api';
 import { useSymbol } from '../../context/SymbolContext';
-import SparklineMini from '../charts/SparklineMini';
+import TickerHoverPanel from './TickerHoverPanel';
 
 function fmtPrice(value) {
   const n = Number(value);
@@ -32,11 +32,11 @@ export default function TickerTape() {
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/market/tickers');
-        const tickers = Array.isArray(payload?.tickers) ? payload.tickers : [];
+        const payload = await apiJSON('/api/market/ticker-tape');
+        const tickers = Array.isArray(payload) ? payload : [];
         if (cancelled) return;
         setRows(tickers);
-        setError('');
+        setError(tickers.length ? '' : 'Data temporarily unavailable');
       } catch (_error) {
         if (cancelled) return;
         setRows([]);
@@ -58,7 +58,7 @@ export default function TickerTape() {
     async function loadDetails(symbol) {
       if (!symbol || detailBySymbol[symbol]) return;
       try {
-        const payload = await apiJSON(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
+        const payload = await apiJSON(`/api/market/quote?symbol=${encodeURIComponent(symbol)}`);
         if (!cancelled) {
           setDetailBySymbol((prev) => ({
             ...prev,
@@ -135,34 +135,7 @@ export default function TickerTape() {
         </div>
       </div>
 
-      {hoveredSymbol && (
-        <div
-          className="pointer-events-none absolute left-3 top-full z-50 mt-1 w-72 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 shadow-lg"
-          onMouseEnter={() => setHoveredSymbol(hoveredSymbol)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold">{hoveredSymbol}</div>
-            <div className="text-sm text-[var(--text-secondary)]">{fmtPrice(hoveredDetail?.price)}</div>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-xs">
-            <span className="text-[var(--text-muted)]">Change</span>
-            <span className={Number(hoveredDetail?.changesPercentage) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-              {fmtPercent(hoveredDetail?.changesPercentage)}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-xs">
-            <span className="text-[var(--text-muted)]">Volume</span>
-            <span>{fmtVolume(hoveredDetail?.volume)}</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-xs">
-            <span className="text-[var(--text-muted)]">Sector</span>
-            <span>{hoveredDetail?.sector || '--'}</span>
-          </div>
-          <div className="mt-2">
-            <SparklineMini symbol={hoveredSymbol} width={248} height={42} positive={Number(hoveredDetail?.changesPercentage) >= 0} />
-          </div>
-        </div>
-      )}
+      {hoveredSymbol && <TickerHoverPanel symbol={hoveredSymbol} detail={hoveredDetail} />}
     </div>
   );
 }
