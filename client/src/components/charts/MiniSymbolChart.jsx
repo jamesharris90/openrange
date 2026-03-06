@@ -27,7 +27,11 @@ export default function MiniSymbolChart({ symbol, width = 160, height = 42 }) {
       try {
         const payload = await apiJSON(`/api/chart/mini/${encodeURIComponent(symbol)}`);
         if (cancelled) return;
-        setCandles(Array.isArray(payload?.candles) ? payload.candles : []);
+        if (Array.isArray(payload)) {
+          setCandles(payload.map((row) => ({ close: Number(row?.value) })).filter((row) => Number.isFinite(row.close)));
+        } else {
+          setCandles(Array.isArray(payload?.candles) ? payload.candles : []);
+        }
       } catch {
         if (!cancelled) setCandles([]);
       }

@@ -35,6 +35,7 @@ const earningsRoutes = require('./routes/earnings');
 const optionsApiRoutes = require('./routes/optionsRoutes');
 const earningsIntelligenceRoutes = require('./routes/earningsRoutes');
 const brokerRoutes = require('./routes/broker');
+const marketDataRoutes = require('./routes/marketData');
 const marketService = require('./services/marketDataService');
 const expectedMoveService = require('./services/expectedMoveService');
 const { buildUniverseDataset } = require('./services/fmpService');
@@ -625,6 +626,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(historicalRoutes);
   app.use(optionsRoutes);
   app.use(earningsRoutes);
+  app.use(marketDataRoutes);
   app.use('/api/options', optionsApiRoutes);
   app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
   app.use(adminRoutes);

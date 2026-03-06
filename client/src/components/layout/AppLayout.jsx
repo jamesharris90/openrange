@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileDrawer from './MobileDrawer';
-import MarketTickerBar from '../market/MarketTickerBar';
+import TickerTape from '../market/TickerTape';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function AppLayout({ children }) {
@@ -34,7 +34,7 @@ export default function AppLayout({ children }) {
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Header />
       <div className="fixed inset-x-0 top-14 z-40">
-        <MarketTickerBar />
+        <TickerTape />
       </div>
 
       <div className="pt-24">

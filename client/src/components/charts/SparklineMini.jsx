@@ -15,6 +15,14 @@ function buildFromCandles(candles) {
   return values.length >= 2 ? values.slice(-80) : null;
 }
 
+function buildFromMiniSeries(payload) {
+  const rows = Array.isArray(payload) ? payload : [];
+  const values = rows
+    .map((row) => Number(row?.value))
+    .filter((value) => Number.isFinite(value));
+  return values.length >= 2 ? values.slice(-80) : null;
+}
+
 export default function SparklineMini({ points, symbol, width = 84, height = 24, positive = true }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -81,7 +89,7 @@ export default function SparklineMini({ points, symbol, width = 84, height = 24,
       if (symbol) {
         try {
           const payload = await apiJSON(`/api/chart/mini/${encodeURIComponent(symbol)}`);
-          const fromApi = buildFromCandles(payload?.candles);
+          const fromApi = buildFromMiniSeries(payload) || buildFromCandles(payload?.candles);
           if (fromApi) source = fromApi;
         } catch (_error) {
           source = fallbackPoints;
