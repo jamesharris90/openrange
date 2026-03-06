@@ -4378,9 +4378,10 @@ if (process.env.NODE_ENV === 'production') {
 
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     logger.info('OpenRange backend starting in bootstrap mode');
-    console.log('Starting engines sequentially...');
-    await startEnginesSequentially();
-    startEngineScheduler();
+    // console.log('Starting engines sequentially...');
+    // await startEnginesSequentially();
+    // startEngineScheduler();
+    console.log('Backend started with engines disabled');
   }
 
   app.listen(PORT, () => {
