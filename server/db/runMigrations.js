@@ -15,16 +15,32 @@ async function runMigrations() {
   }
 
   const files = fs.readdirSync(migrationsDir).sort();
+  let timeoutDisabled = false;
 
-  for (const file of files) {
-    const sql = fs.readFileSync(path.join(migrationsDir, file)).toString();
+  try {
+    await pool.query("SET statement_timeout = 0");
+    timeoutDisabled = true;
 
-    try {
-      console.log(`[Migration] Running: ${file}`);
-      await pool.query(sql);
-      console.log(`[Migration] Completed: ${file}`);
-    } catch (err) {
-      console.error(`[Migration] Failed: ${file}`, err);
+    for (const file of files) {
+      const sql = fs.readFileSync(path.join(migrationsDir, file)).toString();
+
+      try {
+        console.log(`[Migration] Running: ${file}`);
+        await pool.query(sql);
+        console.log(`[Migration] Completed: ${file}`);
+      } catch (err) {
+        console.error(`[Migration] Failed: ${file}`, err);
+      }
+    }
+  } catch (err) {
+    console.error("[Migration] Runner failure", err);
+  } finally {
+    if (timeoutDisabled) {
+      try {
+        await pool.query("SET statement_timeout = 5000");
+      } catch (err) {
+        console.error("[Migration] Failed to restore statement timeout", err);
+      }
     }
   }
 }
