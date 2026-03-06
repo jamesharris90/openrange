@@ -83,15 +83,13 @@ const { getSystemHealth } = require('./monitoring/systemHealth');
 const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
-  runIngestionNow,
-  runMetricsNow,
-  runUniverseBuilderNow,
-  runStrategyEngineNow,
 } = require('./engines/scheduler');
 const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
+const runMigrations = require('./db/runMigrations');
+const startEnginesSequentially = require('./system/startEngines');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -4303,130 +4301,131 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Start daily review cron
-const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
-startDailyReviewCron();
+(async () => {
+  try {
+    console.log('Running database migrations...');
+    await runMigrations();
+    console.log('Database migrations complete');
+  } catch (err) {
+    console.error('Migration system failed', err);
+  }
 
-// Phase-aware scheduler (legacy mode, opt-in)
-if (FMP_API_KEY && process.env.ENABLE_PHASE_SCHEDULER === 'true') {
-  // Resolve the scheduler user (whose active preset drives the engine).
-  // Falls back to user ID from env, then first admin user in DB.
-  const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
-    ? Number(process.env.SCHEDULER_USER_ID)
-    : null;
+  // Start daily review cron
+  const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
+  startDailyReviewCron();
 
-  (async () => {
-    try {
-      let schedulerUserId = SCHEDULER_USER_ID;
-      if (!schedulerUserId) {
-        const adminUser = await userModel.findByUsernameOrEmail(
-          process.env.ADMIN_EMAIL || 'admin'
-        ).catch(() => null);
-        schedulerUserId = adminUser?.id || 1;
+  // Phase-aware scheduler (legacy mode, opt-in)
+  if (FMP_API_KEY && process.env.ENABLE_PHASE_SCHEDULER === 'true') {
+    // Resolve the scheduler user (whose active preset drives the engine).
+    // Falls back to user ID from env, then first admin user in DB.
+    const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
+      ? Number(process.env.SCHEDULER_USER_ID)
+      : null;
+
+    (async () => {
+      try {
+        let schedulerUserId = SCHEDULER_USER_ID;
+        if (!schedulerUserId) {
+          const adminUser = await userModel.findByUsernameOrEmail(
+            process.env.ADMIN_EMAIL || 'admin'
+          ).catch(() => null);
+          schedulerUserId = adminUser?.id || 1;
+        }
+        await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
+      } catch (err) {
+        logger.error('Phase scheduler failed to start', { error: err.message });
+        // Fallback: old scheduler still available if needed
+        startScheduler(FMP_API_KEY, logger);
       }
-      await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
-    } catch (err) {
-      logger.error('Phase scheduler failed to start', { error: err.message });
-      // Fallback: old scheduler still available if needed
-      startScheduler(FMP_API_KEY, logger);
-    }
-  })();
-}
+    })();
+  }
 
-if (FMP_API_KEY && process.env.ENABLE_LEGACY_SCHEDULER_SERVICE === 'true') {
-  startSchedulerService();
-}
+  if (FMP_API_KEY && process.env.ENABLE_LEGACY_SCHEDULER_SERVICE === 'true') {
+    startSchedulerService();
+  }
 
-if (process.env.ENABLE_INGESTION_SCHEDULER === 'true') {
-  startIngestionScheduler();
-}
+  if (process.env.ENABLE_INGESTION_SCHEDULER === 'true') {
+    startIngestionScheduler();
+  }
 
-if (process.env.ENABLE_METRICS_SCHEDULER === 'true') {
-  startMetricsScheduler();
-}
+  if (process.env.ENABLE_METRICS_SCHEDULER === 'true') {
+    startMetricsScheduler();
+  }
 
-if (process.env.ENABLE_STRATEGY_SCHEDULER === 'true') {
-  startStrategyScheduler();
-}
+  if (process.env.ENABLE_STRATEGY_SCHEDULER === 'true') {
+    startStrategyScheduler();
+  }
 
-if (process.env.ENABLE_CATALYST_SCHEDULER === 'true') {
-  startCatalystScheduler();
-}
+  if (process.env.ENABLE_CATALYST_SCHEDULER === 'true') {
+    startCatalystScheduler();
+  }
 
-if (process.env.ENABLE_DISCOVERY_SCHEDULER === 'true') {
-  startDiscoveryScheduler();
-}
+  if (process.env.ENABLE_DISCOVERY_SCHEDULER === 'true') {
+    startDiscoveryScheduler();
+  }
 
-if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER === 'true') {
-  startOpportunityStreamScheduler();
-}
+  if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER === 'true') {
+    startOpportunityStreamScheduler();
+  }
 
-if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
-  startNarrativeScheduler();
-}
+  if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
+    startNarrativeScheduler();
+  }
 
-if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
-  startAlertScheduler();
-}
+  if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
+    startAlertScheduler();
+  }
 
-if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
-  logger.info('OpenRange backend starting in bootstrap mode');
-  startEngineScheduler();
+  if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
+    logger.info('OpenRange backend starting in bootstrap mode');
+    console.log('Starting engines sequentially...');
+    await startEnginesSequentially();
+    startEngineScheduler();
+  }
 
-  (async () => {
-    try {
-      await runIngestionNow();
-      await runMetricsNow();
-      await runUniverseBuilderNow();
-      await runStrategyEngineNow();
-    } catch (error) {
-      logger.error('Initial engine bootstrap failed', { error: error.message });
-    }
-  })();
-}
+  app.listen(PORT, () => {
+    logger.info(`OpenRange server listening on port ${PORT}`);
+    console.log('[Intelligence] Ingestion endpoint ready');
+    console.log('Scheduler active');
+    console.log('Opportunity engine active');
 
-app.listen(PORT, () => {
-  logger.info(`OpenRange server listening on port ${PORT}`);
-  console.log('[Intelligence] Ingestion endpoint ready');
-  console.log('Scheduler active');
-  console.log('Opportunity engine active');
+    (async () => {
+      try {
+        await queryWithTimeout('SELECT 1 AS ok', [], {
+          timeoutMs: 5000,
+          label: 'startup.db.connection_check',
+          maxRetries: 1,
+          retryDelayMs: 200,
+        });
+        console.log('DB connection successful');
 
-  (async () => {
-    try {
-      await queryWithTimeout('SELECT 1 AS ok', [], {
-        timeoutMs: 5000,
-        label: 'startup.db.connection_check',
-        maxRetries: 1,
-        retryDelayMs: 200,
-      });
-      console.log('DB connection successful');
+        await userModel.ensureFallbackAdminUser().catch((error) => {
+          logger.warn('Fallback admin bootstrap skipped', { error: error.message });
+        });
 
-      await userModel.ensureFallbackAdminUser().catch((error) => {
-        logger.warn('Fallback admin bootstrap skipped', { error: error.message });
-      });
+        const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
+          getMetricsHealth(),
+          getIngestionHealth(),
+          getUniverseHealth(),
+          getQueueHealth(),
+          getSetupHealth(),
+          getCatalystHealth(),
+          getDiscoveryHealth(),
+        ]);
 
-      const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
-        getMetricsHealth(),
-        getIngestionHealth(),
-        getUniverseHealth(),
-        getQueueHealth(),
-        getSetupHealth(),
-        getCatalystHealth(),
-        getDiscoveryHealth(),
-      ]);
-
-      logger.info('OpenRange System Status', {
-        metricsRows: metricsHealth.rows,
-        lastMetricsRun: metricsHealth.last_update,
-        ingestionRows: ingestionHealth.tables,
-        universeCount: universeHealth.total_symbols,
-        queueSize: queueHealth.queue_size,
-        setupCount: setupHealth.setup_count,
-        catalystCount: catalystHealth.catalyst_count,
-        discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
-      });
-    } catch (err) {
-      logger.error('OpenRange System Status failed', { error: err.message });
-    }
-  })();
-});
+        logger.info('OpenRange System Status', {
+          metricsRows: metricsHealth.rows,
+          lastMetricsRun: metricsHealth.last_update,
+          ingestionRows: ingestionHealth.tables,
+          universeCount: universeHealth.total_symbols,
+          queueSize: queueHealth.queue_size,
+          setupCount: setupHealth.setup_count,
+          catalystCount: catalystHealth.catalyst_count,
+          discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
+        });
+      } catch (err) {
+        logger.error('OpenRange System Status failed', { error: err.message });
+      }
+    })();
+  });
+})();

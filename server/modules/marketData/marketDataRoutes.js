@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const marketCache = require('../../cache/marketCache');
 
 const router = express.Router();
 const FMP_BASE = 'https://financialmodelingprep.com';
@@ -26,6 +27,15 @@ function degradedResponse(extra = {}) {
 }
 
 async function fetchQuotes(symbols, apiKey) {
+  if (symbols.length === 1) {
+    const symbol = String(symbols[0] || '').trim().toUpperCase();
+    const cacheKey = `quote_${symbol}`;
+    const cached = marketCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const joined = symbols.join(',');
   const response = await axios.get(`${FMP_BASE}/stable/quote`, {
     params: { symbol: joined, apikey: apiKey },
@@ -37,7 +47,15 @@ async function fetchQuotes(symbols, apiKey) {
     throw new Error(`FMP quote failed: ${response.status}`);
   }
 
-  return Array.isArray(response.data) ? response.data : [];
+  const data = Array.isArray(response.data) ? response.data : [];
+
+  if (symbols.length === 1) {
+    const symbol = String(symbols[0] || '').trim().toUpperCase();
+    const cacheKey = `quote_${symbol}`;
+    marketCache.set(cacheKey, data);
+  }
+
+  return data;
 }
 
 router.get('/quote', async (req, res) => {

@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const marketCache = require('../cache/marketCache');
 
 const router = express.Router();
 
@@ -17,6 +18,15 @@ function getApiKey() {
 }
 
 async function fetchQuoteBatch(symbols, apiKey) {
+  if (symbols.length === 1) {
+    const symbol = String(symbols[0] || '').trim().toUpperCase();
+    const cacheKey = `quote_${symbol}`;
+    const cached = marketCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const joined = symbols.join(',');
   const response = await axios.get(`${FMP_BASE}/stable/quote`, {
     params: { symbol: joined, apikey: apiKey },
@@ -28,7 +38,15 @@ async function fetchQuoteBatch(symbols, apiKey) {
     throw new Error(`FMP quote batch failed with status ${response.status}`);
   }
 
-  return Array.isArray(response.data) ? response.data : [];
+  const data = Array.isArray(response.data) ? response.data : [];
+
+  if (symbols.length === 1) {
+    const symbol = String(symbols[0] || '').trim().toUpperCase();
+    const cacheKey = `quote_${symbol}`;
+    marketCache.set(cacheKey, data);
+  }
+
+  return data;
 }
 
 function normalizeQuoteRow(row) {
