@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
-import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
 import ScrollingTicker from '../components/market/ScrollingTicker';
 import MarketPulseCards from '../components/market/MarketPulseCards';
 import StrategyLeaderboard from '../components/strategy/StrategyLeaderboard';
 import TickerLink from '../components/shared/TickerLink';
+import StatCard from '../components/ui/StatCard';
+import SkeletonCard from '../components/ui/SkeletonCard';
+import OpportunityStream from '../components/opportunities/OpportunityStream';
+import { Activity, BarChart3, ShieldCheck, Zap } from 'lucide-react';
+import Table from '../components/ui/Table';
 
 function asNumber(value) {
   const parsed = Number(value);
@@ -139,6 +143,42 @@ export default function DashboardPage() {
         <StrategyLeaderboard />
       </Card>
 
+      <Card>
+        <h3 className="m-0 mb-3">Opportunity Stream</h3>
+        <OpportunityStream limit={10} />
+      </Card>
+
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={Activity}
+          value={fmtPercent(marketContext.spy?.change_percent ?? marketContext.spy?.gap_percent)}
+          deltaDirection={asNumber(marketContext.spy?.change_percent ?? marketContext.spy?.gap_percent) >= 0 ? 'up' : 'down'}
+          delta="SPY"
+          description="SPY day momentum"
+        />
+        <StatCard
+          icon={BarChart3}
+          value={fmtPercent(marketContext.qqq?.change_percent ?? marketContext.qqq?.gap_percent)}
+          deltaDirection={asNumber(marketContext.qqq?.change_percent ?? marketContext.qqq?.gap_percent) >= 0 ? 'up' : 'down'}
+          delta="QQQ"
+          description="QQQ day momentum"
+        />
+        <StatCard
+          icon={ShieldCheck}
+          value={fmtNumber(marketContext.vix?.price ?? marketContext.vix?.last ?? marketContext.vix?.close, 2)}
+          deltaDirection="neutral"
+          delta="VIX"
+          description="Volatility level"
+        />
+        <StatCard
+          icon={Zap}
+          value={marketContext.regime}
+          deltaDirection="neutral"
+          delta="Regime"
+          description="Current market environment"
+        />
+      </div>
+
       {!loading && systemReport?.status === 'degraded' && (
         <Card>
           <div className="text-sm" style={{ color: 'var(--warning-text, #f59e0b)' }}>
@@ -151,7 +191,12 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {loading && <LoadingSpinner message="Loading dashboard intelligence…" />}
+      {loading && (
+        <div className="grid gap-2 md:grid-cols-2">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
+      )}
       {!loading && error && <Card><div className="muted">{error}</div></Card>}
 
       {!loading && !error && (
@@ -161,7 +206,25 @@ export default function DashboardPage() {
             {opportunities.length === 0 ? (
               <div className="muted">No setup opportunities available.</div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="space-y-2 md:hidden">
+                {opportunities.map((row) => (
+                  <div key={`m-${row.symbol}-${row.setupType}`} className="rounded border border-[var(--border-color)] p-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <TickerLink symbol={row.symbol} />
+                      <strong>{fmtNumber(row.score, 1)}</strong>
+                    </div>
+                    <div className="mt-1 text-[var(--text-muted)]">{row.setupType}</div>
+                    <div className="mt-1 text-[var(--text-muted)]">{row.catalystHeadline}</div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span>RVol {fmtNumber(row.relativeVolume, 2)}</span>
+                      <span>{fmtPercent(row.priceChange)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block">
+                <Table className="min-w-0">
                 <table className="data-table data-table--compact min-w-[760px]">
                   <thead>
                     <tr>
@@ -186,7 +249,9 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
+                </Table>
               </div>
+              </>
             )}
           </Card>
 
@@ -208,7 +273,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {catalysts.slice(0, 12).map((item, idx) => (
-                    <div key={`${item.symbol}-${item.published_at || idx}`} className="rounded border border-[var(--border)] p-2">
+                    <div key={`${item.symbol}-${item.published_at || idx}`} className="rounded border border-[var(--border-color)] p-2">
                       <div className="flex items-center justify-between">
                         <TickerLink symbol={item.symbol} />
                         <span className="muted text-xs">{item.sentiment || 'neutral'}</span>

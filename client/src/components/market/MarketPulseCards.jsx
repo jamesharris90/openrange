@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiJSON } from '../../config/api';
-import TickerCard from './TickerCard';
+import MarketIndexCard from './MarketIndexCard';
 
 const TARGETS = ['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y'];
 
@@ -43,7 +43,7 @@ export default function MarketPulseCards() {
 
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {cards.map((row) => <TickerCard key={row.symbol} row={row} />)}
+      {cards.map((row) => <MarketIndexCard key={row.symbol} row={row} />)}
     </div>
   );
 }

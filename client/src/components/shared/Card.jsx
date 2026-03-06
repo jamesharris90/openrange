@@ -1,7 +1,3 @@
-export default function Card({ as: Tag = 'section', className = '', children, ...props }) {
-  return (
-    <Tag className={`card or-card ${className}`.trim()} {...props}>
-      {children}
-    </Tag>
-  );
-}
+import Card from '../ui/Card';
+
+export default Card;

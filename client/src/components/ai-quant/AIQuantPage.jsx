@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../layout/PagePrimitives';
 import Card from '../shared/Card';
-import LoadingSpinner from '../shared/LoadingSpinner';
+import SkeletonTable from '../ui/SkeletonTable';
+import TickerLink from '../shared/TickerLink';
 import { apiJSON } from '../../config/api';
 
 function fmt(value, digits = 2) {
@@ -77,7 +78,7 @@ export default function AIQuantPage() {
         />
       </Card>
 
-      {loading && <LoadingSpinner message="Loading AI Quant setups…" />}
+      {loading && <SkeletonTable rows={8} cols={7} />}
       {!loading && error && <Card><div className="muted">{error}</div></Card>}
 
       {!loading && !error && (
@@ -108,7 +109,7 @@ export default function AIQuantPage() {
                         style={{ cursor: 'pointer' }}
                       >
                         <td style={{ textAlign: 'right' }}>{fmt(row.score, 1)}</td>
-                        <td style={{ fontWeight: 700 }}>{row.symbol || '--'}</td>
+                        <td style={{ fontWeight: 700 }}><TickerLink symbol={row.symbol} /></td>
                         <td>{row.setupType || '--'}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(row.price, 2)}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(row.expectedMove, 2)}</td>

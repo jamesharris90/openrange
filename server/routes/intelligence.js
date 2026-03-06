@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../db/pg');
 const authMiddleware = require('../middleware/auth');
+const { bridgeNewsletterEmailToIntelNews } = require('../services/emailIntelBridge');
 
 const router = express.Router();
 
@@ -75,6 +76,20 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
     );
 
     const row = rows[0];
+
+    // Bridge newsletter-style email intel into intel_news so Intel Inbox can consume it.
+    try {
+      await bridgeNewsletterEmailToIntelNews({
+        sender,
+        subject,
+        received_at: row?.received_at,
+        raw_text,
+        source_tag: row?.source_tag,
+      });
+    } catch (bridgeError) {
+      console.error('[intelligence] email bridge error:', bridgeError.message);
+    }
+
     console.log(JSON.stringify({
       event: 'INTEL_EMAIL_INGESTED',
       id: row.id,

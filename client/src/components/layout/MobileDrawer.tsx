@@ -16,6 +16,7 @@ const mobileItems = [
   { to: '/expected-move', label: 'Expected Move' },
   { to: '/earnings-calendar', label: 'Earnings Calendar' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/mobile-dashboard', label: 'Mobile Dashboard' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/research', label: 'Research' },
 ];

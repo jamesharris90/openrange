@@ -13,6 +13,8 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     const isDark = theme === 'dark';
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.chartTheme = isDark ? 'dark' : 'light';
+    window.dispatchEvent(new CustomEvent('openrange:theme-changed', { detail: { theme } }));
   }, [theme]);
 
   return <>{children}</>;

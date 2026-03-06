@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LineChart, Newspaper, Zap } from 'lucide-react';
 import { apiJSON } from '../../config/api';
-import LoadingSpinner from '../shared/LoadingSpinner';
 import TradingViewChart from '../shared/TradingViewChart';
+import OpportunityCard from './OpportunityCard';
+import SkeletonTable from '../ui/SkeletonTable';
+import { useSymbol } from '../../context/SymbolContext';
 
 const REFRESH_MS = 15000;
 
@@ -20,6 +23,8 @@ function fmtTime(value) {
 }
 
 export default function OpportunityStream({ limit = 50, compact = false }) {
+  const navigate = useNavigate();
+  const { setSelectedSymbol: setGlobalSymbol } = useSymbol();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState('');
@@ -33,9 +38,11 @@ export default function OpportunityStream({ limit = 50, compact = false }) {
     async function load() {
       if (!cancelled) setLoading((prev) => prev && rows.length === 0);
       try {
-        const payload = await apiJSON('/api/opportunity-stream');
+        const payload = await apiJSON('/api/opportunities/top');
         if (cancelled) return;
-        const list = Array.isArray(payload) ? payload : [];
+        const list = Array.isArray(payload)
+          ? payload
+          : (Array.isArray(payload?.items) ? payload.items : []);
         setRows(limit > 0 ? list.slice(0, limit) : list);
       } catch {
         if (!cancelled) setRows([]);
@@ -128,40 +135,31 @@ export default function OpportunityStream({ limit = 50, compact = false }) {
       </div>
 
       {loading && data.length === 0 ? (
-        <LoadingSpinner message="Loading opportunity stream…" />
+        <SkeletonTable rows={6} cols={5} />
       ) : filteredData.length === 0 ? (
         <div className="muted">No active opportunities detected</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="data-table data-table--compact min-w-[740px]">
-            <thead>
-              <tr>
-                <th>Ticker</th>
-                <th>Event</th>
-                <th>Headline</th>
-                <th style={{ textAlign: 'right' }}>Score</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((row) => {
-                const symbol = String(row?.symbol || '').toUpperCase();
-                return (
-                  <tr
-                    key={row?.id || `${symbol}-${row?.event_type}-${row?.created_at}`}
-                    onClick={() => symbol && setSelectedSymbol(symbol)}
-                    style={{ cursor: symbol ? 'pointer' : 'default' }}
-                  >
-                    <td>{symbol || '--'}</td>
-                    <td>{renderEventCell(row?.event_type)}</td>
-                    <td>{row?.headline || '--'}</td>
-                    <td style={{ textAlign: 'right' }}>{fmtScore(row?.score)}</td>
-                    <td>{fmtTime(row?.created_at || row?.timestamp)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid gap-2 md:grid-cols-2">
+          {filteredData.map((row) => {
+            const symbol = String(row?.symbol || '').toUpperCase();
+            return (
+              <div
+                key={row?.id || `${symbol}-${row?.event_type}-${row?.created_at}`}
+                onClick={() => {
+                  if (!symbol) return;
+                  setGlobalSymbol(symbol);
+                  setSelectedSymbol(symbol);
+                  navigate(`/charts?symbol=${encodeURIComponent(symbol)}`);
+                }}
+              >
+                <OpportunityCard row={row} />
+                <div className="mt-1 flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
+                  <span>{renderEventCell(row?.event_type)}</span>
+                  <span>{fmtTime(row?.created_at || row?.timestamp)}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

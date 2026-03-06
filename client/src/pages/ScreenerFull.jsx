@@ -4,6 +4,7 @@ import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
 import TickerLink from '../components/shared/TickerLink';
+import Table from '../components/ui/Table';
 
 function toQuery(filters) {
   const params = new URLSearchParams();
@@ -112,6 +113,7 @@ export default function ScreenerFull() {
         ) : rows.length === 0 ? (
           <div className="muted">No symbols match current filters.</div>
         ) : (
+          <Table>
           <table className="data-table data-table--compact">
             <thead>
               <tr>
@@ -138,6 +140,7 @@ export default function ScreenerFull() {
               ))}
             </tbody>
           </table>
+          </Table>
         )}
       </Card>
 

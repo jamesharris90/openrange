@@ -2,6 +2,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, LineChart, Newspaper, Star } from 'lucide-react';
 import SparklineMini from '../charts/SparklineMini';
 import MetricBar from '../ui/MetricBar';
+import TickerLink from '../shared/TickerLink';
+import { useSymbol } from '../../context/SymbolContext';
 
 const ROW_HEIGHT = 42;
 const BODY_HEIGHT = 520;
@@ -57,7 +59,7 @@ const TableRow = memo(function TableRow({
 }) {
   return (
     <tr
-      className={`group cursor-pointer transition-colors ${selected ? 'bg-[rgba(74,158,255,0.14)]' : 'hover:bg-[rgba(74,158,255,0.08)]'}`}
+      className={`group cursor-pointer transition-colors odd:bg-[rgba(255,255,255,0.015)] even:bg-transparent ${selected ? 'bg-[rgba(74,158,255,0.14)]' : 'hover:bg-[rgba(74,158,255,0.08)]'}`}
       style={{
         height: ROW_HEIGHT,
         backgroundColor: isNew ? 'rgba(56, 189, 248, 0.14)' : undefined,
@@ -77,10 +79,14 @@ const TableRow = memo(function TableRow({
         const metricSuffix = (column.key === 'gapPercent' || column.key === 'changePercent') ? '%' : '';
 
         return (
-          <td key={column.key} style={{ textAlign: column.align || 'left', background: cellHeat || undefined }}>
+          <td
+            key={column.key}
+            className={column.key === 'symbol' ? 'sticky left-0 z-10 bg-[var(--bg-card)]' : ''}
+            style={{ textAlign: column.align || 'left', background: column.key === 'symbol' ? undefined : cellHeat || undefined }}
+          >
             {column.key === 'symbol' ? (
               <div className="flex items-center gap-2">
-                <strong>{rendered || '--'}</strong>
+                <TickerLink symbol={rendered || '--'} className="font-semibold" />
                 <SparklineMini points={row.sparkline} positive={(row.changePercent ?? 0) >= 0} />
               </div>
             ) : column.key === 'sectorStrength' ? (
@@ -130,6 +136,7 @@ export default function ScreenerTable({
   onViewIntelligence,
   onViewCatalysts,
 }) {
+  const { setSelectedSymbol } = useSymbol();
   const useVirtualization = rows.length > 100;
   const [scrollTop, setScrollTop] = useState(0);
   const [showColumns, setShowColumns] = useState(false);
@@ -204,6 +211,7 @@ export default function ScreenerTable({
       event.preventDefault();
       setFocusedIndex((current) => {
         const next = Math.min(rows.length - 1, current + 1);
+        setSelectedSymbol(rows[next].symbol);
         onSelectSymbol(rows[next].symbol);
         return next;
       });
@@ -212,11 +220,13 @@ export default function ScreenerTable({
       event.preventDefault();
       setFocusedIndex((current) => {
         const next = Math.max(0, current - 1);
+        setSelectedSymbol(rows[next].symbol);
         onSelectSymbol(rows[next].symbol);
         return next;
       });
     }
     if (event.key === 'Enter' && rows[focusedIndex]) {
+      setSelectedSymbol(rows[focusedIndex].symbol);
       onSelectSymbol(rows[focusedIndex].symbol);
     }
   }
@@ -251,7 +261,7 @@ export default function ScreenerTable({
                 return (
                   <th
                     key={column.key}
-                    className="sticky top-0 z-10 bg-[var(--bg-card)]"
+                    className={`sticky top-0 z-10 bg-[var(--bg-card)] ${column.key === 'symbol' ? 'left-0 z-20' : ''}`}
                     style={{ textAlign: column.align || 'left', whiteSpace: 'nowrap', width, minWidth: width }}
                   >
                     <div className="relative flex items-center justify-between gap-2">
@@ -287,7 +297,10 @@ export default function ScreenerTable({
                 key={`${row.symbol}-${row.strategyScore ?? ''}-${row.catalystScore ?? ''}`}
                 row={row}
                 visibleColumns={visibleColumns}
-                onSelect={onSelectSymbol}
+                onSelect={(nextSymbol) => {
+                  setSelectedSymbol(nextSymbol);
+                  onSelectSymbol(nextSymbol);
+                }}
                 selected={selectedSymbol === row.symbol}
                 isNew={newSymbols.has(row.symbol)}
                 heatmapMode={heatmapMode}

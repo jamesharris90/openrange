@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Camera, RotateCcw } from 'lucide-react';
 import ChartEngine from '../components/chartEngine/ChartEngine';
 import ChartContainer from '../components/layout/ChartContainer';
 import { getProfileForTimeframe, normalizeTimeframe } from '../components/chartEngine/indicatorRegistry';
 import { useSymbolData } from '../context/symbol/useSymbolData';
+import { useSymbol } from '../context/SymbolContext';
 import { authFetch } from '../utils/api';
+import ButtonSecondary from '../components/ui/ButtonSecondary';
+import ButtonGhost from '../components/ui/ButtonGhost';
+import SetupIntelligencePanel from '../components/charts/SetupIntelligencePanel';
+import ChartSignalsNewsPanel from '../components/charts/ChartSignalsNewsPanel';
+import OpportunityStream from '../components/opportunities/OpportunityStream';
 
 const DEFAULT_WATCHLIST = ['SPY', 'QQQ', 'AMD', 'AMZN'];
 const TIMEFRAME_BUTTONS = [
   { value: '1m', label: '1m' },
-  { value: '3m', label: '3m' },
   { value: '5m', label: '5m' },
   { value: '15m', label: '15m' },
   { value: '1H', label: '1h' },
-  { value: '4H', label: '4h' },
   { value: '1D', label: '1D' },
-  { value: '1W', label: '1W' },
-  { value: 'ALL', label: 'All' },
 ];
 const INDICATOR_BUTTONS = [
   { key: 'ema9', label: 'EMA9' },
@@ -27,6 +30,15 @@ const INDICATOR_BUTTONS = [
   { key: 'volume', label: 'Volume' },
   { key: 'rsi', label: 'RSI' },
   { key: 'macd', label: 'MACD' },
+];
+
+const OVERLAY_BUTTONS = [
+  { key: 'ema9', label: 'EMA 9' },
+  { key: 'ema20', label: 'EMA 20' },
+  { key: 'ema50', label: 'EMA 50' },
+  { key: 'vwap', label: 'VWAP' },
+  { key: 'openingRange', label: 'Opening Range' },
+  { key: 'previousClose', label: 'Previous Close' },
 ];
 
 const SECTOR_TO_ETF = {
@@ -64,8 +76,9 @@ function mapSectorToEtf(rawSector) {
 export default function Charts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, setSymbol, setTimeframe } = useSymbolData();
+  const { selectedSymbol, setSelectedSymbol } = useSymbol();
 
-  const initialSymbol = String(searchParams.get('symbol') || 'SPY').toUpperCase();
+  const initialSymbol = String(searchParams.get('symbol') || selectedSymbol || 'SPY').toUpperCase();
   const initialTimeframe = normalizeTimeframe(String(searchParams.get('timeframe') || '5m'));
 
   const [symbolInput, setSymbolInput] = useState(state.symbol || initialSymbol);
@@ -85,17 +98,47 @@ export default function Charts() {
   const [drawingsBusy, setDrawingsBusy] = useState(false);
   const [drawTool, setDrawTool] = useState('hline');
   const [sectorEtfSymbol, setSectorEtfSymbol] = useState(null);
+  const [overlayState, setOverlayState] = useState({
+    openingRange: true,
+    previousClose: true,
+  });
+  const [showDrawTools, setShowDrawTools] = useState(true);
+  const [showIndicatorTools, setShowIndicatorTools] = useState(true);
   const symbol = state.symbol || initialSymbol;
   const timeframe = state.timeframe || initialTimeframe;
 
   const profile = useMemo(() => getProfileForTimeframe(timeframe), [timeframe]);
 
+  const levelsForChart = useMemo(() => {
+    const source = state.levels || {};
+    const next = { ...source };
+    if (!overlayState.openingRange) {
+      delete next.orHigh;
+      delete next.orLow;
+      delete next.orStartTime;
+      delete next.orEndTime;
+    }
+    if (!overlayState.previousClose) {
+      delete next.pdh;
+      delete next.pdl;
+    }
+    return next;
+  }, [state.levels, overlayState]);
+
   useEffect(() => {
     const querySymbol = String(searchParams.get('symbol') || '').toUpperCase();
     const queryTimeframe = normalizeTimeframe(String(searchParams.get('timeframe') || ''));
-    if (querySymbol && querySymbol !== symbol) setSymbol(querySymbol);
+    if (querySymbol && querySymbol !== symbol) {
+      setSelectedSymbol(querySymbol);
+      setSymbol(querySymbol);
+    }
     if (queryTimeframe && queryTimeframe !== timeframe) setTimeframe(queryTimeframe);
   }, []);
+
+  useEffect(() => {
+    const global = String(selectedSymbol || '').toUpperCase();
+    if (global && global !== symbol) setSymbol(global);
+  }, [selectedSymbol, symbol, setSymbol]);
 
   useEffect(() => {
     setSymbolInput(symbol);
@@ -163,6 +206,32 @@ export default function Charts() {
       const existing = await fetchDrawings();
       const next = [...existing];
 
+      if (supports.length >= 2) {
+        const start = Number(supports[0]);
+        const end = Number(supports[supports.length - 1]);
+        if (Number.isFinite(start) && Number.isFinite(end)) {
+          next.push({
+            id: `${symbol}-${timeframe}-trendline-support-${Date.now()}`,
+            type: 'trendline',
+            price: end,
+            label: `Trendline S ${start.toFixed(2)} -> ${end.toFixed(2)}`,
+          });
+        }
+      }
+
+      if (resistances.length >= 2) {
+        const start = Number(resistances[0]);
+        const end = Number(resistances[resistances.length - 1]);
+        if (Number.isFinite(start) && Number.isFinite(end)) {
+          next.push({
+            id: `${symbol}-${timeframe}-trendline-resistance-${Date.now()}`,
+            type: 'trendline',
+            price: end,
+            label: `Trendline R ${start.toFixed(2)} -> ${end.toFixed(2)}`,
+          });
+        }
+      }
+
       supports.forEach((price, index) => {
         next.push({
           id: `${symbol}-${timeframe}-support-${index}-${Date.now()}`,
@@ -196,8 +265,36 @@ export default function Charts() {
     }
   };
 
+  const resetWorkspace = async () => {
+    setIndicatorState({
+      ema9: false,
+      ema20: false,
+      ema50: false,
+      ema200: false,
+      vwap: false,
+      volume: false,
+      rsi: false,
+      macd: false,
+      structures: false,
+    });
+    setOverlayState({ openingRange: true, previousClose: true });
+    setPatternMode(false);
+    setMarketOverlay('none');
+    await clearAllLines();
+  };
+
+  const screenshotChart = () => {
+    const target = document.querySelector('[data-chart-workspace="main"] canvas');
+    if (!(target instanceof HTMLCanvasElement)) return;
+    const link = document.createElement('a');
+    link.href = target.toDataURL('image/png');
+    link.download = `${symbol}-${timeframe}-chart.png`;
+    link.click();
+  };
+
   useEffect(() => {
     setSearchParams({ symbol, timeframe }, { replace: true });
+    setSelectedSymbol(symbol);
   }, [symbol, timeframe, setSearchParams]);
 
   useEffect(() => {
@@ -226,9 +323,9 @@ export default function Charts() {
   }, [symbol]);
 
   return (
-    <div className="h-full min-h-0">
-      <div className="grid h-full min-h-[calc(100vh-88px)] grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_240px]">
-        <section className="flex min-h-0 flex-col border border-white/10 bg-[var(--bg-surface)]">
+    <div className="h-full min-h-0 space-y-2">
+      <div className="grid h-full min-h-[calc(100vh-88px)] grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <section className="flex min-h-0 flex-col border border-white/10 bg-[var(--bg-surface)]" data-chart-workspace="main">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
             <input
               value={symbolInput}
@@ -236,12 +333,29 @@ export default function Charts() {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   const next = String(symbolInput || '').trim().toUpperCase();
-                  if (next) setSymbol(next);
+                  if (next) {
+                    setSelectedSymbol(next);
+                    setSymbol(next);
+                  }
                 }
               }}
               className="h-9 w-32 rounded-md border border-white/20 bg-[var(--bg-input)] px-3 text-sm"
               placeholder="Symbol"
             />
+
+            <ButtonSecondary
+              onClick={() => {
+                const next = String(symbolInput || '').trim().toUpperCase();
+                if (next) {
+                  setSelectedSymbol(next);
+                  setSymbol(next);
+                }
+              }}
+              className="px-3 py-2 text-xs"
+            >
+              Load
+            </ButtonSecondary>
+
             <div className="ml-2 flex flex-wrap items-center gap-1 rounded-md bg-[var(--bg-input)] p-1">
               {TIMEFRAME_BUTTONS.map((item) => (
                 <button
@@ -255,6 +369,20 @@ export default function Charts() {
               ))}
             </div>
 
+            <ButtonGhost onClick={() => setShowDrawTools((prev) => !prev)} className="px-2 py-1 text-xs">
+              Draw
+            </ButtonGhost>
+            <ButtonGhost onClick={() => setShowIndicatorTools((prev) => !prev)} className="px-2 py-1 text-xs">
+              Indicators
+            </ButtonGhost>
+            <ButtonGhost onClick={resetWorkspace} className="px-2 py-1 text-xs inline-flex items-center gap-1">
+              <RotateCcw size={12} /> Reset
+            </ButtonGhost>
+            <ButtonGhost onClick={screenshotChart} className="px-2 py-1 text-xs inline-flex items-center gap-1">
+              <Camera size={12} /> Screenshot
+            </ButtonGhost>
+
+            {showIndicatorTools ? (
             <div className="flex flex-wrap items-center gap-1 rounded-md bg-[var(--bg-input)] p-1">
               {INDICATOR_BUTTONS.map((item) => {
                 const disabled = item.key === 'vwap' && timeframe === '1D';
@@ -272,6 +400,31 @@ export default function Charts() {
                 >
                   {item.label}
                 </button>
+                );
+              })}
+            </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-1 rounded-md border border-white/20 bg-[var(--bg-input)] p-1 text-xs">
+              {OVERLAY_BUTTONS.map((item) => {
+                const active = item.key in indicatorState
+                  ? Boolean(indicatorState[item.key])
+                  : Boolean(overlayState[item.key]);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      if (item.key in indicatorState) {
+                        setIndicatorState((prev) => ({ ...prev, [item.key]: !prev[item.key] }));
+                        return;
+                      }
+                      setOverlayState((prev) => ({ ...prev, [item.key]: !prev[item.key] }));
+                    }}
+                    className={`rounded px-2 py-1 ${active ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)] hover:bg-white/5'}`}
+                  >
+                    {item.label}
+                  </button>
                 );
               })}
             </div>
@@ -299,46 +452,45 @@ export default function Charts() {
               })}
             </div>
 
-            <button
-              type="button"
+            <ButtonSecondary
               onClick={() => setPatternMode((prev) => !prev)}
-              className={`rounded-md border px-3 py-2 text-xs font-semibold ${patternMode ? 'border-emerald-500/60 bg-emerald-600/20 text-emerald-100' : 'border-white/20 bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-white/5'}`}
+              className={`px-3 py-2 text-xs ${patternMode ? '!border-emerald-500/60 !bg-emerald-600/20 !text-emerald-100' : ''}`}
             >
               Pattern
-            </button>
+            </ButtonSecondary>
 
-            <button
-              type="button"
+            <ButtonSecondary
               disabled={drawingsBusy || !state.candles.history.length}
               onClick={addLastCloseLine}
-              className="rounded-md border border-white/20 bg-[var(--bg-input)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-white/5 disabled:opacity-50"
+              className="px-3 py-2 text-xs disabled:opacity-50"
             >
               Add Drawing
-            </button>
+            </ButtonSecondary>
 
+            {showDrawTools ? (
             <div className="flex items-center gap-2 rounded-md border border-white/20 bg-[var(--bg-input)] px-2 py-1 text-xs">
               <button type="button" onClick={() => setDrawTool('trendline')} className={`rounded px-2 py-1 ${drawTool === 'trendline' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>Trendline</button>
               <button type="button" onClick={() => setDrawTool('hline')} className={`rounded px-2 py-1 ${drawTool === 'hline' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>Horizontal Line</button>
-              <button type="button" onClick={() => setDrawTool('rectangle')} className={`rounded px-2 py-1 ${drawTool === 'rectangle' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>Rectangle Tool</button>
+              <button type="button" onClick={() => setDrawTool('rectangle')} className={`rounded px-2 py-1 ${drawTool === 'rectangle' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>Rectangle</button>
+              <button type="button" onClick={() => setDrawTool('fib')} className={`rounded px-2 py-1 ${drawTool === 'fib' ? 'bg-blue-600 text-white' : 'text-[var(--text-secondary)]'}`}>Fib Retracement</button>
             </div>
+            ) : null}
 
-            <button
-              type="button"
+            <ButtonSecondary
               disabled={drawingsBusy}
               onClick={detectTrend}
-              className="rounded-md border border-emerald-500/40 bg-emerald-600/20 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-600/30 disabled:opacity-50"
+              className="px-3 py-2 text-xs !border-emerald-500/40 !bg-emerald-600/20 !text-emerald-100 disabled:opacity-50"
             >
               Detect Trend
-            </button>
+            </ButtonSecondary>
 
-            <button
-              type="button"
+            <ButtonGhost
               disabled={drawingsBusy}
               onClick={clearAllLines}
-              className="rounded-md border border-white/20 bg-[var(--bg-input)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-white/5 disabled:opacity-50"
+              className="px-3 py-2 text-xs disabled:opacity-50"
             >
               Clear Drawings
-            </button>
+            </ButtonGhost>
 
             <div className="ml-auto text-xs text-[var(--text-secondary)]">
               {symbol} • {profile.label}
@@ -354,7 +506,7 @@ export default function Charts() {
                 candles={state.candles.history}
                 lastUpdateTime={state.candles.lastUpdateTime}
                 indicators={state.indicators}
-                levels={state.levels}
+                levels={levelsForChart}
                 events={state.events}
                 indicatorState={indicatorState}
                 marketOverlay={marketOverlay}
@@ -367,25 +519,42 @@ export default function Charts() {
           </div>
         </section>
 
-        <aside className="hidden min-h-0 border border-white/10 bg-[var(--bg-surface)] p-3 xl:block">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Watchlist</div>
-          <div className="space-y-1">
-            {DEFAULT_WATCHLIST.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setSymbol(item);
-                  setSymbolInput(item);
-                }}
-                className="w-full rounded-md bg-[var(--bg-input)] px-2 py-2 text-left text-xs text-[var(--text-primary)] hover:bg-white/5"
-              >
-                {item}
-              </button>
-            ))}
+        <aside className="min-h-0 space-y-2 border border-white/10 bg-[var(--bg-surface)] p-3">
+          <SetupIntelligencePanel
+            symbol={symbol}
+            levels={state.levels}
+            indicators={state.indicators}
+            candles={state.candles.history}
+          />
+
+          <div className="rounded border border-white/10 p-2">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Quick Switch</div>
+            <div className="space-y-1">
+              {DEFAULT_WATCHLIST.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSymbol(item);
+                    setSymbol(item);
+                    setSymbolInput(item);
+                  }}
+                  className="w-full rounded-md bg-[var(--bg-input)] px-2 py-2 text-left text-xs text-[var(--text-primary)] hover:bg-white/5"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded border border-white/10 p-2">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Opportunities</div>
+            <OpportunityStream limit={6} compact />
           </div>
         </aside>
       </div>
+
+      <ChartSignalsNewsPanel symbol={symbol} />
     </div>
   );
 }

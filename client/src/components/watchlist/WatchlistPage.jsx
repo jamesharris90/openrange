@@ -12,6 +12,7 @@ import { renderSymbolLink, renderPrice, renderPercentColor, renderMarketCapCell 
 import { SOURCE_COLORS } from '../../utils/constants';
 import { Plus } from 'lucide-react';
 import { authFetch } from '../../utils/api';
+import SparklineMini from '../charts/SparklineMini';
 
 export default function WatchlistPage() {
   const { items, add, remove } = useWatchlist();
@@ -132,6 +133,11 @@ export default function WatchlistPage() {
   const columns = [
     {
       key: 'symbol', label: 'Symbol', render: (row) => renderSymbolLink(row.symbol, setSelectedTicker),
+    },
+    {
+      key: 'sparkline', label: 'Trend',
+      render: (row) => <SparklineMini symbol={row.symbol} positive={Number(row.changePercent) >= 0} width={92} height={24} />,
+      sortable: false,
     },
     { key: 'shortName', label: 'Company' },
     {

@@ -215,6 +215,45 @@ router.post('/pplx/settings', requireAuth, async (req, res) => {
   }
 });
 
+// Profile persistence using existing settings table (schema-safe alternative)
+router.get('/profile/preferences', requireAuth, async (req, res) => {
+  try {
+    const key = `user_preferences:${req.user.id}`;
+    const raw = await model.getSetting(key);
+    const parsed = raw ? JSON.parse(raw) : {
+      layouts: [],
+      watchlists: [],
+      alerts: [],
+      theme: 'light',
+      scannerPresets: [],
+      dataPreference: 'standard',
+    };
+    return res.json({ success: true, preferences: parsed });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || 'Failed to load profile preferences' });
+  }
+});
+
+router.put('/profile/preferences', requireAuth, async (req, res) => {
+  try {
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const next = {
+      layouts: Array.isArray(payload.layouts) ? payload.layouts : [],
+      watchlists: Array.isArray(payload.watchlists) ? payload.watchlists : [],
+      alerts: Array.isArray(payload.alerts) ? payload.alerts : [],
+      theme: payload.theme === 'dark' ? 'dark' : 'light',
+      scannerPresets: Array.isArray(payload.scannerPresets) ? payload.scannerPresets : [],
+      dataPreference: String(payload.dataPreference || 'standard'),
+    };
+
+    const key = `user_preferences:${req.user.id}`;
+    await model.setSetting(key, JSON.stringify(next));
+    return res.json({ success: true, preferences: next });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || 'Failed to save profile preferences' });
+  }
+});
+
 // Update password (user)
 router.post('/update-password', requireAuth, async (req, res) => {
   const { newPassword } = req.body;

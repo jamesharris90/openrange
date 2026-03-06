@@ -16,6 +16,8 @@ const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
 const { randomUUID } = require('crypto');
 const { withRetry } = require('./utils/retry');
+const { runEnvCheck } = require('./utils/envCheck');
+const { getCachedValue, setCachedValue } = require('./utils/responseCache');
 
 // New layered architecture pieces
 const loggingMiddleware = require('./middleware/logging');
@@ -57,6 +59,10 @@ const chartV2Routes = require('./routes/chartV2.ts');
 const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
+const opportunitiesRoutes = require('./routes/opportunities');
+const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
+const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
+const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
@@ -86,6 +92,11 @@ const { getFilterRegistry, getScoringRules } = require('./config/intelligenceCon
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
 
+function isDbTimeoutError(error) {
+  const msg = String(error?.message || '').toLowerCase();
+  return error?.code === 'QUERY_TIMEOUT' || msg.includes('timeout');
+}
+
 // Logger
 const logger = require('./logger');
 
@@ -95,40 +106,11 @@ const userModel = require('./users/model');
 // User management
 const userRoutes = require('./users/routes');
 
-function warnIfMissingRequiredEnv() {
-  const missing = [];
+runEnvCheck();
 
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key-change-in-production') {
-    missing.push('JWT_SECRET');
-  }
-
-  if (!process.env.DATABASE_URL) {
-    missing.push('DATABASE_URL');
-  }
-
-  if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL === 'REQUIRED') {
-    missing.push('SUPABASE_URL');
-  }
-
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY === 'REQUIRED') {
-    missing.push('SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  if (!process.env.SUPABASE_KEY || process.env.SUPABASE_KEY === 'REQUIRED') {
-    missing.push('SUPABASE_KEY');
-  }
-
-  if (!process.env.FMP_API_KEY || process.env.FMP_API_KEY === 'REQUIRED') {
-    missing.push('FMP_API_KEY');
-    logger.warn('FMP_API_KEY missing – ingestion disabled');
-  }
-
-  if (!missing.length) return;
-
-  logger.warn('Startup environment warning: missing required environment variables', { missing });
+if (!process.env.FMP_API_KEY || process.env.FMP_API_KEY === 'REQUIRED') {
+  logger.warn('FMP_API_KEY missing – ingestion disabled');
 }
-
-warnIfMissingRequiredEnv();
 
 // Finviz Elite News Endpoint (CSV export)
 const FINVIZ_NEWS_TOKEN = process.env.FINVIZ_NEWS_TOKEN;
@@ -1092,6 +1074,565 @@ app.get('/api/pre-market/catalysts', async (req, res) => {
   return res.json({ catalysts });
 });
 
+function computeRegime(indexCards, sectorLeaders) {
+  const bySymbol = new Map((Array.isArray(indexCards) ? indexCards : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const spy = bySymbol.get('SPY') || {};
+  const qqq = bySymbol.get('QQQ') || {};
+  const vix = bySymbol.get('VIX') || {};
+
+  const spyChange = Number(spy?.change_percent ?? 0);
+  const qqqChange = Number(qqq?.change_percent ?? 0);
+  const vixChange = Number(vix?.change_percent ?? 0);
+  const spyVsVwap = Number(spy?.vwap_delta_percent ?? 0);
+  const topSectorStrength = Number(sectorLeaders?.[0]?.avg_change_percent ?? 0);
+
+  if (spyChange > 0 && qqqChange > 0 && vixChange <= 0 && spyVsVwap >= 0 && topSectorStrength > 0) {
+    return 'Bullish';
+  }
+
+  if (spyChange < 0 && qqqChange < 0 && (vixChange > 0 || spyVsVwap < 0)) {
+    return 'Risk Off';
+  }
+
+  return 'Neutral';
+}
+
+function buildSparklineFromChange(price, changePercent) {
+  const p = Number(price);
+  const c = Number(changePercent);
+  const base = Number.isFinite(p) && p > 0 ? p : 100;
+  const delta = Number.isFinite(c) ? (base * c) / 100 : 0;
+  const start = base - delta;
+  return [
+    start,
+    start + (delta * 0.2),
+    start + (delta * 0.35),
+    start + (delta * 0.55),
+    start + (delta * 0.75),
+    start + (delta * 0.9),
+    base,
+  ].map((value) => Number(value.toFixed(4)));
+}
+
+app.get('/api/premarket/summary', async (req, res) => {
+  const cacheKey = 'api.premarket.summary';
+  const cacheTtlMs = 30_000;
+  const nowMs = Date.now();
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (nowMs - new Date(cached.generated_at || 0).getTime()) <= cacheTtlMs) {
+    return res.json(cached);
+  }
+
+  const warnings = [];
+  const safeRows = async (label, sql, params, timeoutMs = 1200) => {
+    try {
+      const { rows } = await queryWithTimeout(sql, params, { label, timeoutMs, maxRetries: 0, retryDelayMs: 100 });
+      return rows;
+    } catch (error) {
+      warnings.push(`${label}: ${error.message || 'query failed'}`);
+      return [];
+    }
+  };
+
+  const [indexRows, sectorRows, gapRows, setupRows, catalystRows, earningsRows, surgeRows] = await Promise.all([
+    safeRows(
+      'api.premarket.summary.index_cards',
+      `SELECT
+        q.symbol,
+        q.price,
+        q.change_percent,
+        m.vwap,
+        CASE
+          WHEN m.vwap IS NOT NULL AND m.vwap <> 0 AND q.price IS NOT NULL
+            THEN ((q.price - m.vwap) / NULLIF(m.vwap, 0)) * 100
+          ELSE NULL
+        END AS vwap_delta_percent
+       FROM market_quotes q
+       LEFT JOIN market_metrics m ON m.symbol = q.symbol
+       WHERE q.symbol = ANY($1::text[])
+       ORDER BY array_position($1::text[], q.symbol)`,
+      [['SPY', 'QQQ', 'IWM', 'VIX']]
+    ),
+    safeRows(
+      'api.premarket.summary.sector_strength',
+      `SELECT
+        COALESCE(NULLIF(TRIM(sector), ''), 'Unknown') AS sector,
+        AVG(COALESCE(change_percent, 0)) AS avg_change_percent
+       FROM market_quotes
+       WHERE sector IS NOT NULL
+       GROUP BY COALESCE(NULLIF(TRIM(sector), ''), 'Unknown')
+       ORDER BY AVG(COALESCE(change_percent, 0)) DESC
+       LIMIT 3`,
+      []
+    ),
+    safeRows(
+      'api.premarket.summary.gap_leaders',
+      `SELECT
+        m.symbol,
+        COALESCE(m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(m.float_shares, m.float_rotation, 0) AS float,
+        COALESCE(c.headline, 'No catalyst available') AS catalyst
+       FROM market_metrics m
+       LEFT JOIN LATERAL (
+         SELECT headline
+         FROM trade_catalysts tc
+         WHERE tc.symbol = m.symbol
+         ORDER BY tc.published_at DESC NULLS LAST
+         LIMIT 1
+       ) c ON TRUE
+       WHERE COALESCE(m.gap_percent, 0) > 3
+         AND COALESCE(m.relative_volume, 0) > 2
+       ORDER BY COALESCE(m.gap_percent, 0) DESC NULLS LAST
+       LIMIT 24`,
+      []
+    ),
+    safeRows(
+      'api.premarket.summary.top_setups',
+      `SELECT
+        s.symbol,
+        COALESCE(NULLIF(s.strategy, ''), 'Momentum Continuation') AS setup_type,
+        COALESCE(s.score, 0) AS strategy_score,
+        COALESCE(s.relative_volume, m.relative_volume, 0) AS relative_volume,
+        COALESCE(s.gap_percent, m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.previous_high, NULL) AS previous_high,
+        COALESCE(m.vwap, NULL) AS vwap
+       FROM strategy_signals s
+       LEFT JOIN market_metrics m ON m.symbol = s.symbol
+       ORDER BY COALESCE(s.score, 0) DESC NULLS LAST, COALESCE(s.relative_volume, m.relative_volume, 0) DESC NULLS LAST
+       LIMIT 18`,
+      []
+    ),
+    safeRows(
+      'api.premarket.summary.catalysts',
+      `SELECT
+        symbol,
+        COALESCE(catalyst_type, 'General') AS catalyst_type,
+        headline,
+        sentiment,
+        source,
+        published_at
+       FROM trade_catalysts
+       ORDER BY published_at DESC NULLS LAST
+       LIMIT 24`,
+      []
+    ),
+    safeRows(
+      'api.premarket.summary.earnings',
+      `SELECT
+        symbol,
+        company,
+        earnings_date::text AS earnings_date,
+        eps_estimate,
+        revenue_estimate
+       FROM earnings_events
+       WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '1 day'
+       ORDER BY earnings_date ASC, symbol ASC
+       LIMIT 30`,
+      []
+    ),
+    safeRows(
+      'api.premarket.summary.volume_surges',
+      `SELECT
+        symbol,
+        COALESCE(relative_volume, 0) AS relative_volume,
+        COALESCE(volume, 0) AS volume,
+        COALESCE(gap_percent, 0) AS gap_percent,
+        COALESCE(change_percent, 0) AS change_percent
+       FROM market_metrics
+       WHERE COALESCE(relative_volume, 0) > 2
+       ORDER BY COALESCE(relative_volume, 0) DESC NULLS LAST
+       LIMIT 20`,
+      []
+    ),
+  ]);
+
+  const indexCards = indexRows.map((row) => ({
+    symbol: String(row?.symbol || '').toUpperCase(),
+    price: Number(row?.price ?? 0),
+    change_percent: Number(row?.change_percent ?? 0),
+    vwap_delta_percent: row?.vwap_delta_percent == null ? null : Number(row.vwap_delta_percent),
+    sparkline: buildSparklineFromChange(row?.price, row?.change_percent),
+  }));
+
+  const marketRegime = computeRegime(indexCards, sectorRows);
+  const topSector = sectorRows?.[0];
+  const spyCard = indexCards.find((row) => row.symbol === 'SPY');
+  const vixCard = indexCards.find((row) => row.symbol === 'VIX');
+  const marketContext = {
+    regime: marketRegime,
+    drivers: [
+      {
+        label: 'SPY vs VWAP',
+        value: spyCard?.vwap_delta_percent == null
+          ? 'Unavailable'
+          : `${spyCard.vwap_delta_percent >= 0 ? '+' : ''}${spyCard.vwap_delta_percent.toFixed(2)}%`,
+      },
+      {
+        label: 'Sector strength',
+        value: topSector
+          ? `${topSector.sector} ${Number(topSector.avg_change_percent || 0).toFixed(2)}%`
+          : 'Unavailable',
+      },
+      {
+        label: 'VIX trend',
+        value: vixCard ? `${Number(vixCard.change_percent || 0).toFixed(2)}%` : 'Unavailable',
+      },
+    ],
+  };
+
+  const topSetups = setupRows.map((row) => ({
+    symbol: String(row?.symbol || '').toUpperCase(),
+    setup_type: row?.setup_type || 'Momentum Continuation',
+    strategy_score: Number(row?.strategy_score ?? 0),
+    relative_volume: Number(row?.relative_volume ?? 0),
+    gap_percent: Number(row?.gap_percent ?? 0),
+    trade_idea: Number(row?.previous_high) > 0
+      ? `ORB breakout above ${Number(row.previous_high).toFixed(2)}`
+      : 'VWAP reclaim entry after first pullback',
+  }));
+
+  const payload = {
+    success: true,
+    degraded: warnings.length > 0,
+    generated_at: new Date().toISOString(),
+    market_context: marketContext,
+    index_cards: indexCards,
+    gap_leaders: gapRows,
+    top_setups: topSetups,
+    catalysts: catalystRows,
+    earnings: earningsRows,
+    volume_surges: surgeRows,
+    warnings,
+  };
+
+  setCachedValue(cacheKey, payload);
+  return res.json(payload);
+});
+
+app.get('/api/radar/summary', async (req, res) => {
+  const cacheKey = 'api.radar.summary';
+  const cacheTtlMs = 20_000;
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (Date.now() - new Date(cached.generated_at || 0).getTime()) <= cacheTtlMs) {
+    return res.json(cached);
+  }
+
+  const warnings = [];
+  const safeRows = async (label, sql, params, timeoutMs = 1200) => {
+    try {
+      const { rows } = await queryWithTimeout(sql, params, { label, timeoutMs, maxRetries: 0, retryDelayMs: 100 });
+      return rows;
+    } catch (error) {
+      warnings.push(`${label}: ${error.message || 'query failed'}`);
+      return [];
+    }
+  };
+
+  const [indicesRows, momentumRows, signalRows, volumeRows, catalystRows, opportunityRows, sectorRows, newsRows] = await Promise.all([
+    safeRows(
+      'api.radar.summary.index_cards',
+      `SELECT
+        q.symbol,
+        q.price,
+        q.change_percent,
+        q.sector,
+        q.market_cap,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(m.gap_percent, 0) AS gap_percent
+       FROM market_quotes q
+       LEFT JOIN market_metrics m ON m.symbol = q.symbol
+       WHERE q.symbol = ANY($1::text[])
+       ORDER BY array_position($1::text[], q.symbol)`,
+      [['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y', 'TNX', '^TNX']]
+    ),
+    safeRows(
+      'api.radar.summary.momentum_leaders',
+      `SELECT
+        m.symbol,
+        COALESCE(m.price, q.price) AS price,
+        COALESCE(m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(s.score, 0) AS strategy_score,
+        COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+        q.market_cap,
+        q.sector
+       FROM market_metrics m
+       LEFT JOIN strategy_signals s ON s.symbol = m.symbol
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       ORDER BY COALESCE(m.relative_volume, 0) DESC NULLS LAST, ABS(COALESCE(m.gap_percent, 0)) DESC NULLS LAST
+       LIMIT 30`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.strategy_signals',
+      `SELECT
+        s.symbol,
+        COALESCE(NULLIF(s.strategy, ''), 'Momentum Continuation') AS strategy,
+        COALESCE(s.score, 0) AS score,
+        COALESCE(s.gap_percent, m.gap_percent, 0) AS gap_percent,
+        COALESCE(s.relative_volume, m.relative_volume, 0) AS relative_volume,
+        COALESCE(s.change_percent, m.change_percent, q.change_percent, 0) AS change_percent,
+        COALESCE(c.headline, '') AS catalyst_headline
+      FROM strategy_signals s
+      LEFT JOIN market_metrics m ON m.symbol = s.symbol
+      LEFT JOIN market_quotes q ON q.symbol = s.symbol
+      LEFT JOIN LATERAL (
+        SELECT headline
+        FROM trade_catalysts tc
+        WHERE tc.symbol = s.symbol
+        ORDER BY tc.published_at DESC NULLS LAST
+        LIMIT 1
+      ) c ON TRUE
+      ORDER BY COALESCE(s.score, 0) DESC NULLS LAST
+      LIMIT 40`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.volume_surges',
+      `SELECT
+        m.symbol,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(m.volume, q.volume, 0) AS volume,
+        COALESCE(m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+        q.sector,
+        q.market_cap
+      FROM market_metrics m
+      LEFT JOIN market_quotes q ON q.symbol = m.symbol
+      WHERE COALESCE(m.relative_volume, 0) > 1.5
+      ORDER BY COALESCE(m.relative_volume, 0) DESC NULLS LAST
+      LIMIT 30`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.catalyst_alerts',
+      `SELECT symbol, catalyst_type, headline, source, sentiment, published_at
+       FROM trade_catalysts
+       ORDER BY published_at DESC NULLS LAST
+       LIMIT 25`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.opportunity_stream',
+      `SELECT
+        s.symbol,
+        COALESCE(s.score, 0) AS score,
+        COALESCE(s.gap_percent, m.gap_percent, 0) AS gap,
+        COALESCE(s.relative_volume, m.relative_volume, 0) AS rvol,
+        COALESCE(s.volume, m.volume, q.volume, 0) AS volume,
+        COALESCE(s.strategy, 'Momentum Continuation') AS strategy,
+        COALESCE(c.headline, 'No catalyst') AS catalyst,
+        q.sector,
+        q.market_cap
+      FROM strategy_signals s
+      LEFT JOIN market_metrics m ON m.symbol = s.symbol
+      LEFT JOIN market_quotes q ON q.symbol = s.symbol
+      LEFT JOIN LATERAL (
+        SELECT headline
+        FROM trade_catalysts tc
+        WHERE tc.symbol = s.symbol
+        ORDER BY tc.published_at DESC NULLS LAST
+        LIMIT 1
+      ) c ON TRUE
+      ORDER BY COALESCE(s.score, 0) DESC NULLS LAST
+      LIMIT 25`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.sector_movers',
+      `SELECT
+        s.sector,
+        s.market_cap,
+        s.volume,
+        s.relative_volume,
+        s.price_change,
+        s.tickers
+      FROM (
+        WITH base AS (
+          SELECT
+            COALESCE(q.sector, 'Unknown') AS sector,
+            m.symbol,
+            COALESCE(q.market_cap, 0) AS market_cap,
+            COALESCE(m.volume, q.volume, 0) AS volume,
+            COALESCE(m.relative_volume, 0) AS relative_volume,
+            COALESCE(m.change_percent, q.change_percent, 0) AS price_change
+          FROM market_metrics m
+          LEFT JOIN market_quotes q ON q.symbol = m.symbol
+        ),
+        sector_agg AS (
+          SELECT
+            sector,
+            SUM(market_cap)::numeric AS market_cap,
+            SUM(volume)::bigint AS volume,
+            AVG(relative_volume)::numeric AS relative_volume,
+            AVG(price_change)::numeric AS price_change
+          FROM base
+          GROUP BY sector
+        ),
+        ticker_ranked AS (
+          SELECT
+            b.*,
+            ROW_NUMBER() OVER (PARTITION BY b.sector ORDER BY COALESCE(b.volume, 0) DESC NULLS LAST) AS rank_in_sector
+          FROM base b
+        )
+        SELECT
+          sa.sector,
+          sa.market_cap,
+          sa.volume,
+          sa.relative_volume,
+          sa.price_change,
+          COALESCE(
+            jsonb_agg(
+              jsonb_build_object(
+                'symbol', tr.symbol,
+                'market_cap', tr.market_cap,
+                'volume', tr.volume,
+                'relative_volume', tr.relative_volume,
+                'price_change', tr.price_change
+              ) ORDER BY tr.volume DESC NULLS LAST
+            ) FILTER (WHERE tr.rank_in_sector <= 15),
+            '[]'::jsonb
+          ) AS tickers
+        FROM sector_agg sa
+        LEFT JOIN ticker_ranked tr ON tr.sector = sa.sector
+        GROUP BY sa.sector, sa.market_cap, sa.volume, sa.relative_volume, sa.price_change
+      ) s
+      ORDER BY s.market_cap DESC NULLS LAST
+      LIMIT 12`,
+      []
+    ),
+    safeRows(
+      'api.radar.summary.news',
+      `SELECT symbol, headline, source, sentiment, published_at
+       FROM intel_news
+       ORDER BY published_at DESC NULLS LAST
+       LIMIT 30`,
+      []
+    ),
+  ]);
+
+  const requestedSymbols = ['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', 'US10Y'];
+  const indexMap = new Map(indicesRows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const normalizedIndices = requestedSymbols.map((symbol) => {
+    const row = symbol === 'US10Y'
+      ? indexMap.get('10Y') || indexMap.get('TNX') || indexMap.get('^TNX')
+      : indexMap.get(symbol);
+
+    const change = Number(row?.change_percent ?? 0);
+    const price = Number(row?.price ?? 0);
+    const base = price > 0 ? price - ((price * change) / 100) : 100;
+    const sparkline = [
+      base,
+      base + ((price - base) * 0.2),
+      base + ((price - base) * 0.35),
+      base + ((price - base) * 0.55),
+      base + ((price - base) * 0.75),
+      price || base,
+    ];
+
+    return {
+      symbol,
+      price,
+      change_percent: change,
+      sparkline,
+      sector_influence: row?.sector || 'Macro Index',
+      etf_composition: symbol === 'SPY' ? 'S&P 500 mega-cap blend' : symbol === 'QQQ' ? 'Nasdaq 100 growth-heavy' : symbol,
+      key_drivers: opportunityRows.slice(0, 3).map((item) => ({
+        symbol: String(item?.symbol || '').toUpperCase(),
+        move: Number(item?.gap ?? item?.rvol ?? 0),
+      })),
+    };
+  });
+
+  const byStrategy = new Map();
+  for (const row of signalRows) {
+    const strategy = String(row?.strategy || 'Momentum Continuation');
+    const current = byStrategy.get(strategy) || { wins: 0, total: 0, moveSum: 0, failures: 0 };
+    const move = Number(row?.change_percent || 0);
+    current.total += 1;
+    current.moveSum += Math.abs(move);
+    if (move >= 0) current.wins += 1;
+    if (move < 0) current.failures += 1;
+    byStrategy.set(strategy, current);
+  }
+
+  const strategySignals = signalRows.map((row) => {
+    const rvol = Number(row?.relative_volume || 0);
+    const gap = Math.abs(Number(row?.gap_percent || 0));
+    const strategy = String(row?.strategy || 'Momentum Continuation');
+    const stats = byStrategy.get(strategy) || { wins: 0, total: 0, moveSum: 0, failures: 0 };
+    const total = Math.max(1, stats.total);
+
+    return {
+      ...row,
+      score_breakdown: {
+        volume_weight: Math.min(40, Math.round(rvol * 12)),
+        gap_weight: Math.min(25, Math.round(gap * 3)),
+        catalyst_weight: row?.catalyst_headline ? 19 : 8,
+        trend_weight: Math.min(15, Math.max(0, Math.round((Number(row?.change_percent || 0) + 2) * 3))),
+      },
+      accuracy: {
+        win_rate: Number(((stats.wins / total) * 100).toFixed(1)),
+        average_move: Number((stats.moveSum / total).toFixed(2)),
+        failure_rate: Number(((stats.failures / total) * 100).toFixed(1)),
+      },
+    };
+  });
+
+  const momentumLeaders = momentumRows.map((row) => {
+    const strategy = String(row?.strategy || 'Momentum Continuation');
+    const stats = byStrategy.get(strategy) || { wins: 0, total: 0, moveSum: 0, failures: 0 };
+    const total = Math.max(1, stats.total);
+    const rvol = Number(row?.relative_volume || 0);
+    const gap = Math.abs(Number(row?.gap_percent || 0));
+
+    return {
+      ...row,
+      score_breakdown: {
+        volume_weight: Math.min(40, Math.round(rvol * 12)),
+        gap_weight: Math.min(25, Math.round(gap * 3)),
+        catalyst_weight: row?.catalyst ? 19 : 8,
+        trend_weight: Math.min(15, Math.max(0, Math.round((Number(row?.change_percent || 0) + 2) * 3))),
+      },
+      accuracy: {
+        win_rate: Number(((stats.wins / total) * 100).toFixed(1)),
+        average_move: Number((stats.moveSum / total).toFixed(2)),
+        failure_rate: Number(((stats.failures / total) * 100).toFixed(1)),
+      },
+    };
+  });
+
+  const narrative = await generateRadarNarrative({
+    indexCards: normalizedIndices,
+    sectorMovers: sectorRows,
+    newsItems: newsRows,
+  }, {
+    apiKey: PPLX_API_KEY,
+    model: PPLX_MODEL,
+  });
+
+  const payload = {
+    success: true,
+    degraded: warnings.length > 0,
+    generated_at: new Date().toISOString(),
+    index_cards: normalizedIndices,
+    market_narrative: narrative,
+    momentum_leaders: momentumLeaders,
+    strategy_signals: strategySignals,
+    volume_surges: volumeRows,
+    catalyst_alerts: catalystRows,
+    opportunity_stream: opportunityRows,
+    sector_movers: sectorRows,
+    warnings,
+  };
+
+  setCachedValue(cacheKey, payload);
+  return res.json(payload);
+});
+
 app.get('/api/earnings/today', async (req, res) => {
   try {
     await queryWithTimeout(
@@ -1465,6 +2006,17 @@ app.get('/api/market', (req, res) => {
   res.json({ status: 'ok', data: [] });
 });
 
+app.get('/api/market-news', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 200));
+    const items = await fetchMarketNewsFallback(limit);
+    return res.json({ success: true, items });
+  } catch (error) {
+    logger.error('market-news endpoint error', { error: error.message });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load market news' });
+  }
+});
+
 app.get('/api/market/quotes', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 200, 5000));
@@ -1557,6 +2109,100 @@ app.get('/api/market/sectors', async (req, res) => {
   }
 });
 
+app.get('/api/market/sector-strength', async (req, res) => {
+  const cacheKey = 'api.market.sector-strength';
+  const cacheTtlMs = 30_000;
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
+    return res.json(cached);
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH base AS (
+         SELECT
+           COALESCE(q.sector, 'Unknown') AS sector,
+           m.symbol,
+           COALESCE(q.market_cap, 0) AS market_cap,
+           COALESCE(m.volume, q.volume, 0) AS volume,
+           COALESCE(m.relative_volume, 0) AS relative_volume,
+           COALESCE(m.change_percent, q.change_percent, 0) AS price_change
+         FROM market_metrics m
+         LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       ),
+       sector_agg AS (
+         SELECT
+           sector,
+           SUM(market_cap)::numeric AS market_cap,
+           SUM(volume)::bigint AS volume,
+           AVG(relative_volume)::numeric AS relative_volume,
+           AVG(price_change)::numeric AS price_change
+         FROM base
+         GROUP BY sector
+       ),
+       ticker_ranked AS (
+         SELECT
+           b.*,
+           ROW_NUMBER() OVER (
+             PARTITION BY b.sector
+             ORDER BY COALESCE(b.volume, 0) DESC NULLS LAST, COALESCE(b.relative_volume, 0) DESC NULLS LAST
+           ) AS rank_in_sector
+         FROM base b
+       )
+       SELECT
+         s.sector,
+         s.market_cap,
+         s.volume,
+         s.relative_volume,
+         s.price_change,
+         COALESCE(
+           jsonb_agg(
+             jsonb_build_object(
+               'symbol', t.symbol,
+               'market_cap', t.market_cap,
+               'volume', t.volume,
+               'relative_volume', t.relative_volume,
+               'price_change', t.price_change
+             )
+             ORDER BY t.volume DESC NULLS LAST
+           ) FILTER (WHERE t.rank_in_sector <= 25),
+           '[]'::jsonb
+         ) AS tickers
+       FROM sector_agg s
+       LEFT JOIN ticker_ranked t ON t.sector = s.sector
+       GROUP BY s.sector, s.market_cap, s.volume, s.relative_volume, s.price_change
+       ORDER BY s.market_cap DESC NULLS LAST`,
+      [],
+      { label: 'api.market.sector_strength', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
+    );
+
+    const payload = { success: true, degraded: false, sectors: rows, data: rows, timestamp: new Date().toISOString() };
+    setCachedValue(cacheKey, payload);
+    return res.json(payload);
+  } catch (error) {
+    if (isDbTimeoutError(error)) {
+      return res.json({
+        success: true,
+        degraded: true,
+        sectors: cached?.sectors || [],
+        data: cached?.sectors || [],
+        warning: 'SECTOR_STRENGTH_CACHE_FALLBACK',
+        detail: error.message || 'Timeout loading sector strength',
+      });
+    }
+
+    return res.json({
+      success: true,
+      degraded: true,
+      sectors: cached?.sectors || [],
+      data: cached?.sectors || [],
+      warning: 'SECTOR_STRENGTH_DEGRADED',
+      detail: error.message || 'Failed to load sector strength',
+    });
+  }
+});
+
 app.get('/api/sector/:sector', async (req, res) => {
   try {
     const sector = String(req.params.sector || '').trim();
@@ -1628,11 +2274,70 @@ app.get('/api/market/tickers', async (req, res) => {
   }
 });
 
-app.get('/api/expected-move', async (req, res) => {
+app.get('/api/market/ticker', async (req, res) => {
   try {
-    const symbol = String(req.query.symbol || '').trim().toUpperCase();
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const [indices, gainers, losers, crypto] = await Promise.all([
+      queryWithTimeout(
+        `SELECT symbol, price, change_percent
+         FROM market_quotes
+         WHERE symbol = ANY($1::text[])
+         ORDER BY array_position($1::text[], symbol)`,
+        [['SPY', 'QQQ', 'IWM', 'DIA']],
+        { label: 'api.market.ticker.indices', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
+      ),
+      queryWithTimeout(
+        `SELECT symbol, price, change_percent
+         FROM market_quotes
+         ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST
+         LIMIT 20`,
+        [],
+        { label: 'api.market.ticker.gainers', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
+      ),
+      queryWithTimeout(
+        `SELECT symbol, price, change_percent
+         FROM market_quotes
+         ORDER BY COALESCE(change_percent, 0) ASC NULLS LAST
+         LIMIT 20`,
+        [],
+        { label: 'api.market.ticker.losers', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
+      ),
+      queryWithTimeout(
+        `SELECT symbol, price, change_percent
+         FROM market_quotes
+         WHERE symbol = ANY($1::text[])
+         ORDER BY array_position($1::text[], symbol)`,
+        [['BTCUSD', 'ETHUSD', 'SOLUSD', 'DOGEUSD']],
+        { label: 'api.market.ticker.crypto', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
+      ),
+    ]);
 
+    return res.json({
+      success: true,
+      sections: {
+        indices: indices.rows,
+        top_gainers: gainers.rows,
+        top_losers: losers.rows,
+        crypto: crypto.rows,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load ticker tape data' });
+  }
+});
+
+app.get('/api/expected-move', async (req, res) => {
+  const symbol = String(req.query.symbol || '').trim().toUpperCase();
+  const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+  const cacheKey = `api.expected-move:${symbol || 'ALL'}:${limit}`;
+  const cacheTtlMs = 30_000;
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
+    if (symbol) return res.json(cached.data?.[0] || null);
+    return res.json(cached.data || []);
+  }
+
+  try {
     const { rows } = await queryWithTimeout(
       `SELECT
         e.symbol,
@@ -1662,8 +2367,15 @@ app.get('/api/expected-move', async (req, res) => {
        ORDER BY expected_move DESC NULLS LAST
        LIMIT $2`,
       [symbol, limit],
-      { label: 'api.expected_move', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
+      { label: 'api.expected_move', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
     );
+
+    setCachedValue(cacheKey, {
+      success: true,
+      degraded: false,
+      data: rows,
+      timestamp: new Date().toISOString(),
+    });
 
     if (symbol) {
       return res.json(rows[0] || null);
@@ -1672,7 +2384,23 @@ app.get('/api/expected-move', async (req, res) => {
     return res.json(rows);
   } catch (err) {
     logger.error('expected move endpoint db error', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to load expected move' });
+    if (isDbTimeoutError(err)) {
+      return res.json({
+        success: true,
+        degraded: true,
+        data: cached?.data || [],
+        warning: 'EXPECTED_MOVE_CACHE_FALLBACK',
+        detail: err.message || 'Timeout loading expected move',
+      });
+    }
+
+    return res.json({
+      success: true,
+      degraded: true,
+      data: cached?.data || [],
+      warning: 'EXPECTED_MOVE_DEGRADED',
+      detail: err.message || 'Failed to load expected move',
+    });
   }
 });
 
@@ -2868,6 +3596,14 @@ app.get('/api/intelligence/feed', async (req, res) => {
 });
 
 app.get('/api/intelligence/news', async (req, res) => {
+  const cacheKey = `api.intelligence.news:${JSON.stringify(req.query || {})}`;
+  const cacheTtlMs = 10_000;
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
+    return res.json(cached);
+  }
+
   try {
     const where = [];
     const params = [];
@@ -2904,12 +3640,115 @@ app.get('/api/intelligence/news', async (req, res) => {
        ORDER BY n.published_at DESC NULLS LAST
        LIMIT 50`,
       params,
-      { label: 'api.intelligence.news', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 150 }
+      { label: 'api.intelligence.news', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
     );
 
-    return res.json({ success: true, items: rows });
+    const items = rows.map((row) => ({
+      ...row,
+      timestamp: row.published_at || null,
+      published_at: row.published_at || null,
+    }));
+
+    const payload = { success: true, degraded: false, items, data: items, timestamp: new Date().toISOString() };
+    setCachedValue(cacheKey, payload);
+    return res.json(payload);
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message || 'Failed to load intelligence news' });
+    if (isDbTimeoutError(error)) {
+      return res.json({
+        success: true,
+        degraded: true,
+        items: cached?.items || [],
+        data: cached?.items || [],
+        warning: 'INTELLIGENCE_NEWS_CACHE_FALLBACK',
+        detail: error.message || 'Timeout loading intelligence news',
+      });
+    }
+
+    return res.json({
+      success: true,
+      degraded: true,
+      items: cached?.items || [],
+      data: cached?.items || [],
+      warning: 'INTELLIGENCE_NEWS_DEGRADED',
+      detail: error.message || 'Failed to load intelligence news',
+    });
+  }
+});
+
+app.get('/api/system/db-status', async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const errors = [];
+
+  let intelNews = { row_count: null, latest_timestamp: null };
+  let marketQuotes = { row_count: null };
+
+  try {
+    const intel = await queryWithTimeout(
+      `SELECT COUNT(*)::int AS row_count,
+              MAX(published_at) AS latest_timestamp
+       FROM intel_news`,
+      [],
+      { label: 'api.system.db_status.intel_news', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 120 }
+    );
+    intelNews = {
+      row_count: Number(intel.rows?.[0]?.row_count || 0),
+      latest_timestamp: intel.rows?.[0]?.latest_timestamp || null,
+    };
+  } catch (error) {
+    errors.push({ table: 'intel_news', error: error.message || 'Query failed' });
+  }
+
+  try {
+    const quotes = await queryWithTimeout(
+      `SELECT COUNT(*)::int AS row_count
+       FROM market_quotes`,
+      [],
+      { label: 'api.system.db_status.market_quotes', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 120 }
+    );
+    marketQuotes = {
+      row_count: Number(quotes.rows?.[0]?.row_count || 0),
+    };
+  } catch (error) {
+    errors.push({ table: 'market_quotes', error: error.message || 'Query failed' });
+  }
+
+  return res.json({
+    success: errors.length === 0,
+    degraded: errors.length > 0,
+    intel_news: intelNews,
+    market_quotes: marketQuotes,
+    errors,
+    timestamp,
+  });
+});
+
+app.get('/api/chart/mini/:symbol', async (req, res) => {
+  try {
+    const symbol = String(req.params.symbol || '').trim().toUpperCase();
+    if (!symbol) return res.status(400).json({ success: false, error: 'symbol is required' });
+
+    const { rows } = await queryWithTimeout(
+      `SELECT EXTRACT(EPOCH FROM "timestamp")::bigint AS ts_unix, close
+       FROM intraday_1m
+       WHERE symbol = $1
+       ORDER BY "timestamp" DESC
+       LIMIT 50`,
+      [symbol],
+      { label: 'api.chart.mini', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    const candles = rows
+      .slice()
+      .reverse()
+      .map((row) => ({
+        time: Number(row.ts_unix),
+        close: Number(row.close),
+      }))
+      .filter((row) => Number.isFinite(row.close));
+
+    return res.json({ success: true, symbol, candles });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load mini chart' });
   }
 });
 
@@ -3055,6 +3894,18 @@ app.use(authMiddleware);
 
 // Alert engine routes
 app.use('/api', alertsRoutes);
+
+// Top opportunities feed (protected by global auth middleware above)
+app.use('/api', opportunitiesRoutes);
+
+app.post('/api/intelligence/news/run', async (req, res) => {
+  try {
+    const result = await runIntelNewsWithFallback();
+    return res.json({ success: true, result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to run intel news' });
+  }
+});
 
 // Broker abstraction routes (monitoring-only)
 app.use(brokerRoutes);

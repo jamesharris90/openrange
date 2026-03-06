@@ -4,7 +4,7 @@ import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
 import ScrollingTicker from '../components/market/ScrollingTicker';
-import SectorHeatmapGrid from '../components/market/SectorHeatmapGrid';
+import SectorMarketHeatmap from '../components/market/SectorMarketHeatmap';
 import TickerLink from '../components/shared/TickerLink';
 
 function fmt(value, digits = 2) {
@@ -23,7 +23,7 @@ export default function SectorHeatmap() {
     async function load() {
       setLoading(true);
       try {
-        const payload = await apiJSON('/api/market/sectors');
+        const payload = await apiJSON('/api/market/sector-strength');
         const sectors = Array.isArray(payload?.sectors) ? payload.sectors : [];
         if (!cancelled) setRows(sectors);
       } catch {
@@ -51,8 +51,8 @@ export default function SectorHeatmap() {
       <ScrollingTicker />
 
       <Card>
-        <h3 className="m-0 mb-3">Sector Heatmap Grid</h3>
-        <SectorHeatmapGrid />
+        <h3 className="m-0 mb-3">Institutional Sector Heatmap</h3>
+        <SectorMarketHeatmap sectors={rows} />
       </Card>
 
       <Card>
@@ -65,21 +65,21 @@ export default function SectorHeatmap() {
             <thead>
               <tr>
                 <th>Sector</th>
-                <th style={{ textAlign: 'right' }}>Avg %</th>
-                <th style={{ textAlign: 'right' }}>Stocks</th>
+                <th style={{ textAlign: 'right' }}>Price Change %</th>
+                <th style={{ textAlign: 'right' }}>RVOL</th>
                 <th style={{ textAlign: 'right' }}>Volume</th>
                 <th>Leaders</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
-                const leaders = Array.isArray(row?.leaders) ? row.leaders : [];
+                const leaders = Array.isArray(row?.tickers) ? row.tickers.slice(0, 3) : [];
                 return (
                   <tr key={row?.sector || 'unknown'}>
                     <td>{row?.sector || 'Unknown'}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(row?.avg_change_percent, 2)}%</td>
-                    <td style={{ textAlign: 'right' }}>{Number(row?.symbols || 0)}</td>
-                    <td style={{ textAlign: 'right' }}>{Number(row?.total_volume || 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(row?.price_change, 2)}%</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(row?.relative_volume, 2)}</td>
+                    <td style={{ textAlign: 'right' }}>{Number(row?.volume || 0).toLocaleString()}</td>
                     <td>
                       {leaders.length ? (
                         <div className="flex flex-wrap gap-1">

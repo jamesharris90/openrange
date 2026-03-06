@@ -35,6 +35,12 @@ function authMiddleware(req, res, next) {
   if (req.path.startsWith('/api/earnings-research/')) return next();
   if (req.path.startsWith('/api/ai-quant/')) return next();
 
+  if (process.env.NODE_ENV !== 'production') {
+    if (req.path.startsWith('/api/opportunities/')) return next();
+    if (req.path === '/api/intelligence/news/run') return next();
+    if (req.path === '/api/radar/summary') return next();
+  }
+
   const token = req.get('Authorization')?.replace('Bearer ', '');
 
   if (token) {

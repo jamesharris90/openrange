@@ -1,5 +1,5 @@
 const logger = require('../logger');
-const { pool } = require('../db/pg');
+const { poolWrite, runWithDbPool } = require('../db/pg');
 const {
   ingestMarketQuotesBootstrap,
   ingestMarketQuotesRefresh,
@@ -33,8 +33,10 @@ let trendInFlight = false;
 let earningsInFlight = false;
 let expectedMoveInFlight = false;
 let intelNewsInFlight = false;
+let schedulerInFlight = false;
 let bootstrapCompleted = false;
 const BOOTSTRAP_MIN_ROWS = 2000;
+const ENGINE_DELAY_MS = 1500;
 
 const state = {
   started: false,
@@ -74,14 +76,32 @@ const state = {
 
 async function safeRun(label, fn) {
   try {
-    await fn();
+    await runWithDbPool('write', fn);
   } catch (error) {
-    logger.error('Engine scheduler run failed', {
-      engine: label,
-      error: error.message,
-    });
+    const message = String(error?.message || '').toLowerCase();
+    const isExpectedMoveMissingColumn =
+      label === 'expectedMoveEngine' && message.includes('atr_percent') && message.includes('does not exist');
+    const isEarningsEnsureColumnsTimeout =
+      label === 'earningsEngine' && message.includes('timeout') && message.includes('ensure_columns');
+
+    if (isExpectedMoveMissingColumn || isEarningsEnsureColumnsTimeout) {
+      logger.warn('Engine scheduler run warning', {
+        engine: label,
+        error: error.message,
+      });
+    } else {
+      logger.error('Engine scheduler run failed', {
+        engine: label,
+        error: error.message,
+      });
+    }
+
     throw error;
   }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function runIngestionNow() {
@@ -97,7 +117,7 @@ async function runIngestionNow() {
     let runner = ingestMarketQuotesBootstrap;
 
     if (bootstrapCompleted) {
-      const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM market_quotes');
+      const { rows } = await poolWrite.query('SELECT COUNT(*)::int AS count FROM market_quotes');
       const quoteCount = Number(rows?.[0]?.count || 0);
       if (quoteCount < BOOTSTRAP_MIN_ROWS) {
         logger.warn('Refresh skipped during bootstrap gate', {
@@ -114,7 +134,7 @@ async function runIngestionNow() {
 
     const result = await safeRun(`fmpMarketIngestion:${mode}`, runner);
 
-    const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM market_quotes');
+    const { rows } = await poolWrite.query('SELECT COUNT(*)::int AS count FROM market_quotes');
     const quoteCount = Number(rows?.[0]?.count || 0);
     bootstrapCompleted = quoteCount >= BOOTSTRAP_MIN_ROWS;
     state.bootstrapCompleted = bootstrapCompleted;
@@ -319,8 +339,53 @@ async function runStrategyEngineNow() {
 
 async function runCorePipelineNow() {
   await runMetricsNow();
+  await sleep(ENGINE_DELAY_MS);
   await runUniverseBuilderNow();
+  await sleep(ENGINE_DELAY_MS);
   await runStrategyEngineNow();
+}
+
+async function runSchedulerCycleNow() {
+  if (schedulerInFlight) {
+    logger.warn('Skipping scheduler cycle; previous cycle still in flight');
+    return;
+  }
+
+  schedulerInFlight = true;
+  try {
+    // Requested sequential order with small delay to reduce DB contention.
+    await runIntelNewsNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runIngestionNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runEarningsNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runStrategyEngineNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    // Keep existing supporting engines in the same sequential cycle.
+    await runMetricsNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runUniverseBuilderNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runSectorNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runOpportunityNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runTrendNow();
+    await sleep(ENGINE_DELAY_MS);
+
+    await runExpectedMoveNow();
+  } finally {
+    schedulerInFlight = false;
+  }
 }
 
 function startEngineScheduler() {
@@ -328,55 +393,14 @@ function startEngineScheduler() {
   started = true;
   state.started = true;
 
-  ingestionInterval = setInterval(() => {
-    runIngestionNow();
-  }, state.ingestionEverySeconds * 1000);
-
+  // Single sequential cycle timer to avoid parallel DB pressure from multiple intervals.
   metricsInterval = setInterval(() => {
-    runCorePipelineNow();
+    runSchedulerCycleNow();
   }, state.metricsEverySeconds * 1000);
 
-  sectorInterval = setInterval(() => {
-    runSectorNow();
-  }, state.sectorEverySeconds * 1000);
-
-  opportunityInterval = setInterval(() => {
-    runOpportunityNow();
-  }, state.opportunityEverySeconds * 1000);
-
-  trendInterval = setInterval(() => {
-    runTrendNow();
-  }, state.trendEverySeconds * 1000);
-
-
-  earningsInterval = setInterval(() => {
-    runEarningsNow();
-  }, state.earningsEverySeconds * 1000);
-
-  expectedMoveInterval = setInterval(() => {
-    runExpectedMoveNow();
-  }, state.expectedMoveEverySeconds * 1000);
-
-  intelNewsInterval = setInterval(() => {
-    runIntelNewsNow();
-  }, state.intelNewsEverySeconds * 1000);
-
-  if (typeof ingestionInterval.unref === 'function') ingestionInterval.unref();
   if (typeof metricsInterval.unref === 'function') metricsInterval.unref();
-  if (typeof sectorInterval.unref === 'function') sectorInterval.unref();
-  if (typeof opportunityInterval.unref === 'function') opportunityInterval.unref();
-  if (typeof trendInterval.unref === 'function') trendInterval.unref();
-  if (typeof earningsInterval.unref === 'function') earningsInterval.unref();
-  if (typeof expectedMoveInterval.unref === 'function') expectedMoveInterval.unref();
-  if (typeof intelNewsInterval.unref === 'function') intelNewsInterval.unref();
 
-  runCorePipelineNow();
-  runSectorNow();
-  runOpportunityNow();
-  runTrendNow();
-  runEarningsNow();
-  runExpectedMoveNow();
-  runIntelNewsNow();
+  runSchedulerCycleNow();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
@@ -396,16 +420,18 @@ function startEngineScheduler() {
 function getEngineSchedulerStatus() {
   return {
     ...state,
-    ingestionTimerActive: Boolean(ingestionInterval),
+    ingestionTimerActive: false,
     metricsTimerActive: Boolean(metricsInterval),
     universeTimerActive: Boolean(metricsInterval),
-    sectorTimerActive: Boolean(sectorInterval),
-    opportunityTimerActive: Boolean(opportunityInterval),
+    sectorTimerActive: Boolean(metricsInterval),
+    opportunityTimerActive: Boolean(metricsInterval),
     strategyTimerActive: Boolean(metricsInterval),
-    trendTimerActive: Boolean(trendInterval),
-    earningsTimerActive: Boolean(earningsInterval),
-    expectedMoveTimerActive: Boolean(expectedMoveInterval),
-    intelNewsTimerActive: Boolean(intelNewsInterval),
+    trendTimerActive: Boolean(metricsInterval),
+    earningsTimerActive: Boolean(metricsInterval),
+    expectedMoveTimerActive: Boolean(metricsInterval),
+    intelNewsTimerActive: Boolean(metricsInterval),
+    schedulerSequentialMode: true,
+    engineDelayMs: ENGINE_DELAY_MS,
   };
 }
 

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSymbol } from '../../context/SymbolContext';
 import type { CockpitWatchlistRow } from '../../hooks/useCockpitWatchlists';
+import TickerLink from '../shared/TickerLink';
+import ButtonPrimary from '../ui/ButtonPrimary';
+import ButtonGhost from '../ui/ButtonGhost';
 
 type WatchlistProps = {
   rows: CockpitWatchlistRow[];
@@ -72,14 +75,9 @@ export default function Watchlist({ rows, onAdd, onRemove, staticCount, staticMa
           className="h-7 flex-1 rounded border border-gray-700 bg-gray-950 px-2 text-xs text-gray-200 outline-none"
           placeholder="Add symbol"
         />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={staticAtCap}
-          className="h-7 rounded border border-gray-700 bg-gray-800 px-2 text-[11px] uppercase tracking-wider text-gray-200"
-        >
+        <ButtonPrimary onClick={handleAdd} disabled={staticAtCap} className="h-7 px-2 text-[11px] uppercase tracking-wider">
           Add
-        </button>
+        </ButtonPrimary>
       </div>
 
       <div className="mb-2 text-[10px] uppercase tracking-wider text-gray-400">
@@ -103,21 +101,20 @@ export default function Watchlist({ rows, onAdd, onRemove, staticCount, staticMa
               symbol === row.symbol ? 'bg-gray-800' : 'hover:bg-gray-800/50'
             }`}
           >
-            <div className="font-medium text-gray-200">{row.symbol}</div>
+            <div className="font-medium text-gray-200"><TickerLink symbol={row.symbol} /></div>
             <div className="text-gray-200">{formatPrice(row.price)}</div>
             <div className={Number(row.percent) >= 0 ? 'text-green-400' : 'text-red-400'}>{formatPercent(row.percent)}</div>
             <div className="text-gray-300">{formatVolume(row.volume)}</div>
             <div className="text-right">
-              <button
-                type="button"
+              <ButtonGhost
                 onClick={(event) => {
                   event.stopPropagation();
                   onRemove(row.symbol);
                 }}
-                className="rounded border border-gray-700 bg-gray-800 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gray-200"
+                className="px-2 py-0.5 text-[10px] uppercase tracking-wider"
               >
                 Remove
-              </button>
+              </ButtonGhost>
             </div>
           </div>
         ))}
@@ -125,23 +122,21 @@ export default function Watchlist({ rows, onAdd, onRemove, staticCount, staticMa
       </div>
 
       <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-gray-400">
-        <button
-          type="button"
+        <ButtonGhost
           disabled={page <= 1}
           onClick={() => setPage((current) => Math.max(1, current - 1))}
-          className="rounded border border-gray-700 px-2 py-0.5 disabled:opacity-40"
+          className="px-2 py-0.5 disabled:opacity-40"
         >
           Prev
-        </button>
+        </ButtonGhost>
         <span>{page}/{totalPages}</span>
-        <button
-          type="button"
+        <ButtonGhost
           disabled={page >= totalPages}
           onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-          className="rounded border border-gray-700 px-2 py-0.5 disabled:opacity-40"
+          className="px-2 py-0.5 disabled:opacity-40"
         >
           Next
-        </button>
+        </ButtonGhost>
       </div>
     </div>
   );

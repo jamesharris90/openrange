@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Bell, BookOpen, CandlestickChart, Compass, Inbox, LineChart, Moon, Newspaper, Search, Sunrise } from 'lucide-react';
+import { Activity, BarChart2, Bell, BookOpen, CandlestickChart, Compass, Inbox, LayoutDashboard, LineChart, Moon, Newspaper, Search, Sunrise, UserCircle } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
     label: 'Trading Tools',
     items: [
       { to: '/charts',             label: 'Charts',             icon: CandlestickChart },
+      { to: '/cockpit',            label: 'Trading Cockpit',    icon: LayoutDashboard },
       { to: '/expected-move',      label: 'Expected Move',      icon: LineChart },
       { to: '/earnings-calendar',  label: 'Earnings Calendar',  icon: BookOpen },
     ],
@@ -51,8 +52,10 @@ const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: BarChart2 },
+      { to: '/mobile-dashboard', label: 'Mobile Dashboard', icon: Activity },
       { to: '/alerts', label: 'Alerts', icon: Bell },
       { to: '/research', label: 'Research', icon: Search },
+      { to: '/profile', label: 'Profile', icon: UserCircle },
     ],
   },
 ];

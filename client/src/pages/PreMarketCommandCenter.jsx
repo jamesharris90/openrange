@@ -2,230 +2,184 @@ import { useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import OpportunityStream from '../components/opportunity/OpportunityStream';
-import MarketNarrative from '../components/narrative/MarketNarrative';
 import { apiJSON } from '../config/api';
+import { useSymbol } from '../context/SymbolContext';
+import MarketContextCards from '../components/premarket/MarketContextCards';
+import MarketRegimeCard from '../components/premarket/MarketRegimeCard';
+import GapLeaderCards from '../components/premarket/GapLeaderCards';
+import CatalystCards from '../components/premarket/CatalystCards';
+import StrategySetupCards from '../components/premarket/StrategySetupCards';
+import PreMarketDeepDive from '../components/premarket/PreMarketDeepDive';
+import { formatPercent, toNumber } from '../components/premarket/utils';
 
-function getSymbolMap(rows) {
-  const map = new Map();
-  (Array.isArray(rows) ? rows : []).forEach((row) => {
-    const symbol = String(row?.symbol || '').toUpperCase();
-    if (symbol) map.set(symbol, row);
-  });
-  return map;
-}
-
-function getRegime(spyRow, qqqRow, vixRow) {
-  const spy = Number(spyRow?.change_percent ?? spyRow?.gap_percent ?? 0);
-  const qqq = Number(qqqRow?.change_percent ?? qqqRow?.gap_percent ?? 0);
-  const vix = Number(vixRow?.price ?? vixRow?.last ?? vixRow?.close ?? 0);
-  if (!Number.isFinite(spy) || !Number.isFinite(qqq) || !Number.isFinite(vix)) return 'Unknown';
-  if (spy > 0 && qqq > 0 && vix < 20) return 'Risk-On';
-  if (spy < 0 && qqq < 0 && vix > 22) return 'Risk-Off';
-  return 'Balanced';
-}
-
-function Panel({ title, loading, rows, emptyMessage, render }) {
-  return (
-    <Card>
-      <h3 className="m-0 mb-3">{title}</h3>
-      {loading ? (
-        <LoadingSpinner message={`Loading ${title.toLowerCase()}…`} />
-      ) : rows.length === 0 ? (
-        <div className="muted">{emptyMessage}</div>
-      ) : (
-        render(rows)
-      )}
-    </Card>
-  );
+function extractRows(payload, key) {
+  if (Array.isArray(payload?.[key])) return payload[key];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
 }
 
 export default function PreMarketCommandCenter() {
-  const [metrics, setMetrics] = useState({ loading: true, rows: [] });
-  const [catalysts, setCatalysts] = useState({ loading: true, rows: [] });
-  const [scanner, setScanner] = useState({ loading: true, rows: [] });
-  const [setups, setSetups] = useState({ loading: true, rows: [] });
-  const [earnings, setEarnings] = useState({ loading: true, rows: [] });
+  const { selectedSymbol, setSelectedSymbol } = useSymbol();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [summary, setSummary] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadSummary() {
+      setLoading(true);
+      setError('');
       try {
-        const payload = await apiJSON('/api/metrics');
-        if (!cancelled) setMetrics({ loading: false, rows: Array.isArray(payload) ? payload : [] });
-      } catch {
-        if (!cancelled) setMetrics({ loading: false, rows: [] });
-      }
-
-      try {
-        const payload = await apiJSON('/api/catalysts');
-        if (!cancelled) setCatalysts({ loading: false, rows: Array.isArray(payload) ? payload : [] });
-      } catch {
-        if (!cancelled) setCatalysts({ loading: false, rows: [] });
-      }
-
-      try {
-        const payload = await apiJSON('/api/scanner');
-        const rows = Array.isArray(payload) ? payload : [];
-        if (!cancelled) setScanner({ loading: false, rows: rows.filter((r) => Number(r?.gap_percent) > 3) });
-      } catch {
-        if (!cancelled) setScanner({ loading: false, rows: [] });
-      }
-
-      try {
-        const payload = await apiJSON('/api/setups');
-        const rows = Array.isArray(payload) ? payload : [];
-        if (!cancelled) setSetups({ loading: false, rows: rows.slice(0, 10) });
-      } catch {
-        if (!cancelled) setSetups({ loading: false, rows: [] });
-      }
-
-      try {
-        const payload = await apiJSON('/api/earnings');
-        if (!cancelled) setEarnings({ loading: false, rows: Array.isArray(payload) ? payload : [] });
-      } catch {
-        if (!cancelled) setEarnings({ loading: false, rows: [] });
+        const payload = await apiJSON('/api/premarket/summary');
+        if (!cancelled) setSummary(payload);
+      } catch (loadError) {
+        if (!cancelled) {
+          setSummary(null);
+          setError(loadError.message || 'Failed to load pre-market summary');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
-    load();
+    loadSummary();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const bias = useMemo(() => {
-    const map = getSymbolMap(metrics.rows);
-    const spy = map.get('SPY') || {};
-    const qqq = map.get('QQQ') || {};
-    const vix = map.get('VIX') || map.get('^VIX') || {};
-    return {
-      spy,
-      qqq,
-      vix,
-      regime: getRegime(spy, qqq, vix),
-    };
-  }, [metrics.rows]);
+  const indexCards = useMemo(() => extractRows(summary, 'index_cards'), [summary]);
+  const gapLeaders = useMemo(() => extractRows(summary, 'gap_leaders'), [summary]);
+  const topSetups = useMemo(() => extractRows(summary, 'top_setups'), [summary]);
+  const catalysts = useMemo(() => extractRows(summary, 'catalysts'), [summary]);
+  const earnings = useMemo(() => extractRows(summary, 'earnings').slice(0, 8), [summary]);
+  const volumeSurges = useMemo(() => extractRows(summary, 'volume_surges').slice(0, 8), [summary]);
 
   return (
     <PageContainer className="space-y-3">
       <Card>
         <PageHeader
           title="Pre-Market Command Center"
-          subtitle="Session preparation with bias, catalysts, gaps, setups, and earnings context."
+          subtitle="Decision dashboard: market context, stocks that matter, and trade plans in one view."
+          actions={(
+            <button className="or-button or-button-secondary" type="button" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+          )}
         />
       </Card>
 
-      <Card>
-        <h3 className="m-0 mb-3">Market Narrative</h3>
-        <MarketNarrative />
-      </Card>
-
-      <div className="grid gap-3 lg:grid-cols-2">
+      {loading ? (
         <Card>
-          <h3 className="m-0 mb-3">Market Bias</h3>
-          {metrics.loading ? (
-            <LoadingSpinner message="Loading market bias…" />
-          ) : (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between"><span>SPY</span><strong>{Number(bias.spy?.change_percent ?? bias.spy?.gap_percent ?? 0).toFixed(2)}%</strong></div>
-              <div className="flex items-center justify-between"><span>QQQ</span><strong>{Number(bias.qqq?.change_percent ?? bias.qqq?.gap_percent ?? 0).toFixed(2)}%</strong></div>
-              <div className="flex items-center justify-between"><span>VIX</span><strong>{Number(bias.vix?.price ?? bias.vix?.last ?? 0).toFixed(2)}</strong></div>
-              <div className="flex items-center justify-between"><span>Market Regime</span><strong>{bias.regime}</strong></div>
-            </div>
-          )}
+          <LoadingSpinner message="Loading pre-market intelligence..." />
         </Card>
+      ) : null}
 
-        <Panel
-          title="Overnight Catalysts"
-          loading={catalysts.loading}
-          rows={catalysts.rows}
-          emptyMessage="No catalysts available."
-          render={(rows) => (
-            <div className="space-y-2">
-              {rows.slice(0, 10).map((row, idx) => (
-                <div key={`${row?.symbol || idx}-${row?.published_at || idx}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <strong>{String(row?.symbol || '').toUpperCase() || '--'}</strong>
-                    <span className="muted">{row?.sentiment || 'neutral'}</span>
-                  </div>
-                  <div>{row?.headline || '--'}</div>
-                  <div className="muted text-xs">{row?.published_at ? new Date(row.published_at).toLocaleString() : '--'}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        />
+      {!loading && error ? (
+        <Card>
+          <div style={{ color: 'var(--accent-red)' }}>{error}</div>
+        </Card>
+      ) : null}
 
-        <Panel
-          title="Gap Leaders"
-          loading={scanner.loading}
-          rows={scanner.rows}
-          emptyMessage="No gap leaders above 3%."
-          render={(rows) => (
-            <table className="data-table data-table--compact">
-              <thead><tr><th>Ticker</th><th style={{ textAlign: 'right' }}>Gap %</th><th style={{ textAlign: 'right' }}>RVol</th></tr></thead>
-              <tbody>
-                {rows.slice(0, 10).map((row) => (
-                  <tr key={row?.symbol}>
-                    <td>{String(row?.symbol || '').toUpperCase()}</td>
-                    <td style={{ textAlign: 'right' }}>{Number(row?.gap_percent || 0).toFixed(2)}%</td>
-                    <td style={{ textAlign: 'right' }}>{Number(row?.relative_volume || 0).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        />
+      {!loading && !error ? (
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
+          <div className="space-y-3">
+            <Card>
+              <h3 className="m-0 mb-3">Market Context</h3>
+              <MarketContextCards
+                cards={indexCards}
+                selectedSymbol={selectedSymbol}
+                onSelectSymbol={(symbol) => setSelectedSymbol(String(symbol || '').toUpperCase())}
+              />
+            </Card>
 
-        <Panel
-          title="Top Strategy Setups"
-          loading={setups.loading}
-          rows={setups.rows}
-          emptyMessage="No setup signals available."
-          render={(rows) => (
-            <table className="data-table data-table--compact">
-              <thead><tr><th>Ticker</th><th>Setup</th><th style={{ textAlign: 'right' }}>Score</th></tr></thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={`${row?.symbol}-${row?.setup || row?.setup_type || ''}`}>
-                    <td>{String(row?.symbol || '').toUpperCase()}</td>
-                    <td>{row?.setup_type || row?.setup || '--'}</td>
-                    <td style={{ textAlign: 'right' }}>{Number(row?.score || 0).toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        />
-      </div>
+            <MarketRegimeCard marketContext={summary?.market_context} />
 
-      <Panel
-        title="Earnings Today"
-        loading={earnings.loading}
-        rows={earnings.rows}
-        emptyMessage="No earnings entries available."
-        render={(rows) => (
-          <table className="data-table data-table--compact">
-            <thead><tr><th>Ticker</th><th>Company</th><th>Time</th></tr></thead>
-            <tbody>
-              {rows.slice(0, 15).map((row, idx) => (
-                <tr key={`${row?.symbol || idx}-${row?.date || row?.time || idx}`}>
-                  <td>{String(row?.symbol || row?.ticker || '').toUpperCase() || '--'}</td>
-                  <td>{row?.company_name || row?.name || '--'}</td>
-                  <td>{row?.time || row?.session || row?.date || '--'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      />
+            <Card>
+              <h3 className="m-0 mb-3">Gap Leaders</h3>
+              <GapLeaderCards
+                leaders={gapLeaders}
+                selectedSymbol={selectedSymbol}
+                onSelectSymbol={(symbol) => setSelectedSymbol(String(symbol || '').toUpperCase())}
+              />
+            </Card>
 
-      <Card>
-        <h3 className="m-0 mb-3">Opportunity Stream Preview</h3>
-        <OpportunityStream limit={8} compact />
-      </Card>
+            <Card>
+              <h3 className="m-0 mb-3">Catalyst Leaders</h3>
+              <CatalystCards
+                catalysts={catalysts}
+                onSelectSymbol={(symbol) => setSelectedSymbol(String(symbol || '').toUpperCase())}
+              />
+            </Card>
+
+            <Card>
+              <h3 className="m-0 mb-3">Top Strategy Setups</h3>
+              <StrategySetupCards
+                setups={topSetups}
+                selectedSymbol={selectedSymbol}
+                onSelectSymbol={(symbol) => setSelectedSymbol(String(symbol || '').toUpperCase())}
+              />
+            </Card>
+
+            <Card>
+              <h3 className="m-0 mb-3">Volume Surges</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {volumeSurges.length === 0 ? <div className="muted">No high-volume surges.</div> : null}
+                {volumeSurges.map((row) => {
+                  const symbol = String(row?.symbol || '').toUpperCase();
+                  return (
+                    <button
+                      key={symbol}
+                      type="button"
+                      className="text-left rounded p-2"
+                      style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}
+                      onClick={() => setSelectedSymbol(symbol)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <strong>{symbol}</strong>
+                        <span>{toNumber(row?.relative_volume, 0).toFixed(2)}x</span>
+                      </div>
+                      <div className="text-xs muted">Gap {formatPercent(row?.gap_percent)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className="m-0 mb-3">Earnings</h3>
+              <div className="space-y-2">
+                {earnings.length === 0 ? <div className="muted">No earnings entries for today.</div> : null}
+                {earnings.map((row, index) => {
+                  const symbol = String(row?.symbol || '').toUpperCase();
+                  return (
+                    <button
+                      key={`${symbol}-${index}`}
+                      type="button"
+                      className="w-full text-left rounded p-2"
+                      style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}
+                      onClick={() => setSelectedSymbol(symbol)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <strong>{symbol || '--'}</strong>
+                        <span className="text-xs muted">{row?.earnings_date || '--'}</span>
+                      </div>
+                      <div className="text-sm muted">{row?.company || 'Company data unavailable'}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+
+          <div className="space-y-3">
+            <PreMarketDeepDive symbol={selectedSymbol} />
+          </div>
+        </div>
+      ) : null}
     </PageContainer>
   );
 }

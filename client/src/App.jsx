@@ -4,11 +4,13 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
-import AppShell from './components/layout/AppShell';
+import AppLayout from './components/layout/AppLayout';
+import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -27,6 +29,7 @@ const OpenMarketRadar = lazy(() => import('./pages/OpenMarketRadar'));
 const PostMarketReview = lazy(() => import('./pages/PostMarketReview'));
 const Charts = lazy(() => import('./pages/Charts'));
 const LiveCockpit = lazy(() => import('./pages/LiveCockpit'));
+const CockpitPage = lazy(() => import('./pages/CockpitPage'));
 const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
 const EarningsCalendar = lazy(() => import('./pages/EarningsCalendar'));
 const ExpectedMove = lazy(() => import('./pages/ExpectedMove'));
@@ -35,6 +38,8 @@ const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
 const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
 const ScreenerFull = lazy(() => import('./pages/ScreenerFull'));
 const TradeSetup = lazy(() => import('./pages/TradeSetup'));
+const MobileDashboard = lazy(() => import('./pages/MobileDashboard'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 
 export default function App() {
   return (
@@ -42,16 +47,18 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <BrowserRouter>
-            <Suspense fallback={<div className="page-loading">Loading…</div>}>
+            <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
               <Routes>
+                <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+                <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
                 <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
                 <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
                 <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
-                <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/mobile-dashboard" element={<MobileDashboard />} />
                   <Route path="/screeners" element={<Navigate to="/screener" replace />} />
                   <Route path="/watchlists" element={<WatchlistPage />} />
                   <Route path="/pre-market-command" element={<PreMarketCommandCenter />} />
@@ -78,12 +85,14 @@ export default function App() {
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/setup/:symbol" element={<TradeSetup />} />
                   <Route path="/live" element={<LiveCockpit />} />
+                  <Route path="/cockpit" element={<SymbolDataProvider><CockpitPage /></SymbolDataProvider>} />
                   <Route path="/intelligence" element={<IntelligenceEngine />} />
                   <Route path="/intelligence-engine" element={<IntelligenceEngine />} />
                   <Route path="/intelligence-inbox" element={<IntelInbox />} />
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
                   <Route path="/expected-move" element={<ExpectedMove />} />
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
