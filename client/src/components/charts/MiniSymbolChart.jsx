@@ -25,7 +25,7 @@ export default function MiniSymbolChart({ symbol, width = 160, height = 42 }) {
     async function load() {
       if (!symbol) return;
       try {
-        const payload = await apiJSON(`/api/chart/mini/${encodeURIComponent(symbol)}`);
+        const payload = await apiJSON(`/api/market/chart-mini/${encodeURIComponent(symbol)}`);
         if (cancelled) return;
         if (Array.isArray(payload)) {
           setCandles(payload.map((row) => ({ close: Number(row?.value) })).filter((row) => Number.isFinite(row.close)));

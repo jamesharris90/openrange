@@ -88,7 +88,7 @@ export default function SparklineMini({ points, symbol, width = 84, height = 24,
       let source = fallbackPoints;
       if (symbol) {
         try {
-          const payload = await apiJSON(`/api/chart/mini/${encodeURIComponent(symbol)}`);
+          const payload = await apiJSON(`/api/market/chart-mini/${encodeURIComponent(symbol)}`);
           const fromApi = buildFromMiniSeries(payload) || buildFromCandles(payload?.candles);
           if (fromApi) source = fromApi;
         } catch (_error) {

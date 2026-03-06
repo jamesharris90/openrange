@@ -32,8 +32,9 @@ export default function TickerTape() {
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/market/ticker-tape');
-        const tickers = Array.isArray(payload) ? payload : [];
+        const data = await apiJSON('/api/market/ticker-tape');
+        console.log('TickerTape data', data);
+        const tickers = Array.isArray(data) ? data : [];
         if (cancelled) return;
         setRows(tickers);
         setError(tickers.length ? '' : 'Data temporarily unavailable');

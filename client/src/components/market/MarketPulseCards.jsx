@@ -12,9 +12,25 @@ function normalizeIndices(payload) {
 
   return TARGETS.map((symbol) => {
     if (symbol === '10Y') {
-      return map.get('10Y') || map.get('TNX') || map.get('^TNX') || { symbol: '10Y', price: null, change_percent: null };
+      const row = map.get('10Y') || map.get('TNX') || map.get('^TNX');
+      if (!row) return { symbol: '10Y', price: null, change: null, changesPercentage: null, change_percent: null };
+      return {
+        symbol: '10Y',
+        price: row?.price ?? null,
+        change: row?.change ?? null,
+        changesPercentage: row?.changesPercentage ?? row?.changePercent ?? row?.change_percent ?? null,
+        change_percent: row?.change_percent ?? row?.changePercent ?? row?.changesPercentage ?? null,
+      };
     }
-    return map.get(symbol) || { symbol, price: null, change_percent: null };
+    const row = map.get(symbol);
+    if (!row) return { symbol, price: null, change: null, changesPercentage: null, change_percent: null };
+    return {
+      symbol,
+      price: row?.price ?? null,
+      change: row?.change ?? null,
+      changesPercentage: row?.changesPercentage ?? row?.changePercent ?? row?.change_percent ?? null,
+      change_percent: row?.change_percent ?? row?.changePercent ?? row?.changesPercentage ?? null,
+    };
   });
 }
 
