@@ -2,7 +2,8 @@ const express = require('express');
 const axios = require('axios');
 
 const router = express.Router();
-const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
+const FMP_BASE = 'https://financialmodelingprep.com';
+const FMP_KEY = process.env.FMP_API_KEY;
 
 const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', '^VIX'];
 const TICKER_TAPE_SYMBOLS = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'MSFT', 'AMD', 'META', 'AMZN'];
@@ -13,7 +14,7 @@ function toNum(value) {
 }
 
 function getApiKey() {
-  return String(process.env.FMP_API_KEY || '').trim();
+  return String(FMP_KEY || '').trim();
 }
 
 function degradedResponse(extra = {}) {
@@ -26,8 +27,8 @@ function degradedResponse(extra = {}) {
 
 async function fetchQuotes(symbols, apiKey) {
   const joined = symbols.join(',');
-  const response = await axios.get(`${FMP_BASE}/quote/${encodeURIComponent(joined)}`, {
-    params: { apikey: apiKey },
+  const response = await axios.get(`${FMP_BASE}/stable/quote`, {
+    params: { symbol: joined, apikey: apiKey },
     timeout: 15000,
     validateStatus: () => true,
   });
@@ -83,10 +84,10 @@ router.get('/chart-mini/:symbol', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}`, {
+    const response = await axios.get(`${FMP_BASE}/stable/historical-price-eod`, {
       params: {
-        serietype: 'line',
-        timeseries: 30,
+        symbol,
+        limit: 30,
         apikey: apiKey,
       },
       timeout: 15000,
@@ -97,7 +98,9 @@ router.get('/chart-mini/:symbol', async (req, res) => {
       throw new Error(`FMP mini chart failed: ${response.status}`);
     }
 
-    const rows = Array.isArray(response.data?.historical) ? response.data.historical : [];
+    const rows = Array.isArray(response.data)
+      ? response.data
+      : (Array.isArray(response.data?.historical) ? response.data.historical : []);
     const points = rows
       .slice()
       .reverse()

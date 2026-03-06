@@ -144,7 +144,7 @@ async function fetchFmpSeries(symbol, interval) {
 
     payload = await fetchAt(`${FMP_BASE}/stable/historical-price-eod/full`, { symbol, from, to });
     if (!payload) payload = await fetchAt(`${FMP_BASE}/stable/historical-price-eod/light`, { symbol, from, to });
-    if (!payload) payload = await fetchAt(`${FMP_BASE}/api/v3/historical-price-full/${symbol}`, { from, to });
+      if (!payload) payload = await fetchAt(`${FMP_BASE}/stable/historical-price-eod/full`, { symbol, from, to });
   }
 
   if (!payload) {

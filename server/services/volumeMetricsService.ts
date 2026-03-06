@@ -2,7 +2,6 @@
 const axios = require('axios');
 
 const STABLE_BASE_URL = 'https://financialmodelingprep.com/stable/historical-chart/1day';
-const V3_BASE_URL = 'https://financialmodelingprep.com/api/v3/historical-chart/1day';
 const STABLE_EOD_LIGHT_URL = 'https://financialmodelingprep.com/stable/historical-price-eod/light';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -71,9 +70,6 @@ async function fetchHistoricalEodLightRows(symbol) {
 
 async function fetchAverageVolume(symbol) {
   let rows = await fetchHistoricalRows(STABLE_BASE_URL, symbol);
-  if (!rows.length) {
-    rows = await fetchHistoricalRows(V3_BASE_URL, symbol);
-  }
   if (!rows.length) {
     rows = await fetchHistoricalEodLightRows(symbol);
   }

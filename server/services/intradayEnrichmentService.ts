@@ -113,7 +113,7 @@ async function fetchNonStableIntraday(symbol, session) {
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) throw new Error('FMP_API_KEY missing');
 
-  const endpoint = `/api/v3/historical-chart/1min/${encodeURIComponent(symbol)}`;
+  const endpoint = `/stable/historical-chart/1min/${encodeURIComponent(symbol)}`;
   const params = { from: session.from, to: session.to, apikey: apiKey };
 
   const response = await axios.get(`${FMP_BASE}${endpoint}`, {

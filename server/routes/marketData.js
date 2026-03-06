@@ -3,7 +3,7 @@ const axios = require('axios');
 
 const router = express.Router();
 
-const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
+const FMP_BASE = 'https://financialmodelingprep.com';
 const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', '^VIX'];
 const TICKER_TAPE_SYMBOLS = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'MSFT', 'AMD', 'META', 'AMZN'];
 
@@ -18,8 +18,8 @@ function getApiKey() {
 
 async function fetchQuoteBatch(symbols, apiKey) {
   const joined = symbols.join(',');
-  const response = await axios.get(`${FMP_BASE}/quote/${encodeURIComponent(joined)}`, {
-    params: { apikey: apiKey },
+  const response = await axios.get(`${FMP_BASE}/stable/quote`, {
+    params: { symbol: joined, apikey: apiKey },
     timeout: 15000,
     validateStatus: () => true,
   });
@@ -46,8 +46,8 @@ function normalizeQuoteRow(row) {
 }
 
 async function fetchProfile(symbol, apiKey) {
-  const response = await axios.get(`${FMP_BASE}/profile/${encodeURIComponent(symbol)}`, {
-    params: { apikey: apiKey },
+  const response = await axios.get(`${FMP_BASE}/stable/profile`, {
+    params: { symbol, apikey: apiKey },
     timeout: 15000,
     validateStatus: () => true,
   });
@@ -140,11 +140,11 @@ router.get('/api/chart/mini/:symbol', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}`, {
+    const response = await axios.get(`${FMP_BASE}/stable/historical-price-eod`, {
       params: {
+        symbol,
         apikey: apiKey,
-        serietype: 'line',
-        timeseries: 30,
+        limit: 30,
       },
       timeout: 15000,
       validateStatus: () => true,
@@ -154,7 +154,9 @@ router.get('/api/chart/mini/:symbol', async (req, res) => {
       throw new Error(`FMP mini chart failed with status ${response.status}`);
     }
 
-    const historical = Array.isArray(response.data?.historical) ? response.data.historical : [];
+    const historical = Array.isArray(response.data)
+      ? response.data
+      : (Array.isArray(response.data?.historical) ? response.data.historical : []);
     const points = historical
       .slice()
       .reverse()

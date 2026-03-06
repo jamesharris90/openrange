@@ -3385,7 +3385,7 @@ app.get('/api/fmp/screener', async (req, res) => {
 // Fetch the complete symbol universe from raw FMP stock-list endpoint.
 app.get('/api/fmp/full-universe', async (_req, res) => {
   try {
-    const response = await axios.get('https://financialmodelingprep.com/api/v3/stock-list', {
+    const response = await axios.get('https://financialmodelingprep.com/stable/stock-list', {
       params: { apikey: process.env.FMP_API_KEY || '' },
       validateStatus: () => true,
     });

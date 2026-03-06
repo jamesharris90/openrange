@@ -2,7 +2,7 @@ const axios = require('axios');
 const { info, warn, error } = require('../utils/logger');
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
-const BASE_URL = 'https://financialmodelingprep.com/api/v3';
+const BASE_URL = 'https://financialmodelingprep.com/stable';
 const REQUEST_SPACING_MS = 250;
 const MAX_RETRIES = 3;
 

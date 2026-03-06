@@ -264,7 +264,7 @@ async function fetchDailyCandles(symbol) {
       try {
         raw = await fetchStable('/stable/historical-price-eod/light', { symbol: sym, from, to });
       } catch {
-        raw = await fetchStable('/api/v3/historical-price-full', { symbol: sym, from, to });
+          raw = await fetchStable('/stable/historical-price-eod/full', { symbol: sym, from, to });
       }
     }
   }
