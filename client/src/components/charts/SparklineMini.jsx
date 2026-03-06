@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { createChart } from 'lightweight-charts';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createChart, LineSeries } from 'lightweight-charts';
 import { apiJSON } from '../../config/api';
 
 function normalizePoints(points) {
@@ -19,42 +19,50 @@ export default function SparklineMini({ points, symbol, width = 84, height = 24,
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
+  const [chartFailed, setChartFailed] = useState(false);
 
   const fallbackPoints = useMemo(() => normalizePoints(points), [points]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    try {
+      const chart = createChart(el, {
+        width,
+        height,
+        layout: { background: { color: 'transparent' }, textColor: 'transparent' },
+        grid: {
+          vertLines: { visible: false },
+          horzLines: { visible: false },
+        },
+        rightPriceScale: { visible: false },
+        leftPriceScale: { visible: false },
+        timeScale: { visible: false, borderVisible: false },
+        crosshair: {
+          vertLine: { visible: false },
+          horzLine: { visible: false },
+        },
+        handleScale: false,
+        handleScroll: false,
+      });
 
-    const chart = createChart(el, {
-      width,
-      height,
-      layout: { background: { color: 'transparent' }, textColor: 'transparent' },
-      grid: {
-        vertLines: { visible: false },
-        horzLines: { visible: false },
-      },
-      rightPriceScale: { visible: false },
-      leftPriceScale: { visible: false },
-      timeScale: { visible: false, borderVisible: false },
-      crosshair: {
-        vertLine: { visible: false },
-        horzLine: { visible: false },
-      },
-      handleScale: false,
-      handleScroll: false,
-    });
+      const series = chart.addSeries(LineSeries, {
+        color: positive ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
 
-    const series = chart.addLineSeries({
-      color: positive ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
-      lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-
-    chartRef.current = chart;
-    seriesRef.current = series;
+      chartRef.current = chart;
+      seriesRef.current = series;
+      setChartFailed(false);
+    } catch (err) {
+      console.error('Chart initialization failed', err);
+      chartRef.current = null;
+      seriesRef.current = null;
+      setChartFailed(true);
+    }
 
     return () => {
       seriesRef.current = null;
@@ -96,6 +104,17 @@ export default function SparklineMini({ points, symbol, width = 84, height = 24,
       cancelled = true;
     };
   }, [fallbackPoints, symbol]);
+
+  if (chartFailed) {
+    return (
+      <div
+        style={{ width, height, fontSize: 10, lineHeight: `${height}px`, textAlign: 'center', color: 'var(--text-muted, #94a3b8)' }}
+        aria-label="sparkline-fallback"
+      >
+        Chart temporarily unavailable
+      </div>
+    );
+  }
 
   return <div ref={containerRef} style={{ width, height }} aria-label="sparkline" />;
 }

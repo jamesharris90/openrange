@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export function authFetch(url, options = {}) {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
   const headers = { ...options.headers };
 
   const resolvedUrl = `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`;

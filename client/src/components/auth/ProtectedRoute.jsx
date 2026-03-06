@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function ProtectedRoute({ children, adminOnly }) {
   const { isAuthenticated, isAdmin, loading } = useAuth();
+  const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
 
   if (loading) {
     return (
@@ -12,7 +13,7 @@ export default function ProtectedRoute({ children, adminOnly }) {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!token || !isAuthenticated) return <Navigate to="/login" replace />;
   if (adminOnly && !isAdmin) return <Navigate to="/watchlist" replace />;
 
   return children;

@@ -36,7 +36,12 @@ export default function RegisterPage() {
       setSuccess('Account created successfully! Redirecting to login…');
       setTimeout(() => navigate('/login', { replace: true }), 1500);
     } catch (err) {
-      setError(err?.message || 'Network error. Please check your connection.');
+      const raw = String(err?.message || '');
+      if (raw.includes('Username already exists')) {
+        setError('This username is already registered. Please sign in.');
+      } else {
+        setError(err?.message || 'Network error. Please check your connection.');
+      }
     } finally {
       setSubmitting(false);
     }

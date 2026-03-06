@@ -303,15 +303,15 @@
     <div class="app-container">
         <div class="user-header" style="position:fixed;right:0;top:0;z-index:1000;background:var(--bg-card);padding:8px 24px 8px 24px;min-width:220px;text-align:right;">
             <span id="userMenuName">Guest</span>
-            <a href="login.html" id="loginLink">Login</a>
-            <a href="register.html" id="registerLink">Register</a>
+            <a href="register.html" id="registerLink">Sign Up</a>
+            <a href="login.html" id="loginLink">Log In</a>
             <a href="user.html" id="profileLink" style="display:none;">Profile</a>
             <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
             <a href="#" id="logoutLink" style="display:none;">Logout</a>
         </div>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            let token = localStorage.getItem('authToken');
+            let token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
             let userMenuName = document.getElementById('userMenuName');
             let loginLink = document.getElementById('loginLink');
             let registerLink = document.getElementById('registerLink');

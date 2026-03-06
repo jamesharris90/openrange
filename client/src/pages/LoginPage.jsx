@@ -29,8 +29,9 @@ export default function LoginPage() {
       });
 
       if (data.token) {
+        localStorage.setItem('openrange_token', data.token);
         login(data.token);
-        navigate('/watchlist', { replace: true });
+        navigate('/dashboard', { replace: true });
       } else {
         setError(data.error || data.detail || 'Login failed');
       }

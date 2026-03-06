@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
+const TOKEN_KEY = 'openrange_token';
+const LEGACY_TOKEN_KEY = 'authToken';
 
 function decodeToken(token) {
   try {
@@ -25,14 +27,17 @@ export function AuthProvider({ children }) {
 
   // Initialize from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('authToken');
+    const stored = localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
     if (stored) {
       const decoded = decodeToken(stored);
       if (decoded) {
         setUser(decoded);
         setToken(stored);
+        localStorage.setItem(TOKEN_KEY, stored);
+        localStorage.removeItem(LEGACY_TOKEN_KEY);
       } else {
-        localStorage.removeItem('authToken');
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(LEGACY_TOKEN_KEY);
       }
     }
     setLoading(false);
@@ -48,7 +53,7 @@ export function AuthProvider({ children }) {
         return nativeFetch(input, init);
       }
 
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
       if (!token) {
         return nativeFetch(input, init);
       }
@@ -69,12 +74,14 @@ export function AuthProvider({ children }) {
   // Cross-tab sync
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key !== 'authToken') return;
+      if (e.key !== TOKEN_KEY && e.key !== LEGACY_TOKEN_KEY) return;
       if (e.newValue) {
         const decoded = decodeToken(e.newValue);
         if (decoded) {
           setUser(decoded);
           setToken(e.newValue);
+          localStorage.setItem(TOKEN_KEY, e.newValue);
+          localStorage.removeItem(LEGACY_TOKEN_KEY);
         }
       } else {
         setUser(null);
@@ -88,13 +95,15 @@ export function AuthProvider({ children }) {
   const login = useCallback((newToken) => {
     const decoded = decodeToken(newToken);
     if (!decoded) throw new Error('Invalid token');
-    localStorage.setItem('authToken', newToken);
+    localStorage.setItem(TOKEN_KEY, newToken);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
     setToken(newToken);
     setUser(decoded);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
     setToken(null);
     setUser(null);
   }, []);

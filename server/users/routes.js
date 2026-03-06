@@ -71,7 +71,15 @@ router.post('/register', async (req, res) => {
     const user = await model.register(username, email, password);
     res.json({ success: true, user });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err?.code === '23505') {
+      const constraint = String(err?.constraint || '').toLowerCase();
+      if (constraint.includes('users_username_key') || String(err?.detail || '').toLowerCase().includes('username')) {
+        return res.status(400).json({ success: false, error: 'Username already exists' });
+      }
+      return res.status(400).json({ success: false, error: 'Account already exists' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Registration failed' });
   }
 });
 
@@ -131,17 +139,14 @@ router.post('/login', async (req, res) => {
       success: true,
       token,
       user: {
-        id: user.id,
         username: user.username,
-        email: user.email,
-        is_admin: user.is_admin
-      }
+      },
     });
   } catch (err) {
     console.error('Login failed:', err.message);
-    return res.status(400).json({
+    return res.status(401).json({
       success: false,
-      error: err.message || 'Login failed',
+      error: 'Invalid credentials',
     });
   }
 });
