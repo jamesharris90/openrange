@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Bell, Moon, Search, Sunrise } from 'lucide-react';
+import { Activity, BarChart2, Bell, BookOpen, CandlestickChart, Compass, Inbox, LineChart, Moon, Newspaper, Search, Sunrise } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import UserPanel from './UserPanel';
@@ -24,12 +24,35 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Workflows',
+    label: 'Discovery',
     items: [
-      { to: '/dashboard',         label: 'Dashboard',          icon: BarChart2 },
       { to: '/screener',          label: 'Scanner',            icon: BarChart2 },
-      { to: '/alerts',            label: 'Alerts',             icon: Bell },
-      { to: '/research',          label: 'Research',          icon: Search },
+      { to: '/screener-full',     label: 'Full Screener',      icon: Compass },
+      { to: '/sector-heatmap',    label: 'Sector Heatmap',     icon: Activity },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { to: '/intelligence-inbox',  label: 'Intel Inbox',        icon: Inbox },
+      { to: '/intelligence-engine', label: 'Intelligence Engine', icon: LineChart },
+      { to: '/news-feed',           label: 'News Feed',          icon: Newspaper },
+    ],
+  },
+  {
+    label: 'Trading Tools',
+    items: [
+      { to: '/charts',             label: 'Charts',             icon: CandlestickChart },
+      { to: '/expected-move',      label: 'Expected Move',      icon: LineChart },
+      { to: '/earnings-calendar',  label: 'Earnings Calendar',  icon: BookOpen },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: BarChart2 },
+      { to: '/alerts', label: 'Alerts', icon: Bell },
+      { to: '/research', label: 'Research', icon: Search },
     ],
   },
 ];

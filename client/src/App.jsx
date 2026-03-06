@@ -34,6 +34,7 @@ const IntelInbox = lazy(() => import('./pages/IntelInbox'));
 const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
 const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
 const ScreenerFull = lazy(() => import('./pages/ScreenerFull'));
+const TradeSetup = lazy(() => import('./pages/TradeSetup'));
 
 export default function App() {
   return (
@@ -68,12 +69,14 @@ export default function App() {
                   <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />
                   <Route path="/advanced-screener" element={<AdvancedScreenerPage />} />
                   <Route path="/news-scanner" element={<NewsScannerV2 />} />
+                  <Route path="/news-feed" element={<NewsScannerV2 />} />
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
                   <Route path="/earnings" element={<EarningsPage />} />
                   <Route path="/earnings-calendar" element={<EarningsCalendar />} />
                   <Route path="/research" element={<ResearchPage />} />
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
+                  <Route path="/setup/:symbol" element={<TradeSetup />} />
                   <Route path="/live" element={<LiveCockpit />} />
                   <Route path="/intelligence" element={<IntelligenceEngine />} />
                   <Route path="/intelligence-engine" element={<IntelligenceEngine />} />

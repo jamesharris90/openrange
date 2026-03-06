@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import TickerLink from '../components/shared/TickerLink';
 
 function toQuery(filters) {
   const params = new URLSearchParams();
@@ -25,6 +26,15 @@ export default function ScreenerFull() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [error, setError] = useState('');
+  const [sortBy, setSortBy] = useState('relative_volume');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const presets = {
+    'Gap & Go': { gap_min: '5', rvol_min: '2', price_min: '1', strategy: 'Gap & Go' },
+    'High RVOL': { rvol_min: '3' },
+    Momentum: { price_min: '5', rvol_min: '1.5' },
+    'Low Float': { price_max: '20', rvol_min: '2', gap_min: '3' },
+  };
 
   const load = async () => {
     setLoading(true);
@@ -48,6 +58,27 @@ export default function ScreenerFull() {
 
   const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
 
+  const sortedRows = [...rows].sort((a, b) => {
+    const av = Number(a?.[sortBy] ?? 0);
+    const bv = Number(b?.[sortBy] ?? 0);
+    if (sortDir === 'asc') return av - bv;
+    return bv - av;
+  });
+
+  const onSort = (field) => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(field);
+    setSortDir('desc');
+  };
+
+  const applyPreset = (name) => {
+    const preset = presets[name] || {};
+    setFilters((prev) => ({ ...prev, ...preset }));
+  };
+
   return (
     <PageContainer className="space-y-3">
       <Card>
@@ -55,6 +86,12 @@ export default function ScreenerFull() {
           title="Manual Universe Screener"
           subtitle="Filter the full tradable universe with trader controls."
         />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Saved Presets</span>
+          {Object.keys(presets).map((name) => (
+            <button key={name} className="rounded border border-[var(--border-color)] px-2 py-1 text-xs" onClick={() => applyPreset(name)}>{name}</button>
+          ))}
+        </div>
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           <input className="input-field" placeholder="Price Min" value={filters.price_min} onChange={(e) => setFilter('price_min', e.target.value)} />
           <input className="input-field" placeholder="Price Max" value={filters.price_max} onChange={(e) => setFilter('price_max', e.target.value)} />
@@ -88,9 +125,9 @@ export default function ScreenerFull() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {sortedRows.map((row) => (
                 <tr key={row?.symbol}>
-                  <td>{String(row?.symbol || '').toUpperCase()}</td>
+                  <td><TickerLink symbol={row?.symbol} /></td>
                   <td style={{ textAlign: 'right' }}>{Number(row?.price || 0).toFixed(2)}</td>
                   <td style={{ textAlign: 'right' }}>{Number(row?.change_percent || 0).toFixed(2)}%</td>
                   <td style={{ textAlign: 'right' }}>{Number(row?.gap_percent || 0).toFixed(2)}%</td>
@@ -102,6 +139,16 @@ export default function ScreenerFull() {
             </tbody>
           </table>
         )}
+      </Card>
+
+      <Card>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="text-[var(--text-muted)]">Sort:</span>
+          <button className="rounded border border-[var(--border-color)] px-2 py-1" onClick={() => onSort('relative_volume')}>RVol</button>
+          <button className="rounded border border-[var(--border-color)] px-2 py-1" onClick={() => onSort('gap_percent')}>Gap</button>
+          <button className="rounded border border-[var(--border-color)] px-2 py-1" onClick={() => onSort('change_percent')}>Change</button>
+          <span className="text-[var(--text-secondary)]">{sortBy} ({sortDir})</span>
+        </div>
       </Card>
     </PageContainer>
   );

@@ -460,6 +460,109 @@ const SEC_MD_PATH = path.join(__dirname, 'data', 'sec-earnings-today-ai.md');
 const PREMARKET_REPORT_JSON_PATH = path.join(__dirname, '..', 'premarket-screener', 'sample-output', 'report.json');
 const PREMARKET_REPORT_MD_PATH = path.join(__dirname, '..', 'premarket-screener', 'sample-output', 'report.md');
 
+let personalizationTablesReady = false;
+
+function getOptionalAuthUser(req) {
+  if (req?.user?.id) return req.user;
+  const token = req.get('Authorization')?.replace('Bearer ', '');
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function ensurePersonalizationTables() {
+  if (personalizationTablesReady) return;
+
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      email TEXT UNIQUE,
+      password_hash TEXT,
+      plan TEXT DEFAULT 'free',
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.users', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_hash TEXT,
+      ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free',
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.users.columns', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id BIGINT PRIMARY KEY,
+      min_price NUMERIC,
+      max_price NUMERIC,
+      min_rvol NUMERIC,
+      min_gap NUMERIC,
+      preferred_sectors TEXT[] DEFAULT ARRAY[]::TEXT[],
+      enabled_strategies TEXT[] DEFAULT ARRAY[]::TEXT[],
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.preferences', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS user_watchlists (
+      user_id BIGINT NOT NULL,
+      symbol TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      PRIMARY KEY (user_id, symbol)
+    )`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.watchlists', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `ALTER TABLE user_watchlists
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.watchlists.columns', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS user_signal_feedback (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      signal_id TEXT NOT NULL,
+      rating TEXT NOT NULL CHECK (rating IN ('good', 'bad', 'ignored')),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE (user_id, signal_id)
+    )`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.feedback', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `ALTER TABLE user_signal_feedback
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.feedback.columns', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
+     CREATE INDEX IF NOT EXISTS idx_user_watchlists_user_id ON user_watchlists(user_id);
+     CREATE INDEX IF NOT EXISTS idx_user_watchlists_symbol ON user_watchlists(symbol);
+     CREATE INDEX IF NOT EXISTS idx_user_signal_feedback_user_id ON user_signal_feedback(user_id);
+     CREATE INDEX IF NOT EXISTS idx_user_signal_feedback_signal_id ON user_signal_feedback(signal_id);`,
+    [],
+    { timeoutMs: 6000, label: 'personalization.ensure.indexes', maxRetries: 0 }
+  );
+
+  personalizationTablesReady = true;
+}
+
 // =====================================================
 // Yahoo Finance via yahoo-finance2 npm package
 // =====================================================
@@ -1026,7 +1129,7 @@ app.get('/api/earnings/today', async (req, res) => {
        LIMIT 200`,
       [],
       {
-        timeoutMs: 200,
+        timeoutMs: 1200,
         maxRetries: 0,
         slowQueryMs: 120,
         label: 'api.earnings.today',
@@ -1088,28 +1191,86 @@ app.get('/api/earnings/week', async (req, res) => {
 });
 
 app.get('/api/signals', async (req, res) => {
-  const signals = await fastRowsQuery(
-    `SELECT
-            symbol,
-            strategy,
-            class,
-            score,
-            probability,
-            change_percent,
-            gap_percent,
-            relative_volume,
-            volume,
-            updated_at,
-            updated_at AS timestamp
-     FROM strategy_signals
-     ORDER BY score DESC NULLS LAST
-     LIMIT 50`,
-    [],
-    'api.signals',
-    180
-  );
+  try {
+    await ensurePersonalizationTables();
 
-  return res.json({ signals });
+    const user = getOptionalAuthUser(req);
+    const userId = Number(user?.id);
+    const hasUser = Number.isFinite(userId) && userId > 0;
+
+    let preferences = null;
+    if (hasUser) {
+      const prefResult = await queryWithTimeout(
+        `SELECT
+            user_id,
+            min_price,
+            max_price,
+            min_rvol,
+            min_gap,
+            preferred_sectors,
+            enabled_strategies
+         FROM user_preferences
+         WHERE user_id = $1
+         LIMIT 1`,
+        [userId],
+        { label: 'api.signals.preferences', timeoutMs: 1000, maxRetries: 0 }
+      );
+      preferences = prefResult.rows[0] || null;
+    }
+
+    const where = [];
+    const params = [];
+    const addCondition = (sql, value) => {
+      params.push(value);
+      where.push(sql.replace('?', `$${params.length}`));
+    };
+
+    if (preferences) {
+      if (preferences.min_price != null) addCondition('COALESCE(q.price, 0) >= ?', preferences.min_price);
+      if (preferences.max_price != null) addCondition('COALESCE(q.price, 0) <= ?', preferences.max_price);
+      if (preferences.min_rvol != null) addCondition('COALESCE(s.relative_volume, 0) >= ?', preferences.min_rvol);
+      if (preferences.min_gap != null) addCondition('ABS(COALESCE(s.gap_percent, 0)) >= ?', preferences.min_gap);
+
+      if (Array.isArray(preferences.preferred_sectors) && preferences.preferred_sectors.length > 0) {
+        addCondition('LOWER(COALESCE(q.sector, \'\')) = ANY(?::text[])', preferences.preferred_sectors.map((sector) => String(sector || '').toLowerCase()));
+      }
+
+      if (Array.isArray(preferences.enabled_strategies) && preferences.enabled_strategies.length > 0) {
+        addCondition('COALESCE(s.strategy, \'\') = ANY(?::text[])', preferences.enabled_strategies.map((strategy) => String(strategy || '')));
+      }
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const { rows } = await queryWithTimeout(
+      `SELECT
+          s.symbol,
+          s.strategy,
+          s.class,
+          s.score,
+          s.probability,
+          s.change_percent,
+          s.gap_percent,
+          s.relative_volume,
+          s.volume,
+          q.sector,
+          s.updated_at,
+          s.updated_at AS timestamp
+       FROM strategy_signals s
+       LEFT JOIN market_quotes q ON q.symbol = s.symbol
+       ${whereClause}
+       ORDER BY s.score DESC NULLS LAST
+       LIMIT 50`,
+      params,
+      { label: 'api.signals', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    return res.json({
+      signals: rows,
+      personalized: Boolean(preferences),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load signals' });
+  }
 });
 
 app.get('/api/signals/:symbol', async (req, res) => {
@@ -1153,6 +1314,146 @@ app.get('/api/signals/:symbol', async (req, res) => {
     return res.json(rows[0]);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load signal explanation' });
+  }
+});
+
+app.get('/api/watchlist/signals', authMiddleware, async (req, res) => {
+  try {
+    await ensurePersonalizationTables();
+
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return res.status(401).json({ success: false, error: 'Invalid user context' });
+    }
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         s.symbol,
+         s.strategy,
+         s.class,
+         s.score,
+         s.probability,
+         s.change_percent,
+         s.gap_percent,
+         s.relative_volume,
+         s.volume,
+         q.sector,
+         s.updated_at,
+         s.updated_at AS timestamp
+       FROM user_watchlists w
+       JOIN strategy_signals s ON s.symbol = w.symbol
+       LEFT JOIN market_quotes q ON q.symbol = s.symbol
+       WHERE w.user_id = $1
+       ORDER BY s.score DESC NULLS LAST
+       LIMIT 200`,
+      [userId],
+      { label: 'api.watchlist.signals', timeoutMs: 2000, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    return res.json({ success: true, signals: rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load watchlist signals' });
+  }
+});
+
+app.post('/api/signals/feedback', authMiddleware, async (req, res) => {
+  try {
+    await ensurePersonalizationTables();
+
+    const userId = Number(req.user?.id);
+    const signalId = String(req.body?.signal_id || '').trim();
+    const rating = String(req.body?.rating || '').trim().toLowerCase();
+
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return res.status(401).json({ success: false, error: 'Invalid user context' });
+    }
+    if (!signalId) {
+      return res.status(400).json({ success: false, error: 'signal_id is required' });
+    }
+    if (!['good', 'bad', 'ignored'].includes(rating)) {
+      return res.status(400).json({ success: false, error: 'rating must be one of: good, bad, ignored' });
+    }
+
+    await queryWithTimeout(
+      `INSERT INTO user_signal_feedback (user_id, signal_id, rating, created_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (user_id, signal_id)
+       DO UPDATE SET
+         rating = EXCLUDED.rating,
+         created_at = now()`,
+      [userId, signalId.toUpperCase(), rating],
+      { label: 'api.signals.feedback', timeoutMs: 2000, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to save feedback' });
+  }
+});
+
+app.get('/api/user/performance', authMiddleware, async (req, res) => {
+  try {
+    await ensurePersonalizationTables();
+
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return res.status(401).json({ success: false, error: 'Invalid user context' });
+    }
+
+    const totals = await queryWithTimeout(
+      `SELECT
+          COUNT(*)::int AS signals_taken,
+          COUNT(*) FILTER (WHERE rating = 'good')::int AS good_count,
+          COUNT(*) FILTER (WHERE rating = 'bad')::int AS bad_count
+       FROM user_signal_feedback
+       WHERE user_id = $1`,
+      [userId],
+      { label: 'api.user.performance.totals', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    const best = await queryWithTimeout(
+      `SELECT
+          COALESCE(s.strategy, 'Unknown') AS strategy,
+          AVG(CASE WHEN f.rating = 'good' THEN 1 ELSE 0 END)::numeric AS score
+       FROM user_signal_feedback f
+       LEFT JOIN strategy_signals s ON s.symbol = f.signal_id
+       WHERE f.user_id = $1
+         AND f.rating IN ('good', 'bad')
+       GROUP BY COALESCE(s.strategy, 'Unknown')
+       ORDER BY score DESC NULLS LAST, strategy ASC
+       LIMIT 1`,
+      [userId],
+      { label: 'api.user.performance.best', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    const worst = await queryWithTimeout(
+      `SELECT
+          COALESCE(s.strategy, 'Unknown') AS strategy,
+          AVG(CASE WHEN f.rating = 'good' THEN 1 ELSE 0 END)::numeric AS score
+       FROM user_signal_feedback f
+       LEFT JOIN strategy_signals s ON s.symbol = f.signal_id
+       WHERE f.user_id = $1
+         AND f.rating IN ('good', 'bad')
+       GROUP BY COALESCE(s.strategy, 'Unknown')
+       ORDER BY score ASC NULLS LAST, strategy ASC
+       LIMIT 1`,
+      [userId],
+      { label: 'api.user.performance.worst', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    const row = totals.rows[0] || { signals_taken: 0, good_count: 0, bad_count: 0 };
+    const denominator = Number(row.good_count || 0) + Number(row.bad_count || 0);
+    const winRate = denominator > 0 ? Number(((Number(row.good_count || 0) / denominator) * 100).toFixed(2)) : 0;
+
+    return res.json({
+      success: true,
+      signals_taken: Number(row.signals_taken || 0),
+      win_rate: winRate,
+      best_strategy: best.rows[0]?.strategy || null,
+      worst_strategy: worst.rows[0]?.strategy || null,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to load user performance' });
   }
 });
 
@@ -1287,15 +1588,25 @@ app.get('/api/sector/:sector', async (req, res) => {
 
 app.get('/api/market/indices', async (req, res) => {
   try {
+    const requested = ['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y'];
     const { rows } = await queryWithTimeout(
       `SELECT symbol, price, change_percent
        FROM market_quotes
        WHERE symbol = ANY($1::text[])
        ORDER BY array_position($1::text[], symbol)`,
-      [['SPY', 'QQQ', 'IWM', 'DIA', 'VIX']],
+      [['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y', 'TNX', '^TNX']],
       { label: 'api.market.indices', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 150 }
     );
-    return res.json({ success: true, indices: rows });
+
+    const rowMap = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+    const normalized = requested.map((symbol) => {
+      if (symbol === '10Y') {
+        return rowMap.get('10Y') || rowMap.get('TNX') || rowMap.get('^TNX') || { symbol: '10Y', price: null, change_percent: null };
+      }
+      return rowMap.get(symbol) || { symbol, price: null, change_percent: null };
+    });
+
+    return res.json({ success: true, indices: normalized });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load market indices' });
   }
@@ -1304,7 +1615,7 @@ app.get('/api/market/indices', async (req, res) => {
 app.get('/api/market/tickers', async (req, res) => {
   try {
     const { rows } = await queryWithTimeout(
-      `SELECT symbol, change_percent, sector
+      `SELECT symbol, price, change_percent, sector
        FROM market_quotes
        ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST
        LIMIT 20`,
@@ -1326,27 +1637,19 @@ app.get('/api/expected-move', async (req, res) => {
       `SELECT
         e.symbol,
         COALESCE(m.price, q.price, 0) AS price,
+        COALESCE(m.atr, 0) AS atr,
         COALESCE(
-          m.atr_percent,
-          ABS(m.gap_percent),
-          ABS(COALESCE(m.change_percent, q.change_percent)),
+          NULLIF(m.atr, 0),
+          (COALESCE(m.price, q.price, 0) * COALESCE(ABS(m.gap_percent), ABS(COALESCE(m.change_percent, q.change_percent)), 0)) / 100,
           0
-        ) AS atr_percent,
-        (COALESCE(m.price, q.price, 0)
-          * COALESCE(
-            m.atr_percent,
-            ABS(m.gap_percent),
-            ABS(COALESCE(m.change_percent, q.change_percent)),
-            0
-          )
-        ) / 100 AS expected_move,
+        ) AS expected_move,
         CASE
-          WHEN COALESCE(m.price, q.price, 0) > 0 THEN COALESCE(
-            m.atr_percent,
-            ABS(m.gap_percent),
-            ABS(COALESCE(m.change_percent, q.change_percent)),
-            0
-          )
+          WHEN COALESCE(m.price, q.price, 0) > 0 THEN
+            (COALESCE(
+              NULLIF(m.atr, 0),
+              (COALESCE(m.price, q.price, 0) * COALESCE(ABS(m.gap_percent), ABS(COALESCE(m.change_percent, q.change_percent)), 0)) / 100,
+              0
+            ) / COALESCE(m.price, q.price, 1)) * 100
           ELSE NULL
         END AS expected_move_percent,
         e.earnings_date,

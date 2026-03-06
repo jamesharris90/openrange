@@ -3,6 +3,9 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import ScrollingTicker from '../components/market/ScrollingTicker';
+import SectorHeatmapGrid from '../components/market/SectorHeatmapGrid';
+import TickerLink from '../components/shared/TickerLink';
 
 function fmt(value, digits = 2) {
   const num = Number(value);
@@ -45,6 +48,13 @@ export default function SectorHeatmap() {
         />
       </Card>
 
+      <ScrollingTicker />
+
+      <Card>
+        <h3 className="m-0 mb-3">Sector Heatmap Grid</h3>
+        <SectorHeatmapGrid />
+      </Card>
+
       <Card>
         {loading ? (
           <LoadingSpinner message="Loading sectors…" />
@@ -71,9 +81,15 @@ export default function SectorHeatmap() {
                     <td style={{ textAlign: 'right' }}>{Number(row?.symbols || 0)}</td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.total_volume || 0).toLocaleString()}</td>
                     <td>
-                      {leaders.length
-                        ? leaders.map((item) => `${item?.symbol || '--'} (${fmt(item?.change_percent, 2)}%)`).join(', ')
-                        : '--'}
+                      {leaders.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {leaders.map((item) => (
+                            <span key={`${row?.sector || 's'}-${item?.symbol || 'x'}`}>
+                              <TickerLink symbol={item?.symbol} /> ({fmt(item?.change_percent, 2)}%)
+                            </span>
+                          ))}
+                        </div>
+                      ) : '--'}
                     </td>
                   </tr>
                 );

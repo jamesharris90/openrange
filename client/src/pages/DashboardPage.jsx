@@ -3,6 +3,10 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import ScrollingTicker from '../components/market/ScrollingTicker';
+import MarketPulseCards from '../components/market/MarketPulseCards';
+import StrategyLeaderboard from '../components/strategy/StrategyLeaderboard';
+import TickerLink from '../components/shared/TickerLink';
 
 function asNumber(value) {
   const parsed = Number(value);
@@ -127,6 +131,14 @@ export default function DashboardPage() {
         />
       </Card>
 
+      <ScrollingTicker />
+      <MarketPulseCards />
+
+      <Card>
+        <h3 className="m-0 mb-3">Strategy Leaderboard</h3>
+        <StrategyLeaderboard />
+      </Card>
+
       {!loading && systemReport?.status === 'degraded' && (
         <Card>
           <div className="text-sm" style={{ color: 'var(--warning-text, #f59e0b)' }}>
@@ -164,7 +176,7 @@ export default function DashboardPage() {
                   <tbody>
                     {opportunities.map((row) => (
                       <tr key={`${row.symbol}-${row.setupType}`}>
-                        <td style={{ fontWeight: 700 }}>{row.symbol || '--'}</td>
+                        <td><TickerLink symbol={row.symbol} /></td>
                         <td>{row.setupType}</td>
                         <td style={{ textAlign: 'right' }}>{fmtNumber(row.score, 1)}</td>
                         <td>{row.catalystHeadline}</td>
@@ -198,7 +210,7 @@ export default function DashboardPage() {
                   {catalysts.slice(0, 12).map((item, idx) => (
                     <div key={`${item.symbol}-${item.published_at || idx}`} className="rounded border border-[var(--border)] p-2">
                       <div className="flex items-center justify-between">
-                        <strong>{String(item.symbol || '').toUpperCase() || '--'}</strong>
+                        <TickerLink symbol={item.symbol} />
                         <span className="muted text-xs">{item.sentiment || 'neutral'}</span>
                       </div>
                       <div className="text-sm" style={{ marginTop: 4 }}>{item.headline || '--'}</div>

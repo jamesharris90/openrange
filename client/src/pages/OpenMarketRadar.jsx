@@ -3,8 +3,31 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import OpportunityStream from '../components/opportunity/OpportunityStream';
-import MarketNarrative from '../components/narrative/MarketNarrative';
 import { apiJSON } from '../config/api';
+import ScrollingTicker from '../components/market/ScrollingTicker';
+import MarketPulseCards from '../components/market/MarketPulseCards';
+import TickerLink from '../components/shared/TickerLink';
+
+function parseNarrativeText(text) {
+  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const drivers = [];
+  let section = '';
+
+  lines.forEach((line) => {
+    if (line === 'Drivers:') {
+      section = 'drivers';
+      return;
+    }
+    if (line === 'Top Opportunities:') {
+      section = 'opportunities';
+      return;
+    }
+    if (line.startsWith('Market Regime:')) return;
+    if (section === 'drivers') drivers.push(line);
+  });
+
+  return { drivers };
+}
 
 function Panel({ title, loading, rows, emptyMessage, render }) {
   return (
@@ -26,6 +49,8 @@ export default function OpenMarketRadar() {
   const [setups, setSetups] = useState({ loading: true, rows: [] });
   const [catalysts, setCatalysts] = useState({ loading: true, rows: [] });
   const [metrics, setMetrics] = useState({ loading: true, rows: [] });
+  const [narrative, setNarrative] = useState(null);
+  const [signals, setSignals] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +87,20 @@ export default function OpenMarketRadar() {
       } catch {
         if (!cancelled) setMetrics({ loading: false, rows: [] });
       }
+
+      try {
+        const payload = await apiJSON('/api/market-narrative');
+        if (!cancelled) setNarrative(payload && typeof payload === 'object' ? payload : null);
+      } catch {
+        if (!cancelled) setNarrative(null);
+      }
+
+      try {
+        const payload = await apiJSON('/api/signals');
+        if (!cancelled) setSignals(Array.isArray(payload?.signals) ? payload.signals : []);
+      } catch {
+        if (!cancelled) setSignals([]);
+      }
     }
 
     load();
@@ -79,9 +118,36 @@ export default function OpenMarketRadar() {
         />
       </Card>
 
+      <ScrollingTicker />
+      <MarketPulseCards />
+
       <Card>
         <h3 className="m-0 mb-3">Market Narrative</h3>
-        <MarketNarrative />
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="rounded border border-[var(--border-color)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Market Regime</div>
+            <div className="mt-1 text-lg font-semibold">{narrative?.regime || 'Unknown'}</div>
+          </div>
+          <div className="rounded border border-[var(--border-color)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Drivers</div>
+            <div className="mt-1 space-y-1 text-sm">
+              {parseNarrativeText(narrative?.narrative).drivers.slice(0, 3).map((driver, idx) => (
+                <div key={`drv-${idx}`}>⚡ Catalyst {driver}</div>
+              ))}
+              {!parseNarrativeText(narrative?.narrative).drivers.length && <div className="muted">No drivers</div>}
+            </div>
+          </div>
+          <div className="rounded border border-[var(--border-color)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Top Strategies</div>
+            <div className="mt-1 space-y-1 text-sm">
+              {signals.slice(0, 3).map((item, idx) => {
+                const icon = idx === 0 ? '🔥' : idx === 1 ? '📈' : '⚡';
+                return <div key={`${item?.symbol}-${idx}`}>{icon} {item?.strategy || '--'} · {String(item?.symbol || '').toUpperCase()}</div>;
+              })}
+              {!signals.length && <div className="muted">No strategy rows</div>}
+            </div>
+          </div>
+        </div>
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
@@ -97,7 +163,7 @@ export default function OpenMarketRadar() {
               <tbody>
                 {rows.slice(0, 12).map((row) => (
                   <tr key={`${row?.symbol}-${row?.setup || ''}`}>
-                    <td>{String(row?.symbol || '').toUpperCase()}</td>
+                    <td><TickerLink symbol={row?.symbol} /></td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.relative_volume || 0).toFixed(2)}</td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.gap_percent || 0).toFixed(2)}%</td>
                   </tr>
@@ -118,7 +184,7 @@ export default function OpenMarketRadar() {
               <tbody>
                 {rows.slice(0, 12).map((row) => (
                   <tr key={`${row?.symbol}-${row?.setup || row?.setup_type || ''}`}>
-                    <td>{String(row?.symbol || '').toUpperCase()}</td>
+                    <td><TickerLink symbol={row?.symbol} /></td>
                     <td>{row?.setup_type || row?.setup || '--'}</td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.score || 0).toFixed(1)}</td>
                   </tr>
@@ -136,8 +202,8 @@ export default function OpenMarketRadar() {
           render={(rows) => (
             <div className="space-y-2">
               {rows.slice(0, 10).map((row, idx) => (
-                <div key={`${row?.symbol || idx}-${row?.published_at || idx}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                  <div className="flex items-center justify-between"><strong>{String(row?.symbol || '').toUpperCase()}</strong><span className="muted">{row?.sentiment || 'neutral'}</span></div>
+                  <div key={`${row?.symbol || idx}-${row?.published_at || idx}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
+                  <div className="flex items-center justify-between"><TickerLink symbol={row?.symbol} /><span className="muted">{row?.sentiment || 'neutral'}</span></div>
                   <div>{row?.headline || '--'}</div>
                 </div>
               ))}
@@ -156,7 +222,7 @@ export default function OpenMarketRadar() {
               <tbody>
                 {rows.slice(0, 12).map((row) => (
                   <tr key={row?.symbol}>
-                    <td>{String(row?.symbol || '').toUpperCase()}</td>
+                    <td><TickerLink symbol={row?.symbol} /></td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.relative_volume || 0).toFixed(2)}</td>
                     <td style={{ textAlign: 'right' }}>{Number(row?.price || 0).toFixed(2)}</td>
                   </tr>
