@@ -9,6 +9,7 @@ import TickerLink from '../components/shared/TickerLink';
 import StatCard from '../components/ui/StatCard';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import OpportunityStream from '../components/opportunities/OpportunityStream';
+import MarketCard from '../components/MarketCard';
 import { Activity, BarChart3, ShieldCheck, Zap } from 'lucide-react';
 import Table from '../components/ui/Table';
 
@@ -149,27 +150,13 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Activity}
-          value={fmtPercent(marketContext.spy?.change_percent ?? marketContext.spy?.gap_percent)}
-          deltaDirection={asNumber(marketContext.spy?.change_percent ?? marketContext.spy?.gap_percent) >= 0 ? 'up' : 'down'}
-          delta="SPY"
-          description="SPY day momentum"
-        />
-        <StatCard
-          icon={BarChart3}
-          value={fmtPercent(marketContext.qqq?.change_percent ?? marketContext.qqq?.gap_percent)}
-          deltaDirection={asNumber(marketContext.qqq?.change_percent ?? marketContext.qqq?.gap_percent) >= 0 ? 'up' : 'down'}
-          delta="QQQ"
-          description="QQQ day momentum"
-        />
-        <StatCard
-          icon={ShieldCheck}
-          value={fmtNumber(marketContext.vix?.price ?? marketContext.vix?.last ?? marketContext.vix?.close, 2)}
-          deltaDirection="neutral"
-          delta="VIX"
-          description="Volatility level"
-        />
+        <MarketCard symbol="SPY" />
+        <MarketCard symbol="QQQ" />
+        <MarketCard symbol="IWM" />
+        <MarketCard symbol="VIX" />
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-1 xl:grid-cols-1">
         <StatCard
           icon={Zap}
           value={marketContext.regime}

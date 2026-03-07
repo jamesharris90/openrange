@@ -4,7 +4,7 @@ import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
 import { useSymbol } from '../context/SymbolContext';
-import MarketContextCards from '../components/premarket/MarketContextCards';
+import MarketCard from '../components/MarketCard';
 import MarketRegimeCard from '../components/premarket/MarketRegimeCard';
 import GapLeaderCards from '../components/premarket/GapLeaderCards';
 import CatalystCards from '../components/premarket/CatalystCards';
@@ -51,7 +51,6 @@ export default function PreMarketCommandCenter() {
     };
   }, []);
 
-  const indexCards = useMemo(() => extractRows(summary, 'index_cards'), [summary]);
   const gapLeaders = useMemo(() => extractRows(summary, 'gap_leaders'), [summary]);
   const topSetups = useMemo(() => extractRows(summary, 'top_setups'), [summary]);
   const catalysts = useMemo(() => extractRows(summary, 'catalysts'), [summary]);
@@ -89,11 +88,12 @@ export default function PreMarketCommandCenter() {
           <div className="space-y-3">
             <Card>
               <h3 className="m-0 mb-3">Market Context</h3>
-              <MarketContextCards
-                cards={indexCards}
-                selectedSymbol={selectedSymbol}
-                onSelectSymbol={(symbol) => setSelectedSymbol(String(symbol || '').toUpperCase())}
-              />
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <button type="button" className="text-left" onClick={() => setSelectedSymbol('SPY')}><MarketCard symbol="SPY" /></button>
+                <button type="button" className="text-left" onClick={() => setSelectedSymbol('QQQ')}><MarketCard symbol="QQQ" /></button>
+                <button type="button" className="text-left" onClick={() => setSelectedSymbol('IWM')}><MarketCard symbol="IWM" /></button>
+                <button type="button" className="text-left" onClick={() => setSelectedSymbol('VIX')}><MarketCard symbol="VIX" /></button>
+              </div>
             </Card>
 
             <MarketRegimeCard marketContext={summary?.market_context} />

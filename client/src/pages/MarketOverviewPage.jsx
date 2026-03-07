@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import TradingViewChart from '../components/shared/TradingViewChart';
 import { authFetch } from '../utils/api';
 import { formatNumber, formatPercent } from '../utils/formatters';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
+import MarketCard from '../components/MarketCard';
 
 const INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX'];
 
@@ -94,12 +94,12 @@ export default function MarketOverviewPage() {
 
       <div className="panel grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <h3 className="mt-0">SPY Live Chart</h3>
-          <TradingViewChart symbol="SPY" height={420} range="1D" interval="5" hideSideToolbar />
+          <h3 className="mt-0">SPY Market Card</h3>
+          <MarketCard symbol="SPY" />
         </div>
         <div>
-          <h3 className="mt-0">QQQ Trend</h3>
-          <TradingViewChart symbol="QQQ" height={420} range="5D" interval="60" hideSideToolbar />
+          <h3 className="mt-0">QQQ Market Card</h3>
+          <MarketCard symbol="QQQ" />
         </div>
       </div>
     </PageContainer>

@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
+import TickerTape from './components/TickerTape';
 import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
@@ -47,6 +48,7 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <BrowserRouter>
+            <TickerTape />
             <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
               <Routes>
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />

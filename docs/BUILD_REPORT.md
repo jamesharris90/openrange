@@ -98,3 +98,33 @@ Syntax validation:
 
 Remaining `radarRoutes` references discovered (logged only, not auto-modified):
 - `docs/BUILD_REPORT.md`
+
+## MARKET DATA STABILIZATION (2026-03-07)
+- Market context API created: `server/routes/marketContextRoutes.js`.
+- API registered in backend: `app.use('/api/market/context', marketContextRoutes)` in `server/index.js`.
+- MarketCard component created: `client/src/components/MarketCard.jsx`.
+- Unified ticker tape component created: `client/src/components/TickerTape.jsx`.
+- Global ticker tape injected at app root: `client/src/App.jsx`.
+- Legacy ticker placement removed from layout to avoid duplication: `client/src/components/layout/AppLayout.jsx`.
+
+TradingView replacements logged:
+- `client/src/pages/OpenMarketPage.jsx`: replaced TradingView symbol card panel with `MarketCard` preview.
+- `client/src/pages/MarketOverviewPage.jsx`: replaced SPY/QQQ TradingView widgets with `MarketCard` components.
+- `client/src/pages/PreMarketCommandCenter.jsx`: standardized market context cards to `MarketCard` components for SPY/QQQ/IWM/VIX.
+
+Dashboard standardization:
+- `client/src/pages/DashboardPage.jsx`: replaced top market stat cards with `MarketCard` components to avoid static/zero placeholders.
+
+Validation results:
+- Backend syntax: `node --check server/index.js` -> success.
+- New route syntax: `node --check server/routes/marketContextRoutes.js` -> success.
+- Frontend build: `cd client && npm run build` -> success.
+- Runtime API check: `GET /api/market/context` -> HTTP 200.
+- Runtime API symbol presence confirmed: `SPY`, `QQQ`, `IWM`, `VIX`.
+
+Requested status summary:
+- Market context API created
+- TradingView widgets removed (target market card surfaces)
+- Ticker tape implemented
+- Market cards standardised
+- SPY/QQQ card bug resolved (cards now sourced from `/api/market/context` instead of TradingView)

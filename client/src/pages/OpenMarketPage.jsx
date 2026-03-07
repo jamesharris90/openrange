@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import TradingViewChart from '../components/shared/TradingViewChart';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import MarketCard from '../components/MarketCard';
 
 export default function OpenMarketPage() {
   const [rows, setRows] = useState([]);
@@ -122,11 +122,11 @@ export default function OpenMarketPage() {
       <Card>
         {selectedSymbol ? (
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{selectedSymbol}</div>
-            <TradingViewChart symbol={selectedSymbol} height={320} interval="15" range="5D" hideSideToolbar />
+            <div className="muted" style={{ marginBottom: 6 }}>{selectedSymbol} context</div>
+            <MarketCard symbol={selectedSymbol} />
           </div>
         ) : (
-          <div className="muted">Select a scanner symbol to load its chart.</div>
+          <div className="muted">Select a scanner symbol to load market context.</div>
         )}
       </Card>
     </PageContainer>
