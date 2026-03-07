@@ -1,6 +1,6 @@
 # Deployment Guide - OpenRange Trading
 
-This guide covers deploying your OpenRange Trader dashboard to your domain `openrangetrading.co.uk`.
+This guide covers deploying your OpenRange Trading dashboard to your domain `openrangetrading.co.uk`.
 
 ## Prerequisites
 

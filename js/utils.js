@@ -1,5 +1,5 @@
 /**
- * utils.js - Common utility functions for OpenRange Trader
+ * utils.js - Common utility functions for OpenRange Trading
  */
 
 // Symbol autocomplete and validation

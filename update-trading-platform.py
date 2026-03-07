@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenRange Trader - Automated Update Script
+OpenRange Trading - Automated Update Script
 This script allows Claude to directly edit your trading platform files via API
 """
 
@@ -27,7 +27,7 @@ def chat_with_claude(user_message, conversation_history=None):
     })
     
     # System prompt that gives Claude context about the trading platform
-    system_prompt = f"""You are helping manage the OpenRange Trader platform.
+    system_prompt = f"""You are helping manage the OpenRange Trading platform.
 You have direct access to edit files in: {SERVER_PATH}
 
 Current files in the platform:
@@ -51,7 +51,7 @@ When editing files:
 3. Save the updated file
 4. Confirm what was changed
 
-Always maintain the OpenRange Trader design system and branding."""
+Always maintain the OpenRange Trading design system and branding."""
 
     # Call Claude API
     response = client.messages.create(
@@ -73,7 +73,7 @@ Always maintain the OpenRange Trader design system and branding."""
 def interactive_mode():
     """Run in interactive mode for back-and-forth conversation"""
     print("=" * 60)
-    print("OpenRange Trader - Claude API Assistant")
+    print("OpenRange Trading - Claude API Assistant")
     print("=" * 60)
     print("\nType your requests to update the trading platform.")
     print("Examples:")

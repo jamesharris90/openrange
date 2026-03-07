@@ -1,8 +1,8 @@
-# Security Guide for OpenRange Trader
+# Security Guide for OpenRange Trading
 
 ## Overview
 
-This document provides security best practices and procedures for managing credentials, secrets, and sensitive data in the OpenRange Trader application.
+This document provides security best practices and procedures for managing credentials, secrets, and sensitive data in the OpenRange Trading application.
 
 ## Critical Security Considerations
 

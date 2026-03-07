@@ -1,4 +1,4 @@
-# OpenRange Trader - Updates Summary
+# OpenRange Trading - Updates Summary
 ## February 1st, 2026
 
 ### Changes Made:

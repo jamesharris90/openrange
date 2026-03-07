@@ -364,7 +364,7 @@ export default function LandingPage() {
                 Market intelligence for active traders
               </div>
 
-              <h1 className="text-5xl font-bold leading-[1.02] tracking-tight text-white md:text-6xl">OpenRange Trader</h1>
+              <h1 className="text-5xl font-bold leading-[1.02] tracking-tight text-white md:text-6xl">OpenRange Trading</h1>
               <p className="mt-4 text-xl font-medium text-slate-200 md:text-3xl">Know what to trade before the market opens.</p>
               <p className="mt-5 max-w-2xl text-sm leading-relaxed text-slate-400 md:text-base">
                 Scan the market, identify stocks in play, and trade high-probability setups using our proprietary OpenRange Radar signal engine and real-time trading dashboard. Anyone can show you what is moving. OpenRange reveals the catalysts, signals, and market context behind the move - so you can trade with real conviction.

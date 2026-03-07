@@ -1,6 +1,6 @@
 # Canonical Field Policy
 
-This document defines the canonical data contract for OpenRange Trader.
+This document defines the canonical data contract for OpenRange Trading.
 
 ## Core Rules
 

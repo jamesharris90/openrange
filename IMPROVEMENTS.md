@@ -1,4 +1,4 @@
-# OpenRange Trader - Improvements Summary
+# OpenRange Trading - Improvements Summary
 
 This document summarizes all the improvements made to enhance security, code quality, and maintainability.
 

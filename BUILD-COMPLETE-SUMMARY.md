@@ -1,4 +1,4 @@
-# 🎉 OpenRange Trader V2 - BUILD COMPLETE!
+# 🎉 OpenRange Trading V2 - BUILD COMPLETE!
 
 ## ✅ ALL FILES READY FOR DOWNLOAD:
 

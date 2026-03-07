@@ -1,4 +1,4 @@
-# OpenRange Trader V2 - Quick Start Guide
+# OpenRange Trading V2 - Quick Start Guide
 
 ## 📦 What You're Getting:
 

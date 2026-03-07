@@ -1,4 +1,4 @@
-# 🎉 OpenRange Trader V2 - FINAL DELIVERY
+# 🎉 OpenRange Trading V2 - FINAL DELIVERY
 
 ## 📦 WHAT'S IN THIS PACKAGE:
 
