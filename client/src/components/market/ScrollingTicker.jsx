@@ -16,8 +16,12 @@ export default function ScrollingTicker() {
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/market/tickers');
-        const tickers = Array.isArray(payload?.tickers) ? payload.tickers : [];
+        const payload = await apiJSON('/api/market/context');
+        const context = payload && typeof payload === 'object' ? payload : {};
+        const tickers = Object.values(context).map((row) => ({
+          symbol: row?.symbol,
+          change_percent: row?.change_percent,
+        }));
         if (!cancelled) setRows(tickers);
       } catch {
         if (!cancelled) setRows([]);

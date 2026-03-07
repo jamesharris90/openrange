@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { hierarchy, treemap } from 'd3-hierarchy';
 import TickerLink from '../shared/TickerLink';
 
+const LOGO_KEY = import.meta.env.VITE_LOGO_DEV_KEY;
+
 function toNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -81,10 +83,22 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
             return (
               <g key={symbol}>
                 <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.15)" />
-                {w > 48 && h > 24 && (
-                  <text x={node.x0 + 6} y={node.y0 + 16} fontSize="11" fill="currentColor">
-                    {symbol}
-                  </text>
+                {w > 90 && h > 84 && (
+                  <foreignObject x={node.x0 + 4} y={node.y0 + 4} width={w - 8} height={h - 8}>
+                    <div className="ticker-tile">
+                      <img
+                        src={`https://img.logo.dev/${symbol}?token=${LOGO_KEY}`}
+                        className="w-6 h-6 mb-1"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        alt=""
+                      />
+                      <div className="ticker-symbol">{symbol}</div>
+                      <div className="ticker-change">{toNumber(node.data.price_change).toFixed(2)}%</div>
+                      <div className="ticker-rvol">RVOL {toNumber(node.data.relative_volume).toFixed(2)}</div>
+                    </div>
+                  </foreignObject>
                 )}
               </g>
             );
@@ -104,11 +118,16 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
         return (
           <g key={sectorName} onClick={() => setExpandedSector(sectorName)} className="cursor-pointer">
             <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.16)" />
-            {w > 100 && h > 38 && (
-              <>
-                <text x={node.x0 + 8} y={node.y0 + 18} fontSize="12" fontWeight="600" fill="currentColor">{sectorName}</text>
-                <text x={node.x0 + 8} y={node.y0 + 34} fontSize="11" fill="currentColor">RVOL {toNumber(node.data.relative_volume).toFixed(2)}</text>
-              </>
+            {w > 130 && h > 90 && (
+              <foreignObject x={node.x0 + 4} y={node.y0 + 4} width={w - 8} height={h - 8}>
+                <div className="sector-tile-content">
+                  <div className="sector-overlay">{sectorName}</div>
+                  <div className="sector-info">
+                    <span>{toNumber(node.data.price_change).toFixed(2)}%</span>
+                    <span>RVOL {toNumber(node.data.relative_volume).toFixed(2)}</span>
+                  </div>
+                </div>
+              </foreignObject>
             )}
           </g>
         );
