@@ -1,3 +1,8 @@
+const { runSignalPerformanceEngine } = require('../engines/signalPerformanceEngine');
+
+let performanceSchedulerStarted = false;
+let performanceRunInFlight = false;
+
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -11,7 +16,6 @@ async function startEnginesSequentially() {
     } = require('../engines/scheduler');
     const { runStrategySignalEngine } = require('../engines/strategySignalEngine');
     const runRadarEngine = require('../engines/radarEngine');
-    const { runSignalPerformanceEngine } = require('../engines/signalPerformanceEngine');
 
     console.log('[Engine] Starting Metrics Engine');
     addEngineJob(async () => {
@@ -54,6 +58,39 @@ async function startEnginesSequentially() {
       await runSignalPerformanceEngine();
       console.log('[ENGINE] Signal performance engine started');
     });
+
+    // Fire-and-forget startup pass so performance evaluation begins immediately
+    // without blocking Express bootstrap.
+    (async () => {
+      try {
+        console.log('[PERFORMANCE] initial evaluation starting');
+        await runSignalPerformanceEngine();
+        console.log('[PERFORMANCE] initial evaluation complete');
+      } catch (err) {
+        console.error('[PERFORMANCE ENGINE STARTUP ERROR]', err);
+      }
+    })();
+
+    if (!performanceSchedulerStarted) {
+      performanceSchedulerStarted = true;
+
+      setInterval(async () => {
+        if (performanceRunInFlight) {
+          return;
+        }
+
+        performanceRunInFlight = true;
+        try {
+          console.log('[PERFORMANCE] scheduled evaluation starting');
+          await runSignalPerformanceEngine();
+          console.log('[PERFORMANCE] scheduled evaluation finished');
+        } catch (err) {
+          console.error('[PERFORMANCE ENGINE ERROR]', err);
+        } finally {
+          performanceRunInFlight = false;
+        }
+      }, 15 * 60 * 1000);
+    }
 
     console.log('[Engine] All engines started successfully');
   } catch (err) {
