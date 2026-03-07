@@ -61,7 +61,6 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
-const radarRoutes = require('./routes/radarRoutes');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
@@ -645,7 +644,6 @@ if (process.env.NODE_ENV !== 'production') {
   app.use('/api/v4', exportV1Routes);
   app.use('/api/v5', chartV2Routes);
   app.use(newsV3Routes);
-  app.use('/api/radar', radarRoutes);
 
 
 // Rate limiting for registration endpoint (more strict)
@@ -1314,6 +1312,7 @@ app.get('/api/premarket/summary', async (req, res) => {
 });
 
 app.get('/api/radar/summary', async (req, res) => {
+  console.log('[RADAR] summary endpoint active');
   const cacheKey = 'api.radar.summary';
   const cacheTtlMs = 20_000;
   const cached = getCachedValue(cacheKey);
