@@ -3619,7 +3619,7 @@ app.get('/api/intelligence/feed', async (req, res) => {
   }
 });
 
-app.get('/api/intelligence/news', async (req, res) => {
+const intelligenceNewsHandler = async (req, res) => {
   const cacheKey = `api.intelligence.news:${JSON.stringify(req.query || {})}`;
   const cacheTtlMs = 10_000;
   const cached = getCachedValue(cacheKey);
@@ -3642,7 +3642,10 @@ app.get('/api/intelligence/news', async (req, res) => {
     const sentiment = String(req.query.sentiment || '').trim().toLowerCase();
     const hours = Number(req.query.hours);
 
-    if (symbol) addCondition('n.symbol = ?', symbol);
+    if (symbol) {
+      params.push(symbol);
+      where.push(`(n.symbol = $${params.length} OR n.symbol IS NULL)`);
+    }
     if (sentiment) addCondition("COALESCE(n.sentiment, '') ILIKE ?", `%${sentiment}%`);
     if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
     if (Number.isFinite(hours) && hours > 0) addCondition('n.published_at >= now() - make_interval(hours => ?)', Math.min(hours, 168));
@@ -3697,7 +3700,10 @@ app.get('/api/intelligence/news', async (req, res) => {
       detail: error.message || 'Failed to load intelligence news',
     });
   }
-});
+};
+
+app.get('/api/intelligence/news', intelligenceNewsHandler);
+app.get('/api/intelligence/inbox', intelligenceNewsHandler);
 
 app.get('/api/system/db-status', async (req, res) => {
   const timestamp = new Date().toISOString();

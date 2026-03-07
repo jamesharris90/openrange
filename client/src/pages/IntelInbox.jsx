@@ -5,10 +5,9 @@ import SkeletonCard from '../components/ui/SkeletonCard';
 import { apiJSON } from '../config/api';
 import TickerLink from '../components/shared/TickerLink';
 import MiniSymbolChart from '../components/charts/MiniSymbolChart';
-import { useSymbol } from '../context/SymbolContext';
 
 export default function IntelInbox() {
-  const { selectedSymbol } = useSymbol();
+  const [selectedSymbol, setSelectedSymbol] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
 
@@ -18,7 +17,11 @@ export default function IntelInbox() {
     async function load() {
       setLoading(true);
       try {
-        const payload = await apiJSON(`/api/intelligence/news?symbol=${encodeURIComponent(selectedSymbol)}&hours=24`);
+        let url = '/api/intelligence/news?hours=24';
+        if (selectedSymbol && selectedSymbol !== 'ALL') {
+          url += `&symbol=${encodeURIComponent(selectedSymbol)}`;
+        }
+        const payload = await apiJSON(url);
         if (!cancelled) setItems(Array.isArray(payload?.items) ? payload.items : []);
       } catch {
         if (!cancelled) setItems([]);
@@ -40,6 +43,24 @@ export default function IntelInbox() {
           title="Intel Inbox"
           subtitle={`Filtered intelligence news feed with sentiment and sector context for ${selectedSymbol}.`}
         />
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="intel-symbol-filter" className="muted">Symbol filter:</label>
+          <select
+            id="intel-symbol-filter"
+            value={selectedSymbol}
+            onChange={(e) => setSelectedSymbol(String(e.target.value || 'ALL').toUpperCase())}
+            className="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1"
+          >
+            <option value="ALL">ALL</option>
+            <option value="SPY">SPY</option>
+            <option value="QQQ">QQQ</option>
+            <option value="IWM">IWM</option>
+            <option value="DIA">DIA</option>
+          </select>
+        </div>
       </Card>
 
       <Card>
