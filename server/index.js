@@ -1312,6 +1312,7 @@ app.get('/api/premarket/summary', async (req, res) => {
 });
 
 app.get('/api/radar/summary', async (req, res) => {
+  console.log('[RADAR API] request received');
   console.log('[RADAR] summary endpoint active');
   const cacheKey = 'api.radar.summary';
   const cacheTtlMs = 20_000;
