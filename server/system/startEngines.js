@@ -1,4 +1,4 @@
-const { runSignalPerformanceEngine } = require('../engines/signalPerformanceEngine');
+const { evaluateSignals } = require('../engines/signalPerformanceEngine');
 const { runSignalNarrativeEngine } = require('../engines/signalNarrativeEngine');
 const { runMcpNarrativeEngine } = require('../engines/mcpNarrativeEngine');
 const { runIntelNarrativeEngine } = require('../engines/intelNarrativeEngine');
@@ -62,7 +62,7 @@ async function startEnginesSequentially() {
 
     console.log('[Engine] Starting Signal Performance Engine');
     addEngineJob(async () => {
-      await runSignalPerformanceEngine();
+      await evaluateSignals();
       console.log('[ENGINE] Signal performance engine started');
     });
 
@@ -71,7 +71,7 @@ async function startEnginesSequentially() {
     (async () => {
       try {
         console.log('[PERFORMANCE] initial evaluation starting');
-        await runSignalPerformanceEngine();
+        await evaluateSignals();
         console.log('[PERFORMANCE] initial evaluation complete');
       } catch (err) {
         console.error('[PERFORMANCE ENGINE STARTUP ERROR]', err);
@@ -89,7 +89,7 @@ async function startEnginesSequentially() {
         performanceRunInFlight = true;
         try {
           console.log('[PERFORMANCE] scheduled evaluation starting');
-          await runSignalPerformanceEngine();
+          await evaluateSignals();
           console.log('[PERFORMANCE] scheduled evaluation finished');
         } catch (err) {
           console.error('[PERFORMANCE ENGINE ERROR]', err);
