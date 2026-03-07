@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <h1>OpenRange Trading</h1>
-          <p>INTELLIGENT MARKET DISCOVERY PLATFORM</p>
+          <p>Sign in to access your trading dashboard.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
