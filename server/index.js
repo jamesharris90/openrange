@@ -4293,6 +4293,8 @@ app.use('/api', (req, res) => {
 
 // Production: serve Vite/React frontend from client/dist
 if (process.env.NODE_ENV === 'production') {
+  // Serve hashed Vite bundles explicitly before wildcard fallback.
+  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
   app.use(express.static(CLIENT_DIST));
 
   // Also serve legacy static assets (pages/, js/, and root CSS) so deep links and
