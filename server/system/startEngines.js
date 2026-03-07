@@ -2,38 +2,51 @@ async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   try {
+    const addEngineJob = require('./engineQueue');
     const {
-      runUniverseBuilderNow,
       runMetricsNow,
+      runUniverseBuilderNow,
       runStrategyEngineNow,
-      runOpportunityNow,
-      runTrendNow,
       runIntelNewsNow,
     } = require('../engines/scheduler');
-
-    console.log('[Engine] Starting Universe Builder');
-    await runUniverseBuilderNow();
-    await delay(2000);
+    const { runStrategySignalEngine } = require('../engines/strategySignalEngine');
+    const runRadarEngine = require('../engines/radarEngine');
 
     console.log('[Engine] Starting Metrics Engine');
-    await runMetricsNow();
-    await delay(2000);
+    addEngineJob(async () => {
+      await runMetricsNow();
+      console.log('[ENGINE] Metrics started');
+      await delay(2000);
+    });
+
+    console.log('[Engine] Starting Universe Builder');
+    addEngineJob(async () => {
+      await runUniverseBuilderNow();
+      console.log('[ENGINE] Universe builder started');
+      await delay(2000);
+    });
 
     console.log('[Engine] Starting Strategy Engine');
-    await runStrategyEngineNow();
-    await delay(2000);
+    addEngineJob(async () => {
+      await runStrategyEngineNow();
+      console.log('[ENGINE] Strategy engine started');
+      await delay(2000);
+    });
 
-    console.log('[Engine] Starting Opportunity Engine');
-    await runOpportunityNow();
-    await delay(2000);
-
-    console.log('[Engine] Starting Trend Engine');
-    await runTrendNow();
-    await delay(2000);
+    console.log('[Engine] Starting Strategy Signal Engine');
+    addEngineJob(async () => {
+      await runStrategySignalEngine();
+      console.log('[ENGINE] Strategy signal engine started');
+      await runRadarEngine();
+      console.log('[ENGINE] Radar engine started');
+      await delay(2000);
+    });
 
     console.log('[Engine] Starting Intelligence Engine');
-    await runIntelNewsNow();
-    await delay(2000);
+    addEngineJob(async () => {
+      await runIntelNewsNow();
+      console.log('[ENGINE] Intel engine started');
+    });
 
     console.log('[Engine] All engines started successfully');
   } catch (err) {
