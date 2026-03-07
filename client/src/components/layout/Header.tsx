@@ -124,7 +124,7 @@ export default function Header() {
           </button>
 
           <NavLink to="/dashboard" className="flex min-w-0 items-center gap-2 text-inherit no-underline">
-            <img src="/OpenRange_Logo_White.png" alt="OpenRange" className="h-6 w-6 rounded-sm object-contain sm:h-8 sm:w-8" />
+            <img src="/OpenRange_Logo_White.png" alt="OpenRange Trading" className="h-6 w-6 rounded-sm object-contain sm:h-8 sm:w-8" />
             <div className="whitespace-nowrap text-sm sm:text-base">
               <span className="font-light">OpenRange</span>{' '}
               <span className="font-bold">Trading</span>

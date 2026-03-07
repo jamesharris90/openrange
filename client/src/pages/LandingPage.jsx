@@ -99,9 +99,15 @@ export default function LandingPage() {
               <Radar size={14} />
               Market intelligence for active traders
             </div>
-            <h1 className="text-3xl font-semibold leading-tight md:text-5xl">OpenRange Trader</h1>
+            <h1 className="text-3xl font-semibold leading-tight md:text-5xl">Welcome to OpenRange Trading - the home of intelligent market discovery.</h1>
             <p className="mx-auto mt-4 max-w-2xl text-base text-[var(--text-muted)] md:text-lg">
-              Know what to trade before the market opens.
+              Scan the market, identify stocks in play, and trade high-probability setups using our proprietary OpenRange Radar signal engine and real-time trading dashboard.
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-base text-[var(--text-muted)] md:text-lg">
+              Anyone can show you what is moving. OpenRange reveals the catalysts, signals, and market context behind the move - so you can trade with real conviction.
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold text-[var(--text-primary)] md:text-base">
+              OpenRange Trading - Discover opportunity faster. Trade with intelligence.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
@@ -213,7 +219,7 @@ export default function LandingPage() {
         </section>
 
         <section className="mt-16 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] px-5 py-10 text-center md:px-10 md:py-12">
-          <h2 className="text-2xl font-semibold">Start scanning the market before the open.</h2>
+          <h2 className="text-2xl font-semibold">OpenRange Trading - Discover opportunity faster. Trade with intelligence.</h2>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/register"

@@ -38,7 +38,7 @@ export default function MobileDrawer() {
 
       <aside className="relative z-50 h-full w-64 border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] p-3 shadow-lg">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-semibold text-[var(--text-secondary)]">OpenRange</div>
+          <div className="text-sm font-semibold text-[var(--text-secondary)]">OpenRange Trading</div>
           <button
             type="button"
             className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-[var(--border-color)] text-[var(--text-secondary)]"
