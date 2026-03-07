@@ -4305,6 +4305,9 @@ if (process.env.NODE_ENV === 'production') {
   app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
 
   app.get('*', (req, res) => {
+    if (req.path.startsWith('/assets/')) {
+      return res.status(404).type('text/plain').send('Asset not found');
+    }
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
   });
 }
