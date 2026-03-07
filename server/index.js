@@ -3640,7 +3640,6 @@ const intelligenceNewsHandler = async (req, res) => {
     const symbol = String(req.query.symbol || '').trim().toUpperCase();
     const sector = String(req.query.sector || '').trim();
     const sentiment = String(req.query.sentiment || '').trim().toLowerCase();
-    const hours = Number(req.query.hours);
 
     if (symbol) {
       params.push(symbol);
@@ -3648,9 +3647,6 @@ const intelligenceNewsHandler = async (req, res) => {
     }
     if (sentiment) addCondition("COALESCE(n.sentiment, '') ILIKE ?", `%${sentiment}%`);
     if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
-    if (Number.isFinite(hours) && hours > 0) {
-      addCondition('COALESCE(n.updated_at, n.created_at) > now() - make_interval(hours => ?)', Math.min(hours, 168));
-    }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
