@@ -3,8 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
-
-const LOGO_KEY = import.meta.env.VITE_LOGO_DEV_KEY;
+import TickerLogo from '../components/TickerLogo';
 
 function toNumber(value) {
   const n = Number(value);
@@ -64,12 +63,7 @@ export default function TickerHeatmap() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
             {rows.map((ticker) => (
               <div key={ticker.symbol} className="ticker-tile rounded border border-[var(--border-color)] bg-[var(--bg-card)]">
-                <img
-                  src={`https://img.logo.dev/${ticker.symbol}?token=${LOGO_KEY}`}
-                  className="w-6 h-6 mb-1"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  alt=""
-                />
+                <TickerLogo symbol={ticker.symbol} />
 
                 <div className="ticker-symbol">{ticker.symbol}</div>
 

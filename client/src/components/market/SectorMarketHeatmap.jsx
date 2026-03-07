@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { hierarchy, treemap } from 'd3-hierarchy';
 import TickerLink from '../shared/TickerLink';
-
-const LOGO_KEY = import.meta.env.VITE_LOGO_DEV_KEY;
+import TickerLogo from '../TickerLogo';
 
 function toNumber(value) {
   const n = Number(value);
@@ -18,6 +17,16 @@ function colorForNode(relativeVolume, priceChange) {
     return `rgba(16, 185, 129, ${0.25 + intensity * 0.45})`;
   }
   return `rgba(239, 68, 68, ${0.25 + intensity * 0.45})`;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function formatSignedPercent(value) {
+  const num = toNumber(value);
+  const sign = num > 0 ? '+' : '';
+  return `${sign}${num.toFixed(2)}%`;
 }
 
 export default function SectorMarketHeatmap({ sectors = [], width = 1000, height = 520 }) {
@@ -86,14 +95,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
                 {w > 90 && h > 84 && (
                   <foreignObject x={node.x0 + 4} y={node.y0 + 4} width={w - 8} height={h - 8}>
                     <div className="ticker-tile">
-                      <img
-                        src={`https://img.logo.dev/${symbol}?token=${LOGO_KEY}`}
-                        className="w-6 h-6 mb-1"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        alt=""
-                      />
+                      <TickerLogo symbol={symbol} />
                       <div className="ticker-symbol">{symbol}</div>
                       <div className="ticker-change">{toNumber(node.data.price_change).toFixed(2)}%</div>
                       <div className="ticker-rvol">RVOL {toNumber(node.data.relative_volume).toFixed(2)}</div>
@@ -115,16 +117,59 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
         const h = Math.max(0, node.y1 - node.y0);
         if (w < 16 || h < 16) return null;
         const sectorName = String(node.data.name || 'Unknown');
+        const hideLabel = w < 80;
+        const fontSize = clamp(w * 0.16, 12, 36);
+        const detailSize = clamp(fontSize * 0.46, 11, 16);
+        const insetX = w * 0.025;
+        const insetY = h * 0.025;
+
         return (
           <g key={sectorName} onClick={() => setExpandedSector(sectorName)} className="cursor-pointer">
             <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.16)" />
-            {w > 130 && h > 90 && (
-              <foreignObject x={node.x0 + 4} y={node.y0 + 4} width={w - 8} height={h - 8}>
-                <div className="sector-tile-content">
-                  <div className="sector-overlay">{sectorName}</div>
-                  <div className="sector-info">
-                    <span>{toNumber(node.data.price_change).toFixed(2)}%</span>
-                    <span>RVOL {toNumber(node.data.relative_volume).toFixed(2)}</span>
+            {!hideLabel && (
+              <foreignObject
+                x={node.x0 + insetX}
+                y={node.y0 + insetY}
+                width={w * 0.95}
+                height={h * 0.95}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    lineHeight: 1.08,
+                    color: 'var(--text-primary)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '95%',
+                    }}
+                  >
+                    {sectorName}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      fontSize: `${detailSize}px`,
+                      fontWeight: 700,
+                      opacity: 0.95,
+                    }}
+                  >
+                    {formatSignedPercent(node.data.price_change)} | RVOL {toNumber(node.data.relative_volume).toFixed(2)}
                   </div>
                 </div>
               </foreignObject>
