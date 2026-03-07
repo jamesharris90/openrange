@@ -61,6 +61,7 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
+const radarRoutes = require('./routes/radarRoutes');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
@@ -644,6 +645,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.use('/api/v4', exportV1Routes);
   app.use('/api/v5', chartV2Routes);
   app.use(newsV3Routes);
+  app.use('/api/radar', radarRoutes);
 
 
 // Rate limiting for registration endpoint (more strict)
@@ -4378,10 +4380,10 @@ if (process.env.NODE_ENV === 'production') {
 
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     logger.info('OpenRange backend starting in bootstrap mode');
-    // console.log('Starting engines sequentially...');
-    // await startEnginesSequentially();
-    // startEngineScheduler();
-    console.log('Backend started with engines disabled');
+    console.log('Starting engines sequentially...');
+    await startEnginesSequentially();
+    startEngineScheduler();
+    console.log('Engines enabled and scheduler active');
   }
 
   app.listen(PORT, () => {
