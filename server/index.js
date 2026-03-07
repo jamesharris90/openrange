@@ -452,15 +452,6 @@ const SEC_MD_PATH = path.join(__dirname, 'data', 'sec-earnings-today-ai.md');
 const PREMARKET_REPORT_JSON_PATH = path.join(__dirname, '..', 'premarket-screener', 'sample-output', 'report.json');
 const PREMARKET_REPORT_MD_PATH = path.join(__dirname, '..', 'premarket-screener', 'sample-output', 'report.md');
 
-if (process.env.NODE_ENV === 'production') {
-  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
-  app.use(express.static(CLIENT_DIST));
-  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
-  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
-  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
-  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
-}
-
 let personalizationTablesReady = false;
 
 function getOptionalAuthUser(req) {
@@ -635,6 +626,12 @@ if (process.env.NODE_ENV !== 'production') {
   // Serve JS, CSS, and other assets from repo root
   app.use(express.static(path.join(__dirname, '..')));
 }
+
+// Temporary production routing debug for API traffic.
+app.use('/api', (req, _res, next) => {
+  console.log('[API REQUEST]', req.method, req.path);
+  next();
+});
     
   // New modular routes
   app.use(quotesRoutes);
@@ -4324,9 +4321,20 @@ app.use('/api', (req, res) => {
   });
 });
 
-// Production SPA fallback (must be last)
+// Serve built frontend assets only after API routes are mounted.
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
+  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
+  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
+  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
+  app.use(express.static(CLIENT_DIST));
+
+  // Production SPA fallback (must be last)
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
   });
 }
