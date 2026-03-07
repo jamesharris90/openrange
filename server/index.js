@@ -1,6 +1,9 @@
-app.use((req, res, next) => {
-  console.log('REQUEST:', req.method, req.path);
-  next();
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED PROMISE REJECTION:', err);
 });
 
 
@@ -4397,6 +4400,7 @@ if (process.env.NODE_ENV === 'production') {
   }
 
   app.listen(PORT, () => {
+    console.log(`OpenRange server running on port ${PORT}`);
     logger.info(`OpenRange server listening on port ${PORT}`);
     console.log('[Intelligence] Ingestion endpoint ready');
     console.log('Scheduler active');
