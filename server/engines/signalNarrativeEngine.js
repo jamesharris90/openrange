@@ -1,5 +1,52 @@
 const db = require('../db');
 
+async function insertCatalyst(db, signal, article) {
+  try {
+    const duplicate = await db.query(
+      `SELECT id
+       FROM signal_catalysts
+       WHERE signal_id = $1
+         AND headline = $2
+       LIMIT 1`,
+      [signal.id, article.headline]
+    );
+
+    if (duplicate.rows.length > 0) {
+      return;
+    }
+
+    await db.query(
+      `INSERT INTO signal_catalysts (
+          signal_id,
+          symbol,
+          strategy,
+          catalyst_type,
+          catalyst_source,
+          headline,
+          source,
+          strength,
+          published_at,
+          raw_payload
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [
+        signal.id,
+        signal.symbol,
+        signal.strategy,
+        article.catalyst_type || 'news',
+        'news',
+        article.headline,
+        article.source,
+        article.news_score || 0,
+        article.published_at,
+        article.raw_payload || {},
+      ]
+    );
+  } catch (err) {
+    console.warn('[CATALYST INSERT FAILED]', err.message);
+  }
+}
+
 async function runSignalNarrativeEngine() {
   try {
     const signalsResult = await db.query(
@@ -57,6 +104,12 @@ async function runSignalNarrativeEngine() {
           JSON.stringify({}),
         ]
       );
+
+      for (const article of articles) {
+        await insertCatalyst(db, signal, article);
+      }
+
+      console.log(`[CATALYST] attached catalysts for signal ${signal.symbol}`);
 
       attached += 1;
     }
