@@ -1,0 +1,51 @@
+const express = require('express');
+const router = express.Router();
+const { queryWithTimeout } = require('../db/pg');
+
+router.get('/summary', async (_req, res) => {
+  try {
+    let rows = [];
+    try {
+      const result = await queryWithTimeout(
+        `SELECT
+           symbol,
+           score,
+           strategy,
+           catalyst,
+           created_at,
+           status
+         FROM strategy_signals
+         WHERE created_at >= NOW() - INTERVAL '1 day'
+         ORDER BY score DESC NULLS LAST, created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 7000, label: 'api.radar.summary', maxRetries: 0 }
+      );
+      rows = result.rows;
+    } catch (_error) {
+      const fallback = await queryWithTimeout(
+        `SELECT symbol, created_at
+         FROM strategy_signals
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 7000, label: 'api.radar.summary.fallback', maxRetries: 0 }
+      );
+      rows = fallback.rows;
+    }
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load radar summary',
+      detail: error.message,
+    });
+  }
+});
+
+module.exports = router;

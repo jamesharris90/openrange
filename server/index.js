@@ -72,6 +72,8 @@ const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
+const radarRoutes = require('./routes/radarRoutes');
+const briefingRoutes = require('./routes/briefingRoutes');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
@@ -627,6 +629,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(express.static(path.join(__dirname, '..')));
 }
 
+const marketRoutes = marketDataRoutes;
+
 // Temporary production routing debug for API traffic.
 app.use('/api', (req, _res, next) => {
   console.log('[API REQUEST]', req.method, req.path);
@@ -641,9 +645,11 @@ app.use('/api', (req, _res, next) => {
   app.use(historicalRoutes);
   app.use(optionsRoutes);
   app.use(earningsRoutes);
-  app.use('/api/market', marketDataRoutes);
-  app.use('/api/market/context', marketContextRoutes);
   app.use('/api/performance', performanceRoutes);
+  app.use('/api/radar', radarRoutes);
+  app.use('/api/briefing', briefingRoutes);
+  app.use('/api/market', marketRoutes);
+  app.use('/api/market/context', marketContextRoutes);
   app.use('/api/options', optionsApiRoutes);
   app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
   app.use(adminRoutes);

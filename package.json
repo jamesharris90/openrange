@@ -6,7 +6,7 @@
   },
   "scripts": {
     "build": "cd server && npm ci && cd ../client && npm install && npm run build",
-    "start": "cd server && node index.js",
+    "start": "node server/index.js",
     "calibrate": "ts-node server/scripts/runCalibration.ts",
     "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",
     "check:canonical-schema": "cd server && npm run check:canonical-schema",
