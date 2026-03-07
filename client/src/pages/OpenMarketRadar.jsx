@@ -1,104 +1,115 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
-import { apiJSON } from '../config/api';
-import { useSymbol } from '../context/SymbolContext';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import MarketContextCards from '../components/premarket/MarketContextCards';
-import RadarTickerTape from '../components/radar/RadarTickerTape';
-import MarketNarrativeCard from '../components/radar/MarketNarrativeCard';
-import MomentumLeaders from '../components/radar/MomentumLeaders';
-import StrategySignalsBoard from '../components/radar/StrategySignalsBoard';
-import RadarFilters from '../components/radar/RadarFilters';
-import SectorDeepDive from '../components/radar/SectorDeepDive';
-import RadarStockDeepDive from '../components/radar/RadarStockDeepDive';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function applyFilters(rows, filters, scoreKey = 'score') {
-  const minCap = toNumber(filters.minMarketCapB, 0) * 1_000_000_000;
-  return (Array.isArray(rows) ? rows : []).filter((row) => {
-    const score = toNumber(row?.[scoreKey] ?? row?.strategy_score, 0);
-    const gap = Math.abs(toNumber(row?.gap_percent ?? row?.gap, 0));
-    const rvol = toNumber(row?.relative_volume ?? row?.rvol, 0);
-    const cap = toNumber(row?.market_cap, 0);
-    return score >= toNumber(filters.minScore, 0)
-      && gap >= toNumber(filters.minGap, 0)
-      && rvol >= toNumber(filters.minRvol, 0)
-      && cap >= minCap;
-  });
+function sortByScoreDesc(rows) {
+  return [...(Array.isArray(rows) ? rows : [])].sort(
+    (a, b) => toNumber(b?.score, 0) - toNumber(a?.score, 0),
+  );
 }
 
 export default function OpenMarketRadar() {
-  const { selectedSymbol, setSelectedSymbol } = useSymbol();
+  const [radar, setRadar] = useState({ A: [], B: [], C: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [summary, setSummary] = useState(null);
-  const [activeSector, setActiveSector] = useState('');
-  const [filters, setFilters] = useState({
-    minScore: '0',
-    minGap: '0',
-    minRvol: '0',
-    minMarketCapB: '0',
-  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError('');
-      try {
-        const payload = await apiJSON('/api/radar/summary');
-        if (!cancelled) setSummary(payload);
-      } catch (loadError) {
-        if (!cancelled) {
-          setSummary(null);
-          setError(loadError.message || 'Failed to load radar summary');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const loadRadar = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/radar');
+      if (!response.ok) {
+        throw new Error(`Radar request failed (${response.status})`);
       }
+      const data = await response.json();
+      setRadar({
+        A: Array.isArray(data?.A) ? data.A : [],
+        B: Array.isArray(data?.B) ? data.B : [],
+        C: Array.isArray(data?.C) ? data.C : [],
+      });
+    } catch (fetchError) {
+      console.error('[RADAR FETCH ERROR]', fetchError);
+      setRadar({ A: [], B: [], C: [] });
+      setError(fetchError?.message || 'Failed to fetch radar data');
+    } finally {
+      setLoading(false);
     }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  const indexCards = useMemo(() => Array.isArray(summary?.index_cards) ? summary.index_cards : [], [summary]);
-  const momentumLeaders = useMemo(() => applyFilters(summary?.momentum_leaders, filters, 'strategy_score'), [summary, filters]);
-  const strategySignals = useMemo(() => applyFilters(summary?.strategy_signals, filters, 'score'), [summary, filters]);
-  const volumeSurges = useMemo(() => applyFilters(summary?.volume_surges, filters, 'score'), [summary, filters]);
-  const catalystAlerts = useMemo(() => Array.isArray(summary?.catalyst_alerts) ? summary.catalyst_alerts.slice(0, 8) : [], [summary]);
-  const opportunities = useMemo(() => applyFilters(summary?.opportunity_stream, filters, 'score').slice(0, 10), [summary, filters]);
-  const sectors = useMemo(() => Array.isArray(summary?.sector_movers) ? summary.sector_movers : [], [summary]);
+  useEffect(() => {
+    loadRadar();
+    const timer = setInterval(loadRadar, 60_000);
+    return () => clearInterval(timer);
+  }, [loadRadar]);
 
-  const tapeRows = useMemo(() => {
-    const source = opportunities.length ? opportunities : momentumLeaders;
-    return source.slice(0, 20);
-  }, [opportunities, momentumLeaders]);
+  const classA = useMemo(() => sortByScoreDesc(radar.A), [radar.A]);
+  const classB = useMemo(() => sortByScoreDesc(radar.B), [radar.B]);
+  const classC = useMemo(() => sortByScoreDesc(radar.C), [radar.C]);
+
+  function renderRows(rows) {
+    if (!rows.length) {
+      return <div className="muted">No setups right now.</div>;
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase muted">
+              <th className="py-2">Symbol</th>
+              <th className="py-2">Strategy</th>
+              <th className="py-2">Score</th>
+              <th className="py-2">Probability</th>
+              <th className="py-2">Gap %</th>
+              <th className="py-2">RVol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${String(row?.symbol || 'N/A')}-${index}`} className="border-t border-[var(--border-default)]">
+                <td className="py-2 font-semibold">{String(row?.symbol || 'N/A').toUpperCase()}</td>
+                <td className="py-2">{row?.strategy || '--'}</td>
+                <td className="py-2">{toNumber(row?.score, 0).toFixed(1)}</td>
+                <td className="py-2">{(toNumber(row?.probability, 0) * 100).toFixed(1)}%</td>
+                <td className="py-2">{toNumber(row?.gap_percent, 0).toFixed(2)}%</td>
+                <td className="py-2">{toNumber(row?.relative_volume, 0).toFixed(2)}x</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <PageContainer className="space-y-3">
       <Card>
         <PageHeader
           title="Open Market Radar"
-          subtitle="Real-time intelligence board: market context, catalysts, stocks that matter, and executable trade plans."
+          subtitle="Live Class A/B/C setup stream from the radar engine."
         />
       </Card>
 
       <Card>
-        <RadarFilters filters={filters} onChange={setFilters} />
+        <button
+          type="button"
+          onClick={loadRadar}
+          className="rounded border border-[var(--border-default)] px-3 py-2 text-sm"
+          style={{ background: 'var(--bg-elevated)' }}
+        >
+          Refresh Radar
+        </button>
       </Card>
 
       {loading ? (
         <Card>
-          <LoadingSpinner message="Loading radar intelligence..." />
+          <LoadingSpinner message="Loading radar setups..." />
         </Card>
       ) : null}
 
@@ -109,170 +120,22 @@ export default function OpenMarketRadar() {
       ) : null}
 
       {!loading && !error ? (
-        <>
-          <RadarTickerTape rows={tapeRows} onSelectSector={setActiveSector} />
-
+        <div className="space-y-3">
           <Card>
-            <h3 className="m-0 mb-3">Index Cards</h3>
-            <MarketContextCards
-              cards={indexCards}
-              targets={['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', 'US10Y']}
-              selectedSymbol={selectedSymbol}
-              onSelectSymbol={(symbol) => {
-                setActiveSector('');
-                setSelectedSymbol(String(symbol || '').toUpperCase());
-              }}
-            />
+            <h3 className="m-0 mb-3">Class A setups</h3>
+            {renderRows(classA)}
           </Card>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,68%)_minmax(0,32%)]">
-            <div className="space-y-3">
-              <MarketNarrativeCard narrative={summary?.market_narrative} />
+          <Card>
+            <h3 className="m-0 mb-3">Class B setups</h3>
+            {renderRows(classB)}
+          </Card>
 
-              <MomentumLeaders
-                rows={momentumLeaders}
-                onSelectSymbol={(symbol) => {
-                  setActiveSector('');
-                  setSelectedSymbol(symbol);
-                }}
-              />
-
-              <StrategySignalsBoard
-                rows={strategySignals}
-                onSelectSymbol={(symbol) => {
-                  setActiveSector('');
-                  setSelectedSymbol(symbol);
-                }}
-              />
-
-              <Card>
-                <h3 className="m-0 mb-3">Volume Surges</h3>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {volumeSurges.slice(0, 12).map((row) => {
-                    const symbol = String(row?.symbol || '').toUpperCase();
-                    const cp = toNumber(row?.change_percent, 0);
-                    return (
-                      <button
-                        key={symbol}
-                        type="button"
-                        onClick={() => {
-                          setActiveSector('');
-                          setSelectedSymbol(symbol);
-                        }}
-                        className="rounded border border-[var(--border-default)] p-2 text-left"
-                        style={{ background: 'var(--bg-elevated)' }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <strong>{symbol}</strong>
-                          <span style={{ color: cp >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>{cp.toFixed(2)}%</span>
-                        </div>
-                        <div className="text-xs muted">RVol {toNumber(row?.relative_volume, 0).toFixed(2)}x</div>
-                      </button>
-                    );
-                  })}
-                  {!volumeSurges.length ? <div className="muted">No volume surge rows.</div> : null}
-                </div>
-              </Card>
-
-              <Card>
-                <h3 className="m-0 mb-3">Catalyst Alerts</h3>
-                <div className="space-y-2">
-                  {catalystAlerts.map((row, index) => {
-                    const symbol = String(row?.symbol || '').toUpperCase();
-                    return (
-                      <button
-                        key={`${symbol}-${index}`}
-                        type="button"
-                        onClick={() => {
-                          setActiveSector('');
-                          if (symbol) setSelectedSymbol(symbol);
-                        }}
-                        className="w-full rounded border border-[var(--border-default)] p-2 text-left"
-                        style={{ background: 'var(--bg-elevated)' }}
-                      >
-                        <div className="flex items-center justify-between text-xs">
-                          <strong>{symbol || row?.catalyst_type || 'Catalyst'}</strong>
-                          <span className="muted">{row?.sentiment || 'neutral'}</span>
-                        </div>
-                        <div className="text-sm">{row?.headline || '--'}</div>
-                      </button>
-                    );
-                  })}
-                  {!catalystAlerts.length ? <div className="muted">No catalyst alerts.</div> : null}
-                </div>
-              </Card>
-            </div>
-
-            <div className="space-y-3">
-              {activeSector ? (
-                <SectorDeepDive
-                  sector={activeSector}
-                  sectors={sectors}
-                  catalysts={catalystAlerts}
-                  onSelectSymbol={(symbol) => {
-                    setActiveSector('');
-                    setSelectedSymbol(symbol);
-                  }}
-                />
-              ) : (
-                <RadarStockDeepDive symbol={selectedSymbol} />
-              )}
-
-              <Card>
-                <h3 className="m-0 mb-3">Opportunity Stream</h3>
-                <div className="space-y-2">
-                  {opportunities.map((row, index) => {
-                    const symbol = String(row?.symbol || '').toUpperCase();
-                    return (
-                      <button
-                        key={`${symbol}-${index}`}
-                        type="button"
-                        onClick={() => {
-                          setActiveSector('');
-                          setSelectedSymbol(symbol);
-                        }}
-                        className="w-full rounded border border-[var(--border-default)] p-2 text-left"
-                        style={{ background: 'var(--bg-elevated)' }}
-                      >
-                        <div className="flex items-center justify-between text-sm">
-                          <strong>{symbol}</strong>
-                          <span>Score {toNumber(row?.score, 0).toFixed(1)}</span>
-                        </div>
-                        <div className="text-xs muted">{row?.strategy || '--'} · Gap {toNumber(row?.gap, 0).toFixed(2)}%</div>
-                      </button>
-                    );
-                  })}
-                  {!opportunities.length ? <div className="muted">No opportunities after current filters.</div> : null}
-                </div>
-              </Card>
-
-              <Card>
-                <h3 className="m-0 mb-3">Sector Movers</h3>
-                <div className="space-y-2">
-                  {sectors.slice(0, 8).map((row) => {
-                    const sector = String(row?.sector || 'Unknown');
-                    const move = toNumber(row?.price_change || row?.avg_change_percent, 0);
-                    return (
-                      <button
-                        key={sector}
-                        type="button"
-                        onClick={() => setActiveSector(sector)}
-                        className="w-full rounded border border-[var(--border-default)] p-2 text-left"
-                        style={{ background: 'var(--bg-elevated)' }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <strong>{sector}</strong>
-                          <span style={{ color: move > 0 ? 'var(--accent-green)' : move < 0 ? 'var(--accent-red)' : 'var(--accent-amber)' }}>{move.toFixed(2)}%</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {!sectors.length ? <div className="muted">No sector data.</div> : null}
-                </div>
-              </Card>
-            </div>
-          </div>
-        </>
+          <Card>
+            <h3 className="m-0 mb-3">Class C setups</h3>
+            {renderRows(classC)}
+          </Card>
+        </div>
       ) : null}
     </PageContainer>
   );
