@@ -1,7 +1,9 @@
 const { runSignalPerformanceEngine } = require('../engines/signalPerformanceEngine');
+const { runSignalNarrativeEngine } = require('../engines/signalNarrativeEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
+let narrativeSchedulerStarted = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -90,6 +92,11 @@ async function startEnginesSequentially() {
           performanceRunInFlight = false;
         }
       }, 15 * 60 * 1000);
+    }
+
+    if (!narrativeSchedulerStarted) {
+      narrativeSchedulerStarted = true;
+      setInterval(runSignalNarrativeEngine, 15 * 60 * 1000);
     }
 
     console.log('[Engine] All engines started successfully');
