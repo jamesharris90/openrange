@@ -3648,7 +3648,9 @@ const intelligenceNewsHandler = async (req, res) => {
     }
     if (sentiment) addCondition("COALESCE(n.sentiment, '') ILIKE ?", `%${sentiment}%`);
     if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
-    if (Number.isFinite(hours) && hours > 0) addCondition('n.published_at >= now() - make_interval(hours => ?)', Math.min(hours, 168));
+    if (Number.isFinite(hours) && hours > 0) {
+      addCondition('COALESCE(n.updated_at, n.created_at) > now() - make_interval(hours => ?)', Math.min(hours, 168));
+    }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -3661,10 +3663,21 @@ const intelligenceNewsHandler = async (req, res) => {
         n.url,
         n.sentiment,
         n.published_at
-       FROM intel_news n
+         FROM (
+           SELECT
+             i.symbol,
+             i.headline,
+             i.source,
+             i.url,
+             i.sentiment,
+             i.published_at,
+             i.updated_at,
+             i.published_at AS created_at
+           FROM intel_news i
+         ) n
        LEFT JOIN market_quotes q ON q.symbol = n.symbol
        ${whereClause}
-       ORDER BY n.published_at DESC NULLS LAST
+         ORDER BY COALESCE(n.updated_at, n.created_at) DESC NULLS LAST
        LIMIT 50`,
       params,
       { label: 'api.intelligence.news', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
