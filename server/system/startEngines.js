@@ -1,5 +1,7 @@
 const { runSignalPerformanceEngine } = require('../engines/signalPerformanceEngine');
 const { runSignalNarrativeEngine } = require('../engines/signalNarrativeEngine');
+const { runMcpNarrativeEngine } = require('../engines/mcpNarrativeEngine');
+const { validateSchema } = require('./schemaValidator');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -9,6 +11,8 @@ async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   try {
+    await validateSchema();
+
     const addEngineJob = require('./engineQueue');
     const {
       runMetricsNow,
@@ -94,9 +98,25 @@ async function startEnginesSequentially() {
       }, 15 * 60 * 1000);
     }
 
+    if (!global.intelligenceSchedulerStarted) {
+      global.intelligenceSchedulerStarted = true;
+
+      setInterval(runSignalNarrativeEngine, 15 * 60 * 1000);
+      setInterval(runMcpNarrativeEngine, 30 * 60 * 1000);
+    }
+
     if (!narrativeSchedulerStarted) {
       narrativeSchedulerStarted = true;
-      setInterval(runSignalNarrativeEngine, 15 * 60 * 1000);
+
+      (async () => {
+        try {
+          console.log('[INTEL] starting engines');
+          runSignalNarrativeEngine();
+          runMcpNarrativeEngine();
+        } catch (err) {
+          console.error('[ENGINE ERROR]', err.message);
+        }
+      })();
     }
 
     console.log('[Engine] All engines started successfully');

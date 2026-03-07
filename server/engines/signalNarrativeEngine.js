@@ -27,10 +27,10 @@ async function runSignalNarrativeEngine() {
       const newsResult = await db.query(
         `SELECT headline, news_score, catalyst_type, source, published_at
          FROM news_articles
-         WHERE symbol = $1
+         WHERE $1 = ANY(symbols)
            AND published_at BETWEEN ($2 - INTERVAL '3 hours') AND ($2 + INTERVAL '3 hours')
          ORDER BY news_score DESC
-         LIMIT 5`,
+         LIMIT 3`,
         [signal.symbol, signal.updated_at]
       );
 
@@ -43,8 +43,8 @@ async function runSignalNarrativeEngine() {
 
       await db.query(
         `INSERT INTO signal_narratives
-         (signal_id, symbol, strategy, headline, source, catalyst_type, news_score, published_at, linked_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+         (signal_id, symbol, strategy, headline, source, catalyst_type, news_score, published_at, mcp_context, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, NOW())`,
         [
           signal.id,
           signal.symbol,
@@ -54,6 +54,7 @@ async function runSignalNarrativeEngine() {
           topArticle.catalyst_type,
           topArticle.news_score,
           topArticle.published_at,
+          JSON.stringify({}),
         ]
       );
 
@@ -68,7 +69,7 @@ async function runSignalNarrativeEngine() {
       narrativesAttached: attached,
     };
   } catch (err) {
-    console.error('[NARRATIVE ENGINE ERROR]', err);
+    console.error('[ENGINE ERROR]', err.message);
     return {
       signalsProcessed: 0,
       narrativesAttached: 0,

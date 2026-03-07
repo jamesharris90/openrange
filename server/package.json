@@ -21,6 +21,7 @@
     "node": "22.x"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@supabase/supabase-js": "^2.98.0",
     "axios": "^1.4.0",
     "bcrypt": "^6.0.0",
