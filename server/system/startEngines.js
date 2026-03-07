@@ -11,6 +11,7 @@ async function startEnginesSequentially() {
     } = require('../engines/scheduler');
     const { runStrategySignalEngine } = require('../engines/strategySignalEngine');
     const runRadarEngine = require('../engines/radarEngine');
+    const { evaluateSignals } = require('../engines/signalPerformanceEngine');
 
     console.log('[Engine] Starting Metrics Engine');
     addEngineJob(async () => {
@@ -46,6 +47,12 @@ async function startEnginesSequentially() {
     addEngineJob(async () => {
       await runIntelNewsNow();
       console.log('[ENGINE] Intel engine started');
+    });
+
+    console.log('[Engine] Starting Signal Performance Engine');
+    addEngineJob(async () => {
+      await evaluateSignals();
+      console.log('[ENGINE] Signal performance engine started');
     });
 
     console.log('[Engine] All engines started successfully');

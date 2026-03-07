@@ -62,6 +62,7 @@ const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
 const marketContextRoutes = require('./routes/marketContextRoutes');
+const performanceRoutes = require('./routes/performanceRoutes');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
@@ -627,6 +628,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(earningsRoutes);
   app.use('/api/market', marketDataRoutes);
   app.use('/api/market/context', marketContextRoutes);
+  app.use('/api/performance', performanceRoutes);
   app.use('/api/options', optionsApiRoutes);
   app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
   app.use(adminRoutes);
