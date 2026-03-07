@@ -3892,6 +3892,24 @@ app.get('/api/intelligence/summary', async (req, res) => {
 // Intelligence ingestion — own key auth, must be before JWT middleware
 app.use(intelligenceRoutes);
 
+// Production static assets must be public and resolved before auth middleware.
+if (process.env.NODE_ENV === 'production') {
+  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), { fallthrough: false }));
+  app.use(express.static(CLIENT_DIST));
+  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
+  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
+  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
+}
+
+// Explicit asset bypass guard before auth.
+app.use((req, res, next) => {
+  if (req.path.startsWith('/assets')) {
+    return next();
+  }
+  next();
+});
+
 // General rate limiting for other endpoints (new wrapper)
 app.use(generalLimiter);
 
@@ -4291,19 +4309,8 @@ app.use('/api', (req, res) => {
   });
 });
 
-// Production: serve Vite/React frontend from client/dist
+// Production SPA fallback (must be last)
 if (process.env.NODE_ENV === 'production') {
-  // Serve hashed Vite bundles explicitly before wildcard fallback.
-  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), { fallthrough: false }));
-  app.use(express.static(CLIENT_DIST));
-
-  // Also serve legacy static assets (pages/, js/, and root CSS) so deep links and
-  // older HTML pages don't lose styling/scripts in production.
-  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
-  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
-  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
-  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
-
   app.get('*', (req, res) => {
     if (req.path.startsWith('/assets/')) {
       return res.status(404).type('text/plain').send('Asset not found');
