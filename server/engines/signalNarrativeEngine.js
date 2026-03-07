@@ -2,7 +2,7 @@ const db = require('../db');
 
 async function insertCatalyst(db, signal, article) {
   try {
-    const duplicate = await db.query(
+    const existing = await db.query(
       `SELECT id
        FROM signal_catalysts
        WHERE signal_id = $1
@@ -11,9 +11,7 @@ async function insertCatalyst(db, signal, article) {
       [signal.id, article.headline]
     );
 
-    if (duplicate.rows.length > 0) {
-      return;
-    }
+    if (existing.rows.length > 0) return false;
 
     await db.query(
       `INSERT INTO signal_catalysts (
@@ -25,25 +23,26 @@ async function insertCatalyst(db, signal, article) {
           headline,
           source,
           strength,
-          published_at,
-          raw_payload
+          published_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         signal.id,
         signal.symbol,
         signal.strategy,
         article.catalyst_type || 'news',
-        'news',
+        article.source,
         article.headline,
         article.source,
         article.news_score || 0,
         article.published_at,
-        article.raw_payload || {},
       ]
     );
+
+    return true;
   } catch (err) {
     console.warn('[CATALYST INSERT FAILED]', err.message);
+    return false;
   }
 }
 
@@ -57,6 +56,7 @@ async function runSignalNarrativeEngine() {
 
     const signals = Array.isArray(signalsResult?.rows) ? signalsResult.rows : [];
     let attached = 0;
+  let catalystTotal = 0;
 
     for (const signal of signals) {
       const duplicate = await db.query(
@@ -71,17 +71,17 @@ async function runSignalNarrativeEngine() {
         continue;
       }
 
-      const newsResult = await db.query(
+      const news = await db.query(
         `SELECT headline, news_score, catalyst_type, source, published_at
          FROM news_articles
          WHERE $1 = ANY(symbols)
-           AND published_at BETWEEN ($2 - INTERVAL '3 hours') AND ($2 + INTERVAL '3 hours')
+           AND published_at > NOW() - INTERVAL '24 hours'
          ORDER BY news_score DESC
-         LIMIT 3`,
-        [signal.symbol, signal.updated_at]
+         LIMIT 5`,
+        [signal.symbol]
       );
 
-      const articles = Array.isArray(newsResult?.rows) ? newsResult.rows : [];
+      const articles = Array.isArray(news?.rows) ? news.rows : [];
       if (articles.length === 0) {
         continue;
       }
@@ -106,16 +106,28 @@ async function runSignalNarrativeEngine() {
       );
 
       for (const article of articles) {
-        await insertCatalyst(db, signal, article);
+        const inserted = await insertCatalyst(db, signal, article);
+        if (inserted) {
+          catalystTotal += 1;
+        }
       }
+
+      const catalystCount = articles.length;
+      await db.query(
+        `UPDATE strategy_signals
+         SET catalyst_count = $1
+         WHERE id = $2`,
+        [catalystCount, signal.id]
+      );
 
       console.log(`[CATALYST] attached catalysts for signal ${signal.symbol}`);
 
       attached += 1;
     }
 
-    console.log(`[NARRATIVE] signals processed: ${signals.length}`);
-    console.log(`[NARRATIVE] narratives attached: ${attached}`);
+    console.log('[NARRATIVE] signals processed:', signals.length);
+    console.log('[NARRATIVE] narratives attached:', attached);
+    console.log('[CATALYST] total catalysts inserted:', catalystTotal);
 
     return {
       signalsProcessed: signals.length,

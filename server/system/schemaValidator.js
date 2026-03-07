@@ -60,6 +60,7 @@ async function validateSchema() {
     `);
 
     await db.query('ALTER TABLE signal_narratives ADD COLUMN IF NOT EXISTS mcp_context JSONB');
+    await db.query('ALTER TABLE strategy_signals ADD COLUMN IF NOT EXISTS catalyst_count INTEGER DEFAULT 0');
 
     await db.query(`
       CREATE INDEX IF NOT EXISTS idx_signal_narratives_symbol
