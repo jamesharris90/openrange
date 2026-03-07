@@ -61,8 +61,10 @@ export default function App() {
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
+                  <Route path="/scanner" element={<Navigate to="/screener" replace />} />
                   <Route path="/screeners" element={<Navigate to="/screener" replace />} />
-                  <Route path="/watchlists" element={<WatchlistPage />} />
+                  <Route path="/watchlist" element={<WatchlistPage />} />
+                  <Route path="/watchlists" element={<Navigate to="/watchlist" replace />} />
                   <Route path="/pre-market-command" element={<PreMarketCommandCenter />} />
                   <Route path="/open-market-radar" element={<OpenMarketRadar />} />
                   <Route path="/post-market-review" element={<PostMarketReview />} />
@@ -70,6 +72,7 @@ export default function App() {
                   <Route path="/open-market" element={<Navigate to="/open-market-radar" replace />} />
                   <Route path="/post-market" element={<Navigate to="/post-market-review" replace />} />
                   <Route path="/market-overview" element={<MarketOverviewPage />} />
+                  <Route path="/market" element={<Navigate to="/market-overview" replace />} />
                   <Route path="/market-hours" element={<MarketHoursPage />} />
                   <Route path="/screener" element={<InstitutionalScreener />} />
                   <Route path="/screener-full" element={<ScreenerFull />} />
@@ -78,6 +81,7 @@ export default function App() {
                   <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />
                   <Route path="/advanced-screener" element={<AdvancedScreenerPage />} />
                   <Route path="/news-scanner" element={<NewsScannerV2 />} />
+                  <Route path="/news" element={<Navigate to="/news-feed" replace />} />
                   <Route path="/news-feed" element={<NewsScannerV2 />} />
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
                   <Route path="/earnings" element={<EarningsPage />} />

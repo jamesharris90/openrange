@@ -132,6 +132,14 @@ export default function Header() {
           </NavLink>
         </div>
 
+        <nav className="hidden min-w-0 items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] lg:flex">
+          <NavLink to="/open-market-radar" className="rounded px-2 py-1 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]">Radar</NavLink>
+          <NavLink to="/screener" className="rounded px-2 py-1 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]">Scanner</NavLink>
+          <NavLink to="/watchlist" className="rounded px-2 py-1 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]">Watchlist</NavLink>
+          <NavLink to="/news-feed" className="rounded px-2 py-1 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]">News</NavLink>
+          <NavLink to="/cockpit" className="rounded px-2 py-1 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]">Cockpit</NavLink>
+        </nav>
+
         <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
           <button
             type="button"
