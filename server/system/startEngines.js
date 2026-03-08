@@ -7,6 +7,8 @@ const cron = require('node-cron');
 const { runRssWorker } = require('../workers/rss_worker');
 const { runMorningBriefEngine } = require('../engines/morningBriefEngine');
 const { runCatalystEngine } = require('../engines/catalystEngine');
+const { runStrategyEvaluationEngine } = require('../engines/strategyEvaluationEngine');
+const { runNarrativeEngine } = require('../engines/narrativeEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -173,6 +175,38 @@ async function startEnginesSequentially() {
           console.error('[CATALYST ENGINE ERROR]', err)
         );
       }, 5 * 60 * 1000);
+    }
+
+    if (!global.strategyEvaluationSchedulerStarted) {
+      global.strategyEvaluationSchedulerStarted = true;
+
+      console.log('[STRATEGY_EVALUATION] Scheduler started');
+
+      runStrategyEvaluationEngine().catch((err) =>
+        console.error('[STRATEGY_EVALUATION ERROR]', err)
+      );
+
+      setInterval(() => {
+        runStrategyEvaluationEngine().catch((err) =>
+          console.error('[STRATEGY_EVALUATION ERROR]', err)
+        );
+      }, 15 * 60 * 1000);
+    }
+
+    if (!global.marketNarrativeSchedulerStarted) {
+      global.marketNarrativeSchedulerStarted = true;
+
+      console.log('[NARRATIVE] Scheduler started');
+
+      runNarrativeEngine().catch((err) =>
+        console.error('[NARRATIVE_ENGINE ERROR]', err)
+      );
+
+      setInterval(() => {
+        runNarrativeEngine().catch((err) =>
+          console.error('[NARRATIVE_ENGINE ERROR]', err)
+        );
+      }, 30 * 60 * 1000);
     }
 
     console.log('[Engine] All engines started successfully');

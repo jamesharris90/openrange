@@ -70,6 +70,7 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
+const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const radarRoutes = require('./routes/radarRoutes');
@@ -3939,6 +3940,7 @@ app.use('/api', alertsRoutes);
 
 // Top opportunities feed (protected by global auth middleware above)
 app.use('/api', opportunitiesRoutes);
+app.use('/api', strategyIntelligenceRoutes);
 
 app.post('/api/intelligence/news/run', async (req, res) => {
   try {

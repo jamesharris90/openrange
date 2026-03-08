@@ -37,6 +37,7 @@ const ExpectedMove = lazy(() => import('./pages/ExpectedMove'));
 const IntelInbox = lazy(() => import('./pages/IntelInbox'));
 const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
 const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
+const StrategyEvaluationPage = lazy(() => import('./pages/StrategyEvaluationPage'));
 const ScreenerFull = lazy(() => import('./pages/ScreenerFull'));
 const TradeSetup = lazy(() => import('./pages/TradeSetup'));
 const MobileDashboard = lazy(() => import('./pages/MobileDashboard'));
@@ -98,6 +99,7 @@ export default function App() {
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
                   <Route path="/expected-move" element={<ExpectedMove />} />
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
+                  <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 

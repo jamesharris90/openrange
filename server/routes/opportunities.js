@@ -30,6 +30,8 @@ router.get('/opportunities/top', async (req, res) => {
         COALESCE(m.float_shares, 0) AS float,
         COALESCE(c.headline, 'No catalyst') AS catalyst,
         s.strategy,
+        COALESCE(s.signal_explanation, '') AS signal_explanation,
+        COALESCE(s.rationale, '') AS rationale,
         s.updated_at,
         s.atr_percent
       FROM trade_signals s

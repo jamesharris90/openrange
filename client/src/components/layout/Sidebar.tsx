@@ -46,6 +46,7 @@ const navGroups: NavGroup[] = [
       { to: '/cockpit',            label: 'Trading Cockpit',    icon: LayoutDashboard },
       { to: '/expected-move',      label: 'Expected Move',      icon: LineChart },
       { to: '/earnings-calendar',  label: 'Earnings Calendar',  icon: BookOpen },
+      { to: '/strategy-evaluation', label: 'Strategy Evaluation', icon: LineChart },
     ],
   },
   {

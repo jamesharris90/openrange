@@ -1,5 +1,6 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { generateSignalExplanations } = require('../services/mcpClient');
 
 function toNumber(value, fallback = 0) {
   const num = Number(value);
@@ -43,6 +44,18 @@ async function ensureTradeSignalsTable() {
     [],
     { timeoutMs: 7000, label: 'engines.stocks_in_play.ensure_table', maxRetries: 0 }
   );
+
+  await queryWithTimeout(
+    'ALTER TABLE trade_signals ADD COLUMN IF NOT EXISTS signal_explanation TEXT',
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.ensure_signal_explanation', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    'ALTER TABLE trade_signals ADD COLUMN IF NOT EXISTS rationale TEXT',
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.ensure_rationale', maxRetries: 0 }
+  );
 }
 
 async function runStocksInPlayEngine() {
@@ -56,6 +69,20 @@ async function runStocksInPlayEngine() {
       COALESCE(atr_percent, 0) AS atr_percent,
       COALESCE(float_shares, 0) AS float_shares,
       COALESCE(rsi, 0) AS rsi,
+      (
+        SELECT nc.headline
+        FROM news_catalysts nc
+        WHERE nc.symbol = market_metrics.symbol
+        ORDER BY nc.published_at DESC NULLS LAST
+        LIMIT 1
+      ) AS catalyst_headline,
+      (
+        SELECT nc.catalyst_type
+        FROM news_catalysts nc
+        WHERE nc.symbol = market_metrics.symbol
+        ORDER BY nc.published_at DESC NULLS LAST
+        LIMIT 1
+      ) AS catalyst_type,
       COALESCE(
         (
           SELECT MAX(nc.impact_score)
@@ -98,6 +125,20 @@ async function runStocksInPlayEngine() {
         COALESCE(atr_percent, 0) AS atr_percent,
         COALESCE(float_shares, 0) AS float_shares,
         COALESCE(rsi, 0) AS rsi,
+        (
+          SELECT nc.headline
+          FROM news_catalysts nc
+          WHERE nc.symbol = market_metrics.symbol
+          ORDER BY nc.published_at DESC NULLS LAST
+          LIMIT 1
+        ) AS catalyst_headline,
+        (
+          SELECT nc.catalyst_type
+          FROM news_catalysts nc
+          WHERE nc.symbol = market_metrics.symbol
+          ORDER BY nc.published_at DESC NULLS LAST
+          LIMIT 1
+        ) AS catalyst_type,
         COALESCE(
           (
             SELECT MAX(nc.impact_score)
@@ -142,6 +183,20 @@ async function runStocksInPlayEngine() {
         COALESCE(atr_percent, 0) AS atr_percent,
         COALESCE(float_shares, 0) AS float_shares,
         COALESCE(rsi, 0) AS rsi,
+        (
+          SELECT nc.headline
+          FROM news_catalysts nc
+          WHERE nc.symbol = market_metrics.symbol
+          ORDER BY nc.published_at DESC NULLS LAST
+          LIMIT 1
+        ) AS catalyst_headline,
+        (
+          SELECT nc.catalyst_type
+          FROM news_catalysts nc
+          WHERE nc.symbol = market_metrics.symbol
+          ORDER BY nc.published_at DESC NULLS LAST
+          LIMIT 1
+        ) AS catalyst_type,
         COALESCE(
           (
             SELECT MAX(nc.impact_score)
@@ -176,10 +231,17 @@ async function runStocksInPlayEngine() {
 
   let inserted = 0;
   let boosted = 0;
+  const explanationsBySymbol = await generateSignalExplanations(rows);
   for (const row of rows) {
     const strategy = classifyStrategy(row);
     const score = calculateScore(row);
     const catalystImpact = toNumber(row.catalyst_impact_8h);
+    const symbol = String(row.symbol || '').toUpperCase();
+    const explanation = explanationsBySymbol?.[symbol] || null;
+    const signalExplanation = explanation?.signal_explanation
+      || `${symbol} ${strategy}: ${row.catalyst_headline || 'No major catalyst headline.'}`;
+    const rationale = explanation?.rationale
+      || `Score blends gap, relative volume, ATR, and catalyst impact for ${symbol}.`;
     if (catalystImpact > 0) boosted += 1;
 
     await queryWithTimeout(
@@ -190,9 +252,11 @@ async function runStocksInPlayEngine() {
         gap_percent,
         rvol,
         atr_percent,
+        signal_explanation,
+        rationale,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       ON CONFLICT (symbol)
       DO UPDATE SET
         strategy = EXCLUDED.strategy,
@@ -200,6 +264,8 @@ async function runStocksInPlayEngine() {
         gap_percent = EXCLUDED.gap_percent,
         rvol = EXCLUDED.rvol,
         atr_percent = EXCLUDED.atr_percent,
+        signal_explanation = EXCLUDED.signal_explanation,
+        rationale = EXCLUDED.rationale,
         updated_at = NOW()`,
       [
         row.symbol,
@@ -208,6 +274,8 @@ async function runStocksInPlayEngine() {
         toNumber(row.gap_percent),
         toNumber(row.relative_volume),
         toNumber(row.atr_percent),
+        signalExplanation,
+        rationale,
       ],
       { timeoutMs: 7000, label: 'engines.stocks_in_play.upsert_trade_signal', maxRetries: 0 }
     );

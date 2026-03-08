@@ -78,6 +78,11 @@ export default function OpportunityStream({ limit = 25, compact = false }) {
               <>
                 <div className="mt-1 text-xs text-[var(--text-secondary)]">{row?.strategy || 'Strategy N/A'}</div>
                 <div className="mt-1 line-clamp-2 text-xs text-[var(--text-muted)]">{row?.catalyst || 'No catalyst summary'}</div>
+                {(row?.signal_explanation || row?.rationale) && (
+                  <div className="mt-1 line-clamp-3 text-xs text-[var(--text-secondary)]">
+                    {row?.signal_explanation || row?.rationale}
+                  </div>
+                )}
               </>
             )}
           </Card>

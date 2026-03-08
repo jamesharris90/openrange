@@ -10,6 +10,8 @@ export default function IntelInbox() {
   const [selectedSymbol, setSelectedSymbol] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
+  const [narratives, setNarratives] = useState([]);
+  const [narrativeRegime, setNarrativeRegime] = useState('Neutral');
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +38,29 @@ export default function IntelInbox() {
     };
   }, [selectedSymbol]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadNarratives() {
+      try {
+        const payload = await apiJSON('/api/narratives/latest');
+        if (cancelled) return;
+        setNarratives(Array.isArray(payload?.items) ? payload.items : []);
+        setNarrativeRegime(String(payload?.regime || 'Neutral'));
+      } catch {
+        if (!cancelled) {
+          setNarratives([]);
+          setNarrativeRegime('Neutral');
+        }
+      }
+    }
+
+    loadNarratives();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <PageContainer className="space-y-3">
       <Card>
@@ -61,6 +86,31 @@ export default function IntelInbox() {
             <option value="DIA">DIA</option>
           </select>
         </div>
+      </Card>
+
+      <Card>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="m-0 text-sm">Narrative Commentary</h3>
+          <span className="muted text-xs">Regime: {narrativeRegime}</span>
+        </div>
+        {narratives.length === 0 ? (
+          <div className="muted text-sm">No narrative intelligence available.</div>
+        ) : (
+          <div className="space-y-2">
+            {narratives.slice(0, 6).map((row, idx) => (
+              <div key={`${row?.sector || 's'}-${idx}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <strong>{row?.sector || 'Market'}</strong>
+                  <span className="muted text-xs">Confidence {Number(row?.confidence || 0).toFixed(2)}</span>
+                </div>
+                <div className="mt-1">{row?.narrative || '--'}</div>
+                <div className="muted mt-1 text-xs">
+                  Affected: {Array.isArray(row?.affected_symbols) && row.affected_symbols.length ? row.affected_symbols.join(', ') : 'N/A'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card>
