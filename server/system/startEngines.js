@@ -3,10 +3,15 @@ const { runSignalNarrativeEngine } = require('../engines/signalNarrativeEngine')
 const { runMcpNarrativeEngine } = require('../engines/mcpNarrativeEngine');
 const { runIntelNarrativeEngine } = require('../engines/intelNarrativeEngine');
 const { validateSchema } = require('./schemaValidator');
+const cron = require('node-cron');
+const { runRssWorker } = require('../workers/rss_worker');
+const { runMorningBriefEngine } = require('../engines/morningBriefEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
 let narrativeSchedulerStarted = false;
+let rssSchedulerStarted = false;
+let morningBriefSchedulerStarted = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -127,6 +132,30 @@ async function startEnginesSequentially() {
           console.error('[ENGINE ERROR]', err.message);
         }
       })();
+    }
+
+    if (!rssSchedulerStarted) {
+      rssSchedulerStarted = true;
+      cron.schedule('*/2 * * * *', async () => {
+        try {
+          await runRssWorker();
+        } catch (error) {
+          console.error('[RSS] scheduled worker error', error.message);
+        }
+      });
+      console.log('[RSS] scheduler registered (every 2 minutes)');
+    }
+
+    if (!morningBriefSchedulerStarted) {
+      morningBriefSchedulerStarted = true;
+      cron.schedule('0 8 * * 1-5', async () => {
+        try {
+          await runMorningBriefEngine({ sendEmail: true });
+        } catch (error) {
+          console.error('[MORNING_BRIEF] scheduled run error', error.message);
+        }
+      }, { timezone: 'America/New_York' });
+      console.log('[MORNING_BRIEF] scheduler registered (08:00 ET weekdays)');
     }
 
     console.log('[Engine] All engines started successfully');
