@@ -20,3 +20,15 @@ export function authFetch(url, options = {}) {
     credentials: 'include'
   });
 }
+
+export async function authFetchJSON(url, options = {}) {
+  const res = await authFetch(url, options);
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}`);
+  }
+  try {
+    return await res.json();
+  } catch (_err) {
+    return {};
+  }
+}

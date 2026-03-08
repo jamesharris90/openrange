@@ -405,6 +405,22 @@
   display: block;
 }
 
+.sector-label {
+  width: 95%;
+  height: 95%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(14px, 3vw, 32px);
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 14px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
 .btn-link {
   display: inline-flex;
   align-items: center;

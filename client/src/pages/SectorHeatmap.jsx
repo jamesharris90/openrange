@@ -3,8 +3,10 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import { authFetch } from '../utils/api';
 import ScrollingTicker from '../components/market/ScrollingTicker';
 import SectorMarketHeatmap from '../components/market/SectorMarketHeatmap';
+import TickerHeatmap from '../components/TickerHeatmap';
 import TickerLink from '../components/shared/TickerLink';
 
 function fmt(value, digits = 2) {
@@ -16,6 +18,7 @@ function fmt(value, digits = 2) {
 export default function SectorHeatmap() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [marketData, setMarketData] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +42,42 @@ export default function SectorHeatmap() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      try {
+        const res = await authFetch('/api/market/context');
+        const json = await res.json();
+
+        if (!json || typeof json !== 'object') {
+          console.warn('Market context returned empty dataset');
+          if (!cancelled) setMarketData([]);
+          return;
+        }
+
+        const tickers = Array.isArray(json?.tickers)
+          ? json.tickers
+          : Object.values(json || {}).map((row) => ({
+              symbol: row?.symbol || '?',
+              change: Number(row?.change ?? row?.change_percent ?? 0),
+              rvol: Number(row?.rvol ?? row?.relative_volume ?? 0),
+              marketCap: Number(row?.marketCap ?? row?.market_cap ?? row?.volume ?? 0),
+            }));
+
+        if (!cancelled) setMarketData(Array.isArray(tickers) ? tickers : []);
+      } catch (err) {
+        console.error('Failed to load market context', err);
+        if (!cancelled) setMarketData([]);
+      }
+    };
+
+    loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <PageContainer className="space-y-3">
       <Card>
@@ -53,6 +92,15 @@ export default function SectorHeatmap() {
       <Card>
         <h3 className="m-0 mb-3">Institutional Sector Heatmap</h3>
         <SectorMarketHeatmap sectors={rows} />
+      </Card>
+
+      <Card>
+        <h3 className="m-0 mb-3">Ticker Heatmap</h3>
+        {marketData.length > 0 ? (
+          <TickerHeatmap tickers={marketData} />
+        ) : (
+          <div className="empty-state">Market data loading...</div>
+        )}
       </Card>
 
       <Card>
