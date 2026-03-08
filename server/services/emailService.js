@@ -23,6 +23,14 @@ function tickerLink(symbol) {
   return `https://openrangetrading.co.uk/cockpit?symbol=${safe}`;
 }
 
+function formatCatalystType(type) {
+  const normalized = String(type || '').trim().toLowerCase();
+  if (!normalized) return 'Catalyst';
+  if (normalized === 'earnings') return 'Earnings Beat';
+  if (normalized === 'fda approval') return 'FDA Approval';
+  return normalized.split(' ').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
+
 function dedupeSignals(signals = []) {
   const bestBySymbol = new Map();
   for (const row of signals) {
@@ -46,6 +54,7 @@ function buildBriefingHtml(briefing) {
   const narrative = briefing?.narrative || {};
   const signals = dedupeSignals(Array.isArray(briefing?.signals) ? briefing.signals : []);
   const stocksInPlay = Array.isArray(briefing?.stocksInPlay) ? briefing.stocksInPlay : [];
+  const topCatalysts = Array.isArray(briefing?.topCatalysts) ? briefing.topCatalysts : [];
   const market = Array.isArray(briefing?.market) ? briefing.market : [];
   const news = Array.isArray(briefing?.news) ? briefing.news : [];
   const sectorStrength = Array.isArray(briefing?.sectorStrength) ? briefing.sectorStrength : [];
@@ -77,7 +86,13 @@ function buildBriefingHtml(briefing) {
     `<li style="margin:0 0 6px 18px;color:#dbeafe;">${row.sector || 'Unknown Sector'}</li>`
   ).join('') || '<li style="margin:0 0 6px 18px;color:#94a3b8;">Sector strength unavailable</li>';
 
-  const catalystsRows = (narrative.catalysts || []).slice(0, 6).map((item) =>
+  const catalystsRows = topCatalysts.slice(0, 5).map((row) => {
+    const symbol = row?.symbol || 'N/A';
+    const type = formatCatalystType(row?.catalyst_type);
+    const impact = roundScore(row?.impact_score);
+    const headline = String(row?.headline || '').trim() || 'No headline available';
+    return `<li style="margin:0 0 10px 18px;color:#dbeafe;"><div><a href="${tickerLink(symbol)}" style="color:#38bdf8;text-decoration:none;">${symbol}</a> &mdash; ${type} (Impact ${impact})</div><div style="margin-top:2px;color:#93c5fd;">&quot;${headline}&quot;</div></li>`;
+  }).join('') || (narrative.catalysts || []).slice(0, 6).map((item) =>
     `<li style="margin:0 0 6px 18px;color:#dbeafe;">${item}</li>`
   ).join('') || '<li style="margin:0 0 6px 18px;color:#94a3b8;">No catalysts available</li>';
 
@@ -150,7 +165,7 @@ function buildBriefingHtml(briefing) {
                 </div>
               </td>
             </tr>
-            <tr><td style="padding:18px 20px;border-bottom:1px solid #1f2937;"><div style="font-size:12px;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;">Catalysts</div><ul style="margin:10px 0 0 0;padding:0;">${catalystsRows}</ul></td></tr>
+            <tr><td style="padding:18px 20px;border-bottom:1px solid #1f2937;"><div style="font-size:12px;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;">Top Catalysts</div><ul style="margin:10px 0 0 0;padding:0;">${catalystsRows}</ul></td></tr>
             <tr><td style="padding:18px 20px;border-bottom:1px solid #1f2937;"><div style="font-size:12px;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;">Macro Map</div><div style="margin-top:10px;font-size:13px;color:#dbeafe;line-height:1.8;">Oil: ${macroLookup('USO')}<br/>Gold: ${macroLookup('GLD')}<br/>Bitcoin: ${macroLookup('BTCUSD')}<br/>DXY: ${macroLookup('DXY')}<br/>10Y: ${macroLookup('TNX', macroLookup('^TNX'))}</div></td></tr>
             <tr><td style="padding:18px 20px;border-bottom:1px solid #1f2937;"><div style="font-size:12px;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;">Earnings Today</div><ul style="margin:10px 0 0 0;padding:0;">${earningsRows}</ul></td></tr>
             <tr><td style="padding:18px 20px;border-bottom:1px solid #1f2937;"><div style="font-size:12px;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;">News Pulse</div><ul style="margin:10px 0 0 0;padding:0;">${newsRows}</ul></td></tr>
@@ -175,6 +190,13 @@ function buildBriefingHtml(briefing) {
 
 function buildBriefingText(briefing) {
   const narrative = briefing?.narrative || {};
+  const topCatalystsText = (briefing?.topCatalysts || []).slice(0, 5).map((row) => {
+    const symbol = row?.symbol || 'N/A';
+    const type = formatCatalystType(row?.catalyst_type);
+    const impact = roundScore(row?.impact_score);
+    const headline = String(row?.headline || '').trim() || 'No headline available';
+    return `${symbol} -- ${type} (Impact ${impact})\n"${headline}"`;
+  });
   const signalList = dedupeSignals(briefing?.signals || [])
     .slice(0, 6)
     .map((row) => `${row.symbol || 'N/A'} (${roundScore(row.score)})`)
@@ -189,6 +211,8 @@ function buildBriefingText(briefing) {
     `Watchlist: ${(narrative.watchlist || []).join(', ') || 'None'}`,
     `Top Signals: ${signalList || 'None'}`,
     `Top Stocks In Play: ${(briefing?.stocksInPlay || []).slice(0, 5).map((row) => row.symbol).join(', ') || 'None'}`,
+    'Top Catalysts:',
+    ...(topCatalystsText.length ? topCatalystsText : ['None']),
   ].join('\n');
 }
 

@@ -146,6 +146,33 @@ router.get('/api/intelligence/list', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/intelligence/catalysts — latest catalysts by impact
+router.get('/api/intelligence/catalysts', async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         symbol,
+         catalyst_type,
+         headline,
+         source,
+         sentiment,
+         impact_score,
+         published_at
+       FROM news_catalysts
+       ORDER BY impact_score DESC NULLS LAST, published_at DESC NULLS LAST
+       LIMIT $1`,
+      [limit]
+    );
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    console.error('[intelligence] catalysts error:', err.message);
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load catalysts' });
+  }
+});
+
 // PATCH /api/intelligence/:id/reviewed — mark as processed, JWT protected
 router.patch('/api/intelligence/:id/reviewed', authMiddleware, async (req, res) => {
   const id = parseInt(req.params.id, 10);

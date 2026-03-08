@@ -114,6 +114,23 @@ async function getTopStocksInPlay() {
   return rows;
 }
 
+async function getTopCatalysts() {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, catalyst_type, headline, impact_score, published_at
+       FROM news_catalysts
+       ORDER BY impact_score DESC NULLS LAST, published_at DESC NULLS LAST
+       LIMIT 5`,
+      [],
+      { timeoutMs: 7000, label: 'engines.morning_brief.top_catalysts', maxRetries: 0 }
+    );
+    return rows;
+  } catch (error) {
+    logger.warn('[MORNING_BRIEF] top catalysts unavailable', { message: error.message });
+    return [];
+  }
+}
+
 async function getSectorStrengthTop3() {
   try {
     const { rows } = await queryWithTimeout(
@@ -192,11 +209,12 @@ async function runMorningBriefEngine(options = {}) {
   const startedAt = Date.now();
   await ensureMorningBriefingsTable();
 
-  const [signals, market, news, stocksInPlay, sectorStrength, earningsToday, macroMap] = await Promise.all([
+  const [signals, market, news, stocksInPlay, topCatalysts, sectorStrength, earningsToday, macroMap] = await Promise.all([
     getSignals(),
     getMarketSnapshot(),
     getNewsPulse(),
     getTopStocksInPlay(),
+    getTopCatalysts(),
     getSectorStrengthTop3(),
     getEarningsToday(),
     getMacroMap(),
@@ -223,6 +241,7 @@ async function runMorningBriefEngine(options = {}) {
     market,
     news,
     stocksInPlay,
+    topCatalysts,
     sectorStrength,
     earningsToday,
     macroMap,
@@ -268,6 +287,7 @@ async function runMorningBriefEngine(options = {}) {
     market,
     news,
     stocksInPlay,
+    topCatalysts,
     sectorStrength,
     earningsToday,
     macroMap,

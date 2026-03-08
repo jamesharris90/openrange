@@ -22,8 +22,9 @@ function calculateScore(row) {
   const gapPercent = toNumber(row.gap_percent);
   const atrPercent = toNumber(row.atr_percent);
   const floatShares = toNumber(row.float_shares);
+  const catalystImpact8h = toNumber(row.catalyst_impact_8h);
 
-  return (rvol * 100) + (gapPercent * 50) + (atrPercent * 25) - (floatShares / 10000000);
+  return (rvol * 100) + (gapPercent * 50) + (atrPercent * 25) - (floatShares / 10000000) + (catalystImpact8h * 20);
 }
 
 async function ensureTradeSignalsTable() {
@@ -54,7 +55,16 @@ async function runStocksInPlayEngine() {
       COALESCE(gap_percent, 0) AS gap_percent,
       COALESCE(atr_percent, 0) AS atr_percent,
       COALESCE(float_shares, 0) AS float_shares,
-      COALESCE(rsi, 0) AS rsi
+      COALESCE(rsi, 0) AS rsi,
+      COALESCE(
+        (
+          SELECT MAX(nc.impact_score)
+          FROM news_catalysts nc
+          WHERE nc.symbol = market_metrics.symbol
+            AND nc.published_at > NOW() - interval '8 hours'
+        ),
+        0
+          ) AS catalyst_impact_8h
      FROM market_metrics
      WHERE COALESCE(relative_volume, 0) > 2
        AND COALESCE(gap_percent, 0) > 3
@@ -63,7 +73,16 @@ async function runStocksInPlayEngine() {
        ((COALESCE(relative_volume, 0) * 100)
        + (COALESCE(gap_percent, 0) * 50)
        + (COALESCE(atr_percent, 0) * 25)
-       - (COALESCE(float_shares, 0) / 10000000.0)) DESC
+       - (COALESCE(float_shares, 0) / 10000000.0)
+       + (COALESCE(
+          (
+            SELECT MAX(nc.impact_score)
+            FROM news_catalysts nc
+            WHERE nc.symbol = market_metrics.symbol
+              AND nc.published_at > NOW() - interval '8 hours'
+          ),
+          0
+        ) * 20)) DESC
      LIMIT 20`,
     [],
     { timeoutMs: 10000, label: 'engines.stocks_in_play.select_market_metrics', maxRetries: 0 }
@@ -78,7 +97,16 @@ async function runStocksInPlayEngine() {
         COALESCE(gap_percent, 0) AS gap_percent,
         COALESCE(atr_percent, 0) AS atr_percent,
         COALESCE(float_shares, 0) AS float_shares,
-        COALESCE(rsi, 0) AS rsi
+        COALESCE(rsi, 0) AS rsi,
+        COALESCE(
+          (
+            SELECT MAX(nc.impact_score)
+            FROM news_catalysts nc
+            WHERE nc.symbol = market_metrics.symbol
+                AND nc.published_at > NOW() - interval '8 hours'
+          ),
+          0
+              ) AS catalyst_impact_8h
        FROM market_metrics
        WHERE COALESCE(relative_volume, 0) > 1
          AND COALESCE(gap_percent, 0) > 1
@@ -87,7 +115,16 @@ async function runStocksInPlayEngine() {
          ((COALESCE(relative_volume, 0) * 100)
          + (COALESCE(gap_percent, 0) * 50)
          + (COALESCE(atr_percent, 0) * 25)
-         - (COALESCE(float_shares, 0) / 10000000.0)) DESC
+         - (COALESCE(float_shares, 0) / 10000000.0)
+         + (COALESCE(
+            (
+              SELECT MAX(nc.impact_score)
+              FROM news_catalysts nc
+              WHERE nc.symbol = market_metrics.symbol
+                AND nc.published_at > NOW() - interval '8 hours'
+            ),
+            0
+          ) * 20)) DESC
        LIMIT 20`,
       [],
       { timeoutMs: 10000, label: 'engines.stocks_in_play.select_market_metrics_fallback', maxRetries: 0 }
@@ -104,14 +141,32 @@ async function runStocksInPlayEngine() {
         COALESCE(gap_percent, 0) AS gap_percent,
         COALESCE(atr_percent, 0) AS atr_percent,
         COALESCE(float_shares, 0) AS float_shares,
-        COALESCE(rsi, 0) AS rsi
+        COALESCE(rsi, 0) AS rsi,
+        COALESCE(
+          (
+            SELECT MAX(nc.impact_score)
+            FROM news_catalysts nc
+            WHERE nc.symbol = market_metrics.symbol
+                AND nc.published_at > NOW() - interval '8 hours'
+          ),
+          0
+              ) AS catalyst_impact_8h
        FROM market_metrics
        WHERE symbol IS NOT NULL
        ORDER BY
          ((COALESCE(relative_volume, 0) * 100)
          + (COALESCE(gap_percent, 0) * 50)
          + (COALESCE(atr_percent, 0) * 25)
-         - (COALESCE(float_shares, 0) / 10000000.0)) DESC
+         - (COALESCE(float_shares, 0) / 10000000.0)
+         + (COALESCE(
+            (
+              SELECT MAX(nc.impact_score)
+              FROM news_catalysts nc
+              WHERE nc.symbol = market_metrics.symbol
+                AND nc.published_at > NOW() - interval '8 hours'
+            ),
+            0
+          ) * 20)) DESC
        LIMIT 20`,
       [],
       { timeoutMs: 10000, label: 'engines.stocks_in_play.select_market_metrics_broad', maxRetries: 0 }
@@ -120,9 +175,12 @@ async function runStocksInPlayEngine() {
   }
 
   let inserted = 0;
+  let boosted = 0;
   for (const row of rows) {
     const strategy = classifyStrategy(row);
     const score = calculateScore(row);
+    const catalystImpact = toNumber(row.catalyst_impact_8h);
+    if (catalystImpact > 0) boosted += 1;
 
     await queryWithTimeout(
       `INSERT INTO trade_signals (
@@ -156,8 +214,8 @@ async function runStocksInPlayEngine() {
     inserted += 1;
   }
 
-  logger.info('[STOCKS_IN_PLAY] run complete', { selected: rows.length, upserted: inserted });
-  return { selected: rows.length, upserted: inserted };
+  logger.info('[STOCKS_IN_PLAY] run complete', { selected: rows.length, upserted: inserted, boosted });
+  return { selected: rows.length, upserted: inserted, boosted };
 }
 
 module.exports = {

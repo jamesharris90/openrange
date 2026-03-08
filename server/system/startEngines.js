@@ -6,6 +6,7 @@ const { validateSchema } = require('./schemaValidator');
 const cron = require('node-cron');
 const { runRssWorker } = require('../workers/rss_worker');
 const { runMorningBriefEngine } = require('../engines/morningBriefEngine');
+const { runCatalystEngine } = require('../engines/catalystEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -156,6 +157,22 @@ async function startEnginesSequentially() {
         }
       }, { timezone: 'America/New_York' });
       console.log('[MORNING_BRIEF] scheduler registered (08:00 ET weekdays)');
+    }
+
+    if (!global.catalystSchedulerStarted) {
+      global.catalystSchedulerStarted = true;
+
+      console.log('[CATALYST] Scheduler started');
+
+      runCatalystEngine().catch((err) =>
+        console.error('[CATALYST ENGINE ERROR]', err)
+      );
+
+      setInterval(() => {
+        runCatalystEngine().catch((err) =>
+          console.error('[CATALYST ENGINE ERROR]', err)
+        );
+      }, 5 * 60 * 1000);
     }
 
     console.log('[Engine] All engines started successfully');
