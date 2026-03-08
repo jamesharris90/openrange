@@ -1,6 +1,8 @@
 const OpenAI = require('openai');
 const logger = require('../logger');
 
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+
 function buildFallbackNarrative(payload = {}) {
   const market = Array.isArray(payload.market) ? payload.market.slice(0, 4) : [];
   const signals = Array.isArray(payload.signals) ? payload.signals.slice(0, 5) : [];
@@ -31,7 +33,6 @@ async function generateMorningNarrative(payload = {}) {
     return buildFallbackNarrative(payload);
   }
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   const systemPrompt = [
     'You are OpenRange Intelligence MCP.',
     'Return only valid JSON with keys: overview, risk, catalysts, watchlist.',
@@ -45,7 +46,7 @@ async function generateMorningNarrative(payload = {}) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       const response = await client.chat.completions.create({
-        model,
+        model: MODEL,
         temperature: 0.2,
         response_format: { type: 'json_object' },
         messages: [
@@ -68,6 +69,7 @@ async function generateMorningNarrative(payload = {}) {
     } catch (error) {
       lastError = error;
       logger.warn('[MCP] Narrative generation attempt failed', {
+        model: MODEL,
         attempt,
         message: error.message,
       });
@@ -76,6 +78,7 @@ async function generateMorningNarrative(payload = {}) {
   }
 
   logger.error('[MCP] Narrative generation failed; falling back', {
+    model: MODEL,
     message: lastError?.message || 'Unknown error',
   });
   return buildFallbackNarrative(payload);

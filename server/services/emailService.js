@@ -93,8 +93,11 @@ async function sendBriefingEmail(briefing, recipientOverride) {
     text: buildBriefingText(briefing),
   });
 
+  console.log('EMAIL RESPONSE:', response);
+
   logger.info('[BRIEFING_EMAIL] Sent', {
     recipients,
+    rawResponse: response,
     id: response?.data?.id || null,
   });
 

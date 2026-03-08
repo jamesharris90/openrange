@@ -165,6 +165,16 @@ async function runMorningBriefEngine(options = {}) {
   };
 }
 
+async function runMorningBrief(options = {}) {
+  const testEmail = options?.testEmail ? String(options.testEmail).trim() : null;
+  return runMorningBriefEngine({
+    ...options,
+    recipientOverride: testEmail || options.recipientOverride,
+    sendEmail: options.sendEmail !== false,
+  });
+}
+
 module.exports = {
   runMorningBriefEngine,
+  runMorningBrief,
 };

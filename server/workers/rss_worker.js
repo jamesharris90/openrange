@@ -20,7 +20,8 @@ function getFeedUrls() {
 }
 
 function hashIdFromUrl(url) {
-  return `rss_${crypto.createHash('sha1').update(String(url)).digest('hex')}`;
+  const hex = crypto.createHash('sha1').update(String(url)).digest('hex').slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
 function normalizeSymbols(item = {}) {

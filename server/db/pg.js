@@ -6,7 +6,7 @@ const poolWrite = sharedPool;
 
 const dbContext = new AsyncLocalStorage();
 
-console.log('DB pool configured: shared(max=10) idle=30s timeout=5s');
+console.log(`DB pool configured: shared(max=${process.env.PGPOOL_MAX || 5}) idle=30s timeout=5s`);
 console.log('DB pool initialised');
 
 function sleep(ms) {
