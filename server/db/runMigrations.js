@@ -1,10 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { Pool } = require("pg");
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
+const pool = require("./pool");
 
 async function runMigrations() {
   const migrationsDir = path.join(__dirname, "migrations");

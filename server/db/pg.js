@@ -1,32 +1,13 @@
-const { Pool } = require('pg');
+const sharedPool = require('./pool');
 const { AsyncLocalStorage } = require('async_hooks');
 
-const poolRead = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
-
-const poolWrite = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const poolRead = sharedPool;
+const poolWrite = sharedPool;
 
 const dbContext = new AsyncLocalStorage();
 
-console.log('DB pools configured: read(max=10) write(max=10) idle=30s timeout=5s');
-console.log('DB pools initialised');
-
-poolRead.on('error', (err) => {
-  console.error('Unexpected PG pool error:', err.message);
-});
-
-poolWrite.on('error', (err) => {
-  console.error('Unexpected PG write pool error:', err.message);
-});
+console.log('DB pool configured: shared(max=10) idle=30s timeout=5s');
+console.log('DB pool initialised');
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
