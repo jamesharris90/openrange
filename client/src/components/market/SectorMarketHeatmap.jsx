@@ -71,8 +71,8 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
 
   if (expandedSector) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      <div>
+        <div className="flex items-center justify-between px-4 py-2">
           <h4 className="m-0 text-sm">{expandedSector} Ticker Heatmap</h4>
           <button
             type="button"
@@ -83,7 +83,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
           </button>
         </div>
 
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-[420px] w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)]">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[480px] w-full block">
           {expandedTickers.map((node) => {
             const w = Math.max(0, node.x1 - node.x0);
             const h = Math.max(0, node.y1 - node.y0);
@@ -110,7 +110,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
   }
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-[420px] w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)]">
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-[480px] w-full block">
       {sectorLayout.map((node) => {
         const w = Math.max(0, node.x1 - node.x0);
         const h = Math.max(0, node.y1 - node.y0);

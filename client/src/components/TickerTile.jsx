@@ -1,12 +1,14 @@
+const LOGO_KEY = 'pk_ZEZk_K6WQo2uAaLu7p5LYA';
+
 export default function TickerTile({ x, y, width, height, symbol, change, rvol }) {
   const safeSymbol = String(symbol || '?').toUpperCase();
   const safeChange = Number.isFinite(Number(change)) ? Number(change) : 0;
   const safeRvol = Number.isFinite(Number(rvol)) ? Number(rvol) : 0;
-  const logoKey = import.meta.env.VITE_LOGO_DEV_KEY;
-  const logoUrl = logoKey ? `https://img.logo.dev/ticker/${safeSymbol.toLowerCase()}?token=${logoKey}` : null;
 
-  const showLogo = width > 70 && height > 80 && logoUrl;
+  // logo.dev endpoint: https://img.logo.dev/ticker/{TICKER}?token=KEY
+  const logoUrl = `https://img.logo.dev/ticker/${safeSymbol}?token=${LOGO_KEY}`;
   const logoSize = Math.round(Math.min(width * 0.4, 120));
+  const showLogo = width > 70 && height > 80;
 
   // Font size so symbol fills ~80% of tile width
   const symbolFontSize = Math.max(9, Math.min(
