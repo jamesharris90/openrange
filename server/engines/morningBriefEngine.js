@@ -34,14 +34,35 @@ async function ensureMorningBriefingsTable() {
     [],
     { timeoutMs: 5000, label: 'engines.morning_brief.ensure_email_status', maxRetries: 0 }
   );
+  await queryWithTimeout(
+    "ALTER TABLE morning_briefings ADD COLUMN IF NOT EXISTS stocks_in_play JSONB NOT NULL DEFAULT '[]'::jsonb",
+    [],
+    { timeoutMs: 5000, label: 'engines.morning_brief.ensure_stocks_in_play', maxRetries: 0 }
+  );
 }
 
 async function getSignals() {
   const { rows } = await queryWithTimeout(
-    `SELECT symbol, strategy, class, score, updated_at
-     FROM strategy_signals
-     WHERE updated_at >= NOW() - interval '24 hours'
-     ORDER BY score DESC NULLS LAST
+    `SELECT
+       dedup.symbol,
+       dedup.strategy,
+       dedup.class,
+       dedup.score,
+       dedup.updated_at,
+       COALESCE(m.relative_volume, 0) AS rvol
+     FROM (
+       SELECT DISTINCT ON (s.symbol)
+         s.symbol,
+         s.strategy,
+         s.class,
+         s.score,
+         s.updated_at
+       FROM strategy_signals s
+       WHERE s.updated_at >= NOW() - interval '24 hours'
+       ORDER BY s.symbol, s.score DESC NULLS LAST, s.updated_at DESC NULLS LAST
+     ) dedup
+     LEFT JOIN market_metrics m ON m.symbol = dedup.symbol
+     ORDER BY dedup.score DESC NULLS LAST
      LIMIT 12`,
     [],
     { timeoutMs: 7000, label: 'engines.morning_brief.signals', maxRetries: 0 }
@@ -81,17 +102,134 @@ async function getNewsPulse() {
   return rows;
 }
 
+async function getTopStocksInPlay() {
+  const { rows } = await queryWithTimeout(
+    `SELECT symbol, strategy, score, gap_percent, rvol, atr_percent, created_at
+     FROM trade_signals
+     ORDER BY score DESC NULLS LAST
+     LIMIT 5`,
+    [],
+    { timeoutMs: 7000, label: 'engines.morning_brief.stocks_in_play', maxRetries: 0 }
+  );
+  return rows;
+}
+
+async function getSectorStrengthTop3() {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT sector, market_cap, volume, relative_volume, price_change
+       FROM sector_agg
+       ORDER BY market_cap DESC NULLS LAST
+       LIMIT 3`,
+      [],
+      { timeoutMs: 7000, label: 'engines.morning_brief.sector_strength', maxRetries: 0 }
+    );
+    return rows;
+  } catch (error) {
+    logger.warn('[MORNING_BRIEF] sector strength unavailable', { message: error.message });
+    return [];
+  }
+}
+
+async function getEarningsToday() {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, company, earnings_date::text AS earnings_date, eps_estimate, revenue_estimate
+       FROM earnings_events
+       WHERE earnings_date = CURRENT_DATE
+       ORDER BY symbol ASC
+       LIMIT 10`,
+      [],
+      { timeoutMs: 7000, label: 'engines.morning_brief.earnings_today', maxRetries: 0 }
+    );
+    return rows;
+  } catch (error) {
+    logger.warn('[MORNING_BRIEF] earnings unavailable', { message: error.message });
+    return [];
+  }
+}
+
+async function getMacroMap() {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, price, change_percent
+       FROM market_metrics
+       WHERE symbol IN ('USO','GLD','BTCUSD','DXY','TNX','^TNX','SPY','QQQ','VIX')`,
+      [],
+      { timeoutMs: 7000, label: 'engines.morning_brief.macro_map', maxRetries: 0 }
+    );
+    return rows;
+  } catch (error) {
+    logger.warn('[MORNING_BRIEF] macro map unavailable', { message: error.message });
+    return [];
+  }
+}
+
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function deriveMarketRegime(marketRows = []) {
+  const spy = marketRows.find((row) => row.symbol === 'SPY');
+  const qqq = marketRows.find((row) => row.symbol === 'QQQ');
+  const vix = marketRows.find((row) => row.symbol === 'VIX');
+
+  const vixLevel = toNumber(vix?.price);
+  const spyChange = toNumber(spy?.change_percent);
+  const qqqChange = toNumber(qqq?.change_percent);
+
+  if (vixLevel >= 25 || spyChange <= -1.2 || qqqChange <= -1.2) {
+    return 'Risk-Off';
+  }
+  if (vixLevel > 0 && vixLevel <= 17 && spyChange >= 0.5 && qqqChange >= 0.5) {
+    return 'Risk-On';
+  }
+  return 'Neutral';
+}
+
 async function runMorningBriefEngine(options = {}) {
   const startedAt = Date.now();
   await ensureMorningBriefingsTable();
 
-  const [signals, market, news] = await Promise.all([
+  const [signals, market, news, stocksInPlay, sectorStrength, earningsToday, macroMap] = await Promise.all([
     getSignals(),
     getMarketSnapshot(),
     getNewsPulse(),
+    getTopStocksInPlay(),
+    getSectorStrengthTop3(),
+    getEarningsToday(),
+    getMacroMap(),
   ]);
 
-  const context = { signals, market, news };
+  const marketRegime = deriveMarketRegime(market);
+  const topFocus = stocksInPlay.slice(0, 3).map((row) => row.symbol).filter(Boolean);
+  const focusText = topFocus.length
+    ? `Day 2 continuation setups dominating. Watch ${topFocus.join(', ')}.`
+    : 'Opportunity scan running. Monitor top relative-volume names at open.';
+
+  const tradeIdea = stocksInPlay.length
+    ? {
+        symbol: stocksInPlay[0].symbol,
+        setup: stocksInPlay[0].strategy,
+        trigger: `Break and hold above intraday VWAP on ${stocksInPlay[0].symbol}`,
+        target: '1.5R into momentum continuation',
+        risk: 'Exit on VWAP reclaim failure',
+      }
+    : null;
+
+  const context = {
+    signals,
+    market,
+    news,
+    stocksInPlay,
+    sectorStrength,
+    earningsToday,
+    macroMap,
+    marketRegime,
+    focusText,
+    tradeIdea,
+  };
   const narrative = await generateMorningNarrative(context);
 
   const insertResult = await queryWithTimeout(
@@ -99,6 +237,7 @@ async function runMorningBriefEngine(options = {}) {
       signals,
       market,
       news,
+      stocks_in_play,
       narrative,
       email_status
     ) VALUES (
@@ -106,13 +245,15 @@ async function runMorningBriefEngine(options = {}) {
       $2::jsonb,
       $3::jsonb,
       $4::jsonb,
-      $5::jsonb
+      $5::jsonb,
+      $6::jsonb
     )
     RETURNING id, created_at`,
     [
       JSON.stringify(signals),
       JSON.stringify(market),
       JSON.stringify(news),
+      JSON.stringify(stocksInPlay),
       JSON.stringify(narrative),
       JSON.stringify({ sent: false, state: 'pending' }),
     ],
@@ -126,6 +267,13 @@ async function runMorningBriefEngine(options = {}) {
     signals,
     market,
     news,
+    stocksInPlay,
+    sectorStrength,
+    earningsToday,
+    macroMap,
+    marketRegime,
+    focusText,
+    tradeIdea,
     narrative,
   };
 
@@ -154,6 +302,7 @@ async function runMorningBriefEngine(options = {}) {
     signals: signals.length,
     market: market.length,
     news: news.length,
+    stocksInPlay: stocksInPlay.length,
     emailSent: Boolean(emailStatus.sent),
     runtimeMs,
   });

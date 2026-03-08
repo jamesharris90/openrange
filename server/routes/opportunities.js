@@ -10,7 +10,7 @@ function isDbTimeoutError(error) {
 }
 
 router.get('/opportunities/top', async (req, res) => {
-  const limit = Math.max(1, Math.min(Number(req.query.limit) || 25, 100));
+  const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 100));
   const cacheKey = `api.opportunities.top:${limit}`;
   const cacheTtlMs = 15_000;
   const cached = getCachedValue(cacheKey);
@@ -24,15 +24,17 @@ router.get('/opportunities/top', async (req, res) => {
       `SELECT
         s.symbol,
         s.score,
-        COALESCE(s.gap_percent, m.gap_percent, 0) AS gap,
-        COALESCE(s.relative_volume, m.relative_volume, 0) AS rvol,
-        COALESCE(s.volume, m.volume, q.volume, 0) AS volume,
-        NULL::numeric AS float,
+        COALESCE(s.gap_percent, 0) AS gap,
+        COALESCE(s.rvol, 0) AS rvol,
+        COALESCE(m.volume, q.volume, 0) AS volume,
+        COALESCE(m.float_shares, 0) AS float,
         COALESCE(c.headline, 'No catalyst') AS catalyst,
         s.strategy,
-        s.updated_at
-      FROM strategy_signals s
-      LEFT JOIN market_metrics m ON m.symbol = s.symbol
+        s.updated_at,
+        s.atr_percent
+      FROM trade_signals s
+      LEFT JOIN market_metrics m
+        ON m.symbol = s.symbol
       LEFT JOIN market_quotes q ON q.symbol = s.symbol
       LEFT JOIN LATERAL (
         SELECT headline
@@ -42,9 +44,7 @@ router.get('/opportunities/top', async (req, res) => {
         LIMIT 1
       ) c ON TRUE
       ORDER BY
-        s.score DESC NULLS LAST,
-        COALESCE(s.relative_volume, m.relative_volume, 0) DESC NULLS LAST,
-        COALESCE(s.gap_percent, m.gap_percent, 0) DESC NULLS LAST
+        s.score DESC NULLS LAST
       LIMIT $1`,
       [limit],
       { label: 'routes.opportunities.top', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
