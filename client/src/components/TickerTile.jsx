@@ -2,8 +2,10 @@ export default function TickerTile({ x, y, width, height, symbol, change, rvol, 
   const safeSymbol = String(symbol || '?').toUpperCase();
   const safeChange = Number.isFinite(Number(change)) ? Number(change) : 0;
   const safeRvol = Number.isFinite(Number(rvol)) ? Number(rvol) : 0;
-  const logoUrl = `https://img.logo.dev/ticker/${safeSymbol}?token=${import.meta.env.VITE_LOGO_DEV_KEY}`;
-  const showLogo = width > 90;
+  const logoKey = import.meta.env.VITE_LOGO_DEV_KEY;
+  const logoUrl = logoKey ? `https://img.logo.dev/ticker/${safeSymbol}?token=${logoKey}` : null;
+  const showLogo = width > 70 && height > 70 && logoUrl;
+  const logoSize = Math.round(Math.min(width * 0.38, height * 0.38, 56));
 
   return (
     <g transform={`translate(${x},${y})`}>
@@ -12,10 +14,10 @@ export default function TickerTile({ x, y, width, height, symbol, change, rvol, 
           {showLogo && (
             <div className="ticker-logo-wrap">
               <img
-                className="ticker-logo"
                 src={logoUrl}
                 alt={`${safeSymbol} logo`}
                 loading="lazy"
+                style={{ width: logoSize, height: logoSize, borderRadius: '50%', objectFit: 'contain', display: 'block' }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
