@@ -89,8 +89,6 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
             const h = Math.max(0, node.y1 - node.y0);
             if (w < 10 || h < 10) return null;
             const symbol = String(node.data.name || '').toUpperCase();
-            const fontSize = clamp(w * 0.18, 10, 18);
-            const detailSize = clamp(fontSize * 0.8, 9, 14);
             return (
               <g key={symbol}>
                 <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.15)" />
@@ -102,8 +100,6 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
                   symbol={symbol}
                   change={toNumber(node.data.price_change)}
                   rvol={toNumber(node.data.relative_volume)}
-                  fontSize={fontSize}
-                  detailSize={detailSize}
                 />
               </g>
             );

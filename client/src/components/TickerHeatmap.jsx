@@ -7,10 +7,6 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
 export default function TickerHeatmap({ tickers = [], width = 1000, height = 540 }) {
   const layout = useMemo(() => {
     const root = hierarchy({
@@ -46,8 +42,6 @@ export default function TickerHeatmap({ tickers = [], width = 1000, height = 540
         if (w < 10 || h < 10) return null;
 
         const ticker = node.data;
-        const fontSize = clamp(w * 0.18, 10, 18);
-        const detailSize = clamp(fontSize * 0.8, 9, 14);
 
         return (
           <g key={`${ticker.symbol}-${node.x0}-${node.y0}`}>
@@ -67,8 +61,6 @@ export default function TickerHeatmap({ tickers = [], width = 1000, height = 540
               symbol={ticker.symbol || '?'}
               change={ticker.change || 0}
               rvol={ticker.rvol || 0}
-              fontSize={fontSize}
-              detailSize={detailSize}
             />
           </g>
         );
