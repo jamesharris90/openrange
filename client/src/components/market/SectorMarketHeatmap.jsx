@@ -117,7 +117,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
         const h = Math.max(0, node.y1 - node.y0);
         if (w < 16 || h < 16) return null;
         const sectorName = String(node.data.name || 'Unknown');
-        const hideLabel = w < 80;
+        const hideLabel = w < 40;
         const fontSize = clamp(w * 0.16, 12, 36);
         const detailSize = clamp(fontSize * 0.46, 11, 16);
         const insetX = w * 0.025;

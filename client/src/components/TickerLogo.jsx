@@ -15,11 +15,11 @@ export default function TickerLogo({ symbol, className = '' }) {
   }, [normalizedSymbol, useFallback]);
 
   return (
-    <div className={`ticker-logo ${className}`.trim()}>
+    <div className={`ticker-logo-wrap ${className}`.trim()}>
       <img
         src={src}
         alt={`${normalizedSymbol || 'Ticker'} logo`}
-        className="ticker-logo__img"
+        className="ticker-logo"
         loading="lazy"
         onError={() => {
           if (!useFallback) setUseFallback(true);
