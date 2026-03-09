@@ -7,7 +7,7 @@ import ThemeProvider from './components/layout/ThemeProvider';
 import { BrokerProvider } from './context/BrokerContext';
 import { SymbolProvider } from './context/SymbolContext';
 import { AuthProvider } from './context/AuthContext';
-import { FeatureAccessProvider } from './context/FeatureAccessContext';
+import { FeatureAccessProvider } from "./context/FeatureAccessContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 if (import.meta.env.DEV) {
