@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
-import safeLazy from './utils/safeLazy';
+import safeLazy from "./utils/safeLazy";
 import AppLayout from './components/layout/AppLayout';
 import TickerTape from './components/TickerTape';
 import SkeletonCard from './components/ui/SkeletonCard';
