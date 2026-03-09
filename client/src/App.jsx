@@ -1,57 +1,58 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { Suspense } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
-import ErrorBoundary from './components/shared/ErrorBoundary';
+import safeLazy from './utils/safeLazy';
 import AppLayout from './components/layout/AppLayout';
 import TickerTape from './components/TickerTape';
 import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const WatchlistPage = lazy(() => import('./components/watchlist/WatchlistPage'));
-const EarningsPage = lazy(() => import('./components/earnings/EarningsPage'));
-const PreMarketCommandCenter = lazy(() => import('./pages/PreMarketCommandCenter'));
-const NewsScannerV2 = lazy(() => import('./pages/NewsScannerV2'));
-const AdvancedScreenerPage = lazy(() => import('./pages/AdvancedScreenerPage'));
-const ScreenerV3FMP = lazy(() => import('./pages/ScreenerV3FMP'));
-const InstitutionalScreener = lazy(() => import('./pages/InstitutionalScreener'));
-const MarketOverviewPage = lazy(() => import('./pages/MarketOverviewPage'));
-const MarketHoursPage = lazy(() => import('./pages/MarketHoursPage'));
-const ResearchPage = lazy(() => import('./pages/ResearchPage'));
-const AlertsPage = lazy(() => import('./pages/AlertsPage'));
-const OpenMarketRadar = lazy(() => import('./pages/OpenMarketRadar'));
-const PostMarketReview = lazy(() => import('./pages/PostMarketReview'));
-const Charts = lazy(() => import('./pages/Charts'));
-const LiveCockpit = lazy(() => import('./pages/LiveCockpit'));
-const CockpitPage = lazy(() => import('./pages/CockpitPage'));
-const IntelligenceFrameworkPage = lazy(() => import('./pages/IntelligenceFrameworkPage'));
-const EarningsCalendar = lazy(() => import('./pages/EarningsCalendar'));
-const ExpectedMove = lazy(() => import('./pages/ExpectedMove'));
-const IntelInbox = lazy(() => import('./pages/IntelInbox'));
-const IntelligenceEngine = lazy(() => import('./pages/IntelligenceEngine'));
-const SectorHeatmap = lazy(() => import('./pages/SectorHeatmap'));
-const StrategyEvaluationPage = lazy(() => import('./pages/StrategyEvaluationPage'));
-const ScreenerFull = lazy(() => import('./pages/ScreenerFull'));
-const TradeSetup = lazy(() => import('./pages/TradeSetup'));
-const MobileDashboard = lazy(() => import('./pages/MobileDashboard'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+import FeatureGateRoute from './components/auth/FeatureGateRoute';
+const LoginPage = safeLazy(() => import('./pages/LoginPage'));
+const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
+const LandingPage = safeLazy(() => import('./pages/LandingPage'));
+const ForgotPasswordPage = safeLazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = safeLazy(() => import('./pages/ResetPasswordPage'));
+const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
+const WatchlistPage = safeLazy(() => import('./components/watchlist/WatchlistPage'));
+const EarningsPage = safeLazy(() => import('./components/earnings/EarningsPage'));
+const PreMarketCommandCenter = safeLazy(() => import('./pages/PreMarketCommandCenter'));
+const NewsScannerV2 = safeLazy(() => import('./pages/NewsScannerV2'));
+const AdvancedScreenerPage = safeLazy(() => import('./pages/AdvancedScreenerPage'));
+const ScreenerV3FMP = safeLazy(() => import('./pages/ScreenerV3FMP'));
+const InstitutionalScreener = safeLazy(() => import('./pages/InstitutionalScreener'));
+const MarketOverviewPage = safeLazy(() => import('./pages/MarketOverviewPage'));
+const MarketHoursPage = safeLazy(() => import('./pages/MarketHoursPage'));
+const ResearchPage = safeLazy(() => import('./pages/ResearchPage'));
+const AlertsPage = safeLazy(() => import('./pages/AlertsPage'));
+const OpenMarketRadar = safeLazy(() => import('./pages/OpenMarketRadar'));
+const PostMarketReview = safeLazy(() => import('./pages/PostMarketReview'));
+const Charts = safeLazy(() => import('./pages/Charts'));
+const LiveCockpit = safeLazy(() => import('./pages/LiveCockpit'));
+const CockpitPage = safeLazy(() => import('./pages/CockpitPage'));
+const IntelligenceFrameworkPage = safeLazy(() => import('./pages/IntelligenceFrameworkPage'));
+const EarningsCalendar = safeLazy(() => import('./pages/EarningsCalendar'));
+const ExpectedMove = safeLazy(() => import('./pages/ExpectedMove'));
+const IntelInbox = safeLazy(() => import('./pages/IntelInbox'));
+const IntelligenceEngine = safeLazy(() => import('./pages/IntelligenceEngine'));
+const SectorHeatmap = safeLazy(() => import('./pages/SectorHeatmap'));
+const StrategyEvaluationPage = safeLazy(() => import('./pages/StrategyEvaluationPage'));
+const SignalIntelligenceAdmin = safeLazy(() => import('./pages/SignalIntelligenceAdmin'));
+const ScreenerFull = safeLazy(() => import('./pages/ScreenerFull'));
+const TradeSetup = safeLazy(() => import('./pages/TradeSetup'));
+const MobileDashboard = safeLazy(() => import('./pages/MobileDashboard'));
+const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
+const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
+const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <TickerTape />
-            <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
-              <Routes>
+    <ToastProvider>
+      <BrowserRouter>
+        <TickerTape />
+        <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
+          <Routes>
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -76,7 +77,7 @@ export default function App() {
                   <Route path="/market" element={<Navigate to="/market-overview" replace />} />
                   <Route path="/market-hours" element={<MarketHoursPage />} />
                   <Route path="/screener" element={<InstitutionalScreener />} />
-                  <Route path="/screener-full" element={<ScreenerFull />} />
+                  <Route path="/screener-full" element={<FeatureGateRoute featureKey="full_screener"><ScreenerFull /></FeatureGateRoute>} />
                   <Route path="/screener-v2" element={<Navigate to="/screener" replace />} />
                   <Route path="/screener-v3" element={<Navigate to="/screener" replace />} />
                   <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />
@@ -88,11 +89,11 @@ export default function App() {
                   <Route path="/earnings" element={<EarningsPage />} />
                   <Route path="/earnings-calendar" element={<EarningsCalendar />} />
                   <Route path="/research" element={<ResearchPage />} />
-                  <Route path="/alerts" element={<AlertsPage />} />
+                  <Route path="/alerts" element={<FeatureGateRoute featureKey="alerts"><AlertsPage /></FeatureGateRoute>} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/setup/:symbol" element={<TradeSetup />} />
                   <Route path="/live" element={<LiveCockpit />} />
-                  <Route path="/cockpit" element={<SymbolDataProvider><CockpitPage /></SymbolDataProvider>} />
+                  <Route path="/cockpit" element={<FeatureGateRoute featureKey="trading_cockpit"><SymbolDataProvider><CockpitPage /></SymbolDataProvider></FeatureGateRoute>} />
                   <Route path="/intelligence" element={<IntelligenceEngine />} />
                   <Route path="/intelligence-engine" element={<IntelligenceEngine />} />
                   <Route path="/intelligence-inbox" element={<IntelInbox />} />
@@ -100,15 +101,18 @@ export default function App() {
                   <Route path="/expected-move" element={<ExpectedMove />} />
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
                   <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
+                  <Route path="/signal-intelligence-admin" element={<SignalIntelligenceAdmin />} />
+                  <Route path="/admin" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
+                  <Route path="/admin-control" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
+                  <Route path="/admin/features" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
+                  <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </ToastProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }

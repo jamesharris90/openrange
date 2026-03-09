@@ -1,29 +1,37 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 
 const mobileItems = [
   { to: '/pre-market-command', label: 'Pre-Market Command' },
   { to: '/open-market-radar', label: 'Open Market Radar' },
   { to: '/post-market-review', label: 'Post-Market Review' },
   { to: '/screener', label: 'Scanner' },
-  { to: '/screener-full', label: 'Full Screener' },
+  { to: '/screener-full', label: 'Full Screener', feature: 'full_screener' },
   { to: '/sector-heatmap', label: 'Sector Heatmap' },
   { to: '/intelligence-inbox', label: 'Intel Inbox' },
   { to: '/intelligence-engine', label: 'Intelligence Engine' },
   { to: '/news-feed', label: 'News Feed' },
   { to: '/charts', label: 'Charts' },
+  { to: '/cockpit', label: 'Trading Cockpit', feature: 'trading_cockpit' },
   { to: '/expected-move', label: 'Expected Move' },
   { to: '/earnings-calendar', label: 'Earnings Calendar' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/mobile-dashboard', label: 'Mobile Dashboard' },
-  { to: '/alerts', label: 'Alerts' },
+  { to: '/alerts', label: 'Alerts', feature: 'alerts' },
+  { to: '/admin/features', label: 'Admin Control', feature: 'admin_panel' },
   { to: '/research', label: 'Research' },
 ];
 
 export default function MobileDrawer() {
   const mobileSidebarOpen = useAppStore((state) => state.mobileSidebarOpen);
   const toggleMobileSidebar = useAppStore((state) => state.toggleMobileSidebar);
+  const { features, loading } = useFeatureAccess();
+
+  const visibleItems = loading
+    ? mobileItems
+    : mobileItems.filter((item) => !item.feature || Boolean(features?.[item.feature]));
 
   if (!mobileSidebarOpen) return null;
 
@@ -50,7 +58,7 @@ export default function MobileDrawer() {
         </div>
 
         <nav className="space-y-1 overflow-y-auto">
-          {mobileItems.map((item) => (
+          {visibleItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

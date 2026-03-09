@@ -6,6 +6,9 @@ import './styles/designSystem.css';
 import ThemeProvider from './components/layout/ThemeProvider';
 import { BrokerProvider } from './context/BrokerContext';
 import { SymbolProvider } from './context/SymbolContext';
+import { AuthProvider } from './context/AuthContext';
+import { FeatureAccessProvider } from './context/FeatureAccessContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 if (import.meta.env.DEV) {
   import('../devtools/chartValidation')
@@ -28,12 +31,18 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <BrokerProvider>
-        <SymbolProvider>
-          <App />
-        </SymbolProvider>
-      </BrokerProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrokerProvider>
+          <AuthProvider>
+            <FeatureAccessProvider>
+              <SymbolProvider>
+                <App />
+              </SymbolProvider>
+            </FeatureAccessProvider>
+          </AuthProvider>
+        </BrokerProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
