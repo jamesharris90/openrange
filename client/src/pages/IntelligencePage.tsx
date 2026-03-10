@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Mail, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Mail, RefreshCw } from 'lucide-react';
 import { authFetch } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
+import IntelDetailPanel from '../components/intelligence/IntelDetailPanel';
 
 type IntelItem = {
   id: number;
@@ -52,7 +53,9 @@ export default function IntelligencePage() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [selected, setSelected] = useState<IntelItem | null>(null);
-  const [reviewing, setReviewing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [intelDetail, setIntelDetail] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,18 +78,20 @@ export default function IntelligencePage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const markReviewed = async (id: number) => {
-    setReviewing(true);
+  const openIntelPanel = useCallback(async (id: number) => {
+    setDetailLoading(true);
+    setDetailOpen(true);
     try {
-      const res = await authFetch(`/api/intelligence/${id}/reviewed`, { method: 'PATCH' });
-      if (res.ok) {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, processed: true } : i));
-        setSelected(prev => prev?.id === id ? { ...prev, processed: true } : prev);
-      }
+      const res = await authFetch(`/api/intel/details/${id}`);
+      if (!res.ok) throw new Error(`Failed to load intel detail (${res.status})`);
+      const data = await res.json();
+      setIntelDetail(data || null);
+    } catch {
+      setIntelDetail(null);
     } finally {
-      setReviewing(false);
+      setDetailLoading(false);
     }
-  };
+  }, []);
 
   return (
     <PageContainer>
@@ -146,7 +151,10 @@ export default function IntelligencePage() {
                 {items.map(item => (
                   <tr
                     key={item.id}
-                    onClick={() => setSelected(item)}
+                    onClick={() => {
+                      setSelected(item);
+                      openIntelPanel(item.id);
+                    }}
                     className={`cursor-pointer border-b border-[var(--border-color)] transition-colors hover:bg-[var(--bg-card-hover)] ${
                       selected?.id === item.id ? 'bg-[rgba(74,158,255,0.08)]' : ''
                     }`}
@@ -185,89 +193,12 @@ export default function IntelligencePage() {
         )}
       </div>
 
-      {/* Detail drawer */}
-      {selected && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/40"
-            onClick={() => setSelected(null)}
-          />
-
-          {/* Drawer panel */}
-          <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-[var(--border-color)] bg-[var(--bg-sidebar)] shadow-2xl">
-            {/* Drawer header */}
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <SourceBadge tag={selected.source_tag} />
-                <span className="text-xs text-[var(--text-secondary)]">
-                  {formatDate(selected.received_at)}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Drawer body */}
-            <div className="flex-1 space-y-5 overflow-y-auto p-5">
-              <div>
-                <p className="mb-1 text-xs text-[var(--text-secondary)]">Subject</p>
-                <p className="font-medium text-[var(--text-primary)]">
-                  {selected.subject ?? '(no subject)'}
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs text-[var(--text-secondary)]">From</p>
-                <p className="text-[var(--text-primary)]">{selected.from ?? '—'}</p>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs text-[var(--text-secondary)]">Summary</p>
-                <p className="text-sm leading-relaxed text-[var(--text-primary)]">
-                  {selected.summary ?? (
-                    <span className="text-[var(--text-secondary)]">No summary available.</span>
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs text-[var(--text-secondary)]">Sentiment</p>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {selected.sentiment_score != null
-                    ? `Score: ${selected.sentiment_score.toFixed(2)}`
-                    : 'No sentiment data available.'}
-                </p>
-              </div>
-
-              {selected.raw_text && (
-                <div>
-                  <p className="mb-2 text-xs text-[var(--text-secondary)]">Raw Content</p>
-                  <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-                    {selected.raw_text}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            {/* Drawer footer */}
-            <div className="border-t border-[var(--border-color)] px-5 py-4">
-              <button
-                onClick={() => markReviewed(selected.id)}
-                disabled={selected.processed || reviewing}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[rgba(74,158,255,0.15)] px-4 py-2 text-sm text-[var(--accent-blue)] transition-colors hover:bg-[rgba(74,158,255,0.25)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <CheckCircle size={16} />
-                {selected.processed ? 'Already Reviewed' : reviewing ? 'Marking…' : 'Mark as Reviewed'}
-              </button>
-            </div>
-          </aside>
-        </>
-      )}
+      <IntelDetailPanel
+        open={detailOpen}
+        detail={detailLoading ? { title: 'Loading intelligence detail...' } : intelDetail}
+        onClose={() => setDetailOpen(false)}
+        onOpenSetup={() => navigate('/strategy-evaluation')}
+      />
     </PageContainer>
   );
 }

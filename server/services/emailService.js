@@ -82,6 +82,14 @@ function buildBriefingHtml(briefing) {
       </tr>`;
   }).join('');
 
+  const topSignalNarratives = signals.slice(0, 5).map((row) => {
+    const symbol = row?.symbol || 'N/A';
+    const confidence = row?.confidence || 'N/A';
+    const catalystType = row?.catalyst_type || 'unknown';
+    const explanation = String(row?.narrative || row?.signal_explanation || row?.rationale || '').trim() || 'No narrative explanation available.';
+    return `<li style="margin:0 0 10px 18px;color:#dbeafe;"><div><a href="${tickerLink(symbol)}" style="color:#38bdf8;text-decoration:none;">${symbol}</a> - ${confidence} - ${catalystType}</div><div style="margin-top:2px;color:#93c5fd;">${explanation}</div></li>`;
+  }).join('') || '<li style="margin:0 0 10px 18px;color:#94a3b8;">No signal narratives available</li>';
+
   const sectorRows = sectorStrength.slice(0, 3).map((row) =>
     `<li style="margin:0 0 6px 18px;color:#dbeafe;">${row.sector || 'Unknown Sector'}</li>`
   ).join('') || '<li style="margin:0 0 6px 18px;color:#94a3b8;">Sector strength unavailable</li>';
@@ -146,6 +154,7 @@ function buildBriefingHtml(briefing) {
                   </tr>
                   ${topSignalsRows}
                 </table>
+                <ul style="margin:12px 0 0 0;padding:0;">${topSignalNarratives}</ul>
                 <div style="margin-top:14px;">
                   <a href="https://openrangetrading.co.uk/dashboard" style="display:inline-block;background:#38bdf8;color:#0b1220;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px;">Open Your Dashboard -></a>
                   <a href="https://openrangetrading.co.uk/cockpit" style="display:inline-block;background:#1e293b;color:#e2e8f0;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px;margin-left:8px;">View Full Market Analysis -></a>
@@ -210,6 +219,7 @@ function buildBriefingText(briefing) {
     `Risk: ${narrative.risk || 'No risk summary generated.'}`,
     `Watchlist: ${(narrative.watchlist || []).join(', ') || 'None'}`,
     `Top Signals: ${signalList || 'None'}`,
+    ...dedupeSignals(briefing?.signals || []).slice(0, 5).map((row) => `${row.symbol} ${row.confidence || 'N/A'} ${row.catalyst_type || 'unknown'}\n${row.narrative || row.signal_explanation || row.rationale || 'No narrative explanation available.'}`),
     `Top Stocks In Play: ${(briefing?.stocksInPlay || []).slice(0, 5).map((row) => row.symbol).join(', ') || 'None'}`,
     'Top Catalysts:',
     ...(topCatalystsText.length ? topCatalystsText : ['None']),

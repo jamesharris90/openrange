@@ -1,10 +1,11 @@
 const express = require('express');
 const { queryWithTimeout } = require('../db/pg');
 const { getStrategyPerformance } = require('../engines/strategyEvaluationEngine');
+const requireFeature = require('../middleware/requireFeature');
 
 const router = express.Router();
 
-router.get('/strategy/performance', async (req, res) => {
+router.get('/strategy/performance', requireFeature('strategy_evaluation'), async (req, res) => {
   try {
     const rows = await getStrategyPerformance();
     return res.json({ ok: true, items: rows });
@@ -13,24 +14,33 @@ router.get('/strategy/performance', async (req, res) => {
   }
 });
 
-router.get('/strategy/trades', async (req, res) => {
+router.get('/strategy/trades', requireFeature('strategy_evaluation'), async (req, res) => {
   const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
 
   try {
     const { rows } = await queryWithTimeout(
       `SELECT
-         id,
-         symbol,
-         strategy,
-         entry_price,
-         exit_price,
-         entry_time,
-         exit_time,
-         max_move,
-         result_percent,
-         created_at
-       FROM strategy_trades
-       ORDER BY COALESCE(exit_time, created_at) DESC NULLS LAST
+        t.id,
+         t.symbol,
+         t.strategy,
+         t.entry_price,
+         t.exit_price,
+         t.entry_time,
+         t.exit_time,
+         t.max_move,
+         t.result_percent,
+         t.created_at,
+         s.confidence,
+         COALESCE(s.catalyst_type, 'unknown') AS catalyst_type,
+         COALESCE(s.sector, q.sector, 'Unknown') AS sector,
+         CASE
+           WHEN t.entry_time IS NOT NULL AND t.exit_time IS NOT NULL THEN EXTRACT(EPOCH FROM (t.exit_time - t.entry_time)) / 3600.0
+           ELSE NULL
+         END AS hold_hours
+       FROM strategy_trades t
+       LEFT JOIN trade_signals s ON s.symbol = t.symbol
+       LEFT JOIN market_quotes q ON q.symbol = t.symbol
+      ORDER BY COALESCE(t.exit_time, t.created_at) DESC NULLS LAST
        LIMIT $1`,
       [limit],
       { timeoutMs: 7000, label: 'routes.strategy.trades', maxRetries: 0 }

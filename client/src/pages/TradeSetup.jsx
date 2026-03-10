@@ -28,7 +28,7 @@ export default function TradeSetup() {
       setLoading(true);
       setError('');
       try {
-        const payload = await apiJSON(`/api/signals/${encodeURIComponent(symbol)}`);
+        const payload = await apiJSON(`/api/signal/${encodeURIComponent(symbol)}`);
         if (!cancelled) setRow(payload && typeof payload === 'object' ? payload : null);
       } catch (err) {
         if (!cancelled) {

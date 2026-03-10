@@ -132,7 +132,8 @@ router.post('/login', async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
-      is_admin: user.is_admin
+      is_admin: user.is_admin,
+      plan: user.plan || ((user.is_admin === 1 || user.is_admin === true || user.is_admin === '1') ? 'admin' : 'free')
     }, JWT_SECRET, { expiresIn: '24h' });
 
     return res.json({
@@ -166,11 +167,23 @@ router.post('/dev-login', async (req, res) => {
 });
 
 // Auth middleware
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const token = req.get('Authorization')?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No token' });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const dbUser = await model.findById(decoded.id).catch(() => null);
+    if (!dbUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const isAdmin = dbUser.is_admin === 1 || dbUser.is_admin === true || dbUser.is_admin === '1';
+    req.user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      is_admin: isAdmin ? 1 : 0,
+      plan: String(dbUser.plan || (isAdmin ? 'admin' : 'free')).toLowerCase(),
+    };
+
     next();
   } catch (err) {
     res.status(401).json({ error: 'Invalid token' });

@@ -1,79 +1,87 @@
-# OpenRange Catalyst Intelligence Engine Report
+# OpenRange Catalyst Engine Report
 
-Date: 2026-03-04
+Date: 2026-03-08
 
-## Scope Completed
+## Implementation Summary
 
-- Added additive catalyst pipeline from `news_articles` to `trade_catalysts`.
-- Preserved existing ingestion workers, metrics engine, and strategy logic.
-- Added catalyst enrichment to `/api/setups` via `LEFT JOIN` latest catalyst per symbol.
-- Added `/api/catalysts` endpoint.
-- Added catalyst scheduler (`*/2 * * * *`).
-- Extended system health with `catalyst_count`.
+- Built `server/engines/catalystEngine.js` to parse `news_articles`, extract valid symbols, classify catalyst type, assign sentiment, score impact, and upsert into `news_catalysts`.
+- Integrated catalyst impact into `server/engines/stocksInPlayEngine.js` so signals are boosted when a catalyst exists in the last 24h.
+- Added `GET /api/intelligence/catalysts` in `server/routes/intelligence.js`.
+- Added morning brief integration in `server/engines/morningBriefEngine.js` and rendering in `server/services/emailService.js` with a dedicated **Top Catalysts** section.
 
-## Files Added
+## Classification + Scoring Rules
 
-- `server/migrations/create_trade_catalysts.sql`
-- `server/catalyst/catalyst_engine.js`
-- `server/catalyst/catalyst_scheduler.js`
-- `server/catalyst/run_catalyst.js`
-- `server/monitoring/catalystHealth.js`
+- Ticker extraction regex: `\b[A-Z]{2,5}\b`
+- Symbol validation source: `market_quotes.symbol`
+- Catalyst classes:
+	- earnings
+	- analyst upgrade
+	- analyst downgrade
+	- FDA approval
+	- government contract
+	- acquisition
+	- sector news
+	- macro news
+- Sentiment classes: `bullish`, `bearish`, `neutral`
+- Impact score map:
+	- earnings -> 9
+	- FDA approval -> 10
+	- analyst upgrade -> 6
+	- analyst downgrade -> 6
+	- government contract -> 8
+	- acquisition -> 7
+	- sector news -> 4
+	- macro news -> 3
 
-## Files Updated
+## Runtime Validation
 
-- `server/index.js`
-- `server/monitoring/systemHealth.js`
+- Catalyst engine run:
+	- headlines parsed: `83`
+	- tickers detected: `10`
+	- catalysts stored: `10`
+- Total catalysts currently in `news_catalysts`: `10`
+- Stocks in play run after boost integration:
+	- selected: `20`
+	- upserted: `20`
+	- signals boosted: `0`
+- API endpoint status:
+	- `GET /api/intelligence/catalysts` -> HTTP `200`
 
-## Catalyst Rules Implemented
+## Morning Brief Integration
 
-### Sentiment
+- Added query:
 
-- Positive keywords: `beat`, `upgrade`, `approval`, `partnership`
-- Negative keywords: `downgrade`, `lawsuit`, `recall`
-- Sentiment result: `positive`, `negative`, or `neutral`
+```sql
+SELECT symbol, catalyst_type, impact_score
+FROM news_catalysts
+ORDER BY impact_score DESC
+LIMIT 5
+```
 
-### Catalyst Scoring
+- Morning brief test run returned `topCatalysts: 5`.
+- Email template now renders a **Top Catalysts** section with ticker links and impact scores.
 
-- earnings = 5
-- FDA / approvals = 6
-- analyst upgrade = 4
-- general news = 2
+## What This Unlocks
 
-## Data Flow
+This engine upgrades OpenRange from raw headline ingestion to actionable catalyst intelligence.
 
-1. Read recent `news_articles` (last 24h, latest 2000 rows).
-2. Extract symbols from `news_articles.symbols` plus headline/summary uppercase token parsing.
-3. Match symbols to active `ticker_universe` only.
-4. Classify sentiment and catalyst type.
-5. UPSERT into `trade_catalysts` on `(symbol, headline, published_at, catalyst_type)`.
+The system can now identify **Stocks In Play** with explicit catalyst context, which is the entire game for day traders.
 
-## Verification
+## What Comes After This
 
-### Migration
+The next engine is the **Narrative Intelligence Engine**.
 
-- `trade_catalysts` table migration applied successfully.
+It should detect themes like:
 
-### Manual Engine Run
+- AI boom
+- Energy rally
+- Defense sector momentum
+- Rate cut narrative
 
-Command:
+Then link those narratives to:
 
-`cd server && node catalyst/run_catalyst.js`
+- sectors
+- stocks
+- signals
 
-Observed output:
-
-- `news_processed`: 158
-- `catalysts_detected`: 948
-- `catalysts_upserted`: 948
-- `runtimeMs`: 11858
-
-Distribution:
-
-- `general news`: 671
-- `earnings`: 199
-- `analyst upgrade`: 68
-- `FDA / approvals`: 10
-
-## Fail-Safe Behavior
-
-- Engine returns structured zeroed result with `error` if processing fails.
-- Scheduler cycle wraps engine in try/catch and logs failure without crashing service.
+This is the same strategic layer used by institutional desks and Bloomberg-style internal workflows.

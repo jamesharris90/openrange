@@ -100,6 +100,41 @@ async function generateSignalExplanations(signals = []) {
     : fallbackSignalExplanations(cleanSignals).explanations;
 }
 
+async function generateSignalStrengthNarrative(signal = {}) {
+  const fallback = `${signal?.symbol || 'Signal'} ${signal?.strategy || 'Setup'}: score supports continuation with catalyst and confirmation alignment.`;
+
+  const parsed = await requestJsonFromMcp({
+    systemPrompt: [
+      'You are OpenRange Intelligence MCP.',
+      'Explain why this trading signal is strong using the scoring breakdown and catalysts.',
+      'Return only valid JSON with key: narrative.',
+      'narrative should be concise and trader-focused.',
+    ].join(' '),
+    userPrompt: `Signal context: ${JSON.stringify(signal).slice(0, 4000)}`,
+    fallback: () => ({ narrative: fallback }),
+  });
+
+  return String(parsed?.narrative || '').trim() || fallback;
+}
+
+async function generateSignalScoreExplanation(signal = {}) {
+  const symbol = String(signal?.symbol || 'Signal').toUpperCase();
+  const fallback = `${symbol}: score is elevated due to volume participation, catalyst context, and confirmation quality. Watch opening liquidity and continuation above VWAP.`;
+
+  const parsed = await requestJsonFromMcp({
+    systemPrompt: [
+      'You are OpenRange Intelligence MCP.',
+      'Explain why this signal score is high in plain trading language.',
+      'Include catalysts, sector momentum, and what traders should monitor next.',
+      'Return only valid JSON with key: explanation.',
+    ].join(' '),
+    userPrompt: `Signal context: ${JSON.stringify(signal).slice(0, 5000)}`,
+    fallback: () => ({ explanation: fallback }),
+  });
+
+  return String(parsed?.explanation || '').trim() || fallback;
+}
+
 function fallbackMarketNarratives(payload = {}) {
   const themes = [
     { sector: 'AI', keywords: ['ai', 'artificial intelligence', 'nvda', 'amd', 'semiconductor'] },
@@ -184,4 +219,6 @@ module.exports = {
   generateMorningNarrative,
   generateSignalExplanations,
   generateMarketNarratives,
+  generateSignalStrengthNarrative,
+  generateSignalScoreExplanation,
 };

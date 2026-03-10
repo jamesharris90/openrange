@@ -24,6 +24,7 @@ router.get('/opportunities/top', async (req, res) => {
       `SELECT
         s.symbol,
         s.score,
+        s.confidence,
         COALESCE(s.gap_percent, 0) AS gap,
         COALESCE(s.rvol, 0) AS rvol,
         COALESCE(m.volume, q.volume, 0) AS volume,

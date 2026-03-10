@@ -20,7 +20,7 @@
 const express = require('express');
 
 const router       = express.Router();
-const authMiddleware = require('../middleware/auth');
+const requireFeature = require('../middleware/requireFeature');
 const cacheManager   = require('../data-engine/cacheManager');
 const { applyFilters, warpFilters } = require('../data-engine/filterEngine');
 const { getSpyState } = require('../data-engine/spyStateEngine');
@@ -132,7 +132,7 @@ function parseFilters(query) {
 // Route
 // ---------------------------------------------------------------------------
 
-router.get('/screener-v3', authMiddleware, async (req, res) => {
+router.get('/screener-v3', requireFeature('full_screener'), async (req, res) => {
   try {
     const spyState   = getSpyState();
     const baseFilters = parseFilters(req.query);

@@ -2,6 +2,10 @@ const express = require('express');
 const { pool } = require('../db/pg');
 const authMiddleware = require('../middleware/auth');
 const { bridgeNewsletterEmailToIntelNews } = require('../services/emailIntelBridge');
+const { ensureEarlyAccumulationTable } = require('../engines/earlyAccumulationEngine');
+const { ensureEarlySignalOutcomesTable } = require('../engines/earlySignalOutcomeEngine');
+const { ensureOrderFlowSignalsTable } = require('../engines/orderFlowImbalanceEngine');
+const { ensureSectorMomentumTable } = require('../engines/sectorMomentumEngine');
 
 const router = express.Router();
 
@@ -170,6 +174,92 @@ router.get('/api/intelligence/catalysts', async (req, res) => {
   } catch (err) {
     console.error('[intelligence] catalysts error:', err.message);
     return res.status(500).json({ ok: false, error: err.message || 'Failed to load catalysts' });
+  }
+});
+
+// GET /api/intelligence/early-accumulation — latest experimental pressure signals
+router.get('/api/intelligence/early-accumulation', async (req, res) => {
+  try {
+    await ensureEarlyAccumulationTable();
+    await ensureEarlySignalOutcomesTable();
+
+    const { rows } = await pool.query(
+      `SELECT
+         s.id,
+         s.symbol,
+         s.price,
+         s.volume,
+         s.avg_volume_30d,
+         s.relative_volume,
+         s.float_rotation,
+         s.liquidity_surge,
+         s.accumulation_score,
+         s.pressure_level,
+         s.sector,
+         s.detected_at,
+         o.max_move_percent
+       FROM early_accumulation_signals s
+       LEFT JOIN early_signal_outcomes o ON o.signal_id = s.id
+       ORDER BY s.accumulation_score DESC NULLS LAST, s.detected_at DESC NULLS LAST
+       LIMIT 20`
+    );
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    console.error('[intelligence] early-accumulation error:', err.message);
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load early accumulation signals' });
+  }
+});
+
+// GET /api/intelligence/order-flow — latest order-flow imbalance detections
+router.get('/api/intelligence/order-flow', async (req, res) => {
+  try {
+    await ensureOrderFlowSignalsTable();
+
+    const { rows } = await pool.query(
+      `SELECT
+         id,
+         symbol,
+         price,
+         relative_volume,
+         float_rotation,
+         liquidity_surge,
+         pressure_score,
+         pressure_level,
+         detected_at
+       FROM order_flow_signals
+       ORDER BY detected_at DESC NULLS LAST
+       LIMIT 50`
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    console.error('[intelligence] order-flow error:', err.message);
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load order-flow signals' });
+  }
+});
+
+// GET /api/intelligence/sector-momentum — latest sector momentum table
+router.get('/api/intelligence/sector-momentum', async (req, res) => {
+  try {
+    await ensureSectorMomentumTable();
+
+    const { rows } = await pool.query(
+      `SELECT
+         sector,
+         momentum_score,
+         avg_gap,
+         avg_rvol,
+         top_symbol,
+         updated_at
+       FROM sector_momentum
+       ORDER BY momentum_score DESC NULLS LAST
+       LIMIT 30`
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    console.error('[intelligence] sector-momentum error:', err.message);
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load sector momentum' });
   }
 });
 

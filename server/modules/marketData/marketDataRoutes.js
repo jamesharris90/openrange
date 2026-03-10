@@ -1,13 +1,22 @@
 const express = require('express');
 const axios = require('axios');
 const marketCache = require('../../cache/marketCache');
+const { queryWithTimeout } = require('../../db/pg');
 
 const router = express.Router();
 const FMP_BASE = 'https://financialmodelingprep.com';
 const FMP_KEY = process.env.FMP_API_KEY;
 
-const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', '^VIX'];
+const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', '^VIX', 'DX-Y.NYB', '^TNX'];
 const TICKER_TAPE_SYMBOLS = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'MSFT', 'AMD', 'META', 'AMZN'];
+const INDEX_TARGETS = [
+  { key: 'spy', symbol: 'SPY', aliases: ['SPY'] },
+  { key: 'qqq', symbol: 'QQQ', aliases: ['QQQ'] },
+  { key: 'iwm', symbol: 'IWM', aliases: ['IWM'] },
+  { key: 'vix', symbol: 'VIX', aliases: ['VIX', '^VIX'] },
+  { key: 'dxy', symbol: 'DXY', aliases: ['DXY', 'DX-Y.NYB'] },
+  { key: 'tenYear', symbol: '10Y', aliases: ['10Y', 'TNX', '^TNX', 'US10Y'] },
+];
 
 function toNum(value) {
   const n = Number(value);
@@ -138,29 +147,96 @@ router.get('/chart-mini/:symbol', async (req, res) => {
 });
 
 router.get('/indices', async (_req, res) => {
+  let quoteRows = [];
+  let dbRows = [];
+
   const apiKey = getApiKey();
-  if (!apiKey) {
-    return res.json([]);
+  try {
+    if (apiKey) {
+      quoteRows = await fetchQuotes(INDEX_SYMBOLS, apiKey);
+    }
+  } catch (_error) {
+    quoteRows = [];
   }
 
   try {
-    const rows = await fetchQuotes(INDEX_SYMBOLS, apiKey);
-    const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
-
-    const indices = INDEX_SYMBOLS.map((symbol) => {
-      const row = map.get(String(symbol).toUpperCase()) || {};
-      return {
-        symbol: symbol === '^VIX' ? 'VIX' : symbol,
-        price: toNum(row.price),
-        change: toNum(row.change),
-        changesPercentage: toNum(row.changesPercentage),
-      };
-    });
-
-    return res.json(indices);
+    const [metricsResult, quotesResult] = await Promise.all([
+      queryWithTimeout(
+      `SELECT
+         m.symbol,
+        NULL::numeric AS change,
+         COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+         COALESCE(m.price, q.price, 0) AS price
+       FROM market_metrics m
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       WHERE m.symbol = ANY($1::text[])
+       LIMIT 20`,
+      [['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y', 'TNX', '^TNX', 'DX-Y.NYB']],
+      { timeoutMs: 1200, label: 'market.routes.indices.metrics_fallback', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT
+           q.symbol,
+           NULL::numeric AS change,
+           COALESCE(q.change_percent, 0) AS change_percent,
+           q.price AS price
+         FROM market_quotes q
+         WHERE q.symbol = ANY($1::text[])
+         LIMIT 20`,
+        [['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y', 'TNX', '^TNX', 'DX-Y.NYB']],
+        { timeoutMs: 1200, label: 'market.routes.indices.quotes_fallback', maxRetries: 0 }
+      ),
+    ]);
+    dbRows = [...(metricsResult.rows || []), ...(quotesResult.rows || [])];
   } catch (_error) {
-    return res.json([]);
+    dbRows = [];
   }
+
+  const quoteMap = new Map((quoteRows || []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const dbMap = new Map((dbRows || []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+
+  const pick = (aliases) => {
+    for (const alias of aliases) {
+      const quote = quoteMap.get(String(alias).toUpperCase());
+      if (quote && Number.isFinite(Number(quote?.price))) {
+        return {
+          price: toNum(quote?.price),
+          change: toNum(quote?.change),
+          percent: toNum(quote?.changesPercentage),
+        };
+      }
+      const db = dbMap.get(String(alias).toUpperCase());
+      if (db && Number.isFinite(Number(db?.price))) {
+        return {
+          price: toNum(db?.price),
+          change: toNum(db?.change),
+          percent: toNum(db?.change_percent),
+        };
+      }
+    }
+    return { price: null, change: null, percent: null };
+  };
+
+  const keyed = {};
+  const indices = INDEX_TARGETS.map((target) => {
+    const normalized = pick(target.aliases);
+    keyed[target.key] = normalized;
+    return {
+      symbol: target.symbol,
+      price: normalized.price,
+      change: normalized.change,
+      changePercent: normalized.percent,
+      change_percent: normalized.percent,
+      percent: normalized.percent,
+    };
+  });
+
+  return res.json({
+    success: true,
+    degraded: quoteRows.length === 0,
+    indices,
+    ...keyed,
+  });
 });
 
 router.get('/ticker-tape', async (_req, res) => {

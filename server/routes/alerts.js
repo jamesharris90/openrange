@@ -1,8 +1,10 @@
 const express = require('express');
 const { pool } = require('../db/pg');
 const { runAlertCycle } = require('../alerts/alert_engine');
+const requireFeature = require('../middleware/requireFeature');
 
 const router = express.Router();
+router.use(requireFeature('alerts'));
 
 function requireUser(req, res) {
   if (!req.user?.id) {

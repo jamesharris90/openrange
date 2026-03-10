@@ -1,6 +1,15 @@
 const db = require('../db');
 const { getMcpClient } = require('../mcp/fmpClient');
 
+function toNum(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function classifyCatalyst(headline) {
   const h = String(headline || '').toLowerCase();
   if (/earnings|guidance|eps|revenue/.test(h)) return 'earnings';
@@ -16,6 +25,61 @@ function inferExpectedMove(headline) {
   if (!pct) return null;
   const value = Number(pct[1]);
   return Number.isFinite(value) ? value : null;
+}
+
+function buildScoreBreakdown({ headline, context, symbol }) {
+  const h = String(headline || '').toLowerCase();
+  const hasMacro = /fed|rates|cpi|inflation|treasury|macro|jobs/.test(h);
+  const hasMomentumWords = /surge|breakout|rally|momentum|strength|squeeze/.test(h);
+  const hasSentimentWords = /beat|miss|upgrade|downgrade|guidance|warning/.test(h);
+  const hasClusterWords = /ai|semiconductor|chip|software|energy|biotech|bank/.test(h);
+
+  const newsVolume = clamp((String(headline || '').length > 120 ? 0.34 : 0.26) + (symbol ? 0.03 : 0), 0.18, 0.4);
+  const sentiment = clamp((hasSentimentWords ? 0.2 : 0.12), 0.08, 0.25);
+  const clustering = clamp((hasClusterWords ? 0.22 : 0.15), 0.1, 0.26);
+  const macroAlignment = clamp((hasMacro ? 0.18 : 0.1), 0.06, 0.22);
+  const momentum = clamp((hasMomentumWords ? 0.17 : 0.11) + (toNum(context?.price) > 0 ? 0.01 : 0), 0.08, 0.22);
+
+  return {
+    newsVolume,
+    sentiment,
+    clustering,
+    macroAlignment,
+    momentum,
+  };
+}
+
+function inferNarrativeType(headline, symbol) {
+  const h = String(headline || '').toLowerCase();
+  if (/fed|rates|inflation|jobs|macro|treasury/.test(h)) return 'macro';
+  if (symbol) return 'single stock';
+  return 'sector';
+}
+
+function inferTimeHorizon(headline) {
+  const h = String(headline || '').toLowerCase();
+  if (/guidance|outlook|multi-year|long term|fiscal/.test(h)) return 'macro';
+  if (/earnings|upgrade|downgrade|catalyst/.test(h)) return 'swing';
+  return 'intraday';
+}
+
+function inferRegime(scoreBreakdown) {
+  const total = toNum(scoreBreakdown?.sentiment) + toNum(scoreBreakdown?.momentum) + toNum(scoreBreakdown?.macroAlignment);
+  if (total >= 0.5) return 'bullish';
+  if (total <= 0.3) return 'bearish';
+  return 'neutral';
+}
+
+async function ensureIntelNarrativeColumns() {
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS narrative TEXT`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS detected_symbols TEXT[]`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS catalyst_type TEXT`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS expected_move NUMERIC`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS score_breakdown JSONB`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS narrative_confidence NUMERIC`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS narrative_type TEXT`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS time_horizon TEXT`);
+  await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS regime TEXT`);
 }
 
 function parseQuoteData(quote) {
@@ -40,6 +104,7 @@ async function runIntelNarrativeEngine() {
   console.log('[INTEL] narrative engine running');
 
   try {
+    await ensureIntelNarrativeColumns();
     const client = await getMcpClient();
 
     const res = await db.query(`
@@ -73,6 +138,20 @@ async function runIntelNarrativeEngine() {
           context.marketCap = quoteData.marketCap;
         }
 
+        const scoreBreakdown = buildScoreBreakdown({ headline, context, symbol });
+        const confidence = clamp(
+          scoreBreakdown.newsVolume
+          + scoreBreakdown.sentiment
+          + scoreBreakdown.clustering
+          + scoreBreakdown.macroAlignment
+          + scoreBreakdown.momentum,
+          0,
+          1
+        );
+        const narrativeType = inferNarrativeType(headline, symbol);
+        const timeHorizon = inferTimeHorizon(headline);
+        const regime = inferRegime(scoreBreakdown);
+
         const narrative = `
 ${headline}
 
@@ -90,13 +169,23 @@ increase short-term volatility depending on broader market conditions.
            SET narrative = $1,
                detected_symbols = $2,
                catalyst_type = $3,
-               expected_move = $4
-           WHERE id = $5`,
+               expected_move = $4,
+               score_breakdown = $5,
+               narrative_confidence = $6,
+               narrative_type = $7,
+               time_horizon = $8,
+               regime = $9
+           WHERE id = $10`,
           [
             narrative,
             symbol ? [symbol] : null,
             classifyCatalyst(headline),
             inferExpectedMove(headline),
+            scoreBreakdown,
+            confidence,
+            narrativeType,
+            timeHorizon,
+            regime,
             row.id,
           ]
         );
@@ -113,4 +202,7 @@ increase short-term volatility depending on broader market conditions.
   }
 }
 
-module.exports = { runIntelNarrativeEngine };
+module.exports = {
+  runIntelNarrativeEngine,
+  buildScoreBreakdown,
+};

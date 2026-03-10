@@ -31,6 +31,7 @@ const { getCachedValue, setCachedValue } = require('./utils/responseCache');
 // New layered architecture pieces
 const loggingMiddleware = require('./middleware/logging');
 const authMiddleware = require('./middleware/auth');
+const requireFeature = require('./middleware/requireFeature');
 const { generalLimiter, registerLimiter } = require('./middleware/rateLimit');
 const usageMiddleware = require('./middleware/usage');
 const quotesRoutes = require('./routes/quotes');
@@ -71,10 +72,14 @@ const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
 const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
+const signalsRoutes = require('./routes/signals');
+const newsletterRoutes = require('./routes/newsletter');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const radarRoutes = require('./routes/radarRoutes');
 const briefingRoutes = require('./routes/briefingRoutes');
+const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
+const intelDetailsRoutes = require('./routes/intelDetails');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
@@ -104,6 +109,8 @@ const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
 const runMigrations = require('./db/runMigrations');
 const startEnginesSequentially = require('./system/startEngines');
+const { runSchemaGuard } = require('./system/schemaGuard');
+const { runFeatureBootstrap } = require('./system/featureBootstrap');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -1842,7 +1849,7 @@ app.get('/api/signals', async (req, res) => {
   }
 });
 
-app.get('/api/signals/:symbol', async (req, res) => {
+app.get('/api/signal/:symbol', async (req, res) => {
   try {
     const symbol = String(req.params.symbol || '').trim().toUpperCase();
     if (!symbol) return res.status(400).json({ success: false, error: 'symbol is required' });
@@ -1879,7 +1886,20 @@ app.get('/api/signals/:symbol', async (req, res) => {
       { label: 'api.signals.symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 150 }
     );
 
-    if (!rows.length) return res.status(404).json({ success: false, error: `No signal found for ${symbol}` });
+    if (!rows.length) {
+      return res.json({
+        success: false,
+        symbol,
+        strategy: null,
+        score: null,
+        class: null,
+        gap_percent: null,
+        relative_volume: null,
+        sector: null,
+        catalyst: 'No catalyst available',
+        status: 'not_found',
+      });
+    }
     return res.json(rows[0]);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load signal explanation' });
@@ -3928,6 +3948,8 @@ app.get('/api/intelligence/summary', async (req, res) => {
 
 // Intelligence ingestion — own key auth, must be before JWT middleware
 app.use(intelligenceRoutes);
+app.use(newsletterRoutes);
+app.use(adminFeatureAccessRoutes);
 
 // General rate limiting for other endpoints (new wrapper)
 app.use(generalLimiter);
@@ -3941,6 +3963,8 @@ app.use('/api', alertsRoutes);
 // Top opportunities feed (protected by global auth middleware above)
 app.use('/api', opportunitiesRoutes);
 app.use('/api', strategyIntelligenceRoutes);
+app.use('/api', signalsRoutes);
+app.use('/api', intelDetailsRoutes);
 
 app.post('/api/intelligence/news/run', async (req, res) => {
   try {
@@ -3954,7 +3978,7 @@ app.post('/api/intelligence/news/run', async (req, res) => {
 // Broker abstraction routes (monitoring-only)
 app.use(brokerRoutes);
 
-app.post('/api/gpt/analyse-cockpit', async (req, res) => {
+app.post('/api/gpt/analyse-cockpit', requireFeature('trading_cockpit'), async (req, res) => {
   try {
     const screenshotBase64 = String(req.body?.screenshotBase64 || '');
     const metadata = req.body?.metadata || {};
@@ -4354,6 +4378,22 @@ if (process.env.NODE_ENV === 'production') {
     console.log('Database migrations complete');
   } catch (err) {
     console.error('Migration system failed', err);
+  }
+
+  try {
+    console.log('Running schema guard...');
+    await runSchemaGuard();
+    console.log('Schema guard complete');
+  } catch (err) {
+    console.error('Schema guard failed', err);
+  }
+
+  try {
+    console.log('Running feature bootstrap...');
+    await runFeatureBootstrap();
+    console.log('Feature bootstrap complete');
+  } catch (err) {
+    console.error('Feature bootstrap failed', err);
   }
 
   // Start daily review cron

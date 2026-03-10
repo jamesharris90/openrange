@@ -42,19 +42,21 @@ function Sparkline({ price, changePercent }) {
 
 export default function MarketIndexCard({ row }) {
   const symbol = String(row?.symbol || '--').toUpperCase();
-  const price = Number(row?.price || 0);
-  const change = Number(row?.change_percent || 0);
-  const up = change >= 0;
+  const price = Number(row?.price);
+  const change = Number(row?.change_percent ?? row?.changePercent ?? row?.percent);
+  const hasPrice = Number.isFinite(price);
+  const hasChange = Number.isFinite(change);
+  const up = hasChange ? change >= 0 : true;
 
   return (
     <article className="or-card-ui">
       <div className="flex items-center justify-between">
         <TickerLink symbol={symbol} className="text-sm font-semibold" />
-        <span className={`text-xs ${up ? 'text-emerald-400' : 'text-rose-400'}`}>{up ? '▲' : '▼'}</span>
+        <span className={`text-xs ${hasChange ? (up ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-400'}`}>{hasChange ? (up ? '▲' : '▼') : '•'}</span>
       </div>
-      <div className="mt-1 text-lg font-semibold">{Number.isFinite(price) ? price.toFixed(2) : '--'}</div>
-      <div className={`text-xs ${up ? 'text-emerald-400' : 'text-rose-400'}`}>{up ? '+' : ''}{change.toFixed(2)}%</div>
-      <div className="mt-2"><Sparkline price={price} changePercent={change} /></div>
+      <div className="mt-1 text-lg font-semibold">{hasPrice ? price.toFixed(2) : '--'}</div>
+      <div className={`text-xs ${hasChange ? (up ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-400'}`}>{hasChange ? `${up ? '+' : ''}${change.toFixed(2)}%` : '--'}</div>
+      <div className="mt-2"><Sparkline price={hasPrice ? price : null} changePercent={hasChange ? change : null} /></div>
     </article>
   );
 }

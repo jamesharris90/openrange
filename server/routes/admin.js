@@ -4,14 +4,12 @@ const usageStore = require('../utils/usageStore');
 const market = require('../services/marketDataService');
 const db = require('../db');
 const { POLYGON_API_KEY, FINVIZ_NEWS_TOKEN, FINNHUB_API_KEY, NODE_ENV } = require('../utils/config');
+const requireAdmin = require('../middleware/requireAdmin');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 
 const router = express.Router();
 
-router.get('/api/admin/stats', async (req, res) => {
-  if (!req.user || !req.user.is_admin) {
-    return res.status(403).json({ error: 'Admin only' });
-  }
+router.get('/api/admin/stats', requireAdmin, async (req, res) => {
   const cacheStats = cache.getStats();
   const usage = usageStore.snapshot();
   const usageHour = await db.getUsage({ minutes: 60 });
@@ -55,10 +53,7 @@ router.get('/api/admin/stats', async (req, res) => {
   });
 });
 
-router.get('/api/admin/usage', async (req, res) => {
-  if (!req.user || !req.user.is_admin) {
-    return res.status(403).json({ error: 'Admin only' });
-  }
+router.get('/api/admin/usage', requireAdmin, async (req, res) => {
   const windowMinutes = Math.min(parseInt(req.query.minutes, 10) || 60, 24 * 60);
   const usage = await db.getUsage({ minutes: windowMinutes });
   res.json(usage);

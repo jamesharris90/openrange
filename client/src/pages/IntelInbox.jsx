@@ -5,13 +5,19 @@ import SkeletonCard from '../components/ui/SkeletonCard';
 import { apiJSON } from '../config/api';
 import TickerLink from '../components/shared/TickerLink';
 import MiniSymbolChart from '../components/charts/MiniSymbolChart';
+import IntelDetailPanel from '../components/intelligence/IntelDetailPanel';
+import { useNavigate } from 'react-router-dom';
 
 export default function IntelInbox() {
+  const navigate = useNavigate();
   const [selectedSymbol, setSelectedSymbol] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [narratives, setNarratives] = useState([]);
+  const [signals, setSignals] = useState([]);
   const [narrativeRegime, setNarrativeRegime] = useState('Neutral');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailData, setDetailData] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +67,36 @@ export default function IntelInbox() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSignals() {
+      try {
+        const payload = await apiJSON('/api/opportunities/top?limit=8');
+        if (cancelled) return;
+        setSignals(Array.isArray(payload?.items) ? payload.items : []);
+      } catch {
+        if (!cancelled) setSignals([]);
+      }
+    }
+
+    loadSignals();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function openIntelPanel(token) {
+    try {
+      const payload = await apiJSON(`/api/intel/details/${encodeURIComponent(token)}`);
+      setDetailData(payload || null);
+      setDetailOpen(true);
+    } catch {
+      setDetailData(null);
+      setDetailOpen(true);
+    }
+  }
+
   return (
     <PageContainer className="space-y-3">
       <Card>
@@ -98,7 +134,12 @@ export default function IntelInbox() {
         ) : (
           <div className="space-y-2">
             {narratives.slice(0, 6).map((row, idx) => (
-              <div key={`${row?.sector || 's'}-${idx}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
+              <button
+                key={`${row?.sector || 's'}-${idx}`}
+                type="button"
+                onClick={() => openIntelPanel(`sector:${String(row?.sector || 'market').toLowerCase()}`)}
+                className="w-full rounded border border-[var(--border-color)] p-2 text-left text-sm hover:bg-[var(--bg-card-hover)]"
+              >
                 <div className="flex items-center justify-between">
                   <strong>{row?.sector || 'Market'}</strong>
                   <span className="muted text-xs">Confidence {Number(row?.confidence || 0).toFixed(2)}</span>
@@ -107,7 +148,34 @@ export default function IntelInbox() {
                 <div className="muted mt-1 text-xs">
                   Affected: {Array.isArray(row?.affected_symbols) && row.affected_symbols.length ? row.affected_symbols.join(', ') : 'N/A'}
                 </div>
-              </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="m-0 text-sm">Signal Items</h3>
+          <span className="muted text-xs">Click for full intelligence detail</span>
+        </div>
+        {!signals.length ? (
+          <div className="muted text-sm">No active signal items right now.</div>
+        ) : (
+          <div className="space-y-2">
+            {signals.map((row, idx) => (
+              <button
+                key={`${row?.symbol || 'sig'}-${idx}`}
+                type="button"
+                onClick={() => openIntelPanel(`signal:${String(row?.symbol || '').toUpperCase()}`)}
+                className="w-full rounded border border-[var(--border-color)] p-2 text-left hover:bg-[var(--bg-card-hover)]"
+              >
+                <div className="flex items-center justify-between">
+                  <strong>{row?.symbol || '--'}</strong>
+                  <span className="muted text-xs">Score {Number(row?.score || 0).toFixed(2)}</span>
+                </div>
+                <div className="muted text-xs">{row?.strategy || 'Setup'} • {row?.confidence || 'N/A'}</div>
+              </button>
             ))}
           </div>
         )}
@@ -125,12 +193,10 @@ export default function IntelInbox() {
         ) : (
           <div className="space-y-2">
             {items.map((item, index) => (
-              <a
+              <button
                 key={`${item?.url || 'n'}-${index}`}
-                href={item?.url || '#'}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded border border-[var(--border-color)] p-2 text-sm hover:bg-[var(--bg-card-hover)]"
+                onClick={() => openIntelPanel(`news:${String(item?.symbol || 'MARKET').toUpperCase()}`)}
+                className="block w-full rounded border border-[var(--border-color)] p-2 text-left text-sm hover:bg-[var(--bg-card-hover)]"
               >
                 <div className="flex items-center justify-between gap-2">
                   <TickerLink symbol={String(item?.symbol || 'MARKET').toUpperCase()} />
@@ -141,11 +207,18 @@ export default function IntelInbox() {
                 <div className="mt-1">
                   <MiniSymbolChart symbol={String(item?.symbol || '').toUpperCase()} />
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         )}
       </Card>
+
+      <IntelDetailPanel
+        open={detailOpen}
+        detail={detailData}
+        onClose={() => setDetailOpen(false)}
+        onOpenSetup={() => navigate('/strategy-evaluation')}
+      />
     </PageContainer>
   );
 }

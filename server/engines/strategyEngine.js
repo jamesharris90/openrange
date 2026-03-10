@@ -69,13 +69,46 @@ async function ensureStrategySignalsTable() {
     [],
     { timeoutMs: 5000, label: 'engines.strategy.ensure_table', maxRetries: 0 }
   );
+
+  // Clean legacy duplicate/null symbols before enforcing ON CONFLICT uniqueness.
+  await queryWithTimeout(
+    `DELETE FROM strategy_signals
+     WHERE symbol IS NULL OR btrim(symbol) = ''`,
+    [],
+    { timeoutMs: 5000, label: 'engines.strategy.cleanup_null_symbols', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `DELETE FROM strategy_signals t
+     USING (
+       SELECT ctid,
+              ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY updated_at DESC NULLS LAST, ctid DESC) AS rn
+       FROM strategy_signals
+       WHERE symbol IS NOT NULL AND btrim(symbol) <> ''
+     ) d
+     WHERE t.ctid = d.ctid
+       AND d.rn > 1`,
+    [],
+    { timeoutMs: 7000, label: 'engines.strategy.dedupe_symbols', maxRetries: 0 }
+  );
+
+  try {
+    await queryWithTimeout(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_strategy_signals_symbol_unique ON strategy_signals(symbol)',
+      [],
+      { timeoutMs: 5000, label: 'engines.strategy.ensure_symbol_unique_idx', maxRetries: 0 }
+    );
+  } catch (error) {
+    logger.warn('Unable to enforce strategy_signals symbol uniqueness', { error: error.message });
+  }
 }
 
 async function runStrategyEngine() {
   const startedAt = Date.now();
-  await ensureStrategySignalsTable();
+  try {
+    await ensureStrategySignalsTable();
 
-  const { rows } = await queryWithTimeout(
+    const { rows } = await queryWithTimeout(
     `SELECT
       tu.symbol,
       COALESCE(tu.price, m.price) AS price,
@@ -98,9 +131,9 @@ async function runStrategyEngine() {
     { timeoutMs: 15000, label: 'engines.strategy.select', maxRetries: 0 }
   );
 
-  let classified = 0;
+    let classified = 0;
 
-  for (const row of rows) {
+    for (const row of rows) {
     const strategy = determineStrategy(row);
     if (!strategy) continue;
 
@@ -113,7 +146,7 @@ async function runStrategyEngine() {
 
     if (!className) continue;
 
-    await queryWithTimeout(
+      await queryWithTimeout(
       `INSERT INTO strategy_signals (
         symbol,
         strategy,
@@ -151,21 +184,31 @@ async function runStrategyEngine() {
       { timeoutMs: 5000, label: 'engines.strategy.upsert', maxRetries: 0 }
     );
 
-    classified += 1;
+      classified += 1;
+    }
+
+    const runtimeMs = Date.now() - startedAt;
+    logger.info('Strategy engine complete', {
+      universeSymbols: rows.length,
+      classified,
+      runtimeMs,
+    });
+
+    return {
+      universeSymbols: rows.length,
+      classified,
+      runtimeMs,
+    };
+  } catch (error) {
+    const runtimeMs = Date.now() - startedAt;
+    logger.error('Strategy engine failed', { error: error.message, runtimeMs });
+    return {
+      universeSymbols: 0,
+      classified: 0,
+      runtimeMs,
+      error: error.message,
+    };
   }
-
-  const runtimeMs = Date.now() - startedAt;
-  logger.info('Strategy engine complete', {
-    universeSymbols: rows.length,
-    classified,
-    runtimeMs,
-  });
-
-  return {
-    universeSymbols: rows.length,
-    classified,
-    runtimeMs,
-  };
 }
 
 module.exports = {

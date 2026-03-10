@@ -12,6 +12,8 @@ async function runMetricsEngine() {
       ADD COLUMN IF NOT EXISTS relative_volume NUMERIC,
       ADD COLUMN IF NOT EXISTS volume BIGINT,
       ADD COLUMN IF NOT EXISTS avg_volume_30d NUMERIC,
+      ADD COLUMN IF NOT EXISTS float_shares NUMERIC,
+      ADD COLUMN IF NOT EXISTS atr_percent NUMERIC,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`,
     [],
     { timeoutMs: 5000, label: 'engines.metricsEngine.ensure_columns', maxRetries: 0 }
@@ -28,7 +30,8 @@ async function runMetricsEngine() {
     `SELECT
        mq.symbol,
        mq.price,
-       mq.volume,
+      mq.volume,
+      mq.market_cap,
        avg30.avg_volume_30d,
        CASE
          WHEN pc.previous_close IS NOT NULL
@@ -50,7 +53,19 @@ async function runMetricsEngine() {
               AND mq.volume IS NOT NULL
            THEN mq.volume::numeric / avg30.avg_volume_30d
          ELSE NULL
-       END AS relative_volume
+       END AS relative_volume,
+       CASE
+         WHEN COALESCE(mq.market_cap, 0) > 0 AND COALESCE(mq.price, 0) > 0
+           THEN mq.market_cap / mq.price
+         ELSE NULL
+       END AS float_shares,
+       CASE
+         WHEN COALESCE(mq.price, 0) > 0
+              AND COALESCE(t.high_price, 0) > 0
+              AND COALESCE(t.low_price, 0) > 0
+           THEN ((t.high_price - t.low_price) / mq.price) * 100
+         ELSE NULL
+       END AS atr_percent
      FROM market_quotes mq
      LEFT JOIN LATERAL (
        SELECT d.close AS previous_close
@@ -61,7 +76,10 @@ async function runMetricsEngine() {
        LIMIT 1
      ) pc ON TRUE
      LEFT JOIN LATERAL (
-       SELECT d.open AS open_price
+       SELECT
+         d.open AS open_price,
+         d.high AS high_price,
+         d.low AS low_price
        FROM daily_ohlc d
        WHERE d.symbol = mq.symbol
          AND d.date = CURRENT_DATE
@@ -99,6 +117,8 @@ async function runMetricsEngine() {
   const relativeVolumes = rows.map((row) => row.relative_volume);
   const volumes = rows.map((row) => row.volume);
   const avgVolumes = rows.map((row) => row.avg_volume_30d);
+  const floatShares = rows.map((row) => row.float_shares);
+  const atrPercents = rows.map((row) => row.atr_percent);
 
   await queryWithTimeout(
     `INSERT INTO market_metrics (
@@ -109,6 +129,8 @@ async function runMetricsEngine() {
         relative_volume,
         volume,
         avg_volume_30d,
+        float_shares,
+        atr_percent,
         updated_at
       )
       SELECT *
@@ -121,6 +143,8 @@ async function runMetricsEngine() {
           unnest($5::numeric[]) AS relative_volume,
           unnest($6::bigint[]) AS volume,
           unnest($7::numeric[]) AS avg_volume_30d,
+            unnest($8::numeric[]) AS float_shares,
+            unnest($9::numeric[]) AS atr_percent,
           now() AS updated_at
       ) incoming
       ON CONFLICT(symbol)
@@ -131,8 +155,10 @@ async function runMetricsEngine() {
         relative_volume = EXCLUDED.relative_volume,
         volume = EXCLUDED.volume,
         avg_volume_30d = EXCLUDED.avg_volume_30d,
+        float_shares = COALESCE(EXCLUDED.float_shares, market_metrics.float_shares),
+        atr_percent = COALESCE(EXCLUDED.atr_percent, market_metrics.atr_percent),
         updated_at = now()`,
-    [symbols, prices, changePercents, gapPercents, relativeVolumes, volumes, avgVolumes],
+      [symbols, prices, changePercents, gapPercents, relativeVolumes, volumes, avgVolumes, floatShares, atrPercents],
     { timeoutMs: 15000, label: 'engines.metricsEngine.batch.1', maxRetries: 0 }
   );
 

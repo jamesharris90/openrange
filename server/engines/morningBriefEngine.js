@@ -44,26 +44,25 @@ async function ensureMorningBriefingsTable() {
 async function getSignals() {
   const { rows } = await queryWithTimeout(
     `SELECT
-       dedup.symbol,
-       dedup.strategy,
-       dedup.class,
-       dedup.score,
-       dedup.updated_at,
+       s.symbol,
+       s.strategy,
+       s.score,
+       s.confidence,
+       s.narrative,
+       COALESCE(s.catalyst_type, c.catalyst_type, 'unknown') AS catalyst_type,
+       s.updated_at,
        COALESCE(m.relative_volume, 0) AS rvol
-     FROM (
-       SELECT DISTINCT ON (s.symbol)
-         s.symbol,
-         s.strategy,
-         s.class,
-         s.score,
-         s.updated_at
-       FROM strategy_signals s
-       WHERE s.updated_at >= NOW() - interval '24 hours'
-       ORDER BY s.symbol, s.score DESC NULLS LAST, s.updated_at DESC NULLS LAST
-     ) dedup
-     LEFT JOIN market_metrics m ON m.symbol = dedup.symbol
-     ORDER BY dedup.score DESC NULLS LAST
-     LIMIT 12`,
+     FROM trade_signals s
+     LEFT JOIN market_metrics m ON m.symbol = s.symbol
+     LEFT JOIN LATERAL (
+       SELECT nc.catalyst_type
+       FROM news_catalysts nc
+       WHERE nc.symbol = s.symbol
+       ORDER BY nc.published_at DESC NULLS LAST
+       LIMIT 1
+     ) c ON TRUE
+     ORDER BY s.score DESC NULLS LAST
+     LIMIT 5`,
     [],
     { timeoutMs: 7000, label: 'engines.morning_brief.signals', maxRetries: 0 }
   );

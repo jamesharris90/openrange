@@ -80,7 +80,7 @@ export default function SetupIntelligencePanel({ symbol, levels, indicators, can
       setLoading(true);
       try {
         const [signalRes, expectedRes, quoteRes, trendRes] = await Promise.all([
-          authFetch(`/api/signals/${encodeURIComponent(symbol)}`),
+          authFetch(`/api/signal/${encodeURIComponent(symbol)}`),
           authFetch(`/api/expected-move?symbol=${encodeURIComponent(symbol)}`),
           authFetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`),
           authFetch(`/api/chart/trend/${encodeURIComponent(symbol)}`),
