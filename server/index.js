@@ -2192,59 +2192,31 @@ app.get('/api/market/sector-strength', async (req, res) => {
 
   try {
     const { rows } = await queryWithTimeout(
-      `WITH base AS (
+      `WITH ranked AS (
          SELECT
            COALESCE(q.sector, 'Unknown') AS sector,
-           m.symbol,
+           q.symbol,
            COALESCE(q.market_cap, 0) AS market_cap,
-           COALESCE(m.volume, q.volume, 0) AS volume,
-           COALESCE(m.relative_volume, 0) AS relative_volume,
-           COALESCE(m.change_percent, q.change_percent, 0) AS price_change
-         FROM market_metrics m
-         LEFT JOIN market_quotes q ON q.symbol = m.symbol
-       ),
-       sector_agg AS (
-         SELECT
-           sector,
-           SUM(market_cap)::numeric AS market_cap,
-           SUM(volume)::bigint AS volume,
-           AVG(relative_volume)::numeric AS relative_volume,
-           AVG(price_change)::numeric AS price_change
-         FROM base
-         GROUP BY sector
-       ),
-       ticker_ranked AS (
-         SELECT
-           b.*,
+           COALESCE((to_jsonb(m)->>'change_percent')::numeric, q.change_percent, m.gap_percent, 0) AS pct_move,
            ROW_NUMBER() OVER (
-             PARTITION BY b.sector
-             ORDER BY COALESCE(b.volume, 0) DESC NULLS LAST, COALESCE(b.relative_volume, 0) DESC NULLS LAST
-           ) AS rank_in_sector
-         FROM base b
+             PARTITION BY COALESCE(q.sector, 'Unknown')
+             ORDER BY COALESCE(q.market_cap, 0) DESC NULLS LAST
+           ) AS sector_rank
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+       ),
+       top5 AS (
+         SELECT *
+         FROM ranked
+         WHERE sector_rank <= 5
        )
        SELECT
-         s.sector,
-         s.market_cap,
-         s.volume,
-         s.relative_volume,
-         s.price_change,
-         COALESCE(
-           jsonb_agg(
-             jsonb_build_object(
-               'symbol', t.symbol,
-               'market_cap', t.market_cap,
-               'volume', t.volume,
-               'relative_volume', t.relative_volume,
-               'price_change', t.price_change
-             )
-             ORDER BY t.volume DESC NULLS LAST
-           ) FILTER (WHERE t.rank_in_sector <= 25),
-           '[]'::jsonb
-         ) AS tickers
-       FROM sector_agg s
-       LEFT JOIN ticker_ranked t ON t.sector = s.sector
-       GROUP BY s.sector, s.market_cap, s.volume, s.relative_volume, s.price_change
-       ORDER BY s.market_cap DESC NULLS LAST`,
+         sector,
+         ROUND(AVG(pct_move)::numeric, 2) AS strength,
+         ARRAY_REMOVE(ARRAY_AGG(symbol ORDER BY pct_move DESC), NULL) AS leaders
+       FROM top5
+       GROUP BY sector
+       ORDER BY strength DESC NULLS LAST`,
       [],
       { label: 'api.market.sector_strength', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
     );
@@ -2631,52 +2603,162 @@ app.get('/api/market-narrative', async (req, res) => {
   }
 });
 
+async function calculateSectorStrength(sectorName) {
+  if (!sectorName) {
+    return { sector: 'Unknown', strength: 0, leaders: [] };
+  }
+
+  const { rows } = await queryWithTimeout(
+    `SELECT
+       q.symbol,
+       COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, q.change_percent, 0) AS pct_move,
+       COALESCE(q.market_cap, 0) AS market_cap
+     FROM market_quotes q
+     LEFT JOIN market_metrics m ON m.symbol = q.symbol
+     WHERE COALESCE(q.sector, '') ILIKE $1
+     ORDER BY COALESCE(q.market_cap, 0) DESC NULLS LAST
+     LIMIT 5`,
+    [`%${sectorName}%`],
+    { label: 'api.intelligence.sector_strength.calc', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
+  );
+
+  if (!rows.length) {
+    return { sector: sectorName, strength: 0, leaders: [] };
+  }
+
+  const strength = rows.reduce((sum, row) => sum + Number(row?.pct_move || 0), 0) / rows.length;
+  return {
+    sector: sectorName,
+    strength: Number(strength.toFixed(2)),
+    leaders: rows.slice(0, 3).map((row) => String(row?.symbol || '').toUpperCase()).filter(Boolean),
+  };
+}
+
 app.get('/api/intelligence/market-narrative', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT narrative, regime, created_at
-       FROM market_narratives
-       ORDER BY created_at DESC
-       LIMIT 1`
-    );
+    const [marketRowsRes, sectorRes, catalystRes] = await Promise.all([
+      queryWithTimeout(
+        `SELECT
+           s.symbol,
+           COALESCE((to_jsonb(m)->>'close')::numeric, (to_jsonb(m)->>'price')::numeric, q.price, 0) AS close,
+           COALESCE((to_jsonb(m)->>'prev_close')::numeric, NULLIF(q.price, 0) / (1 + COALESCE(q.change_percent, 0) / 100.0), 0) AS prev_close,
+           COALESCE((to_jsonb(m)->>'change_percent')::numeric, q.change_percent, 0) AS fallback_change
+         FROM (VALUES ('SPY'), ('VIX')) AS s(symbol)
+         LEFT JOIN market_metrics m ON m.symbol = s.symbol
+         LEFT JOIN market_quotes q ON q.symbol = s.symbol`,
+        [],
+        { label: 'api.intelligence.market_narrative.market_inputs', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 120 }
+      ),
+      queryWithTimeout(
+        `WITH sector_agg AS (
+           SELECT
+             COALESCE(q.sector, 'Unknown') AS sector,
+             AVG(COALESCE((to_jsonb(m)->>'change_percent')::numeric, q.change_percent, m.gap_percent, 0)) AS avg_move,
+             SUM(COALESCE(q.market_cap, 0)) AS mcap
+           FROM market_quotes q
+           LEFT JOIN market_metrics m ON m.symbol = q.symbol
+           WHERE q.sector IS NOT NULL
+           GROUP BY COALESCE(q.sector, 'Unknown')
+         )
+         SELECT sector, avg_move
+         FROM sector_agg
+         ORDER BY avg_move DESC NULLS LAST, mcap DESC NULLS LAST
+         LIMIT 1`,
+        [],
+        { label: 'api.intelligence.market_narrative.sector', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 120 }
+      ),
+      queryWithTimeout(
+        `SELECT symbol, headline, url, source, published_at
+         FROM news_articles
+         ORDER BY published_at DESC NULLS LAST
+         LIMIT 3`,
+        [],
+        { label: 'api.intelligence.market_narrative.catalyst', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 120 }
+      ),
+    ]);
 
-    const latest = rows?.[0] || null;
-    if (!latest) {
-      return res.json({ sentiment: 'Neutral', narrative: 'No market narrative available.', confidence: 0, created_at: null });
-    }
+    const marketRows = marketRowsRes?.rows || [];
+    const spy = marketRows.find((row) => String(row?.symbol || '').toUpperCase() === 'SPY');
+    const vix = marketRows.find((row) => String(row?.symbol || '').toUpperCase() === 'VIX');
+    const strongestSector = sectorRes?.rows?.[0]?.sector || 'Mixed';
+    const strongestSectorInfo = await calculateSectorStrength(strongestSector);
+    const topCatalyst = catalystRes?.rows?.[0] || null;
 
-    let narrativeText = latest.narrative;
-    if (typeof narrativeText === 'string') {
-      try {
-        const parsed = JSON.parse(narrativeText);
-        if (Array.isArray(parsed) && parsed[0]?.narrative) narrativeText = parsed[0].narrative;
-      } catch (_error) {
-        // keep raw narrative text when not JSON
-      }
-    }
+    const spyPct = spy && Number(spy.prev_close) > 0
+      ? ((Number(spy.close || 0) - Number(spy.prev_close || 0)) / Number(spy.prev_close || 1)) * 100
+      : Number(spy?.fallback_change || 0);
+    const vixPct = vix && Number(vix.prev_close) > 0
+      ? ((Number(vix.close || 0) - Number(vix.prev_close || 0)) / Number(vix.prev_close || 1)) * 100
+      : Number(vix?.fallback_change || 0);
+
+    let sentiment = 'Neutral';
+    if (spyPct > 0 && vixPct <= 0) sentiment = 'Risk-On';
+    if (spyPct < 0 && vixPct > 0) sentiment = 'Risk-Off';
+
+    const catalystText = topCatalyst
+      ? `${String(topCatalyst.symbol || '').toUpperCase()} ${topCatalyst.headline || 'in focus'}`
+      : 'no dominant overnight catalyst';
+
+    const narrative = `SPY closed ${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(2)}% while VIX moved ${vixPct >= 0 ? '+' : ''}${vixPct.toFixed(2)}%. ${strongestSector} leads this morning, with ${catalystText}.`;
 
     return res.json({
-      sentiment: latest.regime || 'Neutral',
-      narrative: narrativeText || 'No narrative available.',
-      confidence: 0.72,
-      created_at: latest.created_at,
+      sentiment,
+      narrative,
+      links: (catalystRes?.rows || []).map((row) => ({
+        headline: row?.headline || '',
+        url: row?.url || null,
+        source: row?.source || 'News',
+      })),
+      context: {
+        spy_previous_close_pct: Number(spyPct.toFixed(2)),
+        vix_change_pct: Number(vixPct.toFixed(2)),
+        strongest_sector: strongestSector,
+        strongest_sector_detail: strongestSectorInfo,
+      },
     });
   } catch (err) {
     logger.error('intelligence market narrative endpoint db error', { error: err.message });
-    return res.json({ sentiment: 'Neutral', narrative: 'Narrative unavailable.', confidence: 0 });
+    return res.json({ sentiment: 'Neutral', narrative: 'Narrative unavailable.', links: [] });
   }
 });
 
 app.get('/api/intelligence/top-opportunity', async (_req, res) => {
   try {
     const { rows } = await queryWithTimeout(
-      `WITH sector_momentum_latest AS (
-         SELECT DISTINCT ON (sector)
-           sector,
-           momentum_score
-         FROM sector_momentum
-         ORDER BY sector, updated_at DESC NULLS LAST
-       ), joined AS (
+      `WITH gap_leaders AS (
+         SELECT symbol
+         FROM market_metrics
+         ORDER BY COALESCE(gap_percent, 0) DESC NULLS LAST
+         LIMIT 12
+       ),
+       momentum_leaders AS (
+         SELECT symbol
+         FROM market_metrics
+         ORDER BY COALESCE(relative_volume, 0) DESC NULLS LAST
+         LIMIT 12
+       ),
+       strategy_leaders AS (
+         SELECT symbol
+         FROM trade_setups
+         ORDER BY COALESCE((to_jsonb(trade_setups)->>'strategy_score')::numeric, (to_jsonb(trade_setups)->>'score')::numeric, 0) DESC NULLS LAST
+         LIMIT 12
+       ),
+       candidate_universe AS (
+         SELECT symbol FROM gap_leaders
+         UNION
+         SELECT symbol FROM momentum_leaders
+         UNION
+         SELECT symbol FROM strategy_leaders
+       ),
+       sector_strength_agg AS (
+         SELECT
+           COALESCE(q.sector, 'Unknown') AS sector,
+           AVG(COALESCE((to_jsonb(m)->>'change_percent')::numeric, q.change_percent, m.gap_percent, 0)) AS avg_change
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+         GROUP BY COALESCE(q.sector, 'Unknown')
+       ),
+       joined AS (
          SELECT
            ts.symbol,
            COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
@@ -2684,20 +2766,24 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
            COALESCE(mm.relative_volume, ts.relative_volume, 0) AS relative_volume,
            COALESCE((to_jsonb(mm)->>'price_change_percent')::numeric, (to_jsonb(mm)->>'change_percent')::numeric, mm.gap_percent, ts.gap_percent, 0) AS price_change_percent,
            COALESCE(mm.price, 0) AS price,
+           COALESCE(mm.atr, 0) AS atr,
+           COALESCE(ts.float_rotation, 0) AS float_size,
            COALESCE(tc.score, 0) AS catalyst_strength,
-           COALESCE(sm.momentum_score, 0) AS sector_momentum,
+           COALESCE(ssa.avg_change, 0) AS sector_strength,
            CASE
-             WHEN COALESCE((to_jsonb(mm)->>'price_change_percent')::numeric, (to_jsonb(mm)->>'change_percent')::numeric, mm.gap_percent, ts.gap_percent, 0) > 0 THEN 8
-             ELSE 0
+             WHEN COALESCE((to_jsonb(mm)->>'price_change_percent')::numeric, (to_jsonb(mm)->>'change_percent')::numeric, mm.gap_percent, ts.gap_percent, 0) > 0 THEN 10
+             ELSE 3
            END AS market_alignment,
            tc.headline,
+           tc.source AS news_source,
            q.sector
          FROM trade_setups ts
+         JOIN candidate_universe cu ON cu.symbol = ts.symbol
          LEFT JOIN market_metrics mm ON mm.symbol = ts.symbol
          LEFT JOIN market_quotes q ON q.symbol = ts.symbol
-         LEFT JOIN sector_momentum_latest sm ON sm.sector = q.sector
+         LEFT JOIN sector_strength_agg ssa ON ssa.sector = COALESCE(q.sector, 'Unknown')
          LEFT JOIN LATERAL (
-           SELECT headline, score
+           SELECT headline, score, source
            FROM trade_catalysts c
            WHERE c.symbol = ts.symbol
            ORDER BY c.published_at DESC NULLS LAST
@@ -2710,15 +2796,27 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
          strategy_score,
          catalyst_strength,
          relative_volume,
-         sector_momentum,
+         sector_strength,
          market_alignment,
          price,
+         atr,
+         float_size,
          price_change_percent,
          headline,
-         (strategy_score + catalyst_strength + relative_volume + sector_momentum + market_alignment) AS opportunity_score
+         news_source,
+         LEAST(
+           (
+             strategy_score * 0.35 +
+             catalyst_strength * 0.25 +
+             relative_volume * 0.20 +
+             sector_strength * 0.10 +
+             market_alignment * 0.10
+           ),
+           92
+         ) AS base_confidence
        FROM joined
-       ORDER BY opportunity_score DESC NULLS LAST
-       LIMIT 1`,
+       ORDER BY base_confidence DESC NULLS LAST
+       LIMIT 10`,
       [],
       { label: 'api.intelligence.top_opportunity', timeoutMs: 2500, maxRetries: 1, retryDelayMs: 120 }
     );
@@ -2727,14 +2825,39 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
     if (!row) return res.json({ success: true, item: null });
 
     const price = Number(row.price || 0);
-    const expectedMovePercent = Math.max(2.5, Math.min(18, Number(row.price_change_percent || 0) * 0.8 + Number(row.relative_volume || 0)));
+    const atr = Number(row.atr || 0);
+    const expectedMove = atr > 0 ? atr * 2 : Math.max(price * 0.03, 0);
+    const expectedMovePercent = price > 0 ? (expectedMove / price) * 100 : 0;
+    const breakout = price > 0 ? price * 1.01 : 0;
+    const stopLoss = breakout > 0 ? breakout - (1.5 * atr || breakout * 0.015) : 0;
+    const takeProfit = breakout > 0 ? breakout + (2 * atr || breakout * 0.03) : 0;
+    const hasCatalyst = Boolean(String(row.headline || '').trim());
+    const rvol = Number(row.relative_volume || 0);
+    let confidence = Number(row.base_confidence || 0);
+    if (!hasCatalyst && rvol < 1.2) confidence *= 0.6;
+    confidence = Math.min(92, Math.max(0, confidence));
 
     return res.json({
       success: true,
       item: {
-        ...row,
+        symbol: row.symbol,
+        confidence: Number(confidence.toFixed(1)),
+        catalyst: row.headline || 'No catalyst headline available.',
+        strategy: row.strategy,
+        expected_move: Number(expectedMove.toFixed(2)),
         expected_move_percent: Number(expectedMovePercent.toFixed(2)),
-        trade_plan: `Watch ORB break above ${price > 0 ? `$${(price * 1.01).toFixed(2)}` : 'the opening high'} with volume confirmation.`,
+        rvol: Number(rvol.toFixed(2)),
+        atr: Number(atr.toFixed(2)),
+        sector: row.sector || 'Unknown',
+        sector_strength: Number(row.sector_strength || 0),
+        news_source: row.news_source || 'Market feed',
+        float_size: Number(row.float_size || 0),
+        price,
+        previous_day_move: Number(row.price_change_percent || 0),
+        entry: Number(breakout.toFixed(2)),
+        stop_loss: Number(stopLoss.toFixed(2)),
+        take_profit: Number(takeProfit.toFixed(2)),
+        trade_plan: `Entry ${breakout > 0 ? `$${breakout.toFixed(2)}` : 'on breakout'}, stop ${stopLoss > 0 ? `$${stopLoss.toFixed(2)}` : 'below structure'}, target ${takeProfit > 0 ? `$${takeProfit.toFixed(2)}` : '2R'}.`,
       },
     });
   } catch (error) {
@@ -2769,6 +2892,22 @@ app.get('/api/intelligence/trade-probability', async (req, res) => {
     );
 
     const strategy = String(req.query.strategy || '').trim();
+
+    const totalCountRes = await queryWithTimeout(
+      `SELECT COUNT(*)::int AS total FROM strategy_signals`,
+      [],
+      { label: 'api.trade_probability.count', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    const total = Number(totalCountRes?.rows?.[0]?.total || 0);
+    if (total < 20) {
+      return res.json({
+        status: 'insufficient_data',
+        message: 'Less than 20 signals recorded',
+        items: [],
+      });
+    }
+
     const params = [];
     let whereSql = '';
     if (strategy) {
@@ -2794,7 +2933,16 @@ app.get('/api/intelligence/trade-probability', async (req, res) => {
              END
            )::numeric,
            1
-         ) AS avg_move
+         ) AS avg_move,
+         ROUND(
+           MIN(
+             CASE
+               WHEN COALESCE(entry_price, 0) > 0 AND exit_price IS NOT NULL THEN ((exit_price - entry_price) / entry_price) * 100
+               ELSE NULL
+             END
+           )::numeric,
+           1
+         ) AS max_drawdown
        FROM strategy_signals
        ${whereSql}
        GROUP BY COALESCE(NULLIF(strategy, ''), 'Momentum Continuation')
@@ -2804,9 +2952,43 @@ app.get('/api/intelligence/trade-probability', async (req, res) => {
       { label: 'api.trade_probability.query', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 100 }
     );
 
-    return res.json({ success: true, items: rows });
+    return res.json({ status: 'ok', success: true, items: rows });
   } catch (error) {
     return res.json({ success: true, items: [] });
+  }
+});
+
+app.get('/api/intelligence/earnings-window', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         symbol,
+         company,
+         earnings_date,
+         eps_estimate,
+         revenue_estimate,
+         CASE
+           WHEN earnings_date::date = CURRENT_DATE THEN 'Today'
+           WHEN earnings_date::date = CURRENT_DATE + INTERVAL '1 day' THEN 'Tomorrow'
+           ELSE 'After Hours'
+         END AS bucket
+       FROM earnings_events
+       WHERE earnings_date BETWEEN NOW() - interval '12 hours' AND NOW() + interval '36 hours'
+       ORDER BY earnings_date ASC, symbol ASC
+       LIMIT 80`,
+      [],
+      { label: 'api.intelligence.earnings_window', timeoutMs: 2200, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    return res.json({
+      success: true,
+      today: rows.filter((row) => row.bucket === 'Today'),
+      tomorrow: rows.filter((row) => row.bucket === 'Tomorrow'),
+      after_hours: rows.filter((row) => row.bucket === 'After Hours'),
+      items: rows,
+    });
+  } catch (error) {
+    return res.json({ success: true, today: [], tomorrow: [], after_hours: [], items: [] });
   }
 });
 

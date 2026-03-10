@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiJSON } from '../../config/api';
 import TickerLink from '../shared/TickerLink';
-import SparklineMini from '../charts/SparklineMini';
+import Sparkline from '../charts/Sparkline';
 
 const TARGETS = ['SPY', 'QQQ', 'VIX', 'SMH', 'XLF', 'EURUSD', 'BTC'];
+const SECTOR_DESC = {
+  SPY: 'S&P 500 broad market ETF',
+  QQQ: 'Nasdaq-100 growth ETF',
+  VIX: 'Volatility index',
+  SMH: 'Semiconductor ETF',
+  XLF: 'Financial sector ETF',
+  EURUSD: 'Euro / US Dollar FX pair',
+  BTC: 'Bitcoin spot proxy',
+};
 
 function findRow(rows, symbol) {
   if (symbol === '10Y') return rows.find((row) => ['10Y', 'TNX', '^TNX'].includes(String(row?.symbol || '').toUpperCase()));
@@ -19,6 +28,7 @@ function fmt(value) {
 
 export default function MarketTickerBar() {
   const [rows, setRows] = useState([]);
+  const [sectorStrength, setSectorStrength] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -37,13 +47,23 @@ export default function MarketTickerBar() {
           const summary = summaryRows.find((row) => String(row?.symbol || '').toUpperCase() === symbol) || {};
           return {
             symbol,
-            price: ctx?.price ?? summary?.price ?? null,
-            change_percent: ctx?.change_percent ?? summary?.change_percent ?? null,
+            price: ctx?.current_price ?? ctx?.price ?? summary?.price ?? null,
+            change_percent: ctx?.pct_change ?? ctx?.change_percent ?? summary?.change_percent ?? null,
+            sector: ctx?.sector || null,
             sparkline: Array.isArray(summary?.sparkline) ? summary.sparkline : null,
           };
         });
 
-        if (!cancelled) setRows(payloads);
+        const strengths = {};
+        summaryRows.forEach((row) => {
+          const symbol = String(row?.symbol || '').toUpperCase();
+          strengths[symbol] = Number(row?.change_percent || row?.gap_percent || 0);
+        });
+
+        if (!cancelled) {
+          setRows(payloads);
+          setSectorStrength(strengths);
+        }
       } catch {
         if (!cancelled) setRows([]);
       }
@@ -66,17 +86,21 @@ export default function MarketTickerBar() {
 
   return (
     <div className="border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
-      <div className="overflow-hidden px-3">
-        <div className="flex min-w-max items-center gap-6 py-2 text-xs" style={{ animation: 'ticker-scroll 38s linear infinite' }}>
+      <div className="group overflow-hidden px-3">
+        <div className="flex min-w-max items-center gap-6 py-2 text-xs group-hover:[animation-play-state:paused]" style={{ animation: 'ticker-scroll 38s linear infinite' }}>
           {stream.map((item, idx) => {
             const cp = Number(item.row?.change_percent);
             const color = !Number.isFinite(cp) ? 'text-amber-300' : cp > 0 ? 'text-emerald-400' : cp < 0 ? 'text-rose-400' : 'text-amber-300';
             return (
-              <div key={`${item.symbol}-${idx}`} className="flex items-center gap-2 whitespace-nowrap">
+              <div
+                key={`${item.symbol}-${idx}`}
+                className="flex items-center gap-2 whitespace-nowrap"
+                title={`${item.symbol}\n${SECTOR_DESC[item.symbol] || 'Market instrument'}\nSector Strength: ${(Number(sectorStrength[item.symbol] || 0)).toFixed(2)}%`}
+              >
                 <TickerLink symbol={item.symbol} className="text-xs" />
                 <span className="text-[var(--text-secondary)]">{Number.isFinite(Number(item.row?.price)) ? Number(item.row?.price).toFixed(2) : '--'}</span>
                 <span className={color}>{fmt(item.row?.change_percent)} {cp >= 0 ? '▲' : '▼'}</span>
-                <SparklineMini
+                <Sparkline
                   points={item.row?.sparkline}
                   symbol={item.symbol}
                   positive={cp >= 0}

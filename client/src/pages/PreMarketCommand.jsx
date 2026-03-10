@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import { apiJSON } from '../config/api';
 import MarketTickerBar from '../components/market/MarketTickerBar';
 import MarketRegimePanel from '../components/premarket/MarketRegimePanel';
 import GapLeaders from '../components/premarket/GapLeaders';
-import TopStrategies from '../components/premarket/TopStrategies';
+import StrategyLeaderPanels from '../components/premarket/StrategyLeaderPanels';
 import DeepDivePanel from '../components/premarket/DeepDivePanel';
 import EarningsPanel from '../components/premarket/EarningsPanel';
 import VolumeSurges from '../components/premarket/VolumeSurges';
@@ -21,7 +20,6 @@ function extractRows(payload, key) {
 }
 
 export default function PreMarketCommand() {
-	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [summary, setSummary] = useState(null);
 	const [narrative, setNarrative] = useState(null);
@@ -54,7 +52,6 @@ export default function PreMarketCommand() {
 
 	const gapLeaders = useMemo(() => extractRows(summary, 'gap_leaders'), [summary]);
 	const topSetups = useMemo(() => extractRows(summary, 'top_setups'), [summary]);
-	const earnings = useMemo(() => extractRows(summary, 'earnings'), [summary]);
 	const volumeSurges = useMemo(() => extractRows(summary, 'volume_surges'), [summary]);
 
 	return (
@@ -72,20 +69,29 @@ export default function PreMarketCommand() {
 				<Card><div className="text-sm">No market data available yet.</div></Card>
 			) : (
 				<>
-					<MarketRegimePanel marketContext={summary?.market_context} narrative={narrative} />
-					<TopOpportunity onSelectTicker={setSelectedTicker} />
+					<div className="grid gap-3 lg:grid-cols-2">
+						<MarketRegimePanel marketContext={summary?.market_context} narrative={narrative} />
+						<TopOpportunity onSelectTicker={setSelectedTicker} />
+					</div>
 
-					<div className="grid gap-3 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]">
+					<div className="grid gap-3 lg:grid-cols-2">
 						<div className="space-y-3">
 							<GapLeaders rows={gapLeaders} onSelectTicker={setSelectedTicker} />
-
-							<TopStrategies rows={topSetups} onSelectTicker={setSelectedTicker} onExpandWatchlist={() => navigate('/watchlist')} />
 						</div>
 
 						<div className="space-y-3">
 							<DeepDivePanel selectedTicker={selectedTicker} />
+						</div>
+					</div>
+
+					<StrategyLeaderPanels rows={[...gapLeaders, ...topSetups]} onSelectTicker={setSelectedTicker} />
+
+					<div className="grid gap-3 lg:grid-cols-2">
+						<div className="space-y-3">
 							<TradeProbability />
-							<EarningsPanel rows={earnings} onSelectTicker={setSelectedTicker} />
+						</div>
+						<div className="space-y-3">
+							<EarningsPanel onSelectTicker={setSelectedTicker} />
 							<VolumeSurges rows={volumeSurges} onSelectTicker={setSelectedTicker} />
 						</div>
 					</div>

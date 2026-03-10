@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 function tone(value) {
   const n = Number(value || 0);
@@ -48,6 +49,18 @@ export default function MarketRegimePanel({ marketContext, narrative }) {
       <div className="mt-3 rounded border border-[var(--border-color)] bg-[var(--bg-elevated)] p-2 text-sm">
         <div className="text-xs text-[var(--text-muted)]">MCP Market Narrative</div>
         <div>{narrative?.narrative || 'Narrative unavailable.'}</div>
+        <div className="mt-2 text-xs">
+          <Link to="/sector-heatmap" className="text-cyan-300 hover:underline">Open Sector Heatmap</Link>
+        </div>
+        {Array.isArray(narrative?.links) && narrative.links.length > 0 ? (
+          <div className="mt-2 space-y-1 text-xs">
+            {narrative.links.slice(0, 3).map((link, idx) => (
+              <a key={`${link?.url || 'narrative'}-${idx}`} href={link?.url || '#'} target="_blank" rel="noreferrer" className="block text-cyan-300 hover:underline">
+                {link?.headline || 'Market headline'}
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );

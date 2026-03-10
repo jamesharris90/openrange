@@ -8,6 +8,8 @@ function toNum(value, fallback = 0) {
 
 export default function TradeProbability() {
   const [rows, setRows] = useState([]);
+  const [status, setStatus] = useState('ok');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -16,10 +18,15 @@ export default function TradeProbability() {
       try {
         const payload = await apiJSON('/api/intelligence/trade-probability');
         if (!cancelled) {
+          setStatus(String(payload?.status || 'ok'));
+          setMessage(String(payload?.message || ''));
           setRows(Array.isArray(payload?.items) ? payload.items : []);
         }
       } catch {
-        if (!cancelled) setRows([]);
+        if (!cancelled) {
+          setStatus('error');
+          setRows([]);
+        }
       }
     }
 
@@ -36,7 +43,9 @@ export default function TradeProbability() {
         <span className="text-xs text-[var(--text-muted)]" title="Based on historical strategy signals.">Based on historical strategy signals.</span>
       </div>
 
-      {!rows.length ? (
+      {status === 'insufficient_data' ? (
+        <div className="text-sm">{message || 'Less than 20 signals recorded'}</div>
+      ) : !rows.length ? (
         <div className="text-sm">No market data available yet.</div>
       ) : (
         <div className="space-y-2 text-sm">
@@ -45,6 +54,7 @@ export default function TradeProbability() {
               <div className="font-semibold">{row?.strategy || 'Momentum Continuation'}</div>
               <div>Win Rate: {toNum(row?.win_rate, 0).toFixed(1)}%</div>
               <div>Avg Move: {toNum(row?.avg_move, 0).toFixed(1)}%</div>
+              <div>Max Drawdown: {toNum(row?.max_drawdown, 0).toFixed(1)}%</div>
             </div>
           ))}
         </div>
