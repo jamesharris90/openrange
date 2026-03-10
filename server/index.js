@@ -82,6 +82,7 @@ const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const intelDetailsRoutes = require('./routes/intelDetails');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
+const { fetchUnifiedSignals } = require('./services/signalService');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
@@ -115,6 +116,24 @@ const { runFeatureBootstrap } = require('./system/featureBootstrap');
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
   return error?.code === 'QUERY_TIMEOUT' || msg.includes('timeout');
+}
+
+function detectSourceName(rawSource, rawUrl) {
+  const source = String(rawSource || '').trim();
+  if (source) return source;
+
+  const url = String(rawUrl || '').trim();
+  if (!url) return 'Unknown publisher';
+
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    if (!hostname) return 'Unknown publisher';
+    const parts = hostname.split('.');
+    const base = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+    return base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Unknown publisher';
+  } catch (_error) {
+    return 'Unknown publisher';
+  }
 }
 
 // Logger
@@ -1768,81 +1787,12 @@ app.get('/api/earnings/week', async (req, res) => {
 
 app.get('/api/signals', async (req, res) => {
   try {
-    await ensurePersonalizationTables();
-
-    const user = getOptionalAuthUser(req);
-    const userId = Number(user?.id);
-    const hasUser = Number.isFinite(userId) && userId > 0;
-
-    let preferences = null;
-    if (hasUser) {
-      const prefResult = await queryWithTimeout(
-        `SELECT
-            user_id,
-            min_price,
-            max_price,
-            min_rvol,
-            min_gap,
-            preferred_sectors,
-            enabled_strategies
-         FROM user_preferences
-         WHERE user_id = $1
-         LIMIT 1`,
-        [userId],
-        { label: 'api.signals.preferences', timeoutMs: 1000, maxRetries: 0 }
-      );
-      preferences = prefResult.rows[0] || null;
-    }
-
-    const where = [];
-    const params = [];
-    const addCondition = (sql, value) => {
-      params.push(value);
-      where.push(sql.replace('?', `$${params.length}`));
-    };
-
-    if (preferences) {
-      if (preferences.min_price != null) addCondition('COALESCE(q.price, 0) >= ?', preferences.min_price);
-      if (preferences.max_price != null) addCondition('COALESCE(q.price, 0) <= ?', preferences.max_price);
-      if (preferences.min_rvol != null) addCondition('COALESCE(s.relative_volume, 0) >= ?', preferences.min_rvol);
-      if (preferences.min_gap != null) addCondition('ABS(COALESCE(s.gap_percent, 0)) >= ?', preferences.min_gap);
-
-      if (Array.isArray(preferences.preferred_sectors) && preferences.preferred_sectors.length > 0) {
-        addCondition('LOWER(COALESCE(q.sector, \'\')) = ANY(?::text[])', preferences.preferred_sectors.map((sector) => String(sector || '').toLowerCase()));
-      }
-
-      if (Array.isArray(preferences.enabled_strategies) && preferences.enabled_strategies.length > 0) {
-        addCondition('COALESCE(s.strategy, \'\') = ANY(?::text[])', preferences.enabled_strategies.map((strategy) => String(strategy || '')));
-      }
-    }
-
-    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const { rows } = await queryWithTimeout(
-      `SELECT
-          s.symbol,
-          s.strategy,
-          s.class,
-          s.score,
-          s.probability,
-          s.change_percent,
-          s.gap_percent,
-          s.relative_volume,
-          s.volume,
-          q.sector,
-          s.updated_at,
-          s.updated_at AS timestamp
-       FROM strategy_signals s
-       LEFT JOIN market_quotes q ON q.symbol = s.symbol
-       ${whereClause}
-       ORDER BY s.score DESC NULLS LAST
-       LIMIT 50`,
-      params,
-      { label: 'api.signals', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
-    );
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const rows = await fetchUnifiedSignals({ limit });
 
     return res.json({
       signals: rows,
-      personalized: Boolean(preferences),
+      personalized: false,
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load signals' });
@@ -3676,6 +3626,7 @@ const intelligenceNewsHandler = async (req, res) => {
 
     const { rows } = await queryWithTimeout(
       `SELECT
+        n.id,
         n.symbol,
         q.sector,
         n.headline,
@@ -3685,6 +3636,7 @@ const intelligenceNewsHandler = async (req, res) => {
         n.published_at
          FROM (
            SELECT
+             i.id,
              i.symbol,
              i.headline,
              i.source,
@@ -3705,6 +3657,7 @@ const intelligenceNewsHandler = async (req, res) => {
 
     const items = rows.map((row) => ({
       ...row,
+      source_name: detectSourceName(row.source, row.url),
       timestamp: row.published_at || null,
       published_at: row.published_at || null,
     }));

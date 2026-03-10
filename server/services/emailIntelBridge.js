@@ -33,7 +33,7 @@ function toBridgePayload(email) {
     .slice(0, 280);
 
   const ticker = parseTicker(`${subject} ${rawText}`);
-  const source = sender || sourceTag || 'newsletter';
+  const source = String(email?.source_name || '').trim() || sender || sourceTag || 'newsletter';
   const publishedAt = email?.received_at || new Date().toISOString();
   const stableHash = crypto
     .createHash('sha256')

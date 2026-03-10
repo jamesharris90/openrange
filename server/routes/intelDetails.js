@@ -60,8 +60,21 @@ async function getByNumericId(id) {
        i.narrative_type,
        i.time_horizon,
        i.regime,
-       i.detected_symbols
+       i.detected_symbols,
+       ie.raw_html AS raw_email_html,
+       ie.raw_text AS raw_email_text,
+       ie.sender AS email_sender,
+       ie.subject AS email_subject,
+       ie.received_at AS email_received_at
      FROM intel_news i
+     LEFT JOIN LATERAL (
+       SELECT raw_html, raw_text, sender, subject, received_at
+       FROM intelligence_emails e
+       WHERE (e.subject IS NOT NULL AND i.headline ILIKE ('%' || e.subject || '%'))
+          OR (e.sender IS NOT NULL AND i.source ILIKE ('%' || e.sender || '%'))
+       ORDER BY e.received_at DESC NULLS LAST
+       LIMIT 1
+     ) ie ON TRUE
      WHERE i.id = $1
      LIMIT 1`,
     [id],
@@ -85,6 +98,11 @@ async function getByNumericId(id) {
     narrative_type: row.narrative_type || 'single stock',
     time_horizon: row.time_horizon || 'intraday',
     playbook: makePlaybook((row.detected_symbols || [row.symbol]).filter(Boolean)),
+    raw_email_html: row.raw_email_html || null,
+    raw_email_text: row.raw_email_text || null,
+    email_sender: row.email_sender || null,
+    email_subject: row.email_subject || null,
+    email_received_at: row.email_received_at || null,
   };
 }
 

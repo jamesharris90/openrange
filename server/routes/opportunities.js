@@ -1,6 +1,6 @@
 const express = require('express');
-const { queryWithTimeout } = require('../db/pg');
 const { getCachedValue, setCachedValue } = require('../utils/responseCache');
+const { fetchUnifiedSignals } = require('../services/signalService');
 
 const router = express.Router();
 
@@ -20,40 +20,28 @@ router.get('/opportunities/top', async (req, res) => {
   }
 
   try {
-    const { rows } = await queryWithTimeout(
-      `SELECT
-        s.symbol,
-        s.score,
-        s.confidence,
-        COALESCE(s.gap_percent, 0) AS gap,
-        COALESCE(s.rvol, 0) AS rvol,
-        COALESCE(m.volume, q.volume, 0) AS volume,
-        COALESCE(m.float_shares, 0) AS float,
-        COALESCE(c.headline, 'No catalyst') AS catalyst,
-        s.strategy,
-        COALESCE(s.signal_explanation, '') AS signal_explanation,
-        COALESCE(s.rationale, '') AS rationale,
-        s.updated_at,
-        s.atr_percent
-      FROM trade_signals s
-      LEFT JOIN market_metrics m
-        ON m.symbol = s.symbol
-      LEFT JOIN market_quotes q ON q.symbol = s.symbol
-      LEFT JOIN LATERAL (
-        SELECT headline
-        FROM trade_catalysts tc
-        WHERE tc.symbol = s.symbol
-        ORDER BY tc.published_at DESC NULLS LAST
-        LIMIT 1
-      ) c ON TRUE
-      ORDER BY
-        s.score DESC NULLS LAST
-      LIMIT $1`,
-      [limit],
-      { label: 'routes.opportunities.top', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
-    );
+    const rows = await fetchUnifiedSignals({ limit });
 
-    const payload = { success: true, degraded: false, items: rows, data: rows, timestamp: new Date().toISOString() };
+    const mapped = rows.map((row) => ({
+      symbol: row.symbol,
+      score: row.score,
+      confidence: row.probability,
+      gap: row.gap_percent,
+      rvol: row.relative_volume,
+      volume: row.volume,
+      float: null,
+      catalyst: row.catalyst,
+      strategy: row.strategy,
+      signal_explanation: '',
+      rationale: '',
+      updated_at: row.updated_at,
+      atr_percent: null,
+      class: row.class,
+      sector: row.sector,
+      catalyst_type: row.catalyst_type,
+    }));
+
+    const payload = { success: true, degraded: false, items: mapped, data: mapped, timestamp: new Date().toISOString() };
     setCachedValue(cacheKey, payload);
     return res.json(payload);
   } catch (error) {

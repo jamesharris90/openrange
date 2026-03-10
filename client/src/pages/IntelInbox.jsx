@@ -195,7 +195,7 @@ export default function IntelInbox() {
             {items.map((item, index) => (
               <button
                 key={`${item?.url || 'n'}-${index}`}
-                onClick={() => openIntelPanel(`news:${String(item?.symbol || 'MARKET').toUpperCase()}`)}
+                onClick={() => openIntelPanel(item?.id || `news:${String(item?.symbol || 'MARKET').toUpperCase()}`)}
                 className="block w-full rounded border border-[var(--border-color)] p-2 text-left text-sm hover:bg-[var(--bg-card-hover)]"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -203,7 +203,7 @@ export default function IntelInbox() {
                   <span className="muted">{item?.sentiment || 'neutral'}</span>
                 </div>
                 <div>{item?.headline || '--'}</div>
-                <div className="muted text-xs">{item?.sector || 'Unknown sector'} • {item?.source || 'Unknown source'}</div>
+                <div className="muted text-xs">{item?.sector || 'Unknown sector'} • {item?.source_name || item?.source || 'Unknown source'}</div>
                 <div className="mt-1">
                   <MiniSymbolChart symbol={String(item?.symbol || '').toUpperCase()} />
                 </div>

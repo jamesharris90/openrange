@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Card from '../ui/Card';
 import { apiJSON } from '../../config/api';
 import { useSymbol } from '../../context/SymbolContext';
+import ErrorState from '../shared/ErrorState';
 
 const DEFAULT_SORT = { key: 'score', dir: 'desc' };
 
@@ -33,17 +34,24 @@ export default function ScannerPanel() {
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState(DEFAULT_SORT);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/opportunities/top?limit=80');
-        const list = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
-        if (!cancelled) setRows(list.map(normalizeRow).filter((row) => row.symbol));
+        const payload = await apiJSON('/api/signals?limit=120');
+        const list = Array.isArray(payload?.signals) ? payload.signals : Array.isArray(payload) ? payload : [];
+        if (!cancelled) {
+          setRows(list.map(normalizeRow).filter((row) => row.symbol));
+          setError('');
+        }
       } catch {
-        if (!cancelled) setRows([]);
+        if (!cancelled) {
+          setRows([]);
+          setError('Scanner feed unavailable.');
+        }
       }
     }
 
@@ -92,6 +100,8 @@ export default function ScannerPanel() {
           placeholder="Search ticker"
         />
       </div>
+
+      {error ? <ErrorState title="Scanner unavailable" message={error} /> : null}
 
       <div className="max-h-[360px] overflow-auto rounded-xl border border-[var(--border-color)]">
         <table className="data-table data-table--compact min-w-[760px]">

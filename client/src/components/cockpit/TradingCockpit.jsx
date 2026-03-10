@@ -30,16 +30,31 @@ export default function TradingCockpit() {
 
       <Card className="h-full p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="m-0 text-sm font-semibold">Chart</h3>
+          <h3 className="m-0 text-sm font-semibold">Multi-Timeframe Charts</h3>
           <span className="text-xs text-[var(--text-muted)]">{selectedSymbol}</span>
         </div>
-        <TradingViewChart
-          symbol={selectedSymbol}
-          height={330}
-          interval="15"
-          hideSideToolbar={false}
-          studies={['VWAP@tv-basicstudies', 'MASimple@tv-basicstudies', 'Volume@tv-basicstudies']}
-        />
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="rounded border border-[var(--border-color)] p-2">
+            <div className="mb-1 text-xs text-[var(--text-muted)]">1m execution</div>
+            <TradingViewChart
+              symbol={selectedSymbol}
+              height={320}
+              interval="1"
+              hideSideToolbar={false}
+              studies={['VWAP@tv-basicstudies', 'MASimple@tv-basicstudies', 'Volume@tv-basicstudies']}
+            />
+          </div>
+          <div className="grid gap-2">
+            <div className="rounded border border-[var(--border-color)] p-2">
+              <div className="mb-1 text-xs text-[var(--text-muted)]">5m structure</div>
+              <TradingViewChart symbol={selectedSymbol} height={152} interval="5" hideSideToolbar studies={['VWAP@tv-basicstudies', 'Volume@tv-basicstudies']} />
+            </div>
+            <div className="rounded border border-[var(--border-color)] p-2">
+              <div className="mb-1 text-xs text-[var(--text-muted)]">1D context</div>
+              <TradingViewChart symbol={selectedSymbol} height={152} interval="1D" hideSideToolbar studies={['MASimple@tv-basicstudies', 'Volume@tv-basicstudies']} />
+            </div>
+          </div>
+        </div>
       </Card>
 
       <NewsPanel />

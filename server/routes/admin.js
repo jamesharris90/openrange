@@ -59,4 +59,25 @@ router.get('/api/admin/usage', requireAdmin, async (req, res) => {
   res.json(usage);
 });
 
+router.get('/api/admin/users', requireAdmin, async (_req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, username, email, is_admin, is_active, created_at
+       FROM users
+       ORDER BY created_at DESC NULLS LAST
+       LIMIT 500`
+    );
+
+    const items = Array.isArray(result?.rows) ? result.rows : [];
+    return res.json({ ok: true, items });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to load users',
+      detail: error?.message || 'Unknown error',
+      items: [],
+    });
+  }
+});
+
 module.exports = router;

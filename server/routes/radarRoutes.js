@@ -1,6 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const { queryWithTimeout } = require('../db/pg');
+const { fetchUnifiedSignals } = require('../services/signalService');
+
+router.get('/', async (_req, res) => {
+  try {
+    const rows = await fetchUnifiedSignals({ limit: 120 });
+    const buckets = { A: [], B: [], C: [] };
+
+    rows.forEach((row) => {
+      const klass = String(row?.class || '').toUpperCase();
+      const target = klass === 'A' ? 'A' : klass === 'B' ? 'B' : 'C';
+      buckets[target].push(row);
+    });
+
+    return res.json({
+      success: true,
+      A: buckets.A,
+      B: buckets.B,
+      C: buckets.C,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load radar data',
+      detail: error.message,
+    });
+  }
+});
 
 router.get('/summary', async (_req, res) => {
   try {

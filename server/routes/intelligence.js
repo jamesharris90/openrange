@@ -33,6 +33,21 @@ function detectSource(sender, subject) {
   return 'general';
 }
 
+function detectPublisherName(sender, subject) {
+  const text = `${sender || ''} ${subject || ''}`.toLowerCase();
+  if (text.includes('benzinga')) return 'Benzinga';
+  if (text.includes('seeking alpha')) return 'Seeking Alpha';
+  if (text.includes('briefing')) return 'Briefing.com';
+  if (text.includes('marketwatch')) return 'MarketWatch';
+  if (text.includes('bloomberg')) return 'Bloomberg';
+  if (text.includes('reuters')) return 'Reuters';
+  if (text.includes('cnbc')) return 'CNBC';
+  if (text.includes('wsj') || text.includes('wall street journal')) return 'Wall Street Journal';
+  if (text.includes('newsletter') || text.includes('digest')) return 'Newsletter';
+  if (sender) return String(sender).split('@')[0] || sender;
+  return 'Unknown publisher';
+}
+
 // GET /api/intelligence/ping — health check (requires key)
 router.get('/api/intelligence/ping', requireIntelKey, (req, res) => {
   res.json({ ok: true, service: 'intelligence-ingest', ts: new Date().toISOString() });
@@ -69,6 +84,7 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
     }
 
     const source_tag = detectSource(sender, subject);
+    const source_name = detectPublisherName(sender, subject);
     const receivedTs = received_at ? new Date(received_at) : new Date();
 
     const { rows } = await pool.query(
@@ -89,6 +105,7 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
         received_at: row?.received_at,
         raw_text,
         source_tag: row?.source_tag,
+        source_name,
       });
     } catch (bridgeError) {
       console.error('[intelligence] email bridge error:', bridgeError.message);
@@ -103,7 +120,7 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
       subject,
     }));
 
-    res.json({ ok: true, id: row.id, source_tag: row.source_tag, received_at: row.received_at });
+    res.json({ ok: true, id: row.id, source_tag: row.source_tag, source_name, received_at: row.received_at });
   } catch (err) {
     console.error('[intelligence] email-ingest error:', err.message);
     res.status(500).json({ ok: false, error: err.message });

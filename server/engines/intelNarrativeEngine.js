@@ -70,6 +70,46 @@ function inferRegime(scoreBreakdown) {
   return 'neutral';
 }
 
+function detectTheme(headline = '') {
+  const h = String(headline || '').toLowerCase();
+  if (/chip|semiconductor|ai|gpu|software|cloud/.test(h)) return 'technology';
+  if (/bank|yield|credit|treasury|financial/.test(h)) return 'financials';
+  if (/oil|gas|opec|energy/.test(h)) return 'energy';
+  if (/fda|trial|drug|health|biotech/.test(h)) return 'healthcare';
+  if (/retail|consumer|discretionary/.test(h)) return 'consumer';
+  return 'broad-market';
+}
+
+function composeNarrative({ headline, symbol, context, regime, timeHorizon, catalystType, expectedMove, scoreBreakdown }) {
+  const sector = context?.sector || detectTheme(headline);
+  const tickerText = symbol ? `${symbol} is the immediate focus` : 'This is a cross-symbol setup';
+  const moveText = Number.isFinite(expectedMove)
+    ? `Headline-implied move risk is near ${expectedMove.toFixed(1)}%.`
+    : 'No explicit move guidance was parsed from the headline.';
+
+  const strength = (Number(scoreBreakdown?.sentiment || 0) + Number(scoreBreakdown?.momentum || 0)) >= 0.32
+    ? 'momentum-confirming'
+    : 'headline-sensitive';
+
+  const sectorPlaybook = {
+    technology: 'Watch for continuation through prior day highs with volume expansion and relative strength versus QQQ.',
+    financials: 'Track reaction to yields and watch for failed breakdowns around VWAP before chasing strength.',
+    energy: 'Confirm commodity follow-through and favor setups aligned with crude direction after the open.',
+    healthcare: 'Prioritize catalyst-driven levels; avoid late entries without sustained tape support.',
+    consumer: 'Focus on opening range breaks only if RVOL remains elevated through the first pullback.',
+    'broad-market': 'Use index confirmation (SPY/QQQ) and breadth before sizing into continuation trades.',
+  };
+
+  return [
+    `${headline}`,
+    '',
+    `Context: ${tickerText}. Sector/theme signal maps to ${sector}.`,
+    `Signal profile: ${strength}, ${regime} regime, ${timeHorizon} horizon, catalyst type ${catalystType}.`,
+    moveText,
+    sectorPlaybook[sector] || sectorPlaybook['broad-market'],
+  ].join('\n');
+}
+
 async function ensureIntelNarrativeColumns() {
   await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS narrative TEXT`);
   await db.query(`ALTER TABLE intel_news ADD COLUMN IF NOT EXISTS detected_symbols TEXT[]`);
@@ -152,17 +192,18 @@ async function runIntelNarrativeEngine() {
         const timeHorizon = inferTimeHorizon(headline);
         const regime = inferRegime(scoreBreakdown);
 
-        const narrative = `
-${headline}
-
-Market Context:
-Sector: ${context.sector || 'unknown'}
-Price: ${context.price || 'unknown'}
-
-Interpretation:
-This headline may influence sentiment within the sector and could
-increase short-term volatility depending on broader market conditions.
-`;
+        const catalystType = classifyCatalyst(headline);
+        const expectedMove = inferExpectedMove(headline);
+        const narrative = composeNarrative({
+          headline,
+          symbol,
+          context,
+          regime,
+          timeHorizon,
+          catalystType,
+          expectedMove,
+          scoreBreakdown,
+        });
 
         await db.query(
           `UPDATE intel_news
@@ -179,8 +220,8 @@ increase short-term volatility depending on broader market conditions.
           [
             narrative,
             symbol ? [symbol] : null,
-            classifyCatalyst(headline),
-            inferExpectedMove(headline),
+            catalystType,
+            expectedMove,
             scoreBreakdown,
             confidence,
             narrativeType,

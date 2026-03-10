@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Card from '../ui/Card';
 import { apiJSON } from '../../config/api';
 import { useSymbol } from '../../context/SymbolContext';
+import ErrorState from '../shared/ErrorState';
 
 function toNumber(value, digits = 2) {
   const parsed = Number(value);
@@ -12,17 +13,24 @@ function toNumber(value, digits = 2) {
 export default function SignalsPanel() {
   const { selectedSymbol } = useSymbol();
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/signals');
+        const payload = await apiJSON('/api/signals?limit=120');
         const list = Array.isArray(payload?.signals) ? payload.signals : Array.isArray(payload) ? payload : [];
-        if (!cancelled) setRows(list);
+        if (!cancelled) {
+          setRows(list);
+          setError('');
+        }
       } catch {
-        if (!cancelled) setRows([]);
+        if (!cancelled) {
+          setRows([]);
+          setError('Signal feed unavailable.');
+        }
       }
     }
 
@@ -48,6 +56,8 @@ export default function SignalsPanel() {
         <span className="text-xs text-[var(--text-muted)]">{selectedSymbol}</span>
       </div>
 
+      {error ? <ErrorState title="Signals unavailable" message={error} /> : null}
+
       <div className="overflow-auto rounded-xl border border-[var(--border-color)]">
         <table className="data-table data-table--compact min-w-[460px]">
           <thead>
@@ -56,6 +66,7 @@ export default function SignalsPanel() {
               <th style={{ textAlign: 'right' }}>Score</th>
               <th style={{ textAlign: 'right' }}>RVOL</th>
               <th style={{ textAlign: 'right' }}>Gap %</th>
+              <th>Catalyst</th>
             </tr>
           </thead>
           <tbody>
@@ -65,11 +76,12 @@ export default function SignalsPanel() {
                 <td style={{ textAlign: 'right' }}>{toNumber(row?.strategy_score ?? row?.score, 1)}</td>
                 <td style={{ textAlign: 'right' }}>{toNumber(row?.relative_volume ?? row?.rvol, 2)}</td>
                 <td style={{ textAlign: 'right' }}>{toNumber(row?.gap_percent ?? row?.gap, 2)}%</td>
+                <td>{row?.catalyst || '--'}</td>
               </tr>
             ))}
             {!filtered.length && (
               <tr>
-                <td colSpan={4} className="text-center text-xs text-[var(--text-muted)]">No active signals for this symbol.</td>
+                <td colSpan={5} className="text-center text-xs text-[var(--text-muted)]">No active signals for this symbol.</td>
               </tr>
             )}
           </tbody>

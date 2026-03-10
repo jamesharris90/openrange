@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ErrorState from '../components/shared/ErrorState';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -27,11 +28,24 @@ export default function OpenMarketRadar() {
       if (!response.ok) {
         throw new Error(`Radar request failed (${response.status})`);
       }
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/json')) {
+        throw new Error('Radar endpoint returned non-JSON content');
+      }
       const data = await response.json();
+
+      const fallbackRows = Array.isArray(data?.data) ? data.data : [];
+      const grouped = fallbackRows.reduce((acc, row) => {
+        const klass = String(row?.class || '').toUpperCase();
+        const bucket = klass === 'A' ? 'A' : klass === 'B' ? 'B' : 'C';
+        acc[bucket].push(row);
+        return acc;
+      }, { A: [], B: [], C: [] });
+
       setRadar({
-        A: Array.isArray(data?.A) ? data.A : [],
-        B: Array.isArray(data?.B) ? data.B : [],
-        C: Array.isArray(data?.C) ? data.C : [],
+        A: Array.isArray(data?.A) ? data.A : grouped.A,
+        B: Array.isArray(data?.B) ? data.B : grouped.B,
+        C: Array.isArray(data?.C) ? data.C : grouped.C,
       });
     } catch (fetchError) {
       console.error('[RADAR FETCH ERROR]', fetchError);
@@ -115,7 +129,7 @@ export default function OpenMarketRadar() {
 
       {!loading && error ? (
         <Card>
-          <div style={{ color: 'var(--accent-red)' }}>{error}</div>
+          <ErrorState title="Radar unavailable" message={error} onRetry={loadRadar} />
         </Card>
       ) : null}
 

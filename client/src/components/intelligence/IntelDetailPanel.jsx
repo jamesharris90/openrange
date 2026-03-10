@@ -137,6 +137,31 @@ export default function IntelDetailPanel({ open, detail, onClose, onOpenSetup })
           )}
         </section>
 
+        {(detail?.raw_email_html || detail?.raw_email_text) && (
+          <section className="mb-4 rounded border border-[var(--border-color)] p-3">
+            <h3 className="m-0 mb-2 text-sm">Original Email Source</h3>
+            <div className="muted mb-2 text-xs">
+              {detail?.email_sender || 'Unknown sender'}
+              {detail?.email_received_at ? ` • ${new Date(detail.email_received_at).toLocaleString()}` : ''}
+            </div>
+            {detail?.email_subject && (
+              <div className="mb-2 rounded border border-[var(--border-color)] p-2 text-xs">
+                <strong>Subject:</strong> {detail.email_subject}
+              </div>
+            )}
+            {detail?.raw_email_html ? (
+              <div
+                className="max-h-72 overflow-auto rounded border border-[var(--border-color)] bg-white p-2 text-black"
+                dangerouslySetInnerHTML={{ __html: detail.raw_email_html }}
+              />
+            ) : (
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded border border-[var(--border-color)] p-2 text-xs">
+                {detail?.raw_email_text}
+              </pre>
+            )}
+          </section>
+        )}
+
         <section className="mb-4 rounded border border-[var(--border-color)] p-3">
           <h3 className="m-0 mb-2 text-sm">Affected Tickers</h3>
           {!Array.isArray(detail?.affected_tickers) || !detail.affected_tickers.length ? (

@@ -530,6 +530,18 @@ export default function InstitutionalScreener() {
     localStorage.setItem('openrange:quick-watchlist', JSON.stringify([...saved, symbol]));
   }
 
+  function resetAllFilters() {
+    const next = [createDefaultFilterRow(filterRegistry.filters)];
+    setPreset('none');
+    setFilterMode('adaptive');
+    setAdaptiveRows(next);
+    setAppliedAdaptiveRows(next);
+    setStructuredValues({});
+    setAppliedStructuredValues({});
+    setTickerSearch('');
+    setPage(1);
+  }
+
   function openPathForSymbol(path, symbol) {
     window.location.assign(`${path}?symbol=${encodeURIComponent(symbol)}`);
   }
@@ -568,6 +580,7 @@ export default function InstitutionalScreener() {
             <span>Create Alert</span>
           </label>
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={loadFilter}>Load Filter</button>
+          <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={resetAllFilters}>Reset Filters</button>
           <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={exportCsv}><Download size={15} className="mr-1 inline" />Export CSV</button>
 
           <div className="ml-auto flex items-center gap-2">
