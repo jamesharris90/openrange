@@ -3,7 +3,7 @@ import { apiJSON } from '../../config/api';
 import TickerLink from '../shared/TickerLink';
 import SparklineMini from '../charts/SparklineMini';
 
-const TARGETS = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL'];
+const TARGETS = ['SPY', 'QQQ', 'VIX', 'SMH', 'XLF', 'EURUSD', 'BTC'];
 
 function findRow(rows, symbol) {
   if (symbol === '10Y') return rows.find((row) => ['10Y', 'TNX', '^TNX'].includes(String(row?.symbol || '').toUpperCase()));
@@ -24,21 +24,25 @@ export default function MarketTickerBar() {
     let cancelled = false;
     async function load() {
       try {
-        const payloads = await Promise.all(
-          TARGETS.map(async (symbol) => {
-            try {
-              const quote = await apiJSON(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
-              return {
-                symbol,
-                price: quote?.price ?? quote?.last ?? null,
-                change_percent: quote?.change_percent ?? quote?.changePercent ?? null,
-                sparkline: Array.isArray(quote?.sparkline) ? quote.sparkline : null,
-              };
-            } catch {
-              return { symbol, price: null, change_percent: null, sparkline: null };
-            }
-          })
-        );
+        const [marketContext, premarketSummary] = await Promise.all([
+          apiJSON('/api/market/context').catch(() => ({})),
+          apiJSON('/api/premarket/summary').catch(() => ({})),
+        ]);
+
+        const summaryRows = Array.isArray(premarketSummary?.index_cards) ? premarketSummary.index_cards : [];
+        const contextMap = marketContext && typeof marketContext === 'object' ? marketContext : {};
+
+        const payloads = TARGETS.map((symbol) => {
+          const ctx = contextMap[symbol] || {};
+          const summary = summaryRows.find((row) => String(row?.symbol || '').toUpperCase() === symbol) || {};
+          return {
+            symbol,
+            price: ctx?.price ?? summary?.price ?? null,
+            change_percent: ctx?.change_percent ?? summary?.change_percent ?? null,
+            sparkline: Array.isArray(summary?.sparkline) ? summary.sparkline : null,
+          };
+        });
+
         if (!cancelled) setRows(payloads);
       } catch {
         if (!cancelled) setRows([]);
@@ -66,12 +70,12 @@ export default function MarketTickerBar() {
         <div className="flex min-w-max items-center gap-6 py-2 text-xs" style={{ animation: 'ticker-scroll 38s linear infinite' }}>
           {stream.map((item, idx) => {
             const cp = Number(item.row?.change_percent);
-            const color = !Number.isFinite(cp) ? 'text-[var(--text-muted)]' : cp >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            const color = !Number.isFinite(cp) ? 'text-amber-300' : cp > 0 ? 'text-emerald-400' : cp < 0 ? 'text-rose-400' : 'text-amber-300';
             return (
               <div key={`${item.symbol}-${idx}`} className="flex items-center gap-2 whitespace-nowrap">
                 <TickerLink symbol={item.symbol} className="text-xs" />
                 <span className="text-[var(--text-secondary)]">{Number.isFinite(Number(item.row?.price)) ? Number(item.row?.price).toFixed(2) : '--'}</span>
-                <span className={color}>{fmt(item.row?.change_percent)}</span>
+                <span className={color}>{fmt(item.row?.change_percent)} {cp >= 0 ? '▲' : '▼'}</span>
                 <SparklineMini
                   points={item.row?.sparkline}
                   symbol={item.symbol}

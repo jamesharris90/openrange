@@ -9,6 +9,7 @@ import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
+import RequireAdmin from './components/auth/RequireAdmin';
 const LoginPage = safeLazy(() => import('./pages/LoginPage'));
 const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
 const LandingPage = safeLazy(() => import('./pages/LandingPage'));
@@ -101,10 +102,10 @@ export default function App() {
                   <Route path="/expected-move" element={<ExpectedMove />} />
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
                   <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
-                  <Route path="/signal-intelligence-admin" element={<SignalIntelligenceAdmin />} />
-                  <Route path="/admin" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
-                  <Route path="/admin-control" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
-                  <Route path="/admin/features" element={<FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute>} />
+                  <Route path="/signal-intelligence-admin" element={<RequireAdmin><SignalIntelligenceAdmin /></RequireAdmin>} />
+                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>

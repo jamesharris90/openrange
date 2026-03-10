@@ -5,11 +5,12 @@ const market = require('../services/marketDataService');
 const db = require('../db');
 const { POLYGON_API_KEY, FINVIZ_NEWS_TOKEN, FINNHUB_API_KEY, NODE_ENV } = require('../utils/config');
 const requireAdmin = require('../middleware/requireAdmin');
+const requireRole = require('../middleware/requireRole');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 
 const router = express.Router();
 
-router.get('/api/admin/stats', requireAdmin, async (req, res) => {
+router.get('/api/admin/stats', requireAdmin, requireRole('admin'), async (req, res) => {
   const cacheStats = cache.getStats();
   const usage = usageStore.snapshot();
   const usageHour = await db.getUsage({ minutes: 60 });
@@ -53,13 +54,13 @@ router.get('/api/admin/stats', requireAdmin, async (req, res) => {
   });
 });
 
-router.get('/api/admin/usage', requireAdmin, async (req, res) => {
+router.get('/api/admin/usage', requireAdmin, requireRole('admin'), async (req, res) => {
   const windowMinutes = Math.min(parseInt(req.query.minutes, 10) || 60, 24 * 60);
   const usage = await db.getUsage({ minutes: windowMinutes });
   res.json(usage);
 });
 
-router.get('/api/admin/users', requireAdmin, async (_req, res) => {
+router.get('/api/admin/users', requireAdmin, requireRole('admin'), async (_req, res) => {
   try {
     const result = await db.query(
       `SELECT id, username, email, is_admin, is_active, created_at

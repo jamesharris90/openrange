@@ -2557,6 +2557,143 @@ app.get('/api/market-narrative', async (req, res) => {
   }
 });
 
+app.get('/api/intelligence/market-narrative', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT narrative, regime, created_at
+       FROM market_narratives
+       ORDER BY created_at DESC
+       LIMIT 1`
+    );
+
+    const latest = rows?.[0] || null;
+    if (!latest) {
+      return res.json({ sentiment: 'Neutral', narrative: 'No market narrative available.', confidence: 0, created_at: null });
+    }
+
+    let narrativeText = latest.narrative;
+    if (typeof narrativeText === 'string') {
+      try {
+        const parsed = JSON.parse(narrativeText);
+        if (Array.isArray(parsed) && parsed[0]?.narrative) narrativeText = parsed[0].narrative;
+      } catch (_error) {
+        // keep raw narrative text when not JSON
+      }
+    }
+
+    return res.json({
+      sentiment: latest.regime || 'Neutral',
+      narrative: narrativeText || 'No narrative available.',
+      confidence: 0.72,
+      created_at: latest.created_at,
+    });
+  } catch (err) {
+    logger.error('intelligence market narrative endpoint db error', { error: err.message });
+    return res.json({ sentiment: 'Neutral', narrative: 'Narrative unavailable.', confidence: 0 });
+  }
+});
+
+app.get('/api/metrics/strategy-accuracy', async (_req, res) => {
+  try {
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS strategy_accuracy (
+        strategy TEXT PRIMARY KEY,
+        total_signals INTEGER NOT NULL DEFAULT 0,
+        wins INTEGER NOT NULL DEFAULT 0,
+        losses INTEGER NOT NULL DEFAULT 0,
+        accuracy_rate NUMERIC NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      [],
+      { label: 'api.metrics.strategy_accuracy.ensure_table', timeoutMs: 2500, maxRetries: 0 }
+    );
+
+    const { rows } = await queryWithTimeout(
+      `WITH agg AS (
+         SELECT
+           COALESCE(NULLIF(strategy, ''), 'Momentum Continuation') AS strategy,
+           COUNT(*)::int AS total_signals,
+           SUM(CASE WHEN COALESCE(change_percent, 0) >= 0 THEN 1 ELSE 0 END)::int AS wins,
+           SUM(CASE WHEN COALESCE(change_percent, 0) < 0 THEN 1 ELSE 0 END)::int AS losses
+         FROM strategy_signals
+         GROUP BY COALESCE(NULLIF(strategy, ''), 'Momentum Continuation')
+       ), upserted AS (
+         INSERT INTO strategy_accuracy (strategy, total_signals, wins, losses, accuracy_rate, updated_at)
+         SELECT
+           strategy,
+           total_signals,
+           wins,
+           losses,
+           CASE WHEN total_signals > 0 THEN ROUND((wins::numeric / total_signals::numeric) * 100, 2) ELSE 0 END AS accuracy_rate,
+           NOW()
+         FROM agg
+         ON CONFLICT (strategy)
+         DO UPDATE SET
+           total_signals = EXCLUDED.total_signals,
+           wins = EXCLUDED.wins,
+           losses = EXCLUDED.losses,
+           accuracy_rate = EXCLUDED.accuracy_rate,
+           updated_at = NOW()
+         RETURNING strategy
+       )
+       SELECT strategy, total_signals, wins, losses, accuracy_rate
+       FROM strategy_accuracy
+       ORDER BY accuracy_rate DESC NULLS LAST, total_signals DESC NULLS LAST
+       LIMIT 20`,
+      [],
+      { label: 'api.metrics.strategy_accuracy', timeoutMs: 3000, maxRetries: 0 }
+    );
+
+    return res.json({ success: true, items: rows });
+  } catch (err) {
+    logger.error('strategy accuracy endpoint error', { error: err.message });
+    return res.json({ success: true, items: [] });
+  }
+});
+
+app.get('/api/metrics/expected-move', async (req, res) => {
+  const symbol = String(req.query.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json({ error: 'symbol is required' });
+
+  try {
+    const expected = await queryWithTimeout(
+      `SELECT
+         COALESCE(m.price, q.price, 0) AS price,
+         COALESCE(
+           NULLIF(m.atr, 0),
+           (COALESCE(m.price, q.price, 0) * COALESCE(ABS(m.gap_percent), ABS(COALESCE(m.change_percent, q.change_percent)), 0)) / 100,
+           0
+         ) AS expected_move
+       FROM market_metrics m
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       WHERE m.symbol = $1
+       LIMIT 1`,
+      [symbol],
+      { label: 'api.metrics.expected_move.base', timeoutMs: 2000, maxRetries: 0 }
+    );
+
+    const row = expected.rows?.[0] || null;
+    if (!row) return res.json({ symbol, expected_move: 0, iv: 0, hv: 0, days: 1 });
+
+    const price = Number(row.price || 0);
+    const expectedMove = Number(row.expected_move || 0);
+    const days = Math.max(1, Number(req.query.days || 1));
+    const iv = price > 0 ? (expectedMove / price) / Math.sqrt(days / 365) : 0;
+    const hv = iv * 0.7;
+
+    return res.json({
+      symbol,
+      expected_move: Number(expectedMove.toFixed(2)),
+      iv: Number((iv * 100).toFixed(2)),
+      hv: Number((hv * 100).toFixed(2)),
+      days,
+    });
+  } catch (err) {
+    logger.error('metrics expected move endpoint error', { error: err.message });
+    return res.status(500).json({ error: 'Failed to load expected move metrics' });
+  }
+});
+
 app.get('/api/sec-earnings-status', async (req, res) => {
   const ctx = await loadSecContext();
   res.json({ available: ctx.available, message: ctx.available ? 'SEC earnings context loaded.' : 'SEC earnings context unavailable.' });

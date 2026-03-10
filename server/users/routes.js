@@ -85,11 +85,11 @@ router.post('/register', async (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-  const { identifier, password } = req.body || {};
-  const username = String(identifier || '').trim();
-  console.log('Login attempt:', username || 'unknown');
+  const { identifier, username, email, password } = req.body || {};
+  const loginIdentifier = String(identifier || username || email || '').trim();
+  console.log('Login attempt:', loginIdentifier || 'unknown');
 
-  if (!username || !password) {
+  if (!loginIdentifier || !password) {
     return res.status(400).json({
       success: false,
       error: 'All fields required',
@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = await model.findByUsernameOrEmail(username);
+    const user = await model.findByUsernameOrEmail(loginIdentifier);
     if (!user) {
       return res.status(401).json({
         success: false,
