@@ -11,8 +11,7 @@ function normalizeApiPath(path) {
 }
 
 export async function apiFetch(path, options = {}) {
-  const normalizedPath = normalizeApiPath(path);
-  const url = `${API_BASE}${normalizedPath}`;
+  const url = `${API_BASE}${normalizeApiPath(path)}`;
   const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
 
   const response = await fetch(url, {

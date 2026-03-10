@@ -667,6 +667,61 @@ app.use('/api', (req, _res, next) => {
   // New modular routes
   app.use(quotesRoutes);
   app.use(quotesBatchRoutes);
+
+  app.get('/api/moves', async (_req, res) => {
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT
+           m.symbol,
+           COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, 0) AS price_change_percent,
+           COALESCE(m.relative_volume, 0) AS relative_volume,
+           COALESCE(q.sector, 'Unknown') AS sector
+         FROM market_metrics m
+         LEFT JOIN market_quotes q ON q.symbol = m.symbol
+         ORDER BY COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, 0) DESC NULLS LAST
+         LIMIT 10`,
+        [],
+        { label: 'api.moves', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json({ success: true, items: rows });
+    } catch (error) {
+      return res.json({ success: true, items: [] });
+    }
+  });
+
+  app.get('/api/news', async (req, res) => {
+    try {
+      const symbol = String(req.query.symbol || '').trim().toUpperCase();
+      const params = [];
+      let whereSql = '';
+
+      if (symbol) {
+        params.push(symbol);
+        whereSql = `WHERE symbol = $${params.length}`;
+      }
+
+      const { rows } = await queryWithTimeout(
+        `SELECT
+           symbol,
+           headline,
+           source,
+           published_at,
+           url
+         FROM news_articles
+         ${whereSql}
+         ORDER BY published_at DESC NULLS LAST
+         LIMIT 5`,
+        params,
+        { label: 'api.news.compat', timeoutMs: 1400, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json(rows);
+    } catch (error) {
+      return res.json([]);
+    }
+  });
+
   app.use(newsRoutes);
   app.use(gappersRoutes);
   app.use(historicalRoutes);
@@ -1787,6 +1842,25 @@ app.get('/api/earnings/week', async (req, res) => {
 
 app.get('/api/signals', async (req, res) => {
   try {
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+    if (symbol) {
+      const { rows } = await queryWithTimeout(
+        `SELECT
+           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS setup_type,
+           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
+           COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp,
+           ts.symbol
+         FROM trade_setups ts
+         WHERE ts.symbol = $1
+         ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
+         LIMIT 3`,
+        [symbol],
+        { label: 'api.signals.by_symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json({ symbol, signals: rows, items: rows });
+    }
+
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
     const rows = await fetchUnifiedSignals({ limit });
 
@@ -2590,6 +2664,149 @@ app.get('/api/intelligence/market-narrative', async (req, res) => {
   } catch (err) {
     logger.error('intelligence market narrative endpoint db error', { error: err.message });
     return res.json({ sentiment: 'Neutral', narrative: 'Narrative unavailable.', confidence: 0 });
+  }
+});
+
+app.get('/api/intelligence/top-opportunity', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH sector_momentum_latest AS (
+         SELECT DISTINCT ON (sector)
+           sector,
+           momentum_score
+         FROM sector_momentum
+         ORDER BY sector, updated_at DESC NULLS LAST
+       ), joined AS (
+         SELECT
+           ts.symbol,
+           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
+           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS strategy,
+           COALESCE(mm.relative_volume, ts.relative_volume, 0) AS relative_volume,
+           COALESCE((to_jsonb(mm)->>'price_change_percent')::numeric, (to_jsonb(mm)->>'change_percent')::numeric, mm.gap_percent, ts.gap_percent, 0) AS price_change_percent,
+           COALESCE(mm.price, 0) AS price,
+           COALESCE(tc.score, 0) AS catalyst_strength,
+           COALESCE(sm.momentum_score, 0) AS sector_momentum,
+           CASE
+             WHEN COALESCE((to_jsonb(mm)->>'price_change_percent')::numeric, (to_jsonb(mm)->>'change_percent')::numeric, mm.gap_percent, ts.gap_percent, 0) > 0 THEN 8
+             ELSE 0
+           END AS market_alignment,
+           tc.headline,
+           q.sector
+         FROM trade_setups ts
+         LEFT JOIN market_metrics mm ON mm.symbol = ts.symbol
+         LEFT JOIN market_quotes q ON q.symbol = ts.symbol
+         LEFT JOIN sector_momentum_latest sm ON sm.sector = q.sector
+         LEFT JOIN LATERAL (
+           SELECT headline, score
+           FROM trade_catalysts c
+           WHERE c.symbol = ts.symbol
+           ORDER BY c.published_at DESC NULLS LAST
+           LIMIT 1
+         ) tc ON TRUE
+       )
+       SELECT
+         symbol,
+         strategy,
+         strategy_score,
+         catalyst_strength,
+         relative_volume,
+         sector_momentum,
+         market_alignment,
+         price,
+         price_change_percent,
+         headline,
+         (strategy_score + catalyst_strength + relative_volume + sector_momentum + market_alignment) AS opportunity_score
+       FROM joined
+       ORDER BY opportunity_score DESC NULLS LAST
+       LIMIT 1`,
+      [],
+      { label: 'api.intelligence.top_opportunity', timeoutMs: 2500, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    const row = rows?.[0];
+    if (!row) return res.json({ success: true, item: null });
+
+    const price = Number(row.price || 0);
+    const expectedMovePercent = Math.max(2.5, Math.min(18, Number(row.price_change_percent || 0) * 0.8 + Number(row.relative_volume || 0)));
+
+    return res.json({
+      success: true,
+      item: {
+        ...row,
+        expected_move_percent: Number(expectedMovePercent.toFixed(2)),
+        trade_plan: `Watch ORB break above ${price > 0 ? `$${(price * 1.01).toFixed(2)}` : 'the opening high'} with volume confirmation.`,
+      },
+    });
+  } catch (error) {
+    return res.json({ success: true, item: null });
+  }
+});
+
+app.get('/api/intelligence/trade-probability', async (req, res) => {
+  try {
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS strategy_signals (
+         id BIGSERIAL PRIMARY KEY,
+         symbol TEXT,
+         strategy TEXT,
+         entry_price NUMERIC,
+         exit_price NUMERIC,
+         result BOOLEAN,
+         timestamp TIMESTAMPTZ DEFAULT NOW()
+       )`,
+      [],
+      { label: 'api.trade_probability.ensure_table', timeoutMs: 5000, maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `ALTER TABLE strategy_signals
+         ADD COLUMN IF NOT EXISTS entry_price NUMERIC,
+         ADD COLUMN IF NOT EXISTS exit_price NUMERIC,
+         ADD COLUMN IF NOT EXISTS result BOOLEAN,
+         ADD COLUMN IF NOT EXISTS timestamp TIMESTAMPTZ DEFAULT NOW()`,
+      [],
+      { label: 'api.trade_probability.ensure_columns', timeoutMs: 5000, maxRetries: 0 }
+    );
+
+    const strategy = String(req.query.strategy || '').trim();
+    const params = [];
+    let whereSql = '';
+    if (strategy) {
+      params.push(strategy);
+      whereSql = `WHERE COALESCE(NULLIF(strategy, ''), 'Momentum Continuation') ILIKE $${params.length}`;
+    }
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         COALESCE(NULLIF(strategy, ''), 'Momentum Continuation') AS strategy,
+         COUNT(*)::int AS trades,
+         SUM(CASE WHEN COALESCE(result, exit_price > entry_price, false) THEN 1 ELSE 0 END)::int AS wins,
+         ROUND(
+           SUM(CASE WHEN COALESCE(result, exit_price > entry_price, false) THEN 1 ELSE 0 END)::decimal
+           / NULLIF(COUNT(*), 0) * 100,
+           1
+         ) AS win_rate,
+         ROUND(
+           AVG(
+             CASE
+               WHEN COALESCE(entry_price, 0) > 0 AND exit_price IS NOT NULL THEN ((exit_price - entry_price) / entry_price) * 100
+               ELSE NULL
+             END
+           )::numeric,
+           1
+         ) AS avg_move
+       FROM strategy_signals
+       ${whereSql}
+       GROUP BY COALESCE(NULLIF(strategy, ''), 'Momentum Continuation')
+       ORDER BY win_rate DESC NULLS LAST, trades DESC
+       LIMIT 12`,
+      params,
+      { label: 'api.trade_probability.query', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    return res.json({ success: true, items: rows });
+  } catch (error) {
+    return res.json({ success: true, items: [] });
   }
 });
 
