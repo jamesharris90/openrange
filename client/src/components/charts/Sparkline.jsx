@@ -8,7 +8,7 @@ function normalize(values = []) {
   return [50, 52, 51, 53, 54, 55, 56, 57, 58, 59, 58, 60, 61, 62, 61, 63, 64, 65, 66, 67];
 }
 
-export default function Sparkline({ symbol, points = [], width = 96, height = 28, positive = true }) {
+export default function Sparkline({ symbol, points = [], width = undefined, height = 40, positive = true }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
@@ -16,12 +16,13 @@ export default function Sparkline({ symbol, points = [], width = 96, height = 28
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const containerWidth = containerRef.current.clientWidth || 120;
     const chart = createChart(containerRef.current, {
-      width,
+      width: width || containerWidth,
       height,
       layout: {
-        background: { color: '#0b1220' },
-        textColor: '#0b1220',
+        background: { color: 'transparent' },
+        textColor: 'transparent',
       },
       grid: {
         vertLines: { visible: false },
@@ -63,7 +64,7 @@ export default function Sparkline({ symbol, points = [], width = 96, height = 28
       let source = normalize(points);
       if (symbol) {
         try {
-          const payload = await apiJSON(`/api/market/chart-mini/${encodeURIComponent(symbol)}`);
+          const payload = await apiJSON(`/api/charts/sparkline?symbol=${encodeURIComponent(symbol)}`);
           const apiPoints = (Array.isArray(payload) ? payload : [])
             .map((row) => Number(row?.value))
             .filter((v) => Number.isFinite(v));
@@ -85,5 +86,5 @@ export default function Sparkline({ symbol, points = [], width = 96, height = 28
     };
   }, [points, symbol]);
 
-  return <div ref={containerRef} style={{ width, height }} aria-label="sparkline" />;
+  return <div ref={containerRef} style={{ width: width || '100%', height: height || 40 }} aria-label="sparkline" />;
 }

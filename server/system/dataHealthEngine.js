@@ -1,4 +1,5 @@
 const { queryWithTimeout } = require('../db/pg');
+const logger = require('../logger');
 
 const TABLES = [
   'intraday_1m',
@@ -19,22 +20,31 @@ async function countTable(name) {
     );
     return Number(result.rows?.[0]?.count || 0);
   } catch (_error) {
+    logger.error('[ENGINE ERROR] data_health table count failed', { table: name });
     return 0;
   }
 }
 
 async function getDataHealth() {
-  const entries = await Promise.all(
-    TABLES.map(async (name) => [name, await countTable(name)])
-  );
+  try {
+    const entries = await Promise.all(
+      TABLES.map(async (name) => [name, await countTable(name)])
+    );
 
-  const tables = Object.fromEntries(entries);
-  const hasZero = Object.values(tables).some((value) => Number(value || 0) === 0);
+    const tables = Object.fromEntries(entries);
+    const hasZero = Object.values(tables).some((value) => Number(value || 0) === 0);
 
-  return {
-    status: hasZero ? 'warning' : 'ok',
-    tables,
-  };
+    return {
+      status: hasZero ? 'warning' : 'ok',
+      tables,
+    };
+  } catch (error) {
+    logger.error('[ENGINE ERROR] data_health run failed', { error: error.message });
+    return {
+      status: 'warning',
+      tables: Object.fromEntries(TABLES.map((name) => [name, 0])),
+    };
+  }
 }
 
 module.exports = {

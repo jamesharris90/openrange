@@ -4513,7 +4513,7 @@ app.get('/api/chart/mini/:symbol', async (req, res) => {
   }
 });
 
-app.get('/api/chart/sparkline', async (req, res) => {
+async function handleSparkline(req, res) {
   const symbol = String(req.query.symbol || '').trim().toUpperCase();
   if (!symbol) return res.status(400).json([]);
 
@@ -4556,7 +4556,10 @@ app.get('/api/chart/sparkline', async (req, res) => {
   } catch (_error) {
     return res.json([]);
   }
-});
+}
+
+app.get('/api/chart/sparkline', handleSparkline);
+app.get('/api/charts/sparkline', handleSparkline);
 
 app.get('/api/chart/trend/:symbol', async (req, res) => {
   try {

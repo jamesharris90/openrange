@@ -18,6 +18,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "dotenv": "^16.4.7",
+    "lightweight-charts": "^5.1.0",
+    "lodash": "^4.17.23",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",

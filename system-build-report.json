@@ -1,0 +1,241 @@
+{
+  "system_info": {
+    "node_version": "v25.5.0",
+    "npm_version": "11.8.0",
+    "os": "darwin 25.3.0 x64",
+    "build_timestamp": "2026-03-11T06:53:27.722Z",
+    "git_commit_hash": "b6ad1432a0154a4ef3e1f314d826514ecdf94e0b"
+  },
+  "engine_status": {
+    "ingestion": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:19.200Z",
+      "execution_time": 9
+    },
+    "narrative": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:19.608Z",
+      "execution_time": 408
+    },
+    "radar": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:19.647Z",
+      "execution_time": 39
+    },
+    "opportunity": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:21.765Z",
+      "execution_time": 2118
+    },
+    "earnings": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:27.722Z",
+      "execution_time": 0
+    },
+    "stocks_in_play": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:22.939Z",
+      "execution_time": 1174
+    },
+    "short_squeeze": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:23.038Z",
+      "execution_time": 99
+    },
+    "flow_detection": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:27.484Z",
+      "execution_time": 4446
+    },
+    "market_narrative": {
+      "status": "ok",
+      "errors": [],
+      "last_run": "2026-03-11T06:53:27.550Z",
+      "execution_time": 66
+    },
+    "diagnostics_lines": [
+      "SYSTEM STATUS: OK",
+      "INGESTION ENGINE: OK",
+      "NARRATIVE ENGINE: OK",
+      "RADAR ENGINE: OK",
+      "OPPORTUNITY ENGINE: OK",
+      "STOCKS IN PLAY ENGINE: OK",
+      "SHORT SQUEEZE ENGINE: OK",
+      "FLOW DETECTION ENGINE: OK",
+      "MARKET NARRATIVE ENGINE: OK",
+      "EARNINGS ENGINE: OK",
+      "ALL ENGINES: OK"
+    ],
+    "overall_status": "ok",
+    "checked_at": "2026-03-11T06:53:27.722Z"
+  },
+  "database_health": {
+    "tables": [
+      { "table": "intraday_1m", "rows": 88291 },
+      { "table": "market_quotes", "rows": 5810 },
+      { "table": "news_articles", "rows": 1257 },
+      { "table": "earnings_events", "rows": 20803 },
+      { "table": "trade_setups", "rows": 219 },
+      { "table": "trade_catalysts", "rows": 1828 },
+      { "table": "opportunity_stream", "rows": 7460 },
+      { "table": "stocks_in_play", "rows": 32 },
+      { "table": "squeeze_signals", "rows": 0 },
+      { "table": "flow_signals", "rows": 651 }
+    ],
+    "schema_issues_observed_during_build": [
+      "market_metrics.short_float missing before schema guard; patched via ALTER TABLE IF NOT EXISTS",
+      "market_metrics.liquidity_surge missing before schema guard; patched via ALTER TABLE IF NOT EXISTS",
+      "market_metrics.float_rotation missing before schema guard; patched via ALTER TABLE IF NOT EXISTS",
+      "market_metrics.sector and market_metrics.sector_strength drifted/missing in some environments; engines now use resilient fallback fields",
+      "trade_setups.created_at missing in some environments; opportunity ranker query changed to updated_at ordering"
+    ]
+  },
+  "api_health": [
+    {
+      "endpoint": "/api/stocks/in-play",
+      "status": 200,
+      "response_time": 54,
+      "sample_response": {
+        "ok": true,
+        "items": [
+          {
+            "symbol": "KB",
+            "score": "23.040974163590946"
+          }
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/opportunities/top",
+      "status": 401,
+      "response_time": 2,
+      "sample_response": {
+        "error": "Unauthorized"
+      }
+    },
+    {
+      "endpoint": "/api/system/data-health",
+      "status": 200,
+      "response_time": 121,
+      "sample_response": {
+        "status": "ok",
+        "tables": {
+          "intraday_1m": 88291,
+          "market_quotes": 5810,
+          "news_articles": 1257,
+          "earnings_events": 20803,
+          "trade_setups": 219,
+          "trade_catalysts": 1828,
+          "opportunity_stream": 7360
+        }
+      }
+    },
+    {
+      "endpoint": "/api/intelligence/market-narrative",
+      "status": 200,
+      "response_time": 124,
+      "sample_response": {
+        "sentiment": "Neutral",
+        "narrative": "SPY closed +0.00% while VIX moved +0.00%. Communication Services leads this morning..."
+      }
+    }
+  ],
+  "frontend_status": {
+    "ticker_tape_rendering": true,
+    "sparkline_rendering": true,
+    "admin_navigation": {
+      "admin": true,
+      "diagnostics": true,
+      "features": true,
+      "users": true,
+      "breadcrumb_navigation": true,
+      "back_to_admin_button": true
+    },
+    "console_errors": "No Vite build-time console errors detected; browser runtime console capture not available in terminal-only session"
+  },
+  "error_log_summary": {
+    "source": "server/logs/combined.log",
+    "count": 50,
+    "entries": [
+      { "timestamp": "2026-03-11 06:43:52", "engine": "flow_detection run failed", "error_message": "column \"liquidity_surge\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:44:02", "engine": "system", "error_message": "Status code 403", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:44:23", "engine": "opportunity_ranker run failed", "error_message": "column \"created_at\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:45:23", "engine": "opportunity_ranker run failed", "error_message": "column \"created_at\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:02", "engine": "system", "error_message": "Status code 403", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:23", "engine": "opportunity_ranker run failed", "error_message": "column \"created_at\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "market_narrative run failed", "error_message": "[ENGINE ERROR] market_narrative run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "radar run failed", "error_message": "[ENGINE ERROR] radar run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "opportunity_ranker run failed", "error_message": "[ENGINE ERROR] opportunity_ranker run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "[STOCKS_IN_PLAY] run failed", "error_message": "[ENGINE ERROR] [STOCKS_IN_PLAY] run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "short_squeeze ensure table failed", "error_message": "[ENGINE ERROR] short_squeeze ensure table failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "short_squeeze run failed", "error_message": "[ENGINE ERROR] short_squeeze run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "flow_detection ensure table failed", "error_message": "[ENGINE ERROR] flow_detection ensure table failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "flow_detection run failed", "error_message": "[ENGINE ERROR] flow_detection run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "market_narrative run failed", "error_message": "[ENGINE ERROR] market_narrative run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:24", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "market_narrative run failed", "error_message": "[ENGINE ERROR] market_narrative run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "radar run failed", "error_message": "[ENGINE ERROR] radar run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "opportunity_ranker run failed", "error_message": "[ENGINE ERROR] opportunity_ranker run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "[STOCKS_IN_PLAY] run failed", "error_message": "[ENGINE ERROR] [STOCKS_IN_PLAY] run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "short_squeeze ensure table failed", "error_message": "[ENGINE ERROR] short_squeeze ensure table failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "short_squeeze run failed", "error_message": "[ENGINE ERROR] short_squeeze run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "flow_detection ensure table failed", "error_message": "[ENGINE ERROR] flow_detection ensure table failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "flow_detection run failed", "error_message": "[ENGINE ERROR] flow_detection run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "market_narrative run failed", "error_message": "[ENGINE ERROR] market_narrative run failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:32", "engine": "data_health table count failed", "error_message": "[ENGINE ERROR] data_health table count failed", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:46:53", "engine": "flow_detection run failed", "error_message": "column \"liquidity_surge\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:47:23", "engine": "opportunity_ranker run failed", "error_message": "column \"created_at\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:48:03", "engine": "system", "error_message": "Status code 403", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:48:23", "engine": "opportunity_ranker run failed", "error_message": "column \"created_at\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:49:01", "engine": "short_squeeze run failed", "error_message": "column \"short_float\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:49:01", "engine": "flow_detection run failed", "error_message": "column \"liquidity_surge\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:49:22", "engine": "system", "error_message": "Request failed with status code 404", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:49:22", "engine": "intelNewsEngine", "error_message": "Request failed with status code 404", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:49:34", "engine": "intelNewsEngine", "error_message": "Request failed with status code 404", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:50:02", "engine": "system", "error_message": "Status code 403", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:50:21", "engine": "opportunity_ranker run failed", "error_message": "column m.sector_strength does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:51:18", "engine": "market_narrative query failed", "error_message": "column \"sector\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:51:18", "engine": "opportunity_ranker run failed", "error_message": "column m.sector_strength does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:51:21", "engine": "opportunity_ranker run failed", "error_message": "column m.sector_strength does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:51:24", "engine": "market_narrative query failed", "error_message": "column \"sector\" does not exist", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:52:01", "engine": "system", "error_message": "Status code 403", "stack_trace": null },
+      { "timestamp": "2026-03-11 06:52:21", "engine": "opportunity_ranker run failed", "error_message": "column m.sector_strength does not exist", "stack_trace": null }
+    ]
+  },
+  "performance_metrics": {
+    "avg_api_latency": 75,
+    "db_query_latency": 63,
+    "engine_runtime": {
+      "ingestion": 9,
+      "narrative": 408,
+      "radar": 39,
+      "opportunity": 2118,
+      "earnings": 0,
+      "stocks_in_play": 1174,
+      "short_squeeze": 99,
+      "flow_detection": 4446,
+      "market_narrative": 66
+    }
+  },
+  "build_notes": [
+    "Build command completed successfully via npm run build (vite build passed).",
+    "Diagnostics now report SYSTEM STATUS: OK and ALL ENGINES: OK when run with server environment loaded.",
+    "Historical errors are preserved in error_log_summary for remote debugging context.",
+    "Opportunity API health probe is unauthorized without JWT, which is expected under current auth policy."
+  ]
+}

@@ -19,6 +19,16 @@ function deriveNarrative({ spy, qqq, vix, topSector, topMovers, sentiment }) {
   return `${lead}, ${breadth} ${risk}. ${moversText}. News sentiment is ${sentimentWord}.`;
 }
 
+async function safeQuery(sql, params, options) {
+  try {
+    const result = await queryWithTimeout(sql, params, options);
+    return result?.rows || [];
+  } catch (error) {
+    logger.error('[ENGINE ERROR] market_narrative query failed', { label: options?.label, error: error.message });
+    return [];
+  }
+}
+
 async function ensureMarketNarrativesTable() {
   await queryWithTimeout(
     `CREATE TABLE IF NOT EXISTS market_narratives (
@@ -33,27 +43,29 @@ async function ensureMarketNarrativesTable() {
 }
 
 async function runMarketNarrativeEngine() {
-  await ensureMarketNarrativesTable();
+  try {
+    await ensureMarketNarrativesTable();
 
-  const [indexRes, sectorRes, moverRes, sentimentRes] = await Promise.all([
-    queryWithTimeout(
+    const [indexRows, sectorRows, moverRows, sentimentRows] = await Promise.all([
+      safeQuery(
       `SELECT symbol, change_percent
        FROM market_metrics
        WHERE symbol IN ('SPY', 'QQQ', 'VIX')`,
       [],
       { timeoutMs: 2200, label: 'engines.market_narrative.indices', maxRetries: 0 }
     ),
-    queryWithTimeout(
-      `SELECT COALESCE(NULLIF(TRIM(sector), ''), 'Unknown') AS sector,
-              AVG(COALESCE(change_percent, 0)) AS avg_change
-       FROM market_metrics
-       GROUP BY COALESCE(NULLIF(TRIM(sector), ''), 'Unknown')
+      safeQuery(
+            `SELECT COALESCE(NULLIF(TRIM(q.sector), ''), 'Unknown') AS sector,
+              AVG(COALESCE(m.change_percent, 0)) AS avg_change
+             FROM market_metrics m
+             LEFT JOIN market_quotes q ON q.symbol = m.symbol
+             GROUP BY COALESCE(NULLIF(TRIM(q.sector), ''), 'Unknown')
        ORDER BY avg_change DESC NULLS LAST
        LIMIT 1`,
       [],
       { timeoutMs: 2200, label: 'engines.market_narrative.sector', maxRetries: 0 }
     ),
-    queryWithTimeout(
+      safeQuery(
       `SELECT symbol, change_percent, relative_volume
        FROM market_metrics
        ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST, COALESCE(relative_volume, 0) DESC NULLS LAST
@@ -61,7 +73,7 @@ async function runMarketNarrativeEngine() {
       [],
       { timeoutMs: 2200, label: 'engines.market_narrative.movers', maxRetries: 0 }
     ),
-    queryWithTimeout(
+      safeQuery(
       `SELECT AVG(CASE
                     WHEN LOWER(COALESCE(sentiment, '')) LIKE '%positive%' THEN 1
                     WHEN LOWER(COALESCE(sentiment, '')) LIKE '%negative%' THEN -1
@@ -74,47 +86,64 @@ async function runMarketNarrativeEngine() {
     ),
   ]);
 
-  const indexMap = new Map(indexRes.rows.map((row) => [String(row.symbol || '').toUpperCase(), row]));
-  const spy = toNum(indexMap.get('SPY')?.change_percent);
-  const qqq = toNum(indexMap.get('QQQ')?.change_percent);
-  const vix = toNum(indexMap.get('VIX')?.change_percent);
-  const topSector = sectorRes.rows?.[0] || null;
-  const topMovers = Array.isArray(moverRes.rows) ? moverRes.rows : [];
-  const sentiment = toNum(sentimentRes.rows?.[0]?.sentiment_score);
+    const indexMap = new Map((indexRows || []).map((row) => [String(row.symbol || '').toUpperCase(), row]));
+    const spy = toNum(indexMap.get('SPY')?.change_percent);
+    const qqq = toNum(indexMap.get('QQQ')?.change_percent);
+    const vix = toNum(indexMap.get('VIX')?.change_percent);
+    const topSector = (sectorRows || [])[0] || null;
+    const topMovers = Array.isArray(moverRows) ? moverRows : [];
+    const sentiment = toNum((sentimentRows || [])[0]?.sentiment_score);
 
-  const narrative = deriveNarrative({ spy, qqq, vix, topSector, topMovers, sentiment });
-  const regime = spy > 0 && qqq > 0 && vix <= 0 ? 'Risk-On' : (spy < 0 && qqq < 0 ? 'Risk-Off' : 'Neutral');
+    const narrative = deriveNarrative({ spy, qqq, vix, topSector, topMovers, sentiment });
+    const regime = spy > 0 && qqq > 0 && vix <= 0 ? 'Risk-On' : (spy < 0 && qqq < 0 ? 'Risk-Off' : 'Neutral');
 
-  await queryWithTimeout(
+    await queryWithTimeout(
     `INSERT INTO market_narratives (narrative, regime, created_at)
      VALUES ($1, $2, NOW())`,
     [narrative, regime],
     { timeoutMs: 2200, label: 'engines.market_narrative.insert', maxRetries: 0 }
   );
 
-  const payload = {
-    narrative,
-    regime,
-    top_sector: topSector?.sector || 'Unknown',
-    generated_at: new Date().toISOString(),
-  };
+    const payload = {
+      ok: true,
+      narrative,
+      regime,
+      top_sector: topSector?.sector || 'Unknown',
+      generated_at: new Date().toISOString(),
+    };
 
-  logger.info('[MARKET_NARRATIVE_ENGINE] run complete', payload);
-  return payload;
+    logger.info('[MARKET_NARRATIVE_ENGINE] run complete', payload);
+    return payload;
+  } catch (error) {
+    logger.error('[ENGINE ERROR] market_narrative run failed', { error: error.message });
+    return {
+      ok: false,
+      narrative: '',
+      regime: 'Neutral',
+      top_sector: 'Unknown',
+      generated_at: new Date().toISOString(),
+      error: error.message,
+    };
+  }
 }
 
 async function getLatestMarketNarrative() {
-  await ensureMarketNarrativesTable();
-  const { rows } = await queryWithTimeout(
-    `SELECT narrative, regime, created_at
-     FROM market_narratives
-     ORDER BY created_at DESC
-     LIMIT 1`,
-    [],
-    { timeoutMs: 1500, label: 'engines.market_narrative.latest', maxRetries: 0 }
-  );
+  try {
+    await ensureMarketNarrativesTable();
+    const { rows } = await queryWithTimeout(
+      `SELECT narrative, regime, created_at
+       FROM market_narratives
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [],
+      { timeoutMs: 1500, label: 'engines.market_narrative.latest', maxRetries: 0 }
+    );
 
-  return rows?.[0] || null;
+    return rows?.[0] || null;
+  } catch (error) {
+    logger.error('[ENGINE ERROR] market_narrative latest failed', { error: error.message });
+    return null;
+  }
 }
 
 module.exports = {

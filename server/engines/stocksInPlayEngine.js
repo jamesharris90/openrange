@@ -443,7 +443,7 @@ async function runStocksInPlayEngine() {
     return { selected: rows.length, upserted: inserted, boosted, runtimeMs };
   } catch (error) {
     const runtimeMs = Date.now() - startedAt;
-    logger.error('[STOCKS_IN_PLAY] run failed', { error: error.message, runtime_ms: runtimeMs });
+    logger.error('[ENGINE ERROR] [STOCKS_IN_PLAY] run failed', { error: error.message, runtime_ms: runtimeMs });
     return { selected: 0, upserted: 0, boosted: 0, runtimeMs, error: error.message };
   }
 }

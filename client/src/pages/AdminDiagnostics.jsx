@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { authFetchJSON } from '../utils/api';
 
 function statusTone(status) {
@@ -60,6 +61,17 @@ export default function AdminDiagnostics() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-sm">
+        <div className="mb-2 text-xs text-[var(--text-muted)]">Admin / Diagnostics</div>
+        <div className="flex flex-wrap gap-2">
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Admin</Link>
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin/diagnostics">Diagnostics</Link>
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Features</Link>
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Users</Link>
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Back to Admin</Link>
+        </div>
+      </div>
+
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">System Diagnostics</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">Database, API, engine, and scheduler health overview.</p>

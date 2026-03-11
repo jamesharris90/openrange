@@ -6,6 +6,9 @@ const { ensureEarlyAccumulationTable } = require('../engines/earlyAccumulationEn
 const { ensureEarlySignalOutcomesTable } = require('../engines/earlySignalOutcomeEngine');
 const { ensureOrderFlowSignalsTable } = require('../engines/orderFlowImbalanceEngine');
 const { ensureSectorMomentumTable } = require('../engines/sectorMomentumEngine');
+const { runShortSqueezeEngine, listLatestSqueezeSignals } = require('../engines/shortSqueezeEngine');
+const { runFlowDetectionEngine, listLatestFlowSignals } = require('../engines/flowDetectionEngine');
+const { runMarketNarrativeEngine, getLatestMarketNarrative } = require('../engines/marketNarrativeEngine');
 
 const router = express.Router();
 
@@ -277,6 +280,75 @@ router.get('/api/intelligence/sector-momentum', async (req, res) => {
   } catch (err) {
     console.error('[intelligence] sector-momentum error:', err.message);
     return res.status(500).json({ ok: false, error: err.message || 'Failed to load sector momentum' });
+  }
+});
+
+router.get('/api/intelligence/squeezes', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    let items = await listLatestSqueezeSignals(limit);
+    if (!items.length) {
+      await runShortSqueezeEngine();
+      items = await listLatestSqueezeSignals(limit);
+    }
+    return res.json({ ok: true, items: items || [] });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load squeeze signals', items: [] });
+  }
+});
+
+router.get('/api/intelligence/flow', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    let items = await listLatestFlowSignals(limit);
+    if (!items.length) {
+      await runFlowDetectionEngine();
+      items = await listLatestFlowSignals(limit);
+    }
+    return res.json({ ok: true, items: items || [] });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load flow signals', items: [] });
+  }
+});
+
+router.get('/api/stocks/in-play', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    const { rows } = await pool.query(
+      `SELECT id, symbol, gap_percent, rvol, catalyst, score, detected_at
+       FROM stocks_in_play
+       ORDER BY detected_at DESC NULLS LAST
+       LIMIT $1`,
+      [limit]
+    );
+    return res.json({ ok: true, items: rows || [] });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load stocks in play', items: [] });
+  }
+});
+
+router.get('/api/intelligence/market-narrative', async (_req, res) => {
+  try {
+    let latest = await getLatestMarketNarrative();
+    if (!latest) {
+      await runMarketNarrativeEngine();
+      latest = await getLatestMarketNarrative();
+    }
+
+    return res.json({
+      ok: true,
+      narrative: latest?.narrative || '',
+      regime: latest?.regime || 'Neutral',
+      created_at: latest?.created_at || null,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      narrative: '',
+      regime: 'Neutral',
+      created_at: null,
+      error: err.message || 'Failed to load market narrative',
+    });
   }
 });
 

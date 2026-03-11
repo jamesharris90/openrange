@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileDrawer from './MobileDrawer';
+import TickerTape from '../market/TickerTape';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function AppLayout({ children }) {
@@ -32,6 +33,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Header />
+      <TickerTape />
       <div className="pt-16">
         <div className="flex">
           <Sidebar />
