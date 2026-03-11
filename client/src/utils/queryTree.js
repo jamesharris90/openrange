@@ -101,6 +101,44 @@ function toCondition(row) {
   };
 }
 
+function toApiCondition(row) {
+  if (!row || !row.field) return null;
+  const condition = {
+    field: normalizeFieldName(row.field),
+    operator: row.operator || 'equals',
+    value: row.operator === 'between' ? [row.value, row.valueTo] : row.value,
+  };
+
+  if (condition.operator === 'between') {
+    const [min, max] = Array.isArray(condition.value) ? condition.value : [];
+    if (min == null || min === '' || max == null || max === '') return null;
+  }
+
+  if (condition.value == null || condition.value === '') return null;
+  return condition;
+}
+
+export function buildQueryTree(filters = []) {
+  const rows = Array.isArray(filters) ? filters : [];
+  const first = toApiCondition(rows[0]);
+  if (!first) return { AND: [] };
+
+  let tree = first;
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index];
+    const next = toApiCondition(row);
+    if (!next) continue;
+    const logic = String(row?.logic || row?.booleanOp || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND';
+    tree = { [logic]: [tree, next] };
+  }
+
+  if (tree.field) {
+    return { AND: [tree] };
+  }
+
+  return tree;
+}
+
 export function buildQueryTreeFromRows(rows = []) {
   const validRows = rows.map(toCondition).filter(Boolean);
   if (!validRows.length) {

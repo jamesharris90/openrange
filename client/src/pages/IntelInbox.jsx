@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import SkeletonCard from '../components/ui/SkeletonCard';
-import { apiJSON } from '../config/api';
+import { apiJSON } from '../api/apiClient';
 import TickerLink from '../components/shared/TickerLink';
 import MiniSymbolChart from '../components/charts/MiniSymbolChart';
 import IntelDetailPanel from '../components/intelligence/IntelDetailPanel';
@@ -189,7 +189,7 @@ export default function IntelInbox() {
             <SkeletonCard lines={3} />
           </div>
         ) : items.length === 0 ? (
-          <div className="muted">No intelligence news available.</div>
+          <div className="muted">No intelligence yet</div>
         ) : (
           <div className="space-y-2">
             {items.map((item, index) => (

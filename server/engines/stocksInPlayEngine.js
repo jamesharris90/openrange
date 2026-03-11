@@ -93,6 +93,39 @@ async function ensureTradeSignalsTable() {
   );
 }
 
+async function ensureStocksInPlayTable() {
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS stocks_in_play (
+      id BIGSERIAL PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      gap_percent NUMERIC,
+      rvol NUMERIC,
+      catalyst TEXT,
+      score NUMERIC,
+      detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.ensure_stocks_table', maxRetries: 0 }
+  );
+}
+
+async function upsertStocksInPlay(scoredRows) {
+  if (!scoredRows.length) return 0;
+
+  let inserted = 0;
+  for (const row of scoredRows) {
+    const result = await queryWithTimeout(
+      `INSERT INTO stocks_in_play (symbol, gap_percent, rvol, catalyst, score, detected_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [row.symbol, row.gap_percent, row.rvol, row.signal_explanation || row.rationale || null, row.score],
+      { timeoutMs: 2500, label: 'engines.stocks_in_play.insert_stocks_in_play', maxRetries: 0 }
+    );
+    inserted += result.rowCount || 0;
+  }
+
+  return inserted;
+}
+
 async function selectStocksInPlayCandidates({ minRvol, minGap, minAtrPercent, label }) {
   const { rows } = await queryWithTimeout(
     `WITH catalyst_latest AS (
@@ -146,7 +179,7 @@ async function selectStocksInPlayCandidates({ minRvol, minGap, minAtrPercent, la
            + (COALESCE(ci.catalyst_impact_8h, 0) * 20)) AS rank_score
        FROM market_metrics m
        LEFT JOIN market_quotes q ON q.symbol = m.symbol
-       LEFT JOIN catalyst_latest cl ON cl.symbol = m.symbol
+      LEFT JOIN catalyst_latest cl ON cl.symbol = m.symbol
        LEFT JOIN catalyst_impact ci ON ci.symbol = m.symbol
       LEFT JOIN sector_momentum sm ON sm.sector = COALESCE(q.sector, 'Unknown')
       LEFT JOIN order_flow_latest ofl ON ofl.symbol = m.symbol
@@ -155,6 +188,7 @@ async function selectStocksInPlayCandidates({ minRvol, minGap, minAtrPercent, la
          AND COALESCE(m.relative_volume, 0) >= $1
          AND COALESCE(m.gap_percent, 0) >= $2
          AND COALESCE(m.atr_percent, 0) >= $3
+         AND cl.headline IS NOT NULL
        ORDER BY rank_score DESC
       LIMIT 120
      )
@@ -309,6 +343,7 @@ async function runStocksInPlayEngine() {
   const startedAt = Date.now();
   try {
     await ensureTradeSignalsTable();
+    await ensureStocksInPlayTable();
     await ensureTradeSignalsScoringColumns();
     await ensureOrderFlowSignalsTable();
     await ensureSectorMomentumTable();
@@ -381,6 +416,7 @@ async function runStocksInPlayEngine() {
 
     const boosted = scoredRows.filter((r) => r.catalyst_impact_8h > 0).length;
     const inserted = await upsertTradeSignalsBatch(scoredRows);
+    const stocksInserted = await upsertStocksInPlay(scoredRows);
 
     await routeSignalsBatch(scoredRows.map((row) => ({
       symbol: row.symbol,
@@ -399,6 +435,7 @@ async function runStocksInPlayEngine() {
     logger.info('[STOCKS_IN_PLAY] run complete', {
       selected: rows.length,
       upserted: inserted,
+      stocks_in_play_inserted: stocksInserted,
       boosted,
       runtime_ms: runtimeMs,
     });

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import { apiJSON } from '../config/api';
+import API_BASE, { safeFetch } from '../api/apiClient';
 
 export default function EarningsCalendar() {
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [today, setToday] = useState([]);
   const [week, setWeek] = useState([]);
 
@@ -14,20 +15,22 @@ export default function EarningsCalendar() {
 
     async function load() {
       setLoading(true);
+      setHasError(false);
       try {
-        const [todayPayload, weekPayload] = await Promise.all([
-          apiJSON('/api/earnings/today'),
-          apiJSON('/api/earnings/week'),
-        ]);
+        const todayPayload = await safeFetch(`${API_BASE}/api/earnings/today`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
 
         if (!cancelled) {
-          setToday(Array.isArray(todayPayload?.earnings) ? todayPayload.earnings : []);
-          setWeek(Array.isArray(weekPayload?.earnings) ? weekPayload.earnings : []);
+          setToday(Array.isArray(todayPayload?.today) ? todayPayload.today : []);
+          setWeek(Array.isArray(todayPayload?.week) ? todayPayload.week : []);
         }
       } catch {
         if (!cancelled) {
           setToday([]);
           setWeek([]);
+          setHasError(true);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -76,16 +79,20 @@ export default function EarningsCalendar() {
 
       {loading ? (
         <Card><LoadingSpinner message="Loading earnings calendar…" /></Card>
+      ) : hasError ? (
+        <Card>
+          <div className="muted">Earnings data initializing.</div>
+        </Card>
       ) : (
         <>
           <Card>
             <h3 className="m-0 mb-3">Today</h3>
-            {today.length ? renderRows(today) : <div className="muted">No earnings scheduled for today.</div>}
+            {today.length ? renderRows(today) : <div className="muted">No earnings scheduled.</div>}
           </Card>
 
           <Card>
             <h3 className="m-0 mb-3">This Week</h3>
-            {week.length ? renderRows(week) : <div className="muted">No earnings events in the next 7 days.</div>}
+            {week.length ? renderRows(week) : <div className="muted">No earnings scheduled.</div>}
           </Card>
         </>
       )}

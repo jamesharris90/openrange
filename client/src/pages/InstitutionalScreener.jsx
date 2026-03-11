@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, RefreshCw, Save, Search } from 'lucide-react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
-import TradingViewChart from '../components/shared/TradingViewChart';
+import MiniSparkline from '../components/charts/MiniSparkline';
 import { apiJSON } from '../config/api';
 import FilterSidebar from '../components/screener/FilterSidebar';
 import PresetSelector from '../components/screener/PresetSelector';
@@ -10,7 +10,7 @@ import ColumnSelector from '../components/screener/ColumnSelector';
 import ScreenerStats from '../components/screener/ScreenerStats';
 import ScreenerTable, { defaultColumns } from '../components/screener/ScreenerTable';
 import QueryDebugPanel from '../components/debug/QueryDebugPanel';
-import { buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree, mapQueryTreeToBackend } from '../utils/queryTree';
+import { buildQueryTree, buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree, mapQueryTreeToBackend } from '../utils/queryTree';
 import filterRegistrySource from '../config/filter_registry.json';
 import presetScannerSource from '../config/preset_scanners.json';
 
@@ -122,6 +122,7 @@ function createDefaultFilterRow(filters = SHARED_FILTER_REGISTRY.filters) {
   const first = filters?.[0] || { field: 'price', operators: ['between'] };
   return {
     id: crypto.randomUUID(),
+    logic: 'AND',
     booleanOp: 'AND',
     field: first.field,
     operator: first.operators?.includes('between') ? 'between' : (first.operators?.[0] || 'equals'),
@@ -138,6 +139,7 @@ function flattenTreeToRows(node, rows = [], boolOp = 'AND') {
     const valueTo = Array.isArray(node.value) ? node.value[1] : '';
     rows.push({
       id: crypto.randomUUID(),
+      logic: rows.length ? boolOp : 'AND',
       booleanOp: rows.length ? boolOp : 'AND',
       field: node.field,
       operator: node.operator,
@@ -202,6 +204,11 @@ export default function InstitutionalScreener() {
     [appliedQueryTree, filterRegistry]
   );
 
+  const apiQueryTree = useMemo(
+    () => buildQueryTree(appliedAdaptiveRows),
+    [appliedAdaptiveRows]
+  );
+
   const debouncedQuerySignature = useDebouncedValue(JSON.stringify(appliedQueryTree), 300);
 
   const columns = useMemo(() => {
@@ -241,9 +248,9 @@ export default function InstitutionalScreener() {
 
     let screenerResponse = null;
     try {
-      screenerResponse = await safe('/api/screener', null, {
+      screenerResponse = await safe('/api/query/run', null, {
         method: 'POST',
-        body: JSON.stringify({ query_tree: backendQueryTree }),
+        body: JSON.stringify({ query_tree: filterMode === 'adaptive' ? apiQueryTree : backendQueryTree }),
       });
     } catch (error) {
       if (error?.name === 'AbortError') return;
@@ -315,7 +322,7 @@ export default function InstitutionalScreener() {
     setLastRefresh(new Date().toISOString());
     setLoading(false);
     setSelectedSymbol((current) => current || rows[0]?.symbol || '');
-  }, [backendQueryTree]);
+  }, [apiQueryTree, backendQueryTree, filterMode]);
 
   useEffect(() => {
     return () => {
@@ -379,7 +386,11 @@ export default function InstitutionalScreener() {
   }, [sortedRows, selectedSymbol]);
 
   function updateAdaptiveRow(rowId, key, value) {
-    setAdaptiveRows((current) => current.map((row) => (row.id === rowId ? { ...row, [key]: value } : row)));
+    setAdaptiveRows((current) => current.map((row) => {
+      if (row.id !== rowId) return row;
+      if (key === 'logic') return { ...row, logic: value, booleanOp: value };
+      return { ...row, [key]: value };
+    }));
   }
 
   function addAdaptiveRow() {
@@ -705,7 +716,7 @@ export default function InstitutionalScreener() {
 
               <div className="rounded-xl border border-[var(--border-color)] p-2">
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Mini Chart</div>
-                <TradingViewChart symbol={selectedContext.symbol} interval="15" range="5D" height={210} hideSideToolbar />
+                <MiniSparkline symbol={selectedContext.symbol} height={60} />
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-sm">

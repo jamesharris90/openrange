@@ -8,6 +8,7 @@ async function ensureEarningsTable() {
       symbol TEXT,
       company TEXT,
       earnings_date DATE,
+      time TEXT,
       eps_estimate NUMERIC,
       revenue_estimate NUMERIC,
       sector TEXT,
@@ -21,6 +22,7 @@ async function ensureEarningsTable() {
     `ALTER TABLE earnings_events
       ADD COLUMN IF NOT EXISTS company TEXT,
       ADD COLUMN IF NOT EXISTS earnings_date DATE,
+      ADD COLUMN IF NOT EXISTS time TEXT,
       ADD COLUMN IF NOT EXISTS eps_estimate NUMERIC,
       ADD COLUMN IF NOT EXISTS revenue_estimate NUMERIC,
       ADD COLUMN IF NOT EXISTS sector TEXT,
@@ -48,6 +50,7 @@ function normalizeEarningsRow(row) {
     symbol,
     company: row?.company || row?.name || null,
     earnings_date: dateValue,
+    time: row?.time || row?.hour || row?.when || null,
     eps_estimate: row?.epsEstimated ?? row?.epsEstimate ?? null,
     revenue_estimate: row?.revenueEstimated ?? row?.revenueEstimate ?? null,
     sector: row?.sector || row?.industry || null,
@@ -65,7 +68,7 @@ async function runEarningsEngine() {
   }
 
   const today = new Date();
-  const toDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const toDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
   const from = today.toISOString().slice(0, 10);
   const to = toDate.toISOString().slice(0, 10);
 
@@ -76,16 +79,17 @@ async function runEarningsEngine() {
 
   for (const row of rows) {
     await queryWithTimeout(
-      `INSERT INTO earnings_events (symbol, company, earnings_date, eps_estimate, revenue_estimate, sector, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, now())
+      `INSERT INTO earnings_events (symbol, company, earnings_date, time, eps_estimate, revenue_estimate, sector, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
        ON CONFLICT (symbol, earnings_date)
        DO UPDATE SET
          company = EXCLUDED.company,
+         time = EXCLUDED.time,
          eps_estimate = EXCLUDED.eps_estimate,
          revenue_estimate = EXCLUDED.revenue_estimate,
          sector = EXCLUDED.sector,
          updated_at = now()`,
-      [row.symbol, row.company, row.earnings_date, row.eps_estimate, row.revenue_estimate, row.sector],
+      [row.symbol, row.company, row.earnings_date, row.time, row.eps_estimate, row.revenue_estimate, row.sector],
       { timeoutMs: 5000, label: 'engines.earningsEngine.upsert', maxRetries: 0 }
     );
   }

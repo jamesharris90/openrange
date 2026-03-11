@@ -1,5 +1,5 @@
 import Card from '../shared/Card';
-import FilterBuilder from './FilterBuilder';
+import AdaptiveBuilder from './AdaptiveBuilder';
 import StructuredFilters from './StructuredFilters';
 
 export default function FilterSidebar({
@@ -35,7 +35,7 @@ export default function FilterSidebar({
 
       <div className="h-[calc(100%-52px)] overflow-y-auto p-3">
         {mode === 'adaptive' ? (
-          <FilterBuilder {...adaptiveProps} />
+          <AdaptiveBuilder {...adaptiveProps} />
         ) : (
           <StructuredFilters {...structuredProps} />
         )}

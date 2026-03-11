@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { queryWithTimeout } = require('../db/pg');
-const { fetchUnifiedSignals } = require('../services/signalService');
+const { runQueryTree } = require('../services/queryEngine');
 
 router.get('/', async (_req, res) => {
   try {
-    const rows = await fetchUnifiedSignals({ limit: 120 });
+    const rows = (await runQueryTree({ AND: [] }, { limit: 120 })).rows || [];
     const buckets = { A: [], B: [], C: [] };
 
     rows.forEach((row) => {
@@ -15,17 +15,21 @@ router.get('/', async (_req, res) => {
     });
 
     return res.json({
-      success: true,
+      signals: rows,
       A: buckets.A,
       B: buckets.B,
       C: buckets.C,
+      status: 'ok',
       generated_at: new Date().toISOString(),
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to load radar data',
-      detail: error.message,
+    return res.json({
+      signals: [],
+      A: [],
+      B: [],
+      C: [],
+      status: 'error',
+      message: 'Radar temporarily unavailable',
     });
   }
 });

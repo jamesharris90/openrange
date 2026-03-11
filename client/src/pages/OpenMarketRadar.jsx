@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ErrorState from '../components/shared/ErrorState';
+import { apiJSON } from '../api/apiClient';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -19,23 +20,29 @@ export default function OpenMarketRadar() {
   const [radar, setRadar] = useState({ A: [], B: [], C: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pipelineWarmup, setPipelineWarmup] = useState(false);
 
   const loadRadar = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/radar');
-      if (!response.ok) {
-        throw new Error(`Radar request failed (${response.status})`);
-      }
-      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-      if (!contentType.includes('application/json')) {
-        throw new Error('Radar endpoint returned non-JSON content');
-      }
-      const data = await response.json();
+      const [data, health] = await Promise.all([
+        apiJSON('/api/radar'),
+        apiJSON('/api/system/data-health').catch(() => null),
+      ]);
+
+      const metricsRows = Number(health?.metrics_rows || 0);
+      const setupsRows = Number(health?.setups_rows || 0);
+      const catalystsRows = Number(health?.catalysts_rows || 0);
+      const intradayRows = Number(health?.intraday_rows || 0);
+
+      setPipelineWarmup(
+        metricsRows === 0 || setupsRows === 0 || catalystsRows === 0 || intradayRows === 0
+      );
 
       const fallbackRows = Array.isArray(data?.data) ? data.data : [];
-      const grouped = fallbackRows.reduce((acc, row) => {
+      const signalRows = Array.isArray(data?.signals) ? data.signals : fallbackRows;
+      const grouped = signalRows.reduce((acc, row) => {
         const klass = String(row?.class || '').toUpperCase();
         const bucket = klass === 'A' ? 'A' : klass === 'B' ? 'B' : 'C';
         acc[bucket].push(row);
@@ -46,6 +53,7 @@ export default function OpenMarketRadar() {
         A: Array.isArray(data?.A) ? data.A : grouped.A,
         B: Array.isArray(data?.B) ? data.B : grouped.B,
         C: Array.isArray(data?.C) ? data.C : grouped.C,
+        signals: signalRows,
       });
     } catch (fetchError) {
       console.error('[RADAR FETCH ERROR]', fetchError);
@@ -123,7 +131,7 @@ export default function OpenMarketRadar() {
 
       {loading ? (
         <Card>
-          <LoadingSpinner message="Loading radar setups..." />
+          <LoadingSpinner message="Waiting for market data..." />
         </Card>
       ) : null}
 
@@ -135,6 +143,11 @@ export default function OpenMarketRadar() {
 
       {!loading && !error ? (
         <div className="space-y-3">
+          {pipelineWarmup ? (
+            <Card>
+              <div className="muted">Market data initializing</div>
+            </Card>
+          ) : null}
           <Card>
             <h3 className="m-0 mb-3">Class A setups</h3>
             {renderRows(classA)}

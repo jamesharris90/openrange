@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, LineChart, Newspaper, Star } from 'lucide-react';
-import SparklineMini from '../charts/SparklineMini';
+import MiniSparkline from '../charts/MiniSparkline';
 import MetricBar from '../ui/MetricBar';
 import TickerLink from '../shared/TickerLink';
 import { useSymbol } from '../../context/SymbolContext';
@@ -87,7 +87,9 @@ const TableRow = memo(function TableRow({
             {column.key === 'symbol' ? (
               <div className="flex items-center gap-2">
                 <TickerLink symbol={rendered || '--'} className="font-semibold" />
-                <SparklineMini points={row.sparkline} positive={(row.changePercent ?? 0) >= 0} />
+                <div style={{ width: 92 }}>
+                  <MiniSparkline symbol={row.symbol} points={row.sparkline} height={24} />
+                </div>
               </div>
             ) : column.key === 'sectorStrength' ? (
               <div className="flex items-center gap-2">
@@ -320,7 +322,7 @@ export default function ScreenerTable({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={visibleColumns.length + 1} className="py-8 text-center text-sm text-[var(--text-muted)]">
-                  No results match the current filter criteria.
+                  Apply filters to begin scan
                 </td>
               </tr>
             )}

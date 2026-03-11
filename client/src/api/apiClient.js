@@ -10,11 +10,27 @@ function normalizeApiPath(path) {
   return `/api/${raw}`;
 }
 
+export async function safeFetch(url, options = {}) {
+  const response = await fetch(url, options);
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API error ${response.status}: ${text}`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error('Non JSON response');
+  }
+
+  return response.json();
+}
+
 export async function apiFetch(path, options = {}) {
   const url = `${API_BASE}${normalizeApiPath(path)}`;
   const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
 
-  const response = await fetch(url, {
+  return safeFetch(url, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -23,13 +39,6 @@ export async function apiFetch(path, options = {}) {
     },
     ...options,
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`API error ${response.status}: ${text}`);
-  }
-
-  return response.json();
 }
 
 export async function apiJSON(path, options = {}) {

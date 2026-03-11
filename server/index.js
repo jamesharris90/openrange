@@ -19,11 +19,11 @@ const express = require('express');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const csv = require('csvtojson');
-const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
 const { randomUUID } = require('crypto');
+const { applyCors } = require('./app');
 const { withRetry } = require('./utils/retry');
 const { runEnvCheck } = require('./utils/envCheck');
 const { getCachedValue, setCachedValue } = require('./utils/responseCache');
@@ -76,13 +76,14 @@ const signalsRoutes = require('./routes/signals');
 const newsletterRoutes = require('./routes/newsletter');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
-const radarRoutes = require('./routes/radarRoutes');
+const radarRoutes = require('./routes/radar');
 const briefingRoutes = require('./routes/briefingRoutes');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const intelDetailsRoutes = require('./routes/intelDetails');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { fetchUnifiedSignals } = require('./services/signalService');
+const { runQueryTree, normalizeQueryTree } = require('./services/queryEngine');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
 const { startSchedulerService } = require('./services/schedulerService.ts');
 const { startIngestionScheduler } = require('./ingestion/scheduler');
@@ -92,6 +93,10 @@ const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
 const { startDiscoveryScheduler } = require('./discovery/discovery_scheduler');
 const { startOpportunityStreamScheduler } = require('./opportunity/stream_scheduler');
 const { startNarrativeScheduler } = require('./narrative/narrative_scheduler');
+const { startEarningsWorker } = require('./workers/earningsWorker');
+const { runMarketNarrativeEngine, getLatestMarketNarrative } = require('./engines/marketNarrativeEngine');
+const { runInstitutionalFlowEngine } = require('./engines/institutionalFlowEngine');
+const { runOpportunityRanker } = require('./engines/opportunityRanker');
 const { getMetricsHealth } = require('./monitoring/metricsHealth');
 const { getIngestionHealth } = require('./monitoring/ingestionHealth');
 const { getUniverseHealth } = require('./monitoring/universeHealth');
@@ -404,14 +409,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://openrangetrading.co.uk'
-  ],
-  credentials: true
-}));
+applyCors(app);
 
 // Security headers middleware
 app.use((req, res, next) => {
@@ -963,6 +961,35 @@ app.get('/api/system/report', async (req, res) => {
       detail: err.message,
       checked_at: new Date().toISOString(),
     });
+  }
+});
+
+app.get('/api/system/data-health', async (_req, res) => {
+  const response = {
+    intraday_rows: 0,
+    metrics_rows: 0,
+    setups_rows: 0,
+    catalysts_rows: 0,
+    earnings_rows: 0,
+  };
+
+  try {
+    const [intraday, metrics, setups, catalysts, earnings] = await Promise.all([
+      queryWithTimeout('SELECT COUNT(*)::int AS count FROM intraday_1m', [], { label: 'api.system.data_health.intraday', timeoutMs: 2500, maxRetries: 0 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS count FROM market_metrics', [], { label: 'api.system.data_health.metrics', timeoutMs: 2500, maxRetries: 0 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS count FROM trade_setups', [], { label: 'api.system.data_health.setups', timeoutMs: 2500, maxRetries: 0 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS count FROM trade_catalysts', [], { label: 'api.system.data_health.catalysts', timeoutMs: 2500, maxRetries: 0 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS count FROM earnings_events', [], { label: 'api.system.data_health.earnings', timeoutMs: 2500, maxRetries: 0 }),
+    ]);
+
+    response.intraday_rows = Number(intraday.rows?.[0]?.count || 0);
+    response.metrics_rows = Number(metrics.rows?.[0]?.count || 0);
+    response.setups_rows = Number(setups.rows?.[0]?.count || 0);
+    response.catalysts_rows = Number(catalysts.rows?.[0]?.count || 0);
+    response.earnings_rows = Number(earnings.rows?.[0]?.count || 0);
+    return res.json(response);
+  } catch (_error) {
+    return res.json(response);
   }
 });
 
@@ -1749,6 +1776,7 @@ app.get('/api/earnings/today', async (req, res) => {
         symbol TEXT,
         company TEXT,
         earnings_date DATE,
+        time TEXT,
         eps_estimate NUMERIC,
         revenue_estimate NUMERIC,
         sector TEXT,
@@ -1760,15 +1788,18 @@ app.get('/api/earnings/today', async (req, res) => {
 
     await queryWithTimeout(
       `ALTER TABLE earnings_events
-        ADD COLUMN IF NOT EXISTS sector TEXT`,
+        ADD COLUMN IF NOT EXISTS sector TEXT,
+        ADD COLUMN IF NOT EXISTS time TEXT`,
       [],
       { timeoutMs: 5000, label: 'api.earnings.ensure_sector', maxRetries: 0 }
     );
 
-    const { rows } = await queryWithTimeout(
+    const [todayRowsRes, weekRowsRes] = await Promise.all([
+      queryWithTimeout(
       `SELECT symbol,
               earnings_date::text AS date,
               company,
+              time,
               eps_estimate,
               revenue_estimate,
               sector,
@@ -1784,10 +1815,35 @@ app.get('/api/earnings/today', async (req, res) => {
         slowQueryMs: 120,
         label: 'api.earnings.today',
       }
-    );
-    return res.json({ earnings: rows });
+      ),
+      queryWithTimeout(
+      `SELECT symbol,
+              company,
+              earnings_date::text AS date,
+              time,
+              eps_estimate,
+              revenue_estimate,
+              sector,
+              updated_at
+       FROM earnings_events
+       WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+       ORDER BY earnings_date ASC, symbol ASC
+       LIMIT 1000`,
+      [],
+      {
+        timeoutMs: 1200,
+        maxRetries: 0,
+        slowQueryMs: 120,
+        label: 'api.earnings.today.week',
+      }
+      ),
+    ]);
+    return res.json({
+      today: todayRowsRes.rows || [],
+      week: weekRowsRes.rows || [],
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message || 'Failed to load earnings today' });
+    return res.json({ today: [], week: [], status: 'error', message: 'Earnings data initializing.' });
   }
 });
 
@@ -1798,6 +1854,7 @@ app.get('/api/earnings/week', async (req, res) => {
         symbol TEXT,
         company TEXT,
         earnings_date DATE,
+        time TEXT,
         eps_estimate NUMERIC,
         revenue_estimate NUMERIC,
         sector TEXT,
@@ -1809,15 +1866,18 @@ app.get('/api/earnings/week', async (req, res) => {
 
     await queryWithTimeout(
       `ALTER TABLE earnings_events
-        ADD COLUMN IF NOT EXISTS sector TEXT`,
+        ADD COLUMN IF NOT EXISTS sector TEXT,
+        ADD COLUMN IF NOT EXISTS time TEXT`,
       [],
       { timeoutMs: 5000, label: 'api.earnings.ensure_sector.week', maxRetries: 0 }
     );
 
-    const { rows } = await queryWithTimeout(
+    const [weekRowsRes, todayRowsRes] = await Promise.all([
+      queryWithTimeout(
       `SELECT symbol,
               company,
               earnings_date::text AS date,
+              time,
               eps_estimate,
               revenue_estimate,
               sector,
@@ -1833,10 +1893,36 @@ app.get('/api/earnings/week', async (req, res) => {
         slowQueryMs: 120,
         label: 'api.earnings.week',
       }
-    );
-    return res.json({ earnings: rows });
+      ),
+      queryWithTimeout(
+      `SELECT symbol,
+              earnings_date::text AS date,
+              company,
+              time,
+              eps_estimate,
+              revenue_estimate,
+              sector,
+              updated_at
+       FROM earnings_events
+       WHERE earnings_date = CURRENT_DATE
+       ORDER BY symbol ASC
+       LIMIT 200`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 120,
+        label: 'api.earnings.week.today',
+      }
+      ),
+    ]);
+
+    return res.json({
+      today: todayRowsRes.rows || [],
+      week: weekRowsRes.rows || [],
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message || 'Failed to load earnings week' });
+    return res.json({ today: [], week: [], status: 'error', message: 'Earnings data initializing.' });
   }
 });
 
@@ -2529,6 +2615,120 @@ app.get('/api/screener/full', async (req, res) => {
 app.post('/api/screener', async (req, res) => {
   const rows = await loadScreenerRows();
   res.json({ rows });
+});
+
+app.post('/api/query/run', async (req, res) => {
+  try {
+    const queryTree = normalizeQueryTree(req.body?.query_tree || req.body || { AND: [] });
+    const result = await runQueryTree(queryTree, { limit: Number(req.body?.limit) || 250 });
+    return res.json({ rows: result.rows, query_tree: result.query_tree });
+  } catch (error) {
+    const isValidation = error?.code === 'INVALID_QUERY_TREE_FIELD';
+    return res.status(isValidation ? 400 : 500).json({
+      rows: [],
+      error: isValidation ? error.message : 'Failed to execute query tree',
+      detail: isValidation ? undefined : error.message,
+    });
+  }
+});
+
+app.get('/api/query/presets/gap-scanner', async (_req, res) => {
+  try {
+    const queryTree = {
+      AND: [
+        { field: 'gap_percent', operator: '>', value: 3 },
+        { field: 'volume', operator: '>', value: 500000 },
+        { field: 'price', operator: '>', value: 2 },
+      ],
+    };
+
+    const result = await runQueryTree(queryTree, { limit: 250 });
+    return res.json({
+      preset: 'gap_scanner',
+      query_tree: queryTree,
+      rows: result.rows || [],
+    });
+  } catch (error) {
+    return res.json({
+      preset: 'gap_scanner',
+      query_tree: { AND: [] },
+      rows: [],
+      status: 'error',
+      message: error.message || 'Failed to run gap scanner',
+    });
+  }
+});
+
+app.get('/api/intelligence/narrative', async (_req, res) => {
+  try {
+    let latest = await getLatestMarketNarrative();
+    if (!latest) {
+      await runMarketNarrativeEngine();
+      latest = await getLatestMarketNarrative();
+    }
+
+    return res.json({
+      narrative: latest?.narrative || '',
+      regime: latest?.regime || 'Neutral',
+      created_at: latest?.created_at || null,
+    });
+  } catch (error) {
+    return res.json({
+      narrative: '',
+      regime: 'Neutral',
+      created_at: null,
+      status: 'error',
+      message: error.message || 'Narrative unavailable',
+    });
+  }
+});
+
+app.get('/api/sector/heatmap', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH base AS (
+         SELECT
+           symbol,
+           COALESCE(NULLIF(TRIM(sector), ''), 'Unknown') AS sector,
+           COALESCE(change_percent, 0) AS change_percent,
+           COALESCE(relative_volume, 0) AS relative_volume,
+           COALESCE(volume, 0) AS volume
+         FROM market_metrics
+       ), ranked AS (
+         SELECT
+           sector,
+           symbol,
+           change_percent,
+           relative_volume,
+           volume,
+           ROW_NUMBER() OVER (PARTITION BY sector ORDER BY change_percent DESC NULLS LAST) AS sector_rank
+         FROM base
+       )
+       SELECT
+         sector,
+         AVG(change_percent)::numeric(10,4) AS change,
+         AVG(relative_volume)::numeric(10,4) AS rvol,
+         SUM(volume)::numeric AS volume,
+         ARRAY_REMOVE(ARRAY_AGG(symbol ORDER BY change_percent DESC) FILTER (WHERE sector_rank <= 3), NULL) AS leaders
+       FROM ranked
+       GROUP BY sector
+       ORDER BY change DESC NULLS LAST`,
+      [],
+      { label: 'api.sector.heatmap', timeoutMs: 2000, maxRetries: 0 }
+    );
+
+    const payload = rows.map((row) => ({
+      sector: row.sector,
+      change: Number(row.change || 0),
+      rvol: Number(row.rvol || 0),
+      volume: Number(row.volume || 0),
+      leaders: Array.isArray(row.leaders) ? row.leaders.filter(Boolean) : [],
+    }));
+
+    return res.json(payload);
+  } catch (_error) {
+    return res.json([]);
+  }
 });
 
 app.get('/api/scanner/status', async (req, res) => {
@@ -4304,6 +4504,51 @@ app.get('/api/chart/mini/:symbol', async (req, res) => {
   }
 });
 
+app.get('/api/chart/sparkline', async (req, res) => {
+  const symbol = String(req.query.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json([]);
+
+  const cacheKey = `api.chart.sparkline:${symbol}`;
+  const cacheTtlMs = 30_000;
+  const cached = getCachedValue(cacheKey);
+
+  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
+    return res.json(Array.isArray(cached.points) ? cached.points : []);
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         EXTRACT(EPOCH FROM "timestamp")::bigint AS time,
+         close AS value
+       FROM intraday_1m
+       WHERE symbol = $1
+       ORDER BY "timestamp" DESC
+       LIMIT 30`,
+      [symbol],
+      { label: 'api.chart.sparkline', timeoutMs: 1600, maxRetries: 0 }
+    );
+
+    const points = rows
+      .slice()
+      .reverse()
+      .map((row) => ({
+        time: Number(row.time),
+        value: Number(row.value),
+      }))
+      .filter((row) => Number.isFinite(row.time) && Number.isFinite(row.value));
+
+    setCachedValue(cacheKey, {
+      points,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json(points);
+  } catch (_error) {
+    return res.json([]);
+  }
+});
+
 app.get('/api/chart/trend/:symbol', async (req, res) => {
   try {
     const symbol = String(req.params.symbol || '').trim().toUpperCase();
@@ -4946,6 +5191,26 @@ if (process.env.NODE_ENV === 'production') {
   if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
     startNarrativeScheduler();
   }
+
+  startEarningsWorker();
+
+  setInterval(() => {
+    runMarketNarrativeEngine().catch((error) => {
+      logger.warn('market narrative interval run failed', { error: error.message });
+    });
+  }, 30 * 60 * 1000);
+
+  setInterval(() => {
+    runInstitutionalFlowEngine().catch((error) => {
+      logger.warn('institutional flow interval run failed', { error: error.message });
+    });
+  }, 5 * 60 * 1000);
+
+  setInterval(() => {
+    runOpportunityRanker().catch((error) => {
+      logger.warn('opportunity ranker interval run failed', { error: error.message });
+    });
+  }, 60 * 1000);
 
   if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
     startAlertScheduler();
