@@ -79,7 +79,7 @@ export default function MiniSparkline({ symbol, points = [], height = 60 }) {
 
       if (symbol) {
         try {
-          const payload = await apiJSON(`/api/chart/sparkline?symbol=${encodeURIComponent(symbol)}`);
+          const payload = await apiJSON(`/api/cache/sparkline/${encodeURIComponent(symbol)}`);
           const remote = normalizePoints(payload);
           if (remote.length > 1) data = remote;
         } catch (_error) {

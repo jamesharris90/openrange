@@ -110,6 +110,7 @@ const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
 } = require('./engines/scheduler');
+const { startEngineScheduler: startPerformanceEngineScheduler, getEngineSchedulerHealth } = require('./system/engineScheduler');
 const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
@@ -124,8 +125,10 @@ const { getDataHealth } = require('./system/dataHealthEngine');
 const { runEngineDiagnostics } = require('./system/engineDiagnostics');
 const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligencePipelineScheduler } = require('./engines/intelligencePipeline');
 const { runProviderHealthCheck, getProviderHealth } = require('./engines/providerHealthEngine');
-const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./engines/sparklineCacheEngine');
+const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./cache/sparklineCacheEngine');
 const { startTickerCache, getTickerTapeCache } = require('./cache/tickerCache');
+const { getTelemetry } = require('./cache/telemetryCache');
+const { initRedis } = require('./cache/redisClient');
 const eventBus = require('./events/eventBus');
 const EVENT_TYPES = require('./events/eventTypes');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
@@ -981,14 +984,15 @@ app.get('/api/system/report', async (req, res) => {
 
 app.get('/api/system/data-health', async (_req, res) => {
   try {
-    const [databaseHealth, providerHealth, sparklineStats] = await Promise.all([
+    const [databaseHealth, providerHealth, sparklineStats, telemetry] = await Promise.all([
       getDataHealth(),
       Promise.resolve(getProviderHealth()),
       getSparklineCacheStats(),
+      getTelemetry(),
     ]);
 
     const pipeline = getIntelligencePipelineHealth();
-    const tickerState = getTickerTapeCache();
+    const tickerState = await getTickerTapeCache();
 
     const engineHealth = {
       pipeline: pipeline?.status || 'unknown',
@@ -1031,6 +1035,7 @@ app.get('/api/system/data-health', async (_req, res) => {
       event_bus_health: eventBusHealth,
       integrity_health: integrityHealth,
       alert_engine_health: alertHealth,
+      telemetry,
       engines: engineHealth,
       providers: providerSummary,
       cache: {
@@ -1064,7 +1069,7 @@ app.get('/api/system/data-health', async (_req, res) => {
 
 app.get('/api/system/provider-health', async (_req, res) => {
   try {
-    const payload = await runProviderHealthCheck();
+    const payload = getProviderHealth();
     return res.json({ ok: true, ...payload });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message, providers: {} });
@@ -1124,10 +1129,10 @@ app.get('/api/system/alerts', async (req, res) => {
 
 app.get('/api/system/monitor', async (_req, res) => {
   try {
-    const [health, providerHealth, diagnostics, eventRows, integrityRows, alertRows] = await Promise.all([
+    const [health, providerHealth, telemetry, eventRows, integrityRows, alertRows] = await Promise.all([
       getDataHealth(),
-      runProviderHealthCheck(),
-      runEngineDiagnostics(),
+      Promise.resolve(getProviderHealth()),
+      getTelemetry(),
       queryWithTimeout(
         `SELECT id, event_type, source, symbol, payload, created_at
          FROM system_events
@@ -1156,14 +1161,18 @@ app.get('/api/system/monitor', async (_req, res) => {
 
     return res.json({
       ok: true,
-      system_status: diagnostics.status,
-      engine_health: diagnostics.engines,
+      system_status: 'ok',
+      engine_health: telemetry,
       provider_health: providerHealth.providers,
       data_health: health,
       event_bus_health: getEventBusHealth(),
       integrity_health: getDataIntegrityHealth(),
       alert_engine_health: getSystemAlertEngineHealth(),
-      cache_health: diagnostics.cache_health,
+      cache_health: {
+        ticker_cache: telemetry?.ticker_runtime?.status || 'unknown',
+        sparkline_cache_rows: Number(telemetry?.sparkline_runtime?.rows || 0),
+        cache_refresh_time: telemetry?.last_update || null,
+      },
       recent_events: eventRows.rows || [],
       integrity_events: integrityRows.rows || [],
       system_alerts: alertRows.rows || [],
@@ -1175,8 +1184,33 @@ app.get('/api/system/monitor', async (_req, res) => {
 
 app.get('/api/system/engine-diagnostics', async (_req, res) => {
   try {
-    const result = await runEngineDiagnostics();
-    return res.json({ ok: true, ...result });
+    const [telemetry, providerHealth, eventBusHealth, integrityHealth, alertHealth, scheduler] = await Promise.all([
+      getTelemetry(),
+      Promise.resolve(getProviderHealth()),
+      Promise.resolve(getEventBusHealth()),
+      Promise.resolve(getDataIntegrityHealth()),
+      Promise.resolve(getSystemAlertEngineHealth()),
+      Promise.resolve(getEngineSchedulerHealth()),
+    ]);
+
+    return res.json({
+      ok: true,
+      source: 'cache',
+      lines: [
+        'SYSTEM STATUS: OK',
+        `CACHE: ${telemetry ? 'OK' : 'WARN'}`,
+        `SCHEDULER: ${scheduler?.status === 'running' ? 'OK' : 'WARN'}`,
+        `PIPELINE: ${telemetry?.pipeline_runtime?.status === 'failed' ? 'WARN' : 'OK'}`,
+        `PROVIDERS: ${providerHealth?.providers ? 'OK' : 'WARN'}`,
+      ],
+      engines: telemetry,
+      provider_health: providerHealth,
+      event_bus_health: eventBusHealth,
+      integrity_health: integrityHealth,
+      alert_engine_health: alertHealth,
+      scheduler,
+      checked_at: new Date().toISOString(),
+    });
   } catch (error) {
     return res.status(500).json({
       ok: false,
@@ -2600,52 +2634,28 @@ app.get('/api/market/tickers', async (req, res) => {
 
 app.get('/api/market/ticker', async (req, res) => {
   try {
-    const [indices, gainers, losers, crypto] = await Promise.all([
-      queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         WHERE symbol = ANY($1::text[])
-         ORDER BY array_position($1::text[], symbol)`,
-        [['SPY', 'QQQ', 'IWM', 'DIA']],
-        { label: 'api.market.ticker.indices', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
-      ),
-      queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST
-         LIMIT 20`,
-        [],
-        { label: 'api.market.ticker.gainers', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
-      ),
-      queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         ORDER BY COALESCE(change_percent, 0) ASC NULLS LAST
-         LIMIT 20`,
-        [],
-        { label: 'api.market.ticker.losers', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
-      ),
-      queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         WHERE symbol = ANY($1::text[])
-         ORDER BY array_position($1::text[], symbol)`,
-        [['BTCUSD', 'ETHUSD', 'SOLUSD', 'DOGEUSD']],
-        { label: 'api.market.ticker.crypto', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 120 }
-      ),
-    ]);
+    const cache = await getTickerTapeCache();
 
     return res.json({
       success: true,
       sections: {
-        indices: indices.rows,
-        top_gainers: gainers.rows,
-        top_losers: losers.rows,
-        crypto: crypto.rows,
+        indices: cache?.sections?.indices || [],
+        top_gainers: cache?.sections?.top_gainers || [],
+        top_losers: cache?.sections?.top_losers || [],
+        crypto: cache?.sections?.crypto || [],
       },
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load ticker tape data' });
+  }
+});
+
+app.get('/api/cache/ticker', async (_req, res) => {
+  try {
+    const cache = await getTickerTapeCache();
+    return res.json({ ok: true, ...cache });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
   }
 });
 
@@ -4713,6 +4723,17 @@ async function handleSparkline(req, res) {
 
 app.get('/api/chart/sparkline', handleSparkline);
 app.get('/api/charts/sparkline', handleSparkline);
+app.get('/api/cache/sparkline/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json([]);
+
+  try {
+    const points = await getSparklineFromCache(symbol);
+    return res.json(points);
+  } catch (_error) {
+    return res.json([]);
+  }
+});
 
 app.get('/api/chart/trend/:symbol', async (req, res) => {
   try {
@@ -5305,6 +5326,7 @@ if (process.env.NODE_ENV === 'production') {
 
   initEventLogger(eventBus);
   startSystemAlertEngine();
+  await initRedis();
 
   try {
     console.log('Running feature bootstrap...');
@@ -5374,27 +5396,9 @@ if (process.env.NODE_ENV === 'production') {
 
   startTickerCache();
   await refreshSparklineCache();
-  await runProviderHealthCheck();
-  await runDataIntegrityEngine();
-  await runProviderCrossCheckEngine();
   await runIntelligencePipeline();
   startIntelligencePipelineScheduler();
-
-  cron.schedule('*/1 * * * *', async () => {
-    await refreshSparklineCache();
-  });
-
-  cron.schedule('*/1 * * * *', async () => {
-    await runProviderHealthCheck();
-  });
-
-  cron.schedule('*/1 * * * *', async () => {
-    await runDataIntegrityEngine();
-  });
-
-  cron.schedule('*/1 * * * *', async () => {
-    await runProviderCrossCheckEngine();
-  });
+  startPerformanceEngineScheduler();
 
   if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
     startNarrativeScheduler();
@@ -5413,12 +5417,6 @@ if (process.env.NODE_ENV === 'production') {
       logger.warn('institutional flow interval run failed', { error: error.message });
     });
   }, 5 * 60 * 1000);
-
-  setInterval(() => {
-    runOpportunityRanker().catch((error) => {
-      logger.warn('opportunity ranker interval run failed', { error: error.message });
-    });
-  }, 60 * 1000);
 
   if (process.env.ENABLE_ALERT_SCHEDULER === 'true') {
     startAlertScheduler();

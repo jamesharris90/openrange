@@ -64,7 +64,7 @@ function Sparkline({ symbol, points = [], width = undefined, height = 40, positi
       let source = normalize(points);
       if (symbol) {
         try {
-          const payload = await apiJSON(`/api/charts/sparkline?symbol=${encodeURIComponent(symbol)}`);
+          const payload = await apiJSON(`/api/cache/sparkline/${encodeURIComponent(symbol)}`);
           const apiPoints = (Array.isArray(payload) ? payload : [])
             .map((row) => Number(row?.value))
             .filter((v) => Number.isFinite(v));

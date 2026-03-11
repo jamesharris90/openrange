@@ -8,6 +8,7 @@ const { runMarketNarrativeEngine } = require('./marketNarrativeEngine');
 const { runIsolated } = require('./engineErrorIsolation');
 const { runDbSchemaGuard } = require('../db/schemaGuard');
 const { runDataIntegrityEngine } = require('./dataIntegrityEngine');
+const { updateTelemetry } = require('../cache/telemetryCache');
 const eventBus = require('../events/eventBus');
 const EVENT_TYPES = require('../events/eventTypes');
 
@@ -77,8 +78,18 @@ async function runIntelligencePipeline() {
     });
   }
 
-  const flow = await runIsolated('flow_detection_pipeline', runFlowDetectionEngine);
+  const [flow, squeeze, opportunity, narrative] = await Promise.all([
+    runIsolated('flow_detection_pipeline', runFlowDetectionEngine),
+    runIsolated('short_squeeze_pipeline', runShortSqueezeEngine),
+    runIsolated('opportunity_ranker_pipeline', runOpportunityRanker),
+    runIsolated('market_narrative_pipeline', runMarketNarrativeEngine),
+  ]);
+
   stages.flow_detection = flow;
+  stages.short_squeeze = squeeze;
+  stages.opportunity = opportunity;
+  stages.market_narrative = narrative;
+
   if (!flow.ok) {
     errors.push(`flow_detection: ${flow.error}`);
     eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
@@ -88,8 +99,7 @@ async function runIntelligencePipeline() {
       error: flow.error,
       timestamp: new Date().toISOString(),
     });
-  }
-  if (flow.ok) {
+  } else {
     eventBus.emit(EVENT_TYPES.FLOW_DETECTED, {
       source: 'flow_detection_pipeline',
       count: Number(flow.result?.inserted || 0),
@@ -97,8 +107,6 @@ async function runIntelligencePipeline() {
     });
   }
 
-  const squeeze = await runIsolated('short_squeeze_pipeline', runShortSqueezeEngine);
-  stages.short_squeeze = squeeze;
   if (!squeeze.ok) {
     errors.push(`short_squeeze: ${squeeze.error}`);
     eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
@@ -108,8 +116,7 @@ async function runIntelligencePipeline() {
       error: squeeze.error,
       timestamp: new Date().toISOString(),
     });
-  }
-  if (squeeze.ok) {
+  } else {
     eventBus.emit(EVENT_TYPES.SHORT_SQUEEZE, {
       source: 'short_squeeze_pipeline',
       count: Number(squeeze.result?.inserted || 0),
@@ -117,8 +124,6 @@ async function runIntelligencePipeline() {
     });
   }
 
-  const opportunity = await runIsolated('opportunity_ranker_pipeline', runOpportunityRanker);
-  stages.opportunity = opportunity;
   if (!opportunity.ok) {
     errors.push(`opportunity: ${opportunity.error}`);
     eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
@@ -130,8 +135,6 @@ async function runIntelligencePipeline() {
     });
   }
 
-  const narrative = await runIsolated('market_narrative_pipeline', runMarketNarrativeEngine);
-  stages.market_narrative = narrative;
   if (!narrative.ok) {
     errors.push(`market_narrative: ${narrative.error}`);
     eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
@@ -163,6 +166,19 @@ async function runIntelligencePipeline() {
     status: latestPipelineRun.status,
     execution_time_ms: latestPipelineRun.execution_time_ms,
     timestamp: new Date().toISOString(),
+  });
+
+  await updateTelemetry('pipeline_runtime', {
+    status: latestPipelineRun.status,
+    runtime_ms: latestPipelineRun.execution_time_ms,
+    errors: latestPipelineRun.errors,
+    stages: {
+      flow: flow.execution_time_ms,
+      squeeze: squeeze.execution_time_ms,
+      opportunity: opportunity.execution_time_ms,
+      narrative: narrative.execution_time_ms,
+    },
+    at: latestPipelineRun.last_run,
   });
 
   return latestPipelineRun;

@@ -30,15 +30,15 @@ export default function IntelligenceMonitorPage() {
           authFetchJSON('/api/intelligence/squeezes?limit=200').catch(() => ({ items: [] })),
           authFetchJSON('/api/intelligence/flow?limit=200').catch(() => ({ items: [] })),
           authFetchJSON('/api/opportunities/top?limit=50').catch(() => ({ items: [] })),
-          authFetchJSON('/api/system/engine-diagnostics').catch(() => ({ engines: {} })),
-          authFetchJSON('/api/system/provider-health').catch(() => ({ providers: {} })),
+          authFetchJSON('/api/admin/intelligence').catch(() => ({ engines: {} })),
+          authFetchJSON('/api/admin/providers').catch(() => ({ providers: {} })),
         ]);
 
         if (cancelled) return;
         const oppItems = opportunities?.items || opportunities?.data || [];
-        const engines = diagnostics?.engines || {};
+        const engines = diagnostics || {};
         const runtimes = Object.fromEntries(
-          Object.entries(engines).map(([k, v]) => [k, Number(v?.execution_time || 0)])
+          Object.entries(engines).map(([k, v]) => [k, Number(v?.runtime_ms || 0)])
         );
 
         setData({

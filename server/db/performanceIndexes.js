@@ -22,6 +22,16 @@ const INDEX_SQL = [
    ON system_alerts(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_system_alerts_ack_created
    ON system_alerts(acknowledged, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_engine_telemetry_updated_at
+   ON engine_telemetry(updated_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_event_log_created_at
+   ON event_log(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_data_integrity_symbol
+   ON data_integrity(symbol)`,
+  `CREATE INDEX IF NOT EXISTS idx_opportunities_score
+   ON opportunities(score DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_provider_health_provider
+   ON provider_health(provider)`,
 ];
 
 async function ensurePerformanceIndexes() {

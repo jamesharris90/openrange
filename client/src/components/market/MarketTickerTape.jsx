@@ -41,9 +41,9 @@ export default function MarketTickerTape() {
 
     async function load() {
       try {
-        const payload = await apiJSON('/api/market/ticker');
+        const payload = await apiJSON('/api/cache/ticker');
         if (cancelled) return;
-        setSections(payload?.sections || { indices: [], top_gainers: [], top_losers: [], crypto: [] });
+        setSections(payload?.sections || payload?.rows || { indices: [], top_gainers: [], top_losers: [], crypto: [] });
       } catch {
         if (!cancelled) setSections({ indices: [], top_gainers: [], top_losers: [], crypto: [] });
       }

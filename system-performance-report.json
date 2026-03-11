@@ -1,0 +1,110 @@
+{
+  "generated_at": "2026-03-11T09:30:25.086Z",
+  "engine_runtimes": {
+    "pipeline": {
+      "status": "ok",
+      "runtime_ms": 14274,
+      "errors": [],
+      "stages": {
+        "flow": 5003,
+        "squeeze": 114,
+        "opportunity": 2381,
+        "narrative": 86
+      },
+      "at": "2026-03-11T09:30:12.562Z",
+      "updated_at": "2026-03-11T09:30:12.563Z"
+    },
+    "ingestion": null,
+    "integrity": null,
+    "flow": null,
+    "squeeze": null,
+    "opportunity": null,
+    "avg_engine_runtime": 14274
+  },
+  "cache_hit_rate": 1,
+  "provider_latency": {
+    "fmp": {
+      "provider": "fmp",
+      "status": "ok",
+      "latency": 420,
+      "last_success": "2026-03-11T09:30:20.484Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "finnhub": {
+      "provider": "finnhub",
+      "status": "ok",
+      "latency": 172,
+      "last_success": "2026-03-11T09:30:20.253Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "polygon": {
+      "provider": "polygon",
+      "status": "ok",
+      "latency": 277,
+      "last_success": "2026-03-11T09:30:20.359Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "finviz": {
+      "provider": "finviz",
+      "status": "ok",
+      "latency": 212,
+      "last_success": "2026-03-11T09:30:20.296Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    }
+  },
+  "slow_queries": [],
+  "api_response_times": [
+    {
+      "endpoint": "/api/admin/diagnostics",
+      "latency_ms": 18,
+      "status": "ok"
+    },
+    {
+      "endpoint": "/api/admin/intelligence",
+      "latency_ms": 17,
+      "status": "ok"
+    },
+    {
+      "endpoint": "/api/admin/providers",
+      "latency_ms": 18,
+      "status": "ok"
+    },
+    {
+      "endpoint": "/api/cache/ticker",
+      "latency_ms": 21,
+      "status": "ok"
+    }
+  ],
+  "admin_load_time_estimate_ms": 53,
+  "diagnostics_lines": [
+    "SYSTEM STATUS: WARN",
+    "INGESTION ENGINE: OK",
+    "NARRATIVE ENGINE: OK",
+    "RADAR ENGINE: OK",
+    "OPPORTUNITY ENGINE: OK",
+    "STOCKS IN PLAY ENGINE: OK",
+    "SHORT SQUEEZE ENGINE: OK",
+    "FLOW DETECTION ENGINE: OK",
+    "MARKET NARRATIVE ENGINE: OK",
+    "PIPELINE ENGINE: OK",
+    "DATA INTEGRITY: OK",
+    "CROSSCHECK ENGINE: OK",
+    "EARNINGS ENGINE: OK",
+    "PROVIDERS: OK",
+    "EVENT BUS: OK",
+    "INTEGRITY ENGINE: OK",
+    "ALERT SYSTEM: OK",
+    "SCHEDULER: WARN",
+    "CACHE: OK",
+    "ALL ENGINES: WARN"
+  ],
+  "scheduler_status": "idle"
+}

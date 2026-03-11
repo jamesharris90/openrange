@@ -2,6 +2,8 @@ const axios = require('axios');
 const logger = require('../logger');
 const eventBus = require('../events/eventBus');
 const EVENT_TYPES = require('../events/eventTypes');
+const { updateTelemetry } = require('../cache/telemetryCache');
+const { queryWithTimeout } = require('../db/pg');
 
 const PROVIDERS = [
   {
@@ -77,7 +79,23 @@ async function probeProvider(provider) {
 async function runProviderHealthCheck() {
   await Promise.all(PROVIDERS.map((provider) => probeProvider(provider)));
   state.checked_at = new Date().toISOString();
-  return getProviderHealth();
+  const snapshot = getProviderHealth();
+
+  await updateTelemetry('provider_health', {
+    status: 'ok',
+    providers: snapshot.providers,
+    checked_at: snapshot.checked_at,
+  });
+
+  await queryWithTimeout(
+    `INSERT INTO provider_health (provider, status, latency, created_at)
+     SELECT x.provider, x.status, x.latency, NOW()
+     FROM jsonb_to_recordset($1::jsonb) AS x(provider text, status text, latency numeric)`,
+    [JSON.stringify(Object.values(snapshot.providers || {}).map((p) => ({ provider: p.provider, status: p.status, latency: p.latency })))],
+    { timeoutMs: 3000, label: 'provider_health.insert', maxRetries: 0 }
+  ).catch(() => null);
+
+  return snapshot;
 }
 
 function getProviderHealth() {

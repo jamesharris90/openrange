@@ -11,12 +11,15 @@ const { runFlowDetectionEngine } = require('../engines/flowDetectionEngine');
 const { getDataHealth } = require('./dataHealthEngine');
 const { runIntelligencePipeline } = require('../engines/intelligencePipeline');
 const { runProviderHealthCheck } = require('../engines/providerHealthEngine');
-const { refreshSparklineCache, getSparklineCacheStats } = require('../engines/sparklineCacheEngine');
+const { refreshSparklineCache, getSparklineCacheStats } = require('../cache/sparklineCacheEngine');
 const { refreshTickerCache, getTickerTapeCache } = require('../cache/tickerCache');
+const { getTelemetry } = require('../cache/telemetryCache');
+const { queryWithTimeout } = require('../db/pg');
 const { runDataIntegrityEngine, getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
 const { runProviderCrossCheckEngine } = require('../engines/providerCrossCheckEngine');
 const { initEventLogger, getEventBusHealth } = require('../events/eventLogger');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('../engines/systemAlertEngine');
+const { startEngineScheduler, getEngineSchedulerHealth } = require('./engineScheduler');
 const eventBus = require('../events/eventBus');
 const logger = require('../logger');
 
@@ -24,9 +27,13 @@ function line(label, status, detail = '') {
   return `${label}: ${status}${detail ? ` (${detail})` : ''}`;
 }
 
-async function runEngineDiagnostics() {
+async function runEngineDiagnostics(options = {}) {
+  const ensureScheduler = Boolean(options.ensureScheduler);
   initEventLogger(eventBus);
   startSystemAlertEngine();
+  if (ensureScheduler) {
+    startEngineScheduler();
+  }
 
   const results = [];
   const engineStatus = {};
@@ -108,14 +115,43 @@ async function runEngineDiagnostics() {
   const alertOk = Boolean(alertEngineHealth?.initialized);
   results.push(line('ALERT SYSTEM', alertOk ? 'OK' : 'WARN'));
 
+  const schedulerHealth = getEngineSchedulerHealth();
+  const schedulerOk = schedulerHealth?.status === 'running';
+  results.push(line('SCHEDULER', schedulerOk ? 'OK' : 'WARN'));
+
   await refreshTickerCache();
   await refreshSparklineCache();
-  const tickerState = getTickerTapeCache();
+  const tickerState = await getTickerTapeCache();
   const sparklineStats = await getSparklineCacheStats();
   const cacheOk = tickerState?.status === 'ok' && Number(sparklineStats?.rows || 0) >= 0;
   results.push(line('CACHE', cacheOk ? 'OK' : 'WARN'));
 
-  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok') && providersOk && cacheOk && eventBusOk && integrityOk && alertOk;
+  const telemetry = await getTelemetry();
+  const eventStats = await queryWithTimeout(
+    `SELECT COUNT(*)::int AS events_last_min
+     FROM system_events
+     WHERE created_at > NOW() - interval '60 seconds'`,
+    [],
+    { timeoutMs: 2500, label: 'diagnostics.events_per_second', maxRetries: 0 }
+  ).catch(() => ({ rows: [{ events_last_min: 0 }] }));
+
+  const eventsLastMin = Number(eventStats.rows?.[0]?.events_last_min || 0);
+  const queueDepth = Number((telemetry?.queue_depth || 0));
+  const cacheHits = Number(telemetry?.cache_hits || 0);
+  const cacheMisses = Number(telemetry?.cache_misses || 0);
+  const cacheHitRate = cacheHits + cacheMisses > 0
+    ? Number((cacheHits / (cacheHits + cacheMisses)).toFixed(4))
+    : 0;
+
+  const perfMetrics = {
+    event_bus_throughput: eventsLastMin,
+    events_per_second: Number((eventsLastMin / 60).toFixed(4)),
+    queue_depth: queueDepth,
+    avg_engine_runtime: Number(telemetry?.avg_engine_runtime || 0),
+    cache_hit_rate: cacheHitRate,
+  };
+
+  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok') && providersOk && cacheOk && eventBusOk && integrityOk && alertOk && schedulerOk;
   results.unshift(line('SYSTEM STATUS', allOk ? 'OK' : 'WARN'));
   results.push(line('ALL ENGINES', allOk ? 'OK' : 'WARN'));
 
@@ -126,6 +162,8 @@ async function runEngineDiagnostics() {
     event_bus_health: eventBusHealth,
     integrity_health: integrityHealth,
     alert_engine_health: alertEngineHealth,
+    scheduler_health: schedulerHealth,
+    performance_telemetry: perfMetrics,
     cache_health: {
       ticker_cache: tickerState?.status || 'unknown',
       ticker_cache_rows: (tickerState?.rows || []).length,
@@ -139,7 +177,7 @@ async function runEngineDiagnostics() {
 }
 
 async function runAsScript() {
-  const output = await runEngineDiagnostics();
+  const output = await runEngineDiagnostics({ ensureScheduler: true });
   console.log(output.lines.join('\n'));
   process.exit(0);
 }

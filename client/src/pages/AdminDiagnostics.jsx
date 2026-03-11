@@ -26,14 +26,31 @@ export default function AdminDiagnostics() {
       setLoading(true);
       setError('');
       try {
-        const [healthPayload, enginePayload] = await Promise.all([
-          authFetchJSON('/api/system/data-health'),
-          authFetchJSON('/api/system/engine-diagnostics').catch(() => ({ ok: false, lines: [] })),
+        const [healthPayload, enginePayload, providerPayload] = await Promise.all([
+          authFetchJSON('/api/admin/diagnostics'),
+          authFetchJSON('/api/admin/intelligence').catch(() => ({ ok: false })),
+          authFetchJSON('/api/admin/providers').catch(() => ({ providers: {} })),
         ]);
 
         if (cancelled) return;
-        setHealth(healthPayload || { status: 'warning', database_health: { tables: {} }, provider_health: { providers: {} }, cache_health: {} });
-        setDiagnostics(enginePayload || { lines: [], checked_at: null, health: null });
+        setHealth({
+          status: healthPayload?.telemetry ? 'ok' : 'warning',
+          database_health: { tables: {} },
+          provider_health: providerPayload || { providers: {} },
+          cache_health: { ticker_cache: healthPayload?.telemetry ? 'ok' : 'warning' },
+        });
+        setDiagnostics({
+          lines: [
+            `PIPELINE: ${enginePayload?.pipeline_runtime?.status || 'unknown'}`,
+            `FLOW: ${enginePayload?.flow_runtime?.status || 'unknown'}`,
+            `SQUEEZE: ${enginePayload?.squeeze_runtime?.status || 'unknown'}`,
+            `OPPORTUNITY: ${enginePayload?.opportunity_runtime?.status || 'unknown'}`,
+            `AVG ENGINE RUNTIME: ${Number(enginePayload?.avg_engine_runtime || 0)} ms`,
+          ],
+          checked_at: healthPayload?.checked_at || null,
+          health: healthPayload,
+          ok: true,
+        });
       } catch (err) {
         if (cancelled) return;
         setError(err?.message || 'Diagnostics unavailable');

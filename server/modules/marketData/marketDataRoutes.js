@@ -241,7 +241,7 @@ router.get('/indices', async (_req, res) => {
 });
 
 router.get('/ticker-tape', async (_req, res) => {
-  const cache = getTickerTapeCache();
+  const cache = await getTickerTapeCache();
   const rows = Array.isArray(cache?.rows) ? cache.rows : [];
   const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
 
