@@ -9,6 +9,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
 import RequireAdmin from './components/auth/RequireAdmin';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 const LoginPage = safeLazy(() => import('./pages/LoginPage'));
 const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
 const LandingPage = safeLazy(() => import('./pages/LandingPage'));
@@ -104,12 +105,13 @@ export default function App() {
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
                   <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
                   <Route path="/signal-intelligence-admin" element={<RequireAdmin><SignalIntelligenceAdmin /></RequireAdmin>} />
-                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminDiagnostics /></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><IntelligenceMonitorPage /></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemMonitorPage /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/users" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>

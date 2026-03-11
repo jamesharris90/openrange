@@ -136,6 +136,23 @@ async function runEngineDiagnostics(options = {}) {
   ).catch(() => ({ rows: [{ events_last_min: 0 }] }));
 
   const eventsLastMin = Number(eventStats.rows?.[0]?.events_last_min || 0);
+  let opportunities24h = 0;
+  let opportunitiesStatus = 'ok';
+  try {
+    const oppRows = await queryWithTimeout(
+      `SELECT COUNT(*)::int AS count
+       FROM opportunities
+       WHERE created_at > NOW() - INTERVAL '24 hours'`,
+      [],
+      { timeoutMs: 2500, label: 'diagnostics.opportunities_24h', maxRetries: 0 }
+    );
+    opportunities24h = Number(oppRows.rows?.[0]?.count || 0);
+  } catch (error) {
+    opportunities24h = 0;
+    opportunitiesStatus = 'warning';
+    results.push(line('OPPORTUNITIES_24H', 'WARNING', error.message));
+  }
+
   const queueDepth = Number((telemetry?.queue_depth || 0));
   const cacheHits = Number(telemetry?.cache_hits || 0);
   const cacheMisses = Number(telemetry?.cache_misses || 0);
@@ -146,6 +163,8 @@ async function runEngineDiagnostics(options = {}) {
   const perfMetrics = {
     event_bus_throughput: eventsLastMin,
     events_per_second: Number((eventsLastMin / 60).toFixed(4)),
+    opportunities_24h: opportunities24h,
+    opportunities_24h_status: opportunitiesStatus,
     queue_depth: queueDepth,
     avg_engine_runtime: Number(telemetry?.avg_engine_runtime || 0),
     cache_hit_rate: cacheHitRate,

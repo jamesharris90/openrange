@@ -21,6 +21,7 @@ const mobileItems = [
   { to: '/mobile-dashboard', label: 'Mobile Dashboard' },
   { to: '/alerts', label: 'Alerts', feature: 'alerts' },
   { to: '/admin/features', label: 'Admin Control', feature: 'admin_panel' },
+  { to: '/admin/users', label: 'Admin Users', feature: 'admin_panel' },
   { to: '/research', label: 'Research' },
 ];
 

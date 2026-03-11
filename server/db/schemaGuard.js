@@ -92,6 +92,79 @@ async function runDbSchemaGuard() {
     );
 
     await ensureTable(
+      `CREATE TABLE IF NOT EXISTS feature_registry (
+        feature_key TEXT PRIMARY KEY,
+        category TEXT,
+        display_name TEXT,
+        is_beta BOOLEAN NOT NULL DEFAULT FALSE,
+        is_internal BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.feature_registry.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS feature_overrides (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT,
+        feature_key TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.feature_overrides.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS trade_setups (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        setup_type TEXT,
+        score NUMERIC,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.trade_setups.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS opportunity_stream (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        event_type TEXT,
+        headline TEXT,
+        score NUMERIC,
+        source TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.opportunity_stream.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS market_quotes (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT UNIQUE,
+        price NUMERIC,
+        change_percent NUMERIC,
+        volume BIGINT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.market_quotes.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS news_articles (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT,
+        headline TEXT,
+        source TEXT,
+        sentiment TEXT,
+        published_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.news_articles.table'
+    );
+
+    await ensureTable(
       `CREATE TABLE IF NOT EXISTS roles (
         id SERIAL PRIMARY KEY,
         user_id BIGINT,

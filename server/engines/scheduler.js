@@ -12,7 +12,7 @@ const { runStrategyEngine } = require('./strategyEngine');
 const { runTrendDetectionEngine } = require('./trendDetectionEngine');
 const { runEarningsEngine } = require('./earningsEngine');
 const { runExpectedMoveEngine } = require('./expectedMoveEngine');
-const { runIntelNewsEngine } = require('./intelNewsEngine');
+const { runIntelNewsWithFallback } = require('../services/intelNewsRunner');
 
 let started = false;
 let ingestionInterval = null;
@@ -318,7 +318,7 @@ async function runIntelNewsNow() {
   intelNewsInFlight = true;
   state.lastIntelNewsRunAt = new Date().toISOString();
   try {
-    const result = await safeRun('intelNewsEngine', runIntelNewsEngine);
+    const result = await safeRun('intelNewsEngine', runIntelNewsWithFallback);
     state.lastIntelNewsError = null;
     return result;
   } catch (error) {

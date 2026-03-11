@@ -57,10 +57,10 @@ export default function DashboardPage() {
       setError('');
       try {
         const [setupsPayload, metricsPayload, catalystsPayload, systemReportPayload] = await Promise.all([
-          apiJSON('/api/setups'),
-          apiJSON('/api/metrics'),
-          apiJSON('/api/catalysts'),
-          apiJSON('/api/system/report'),
+          apiJSON('/api/setups').catch(() => []),
+          apiJSON('/api/metrics').catch(() => []),
+          apiJSON('/api/catalysts').catch(() => []),
+          apiJSON('/api/system/report').catch(() => ({ status: 'degraded', detail: 'System report unavailable' })),
         ]);
 
         if (cancelled) return;

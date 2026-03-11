@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { authFetchJSON } from '../utils/api';
+import AdminLayout from '../components/layout/AdminLayout';
 
 function statusTone(status) {
   if (status === 'ok') return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
@@ -35,7 +35,7 @@ export default function AdminDiagnostics() {
         if (cancelled) return;
         setHealth({
           status: healthPayload?.telemetry ? 'ok' : 'warning',
-          database_health: { tables: {} },
+          database_health: healthPayload?.database_health || { tables: {} },
           provider_health: providerPayload || { providers: {} },
           cache_health: { ticker_cache: healthPayload?.telemetry ? 'ok' : 'warning' },
         });
@@ -78,16 +78,7 @@ export default function AdminDiagnostics() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-sm">
-        <div className="mb-2 text-xs text-[var(--text-muted)]">Admin / Diagnostics</div>
-        <div className="flex flex-wrap gap-2">
-          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Admin</Link>
-          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin/diagnostics">Diagnostics</Link>
-          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Features</Link>
-          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Users</Link>
-          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Back to Admin</Link>
-        </div>
-      </div>
+      <AdminLayout section="Diagnostics" />
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">System Diagnostics</h1>

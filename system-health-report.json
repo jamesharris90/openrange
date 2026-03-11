@@ -1,0 +1,182 @@
+{
+  "generated_at": "2026-03-11T16:58:02.168Z",
+  "commit": "262dce7",
+  "scheduler_status": {
+    "status": "idle",
+    "started_at": null,
+    "last_runs": {}
+  },
+  "cache_status": {
+    "ticker_cache": "unknown",
+    "sparkline_cache_rows": 0,
+    "last_update": null
+  },
+  "event_bus_status": {
+    "logger_initialized": true,
+    "status": "warning",
+    "last_event_at": null,
+    "events_logged": 0,
+    "errors": 11
+  },
+  "alert_engine_status": {
+    "status": "warning",
+    "initialized": true,
+    "alerts_created": 0,
+    "last_alert_at": null,
+    "errors": 8
+  },
+  "providers": {
+    "fmp": {
+      "provider": "fmp",
+      "status": "ok",
+      "latency": 799,
+      "last_success": "2026-03-11T16:58:02.151Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "finnhub": {
+      "provider": "finnhub",
+      "status": "ok",
+      "latency": 203,
+      "last_success": "2026-03-11T16:58:01.617Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "polygon": {
+      "provider": "polygon",
+      "status": "ok",
+      "latency": 305,
+      "last_success": "2026-03-11T16:58:01.721Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    },
+    "finviz": {
+      "provider": "finviz",
+      "status": "ok",
+      "latency": 250,
+      "last_success": "2026-03-11T16:58:01.669Z",
+      "error_rate": 0,
+      "errors": 0,
+      "checks": 1
+    }
+  },
+  "engine_counts": {
+    "opportunities_24h": 0,
+    "integrity_events_24h": 0,
+    "alerts_24h": 0,
+    "intel_news_24h": 0
+  },
+  "db_tables": [],
+  "api_health": [
+    {
+      "endpoint": "/api/system/monitor",
+      "ok": false,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/admin/system",
+      "ok": false,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/admin/users",
+      "ok": false,
+      "status": 0,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/system/engine-diagnostics",
+      "ok": false,
+      "status": 0,
+      "error": "fetch failed"
+    }
+  ],
+  "admin_routes": [
+    "/admin-control",
+    "/admin/diagnostics",
+    "/admin/system-monitor",
+    "/admin/features",
+    "/admin/users"
+  ],
+  "diagnostics_status": "warning",
+  "diagnostics_lines": [
+    "SYSTEM STATUS: WARN",
+    "INGESTION ENGINE: OK",
+    "NARRATIVE ENGINE: FAILED (Unknown failure)",
+    "RADAR ENGINE: OK",
+    "OPPORTUNITY ENGINE: FAILED (Unknown failure)",
+    "STOCKS IN PLAY ENGINE: OK",
+    "SHORT SQUEEZE ENGINE: FAILED (Unknown failure)",
+    "FLOW DETECTION ENGINE: FAILED (Unknown failure)",
+    "MARKET NARRATIVE ENGINE: FAILED (Unknown failure)",
+    "PIPELINE ENGINE: OK",
+    "DATA INTEGRITY: FAILED (Unknown failure)",
+    "CROSSCHECK ENGINE: OK",
+    "EARNINGS ENGINE: WARNING (0 rows)",
+    "PROVIDERS: OK",
+    "EVENT BUS: OK",
+    "INTEGRITY ENGINE: WARN",
+    "ALERT SYSTEM: OK",
+    "SCHEDULER: WARN",
+    "CACHE: WARN",
+    "OPPORTUNITIES_24H: WARNING",
+    "ALL ENGINES: WARN"
+  ],
+  "errors_last_50": [
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:52\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:52\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:52\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:52\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:53\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:53\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:53\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:53\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:54\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:54\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:54\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:54\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:55\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:55\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:55\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:56\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:56\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:56\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:56\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:56\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:57\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:57\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:57\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:57\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:58\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:58\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:58\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:58\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:59\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:59\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:10:59\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:00\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:00\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:00\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:00\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:23\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:23\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:23\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:23\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:23\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}",
+    "{\"error\":\"FMP company-screener failed with status 429\",\"level\":\"error\",\"message\":\"Data sync failed\",\"service\":\"openrange-trader\",\"timestamp\":\"2026-02-21 10:11:24\"}"
+  ]
+}

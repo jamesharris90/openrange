@@ -112,6 +112,12 @@ async function ensureFeatureTables() {
   );
 
   await queryWithTimeout(
+    `ALTER TABLE feature_access_audit ADD COLUMN IF NOT EXISTS changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+    [],
+    { timeoutMs: 7000, label: 'feature_bootstrap.audit.changed_at', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
     `CREATE INDEX IF NOT EXISTS idx_feature_access_audit_changed_at ON feature_access_audit(changed_at DESC);
      CREATE INDEX IF NOT EXISTS idx_user_feature_access_user_id ON user_feature_access(user_id);
      CREATE INDEX IF NOT EXISTS idx_user_feature_access_feature_key ON user_feature_access(feature_key);`,
@@ -167,7 +173,10 @@ async function seedUserRoles() {
 }
 
 async function runFeatureBootstrap() {
-  // Keep bootstrap additive and non-destructive: seed only operational data.
+  // Keep bootstrap additive and non-destructive: ensure support tables and seed defaults.
+  await ensureFeatureTables();
+  await seedFeatureRegistry();
+  await ensureTierDefaultsView();
   await seedUserRoles();
 }
 

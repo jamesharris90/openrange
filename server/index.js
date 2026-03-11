@@ -57,6 +57,7 @@ const { applyFilters } = require('./data-engine/filterEngine');
 const { startPhaseScheduler } = require('./scheduler/phaseScheduler');
 const profileRoutes = require('./routes/profile');
 const systemStatusRoutes = require('./routes/systemStatus');
+const systemMonitorRoutes = require('./routes/systemMonitorRoutes');
 const screenerV3Routes = require('./routes/screenerV3');
 const screenerV3EngineRoutes = require('./routes/screenerV3Engine.ts');
 const canonicalNewsRoutes = require('./routes/canonical/news.ts');
@@ -121,6 +122,7 @@ const { ensurePerformanceIndexes } = require('./db/performanceIndexes');
 const startEnginesSequentially = require('./system/startEngines');
 const { runSchemaGuard } = require('./system/schemaGuard');
 const { runFeatureBootstrap } = require('./system/featureBootstrap');
+const { ensureAdminSchema } = require('./system/adminSchemaBootstrap');
 const { getDataHealth } = require('./system/dataHealthEngine');
 const { runEngineDiagnostics } = require('./system/engineDiagnostics');
 const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligencePipelineScheduler } = require('./engines/intelligencePipeline');
@@ -755,6 +757,7 @@ app.use('/api', (req, _res, next) => {
   app.use('/api', profileRoutes);
   app.use('/api', testNewsDbRoute);
   app.use('/api/system', systemStatusRoutes);
+  app.use('/api/system', systemMonitorRoutes);
   app.use('/api/data', screenerV3Routes);
   app.use('/api/v3/screener', screenerV3EngineRoutes);
   app.use('/api/canonical/news', canonicalNewsRoutes);
@@ -1124,61 +1127,6 @@ app.get('/api/system/alerts', async (req, res) => {
     return res.json({ ok: true, items: rows || [] });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message, items: [] });
-  }
-});
-
-app.get('/api/system/monitor', async (_req, res) => {
-  try {
-    const [health, providerHealth, telemetry, eventRows, integrityRows, alertRows] = await Promise.all([
-      getDataHealth(),
-      Promise.resolve(getProviderHealth()),
-      getTelemetry(),
-      queryWithTimeout(
-        `SELECT id, event_type, source, symbol, payload, created_at
-         FROM system_events
-         ORDER BY created_at DESC
-         LIMIT 100`,
-        [],
-        { timeoutMs: 5000, label: 'api.system.monitor.events', maxRetries: 0 }
-      ),
-      queryWithTimeout(
-        `SELECT id, event_type, source, symbol, issue, severity, payload, created_at
-         FROM data_integrity_events
-         ORDER BY created_at DESC
-         LIMIT 100`,
-        [],
-        { timeoutMs: 5000, label: 'api.system.monitor.integrity', maxRetries: 0 }
-      ),
-      queryWithTimeout(
-        `SELECT id, type, source, severity, message, acknowledged, created_at
-         FROM system_alerts
-         ORDER BY created_at DESC
-         LIMIT 100`,
-        [],
-        { timeoutMs: 5000, label: 'api.system.monitor.alerts', maxRetries: 0 }
-      ),
-    ]);
-
-    return res.json({
-      ok: true,
-      system_status: 'ok',
-      engine_health: telemetry,
-      provider_health: providerHealth.providers,
-      data_health: health,
-      event_bus_health: getEventBusHealth(),
-      integrity_health: getDataIntegrityHealth(),
-      alert_engine_health: getSystemAlertEngineHealth(),
-      cache_health: {
-        ticker_cache: telemetry?.ticker_runtime?.status || 'unknown',
-        sparkline_cache_rows: Number(telemetry?.sparkline_runtime?.rows || 0),
-        cache_refresh_time: telemetry?.last_update || null,
-      },
-      recent_events: eventRows.rows || [],
-      integrity_events: integrityRows.rows || [],
-      system_alerts: alertRows.rows || [],
-    });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
   }
 });
 
@@ -4554,6 +4502,10 @@ const intelligenceNewsHandler = async (req, res) => {
     const symbol = String(req.query.symbol || '').trim().toUpperCase();
     const sector = String(req.query.sector || '').trim();
     const sentiment = String(req.query.sentiment || '').trim().toLowerCase();
+    const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
+
+    params.push(hours);
+    where.push(`COALESCE(n.published_at, now()) >= now() - ($${params.length}::int * INTERVAL '1 hour')`);
 
     if (symbol) {
       params.push(symbol);
@@ -4586,6 +4538,27 @@ const intelligenceNewsHandler = async (req, res) => {
              i.updated_at,
              i.published_at AS created_at
            FROM intel_news i
+
+           UNION ALL
+
+           SELECT
+             NULL::bigint AS id,
+             na.symbol,
+             na.headline,
+             na.source,
+             na.url,
+             'neutral'::text AS sentiment,
+             na.published_at,
+             na.created_at AS updated_at,
+             na.created_at
+           FROM news_articles na
+           WHERE NOT EXISTS (
+             SELECT 1
+             FROM intel_news i2
+             WHERE i2.url IS NOT NULL
+               AND na.url IS NOT NULL
+               AND i2.url = na.url
+           )
          ) n
        LEFT JOIN market_quotes q ON q.symbol = n.symbol
        ${whereClause}
@@ -4636,6 +4609,7 @@ app.get('/api/system/db-status', async (req, res) => {
   const errors = [];
 
   let intelNews = { row_count: null, latest_timestamp: null };
+  let newsArticles = { row_count: null, latest_timestamp: null };
   let marketQuotes = { row_count: null };
 
   try {
@@ -4652,6 +4626,22 @@ app.get('/api/system/db-status', async (req, res) => {
     };
   } catch (error) {
     errors.push({ table: 'intel_news', error: error.message || 'Query failed' });
+  }
+
+  try {
+    const articles = await queryWithTimeout(
+      `SELECT COUNT(*)::int AS row_count,
+              MAX(published_at) AS latest_timestamp
+       FROM news_articles`,
+      [],
+      { label: 'api.system.db_status.news_articles', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 120 }
+    );
+    newsArticles = {
+      row_count: Number(articles.rows?.[0]?.row_count || 0),
+      latest_timestamp: articles.rows?.[0]?.latest_timestamp || null,
+    };
+  } catch (error) {
+    errors.push({ table: 'news_articles', error: error.message || 'Query failed' });
   }
 
   try {
@@ -4672,6 +4662,7 @@ app.get('/api/system/db-status', async (req, res) => {
     success: errors.length === 0,
     degraded: errors.length > 0,
     intel_news: intelNews,
+    news_articles: newsArticles,
     market_quotes: marketQuotes,
     errors,
     timestamp,
@@ -5291,37 +5282,34 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+async function ensureSchema() {
+  await runMigrations();
+  await runSchemaGuard();
+  await runDbSchemaGuard();
+  await ensurePerformanceIndexes();
+}
+
+async function runIntegrityBootstrap() {
+  await runDataIntegrityEngine().catch((error) => {
+    logger.warn('Integrity bootstrap warning', { error: error.message });
+  });
+}
+
 (async () => {
   try {
-    console.log('Running database migrations...');
-    await runMigrations();
-    console.log('Database migrations complete');
+    console.log('Running ensureSchema...');
+    await ensureSchema();
+    console.log('ensureSchema complete');
   } catch (err) {
-    console.error('Migration system failed', err);
+    console.error('ensureSchema failed', err);
   }
 
   try {
-    console.log('Running schema guard...');
-    await runSchemaGuard();
-    console.log('Schema guard complete');
+    console.log('Running ensureAdminSchema...');
+    await ensureAdminSchema();
+    console.log('ensureAdminSchema complete');
   } catch (err) {
-    console.error('Schema guard failed', err);
-  }
-
-  try {
-    console.log('Running DB schema guard...');
-    await runDbSchemaGuard();
-    console.log('DB schema guard complete');
-  } catch (err) {
-    console.error('DB schema guard failed', err);
-  }
-
-  try {
-    console.log('Ensuring performance indexes...');
-    await ensurePerformanceIndexes();
-    console.log('Performance indexes complete');
-  } catch (err) {
-    console.error('Performance indexes failed', err);
+    console.error('ensureAdminSchema failed', err);
   }
 
   initEventLogger(eventBus);
@@ -5334,6 +5322,23 @@ if (process.env.NODE_ENV === 'production') {
     console.log('Feature bootstrap complete');
   } catch (err) {
     console.error('Feature bootstrap failed', err);
+  }
+
+  try {
+    console.log('Running integrity bootstrap...');
+    await runIntegrityBootstrap();
+    console.log('Integrity bootstrap complete');
+  } catch (err) {
+    console.error('Integrity bootstrap failed', err);
+  }
+
+  if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
+    try {
+      await startEngineScheduler();
+      console.log('Engine scheduler started (ordered startup)');
+    } catch (err) {
+      console.error('Engine scheduler startup failed', err);
+    }
   }
 
   // Start daily review cron
@@ -5426,8 +5431,7 @@ if (process.env.NODE_ENV === 'production') {
     logger.info('OpenRange backend starting in bootstrap mode');
     console.log('Starting engines sequentially...');
     await startEnginesSequentially();
-    startEngineScheduler();
-    console.log('Engines enabled and scheduler active');
+    console.log('Engines enabled (scheduler already started in ordered bootstrap)');
   }
 
   app.listen(PORT, () => {

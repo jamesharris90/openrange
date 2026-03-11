@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import AdminLayout from '../components/layout/AdminLayout';
 
 function toNumber(value, fallback = 0) {
   const num = Number(value);
@@ -74,6 +75,8 @@ export default function SignalIntelligenceAdmin() {
 
   return (
     <PageContainer className="space-y-3">
+      <AdminLayout section="Signal Intelligence" />
+
       <Card>
         <PageHeader
           title="Signal Intelligence Admin"

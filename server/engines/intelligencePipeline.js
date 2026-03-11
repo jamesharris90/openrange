@@ -17,8 +17,45 @@ let latestPipelineRun = {
   last_run: null,
   execution_time_ms: 0,
   stages: {},
+  validation: [],
   errors: [],
 };
+
+function firstNumber(obj, keys) {
+  for (const key of keys) {
+    const value = Number(obj?.[key]);
+    if (Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+function buildValidationEntry(engine, stage, fetchedKeys, processedKeys, writtenKeys, defaults = {}) {
+  const result = stage?.result || {};
+  const rowsFetched = firstNumber(result, fetchedKeys) || Number(defaults.rowsFetched || 0);
+  const rowsProcessed = firstNumber(result, processedKeys) || Number(defaults.rowsProcessed || 0);
+  const rowsWritten = firstNumber(result, writtenKeys) || Number(defaults.rowsWritten || 0);
+  const status = stage?.ok === false ? 'failed' : (rowsProcessed === 0 ? 'warning' : 'ok');
+
+  if (rowsProcessed === 0 && stage?.ok !== false) {
+    logger.warn('[ENGINE WARNING] no data returned', { engine, rows_fetched: rowsFetched, rows_processed: rowsProcessed, rows_written: rowsWritten });
+  }
+
+  logger.info('[ENGINE] validation', {
+    engine,
+    rows_fetched: rowsFetched,
+    rows_processed: rowsProcessed,
+    rows_written: rowsWritten,
+    status,
+  });
+
+  return {
+    engine,
+    rows_fetched: rowsFetched,
+    rows_processed: rowsProcessed,
+    rows_written: rowsWritten,
+    status,
+  };
+}
 
 async function runIntelligencePipeline() {
   const startedAt = Date.now();
@@ -90,6 +127,18 @@ async function runIntelligencePipeline() {
   stages.opportunity = opportunity;
   stages.market_narrative = narrative;
 
+  const validation = [
+    buildValidationEntry('stocks_in_play', stocks, ['selected'], ['selected'], ['upserted']),
+    buildValidationEntry('flow_detection', flow, ['scanned'], ['scanned'], ['inserted']),
+    buildValidationEntry('short_squeeze', squeeze, ['scanned'], ['scanned'], ['inserted']),
+    buildValidationEntry('opportunity_ranker', opportunity, ['ranked'], ['ranked'], ['ranked']),
+    buildValidationEntry('market_narrative', narrative, [], [], [], {
+      rowsFetched: narrative?.ok ? 1 : 0,
+      rowsProcessed: narrative?.ok ? 1 : 0,
+      rowsWritten: narrative?.ok ? 1 : 0,
+    }),
+  ];
+
   if (!flow.ok) {
     errors.push(`flow_detection: ${flow.error}`);
     eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
@@ -151,6 +200,7 @@ async function runIntelligencePipeline() {
     last_run: new Date().toISOString(),
     execution_time_ms: Date.now() - startedAt,
     stages,
+    validation,
     errors,
   };
 
@@ -172,6 +222,7 @@ async function runIntelligencePipeline() {
     status: latestPipelineRun.status,
     runtime_ms: latestPipelineRun.execution_time_ms,
     errors: latestPipelineRun.errors,
+    validation,
     stages: {
       flow: flow.execution_time_ms,
       squeeze: squeeze.execution_time_ms,

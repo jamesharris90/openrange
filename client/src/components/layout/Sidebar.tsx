@@ -80,7 +80,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-14 z-40 hidden h-[calc(100vh-56px)] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] transition-[width] duration-300 ease-in-out md:flex ${
+      className={`fixed left-0 top-[calc(56px+var(--ticker-bar-height,40px))] z-40 hidden h-[calc(100vh-56px-var(--ticker-bar-height,40px))] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] transition-[width] duration-300 ease-in-out md:flex ${
         sidebarCollapsed ? 'w-16' : 'w-60'
       }`}
     >

@@ -35,6 +35,19 @@ async function fetchMarketNewsFallback(limit = 100) {
          ORDER BY published_at DESC NULLS LAST
          LIMIT $1
        ),
+       article_rows AS (
+         SELECT
+           symbol,
+           headline,
+           source,
+           NULL::text AS summary,
+           published_at,
+           url
+         FROM news_articles
+         WHERE COALESCE(headline, '') <> ''
+         ORDER BY published_at DESC NULLS LAST
+         LIMIT $1
+       ),
        email_rows AS (
          SELECT
            NULL::text AS symbol,
@@ -49,6 +62,8 @@ async function fetchMarketNewsFallback(limit = 100) {
          LIMIT $1
        )
        SELECT * FROM catalyst_rows
+      UNION ALL
+      SELECT * FROM article_rows
        UNION ALL
        SELECT * FROM email_rows
        ORDER BY published_at DESC NULLS LAST

@@ -247,11 +247,14 @@ router.get('/ticker-tape', async (_req, res) => {
 
   const data = TICKER_TAPE_SYMBOLS.map((symbol) => {
     const row = map.get(symbol) || {};
+    const pct = toNum(row.change_percent);
     return {
       symbol,
       price: toNum(row.price),
       change: toNum(row.change),
-      changesPercentage: toNum(row.change_percent),
+      changesPercentage: pct,
+      changePercent: pct,
+      change_percent: pct,
       volume: toNum(row.volume),
     };
   });

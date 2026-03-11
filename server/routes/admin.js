@@ -4,8 +4,7 @@ const usageStore = require('../utils/usageStore');
 const market = require('../services/marketDataService');
 const db = require('../db');
 const { POLYGON_API_KEY, FINVIZ_NEWS_TOKEN, FINNHUB_API_KEY, NODE_ENV } = require('../utils/config');
-const requireAdmin = require('../middleware/requireAdmin');
-const requireRole = require('../middleware/requireRole');
+const { requireAdminAccess } = require('../middleware/requireAdminAccess');
 const { getTelemetry } = require('../cache/telemetryCache');
 const { getProviderHealth } = require('../engines/providerHealthEngine');
 const { getEventBusHealth } = require('../events/eventLogger');
@@ -17,7 +16,60 @@ const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 
 const router = express.Router();
 
-router.get('/api/admin/stats', requireAdmin, requireRole('admin'), async (req, res) => {
+async function safeQuery(fn, fallback = null, label = 'admin.query') {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`[QUERY ERROR] ${label}`, err?.message || err);
+    return fallback;
+  }
+}
+
+async function tableExists(tableName) {
+  const result = await safeQuery(
+    () => queryWithTimeout(
+      'SELECT to_regclass($1) IS NOT NULL AS exists',
+      [`public.${tableName}`],
+      { timeoutMs: 2500, label: `admin.table_exists.${tableName}`, maxRetries: 0 }
+    ),
+    { rows: [{ exists: false }] },
+    `admin.table_exists.${tableName}`
+  );
+
+  return Boolean(result?.rows?.[0]?.exists);
+}
+
+async function tableCount(candidates, label) {
+  for (const table of candidates) {
+    const exists = await safeQuery(
+      () => queryWithTimeout(
+        'SELECT to_regclass($1) IS NOT NULL AS exists',
+        [`public.${table}`],
+        { timeoutMs: 2500, label: `${label}.exists`, maxRetries: 0 }
+      ),
+      { rows: [{ exists: false }] },
+      `${label}.exists`
+    );
+
+    if (!exists.rows?.[0]?.exists) continue;
+
+    const count = await safeQuery(
+      () => queryWithTimeout(
+        `SELECT COUNT(*)::int AS count FROM ${table}`,
+        [],
+        { timeoutMs: 3000, label: `${label}.count`, maxRetries: 0 }
+      ),
+      { rows: [{ count: 0 }] },
+      `${label}.count`
+    );
+
+    return Number(count.rows?.[0]?.count || 0);
+  }
+
+  return 0;
+}
+
+router.get('/api/admin/stats', requireAdminAccess, async (req, res) => {
   const cacheStats = cache.getStats();
   const usage = usageStore.snapshot();
   const usageHour = await db.getUsage({ minutes: 60 });
@@ -61,109 +113,215 @@ router.get('/api/admin/stats', requireAdmin, requireRole('admin'), async (req, r
   });
 });
 
-router.get('/api/admin/usage', requireAdmin, requireRole('admin'), async (req, res) => {
+router.get('/api/admin/usage', requireAdminAccess, async (req, res) => {
   const windowMinutes = Math.min(parseInt(req.query.minutes, 10) || 60, 24 * 60);
   const usage = await db.getUsage({ minutes: windowMinutes });
   res.json(usage);
 });
 
-router.get('/api/admin/users', requireAdmin, requireRole('admin'), async (_req, res) => {
+router.get('/api/admin/users', requireAdminAccess, async (_req, res) => {
   try {
-    const result = await db.query(
+    const hasUsersTable = await tableExists('users');
+    if (!hasUsersTable) {
+      return res.json({ ok: true, status: 'table_missing', users: [], items: [] });
+    }
+
+    const result = await safeQuery(() => queryWithTimeout(
       `SELECT id, username, email, is_admin, is_active, created_at
        FROM users
        ORDER BY created_at DESC NULLS LAST
-       LIMIT 500`
-    );
+       LIMIT 500`,
+      [],
+      { timeoutMs: 5000, label: 'admin.users', maxRetries: 0 }
+    ), { rows: [] }, 'admin.users');
 
     const items = Array.isArray(result?.rows) ? result.rows : [];
-    return res.json({ ok: true, items });
+    return res.json({ ok: true, status: 'ok', users: items, items });
   } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: 'Failed to load users',
-      detail: error?.message || 'Unknown error',
-      items: [],
-    });
+    return res.json({ ok: true, status: 'degraded', users: [], items: [] });
   }
 });
 
-router.get('/api/admin/diagnostics', requireAdmin, requireRole('admin'), async (_req, res) => {
-  try {
-    const telemetry = await getTelemetry();
-    const scheduler = getEngineSchedulerHealth();
-    return res.json({
-      ok: true,
-      source: 'cache',
-      telemetry,
-      scheduler,
-      event_bus: getEventBusHealth(),
-      integrity: getDataIntegrityHealth(),
-      alert_system: getSystemAlertEngineHealth(),
-      checked_at: new Date().toISOString(),
-    });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
+router.get('/api/admin/diagnostics', requireAdminAccess, async (_req, res) => {
+  const telemetry = await safeQuery(() => getTelemetry(), {}, 'admin.diagnostics.telemetry');
+  const [
+    marketDataCount,
+    newsCount,
+    earningsCount,
+    strategyCount,
+    opportunityCount,
+  ] = await Promise.all([
+    tableCount(['intraday_1m', 'market_quotes', 'stocks_in_play'], 'admin.diagnostics.market_data'),
+    tableCount(['news_articles', 'intel_news', 'market_news'], 'admin.diagnostics.news'),
+    tableCount(['earnings_events', 'earnings_calendar', 'earnings_calendar_cache'], 'admin.diagnostics.earnings'),
+    tableCount(['trade_setups', 'trade_signals'], 'admin.diagnostics.strategy'),
+    tableCount(['opportunity_stream', 'opportunities'], 'admin.diagnostics.opportunity'),
+  ]);
+  const scheduler = safeQuery(() => Promise.resolve(getEngineSchedulerHealth()), {}, 'admin.diagnostics.scheduler');
+
+  return res.json({
+    ok: true,
+    status: 'ok',
+    source: 'cache',
+    telemetry: telemetry || {},
+    database_health: {
+      tables: {
+        intraday_1m: marketDataCount,
+        news_articles: newsCount,
+        earnings_events: earningsCount,
+        trade_setups: strategyCount,
+        opportunity_stream: opportunityCount,
+      },
+    },
+    scheduler: await scheduler,
+    event_bus: getEventBusHealth() || {},
+    integrity: getDataIntegrityHealth() || {},
+    alert_system: getSystemAlertEngineHealth() || {},
+    checked_at: new Date().toISOString(),
+  });
 });
 
-router.get('/api/admin/intelligence', requireAdmin, requireRole('admin'), async (_req, res) => {
-  try {
-    const telemetry = await getTelemetry();
-    return res.json({
-      ok: true,
-      source: 'cache',
-      pipeline_runtime: telemetry.pipeline_runtime || null,
-      flow_runtime: telemetry.flow_runtime || null,
-      squeeze_runtime: telemetry.squeeze_runtime || null,
-      opportunity_runtime: telemetry.opportunity_runtime || null,
-      avg_engine_runtime: telemetry.avg_engine_runtime || 0,
-      last_update: telemetry.last_update || null,
-    });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
+router.get('/api/admin/intelligence', requireAdminAccess, async (_req, res) => {
+  const telemetry = await safeQuery(() => getTelemetry(), {}, 'admin.intelligence.telemetry');
+  return res.json({
+    ok: true,
+    source: 'cache',
+    pipeline_runtime: telemetry?.pipeline_runtime || null,
+    flow_runtime: telemetry?.flow_runtime || null,
+    squeeze_runtime: telemetry?.squeeze_runtime || null,
+    opportunity_runtime: telemetry?.opportunity_runtime || null,
+    avg_engine_runtime: telemetry?.avg_engine_runtime || 0,
+    last_update: telemetry?.last_update || null,
+  });
 });
 
-router.get('/api/admin/providers', requireAdmin, requireRole('admin'), async (_req, res) => {
-  try {
-    return res.json({ ok: true, source: 'cache', ...getProviderHealth() });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message, providers: {} });
-  }
+router.get('/api/admin/providers', requireAdminAccess, async (_req, res) => {
+  const providers = await safeQuery(() => Promise.resolve(getProviderHealth()), { providers: {} }, 'admin.providers');
+  return res.json({ ok: true, source: 'cache', ...(providers || { providers: {} }) });
 });
 
-router.get('/api/admin/features', requireAdmin, requireRole('admin'), async (_req, res) => {
-  try {
-    const users = await queryWithTimeout('SELECT COUNT(*)::int AS count FROM users', [], { timeoutMs: 3000, label: 'admin.features.users', maxRetries: 0 }).catch(() => ({ rows: [{ count: 0 }] }));
-    const roles = await queryWithTimeout('SELECT COUNT(*)::int AS count FROM roles', [], { timeoutMs: 3000, label: 'admin.features.roles', maxRetries: 0 }).catch(() => ({ rows: [{ count: 0 }] }));
-    const audit = await queryWithTimeout('SELECT COUNT(*)::int AS count FROM audit_log', [], { timeoutMs: 3000, label: 'admin.features.audit', maxRetries: 0 }).catch(() => ({ rows: [{ count: 0 }] }));
-    return res.json({
-      ok: true,
-      source: 'cache',
-      users: users.rows?.[0]?.count || 0,
-      roles: roles.rows?.[0]?.count || 0,
-      audit_log: audit.rows?.[0]?.count || 0,
-    });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
+router.get('/api/admin/features', requireAdminAccess, async (_req, res) => {
+  const users = await tableCount(['users'], 'admin.features.users');
+  const roles = await tableCount(['roles', 'user_roles'], 'admin.features.roles');
+  const audit = await tableCount(['audit_log', 'feature_access_audit'], 'admin.features.audit');
+  return res.json({
+    ok: true,
+    source: 'cache',
+    status: users === 0 && roles === 0 && audit === 0 ? 'table_missing' : 'ok',
+    users,
+    roles,
+    audit_log: audit,
+  });
 });
 
-router.get('/api/admin/audit', requireAdmin, requireRole('admin'), async (_req, res) => {
-  try {
-    const { rows } = await queryWithTimeout(
+router.get('/api/admin/audit', requireAdminAccess, async (_req, res) => {
+  const hasAuditLog = await tableExists('audit_log');
+  if (!hasAuditLog) {
+    return res.json({ ok: true, status: 'table_missing', items: [] });
+  }
+
+  const result = await safeQuery(
+    () => queryWithTimeout(
       `SELECT id, actor, action, target, created_at
        FROM audit_log
        ORDER BY created_at DESC NULLS LAST
        LIMIT 200`,
       [],
       { timeoutMs: 5000, label: 'admin.audit', maxRetries: 0 }
-    );
-    return res.json({ ok: true, items: rows || [] });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message, items: [] });
-  }
+    ),
+    { rows: [] },
+    'admin.audit'
+  );
+
+  return res.json({ ok: true, status: 'ok', items: result.rows || [] });
+});
+
+router.get('/api/admin/system', requireAdminAccess, async (_req, res) => {
+  const [telemetry, providers, eventRows, integrityRows, alertRows] = await Promise.all([
+    safeQuery(() => getTelemetry(), {}, 'admin.system.telemetry'),
+    safeQuery(() => Promise.resolve(getProviderHealth()), { providers: {} }, 'admin.system.providers'),
+    safeQuery(
+      () => queryWithTimeout(
+        `SELECT id, event_type, source, symbol, payload, created_at
+         FROM system_events
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'admin.system.events', maxRetries: 0 }
+      ),
+      { rows: [] },
+      'admin.system.events'
+    ),
+    safeQuery(
+      () => queryWithTimeout(
+        `SELECT id, event_type, source, symbol, issue, severity, payload, created_at
+         FROM data_integrity_events
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'admin.system.integrity', maxRetries: 0 }
+      ),
+      { rows: [] },
+      'admin.system.integrity'
+    ),
+    safeQuery(
+      () => queryWithTimeout(
+        `SELECT id, type, source, severity, message, acknowledged, created_at
+         FROM system_alerts
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'admin.system.alerts', maxRetries: 0 }
+      ),
+      { rows: [] },
+      'admin.system.alerts'
+    ),
+  ]);
+
+  const requiredTables = [
+    'users',
+    'feature_registry',
+    'user_feature_access',
+    'trade_setups',
+    'opportunity_stream',
+    'market_quotes',
+    'news_articles',
+  ];
+
+  const tableChecks = await Promise.all(requiredTables.map((name) => tableExists(name)));
+  const databaseTables = tableChecks.filter(Boolean).length;
+  const providersOnline = Object.values(providers?.providers || {}).filter((item) => item?.status === 'ok').length;
+
+  const pipelineEngines = [
+    telemetry?.pipeline_runtime,
+    telemetry?.flow_runtime,
+    telemetry?.squeeze_runtime,
+    telemetry?.opportunity_runtime,
+  ];
+  const enginesRunning = pipelineEngines.filter((engine) => engine && engine.status !== 'failed').length;
+
+  return res.json({
+    ok: true,
+    system_status: enginesRunning > 0 ? 'ok' : 'warning',
+    database_tables: databaseTables,
+    engines_running: enginesRunning,
+    providers_online: providersOnline,
+    engine_health: telemetry || {},
+    provider_health: providers?.providers || {},
+    event_bus_health: getEventBusHealth() || {},
+    integrity_health: getDataIntegrityHealth() || {},
+    alert_engine_health: getSystemAlertEngineHealth() || {},
+    pipeline_runtime: telemetry?.pipeline_runtime || null,
+    cache_health: {
+      ticker_cache: telemetry?.ticker_runtime?.status || 'unknown',
+      sparkline_cache_rows: Number(telemetry?.sparkline_runtime?.rows || 0),
+      cache_refresh_time: telemetry?.last_update || null,
+    },
+    recent_events: eventRows.rows || [],
+    integrity_events: integrityRows.rows || [],
+    system_alerts: alertRows.rows || [],
+    checked_at: new Date().toISOString(),
+  });
 });
 
 module.exports = router;

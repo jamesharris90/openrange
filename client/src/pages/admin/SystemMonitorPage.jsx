@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { authFetchJSON } from '../../utils/api';
+import AdminLayout from '../../components/layout/AdminLayout';
 
 function StatusPill({ value }) {
   const normalized = String(value || 'unknown').toLowerCase();
@@ -34,7 +35,7 @@ export default function SystemMonitorPage() {
       if (!cancelled) setLoading(true);
       try {
         const payload = await authFetchJSON('/api/system/monitor');
-        if (!cancelled) setData(payload || null);
+        if (!cancelled) setData(payload?.data || payload || null);
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Failed to load system monitor');
       } finally {
@@ -68,21 +69,23 @@ export default function SystemMonitorPage() {
 
   return (
     <div className="space-y-4">
+      <AdminLayout section="System Monitor" />
+
       <Section title="System Status">
         {loading ? <div className="text-sm text-[var(--text-muted)]">Loading system monitor...</div> : null}
         {error ? <div className="rounded border border-red-400/40 bg-red-500/10 p-2 text-sm text-red-300">{error}</div> : null}
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded border border-[var(--border-color)] p-3">
             <div className="text-xs text-[var(--text-muted)]">System</div>
-            <div className="mt-1"><StatusPill value={data?.system_status || 'unknown'} /></div>
+            <div className="mt-1"><StatusPill value={data?.system || data?.system_status || 'unknown'} /></div>
           </div>
           <div className="rounded border border-[var(--border-color)] p-3">
             <div className="text-xs text-[var(--text-muted)]">Event Bus</div>
-            <div className="mt-1"><StatusPill value={data?.event_bus_health?.status || (data?.event_bus_health?.logger_initialized ? 'ok' : 'warning')} /></div>
+            <div className="mt-1"><StatusPill value={data?.event_bus || data?.event_bus_health?.status || (data?.event_bus_health?.logger_initialized ? 'ok' : 'warning')} /></div>
           </div>
           <div className="rounded border border-[var(--border-color)] p-3">
             <div className="text-xs text-[var(--text-muted)]">Alert Engine</div>
-            <div className="mt-1"><StatusPill value={data?.alert_engine_health?.status || 'unknown'} /></div>
+            <div className="mt-1"><StatusPill value={data?.alert_engine || data?.alert_engine_health?.status || 'unknown'} /></div>
           </div>
         </div>
       </Section>

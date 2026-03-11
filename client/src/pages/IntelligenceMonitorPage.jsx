@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { authFetchJSON } from '../utils/api';
+import AdminLayout from '../components/layout/AdminLayout';
 
 function countFrom(payload, key = 'items') {
   const rows = payload?.[key];
@@ -66,6 +67,8 @@ export default function IntelligenceMonitorPage() {
 
   return (
     <div className="space-y-4">
+      <AdminLayout section="Intelligence Monitor" />
+
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Intelligence Monitor</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">Pipeline telemetry for detections, providers, and engine runtimes.</p>

@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryWithTimeout } = require('../db/pg');
 const { runPremarketNewsletter, buildNewsletterPayload, ensureNewsletterEngineTables } = require('../engines/newsletterEngine');
+const { hasAdminAccess } = require('../middleware/requireAdminAccess');
 
 const router = express.Router();
 
@@ -41,8 +42,8 @@ router.post('/api/newsletter/subscribe', async (req, res) => {
 });
 
 router.post('/api/newsletter/send', async (req, res) => {
-  const apiKey = String(req.headers['x-api-key'] || '').trim();
-  if (!process.env.PROXY_API_KEY || apiKey !== process.env.PROXY_API_KEY) {
+  const access = await hasAdminAccess(req);
+  if (!access.ok) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
