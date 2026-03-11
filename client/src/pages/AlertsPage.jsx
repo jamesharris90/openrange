@@ -24,7 +24,7 @@ export default function AlertsPage() {
   );
 
   const alertsById = useMemo(
-    () => new Map(visibleAlerts.map((item) => [item.alert_id, item])),
+    () => new Map(visibleAlerts?.map((item) => [item.alert_id, item])),
     [visibleAlerts]
   );
 
@@ -53,7 +53,7 @@ export default function AlertsPage() {
       method: 'POST',
       body: JSON.stringify({ alert_id: alert.alert_id }),
     });
-    setAlerts((current) => current.map((item) => (
+    setAlerts((current) => current?.map((item) => (
       item.alert_id === alert.alert_id ? { ...item, enabled: false } : item
     )));
   }

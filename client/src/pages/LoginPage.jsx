@@ -28,12 +28,12 @@ export default function LoginPage() {
         body: JSON.stringify({ identifier: username.trim(), password }),
       });
 
-      if (data.token) {
-        localStorage.setItem('openrange_token', data.token);
-        login(data.token);
+      if (data?.token) {
+        localStorage.setItem('openrange_token', data?.token);
+        login(data?.token);
         navigate('/dashboard', { replace: true });
       } else {
-        setError(data.error || data.detail || 'Login failed');
+        setError(data?.error || data?.detail || 'Login failed');
       }
     } catch (err) {
       setError(err?.message || 'Network error. Please check your connection.');

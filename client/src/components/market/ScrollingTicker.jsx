@@ -18,7 +18,7 @@ export default function ScrollingTicker() {
       try {
         const payload = await apiJSON('/api/market/context');
         const context = payload && typeof payload === 'object' ? payload : {};
-        const tickers = Object.values(context).map((row) => ({
+        const tickers = Object.values(context)?.map((row) => ({
           symbol: row?.symbol,
           change_percent: row?.change_percent,
         }));
@@ -52,7 +52,7 @@ export default function ScrollingTicker() {
             className="flex min-w-max items-center gap-6 px-3 py-2 text-sm"
             style={{ animation: 'openrangeTicker 30s linear infinite' }}
           >
-            {stream.map((item, idx) => {
+            {stream?.map((item, idx) => {
               const change = Number(item?.change_percent || 0);
               return (
                 <div key={`${item?.symbol || 'x'}-${idx}`} className="flex items-center gap-2 whitespace-nowrap">

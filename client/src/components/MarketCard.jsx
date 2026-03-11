@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function MarketCard({ symbol }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/market/context')
-      .then((r) => r.json())
+    apiFetch('/api/market/context')
       .then((d) => setData(d[symbol] || null))
       .catch(() => setData(null));
   }, [symbol]);
 
   if (!data) return <div className="card">Loading...</div>;
 
-  const price = Number(data.price);
-  const changePercent = Number(data.change_percent);
+  const price = Number(data?.price);
+  const changePercent = Number(data?.change_percent);
   const hasPrice = Number.isFinite(price);
   const hasChange = Number.isFinite(changePercent);
 

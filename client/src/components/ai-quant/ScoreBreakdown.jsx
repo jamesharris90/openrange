@@ -16,7 +16,7 @@ export default function ScoreBreakdown({ breakdown, score }) {
           <div className="aiq-score-bd-header">
             <span>Factor</span><span>Pts</span>
           </div>
-          {breakdown.map((b, i) => (
+          {breakdown?.map((b, i) => (
             <div key={i} className="aiq-score-bd-row">
               <span className="aiq-score-bd-factor">{b.factor}</span>
               <span className="aiq-score-bd-value">{b.value}</span>

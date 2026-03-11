@@ -87,7 +87,7 @@ export default function ProfilePage() {
               </button>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
-              {(prefs.layouts || []).map((name) => (
+              {(prefs.layouts || [])?.map((name) => (
                 <span key={name} className="rounded border border-[var(--border-color)] px-2 py-1">{name}</span>
               ))}
               {!(prefs.layouts || []).length && <span className="muted">No saved layouts.</span>}
@@ -117,7 +117,7 @@ export default function ProfilePage() {
               </button>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
-              {(prefs.alerts || []).map((name) => (
+              {(prefs.alerts || [])?.map((name) => (
                 <span key={name} className="rounded border border-[var(--border-color)] px-2 py-1">{name}</span>
               ))}
               {!(prefs.alerts || []).length && <span className="muted">No alert settings saved.</span>}

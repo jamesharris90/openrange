@@ -40,8 +40,8 @@ export default function OpenMarketRadar() {
         metricsRows === 0 || setupsRows === 0 || catalystsRows === 0 || intradayRows === 0
       );
 
-      const fallbackRows = Array.isArray(data?.data) ? data.data : [];
-      const signalRows = Array.isArray(data?.signals) ? data.signals : fallbackRows;
+      const fallbackRows = Array.isArray(data?.data) ? data?.data : [];
+      const signalRows = Array.isArray(data?.signals) ? data?.signals : fallbackRows;
       const grouped = signalRows.reduce((acc, row) => {
         const klass = String(row?.class || '').toUpperCase();
         const bucket = klass === 'A' ? 'A' : klass === 'B' ? 'B' : 'C';
@@ -50,9 +50,9 @@ export default function OpenMarketRadar() {
       }, { A: [], B: [], C: [] });
 
       setRadar({
-        A: Array.isArray(data?.A) ? data.A : grouped.A,
-        B: Array.isArray(data?.B) ? data.B : grouped.B,
-        C: Array.isArray(data?.C) ? data.C : grouped.C,
+        A: Array.isArray(data?.A) ? data?.A : grouped.A,
+        B: Array.isArray(data?.B) ? data?.B : grouped.B,
+        C: Array.isArray(data?.C) ? data?.C : grouped.C,
         signals: signalRows,
       });
     } catch (fetchError) {
@@ -93,7 +93,7 @@ export default function OpenMarketRadar() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rows?.map((row, index) => (
               <tr key={`${String(row?.symbol || 'N/A')}-${index}`} className="border-t border-[var(--border-default)]">
                 <td className="py-2 font-semibold">{String(row?.symbol || 'N/A').toUpperCase()}</td>
                 <td className="py-2">{row?.strategy || '--'}</td>

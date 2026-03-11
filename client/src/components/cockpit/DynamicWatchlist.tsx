@@ -44,7 +44,7 @@ export default function DynamicWatchlist({ rows, onPlan, staticAtCap, onVisibleS
   }, [rows, page]);
 
   useEffect(() => {
-    onVisibleSymbolsChange?.(pagedRows.map((row) => row.symbol));
+    onVisibleSymbolsChange?.(pagedRows?.map((row) => row.symbol));
   }, [onVisibleSymbolsChange, pagedRows]);
 
   return (
@@ -58,7 +58,7 @@ export default function DynamicWatchlist({ rows, onPlan, staticAtCap, onVisibleS
       </div>
 
       <div className="space-y-1">
-        {pagedRows.map((row) => (
+        {pagedRows?.map((row) => (
           <div
             key={row.symbol}
             onClick={() => setSymbol(row.symbol)}

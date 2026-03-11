@@ -59,7 +59,7 @@ export default function MobileDrawer() {
         </div>
 
         <nav className="space-y-1 overflow-y-auto">
-          {visibleItems.map((item) => (
+          {visibleItems?.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -51,7 +51,7 @@ export default function MobileDashboard() {
     };
   }, []);
 
-  const watchlistRows = useMemo(() => (watchlist || []).map((symbol) => ({ symbol })), [watchlist]);
+  const watchlistRows = useMemo(() => (watchlist || [])?.map((symbol) => ({ symbol })), [watchlist]);
 
   const updatePref = (key) => {
     const next = setAlertPreferences({ ...prefs, [key]: !prefs[key] });
@@ -88,7 +88,7 @@ export default function MobileDashboard() {
           <span className="text-xs text-[var(--text-muted)]">{signals.length}</span>
         </div>
         <div className="space-y-2">
-          {(signals || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No signal alerts right now.</div> : (signals || []).map((row, idx) => (
+          {(signals || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No signal alerts right now.</div> : (signals || [])?.map((row, idx) => (
             <div key={`${row?.symbol || 's'}-${idx}`} className="rounded border border-[var(--border-default)] p-2 text-xs">
               <div className="flex items-center justify-between">
                 <TickerLink symbol={row?.symbol} />
@@ -103,7 +103,7 @@ export default function MobileDashboard() {
       <Card>
         <h3 className="mb-2 mt-0 text-sm font-semibold">Watchlist</h3>
         <div className="grid grid-cols-2 gap-2">
-          {(watchlistRows || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No watchlist symbols saved.</div> : (watchlistRows || []).map((row) => (
+          {(watchlistRows || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No watchlist symbols saved.</div> : (watchlistRows || [])?.map((row) => (
             <div key={row.symbol} className="rounded border border-[var(--border-default)] p-2 text-xs">
               <TickerLink symbol={row.symbol} />
             </div>
@@ -117,7 +117,7 @@ export default function MobileDashboard() {
           <span className="text-xs text-[var(--text-muted)]">{alerts.length}</span>
         </div>
         <div className="space-y-2">
-          {(alerts || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No active alerts.</div> : (alerts || []).map((row, idx) => (
+          {(alerts || []).length === 0 ? <div className="text-xs text-[var(--text-muted)]">No active alerts.</div> : (alerts || [])?.map((row, idx) => (
             <div key={`${row?.id || idx}`} className="rounded border border-[var(--border-default)] p-2 text-xs">
               <div className="font-semibold">{row?.symbol || '--'} · {row?.condition || row?.type || 'Alert'}</div>
               <div className="text-[var(--text-muted)]">{row?.message || row?.description || '--'}</div>

@@ -73,7 +73,7 @@ export default function OpportunityStream({ limit = 25, compact = false }) {
 
   return (
     <div className="space-y-2">
-      {items.slice(0, limit).map((row) => {
+      {items.slice(0, limit)?.map((row) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         return (
           <Card

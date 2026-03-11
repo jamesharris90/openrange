@@ -41,10 +41,10 @@ function keyLevelRows(levels, indicators, candles, quote) {
     ? Number(indicators.vwap[indicators.vwap.length - 1])
     : null;
   const high = Array.isArray(candles) && candles.length
-    ? Math.max(...candles.map((c) => Number(c?.high)).filter(Number.isFinite))
+    ? Math.max(...candles?.map((c) => Number(c?.high)).filter(Number.isFinite))
     : null;
   const low = Array.isArray(candles) && candles.length
-    ? Math.min(...candles.map((c) => Number(c?.low)).filter(Number.isFinite))
+    ? Math.min(...candles?.map((c) => Number(c?.low)).filter(Number.isFinite))
     : null;
 
   const previousClose = toNum(
@@ -173,7 +173,7 @@ export default function SetupIntelligencePanel({ symbol, levels, indicators, can
       <div className="rounded border border-[var(--border-default)] p-2">
         <div className="mb-1 text-[11px] uppercase tracking-wide text-[var(--text-muted)]">Key Levels</div>
         <div className="space-y-1 text-xs">
-          {levelRows.map((item) => (
+          {levelRows?.map((item) => (
             <div key={item.label} className="flex items-center justify-between">
               <span>{item.label}</span>
               <strong>{fmt(item.value, 2)}</strong>
@@ -185,8 +185,8 @@ export default function SetupIntelligencePanel({ symbol, levels, indicators, can
       <div className="rounded border border-[var(--border-default)] p-2">
         <div className="mb-1 text-[11px] uppercase tracking-wide text-[var(--text-muted)]">Trend Levels</div>
         <div className="space-y-1 text-xs">
-          <div className="flex items-center justify-between"><span>Support</span><strong>{support.length ? support.map((v) => fmt(v, 2)).join(', ') : '--'}</strong></div>
-          <div className="flex items-center justify-between"><span>Resistance</span><strong>{resistance.length ? resistance.map((v) => fmt(v, 2)).join(', ') : '--'}</strong></div>
+          <div className="flex items-center justify-between"><span>Support</span><strong>{support.length ? support?.map((v) => fmt(v, 2)).join(', ') : '--'}</strong></div>
+          <div className="flex items-center justify-between"><span>Resistance</span><strong>{resistance.length ? resistance?.map((v) => fmt(v, 2)).join(', ') : '--'}</strong></div>
         </div>
       </div>
     </Card>

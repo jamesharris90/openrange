@@ -17,7 +17,7 @@ export default function MarketOverviewPage() {
       setLoading(true);
       try {
         const results = await Promise.all(
-          INDEX_SYMBOLS.map(async (symbol) => {
+          INDEX_SYMBOLS?.map(async (symbol) => {
             const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
             const response = await authFetch(`/api/v5/chart?${query}`);
             if (!response.ok) {
@@ -25,7 +25,7 @@ export default function MarketOverviewPage() {
             }
 
             const data = await response.json();
-            const candles = Array.isArray(data?.candles) ? data.candles : [];
+            const candles = Array.isArray(data?.candles) ? data?.candles : [];
             const latest = candles[candles.length - 1];
             const previous = candles[candles.length - 2];
             const price = Number(latest?.close);
@@ -49,7 +49,7 @@ export default function MarketOverviewPage() {
         }
       } catch (_error) {
         if (!cancelled) {
-          setQuotesPayload(INDEX_SYMBOLS.map((ticker) => ({ ticker, shortName: ticker, price: null, changePercent: null })));
+          setQuotesPayload(INDEX_SYMBOLS?.map((ticker) => ({ ticker, shortName: ticker, price: null, changePercent: null })));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -67,7 +67,7 @@ export default function MarketOverviewPage() {
     quotesPayload.forEach((q) => {
       map[q.ticker] = q;
     });
-    return INDEX_SYMBOLS.map((sym) => map[sym] || { ticker: sym, shortName: sym, price: null, changePercent: null });
+    return INDEX_SYMBOLS?.map((sym) => map[sym] || { ticker: sym, shortName: sym, price: null, changePercent: null });
   }, [quotesPayload]);
 
   return (
@@ -79,7 +79,7 @@ export default function MarketOverviewPage() {
 
       <div className="panel">
         <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-          {quotes.map(q => (
+          {quotes?.map(q => (
             <div key={q.ticker} className="stat-card" style={{ padding: 12 }}>
               <div className="stat-label" style={{ marginBottom: 4 }}>{q.shortName || q.ticker}</div>
               <div className="stat-value">{q.price != null ? formatNumber(q.price) : '--'}</div>

@@ -15,7 +15,7 @@ export default function AdvancedFilterTabs({ tabs, activeTab, onChange }: Advanc
   return (
     <div className="overflow-x-auto">
       <div className="flex min-w-max gap-2">
-        {tabs.map((tab) => (
+        {tabs?.map((tab) => (
           <button
             key={tab.id}
             type="button"

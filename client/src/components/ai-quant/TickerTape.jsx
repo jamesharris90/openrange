@@ -161,7 +161,7 @@ export default function TickerTape() {
           width: 'max-content',
         }}
       >
-        {doubled.map((item, i) => (
+        {doubled?.map((item, i) => (
           <TickerItem key={`${item.ticker}-${i}`} item={item} />
         ))}
       </div>

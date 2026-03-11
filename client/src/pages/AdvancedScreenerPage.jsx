@@ -60,7 +60,7 @@ function sortRows(rows, sort) {
   if (!sort.column) return rows;
   const dir = sort.direction === 'asc' ? 1 : -1;
   const data = [...rows];
-  data.sort((a, b) => {
+  data?.sort((a, b) => {
     let aVal = a[sort.column] ?? '';
     let bVal = b[sort.column] ?? '';
     if (sort.column === '_newsAge') {
@@ -279,7 +279,7 @@ function ColumnPicker({ activeView, currentVisibleCols, toggleColVisibility, all
           </div>
           <div className="col-menu__list">
             {!filtered && <div className="col-menu__section-label">View Columns</div>}
-            {displayList.map(col => (
+            {displayList?.map(col => (
               <label key={col} className="col-menu__item">
                 <input type="checkbox" checked={currentVisibleCols.has(col)} onChange={() => toggleColVisibility(col)} />
                 {col}
@@ -291,7 +291,7 @@ function ColumnPicker({ activeView, currentVisibleCols, toggleColVisibility, all
             {!filtered && extraCols.length > 0 && (
               <>
                 <div className="col-menu__section-label" style={{ marginTop: 8 }}>Other Available</div>
-                {extraCols.slice(0, 10).map(col => (
+                {extraCols.slice(0, 10)?.map(col => (
                   <label key={col} className="col-menu__item">
                     <input type="checkbox" checked={currentVisibleCols.has(col)} onChange={() => toggleColVisibility(col)} />
                     {col}
@@ -400,7 +400,7 @@ export default function AdvancedScreenerPage() {
   }
 
   const sortedRows = useMemo(() => {
-    const withNews = rows.map(r => ({
+    const withNews = rows?.map(r => ({
       ...r,
       _newsAge: newsMap[r.Ticker]?.ageHours ?? null,
       _newsHeadline: newsMap[r.Ticker]?.headline ?? null,
@@ -472,7 +472,7 @@ export default function AdvancedScreenerPage() {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const payload = await resp.json();
       const rawRows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-      const newRows = rawRows.map(mapCanonicalRowToLegacy);
+      const newRows = rawRows?.map(mapCanonicalRowToLegacy);
 
       // Track all column names
       if (newRows.length > 0) {
@@ -484,7 +484,7 @@ export default function AdvancedScreenerPage() {
       }
 
       // Detect new tickers for highlight
-      const currentTickers = new Set(newRows.map(r => r.Ticker));
+      const currentTickers = new Set(newRows?.map(r => r.Ticker));
       const prevTickers = prevTickersRef.current;
       if (prevTickers.size > 0) {
         const fresh = new Set();
@@ -509,7 +509,7 @@ export default function AdvancedScreenerPage() {
   const fetchNewsFreshness = useCallback(async (tickers) => {
     if (!tickers.length) return;
     try {
-      const entries = await Promise.all(tickers.map(async (ticker) => {
+      const entries = await Promise.all(tickers?.map(async (ticker) => {
         try {
           const resp = await authFetch(`/api/v5/news?symbol=${encodeURIComponent(ticker)}&limit=1`);
           if (!resp.ok) return [ticker, null];
@@ -543,7 +543,7 @@ export default function AdvancedScreenerPage() {
   }, []);
 
   useEffect(() => {
-    const tickers = pageRows.map(r => r.Ticker).filter(Boolean);
+    const tickers = pageRows?.map(r => r.Ticker).filter(Boolean);
     const missing = tickers.filter(t => !newsMap[t]);
     if (missing.length > 0) fetchNewsFreshness(missing);
   }, [pageRows, fetchNewsFreshness]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -637,7 +637,7 @@ export default function AdvancedScreenerPage() {
       {/* Toolbar: View tabs + Columns + Count — sits between filters and results */}
       <div className="screener-toolbar">
         <div className="screener-toolbar__tabs">
-          {VIEWS.map(view => (
+          {VIEWS?.map(view => (
             <button key={view.id} className={`tab${activeView.id === view.id ? ' active' : ''}`}
               onClick={() => setActiveView(view)}>
               {view.label}
@@ -662,7 +662,7 @@ export default function AdvancedScreenerPage() {
       <div className="screener-export-row">
         <ExportButtons
           data={sortedRows}
-          columns={[...displayColumns.map(col => ({ key: col, label: col }))]}
+          columns={[...displayColumns?.map(col => ({ key: col, label: col }))]}
           filename={`screener-${activeView.id}-${new Date().toISOString().split('T')[0]}`}
         />
         <span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
@@ -677,7 +677,7 @@ export default function AdvancedScreenerPage() {
             <thead>
               <tr>
                 <th style={{ width: 40 }}></th>
-                {displayColumns.map(col => {
+                {displayColumns?.map(col => {
                   const isNumeric = IS_NUMERIC.test(col);
                   return (
                     <th key={col} onClick={() => setSortColumn(col)} style={isNumeric ? { textAlign: 'right' } : undefined}>
@@ -700,7 +700,7 @@ export default function AdvancedScreenerPage() {
               {loading && (
                 <tr><td colSpan={displayColumns.length + 2} style={{ padding: 20 }}>Loading screener data\u2026</td></tr>
               )}
-              {!loading && pageRows.map(row => {
+              {!loading && pageRows?.map(row => {
                 const inList = watchlist.has(row.Ticker);
                 const renderers = activeView.id === 'overview' ? OVERVIEW_RENDERERS : null;
                 const isNew = newTickers.has(row.Ticker);
@@ -712,7 +712,7 @@ export default function AdvancedScreenerPage() {
                         <Star size={16} fill={inList ? 'var(--accent-orange)' : 'none'} color={inList ? 'var(--accent-orange)' : 'var(--text-muted)'} />
                       </button>
                     </td>
-                    {displayColumns.map(col => {
+                    {displayColumns?.map(col => {
                       const value = row[col];
                       const renderer = renderers?.[col];
                       const isNumeric = IS_NUMERIC.test(col);
@@ -825,18 +825,18 @@ function ScreenerDeepDive({ ticker, watchlist }) {
   return (
     <div className="screener-dd-content">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{fmtCurrency(data.price)}</span>
-        <span style={{ color: 'var(--text-muted)' }}>{data.name}</span>
+        <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{fmtCurrency(data?.price)}</span>
+        <span style={{ color: 'var(--text-muted)' }}>{data?.name}</span>
         <button className="btn-icon" style={{ marginLeft: 'auto' }}
           onClick={() => inWL ? watchlist.remove(ticker) : watchlist.add(ticker, 'advanced-screener')}>
           <Star size={16} fill={inWL ? 'var(--accent-orange)' : 'none'} color={inWL ? 'var(--accent-orange)' : 'var(--text-muted)'} />
         </button>
       </div>
 
-      {data.setupScore && (
+      {data?.setupScore && (
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--text-secondary)' }}>Setup Score: {data.setupScore.score}/100</div>
-          {data.setupScore.breakdown && Object.entries(data.setupScore.breakdown).map(([key, val]) => (
+          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--text-secondary)' }}>Setup Score: {data?.setupScore.score}/100</div>
+          {data?.setupScore.breakdown && Object.entries(data?.setupScore.breakdown)?.map(([key, val]) => (
             <div key={key} className="erp-score__item">
               <span className="erp-score__item-label">{key}</span>
               <div className="erp-score__item-bar">
@@ -848,45 +848,45 @@ function ScreenerDeepDive({ ticker, watchlist }) {
         </div>
       )}
 
-      {data.company && (
+      {data?.company && (
         <div className="screener-dd-section">
           <div className="screener-dd-section__title">Company</div>
           <div className="aiq-dd-grid">
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Sector</span><span className="aiq-stat-row__value">{data.company.sector || '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Industry</span><span className="aiq-stat-row__value">{data.company.industry || '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Market Cap</span><span className="aiq-stat-row__value">{fmtMktCap(data.company.marketCap)}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Sector</span><span className="aiq-stat-row__value">{data?.company.sector || '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Industry</span><span className="aiq-stat-row__value">{data?.company.industry || '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Market Cap</span><span className="aiq-stat-row__value">{fmtMktCap(data?.company.marketCap)}</span></div>
           </div>
         </div>
       )}
 
-      {data.technicals?.available && (
+      {data?.technicals?.available && (
         <div className="screener-dd-section">
           <div className="screener-dd-section__title">Technicals</div>
           <div className="aiq-dd-grid">
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">RSI(14)</span><span className="aiq-stat-row__value">{data.technicals.rsi?.toFixed(1) || '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">ATR(14)</span><span className="aiq-stat-row__value">{data.technicals.atr ? `$${data.technicals.atr.toFixed(2)}` : '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Trend</span><span className="aiq-stat-row__value" style={{ color: data.technicals.trend === 'bullish' ? 'var(--accent-green)' : data.technicals.trend === 'bearish' ? 'var(--accent-red)' : undefined }}>{data.technicals.trend || '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">RSI(14)</span><span className="aiq-stat-row__value">{data?.technicals.rsi?.toFixed(1) || '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">ATR(14)</span><span className="aiq-stat-row__value">{data?.technicals.atr ? `$${data?.technicals.atr.toFixed(2)}` : '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Trend</span><span className="aiq-stat-row__value" style={{ color: data?.technicals.trend === 'bullish' ? 'var(--accent-green)' : data?.technicals.trend === 'bearish' ? 'var(--accent-red)' : undefined }}>{data?.technicals.trend || '\u2014'}</span></div>
           </div>
         </div>
       )}
 
-      {data.expectedMove?.available && (
+      {data?.expectedMove?.available && (
         <div className="screener-dd-section">
           <div className="screener-dd-section__title">Expected Move</div>
           <div className="aiq-dd-grid">
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Range</span><span className="aiq-stat-row__value">${data.expectedMove.rangeLow} – ${data.expectedMove.rangeHigh}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">IV</span><span className="aiq-stat-row__value">{data.expectedMove.ivPercent ? `${data.expectedMove.ivPercent}%` : '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Range</span><span className="aiq-stat-row__value">${data?.expectedMove.rangeLow} – ${data?.expectedMove.rangeHigh}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">IV</span><span className="aiq-stat-row__value">{data?.expectedMove.ivPercent ? `${data?.expectedMove.ivPercent}%` : '\u2014'}</span></div>
           </div>
         </div>
       )}
 
-      {data.sentiment && (
+      {data?.sentiment && (
         <div className="screener-dd-section">
           <div className="screener-dd-section__title">Analyst Sentiment</div>
           <div className="aiq-dd-grid">
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Rating</span><span className="aiq-stat-row__value">{data.sentiment.recommendationKey || '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Target</span><span className="aiq-stat-row__value">{data.sentiment.targetMeanPrice ? fmtCurrency(data.sentiment.targetMeanPrice) : '\u2014'}</span></div>
-            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Upside</span><span className="aiq-stat-row__value" style={{ color: data.sentiment.targetVsPrice > 0 ? 'var(--accent-green)' : data.sentiment.targetVsPrice < 0 ? 'var(--accent-red)' : undefined }}>{data.sentiment.targetVsPrice != null ? `${data.sentiment.targetVsPrice > 0 ? '+' : ''}${data.sentiment.targetVsPrice}%` : '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Rating</span><span className="aiq-stat-row__value">{data?.sentiment.recommendationKey || '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Target</span><span className="aiq-stat-row__value">{data?.sentiment.targetMeanPrice ? fmtCurrency(data?.sentiment.targetMeanPrice) : '\u2014'}</span></div>
+            <div className="aiq-stat-row"><span className="aiq-stat-row__label">Upside</span><span className="aiq-stat-row__value" style={{ color: data?.sentiment.targetVsPrice > 0 ? 'var(--accent-green)' : data?.sentiment.targetVsPrice < 0 ? 'var(--accent-red)' : undefined }}>{data?.sentiment.targetVsPrice != null ? `${data?.sentiment.targetVsPrice > 0 ? '+' : ''}${data?.sentiment.targetVsPrice}%` : '\u2014'}</span></div>
           </div>
         </div>
       )}

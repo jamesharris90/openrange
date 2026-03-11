@@ -1,0 +1,66 @@
+[
+  {
+    "file": "client/src/components/MarketCard.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/ai-quant/StrategyChips.jsx",
+    "issue": "unsafe data access"
+  },
+  {
+    "file": "client/src/components/ai-quant/StrategyManager.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/alerts/EditAlertModal.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/cockpit/RapidTicket.tsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/layout/AppLayout.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/layout/AppShell.tsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/layout/ThemeProvider.tsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/shared/TradingViewChart.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/shared/TradingViewProfile.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/trades/DailyReviewPanel.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/components/trades/DailySummaryCard.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/context/FeatureAccessContext.jsx",
+    "issue": "useEffect missing dependency array"
+  },
+  {
+    "file": "client/src/pages/AdminControlPanel.jsx",
+    "issue": "unsafe data access"
+  },
+  {
+    "file": "client/src/pages/StrategyEvaluationPage.jsx",
+    "issue": "unsafe data access"
+  },
+  {
+    "file": "client/src/pages/TradeSetup.jsx",
+    "issue": "useEffect missing dependency array"
+  }
+]

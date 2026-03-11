@@ -248,7 +248,7 @@ export default function ChartEngine({
         if (!active) return;
         const rows = Array.isArray(payload)
           ? payload
-            .map((item: any, index: number) => ({
+            ?.map((item: any, index: number) => ({
               id: String(item?.id || `${normalizedSymbol}-${normalizedTimeframe}-${index}`),
               type: String(item?.type || 'hline'),
               price: Number(item?.price),
@@ -293,7 +293,7 @@ export default function ChartEngine({
   const parseCandles = (input: unknown): Candle[] => {
     if (!Array.isArray(input)) return [];
     return input
-      .map((item: any) => ({
+      ?.map((item: any) => ({
         time: Number(item?.time),
         open: Number(item?.open),
         high: Number(item?.high),
@@ -307,7 +307,7 @@ export default function ChartEngine({
   const extractIndicatorValues = (input: unknown): number[] => {
     if (!Array.isArray(input)) return [];
     return input
-      .map((item: any) => {
+      ?.map((item: any) => {
         const value = typeof item === 'object' && item !== null ? item.value : item;
         return Number(value);
       })
@@ -475,7 +475,7 @@ export default function ChartEngine({
       day: '2-digit',
     });
     const parts = formatter.formatToParts(new Date(epochSec * 1000));
-    const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const map = Object.fromEntries(parts?.map((part) => [part.type, part.value]));
     return {
       year: Number(map.year),
       month: Number(map.month),
@@ -618,7 +618,7 @@ export default function ChartEngine({
   };
 
   const computeEMAValues = (values: number[], period: number): Array<number | null> => {
-    if (!Array.isArray(values) || values.length < period) return values.map(() => null);
+    if (!Array.isArray(values) || values.length < period) return values?.map(() => null);
     const result: Array<number | null> = new Array(values.length).fill(null);
     let sum = 0;
     for (let index = 0; index < period; index += 1) {
@@ -646,15 +646,15 @@ export default function ChartEngine({
       };
     }
 
-    const closes = list.map((candle) => Number(candle.close));
+    const closes = list?.map((candle) => Number(candle.close));
     const ema12 = computeEMAValues(closes, 12);
     const ema26 = computeEMAValues(closes, 26);
-    const macdValues = closes.map((_, index) => {
+    const macdValues = closes?.map((_, index) => {
       if (!Number.isFinite(ema12[index]) || !Number.isFinite(ema26[index])) return null;
       return Number(ema12[index]) - Number(ema26[index]);
     });
 
-    const macdForSignal = macdValues.map((value) => (Number.isFinite(value) ? Number(value) : 0));
+    const macdForSignal = macdValues?.map((value) => (Number.isFinite(value) ? Number(value) : 0));
     const signalValues = computeEMAValues(macdForSignal, 9);
 
     const macd: Array<{ time: Time; value: number }> = [];
@@ -681,7 +681,7 @@ export default function ChartEngine({
 
   const buildEmaSeries = (list: Candle[], period: EmaPeriod): Array<{ time: Time; value: number }> => {
     if (!Array.isArray(list) || !list.length) return [];
-    const closes = list.map((candle) => Number(candle.close));
+    const closes = list?.map((candle) => Number(candle.close));
     const emaValues = computeEMAValues(closes, period);
     const result: Array<{ time: Time; value: number }> = [];
     for (let index = 0; index < list.length; index += 1) {
@@ -759,7 +759,7 @@ export default function ChartEngine({
         : [];
 
     const normalizedEarnings = earningsRows
-      .map((row: any) => {
+      ?.map((row: any) => {
         const time = toSec(row?.timestamp ?? row?.time ?? row?.date ?? row?.reportDate);
         if (!Number.isFinite(Number(time))) return null;
         const nearest = findNearestCandleTime(Number(time), list);
@@ -786,7 +786,7 @@ export default function ChartEngine({
         const scoredHighImpact = (Number.isFinite(newsScore) && newsScore >= 0.7) || (Number.isFinite(highImpact) && highImpact >= 0.7);
         return scoredHighImpact || Boolean(headline);
       })
-      .map((row: any) => {
+      ?.map((row: any) => {
         const time = toSec(row?.timestamp ?? row?.time ?? row?.publishedAt ?? row?.published_at ?? row?.publishedDate);
         if (!Number.isFinite(Number(time))) return null;
         const nearest = findNearestCandleTime(Number(time), list);
@@ -883,7 +883,7 @@ export default function ChartEngine({
 
     const formatted = formatMarkerHover(marker);
     tooltip.innerHTML = `<div class="font-semibold text-slate-100">${escapeHtml(formatted.title)}</div>${formatted.lines
-      .map((line) => `<div class="text-slate-200">${escapeHtml(String(line || ''))}</div>`)
+      ?.map((line) => `<div class="text-slate-200">${escapeHtml(String(line || ''))}</div>`)
       .join('')}`;
 
     tooltip.dataset.type = marker.type;
@@ -985,7 +985,7 @@ export default function ChartEngine({
     const indicatorValueAt = (values: unknown, candleIndex: number) => {
       const fullSeriesLen = sortedCandlesRef.current.length;
       if (!Array.isArray(values) || !values.length || !list.length || !fullSeriesLen) return null;
-      const numeric = values.map((item) => Number(item));
+      const numeric = values?.map((item) => Number(item));
       const offset = numeric.length - fullSeriesLen;
       const idx = baseIndexInFullSeries + candleIndex + offset;
       const value = numeric[idx];
@@ -1032,8 +1032,8 @@ export default function ChartEngine({
     if (vwapAlignment) strengthScore += 1;
     strengthScore = Math.min(5, Math.max(1, strengthScore));
 
-    const highs = segment.map((candle) => Number(candle.high)).filter((value) => Number.isFinite(value));
-    const lows = segment.map((candle) => Number(candle.low)).filter((value) => Number.isFinite(value));
+    const highs = segment?.map((candle) => Number(candle.high)).filter((value) => Number.isFinite(value));
+    const lows = segment?.map((candle) => Number(candle.low)).filter((value) => Number.isFinite(value));
 
     return {
       type: dir,
@@ -1350,13 +1350,13 @@ export default function ChartEngine({
 
     const toPrice = (value: number) => Number(value).toFixed(2);
     return {
-      open: toPrice(data.open),
-      high: toPrice(data.high),
-      low: toPrice(data.low),
-      close: toPrice(data.close),
-      volume: Number(data.volume).toLocaleString(),
-      change: `${data.change >= 0 ? '+' : ''}${toPrice(data.change)}`,
-      changePct: `${data.changePct >= 0 ? '+' : ''}${Number(data.changePct).toFixed(2)}%`,
+      open: toPrice(data?.open),
+      high: toPrice(data?.high),
+      low: toPrice(data?.low),
+      close: toPrice(data?.close),
+      volume: Number(data?.volume).toLocaleString(),
+      change: `${data?.change >= 0 ? '+' : ''}${toPrice(data?.change)}`,
+      changePct: `${data?.changePct >= 0 ? '+' : ''}${Number(data?.changePct).toFixed(2)}%`,
     };
   }, [ohlcHeader]);
 
@@ -1907,7 +1907,7 @@ export default function ChartEngine({
         const payload = await response.json();
         const rows = Array.isArray(payload?.candles) ? payload.candles : [];
         const normalized = rows
-          .map((row: any) => ({
+          ?.map((row: any) => ({
             time: Number(row?.time),
             open: Number(row?.open),
             high: Number(row?.high),
@@ -1952,7 +1952,7 @@ export default function ChartEngine({
           return;
         }
 
-        const normalizedSeries = overlayCandles.map((candle) => ({
+        const normalizedSeries = overlayCandles?.map((candle) => ({
           time: candle.time as Time,
           value: ((Number(candle.close) / base) - 1) * 100,
         }));
@@ -2028,13 +2028,13 @@ export default function ChartEngine({
     const toSeriesFromValues = (values?: number[]) => {
       if (!Array.isArray(values) || !values.length) return [];
       const sanitized = values
-        .map((value) => Number(value))
+        ?.map((value) => Number(value))
         .filter((value) => Number.isFinite(value));
       if (!sanitized.length) return [];
       const len = Math.min(sanitized.length, sorted.length);
       const candleOffset = sorted.length - len;
       const valueOffset = sanitized.length - len;
-      return sanitized.slice(valueOffset).map((value, index) => ({
+      return sanitized.slice(valueOffset)?.map((value, index) => ({
         time: sorted[candleOffset + index].time as Time,
         value,
       }));
@@ -2048,13 +2048,13 @@ export default function ChartEngine({
       close: Number(c.close),
     });
 
-    const candleData = sorted.map(mapCandle);
+    const candleData = sorted?.map(mapCandle);
 
     const markerApi = eventMarkerApiRef.current;
     let normalisedMarkers: any[] = [];
     if (markerApi) {
       const normalized = parseEvents(safeEvents as EventPayload, sorted);
-      const alignedEvents = normalized.map((event) => {
+      const alignedEvents = normalized?.map((event) => {
         const alignedTime = alignToNearestCandle(Number(event.time), sorted);
         return {
           ...event,
@@ -2075,7 +2075,7 @@ export default function ChartEngine({
 
       const groupedMarkers = buildEventMarkers(safeMarkers).filter(Boolean);
       const isBusinessDay = typeof (candleData?.[0] as any)?.time === 'object';
-      normalisedMarkers = groupedMarkers.map((m: any) => {
+      normalisedMarkers = groupedMarkers?.map((m: any) => {
         if (!isBusinessDay) return m;
         const epochSec = Number(m?.epochSec ?? m?.time);
         if (!Number.isFinite(epochSec)) return m;
@@ -2111,7 +2111,7 @@ export default function ChartEngine({
       if (incrementalCandleUpdate) {
         s.volume.update(mapVolume(sorted[sorted.length - 1]));
       } else {
-        s.volume.setData(sorted.map(mapVolume));
+        s.volume.setData(sorted?.map(mapVolume));
       }
       s.volume.applyOptions({ visible: indicatorState.volume });
     }
@@ -2157,8 +2157,8 @@ export default function ChartEngine({
     if (s.macdHistogram) s.macdHistogram.applyOptions({ visible: indicatorState.macd });
 
     if (profile.showOpeningRange && Number.isFinite(safeLevels.orHigh) && Number.isFinite(safeLevels.orLow)) {
-      const lineDataHigh = sorted.map((c) => ({ time: c.time as Time, value: Number(safeLevels.orHigh) }));
-      const lineDataLow = sorted.map((c) => ({ time: c.time as Time, value: Number(safeLevels.orLow) }));
+      const lineDataHigh = sorted?.map((c) => ({ time: c.time as Time, value: Number(safeLevels.orHigh) }));
+      const lineDataLow = sorted?.map((c) => ({ time: c.time as Time, value: Number(safeLevels.orLow) }));
       s.orHigh?.setData(lineDataHigh);
       s.orLow?.setData(lineDataLow);
       s.orHigh?.applyOptions({ visible: true });
@@ -2293,7 +2293,7 @@ export default function ChartEngine({
     });
 
     if (series.volume && sortedCandlesRef.current.length) {
-      series.volume.setData(sortedCandlesRef.current.map((c) => ({
+      series.volume.setData(sortedCandlesRef.current?.map((c) => ({
         time: c.time as Time,
         value: Number(c.volume || 0),
         color: Number(c.close) >= Number(c.open)
@@ -2373,7 +2373,7 @@ export default function ChartEngine({
                 setPatternDragging(true);
               }}
             >
-              <span>{patternPopup.data.type === 'UP' ? 'Staircase Uptrend Detected' : 'Staircase Downtrend Detected'}</span>
+              <span>{patternPopup.data?.type === 'UP' ? 'Staircase Uptrend Detected' : 'Staircase Downtrend Detected'}</span>
               <button
                 type="button"
                 className="rounded px-1 text-slate-300 hover:bg-white/10 hover:text-white"
@@ -2386,11 +2386,11 @@ export default function ChartEngine({
               </button>
             </div>
             <div className="space-y-1 px-3 py-2 text-xs text-slate-200">
-              <div>Legs: {patternPopup.data.legCount}</div>
-              <div>Strength: {patternPopup.data.strengthScore}/5</div>
-              <div>Volume alignment: {patternPopup.data.volumeAlignment ? 'Yes' : 'No'}</div>
-              <div>VWAP alignment: {patternPopup.data.vwapAlignment ? 'Yes' : 'No'}</div>
-              <div>EMA slope: {patternPopup.data.emaSlopePositive ? 'Positive' : 'Negative'}</div>
+              <div>Legs: {patternPopup.data?.legCount}</div>
+              <div>Strength: {patternPopup.data?.strengthScore}/5</div>
+              <div>Volume alignment: {patternPopup.data?.volumeAlignment ? 'Yes' : 'No'}</div>
+              <div>VWAP alignment: {patternPopup.data?.vwapAlignment ? 'Yes' : 'No'}</div>
+              <div>EMA slope: {patternPopup.data?.emaSlopePositive ? 'Positive' : 'Negative'}</div>
             </div>
           </div>
         )}

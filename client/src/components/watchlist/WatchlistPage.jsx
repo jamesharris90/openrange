@@ -52,7 +52,7 @@ export default function WatchlistPage() {
       }
 
       try {
-        const quotes = await Promise.all(items.map(async (item) => {
+        const quotes = await Promise.all(items?.map(async (item) => {
           const symbol = String(item.symbol || '').toUpperCase();
           const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
           const response = await authFetch(`/api/v5/chart?${query}`);
@@ -103,7 +103,7 @@ export default function WatchlistPage() {
   }, [quoteData]);
 
   const tableData = useMemo(() => {
-    return filtered.map(item => ({
+    return filtered?.map(item => ({
       ...item,
       ...(quoteMap[item.symbol] || {}),
     }));
@@ -232,14 +232,14 @@ export default function WatchlistPage() {
 
       {/* Grouped chip view */}
       <div className="watchlist-chips">
-        {grouped.map(([source, sourceItems]) => (
+        {grouped?.map(([source, sourceItems]) => (
           <div key={source} className="watchlist-chips__group">
             <div className="watchlist-chips__label" style={{ color: (SOURCE_COLORS[source] || SOURCE_COLORS.manual).color }}>
               {(SOURCE_COLORS[source] || SOURCE_COLORS.manual).label}
               <span className="watchlist-chips__count">{sourceItems.length}</span>
             </div>
             <div className="watchlist-chips__list">
-              {sourceItems.map(item => (
+              {sourceItems?.map(item => (
                 <TickerChip
                   key={item.symbol}
                   symbol={item.symbol}

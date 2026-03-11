@@ -34,7 +34,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
 
   const sectorLayout = useMemo(() => {
     const root = hierarchy({
-      children: sectors.map((sector) => ({
+      children: sectors?.map((sector) => ({
         name: sector?.sector || 'Unknown',
         value: Math.max(toNumber(sector?.market_cap), 1),
         relative_volume: toNumber(sector?.relative_volume),
@@ -52,7 +52,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
     const tickers = Array.isArray(selected?.tickers) ? selected.tickers : [];
 
     const root = hierarchy({
-      children: tickers.map((ticker) => ({
+      children: tickers?.map((ticker) => ({
         name: String(ticker?.symbol || ''),
         value: Math.max(toNumber(ticker?.volume || ticker?.relative_volume), 1),
         relative_volume: toNumber(ticker?.relative_volume),
@@ -84,22 +84,22 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
         </div>
 
         <svg viewBox={`0 0 ${width} ${height}`} className="h-[480px] w-full block">
-          {expandedTickers.map((node) => {
+          {expandedTickers?.map((node) => {
             const w = Math.max(0, node.x1 - node.x0);
             const h = Math.max(0, node.y1 - node.y0);
             if (w < 10 || h < 10) return null;
-            const symbol = String(node.data.name || '').toUpperCase();
+            const symbol = String(node.data?.name || '').toUpperCase();
             return (
               <g key={symbol}>
-                <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.15)" />
+                <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data?.relative_volume, node.data?.price_change)} stroke="rgba(255,255,255,0.15)" />
                 <TickerTile
                   x={node.x0 + 2}
                   y={node.y0 + 2}
                   width={w - 4}
                   height={h - 4}
                   symbol={symbol}
-                  change={toNumber(node.data.price_change)}
-                  rvol={toNumber(node.data.relative_volume)}
+                  change={toNumber(node.data?.price_change)}
+                  rvol={toNumber(node.data?.relative_volume)}
                 />
               </g>
             );
@@ -111,11 +111,11 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="h-[480px] w-full block">
-      {sectorLayout.map((node) => {
+      {sectorLayout?.map((node) => {
         const w = Math.max(0, node.x1 - node.x0);
         const h = Math.max(0, node.y1 - node.y0);
         if (w < 16 || h < 16) return null;
-        const sectorName = String(node.data.name || 'Unknown');
+        const sectorName = String(node.data?.name || 'Unknown');
         const hideLabel = w < 40;
         const fontSize = clamp(w * 0.16, 12, 36);
         const detailSize = clamp(fontSize * 0.46, 11, 16);
@@ -124,7 +124,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
 
         return (
           <g key={sectorName} onClick={() => setExpandedSector(sectorName)} className="cursor-pointer">
-            <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data.relative_volume, node.data.price_change)} stroke="rgba(255,255,255,0.16)" />
+            <rect x={node.x0} y={node.y0} width={w} height={h} fill={colorForNode(node.data?.relative_volume, node.data?.price_change)} stroke="rgba(255,255,255,0.16)" />
             {!hideLabel && (
               <foreignObject
                 x={node.x0 + insetX}
@@ -168,7 +168,7 @@ export default function SectorMarketHeatmap({ sectors = [], width = 1000, height
                       opacity: 0.95,
                     }}
                   >
-                    {formatSignedPercent(node.data.price_change)} | RVOL {toNumber(node.data.relative_volume).toFixed(2)}
+                    {formatSignedPercent(node.data?.price_change)} | RVOL {toNumber(node.data?.relative_volume).toFixed(2)}
                   </div>
                 </div>
               </foreignObject>

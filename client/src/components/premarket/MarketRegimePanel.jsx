@@ -54,7 +54,7 @@ export default function MarketRegimePanel({ marketContext, narrative }) {
         </div>
         {Array.isArray(narrative?.links) && narrative.links.length > 0 ? (
           <div className="mt-2 space-y-1 text-xs">
-            {narrative.links.slice(0, 3).map((link, idx) => (
+            {narrative.links.slice(0, 3)?.map((link, idx) => (
               <a key={`${link?.url || 'narrative'}-${idx}`} href={link?.url || '#'} target="_blank" rel="noreferrer" className="block text-cyan-300 hover:underline">
                 {link?.headline || 'Market headline'}
               </a>

@@ -1,7 +1,7 @@
 import Card from '../shared/Card';
 
 function average(rows, key) {
-  const values = rows.map((row) => Number(row?.[key])).filter((value) => Number.isFinite(value));
+  const values = rows?.map((row) => Number(row?.[key])).filter((value) => Number.isFinite(value));
   if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }

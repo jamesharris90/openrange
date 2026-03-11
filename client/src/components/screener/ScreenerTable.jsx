@@ -67,7 +67,7 @@ const TableRow = memo(function TableRow({
       }}
       onClick={() => onSelect(row.symbol)}
     >
-      {visibleColumns.map((column) => {
+      {visibleColumns?.map((column) => {
         const rendered = column.render ? column.render(row) : row[column.key];
         const cellHeat = heatColor(column.key, row[column.key], heatmapMode);
         const isMetricBar = ['gapPercent', 'changePercent', 'relativeVolume', 'strategyScore', 'catalystScore'].includes(column.key);
@@ -169,8 +169,8 @@ export default function ScreenerTable({
   }, [rows, scrollTop, useVirtualization]);
 
   useEffect(() => {
-    const previousSet = new Set(previousRowsRef.current.map((row) => row.symbol));
-    const incoming = rows.filter((row) => row?.symbol && !previousSet.has(row.symbol)).map((row) => row.symbol);
+    const previousSet = new Set(previousRowsRef.current?.map((row) => row.symbol));
+    const incoming = rows.filter((row) => row?.symbol && !previousSet.has(row.symbol))?.map((row) => row.symbol);
 
     if (!incoming.length) {
       previousRowsRef.current = rows;
@@ -241,7 +241,7 @@ export default function ScreenerTable({
           <button type="button" className="rounded border border-[var(--border-color)] px-2 py-1 text-xs" onClick={() => setShowColumns((current) => !current)}>Columns</button>
           {showColumns && (
             <div className="absolute right-0 top-8 z-20 w-56 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-2 shadow-[0_12px_24px_rgba(0,0,0,0.18)]">
-              {allColumns.map((column) => (
+              {allColumns?.map((column) => (
                 <label key={column.key} className="flex items-center gap-2 py-1 text-xs">
                   <input type="checkbox" checked={!hiddenColumns.has(column.key)} onChange={() => onToggleColumn(column.key)} />
                   <span>{column.label}</span>
@@ -256,7 +256,7 @@ export default function ScreenerTable({
         <table className="data-table min-w-[1120px]">
           <thead>
             <tr>
-              {visibleColumns.map((column) => {
+              {visibleColumns?.map((column) => {
                 const active = sortKey === column.key;
                 const arrow = !active ? '↕' : sortDirection === 'asc' ? '↑' : '↓';
                 const width = columnWidths[column.key] || (column.key === 'symbol' ? 180 : 140);
@@ -294,7 +294,7 @@ export default function ScreenerTable({
               </tr>
             )}
 
-            {slice.map((row) => (
+            {slice?.map((row) => (
               <TableRow
                 key={`${row.symbol}-${row.strategyScore ?? ''}-${row.catalystScore ?? ''}`}
                 row={row}

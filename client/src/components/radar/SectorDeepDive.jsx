@@ -13,7 +13,7 @@ function toneColor(value) {
 
 export default function SectorDeepDive({ sector, sectors = [], catalysts = [], onSelectSymbol }) {
   const data = (Array.isArray(sectors) ? sectors : []).find((row) => String(row?.sector || '') === sector) || null;
-  const tickers = Array.isArray(data?.tickers) ? data.tickers.slice(0, 8) : [];
+  const tickers = Array.isArray(data?.tickers) ? data?.tickers.slice(0, 8) : [];
   const topCatalyst = (Array.isArray(catalysts) ? catalysts : []).find((row) => {
     const text = `${row?.headline || ''} ${row?.catalyst_type || ''}`.toLowerCase();
     return text.includes(String(sector || '').toLowerCase());
@@ -33,7 +33,7 @@ export default function SectorDeepDive({ sector, sectors = [], catalysts = [], o
       <h3 className="m-0">{sector}</h3>
       <div className="mt-1 text-sm muted">Sector heatmap and catalyst intelligence</div>
       <div className="mt-3 grid grid-cols-4 gap-2">
-        {tickers.slice(0, 8).map((row) => (
+        {tickers.slice(0, 8)?.map((row) => (
           <button
             key={String(row?.symbol || '')}
             type="button"
@@ -53,7 +53,7 @@ export default function SectorDeepDive({ sector, sectors = [], catalysts = [], o
       <div className="mt-3">
         <div className="text-xs muted">Top movers</div>
         <div className="mt-1 flex flex-wrap gap-2 text-sm">
-          {tickers.slice(0, 3).map((row) => (
+          {tickers.slice(0, 3)?.map((row) => (
             <button key={String(row?.symbol || '')} type="button" onClick={() => onSelectSymbol?.(String(row?.symbol || '').toUpperCase())} className="rounded border border-[var(--border-default)] px-2 py-1">
               {String(row?.symbol || '').toUpperCase()}
             </button>

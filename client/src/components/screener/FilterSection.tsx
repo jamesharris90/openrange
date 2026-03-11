@@ -25,7 +25,7 @@ const FILTER_REGISTRY_KEY_BY_FIELD: Record<string, string> = {
 };
 
 const DEFAULT_FILTER_REGISTRY: string[] = [];
-const ADAPTIVE_KEYS = adaptiveFilterSchema.map((field) => field.key);
+const ADAPTIVE_KEYS = adaptiveFilterSchema?.map((field) => field.key);
 const ADAPTIVE_KEYS_SET = new Set<string>(ADAPTIVE_KEYS as string[]);
 
 const ADAPTIVE_GROUPS: Record<string, string> = {
@@ -178,7 +178,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
     const groups = ['technical', 'volume', 'fundamental', 'catalyst', 'earnings'];
     return groups
-      .map((group) => ({
+      ?.map((group) => ({
         group,
         fields: adaptiveVisibleFields.filter((field) => (ADAPTIVE_GROUPS[field.key] || 'technical') === group),
       }))
@@ -191,7 +191,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
       : filterValues;
 
     return Object.entries(source)
-      .map(([key, value]) => {
+      ?.map(([key, value]) => {
         const label = [...adaptiveFilterSchema, ...Object.values(filterSchema).flat()].find((field) => field.key === key)?.label || key;
         const chipValue = formatChipValue(value);
         return chipValue ? { key, label, value: chipValue } : null;
@@ -246,12 +246,12 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
             }}
           >
             <option value="">My Presets</option>
-            {presets.map((preset) => (
+            {presets?.map((preset) => (
               <option key={preset.name} value={preset.name}>
                 Load: {preset.name}
               </option>
             ))}
-            {presets.map((preset) => (
+            {presets?.map((preset) => (
               <option key={`delete-${preset.name}`} value={`delete:${preset.name}`}>
                 Delete: {preset.name}
               </option>
@@ -316,7 +316,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
           {activeFilterChips.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
-              {activeFilterChips.map((chip) => (
+              {activeFilterChips?.map((chip) => (
                 <button
                   key={`chip-${chip.key}`}
                   type="button"
@@ -332,11 +332,11 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
 
           {filterMode === 'adaptive' ? (
             <div className="space-y-4">
-              {groupedAdaptiveFields.map((bucket) => (
+              {groupedAdaptiveFields?.map((bucket) => (
                 <div key={bucket.group} className="space-y-2">
                   <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{bucket.group}</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {bucket.fields.map((field) => (
+                    {bucket.fields?.map((field) => (
                       <FilterField
                         key={field.key}
                         field={field as any}
@@ -351,7 +351,7 @@ export default function FilterSection({ onApply, onReset }: FilterSectionProps) 
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {visibleFields.map((field) => (
+              {visibleFields?.map((field) => (
                 <FilterField
                   key={field.key}
                   field={field as any}

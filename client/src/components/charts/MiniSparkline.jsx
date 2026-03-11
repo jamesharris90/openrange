@@ -5,7 +5,7 @@ import { apiJSON } from '../../config/api';
 function normalizePoints(points = []) {
   if (!Array.isArray(points)) return [];
   return points
-    .map((row, index) => {
+    ?.map((row, index) => {
       if (typeof row === 'number') {
         return { time: index + 1, value: row };
       }
@@ -88,12 +88,12 @@ export default function MiniSparkline({ symbol, points = [], height = 60 }) {
       }
 
       if (cancelled || !seriesRef.current) return;
-      if (!data.length) {
+      if (!data?.length) {
         seriesRef.current.setData([]);
         return;
       }
 
-      const rising = Number(data[data.length - 1]?.value || 0) >= Number(data[0]?.value || 0);
+      const rising = Number(data[data?.length - 1]?.value || 0) >= Number(data[0]?.value || 0);
       seriesRef.current.applyOptions({
         lineColor: rising ? '#22c55e' : '#ef4444',
         topColor: rising ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)',

@@ -18,7 +18,7 @@ export default function NewsPanel({ rows, symbol }: NewsPanelProps) {
         {displayRows.length === 0 && (
           <div className="text-[var(--text-secondary)]">{symbol ? `No news available for ${symbol}.` : 'No news available.'}</div>
         )}
-        {displayRows.map((row, idx) => (
+        {displayRows?.map((row, idx) => (
           <a
             key={`${row.symbol}-${idx}`}
             href={row.url || '#'}

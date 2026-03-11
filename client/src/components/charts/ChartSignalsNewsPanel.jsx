@@ -85,7 +85,7 @@ export default function ChartSignalsNewsPanel({ symbol }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {signals.map((row, idx) => (
+                  {signals?.map((row, idx) => (
                     <tr key={`${row?.symbol || 's'}-${idx}`}>
                       <td><TickerLink symbol={row?.symbol} /></td>
                       <td>{row?.strategy || row?.setup_type || '--'}</td>
@@ -104,7 +104,7 @@ export default function ChartSignalsNewsPanel({ symbol }) {
         {loading ? <SkeletonTable rows={4} cols={2} /> : (
           news.length === 0 ? <div className="text-xs text-[var(--text-muted)]">No intelligence feed available.</div> :
             <div className="space-y-2">
-              {news.map((row, idx) => (
+              {news?.map((row, idx) => (
                 <a
                   key={`${row?.url || 'n'}-${idx}`}
                   href={row?.url || '#'}

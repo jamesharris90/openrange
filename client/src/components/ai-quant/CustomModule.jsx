@@ -37,7 +37,7 @@ function applyLightFilterString(rows, filterString) {
   if (!filterString) return rows;
   const tokens = String(filterString)
     .split(',')
-    .map((token) => token.trim().toLowerCase())
+    ?.map((token) => token.trim().toLowerCase())
     .filter(Boolean);
 
   return rows.filter((row) => {
@@ -96,8 +96,8 @@ export default function CustomModule({ strategyId, onSelectTicker, filters, sele
       .then(payload => {
         if (cancelled) return;
         const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-        const finvizLikeRows = applyLightFilterString(rows.map(mapCanonicalToFinvizRow), filterString);
-        const scored = finvizLikeRows.slice(0, 100).map(rawRow => {
+        const finvizLikeRows = applyLightFilterString(rows?.map(mapCanonicalToFinvizRow), filterString);
+        const scored = finvizLikeRows.slice(0, 100)?.map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeCustomScore(row, weights);
           return {
@@ -149,13 +149,13 @@ export default function CustomModule({ strategyId, onSelectTicker, filters, sele
 
   if (loading) return <div className="aiq-module-loading">Scanning {customStrategy?.name || 'custom'} candidates…</div>;
   if (error) return <div className="aiq-module-error">Error: {error}</div>;
-  if (!data.length) return <div className="aiq-module-empty">No candidates found for this strategy.</div>;
+  if (!data?.length) return <div className="aiq-module-empty">No candidates found for this strategy.</div>;
 
   return (
     <div className="aiq-module">
       <div className="aiq-module__bar">
         <span className="aiq-module__universe">Custom: {customStrategy?.name}</span>
-        <span className="aiq-module__count">{sorted.length} / {data.length}</span>
+        <span className="aiq-module__count">{sorted.length} / {data?.length}</span>
       </div>
       <ExportButtons
         data={sorted}
@@ -187,7 +187,7 @@ export default function CustomModule({ strategyId, onSelectTicker, filters, sele
             </tr>
           </thead>
           <tbody>
-            {sorted.map(row => (
+            {sorted?.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
                 <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>

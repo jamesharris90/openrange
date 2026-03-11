@@ -99,7 +99,7 @@ export default function PostMarketReview() {
             <table className="data-table data-table--compact">
               <thead><tr><th>Ticker</th><th>Setup</th><th style={{ textAlign: 'right' }}>Score</th></tr></thead>
               <tbody>
-                {rows.slice(0, 12).map((row) => (
+                {rows.slice(0, 12)?.map((row) => (
                   <tr key={`${row?.symbol}-${row?.setup || row?.setup_type || ''}`}>
                     <td>{String(row?.symbol || '').toUpperCase()}</td>
                     <td>{row?.setup_type || row?.setup || '--'}</td>
@@ -138,7 +138,7 @@ export default function PostMarketReview() {
               <table className="data-table data-table--compact">
                 <thead><tr><th>Ticker</th><th style={{ textAlign: 'right' }}>Move %</th><th style={{ textAlign: 'right' }}>RVol</th></tr></thead>
                 <tbody>
-                  {sorted.slice(0, 12).map((row) => (
+                  {sorted.slice(0, 12)?.map((row) => (
                     <tr key={`${row?.symbol}-${row?.gap_percent || 0}`}>
                       <td>{String(row?.symbol || '').toUpperCase()}</td>
                       <td style={{ textAlign: 'right' }}>{Number(row?.gap_percent || 0).toFixed(2)}%</td>

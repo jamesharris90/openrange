@@ -54,7 +54,7 @@ const CATALYST_OPTIONS = ['earnings', 'fda', 'product', 'merger', 'contract', 'u
 function parseTickers(str) {
   return (str || '')
     .split(/[\s,]+/)
-    .map(t => t.trim().toUpperCase())
+    ?.map(t => t.trim().toUpperCase())
     .filter(Boolean);
 }
 
@@ -184,7 +184,7 @@ function sortRows(rows, sortState) {
     }
   };
 
-  data.sort((a, b) => {
+  data?.sort((a, b) => {
     const aVal = getVal(a);
     const bVal = getVal(b);
     if (typeof aVal === 'string' || typeof bVal === 'string') {
@@ -314,10 +314,10 @@ export default function PreMarketPage() {
   }, []);
 
   const batchNewsRequests = useCallback((tickerList) => {
-    return tickerList.map((ticker) =>
+    return tickerList?.map((ticker) =>
       authFetch(`/api/v5/news?symbol=${encodeURIComponent(ticker)}&limit=5`)
         .then(res => (res.ok ? res.json() : []))
-        .then(items => (Array.isArray(items) ? items : []).map(item => ({
+        .then(items => (Array.isArray(items) ? items : [])?.map(item => ({
           Ticker: ticker,
           Title: item?.headline || item?.title || item?.summary || '',
           Url: item?.url || '#',
@@ -350,7 +350,7 @@ export default function PreMarketPage() {
       const payload = await res.json();
       const canonicalRows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
 
-      let rows = canonicalRows.map(mapCanonicalToScannerRow);
+      let rows = canonicalRows?.map(mapCanonicalToScannerRow);
       if (tickers.length) {
         const allowed = new Set(tickers);
         rows = rows.filter(row => allowed.has(String(row.Ticker || '').toUpperCase()));
@@ -368,7 +368,7 @@ export default function PreMarketPage() {
 
       const deduped = dedupeByTicker(rows).slice(0, MAX_STOCKS);
 
-      const allTickers = (tickers.length ? tickers : deduped.map(s => s.Ticker)).filter(Boolean);
+      const allTickers = (tickers.length ? tickers : deduped?.map(s => s.Ticker)).filter(Boolean);
       const [supplementMap, ...newsResults] = await Promise.all([
         fetchSupplementary(allTickers),
         ...batchNewsRequests(allTickers),
@@ -405,7 +405,7 @@ export default function PreMarketPage() {
       return;
     }
 
-    const rows = source.map(stock => {
+    const rows = source?.map(stock => {
       const news = latestNewsMap[stock.Ticker];
       return {
         ticker: stock.Ticker,
@@ -422,7 +422,7 @@ export default function PreMarketPage() {
     });
 
     if (format === 'text') {
-      const text = rows.map(r => `${r.ticker} | ${r.price} | ${r.change} | ${r.relVol} | ${r.float} | ${r.headline} | ${r.age} | ${r.url}`).join('\n');
+      const text = rows?.map(r => `${r.ticker} | ${r.price} | ${r.change} | ${r.relVol} | ${r.float} | ${r.headline} | ${r.age} | ${r.url}`).join('\n');
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -434,8 +434,8 @@ export default function PreMarketPage() {
     }
 
     const header = ['Ticker', 'Price', 'Change', 'Volume', 'Rel Vol', 'Float', 'Avg Vol', 'Headline', 'Age', 'Link'];
-    const csvLines = [header.join(',')].concat(rows.map(r => [r.ticker, r.price, r.change, r.volume, r.relVol, r.float, r.avgVol, r.headline, r.age, r.url]
-      .map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(',')));
+    const csvLines = [header.join(',')].concat(rows?.map(r => [r.ticker, r.price, r.change, r.volume, r.relVol, r.float, r.avgVol, r.headline, r.age, r.url]
+      ?.map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(',')));
     const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -465,7 +465,7 @@ export default function PreMarketPage() {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelected(new Set(sortedRows.map(r => r.Ticker)));
+      setSelected(new Set(sortedRows?.map(r => r.Ticker)));
     } else {
       setSelected(new Set());
     }
@@ -520,7 +520,7 @@ export default function PreMarketPage() {
       const res = await authFetch('/api/v5/chart?symbol=SPY&timeframe=1D&interval=1min');
       if (!res.ok) throw new Error('quote');
       const data = await res.json();
-      const candles = Array.isArray(data?.candles) ? data.candles : [];
+      const candles = Array.isArray(data?.candles) ? data?.candles : [];
       const latest = candles[candles.length - 1];
       const previous = candles[candles.length - 2];
       const latestClose = Number(latest?.close);
@@ -681,7 +681,7 @@ export default function PreMarketPage() {
                     />
                     {autocomplete.open && autocomplete.options.length > 0 && (
                       <div className="ticker-autocomplete">
-                        {autocomplete.options.map(opt => (
+                        {autocomplete.options?.map(opt => (
                           <button
                             key={opt.symbol}
                             type="button"
@@ -780,7 +780,7 @@ export default function PreMarketPage() {
                   <label>Catalysts</label>
                 </div>
                 <div className="pm-catalyst-row">
-                  {CATALYST_OPTIONS.map(opt => {
+                  {CATALYST_OPTIONS?.map(opt => {
                     const active = filters.catalysts.includes(opt);
                     return (
                       <button key={opt} type="button" className={`pill-btn ${active ? 'pill-btn--active' : ''}`} onClick={() => toggleCatalyst(opt)}>
@@ -796,7 +796,7 @@ export default function PreMarketPage() {
                   <label>News Freshness</label>
                 </div>
                 <div className="pm-freshness-row">
-                  {Object.entries(FRESHNESS_BUCKETS).map(([key, bucket]) => (
+                  {Object.entries(FRESHNESS_BUCKETS)?.map(([key, bucket]) => (
                     <button
                       key={key}
                       type="button"
@@ -876,7 +876,7 @@ export default function PreMarketPage() {
                 {!loading && rowsToRender.length === 0 && (
                   <tr><td colSpan={10} className="pm-table-empty">No results. Adjust filters or refresh.</td></tr>
                 )}
-                {rowsToRender.map(row => {
+                {rowsToRender?.map(row => {
                   const relVol = row['Relative Volume'] || row['Rel Volume'] || '--';
                   const floatVal = row['Shares Float'] || row['Shs Float'] || row.Float || '--';
                   const avgVol = row['Average Volume'] || '--';
@@ -908,7 +908,7 @@ export default function PreMarketPage() {
                           )}
                         </td>
                       </tr>
-                      {isExpanded && newsList.slice(0, 20).map((item, idx) => (
+                      {isExpanded && newsList.slice(0, 20)?.map((item, idx) => (
                         <tr key={`${row.Ticker}-news-${idx}`} className="pm-subrow">
                           <td colSpan={10}>
                             <span className="pm-subrow-icon">{item.icon}</span>
@@ -947,7 +947,7 @@ export default function PreMarketPage() {
             <div className="pm-news-feed">
               {newsLoading && <div className="muted pm-news-state">Loading news…</div>}
               {newsError && <div className="pm-news-state pm-news-state--error">Failed to load news: {newsError}</div>}
-              {!newsLoading && !newsError && breakingNews.slice(0, 30).map(item => {
+              {!newsLoading && !newsError && breakingNews.slice(0, 30)?.map(item => {
                 const date = new Date(item.datetime * 1000);
                 const symbol = (item.symbol || item.related || '').split(',')[0].trim().toUpperCase();
                 const checked = symbol && hasWatchlist(symbol);

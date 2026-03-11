@@ -25,7 +25,7 @@ export default function TickerHeatmap() {
 
         const tickers = Array.isArray(json?.tickers)
           ? json.tickers
-          : Object.values(json || {}).map((row) => ({
+          : Object.values(json || {})?.map((row) => ({
               symbol: row?.symbol || '?',
               change: Number(row?.change ?? row?.change_percent ?? 0),
               rvol: Number(row?.rvol ?? row?.relative_volume ?? 0),
@@ -62,7 +62,7 @@ export default function TickerHeatmap() {
           <div className="empty-state">Market data loading...</div>
         ) : (
           <TickerHeatmapRenderer
-            tickers={marketData.map((ticker) => ({
+            tickers={marketData?.map((ticker) => ({
               symbol: ticker?.symbol || '?',
               change: ticker?.change || 0,
               rvol: ticker?.rvol || 0,

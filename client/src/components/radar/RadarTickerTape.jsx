@@ -20,7 +20,7 @@ export default function RadarTickerTape({ rows = [], onSelectSector }) {
       {stream.length ? (
         <div className="group">
           <div className="flex min-w-max items-center gap-5 px-3 py-2 text-sm" style={{ animation: 'openrangeTicker 30s linear infinite' }}>
-            {stream.map((row, index) => {
+            {stream?.map((row, index) => {
               const cp = Number(row?.change_percent || row?.gap || 0);
               const color = cp >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
               const symbol = String(row?.symbol || '').toUpperCase();

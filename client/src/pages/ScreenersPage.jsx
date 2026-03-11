@@ -51,7 +51,7 @@ export default function ScreenersPage() {
       />
 
       <div className="screeners-grid">
-        {SCANNERS.map((scanner, idx) => (
+        {SCANNERS?.map((scanner, idx) => (
           <ScannerSection
             key={scanner.title}
             title={scanner.title}

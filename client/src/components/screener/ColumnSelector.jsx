@@ -18,7 +18,7 @@ export default function ColumnSelector({ columns, hiddenColumns, onToggleColumn,
         <div className="absolute right-0 top-12 z-30 w-72 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-[0_18px_30px_rgba(0,0,0,0.18)]">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Customize Columns</div>
           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-            {columnList.map((column, index) => {
+            {columnList?.map((column, index) => {
               const checked = !hiddenColumns.has(column.key);
               return (
                 <div

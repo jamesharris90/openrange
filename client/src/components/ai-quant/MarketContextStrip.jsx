@@ -27,7 +27,7 @@ function SectorPills() {
 
   return (
     <div className="aiq-strip__sectors">
-      {sectors.map(s => {
+      {sectors?.map(s => {
         const isUp = s.changePercent >= 0;
         return (
           <span key={s.etf} className={`aiq-strip__sector-pill ${isUp ? 'positive' : 'negative'}`}
@@ -61,7 +61,7 @@ export default function MarketContextStrip() {
 
       {/* Major Indices */}
       <div className="aiq-strip__indices">
-        {(indices || []).map(idx => {
+        {(indices || [])?.map(idx => {
           if (idx.error) return null;
           const isUp = idx.changePercent >= 0;
           return (
@@ -79,7 +79,7 @@ export default function MarketContextStrip() {
       {/* Technicals */}
       {technicals && Object.keys(technicals).length > 0 && (
         <div className="aiq-strip__technicals">
-          {Object.entries(technicals).map(([sym, t]) => (
+          {Object.entries(technicals)?.map(([sym, t]) => (
             <div key={sym} className="aiq-strip__tech-item" title={`${sym} SMA alignment`}>
               <span className="aiq-strip__tech-sym">{sym}</span>
               <span className={t.aboveSMA9 ? 'positive' : 'negative'}>9</span>

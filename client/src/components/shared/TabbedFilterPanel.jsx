@@ -43,7 +43,7 @@ function MultiSelectDropdown({ def, values, onChange }) {
       </button>
       {open && (
         <div className="multiselect-dropdown">
-          {(def.options || []).map(opt => (
+          {(def.options || [])?.map(opt => (
             <label key={opt.value} className="multiselect-option">
               <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} />
               {opt.label}
@@ -131,7 +131,7 @@ function SingleSelectDropdown({ def, value, filters, onChange }) {
       {open && (
         <div className="select-popover-menu">
           <div className="select-popover-options">
-            {options.map((opt) => {
+            {options?.map((opt) => {
               const selected = value === opt.value && !customPriceRangeLabel;
               return (
                 <button
@@ -193,7 +193,7 @@ export default function TabbedFilterPanel({
   onTogglePanel,
 }) {
   const [activeTab, setActiveTab] = useState(() => {
-    const available = tabs || FILTER_TABS.map(t => t.id);
+    const available = tabs || FILTER_TABS?.map(t => t.id);
     return available.includes('descriptive') ? 'descriptive' : available[0];
   });
   const [presets, setPresets] = useState(loadPresets);
@@ -336,7 +336,7 @@ export default function TabbedFilterPanel({
   return (
     <div className="panel filter-panel" style={{ marginBottom: 16 }}>
       <div className="filter-tabs">
-        {visibleTabs.map(tab => (
+        {visibleTabs?.map(tab => (
           <button
             key={tab.id}
             className={`filter-tab ${activeTab === tab.id ? 'filter-tab--active' : ''}`}
@@ -357,7 +357,7 @@ export default function TabbedFilterPanel({
                   Strategy Presets
                 </div>
                 <div className="preset-menu__list">
-                  {STRATEGY_PRESETS.map(p => (
+                  {STRATEGY_PRESETS?.map(p => (
                     <div key={p.name} className="preset-menu__item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                       <button className="preset-menu__load" onClick={() => handleLoadStrategyPreset(p)}>
                         {p.name}
@@ -386,7 +386,7 @@ export default function TabbedFilterPanel({
                 </div>
                 {presets.length > 0 && (
                   <div className="preset-menu__list">
-                    {presets.map(p => (
+                    {presets?.map(p => (
                       <div key={p.name} className="preset-menu__item">
                         <button className="preset-menu__load" onClick={() => handleLoadPreset(p)}>{p.name}</button>
                         <button className="preset-menu__delete" onClick={() => handleDeletePreset(p.name)}><X size={12} /></button>
@@ -428,7 +428,7 @@ export default function TabbedFilterPanel({
           gap: 12,
         }}
       >
-        {getVisibleFilters(activeTab).map(def => renderFilterField(def))}
+        {getVisibleFilters(activeTab)?.map(def => renderFilterField(def))}
       </div>
 
       {filterSearch && getVisibleFilters(activeTab).length === 0 && (
@@ -441,7 +441,7 @@ export default function TabbedFilterPanel({
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>Catalysts</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {CATALYST_OPTIONS.map(opt => {
+            {CATALYST_OPTIONS?.map(opt => {
               const active = (filters.catalysts || []).includes(opt);
               return (
                 <button

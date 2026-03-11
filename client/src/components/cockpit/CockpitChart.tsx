@@ -131,7 +131,7 @@ export default function CockpitChart({ candles, indicators, levels, quote, timef
     const sorted = [...candles].sort((a, b) => a.time - b.time);
 
     candleSeries.setData(
-      sorted.map((candle) => ({
+      sorted?.map((candle) => ({
         time: candle.time as Time,
         open: Number(candle.open),
         high: Number(candle.high),
@@ -141,7 +141,7 @@ export default function CockpitChart({ candles, indicators, levels, quote, timef
     );
 
     volumeSeries.setData(
-      sorted.map((candle) => ({
+      sorted?.map((candle) => ({
         time: candle.time as Time,
         value: Number(candle.volume || 0),
         color: Number(candle.close) >= Number(candle.open) ? 'rgba(34,197,94,0.45)' : 'rgba(239,68,68,0.45)',
@@ -158,13 +158,13 @@ export default function CockpitChart({ candles, indicators, levels, quote, timef
     const toSeriesFromValues = (values?: number[]) => {
       if (!Array.isArray(values) || !values.length) return [];
       const sanitized = values
-        .map((value) => Number(value))
+        ?.map((value) => Number(value))
         .filter((value) => Number.isFinite(value));
       if (!sanitized.length) return [];
       const len = Math.min(sanitized.length, sorted.length);
       const candleOffset = sorted.length - len;
       const valueOffset = sanitized.length - len;
-      return sanitized.slice(valueOffset).map((value, index) => ({
+      return sanitized.slice(valueOffset)?.map((value, index) => ({
         time: sorted[candleOffset + index].time as Time,
         value,
       }));

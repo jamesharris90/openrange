@@ -14,7 +14,7 @@ export default function PresetSelector({ value, onChange, presets = [] }) {
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
-        {options.map((option) => (
+        {options?.map((option) => (
           <option key={option.key} value={option.key}>{option.label}</option>
         ))}
       </select>

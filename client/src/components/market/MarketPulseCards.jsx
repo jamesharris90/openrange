@@ -8,9 +8,9 @@ function normalizeIndices(payload) {
   const rows = Array.isArray(payload)
     ? payload
     : (Array.isArray(payload?.indices) ? payload.indices : []);
-  const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const map = new Map(rows?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
 
-  return TARGETS.map((symbol) => {
+  return TARGETS?.map((symbol) => {
     if (symbol === '10Y') {
       const row = map.get('10Y') || map.get('TNX') || map.get('^TNX');
       if (!row) return { symbol: '10Y', price: null, change: null, changesPercentage: null, change_percent: null };
@@ -57,11 +57,11 @@ export default function MarketPulseCards() {
     };
   }, []);
 
-  const cards = useMemo(() => (rows.length ? rows : TARGETS.map((symbol) => ({ symbol }))), [rows]);
+  const cards = useMemo(() => (rows.length ? rows : TARGETS?.map((symbol) => ({ symbol }))), [rows]);
 
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {cards.map((row) => <MarketIndexCard key={row.symbol} row={row} />)}
+      {cards?.map((row) => <MarketIndexCard key={row.symbol} row={row} />)}
     </div>
   );
 }

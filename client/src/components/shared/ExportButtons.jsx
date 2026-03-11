@@ -11,9 +11,9 @@ function escapeCsv(val) {
 }
 
 function buildDelimited(data, columns, delimiter) {
-  const header = columns.map(c => c.label).join(delimiter);
-  const rows = data.map(row =>
-    columns.map(c => {
+  const header = columns?.map(c => c.label).join(delimiter);
+  const rows = data?.map(row =>
+    columns?.map(c => {
       const val = typeof c.accessor === 'function' ? c.accessor(row) : row[c.key];
       return delimiter === ',' ? escapeCsv(val) : String(val ?? '');
     }).join(delimiter)
@@ -34,7 +34,7 @@ function downloadBlob(content, mimeType, filename) {
 export default function ExportButtons({ data, columns, filename = 'export' }) {
   const [copied, setCopied] = useState(false);
 
-  if (!data || !data.length) return null;
+  if (!data || !data?.length) return null;
 
   function handleCSV() {
     const content = buildDelimited(data, columns, ',');

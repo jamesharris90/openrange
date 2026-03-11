@@ -9,7 +9,7 @@ const TableRow = memo(function TableRow({ row, columns, rowKey, onRowClick, rowC
       className={rowClassName?.(row) || ''}
       style={onRowClick ? { cursor: 'pointer' } : undefined}
     >
-      {columns.map(col => (
+      {columns?.map(col => (
         <td key={col.key} style={{ textAlign: col.align || 'left' }}>
           {col.render ? col.render(row) : row[col.key]}
         </td>
@@ -66,7 +66,7 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
       <table className="data-table min-w-[900px]">
         <thead>
           <tr>
-            {columns.map(col => (
+            {columns?.map(col => (
               <th
                 key={col.key}
                 onClick={col.sortable !== false ? () => handleSort(col.key) : undefined}
@@ -90,7 +90,7 @@ export default function SortableTable({ columns, data, rowKey, onRowClick, rowCl
               {virtualize && topPad > 0 && (
                 <tr><td style={{ height: topPad }} colSpan={columns.length} aria-hidden="true" /></tr>
               )}
-              {rendered.map(row => (
+              {rendered?.map(row => (
                 <TableRow
                   key={rowKey(row)}
                   row={row}

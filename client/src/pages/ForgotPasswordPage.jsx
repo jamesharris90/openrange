@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim() }),
       });
-      setSuccess(data.message || 'If an account exists with that username/email, a reset link has been sent.');
+      setSuccess(data?.message || 'If an account exists with that username/email, a reset link has been sent.');
     } catch (err) {
       setError(err?.message || 'Network error. Please check your connection.');
     } finally {

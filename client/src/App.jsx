@@ -53,9 +53,10 @@ const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 export default function App() {
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
-          <Routes>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
+            <Routes>
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -117,9 +118,10 @@ export default function App() {
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ErrorBoundary>
     </ToastProvider>
   );
 }

@@ -67,8 +67,8 @@ export default function IntelligencePage() {
       if (res.status === 403) { setError('Forbidden — you do not have access to this resource.'); return; }
       if (!res.ok) { setError(`Server error (${res.status}) — please try again later.`); return; }
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error ?? 'Failed to load');
-      setItems(data.items);
+      if (!data?.ok) throw new Error(data?.error ?? 'Failed to load');
+      setItems(data?.items);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -148,7 +148,7 @@ export default function IntelligencePage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {items?.map(item => (
                   <tr
                     key={item.id}
                     onClick={() => {

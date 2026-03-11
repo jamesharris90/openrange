@@ -28,7 +28,7 @@ export default function MarketRegimeCard({ marketContext }) {
       </div>
       <div className="mt-3 space-y-2 text-sm">
         {drivers.length === 0 ? <div className="muted">Drivers unavailable.</div> : null}
-        {drivers.map((driver, index) => (
+        {drivers?.map((driver, index) => (
           <div key={`${driver?.label || 'driver'}-${index}`} className="flex items-center justify-between rounded p-2" style={{ background: 'var(--bg-elevated)' }}>
             <span className="muted">{driver?.label || 'Driver'}</span>
             <strong>{driver?.value || '--'}</strong>

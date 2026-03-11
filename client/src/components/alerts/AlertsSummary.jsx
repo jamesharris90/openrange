@@ -29,7 +29,7 @@ export default function AlertsSummary({ alerts = [], history = [], loading = fal
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {cards.map((item) => (
+      {cards?.map((item) => (
         <Card key={item.label} className="rounded-xl border border-[var(--border-color)] p-3 transition-colors hover:bg-[var(--bg-card-hover)]">
           <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{item.label}</div>
           <div className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">

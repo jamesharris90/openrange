@@ -14,7 +14,7 @@ const FILTERS = [
 export default function SourceFilter({ active, onChange }) {
   return (
     <div className="source-filter">
-      {FILTERS.map(f => {
+      {FILTERS?.map(f => {
         const isActive = active === f.key;
         const colors = f.key !== 'all' ? SOURCE_COLORS[f.key] : null;
         return (

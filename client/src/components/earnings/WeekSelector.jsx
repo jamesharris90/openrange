@@ -31,7 +31,7 @@ export default function WeekSelector({ days, selectedDay, onSelectDay, onPrev, o
 
       {/* Day pills */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        {days.map((day, i) => {
+        {days?.map((day, i) => {
           const isSelected = selectedDay === day.key;
           const isToday = todayKey ? day.key === todayKey : day.key === new Date().toISOString().split('T')[0];
           const name = day.dayName || DAY_NAMES[i] || 'Day';

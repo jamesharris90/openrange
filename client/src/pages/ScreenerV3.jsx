@@ -69,7 +69,7 @@ const FILTER_DEFS = [
     key: 'adaptFilters' },
 ];
 
-const FILTER_MAP = Object.fromEntries(FILTER_DEFS.map(f => [f.id, f]));
+const FILTER_MAP = Object.fromEntries(FILTER_DEFS?.map(f => [f.id, f]));
 
 const FILTER_REGISTRY_KEY_MAP = {
   price: 'price',
@@ -172,7 +172,7 @@ function exportRowsToCsv(rows, filename) {
 
   const lines = [
     orderedKeys.join(','),
-    ...list.map((row) => orderedKeys.map((key) => toCsvCell(row?.[key])).join(',')),
+    ...list?.map((row) => orderedKeys?.map((key) => toCsvCell(row?.[key])).join(',')),
   ];
 
   const csv = lines.join('\n');
@@ -359,7 +359,7 @@ function FilterRow({ id, filterValues, onChange, onRemove }) {
       <select value={val} onChange={e => set(def.key, e.target.value)}
         style={{ ...inputSt, width: 'auto', minWidth: 90, padding: '3px 6px' }}>
         <option value="">Any</option>
-        {def.options.map(o => <option key={o} value={o}>{o}</option>)}
+        {def.options?.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
 
@@ -368,7 +368,7 @@ function FilterRow({ id, filterValues, onChange, onRemove }) {
     const remaining = STRUCTURE_DEFS.filter(s => !selected.includes(s.name));
     controls = (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, flex: 1 }}>
-        {selected.map(name => {
+        {selected?.map(name => {
           const s = STRUCTURE_DEFS.find(d => d.name === name);
           const c = s ? sideColor(s.side) : 'var(--accent-blue)';
           return (
@@ -386,7 +386,7 @@ function FilterRow({ id, filterValues, onChange, onRemove }) {
           <select value="" onChange={e => { if (e.target.value) set(def.key, [...selected, e.target.value]); }}
             style={{ ...inputSt, width: 'auto', minWidth: 70, fontSize: 10, padding: '1px 4px' }}>
             <option value="">+ Add…</option>
-            {remaining.map(s => <option key={s.name} value={s.name}>{s.label}</option>)}
+            {remaining?.map(s => <option key={s.name} value={s.name}>{s.label}</option>)}
           </select>
         )}
       </div>
@@ -396,7 +396,7 @@ function FilterRow({ id, filterValues, onChange, onRemove }) {
     const val = filterValues[def.key] || '';
     controls = (
       <div style={{ display: 'flex', gap: 3 }}>
-        {GRADE_ORDER.map(g => (
+        {GRADE_ORDER?.map(g => (
           <button key={g} onClick={() => set(def.key, val === g ? '' : g)}
             style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, cursor: 'pointer', fontWeight: 800,
               border: `1px solid ${val === g ? gradeColor(g) : 'var(--border-color)'}`,
@@ -532,7 +532,7 @@ function FilterPanel({
 
         {/* Section tabs */}
         <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginBottom: 7 }}>
-          {SECTIONS.map(sec => (
+          {SECTIONS?.map(sec => (
             <button key={sec} onClick={() => setActiveSection(sec)} style={tabStyle(sec)}>
               {sec}
               {sec !== 'All' && sectionCounts[sec] > 0 && (
@@ -562,7 +562,7 @@ function FilterPanel({
             Add filter
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {available.map(def => (
+            {available?.map(def => (
               <button key={def.id} onClick={() => addFilter(def.id)}
                 style={{ padding: '3px 8px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
                   background: 'transparent', border: '1px solid var(--border-color)',
@@ -583,7 +583,7 @@ function FilterPanel({
             <br /><span style={{ fontSize: 11 }}>Click + above to add one.</span>
           </div>
         )}
-        {activeFilterIds.map(id => (
+        {activeFilterIds?.map(id => (
           <FilterRow key={id} id={id} filterValues={filterValues}
             onChange={onFilterValuesChange} onRemove={() => removeFilter(id)} />
         ))}
@@ -594,7 +594,7 @@ function FilterPanel({
         <div style={{ margin: '0 10px 8px', padding: '8px 10px', borderRadius: 6, fontSize: 11,
           background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
           <div style={{ color: 'var(--accent-blue)', fontWeight: 700, marginBottom: 4 }}>SPY Adjustments</div>
-          {adjustments.map((adj, i) => (
+          {adjustments?.map((adj, i) => (
             <div key={i} style={{ color: 'var(--text-secondary)', marginTop: 2, fontSize: 10 }}>
               <span style={{ color: 'var(--text-primary)' }}>{adj.field}</span>:
               {' '}{typeof adj.original === 'number' ? adj.original.toFixed(2) : adj.original}
@@ -634,7 +634,7 @@ function FilterPanel({
                 {savedPresets.length === 0 && (
                   <div style={{ padding: '8px 10px', fontSize: 11, color: 'var(--text-muted)' }}>No presets yet</div>
                 )}
-                {savedPresets.map((p, i) => (
+                {savedPresets?.map((p, i) => (
                   <div key={i} onClick={() => { onLoadPreset(p); setShowPresets(false); }}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '6px 10px', borderBottom: '1px solid var(--border-color)',
@@ -809,11 +809,11 @@ function ResultsTable({ rows, columns, sortField, sortDir, onSort, onRowClick, s
   return (
     <table className="min-w-[900px]" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
       <colgroup>
-        {columns.map(c => <col key={c.key} style={{ width: c.w }} />)}
+        {columns?.map(c => <col key={c.key} style={{ width: c.w }} />)}
       </colgroup>
       <thead>
         <tr>
-          {columns.map(col => (
+          {columns?.map(col => (
             <th
               key={col.key}
               style={thSt(col.key)}
@@ -839,7 +839,7 @@ function ResultsTable({ rows, columns, sortField, sortDir, onSort, onRowClick, s
         </tr>
       </thead>
       <tbody>
-        {rows.map(row => {
+        {rows?.map(row => {
           const def   = STRUCTURE_DEFS.find(d => d.name === row.structure);
           const sc    = def ? sideColor(def.side) : 'var(--text-muted)';
           const isSel = selectedSymbol === row.symbol;
@@ -859,7 +859,7 @@ function ResultsTable({ rows, columns, sortField, sortDir, onSort, onRowClick, s
                 if (!isSel) e.currentTarget.style.background = isAdded ? 'rgba(34,197,94,0.09)' : 'transparent';
               }}>
 
-              {columns.map((col) => {
+              {columns?.map((col) => {
                 if (col.key === 'symbol') {
                   return (
                     <td key={col.key} style={{ padding: '6px 8px', fontWeight: 700, color: 'var(--accent-blue)', fontSize: 12,
@@ -1122,7 +1122,7 @@ export default function ScreenerV3() {
   }, [filterSet]);
 
   useEffect(() => {
-    const enabled = new Set(enabledFilterDefs.map((def) => def.id));
+    const enabled = new Set(enabledFilterDefs?.map((def) => def.id));
     setActiveFilterIds((prev) => prev.filter((id) => enabled.has(id)));
   }, [enabledFilterDefs]);
 
@@ -1131,7 +1131,7 @@ export default function ScreenerV3() {
     const activeQuery = buildQuery(activeFilterIds, filterValues);
     const selectedBuckets = Object.entries(bucketSelection)
       .filter(([, enabled]) => Boolean(enabled))
-      .map(([key]) => key);
+      ?.map(([key]) => key);
     const safeBuckets = selectedBuckets.length ? selectedBuckets : ['common'];
     const queryMap = {
       minPrice: 'priceMin',
@@ -1184,7 +1184,7 @@ export default function ScreenerV3() {
         payloadLoggedRef.current = true;
       }
 
-      const normalizedRows = rawQuotes.map((item) => {
+      const normalizedRows = rawQuotes?.map((item) => {
         const price = toFiniteOrNull(item?.price);
         const volume = toFiniteOrNull(item?.volume);
         const change = toFiniteOrNull(item?.change);
@@ -1220,7 +1220,7 @@ export default function ScreenerV3() {
         };
       });
 
-      const nextSymbols = new Set(normalizedRows.map((r) => r.symbol).filter(Boolean));
+      const nextSymbols = new Set(normalizedRows?.map((r) => r.symbol).filter(Boolean));
       const prevSymbols = prevSymbolsRef.current;
       if (prevSymbols) {
         const added = Array.from(nextSymbols).filter((symbol) => !prevSymbols.has(symbol));
@@ -1286,9 +1286,9 @@ export default function ScreenerV3() {
   }, [activeFilterIds, filterValues, sortField, sortDir, savedPresets, pageSize, filterPanelWidth, visibleColumnKeys, bucketSelection]);
 
   const visibleColumns = useMemo(() => {
-    const byKey = new Map(COLUMN_REGISTRY.map((col) => [col.key, col]));
+    const byKey = new Map(COLUMN_REGISTRY?.map((col) => [col.key, col]));
     const selected = visibleColumnKeys
-      .map((key) => byKey.get(key))
+      ?.map((key) => byKey.get(key))
       .filter(Boolean);
     return selected.length ? selected : COLUMN_REGISTRY.filter((col) => DEFAULT_VISIBLE_COLUMN_KEYS.includes(col.key));
   }, [visibleColumnKeys]);
@@ -1375,7 +1375,7 @@ export default function ScreenerV3() {
   }, []);
 
   const filteredRows = useMemo(() => {
-    return Array.isArray(data?.results) ? data.results : [];
+    return Array.isArray(data?.results) ? data?.results : [];
   }, [data]);
 
   const getSortableValue = useCallback((row, field) => {
@@ -1416,7 +1416,7 @@ export default function ScreenerV3() {
     return sortedRows.filter((stock) => stock.symbol?.toLowerCase().includes(term));
   }, [sortedRows, tickerSearch]);
 
-  const totalRows = Number.isFinite(Number(data?.total)) ? Number(data.total) : filteredRows.length;
+  const totalRows = Number.isFinite(Number(data?.total)) ? Number(data?.total) : filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
 
   useEffect(() => {
@@ -1428,7 +1428,7 @@ export default function ScreenerV3() {
   }, [displayedRows]);
 
   const currentOffset = page * pageSize;
-  const currentCount = Number.isFinite(Number(data?.count)) ? Number(data.count) : pagedRows.length;
+  const currentCount = Number.isFinite(Number(data?.count)) ? Number(data?.count) : pagedRows.length;
   const showingStart = totalRows > 0 ? currentOffset + 1 : 0;
   const showingEnd = totalRows > 0 ? currentOffset + currentCount : 0;
 
@@ -1468,7 +1468,7 @@ export default function ScreenerV3() {
       const activeQuery = buildQuery(activeFilterIds, filterValues);
       const selectedBuckets = Object.entries(bucketSelection)
         .filter(([, enabled]) => Boolean(enabled))
-        .map(([key]) => key);
+        ?.map(([key]) => key);
 
       const params = new URLSearchParams();
       const safeBuckets = selectedBuckets.length ? selectedBuckets : ['common'];
@@ -1659,7 +1659,7 @@ export default function ScreenerV3() {
                   boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
                   padding: 10,
                 }}>
-                  {COLUMN_REGISTRY.map((col) => (
+                  {COLUMN_REGISTRY?.map((col) => (
                     <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px', fontSize: 11, color: 'var(--text-secondary)' }}>
                       <input
                         type="checkbox"

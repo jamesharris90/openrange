@@ -55,7 +55,7 @@ export default function EarningsCalendar() {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, index) => (
+        {rows?.map((row, index) => (
           <tr key={`${row?.symbol || 'row'}-${row?.date || index}`}>
             <td>{String(row?.symbol || '').toUpperCase()}</td>
             <td>{row?.company || '--'}</td>

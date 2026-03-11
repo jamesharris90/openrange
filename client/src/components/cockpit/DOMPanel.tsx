@@ -56,7 +56,7 @@ export default function DOMPanel({ midPrice, symbol }: DOMPanelProps) {
         <div>Ask Size</div>
       </div>
       <div className="mt-2 space-y-1">
-        {rows.map((row, idx) => (
+        {rows?.map((row, idx) => (
           <div key={`dom-${idx}`} className="grid grid-cols-4 gap-1 rounded bg-[var(--bg-input)] px-1 py-1 text-xs">
             <div>{row.bidSize}</div>
             <div className="text-emerald-500">{row.bidPrice.toFixed(2)}</div>

@@ -19,7 +19,7 @@ export default function ScreenerPanel({ rows, onSelectTicker }: ScreenerPanelPro
     <div className="h-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] p-3">
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Screener (Top 10)</div>
       <div className="space-y-1 overflow-auto" style={{ maxHeight: '100%' }}>
-        {rows.slice(0, 10).map((row) => (
+        {rows.slice(0, 10)?.map((row) => (
           <button
             type="button"
             key={row.symbol}

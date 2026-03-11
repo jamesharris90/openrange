@@ -140,7 +140,7 @@ export default function AdminControlPanel() {
           { label: 'Pro Users', value: stats.pro },
           { label: 'Ultimate Users', value: stats.ultimate },
           { label: 'Admin Users', value: stats.admin },
-        ].map((card) => (
+        ]?.map((card) => (
           <div key={card.label} className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
             <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">{card.label}</p>
             <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">{card.value}</p>
@@ -150,7 +150,7 @@ export default function AdminControlPanel() {
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
         <div className="mb-3 flex flex-wrap gap-2">
-          {TABS.map((tab) => (
+          {TABS?.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -184,7 +184,7 @@ export default function AdminControlPanel() {
                 </tr>
               </thead>
               <tbody>
-                {(users || []).map((user) => (
+                {(users || [])?.map((user) => (
                   <tr key={user.id} className="border-t border-[var(--border-color)]">
                     <td className="py-2 pr-2">{user.username || `User ${user.id}`}</td>
                     <td className="py-2 pr-2">{user.email || '--'}</td>
@@ -219,7 +219,7 @@ export default function AdminControlPanel() {
                 value={selectedUserId || ''}
                 onChange={(event) => setSelectedUserId(Number(event.target.value) || null)}
               >
-                {(users || []).map((user) => (
+                {(users || [])?.map((user) => (
                   <option key={user.id} value={user.id}>{`${user.username || user.email || user.id} (${user.role || 'free'})`}</option>
                 ))}
               </select>
@@ -227,11 +227,11 @@ export default function AdminControlPanel() {
 
             {selectedUserData && (
               <div className="space-y-3">
-                {Object.entries(registryGrouped || {}).map(([category, items]) => (
+                {Object.entries(registryGrouped || {})?.map(([category, items]) => (
                   <div key={category} className="rounded border border-[var(--border-color)] p-2">
                     <p className="mb-2 text-xs uppercase tracking-wide text-[var(--text-muted)]">{category}</p>
                     <div className="grid gap-2 md:grid-cols-2">
-                      {(items || []).map((feature) => {
+                      {(items || [])?.map((feature) => {
                         const key = feature.key;
                         const resolved = Boolean(selectedUserData?.features?.[key]);
                         const hasOverride = Object.prototype.hasOwnProperty.call(selectedUserData?.overrides || {}, key);
@@ -275,7 +275,7 @@ export default function AdminControlPanel() {
                 </tr>
               </thead>
               <tbody>
-                {(auditRows || []).map((row) => (
+                {(auditRows || [])?.map((row) => (
                   <tr key={row.id} className="border-t border-[var(--border-color)]">
                     <td className="py-2 pr-2">{row.changed_at ? new Date(row.changed_at).toLocaleString() : '--'}</td>
                     <td className="py-2 pr-2">{row.email || row.username || row.user_id || '--'}</td>

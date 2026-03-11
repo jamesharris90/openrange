@@ -63,14 +63,14 @@ export default function OpportunityStream({ limit = 50, compact = false }) {
 
   const maxScore = useMemo(() => {
     const scores = data
-      .map((row) => Number(row?.score))
+      ?.map((row) => Number(row?.score))
       .filter((value) => Number.isFinite(value));
     if (!scores.length) return 100;
     return Math.max(100, Math.ceil(Math.max(...scores)));
   }, [data]);
 
   const filteredData = useMemo(() => {
-    return data.filter((row) => {
+    return data?.filter((row) => {
       const eventType = String(row?.event_type || '').toLowerCase();
       const sourceRaw = String(row?.source || '').toLowerCase();
       const sourceCategory = sourceRaw.includes('strategy')
@@ -134,13 +134,13 @@ export default function OpportunityStream({ limit = 50, compact = false }) {
         </label>
       </div>
 
-      {loading && data.length === 0 ? (
+      {loading && data?.length === 0 ? (
         <SkeletonTable rows={6} cols={5} />
       ) : filteredData.length === 0 ? (
         <div className="muted">No active opportunities detected</div>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
-          {filteredData.map((row) => {
+          {filteredData?.map((row) => {
             const symbol = String(row?.symbol || '').toUpperCase();
             return (
               <div

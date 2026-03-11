@@ -15,7 +15,7 @@ export default function AdminLayout({ section = 'Admin' }) {
     <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-sm">
       <div className="mb-2 text-xs text-[var(--text-muted)]">{`Admin / ${section}`}</div>
       <div className="flex flex-wrap gap-2">
-        {LINKS.map((item) => (
+        {LINKS?.map((item) => (
           <Link key={`${item.to}-${item.label}`} className="rounded border border-[var(--border-color)] px-3 py-1" to={item.to}>{item.label}</Link>
         ))}
         <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Back to Admin Panel</Link>

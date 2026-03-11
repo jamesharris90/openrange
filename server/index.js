@@ -82,6 +82,7 @@ const radarRoutes = require('./routes/radar');
 const briefingRoutes = require('./routes/briefingRoutes');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const intelDetailsRoutes = require('./routes/intelDetails');
+const { getUIHealth } = require('./routes/uiHealth');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { fetchUnifiedSignals } = require('./services/signalService');
@@ -1173,6 +1174,8 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
     });
   }
 });
+
+app.get('/api/system/ui-health', getUIHealth);
 
 async function fastRowsQuery(sql, params, label, timeoutMs = 180) {
   try {

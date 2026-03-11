@@ -5,11 +5,11 @@ import { formatPercent, toNumber } from './utils';
 const DEFAULT_TARGETS = ['SPY', 'QQQ', 'IWM', 'VIX'];
 
 export default function MarketContextCards({ cards = [], selectedSymbol, onSelectSymbol, targets = DEFAULT_TARGETS }) {
-  const map = new Map((Array.isArray(cards) ? cards : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const map = new Map((Array.isArray(cards) ? cards : [])?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {targets.map((symbol) => {
+      {targets?.map((symbol) => {
         const row = map.get(symbol) || { symbol, price: 0, change_percent: 0, sparkline: [] };
         const change = toNumber(row.change_percent, 0);
         const bullish = change >= 0;
@@ -44,7 +44,7 @@ export default function MarketContextCards({ cards = [], selectedSymbol, onSelec
                 <div>Sector influence: {sectorInfluence}</div>
                 <div>Composition: {composition}</div>
                 <div className="mt-1 font-semibold">Key drivers</div>
-                {keyDrivers.length ? keyDrivers.map((driver, index) => (
+                {keyDrivers.length ? keyDrivers?.map((driver, index) => (
                   <div key={`${driver?.symbol || symbol}-${index}`}>
                     {String(driver?.symbol || '').toUpperCase()} {Number(driver?.move || 0) >= 0 ? '+' : ''}{Number(driver?.move || 0).toFixed(2)}
                   </div>

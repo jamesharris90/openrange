@@ -267,7 +267,7 @@ export default function EarningsPage() {
   const toggleAll = useCallback(() => {
     setSelectedRows(prev => {
       if (prev.size === sorted.length && sorted.length > 0) return new Set();
-      return new Set(sorted.map(r => `${r.symbol}-${r.date}`));
+      return new Set(sorted?.map(r => `${r.symbol}-${r.date}`));
     });
   }, [sorted]);
 
@@ -297,13 +297,13 @@ export default function EarningsPage() {
       preMarketChangePercent: 'PreMkt %', dist200MA: '200MA %', dist52WH: '52WH %',
       analystRating: 'Analyst',
     };
-    const headers = colKeys.map(k => colLabels[k] || k);
-    const rows = sorted.map(e => colKeys.map(k => {
+    const headers = colKeys?.map(k => colLabels[k] || k);
+    const rows = sorted?.map(e => colKeys?.map(k => {
       if (k === 'score') return scoreMap[`${e.symbol}-${e.date}`] ?? calcTradeScore(e);
       if (k === 'hour') return (e.hour || '').toUpperCase();
       return e[k] ?? '';
     }));
-    const csv = [headers, ...rows].map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(',')).join('\n');
+    const csv = [headers, ...rows]?.map(r => r?.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -418,7 +418,7 @@ export default function EarningsPage() {
             </button>
             {showColMenu && (
               <div className="col-menu">
-                {ALL_COLUMN_KEYS.filter(k => k !== 'select' && k !== 'watchlist').map(k => (
+                {ALL_COLUMN_KEYS.filter(k => k !== 'select' && k !== 'watchlist')?.map(k => (
                   <label key={k} className="col-menu__item">
                     <input type="checkbox" checked={visibleCols.has(k)}
                       onChange={() => toggleColVisibility(k)} />
@@ -456,7 +456,7 @@ export default function EarningsPage() {
             <table className="data-table es-table w-full min-w-[900px]">
               <thead>
                 <tr>
-                  {visibleSpecs.map(col => (
+                  {visibleSpecs?.map(col => (
                     <th
                       key={col.key}
                       onClick={col.sortable !== false ? () => handleSort(col.key) : undefined}
@@ -479,9 +479,9 @@ export default function EarningsPage() {
               </thead>
               <tbody>
                 {loading && sorted.length === 0 ? (
-                  Array.from({ length: 12 }).map((_, i) => (
+                  Array.from({ length: 12 })?.map((_, i) => (
                     <tr key={`skel-${i}`}>
-                      {visibleSpecs.map(col => (
+                      {visibleSpecs?.map(col => (
                         <td key={col.key}>
                           <div className="skeleton-bar" style={{ height: 14, width: `${40 + Math.random() * 50}%` }} />
                         </td>
@@ -495,9 +495,9 @@ export default function EarningsPage() {
                       : 'No earnings match your filters — try adjusting or clearing the filters above'
                     }
                   </td></tr>
-                ) : displayedRows.map(row => (
+                ) : displayedRows?.map(row => (
                   <tr key={`${row.symbol}-${row.date}`} className={rowClassName(row)}>
-                    {visibleSpecs.map(col => (
+                    {visibleSpecs?.map(col => (
                       <td key={col.key}
                         style={{ textAlign: col.align || 'left', ...(col.key === 'symbol' ? { cursor: 'pointer' } : {}) }}
                         onClick={col.key === 'symbol' ? () => setSelectedTicker(row.symbol) : undefined}

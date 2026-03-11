@@ -43,10 +43,10 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
         if (cancelled) return;
         const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
         const scored = rows
-          .map(mapCanonicalToFinvizRow)
+          ?.map(mapCanonicalToFinvizRow)
           .filter((rawRow) => parsePct(rawRow.Change) != null && parsePct(rawRow.Change) >= 3)
           .slice(0, 100)
-          .map(rawRow => {
+          ?.map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeORBScore(row);
           return {
@@ -103,7 +103,7 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Gapper data requires a live intraday feed · Switch to <strong>Earnings Momentum</strong> for always-on data</div>
     </div>
   );
-  if (!data.length) return (
+  if (!data?.length) return (
     <div className="aiq-module-empty" style={{ flexDirection: 'column', gap: 6 }}>
       <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No ORB candidates right now</div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ORB finds gappers &gt;3% with RVOL &gt;1.2 · Best results 09:30–11:30 ET</div>
@@ -114,7 +114,7 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
     <div className="aiq-module">
       <div className="aiq-module__bar">
         <span className="aiq-module__universe">ORB Universe: Gappers · Avg Vol &gt; 500K · Change &gt; 3%</span>
-        <span className="aiq-module__count">{sorted.length} / {data.length}</span>
+        <span className="aiq-module__count">{sorted.length} / {data?.length}</span>
       </div>
       <ExportButtons
         data={sorted}
@@ -147,7 +147,7 @@ export default function ORBModule({ onSelectTicker, filters, selected, onToggleS
             </tr>
           </thead>
           <tbody>
-            {sorted.map(row => (
+            {sorted?.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
                 <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>

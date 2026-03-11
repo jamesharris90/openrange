@@ -11,14 +11,14 @@ const LOGIC_OPTIONS = ['AND', 'OR'];
 
 export default function AdaptiveBuilder({ fields = [], rows = [], onChangeRow, onAddRow, onRemoveRow, onApply, onClear }) {
   const operatorMap = useMemo(
-    () => new Map((fields || []).map((field) => [field.key, field.operators || []])),
+    () => new Map((fields || [])?.map((field) => [field.key, field.operators || []])),
     [fields]
   );
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        {rows.map((row, index) => {
+        {rows?.map((row, index) => {
           const availableOperators = operatorMap.get(row.field)?.length
             ? operatorMap.get(row.field)
             : DEFAULT_OPERATORS;
@@ -32,7 +32,7 @@ export default function AdaptiveBuilder({ fields = [], rows = [], onChangeRow, o
                   onChange={(event) => onChangeRow(row.id, 'logic', event.target.value)}
                   disabled={index === 0}
                 >
-                  {LOGIC_OPTIONS.map((logic) => (
+                  {LOGIC_OPTIONS?.map((logic) => (
                     <option key={logic} value={logic}>{logic}</option>
                   ))}
                 </select>
@@ -42,7 +42,7 @@ export default function AdaptiveBuilder({ fields = [], rows = [], onChangeRow, o
                   value={row.field}
                   onChange={(event) => onChangeRow(row.id, 'field', event.target.value)}
                 >
-                  {(fields || []).map((field) => (
+                  {(fields || [])?.map((field) => (
                     <option key={field.key} value={field.key}>{field.label}</option>
                   ))}
                 </select>
@@ -52,7 +52,7 @@ export default function AdaptiveBuilder({ fields = [], rows = [], onChangeRow, o
                   value={row.operator}
                   onChange={(event) => onChangeRow(row.id, 'operator', event.target.value)}
                 >
-                  {availableOperators.map((operator) => (
+                  {availableOperators?.map((operator) => (
                     <option key={operator} value={operator}>{operator}</option>
                   ))}
                 </select>

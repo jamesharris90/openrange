@@ -77,7 +77,7 @@ export default function IntelligenceFrameworkPage() {
           <Card>
             <h3 className="mb-3 text-lg font-semibold">Filter Registry</h3>
             <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300">
-              {filters.map((item) => (
+              {filters?.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

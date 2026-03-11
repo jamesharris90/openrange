@@ -133,7 +133,7 @@ export default function IntelInbox() {
           <div className="muted text-sm">No narrative intelligence available.</div>
         ) : (
           <div className="space-y-2">
-            {narratives.slice(0, 6).map((row, idx) => (
+            {narratives.slice(0, 6)?.map((row, idx) => (
               <button
                 key={`${row?.sector || 's'}-${idx}`}
                 type="button"
@@ -163,7 +163,7 @@ export default function IntelInbox() {
           <div className="muted text-sm">No active signal items right now.</div>
         ) : (
           <div className="space-y-2">
-            {signals.map((row, idx) => (
+            {signals?.map((row, idx) => (
               <button
                 key={`${row?.symbol || 'sig'}-${idx}`}
                 type="button"
@@ -192,7 +192,7 @@ export default function IntelInbox() {
           <div className="muted">No intelligence yet</div>
         ) : (
           <div className="space-y-2">
-            {items.map((item, index) => (
+            {items?.map((item, index) => (
               <button
                 key={`${item?.url || 'n'}-${index}`}
                 onClick={() => openIntelPanel(item?.id || `news:${String(item?.symbol || 'MARKET').toUpperCase()}`)}

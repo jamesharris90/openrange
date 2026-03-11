@@ -80,8 +80,8 @@ export default function CalendarTab({ scope }) {
       </div>
 
       <div className="calendar-grid">
-        {DAY_NAMES.map(d => <div key={d} className="calendar-header">{d}</div>)}
-        {weeks.flat().map((day, i) => {
+        {DAY_NAMES?.map(d => <div key={d} className="calendar-header">{d}</div>)}
+        {weeks.flat()?.map((day, i) => {
           const dateStr = day ? getDateStr(day) : null;
           const review = dateStr ? reviewMap[dateStr] : null;
 

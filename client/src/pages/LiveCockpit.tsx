@@ -79,7 +79,7 @@ const ChartWidget = React.memo(function ChartWidget({
           { key: 'vwap', label: 'VWAP' },
           { key: 'rsi', label: 'RSI' },
           { key: 'macd', label: 'MACD' },
-        ].map((item) => {
+        ]?.map((item) => {
           const key = item.key as keyof IndicatorState;
           const disabled = key === 'vwap' && isDailyTimeframe;
           const active = disabled ? false : Boolean(indicatorState[key]);

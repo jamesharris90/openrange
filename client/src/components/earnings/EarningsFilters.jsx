@@ -104,7 +104,7 @@ export default function EarningsFilters({ filters, onChange }) {
         <span className="earnings-filters__label">Market Cap</span>
         <div className="ef-dropdown-group">
           <select className="ef-select" value={mcapIdx >= 0 ? mcapIdx : 0} onChange={handleMcapChange}>
-            {MCAP_OPTIONS.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
+            {MCAP_OPTIONS?.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
           </select>
           {filters._mcapCustom && (
             <div className="ef-custom-range">
@@ -122,7 +122,7 @@ export default function EarningsFilters({ filters, onChange }) {
         <span className="earnings-filters__label">Price</span>
         <div className="ef-dropdown-group">
           <select className="ef-select" value={priceIdx >= 0 ? priceIdx : 0} onChange={handlePriceChange}>
-            {PRICE_OPTIONS.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
+            {PRICE_OPTIONS?.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
           </select>
           {filters._priceCustom && (
             <div className="ef-custom-range">
@@ -140,7 +140,7 @@ export default function EarningsFilters({ filters, onChange }) {
       <div className="earnings-filters__row">
         <span className="earnings-filters__label">Time</span>
         <div className="earnings-filters__pills">
-          {[{ label: 'All', value: '' }, { label: 'BMO', value: 'bmo' }, { label: 'AMC', value: 'amc' }, { label: 'TNS', value: 'tns' }].map(t => (
+          {[{ label: 'All', value: '' }, { label: 'BMO', value: 'bmo' }, { label: 'AMC', value: 'amc' }, { label: 'TNS', value: 'tns' }]?.map(t => (
             <button
               key={t.value}
               className={`ef-pill${filters.time === t.value ? ' ef-pill--active' : ''}`}
@@ -176,7 +176,7 @@ export default function EarningsFilters({ filters, onChange }) {
           <div className="earnings-filters__row">
             <span className="earnings-filters__label">Avg Volume</span>
             <div className="earnings-filters__pills">
-              {AVGVOL_PRESETS.map((p, i) => (
+              {AVGVOL_PRESETS?.map((p, i) => (
                 <button
                   key={i}
                   className={`ef-pill${String(filters.minAvgVolume ?? '') === String(p.min) ? ' ef-pill--active' : ''}`}
@@ -189,7 +189,7 @@ export default function EarningsFilters({ filters, onChange }) {
             <span className="earnings-filters__divider" />
             <span className="earnings-filters__label">RVOL</span>
             <div className="earnings-filters__pills">
-              {RVOL_PRESETS.map((p, i) => (
+              {RVOL_PRESETS?.map((p, i) => (
                 <button
                   key={i}
                   className={`ef-pill${String(filters.minRvol ?? '') === String(p.min) ? ' ef-pill--active' : ''}`}
@@ -205,7 +205,7 @@ export default function EarningsFilters({ filters, onChange }) {
           <div className="earnings-filters__row">
             <span className="earnings-filters__label">Float</span>
             <div className="earnings-filters__pills">
-              {FLOAT_PRESETS.map((p, i) => (
+              {FLOAT_PRESETS?.map((p, i) => (
                 <button
                   key={i}
                   className={`ef-pill${String(filters.maxFloat ?? '') === String(p.max) ? ' ef-pill--active' : ''}`}
@@ -218,7 +218,7 @@ export default function EarningsFilters({ filters, onChange }) {
             <span className="earnings-filters__divider" />
             <span className="earnings-filters__label">Score</span>
             <div className="earnings-filters__pills">
-              {SCORE_PRESETS.map((p, i) => (
+              {SCORE_PRESETS?.map((p, i) => (
                 <button
                   key={i}
                   className={`ef-pill${String(filters.minScore ?? '') === String(p.min) ? ' ef-pill--active' : ''}`}

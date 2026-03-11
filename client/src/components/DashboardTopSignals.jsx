@@ -54,7 +54,7 @@ export default function DashboardTopSignals() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows?.map((row) => (
                 <tr key={String(row?.symbol || Math.random())}>
                   <td>{row?.symbol || '--'}</td>
                   <td style={{ textAlign: 'right' }}>{fmt(row?.score)}</td>

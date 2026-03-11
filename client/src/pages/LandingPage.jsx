@@ -419,7 +419,7 @@ export default function LandingPage() {
             subtitle="OpenRange is built around a decision flow so your morning prep becomes consistent, fast, and actionable."
           />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {workflow.map((item) => {
+            {workflow?.map((item) => {
               const Icon = item.icon;
               return (
                 <article
@@ -443,7 +443,7 @@ export default function LandingPage() {
             title="Built for pre-market and intraday precision"
           />
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => {
+            {features?.map((feature) => {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="rounded-xl border border-slate-700 bg-slate-800/55 p-5 transition hover:border-slate-500">
@@ -471,7 +471,7 @@ export default function LandingPage() {
             title="From scan to trade in three steps"
           />
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
+            {steps?.map((step, index) => (
               <article key={step.title} className="rounded-xl border border-slate-700 bg-slate-800/55 p-5">
                 <div className="mb-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-bold text-white">
                   {index + 1}
@@ -490,7 +490,7 @@ export default function LandingPage() {
             subtitle="From radar to execution cockpit, each module stays connected so context is never lost."
           />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {screenshots.map((shot) => (
+            {screenshots?.map((shot) => (
               <div
                 key={shot.key}
                 className="group relative overflow-hidden rounded-xl border border-slate-700"
@@ -517,7 +517,7 @@ export default function LandingPage() {
             title="Choose your OpenRange tier"
           />
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {tiers.map((tier) => (
+            {tiers?.map((tier) => (
               <article key={tier.name} className={`relative rounded-xl border ${tier.accent} bg-slate-800/60 p-5`}>
                 {tier.badge ? (
                   <span className="absolute right-4 top-4 rounded-full bg-blue-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-300">
@@ -527,7 +527,7 @@ export default function LandingPage() {
                 <div className="text-xs uppercase tracking-wide text-slate-400">{tier.name}</div>
                 <div className="mt-2 text-3xl font-semibold text-white">{tier.price}</div>
                 <ul className="mt-4 space-y-2 text-sm text-slate-400">
-                  {tier.points.map((point) => (
+                  {tier.points?.map((point) => (
                     <li key={point} className="flex items-center gap-2">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
                       {point}

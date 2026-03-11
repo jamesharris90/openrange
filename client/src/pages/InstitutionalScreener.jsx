@@ -184,7 +184,7 @@ export default function InstitutionalScreener() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [filterRegistry] = useState(SHARED_FILTER_REGISTRY);
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
-  const [columnOrder, setColumnOrder] = useState(defaultColumns.map((column) => column.key));
+  const [columnOrder, setColumnOrder] = useState(defaultColumns?.map((column) => column.key));
   const [heatmapMode, setHeatmapMode] = useState(false);
   const [enableAlertOnSave, setEnableAlertOnSave] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -212,8 +212,8 @@ export default function InstitutionalScreener() {
   const debouncedQuerySignature = useDebouncedValue(JSON.stringify(appliedQueryTree), 300);
 
   const columns = useMemo(() => {
-    const map = new Map(defaultColumns.map((column) => [column.key, column]));
-    return columnOrder.map((key) => map.get(key)).filter(Boolean);
+    const map = new Map(defaultColumns?.map((column) => [column.key, column]));
+    return columnOrder?.map((key) => map.get(key)).filter(Boolean);
   }, [columnOrder]);
 
   const visibleColumns = useMemo(
@@ -222,12 +222,12 @@ export default function InstitutionalScreener() {
   );
 
   const adaptiveFields = useMemo(
-    () => (filterRegistry.filters || []).map((item) => ({ key: item.field, label: item.label, operators: item.operators })),
+    () => (filterRegistry.filters || [])?.map((item) => ({ key: item.field, label: item.label, operators: item.operators })),
     [filterRegistry]
   );
 
   const presetOptions = useMemo(
-    () => (SHARED_PRESETS.presets || []).map((item) => ({ key: item.key, label: item.label })),
+    () => (SHARED_PRESETS.presets || [])?.map((item) => ({ key: item.key, label: item.label })),
     []
   );
 
@@ -293,12 +293,12 @@ export default function InstitutionalScreener() {
 
     if (controller.signal.aborted) return;
 
-    const scannerMap = new Map((Array.isArray(scanner) ? scanner : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
-    const setupMap = new Map((Array.isArray(setups) ? setups : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
-    const catalystMap = new Map((Array.isArray(catalysts) ? catalysts : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
-    const metricsMap = new Map((Array.isArray(metrics) ? metrics : []).map((row) => [String(row?.symbol || '').toUpperCase(), row]));
-    const expectedMoveMap = new Map((Array.isArray(expectedMove) ? expectedMove : []).map((row) => [String(row?.symbol || row?.ticker || '').toUpperCase(), row]));
-    const earningsMap = new Map((Array.isArray(earnings) ? earnings : []).map((row) => [String(row?.symbol || row?.ticker || '').toUpperCase(), row]));
+    const scannerMap = new Map((Array.isArray(scanner) ? scanner : [])?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+    const setupMap = new Map((Array.isArray(setups) ? setups : [])?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+    const catalystMap = new Map((Array.isArray(catalysts) ? catalysts : [])?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+    const metricsMap = new Map((Array.isArray(metrics) ? metrics : [])?.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+    const expectedMoveMap = new Map((Array.isArray(expectedMove) ? expectedMove : [])?.map((row) => [String(row?.symbol || row?.ticker || '').toUpperCase(), row]));
+    const earningsMap = new Map((Array.isArray(earnings) ? earnings : [])?.map((row) => [String(row?.symbol || row?.ticker || '').toUpperCase(), row]));
 
     const symbols = new Set([
       ...scannerMap.keys(),
@@ -310,11 +310,11 @@ export default function InstitutionalScreener() {
 
     const fallbackRows = [...symbols]
       .filter(Boolean)
-      .map((symbol) => rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, expectedMoveMap, earningsMap, narrative))
+      ?.map((symbol) => rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, expectedMoveMap, earningsMap, narrative))
       .filter((row) => row.symbol);
 
     const rows = Array.isArray(screenerResponse?.rows)
-      ? screenerResponse.rows.map((row) => ({ ...row, symbol: String(row.symbol || '').toUpperCase() })).filter((row) => row.symbol)
+      ? screenerResponse.rows?.map((row) => ({ ...row, symbol: String(row.symbol || '').toUpperCase() })).filter((row) => row.symbol)
       : fallbackRows;
 
     setRawRows(rows);
@@ -386,7 +386,7 @@ export default function InstitutionalScreener() {
   }, [sortedRows, selectedSymbol]);
 
   function updateAdaptiveRow(rowId, key, value) {
-    setAdaptiveRows((current) => current.map((row) => {
+    setAdaptiveRows((current) => current?.map((row) => {
       if (row.id !== rowId) return row;
       if (key === 'logic') return { ...row, logic: value, booleanOp: value };
       return { ...row, [key]: value };
@@ -405,8 +405,8 @@ export default function InstitutionalScreener() {
   }
 
   function exportCsv() {
-    const headers = visibleColumns.map((column) => column.label);
-    const lines = pagedRows.map((row) => visibleColumns.map((column) => {
+    const headers = visibleColumns?.map((column) => column.label);
+    const lines = pagedRows?.map((row) => visibleColumns?.map((column) => {
       const value = column.render ? column.render(row) : row[column.key];
       return `"${String(value ?? '').replace(/"/g, '""')}"`;
     }).join(','));
@@ -469,7 +469,7 @@ export default function InstitutionalScreener() {
       return;
     }
 
-    const selectedName = window.prompt(`Load filter name:\n${saved.map((item) => `• ${item.filter_name || item.name}`).join('\n')}`);
+    const selectedName = window.prompt(`Load filter name:\n${saved?.map((item) => `• ${item.filter_name || item.name}`).join('\n')}`);
     if (!selectedName) return;
 
     const found = saved.find((item) => (item.filter_name || item.name) === selectedName);
@@ -485,7 +485,7 @@ export default function InstitutionalScreener() {
     setStructuredValues(found.structuredValues || structuredValues);
     setAppliedStructuredValues(found.structuredValues || structuredValues);
     setHiddenColumns(new Set(found.hiddenColumns || []));
-    setColumnOrder(Array.isArray(found.columnOrder) && found.columnOrder.length ? found.columnOrder : defaultColumns.map((column) => column.key));
+    setColumnOrder(Array.isArray(found.columnOrder) && found.columnOrder.length ? found.columnOrder : defaultColumns?.map((column) => column.key));
   }
 
   function applyStructuredFilters() {
@@ -678,7 +678,7 @@ export default function InstitutionalScreener() {
           <Card className="flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5 text-sm">
             <div className="text-[var(--text-secondary)]">Showing {startIndex}–{endIndex} of {total} results</div>
             <div className="flex flex-wrap items-center gap-1.5">
-              {PAGE_SIZE_OPTIONS.map((option) => (
+              {PAGE_SIZE_OPTIONS?.map((option) => (
                 <button
                   key={String(option)}
                   type="button"

@@ -110,7 +110,7 @@ export default function TickerTape() {
       <style>{`.or-ticker-track{animation:orTickerTape 38s linear infinite}.or-ticker-wrap:hover .or-ticker-track{animation-play-state:paused}@keyframes orTickerTape{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
       <div className="or-ticker-wrap overflow-hidden px-3">
         <div className="or-ticker-track flex min-w-max items-center gap-4 py-2 text-xs">
-          {stream.map((row, index) => {
+          {stream?.map((row, index) => {
             const symbol = String(row?.symbol || '').toUpperCase();
             const active = symbol && symbol === selectedSymbol;
             const change = Number(row?.changePercent ?? row?.change_percent);

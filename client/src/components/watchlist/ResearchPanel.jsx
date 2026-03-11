@@ -42,7 +42,7 @@ export default function ResearchPanel({ symbol, onClose }) {
           });
 
           setNews(
-            (Array.isArray(newsData) ? newsData : []).slice(0, 10).map((item) => ({
+            (Array.isArray(newsData) ? newsData : []).slice(0, 10)?.map((item) => ({
               url: item?.url,
               headline: item?.headline || item?.title || '',
               source: item?.source || 'News',
@@ -111,7 +111,7 @@ export default function ResearchPanel({ symbol, onClose }) {
       {news.length > 0 && (
         <div className="research-panel__news">
           <h3>Recent News</h3>
-          {news.map((item, i) => (
+          {news?.map((item, i) => (
             <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="news-item">
               <div className="news-item__headline">{item.headline} <ExternalLink size={12} /></div>
               <div className="news-item__meta">

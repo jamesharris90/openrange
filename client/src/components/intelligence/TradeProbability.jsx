@@ -49,7 +49,7 @@ export default function TradeProbability() {
         <div className="text-sm">No market data available yet.</div>
       ) : (
         <div className="space-y-2 text-sm">
-          {rows.slice(0, 6).map((row, index) => (
+          {rows.slice(0, 6)?.map((row, index) => (
             <div key={`${row?.strategy || 'strategy'}-${index}`} className="rounded border border-[var(--border-color)] bg-[var(--bg-elevated)] p-2">
               <div className="font-semibold">{row?.strategy || 'Momentum Continuation'}</div>
               <div>Win Rate: {toNum(row?.win_rate, 0).toFixed(1)}%</div>

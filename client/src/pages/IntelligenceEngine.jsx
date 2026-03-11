@@ -58,7 +58,7 @@ export default function IntelligenceEngine() {
               <table className="data-table data-table--compact">
                 <thead><tr><th>Sector</th><th style={{ textAlign: 'right' }}>Avg %</th></tr></thead>
                 <tbody>
-                  {summary.sectors.slice(0, 5).map((row) => (
+                  {summary.sectors.slice(0, 5)?.map((row) => (
                     <tr key={row?.sector || 'sector'}>
                       <td>{row?.sector || 'Unknown'}</td>
                       <td style={{ textAlign: 'right' }}>{fmt(row?.avg_change, 2)}%</td>
@@ -75,7 +75,7 @@ export default function IntelligenceEngine() {
               <table className="data-table data-table--compact">
                 <thead><tr><th>Symbol</th><th>Strategy</th><th style={{ textAlign: 'right' }}>Score</th></tr></thead>
                 <tbody>
-                  {summary.opportunities.slice(0, 10).map((row) => (
+                  {summary.opportunities.slice(0, 10)?.map((row) => (
                     <tr key={row?.symbol || 'opp'}>
                       <td>{String(row?.symbol || '').toUpperCase()}</td>
                       <td>{row?.strategy || '--'}</td>
@@ -91,7 +91,7 @@ export default function IntelligenceEngine() {
             <h3 className="m-0 mb-3">Earnings (Today)</h3>
             {summary.earnings?.today?.length ? (
               <div className="space-y-2 text-sm">
-                {summary.earnings.today.slice(0, 8).map((row, idx) => (
+                {summary.earnings.today.slice(0, 8)?.map((row, idx) => (
                   <div key={`${row?.symbol || 'e'}-${idx}`} className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
                     <strong>{String(row?.symbol || '').toUpperCase()}</strong>
                     <span className="muted">{row?.date || '--'}</span>
@@ -105,7 +105,7 @@ export default function IntelligenceEngine() {
             <h3 className="m-0 mb-3">Intel Feed</h3>
             {summary.news?.length ? (
               <div className="space-y-2 text-sm">
-                {summary.news.slice(0, 8).map((row, idx) => (
+                {summary.news.slice(0, 8)?.map((row, idx) => (
                   <a
                     key={`${row?.url || 'n'}-${idx}`}
                     className="block rounded border border-[var(--border-color)] p-2 hover:bg-[var(--bg-card-hover)]"

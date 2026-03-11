@@ -25,7 +25,7 @@ export default function FilterField({ field, value, onSelectChange, onRangeChang
           value={selected}
           onChange={(event) => onSelectChange(field.key, event.target.value)}
         >
-          {(field.options || []).map((option) => (
+          {(field.options || [])?.map((option) => (
             <option key={option.value || 'any'} value={option.value}>
               {option.label}
             </option>

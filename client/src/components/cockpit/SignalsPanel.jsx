@@ -70,7 +70,7 @@ export default function SignalsPanel() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((row, index) => (
+            {filtered?.map((row, index) => (
               <tr key={`${row?.symbol || selectedSymbol}-${row?.setup_type || row?.strategy || index}`}>
                 <td>{row?.setup_type || row?.strategy || '--'}</td>
                 <td style={{ textAlign: 'right' }}>{toNumber(row?.strategy_score ?? row?.score, 1)}</td>

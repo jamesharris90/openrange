@@ -20,7 +20,7 @@ function Sparkline({ price, changePercent }) {
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
-  const normalized = points.map((value, idx) => {
+  const normalized = points?.map((value, idx) => {
     const x = (idx / (points.length - 1)) * 100;
     const y = 30 - ((value - min) / span) * 24;
     return `${x},${y}`;

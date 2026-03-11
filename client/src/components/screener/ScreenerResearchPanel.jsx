@@ -97,7 +97,7 @@ export default function ScreenerResearchPanel({ symbol, onClose }) {
           <Section title="News & Catalysts" icon={Newspaper} defaultOpen={true}>
             {n.length > 0 ? (
               <div className="erp-news">
-                {(showAllNews ? n : n.slice(0, 5)).map((item, i) => (
+                {(showAllNews ? n : n.slice(0, 5))?.map((item, i) => (
                   <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="erp-news-item">
                     <div className="erp-news-item__headline">{item.headline ?? 'Untitled'} <ExternalLink size={11} /></div>
                     <div className="erp-news-item__meta">
@@ -154,7 +154,7 @@ export default function ScreenerResearchPanel({ symbol, onClose }) {
             {Array.isArray(c?.recentInsiderTxns) && c.recentInsiderTxns.length > 0 && (
               <div className="erp-insider-txns">
                 <div className="erp-sub-label">Recent Insider Activity</div>
-                {c.recentInsiderTxns.slice(0, 5).map((tx, i) => (
+                {c.recentInsiderTxns.slice(0, 5)?.map((tx, i) => (
                   <div key={i} className="erp-insider-txn">
                     <span className="erp-insider-txn__name">{tx.name ?? '—'}</span>
                     <span className={`erp-insider-txn__type ${(tx.type || '').toLowerCase().includes('sale') ? 'sell' : 'buy'}`}>
@@ -202,13 +202,13 @@ export default function ScreenerResearchPanel({ symbol, onClose }) {
                 <div className="erp-rec-bar">
                   <div className="erp-sub-label">Analyst Ratings</div>
                   <div className="erp-rec-bar__track">
-                    {segments.map(r => (
+                    {segments?.map(r => (
                       <div key={r.label} className="erp-rec-bar__seg" style={{ flex: r.val, background: r.color }}
                         title={`${r.label}: ${r.val}`} />
                     ))}
                   </div>
                   <div className="erp-rec-bar__labels">
-                    {segments.map(r => (
+                    {segments?.map(r => (
                       <span key={r.label} style={{ color: r.color, fontWeight: 600, fontSize: 10 }}>
                         {r.val} {r.abbr}
                       </span>

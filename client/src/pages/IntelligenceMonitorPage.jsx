@@ -39,7 +39,7 @@ export default function IntelligenceMonitorPage() {
         const oppItems = opportunities?.items || opportunities?.data || [];
         const engines = diagnostics || {};
         const runtimes = Object.fromEntries(
-          Object.entries(engines).map(([k, v]) => [k, Number(v?.runtime_ms || 0)])
+          Object.entries(engines)?.map(([k, v]) => [k, Number(v?.runtime_ms || 0)])
         );
 
         setData({
@@ -78,16 +78,16 @@ export default function IntelligenceMonitorPage() {
       {error ? <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-red-300">{error}</div> : null}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Stocks Detected Today</div><div className="text-xl font-semibold">{data.stocksInPlay}</div></div>
-        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Squeeze Signals</div><div className="text-xl font-semibold">{data.squeezes}</div></div>
-        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Flow Signals</div><div className="text-xl font-semibold">{data.flowSignals}</div></div>
-        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Top Opportunities</div><div className="text-xl font-semibold">{data.topOpportunities}</div></div>
+        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Stocks Detected Today</div><div className="text-xl font-semibold">{data?.stocksInPlay}</div></div>
+        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Squeeze Signals</div><div className="text-xl font-semibold">{data?.squeezes}</div></div>
+        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Flow Signals</div><div className="text-xl font-semibold">{data?.flowSignals}</div></div>
+        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3"><div className="text-xs text-[var(--text-muted)]">Top Opportunities</div><div className="text-xl font-semibold">{data?.topOpportunities}</div></div>
       </div>
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
         <h3 className="mb-2 text-sm font-semibold">Engine Runtimes (ms)</h3>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {Object.entries(data.engineRuntimes || {}).map(([name, runtime]) => (
+          {Object.entries(data?.engineRuntimes || {})?.map(([name, runtime]) => (
             <div key={name} className="rounded border border-[var(--border-color)] px-2 py-1 text-sm">
               <span className="text-[var(--text-muted)]">{name}</span>
               <span className="float-right font-semibold">{runtime}</span>
@@ -99,7 +99,7 @@ export default function IntelligenceMonitorPage() {
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
         <h3 className="mb-2 text-sm font-semibold">Provider Health</h3>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {Object.entries(data.providers || {}).map(([name, provider]) => (
+          {Object.entries(data?.providers || {})?.map(([name, provider]) => (
             <div key={name} className="rounded border border-[var(--border-color)] px-2 py-1 text-sm">
               <div className="font-semibold uppercase">{name}</div>
               <div>Status: {provider?.status || 'unknown'}</div>

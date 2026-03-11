@@ -44,7 +44,7 @@ export default function ScannerPanel() {
         const payload = await apiJSON('/api/signals?limit=120');
         const list = Array.isArray(payload?.signals) ? payload.signals : Array.isArray(payload) ? payload : [];
         if (!cancelled) {
-          setRows(list.map(normalizeRow).filter((row) => row.symbol));
+          setRows(list?.map(normalizeRow).filter((row) => row.symbol));
           setError('');
         }
       } catch {
@@ -117,7 +117,7 @@ export default function ScannerPanel() {
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 60).map((row) => (
+            {filtered.slice(0, 60)?.map((row) => (
               <tr
                 key={`${row.symbol}-${row.score ?? ''}`}
                 onClick={() => setSelectedSymbol(row.symbol)}

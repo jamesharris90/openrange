@@ -18,7 +18,7 @@ function TapeSection({ label, rows = [] }) {
   return (
     <div className="flex items-center gap-3">
       <span className="rounded bg-[rgba(74,158,255,0.18)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-blue)]">{label}</span>
-      {rows.map((row) => {
+      {rows?.map((row) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         const change = Number(row?.change_percent);
         return (

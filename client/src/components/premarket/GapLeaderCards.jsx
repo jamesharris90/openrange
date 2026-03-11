@@ -10,7 +10,7 @@ export default function GapLeaderCards({ leaders = [], selectedSymbol, onSelectS
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {rows.length === 0 ? <div className="muted">No qualifying gap leaders.</div> : null}
-      {rows.map((row) => {
+      {rows?.map((row) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         const active = selectedSymbol === symbol;
         return (

@@ -29,7 +29,7 @@ export default function GapLeaders({ rows = [], onSelectTicker }) {
         </button>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {leaders.map((row) => {
+        {leaders?.map((row) => {
           const symbol = String(row?.symbol || '').toUpperCase();
           const rvol = Number(row?.relative_volume || 0);
           const floatNum = Number(row?.float || 0);

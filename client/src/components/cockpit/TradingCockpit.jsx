@@ -73,7 +73,7 @@ export default function TradingCockpit() {
       <Card className="h-full p-4">
         <h3 className="m-0 mb-3 text-sm font-semibold">Watchlist</h3>
         <div className="mb-3 grid grid-cols-3 gap-2">
-          {watchlistRows.map((symbol) => (
+          {watchlistRows?.map((symbol) => (
             <button
               key={symbol}
               type="button"

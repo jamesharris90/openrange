@@ -14,7 +14,7 @@ function summarizeQueryTree(node) {
   const children = Array.isArray(node.conditions) ? node.conditions : [];
   if (!children.length) return `Composite rule (${op})`;
 
-  const parts = children.slice(0, 2).map((child) => summarizeQueryTree(child));
+  const parts = children.slice(0, 2)?.map((child) => summarizeQueryTree(child));
   const suffix = children.length > 2 ? ` +${children.length - 2} more` : '';
   return `${parts.join(` ${op} `)}${suffix}`;
 }
@@ -48,7 +48,7 @@ export default function AlertsList({
 
   return (
     <div className="space-y-3">
-      {alerts.map((alert) => {
+      {alerts?.map((alert) => {
         const enabled = Boolean(alert?.enabled);
         return (
           <Card

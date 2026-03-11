@@ -357,7 +357,7 @@ export default function Charts() {
             </ButtonSecondary>
 
             <div className="ml-2 flex flex-wrap items-center gap-1 rounded-md bg-[var(--bg-input)] p-1">
-              {TIMEFRAME_BUTTONS.map((item) => (
+              {TIMEFRAME_BUTTONS?.map((item) => (
                 <button
                   key={item.value}
                   type="button"
@@ -384,7 +384,7 @@ export default function Charts() {
 
             {showIndicatorTools ? (
             <div className="flex flex-wrap items-center gap-1 rounded-md bg-[var(--bg-input)] p-1">
-              {INDICATOR_BUTTONS.map((item) => {
+              {INDICATOR_BUTTONS?.map((item) => {
                 const disabled = item.key === 'vwap' && timeframe === '1D';
                 const active = disabled ? false : Boolean(indicatorState[item.key]);
                 return (
@@ -406,7 +406,7 @@ export default function Charts() {
             ) : null}
 
             <div className="flex flex-wrap items-center gap-1 rounded-md border border-white/20 bg-[var(--bg-input)] p-1 text-xs">
-              {OVERLAY_BUTTONS.map((item) => {
+              {OVERLAY_BUTTONS?.map((item) => {
                 const active = item.key in indicatorState
                   ? Boolean(indicatorState[item.key])
                   : Boolean(overlayState[item.key]);
@@ -430,7 +430,7 @@ export default function Charts() {
             </div>
 
             <div className="flex items-center gap-3 rounded-md bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-secondary)]">
-              {[{ key: 'SPY', label: 'SPY' }, { key: 'QQQ', label: 'QQQ' }, { key: 'SECTOR', label: 'Sector ETF (auto)' }].map((item) => {
+              {[{ key: 'SPY', label: 'SPY' }, { key: 'QQQ', label: 'QQQ' }, { key: 'SECTOR', label: 'Sector ETF (auto)' }]?.map((item) => {
                 const disabled = item.key === 'SECTOR' && !sectorEtfSymbol;
                 return (
                   <label key={item.key} className={`inline-flex items-center gap-1 ${disabled ? 'opacity-50' : ''}`}>
@@ -530,7 +530,7 @@ export default function Charts() {
           <div className="rounded border border-white/10 p-2">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Quick Switch</div>
             <div className="space-y-1">
-              {DEFAULT_WATCHLIST.map((item) => (
+              {DEFAULT_WATCHLIST?.map((item) => (
                 <button
                   key={item}
                   type="button"

@@ -52,7 +52,7 @@ export default function AIQuantPage() {
   }, []);
 
   const normalizedRows = useMemo(() => {
-    return rows.map((row) => ({
+    return rows?.map((row) => ({
       symbol: String(row?.symbol || '').toUpperCase(),
       score: row?.score,
       setupType: row?.setup_type || row?.setup,
@@ -102,7 +102,7 @@ export default function AIQuantPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {normalizedRows.map((row) => (
+                    {normalizedRows?.map((row) => (
                       <tr
                         key={`${row.symbol}-${row.setupType || ''}`}
                         onClick={() => setSelectedSymbol(row.symbol)}

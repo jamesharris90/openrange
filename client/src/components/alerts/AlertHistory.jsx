@@ -28,7 +28,7 @@ export default function AlertHistory({ history = [], alertsById = new Map(), loa
 
   return (
     <div className="space-y-3">
-      {history.map((item, index) => {
+      {history?.map((item, index) => {
         const symbol = String(item?.symbol || '').toUpperCase();
         const alertName = alertsById.get(item.alert_id)?.alert_name || 'Alert';
         return (

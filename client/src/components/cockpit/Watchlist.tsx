@@ -51,7 +51,7 @@ export default function Watchlist({ rows, onAdd, onRemove, staticCount, staticMa
   }, [rows, page]);
 
   useEffect(() => {
-    onVisibleSymbolsChange?.(pagedRows.map((row) => row.symbol));
+    onVisibleSymbolsChange?.(pagedRows?.map((row) => row.symbol));
   }, [onVisibleSymbolsChange, pagedRows]);
 
   const handleAdd = () => {
@@ -93,7 +93,7 @@ export default function Watchlist({ rows, onAdd, onRemove, staticCount, staticMa
       </div>
 
       <div className="space-y-1">
-        {pagedRows.map((row) => (
+        {pagedRows?.map((row) => (
           <div
             key={row.symbol}
             onClick={() => setSymbol(row.symbol)}

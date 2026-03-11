@@ -25,7 +25,7 @@ function buildPath(points, width, height) {
   const span = max - min || 1;
 
   return points
-    .map((value, index) => {
+    ?.map((value, index) => {
       const x = (index / Math.max(points.length - 1, 1)) * width;
       const y = height - ((value - min) / span) * (height - 4) - 2;
       return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
@@ -45,7 +45,7 @@ export default function TickerHoverPanel({ symbol, detail }) {
         const payload = await apiJSON(`/api/market/chart-mini/${encodeURIComponent(symbol)}`);
         if (cancelled) return;
         const points = Array.isArray(payload)
-          ? payload.map((row) => Number(row?.value)).filter((value) => Number.isFinite(value))
+          ? payload?.map((row) => Number(row?.value)).filter((value) => Number.isFinite(value))
           : [];
         setMiniPoints(points);
       } catch (_error) {

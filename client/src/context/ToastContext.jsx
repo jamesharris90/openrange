@@ -25,7 +25,7 @@ export function ToastProvider({ children }) {
       {children}
       {toasts.length > 0 && (
         <div className="toast-container">
-          {toasts.map(t => (
+          {toasts?.map(t => (
             <div key={t.id} className={`toast toast--${t.type}`}>
               {t.type === 'success' && <span className="toast-icon">&#10003;</span>}
               {t.type === 'error' && <span className="toast-icon">&#10007;</span>}

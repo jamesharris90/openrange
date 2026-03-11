@@ -30,7 +30,7 @@ export default function AnalyticsTab({ scope }) {
   // 1. Cumulative P&L
   const cumPnl = useMemo(() => {
     let running = 0;
-    return sorted.map(t => {
+    return sorted?.map(t => {
       running += +(t.pnl_dollar || 0);
       return { date: t.closed_at?.slice(0, 10), pnl: +running.toFixed(2) };
     });
@@ -39,7 +39,7 @@ export default function AnalyticsTab({ scope }) {
   // 2. Win Rate Over Time (rolling 10-trade)
   const winRateData = useMemo(() => {
     const window = 10;
-    return sorted.map((t, i) => {
+    return sorted?.map((t, i) => {
       const start = Math.max(0, i - window + 1);
       const slice = sorted.slice(start, i + 1);
       const wins = slice.filter(s => (s.pnl_dollar || 0) > 0).length;
@@ -75,7 +75,7 @@ export default function AnalyticsTab({ scope }) {
 
   // 5. Duration vs P&L (scatter)
   const scatterData = useMemo(() =>
-    sorted.filter(t => t.duration_seconds).map(t => ({
+    sorted.filter(t => t.duration_seconds)?.map(t => ({
       minutes: Math.round(t.duration_seconds / 60),
       pnl: +(t.pnl_dollar || 0),
       symbol: t.symbol,
@@ -92,7 +92,7 @@ export default function AnalyticsTab({ scope }) {
       map[day].pnl += +(t.pnl_dollar || 0);
     }
     return Object.values(map).sort((a, b) => a.date.localeCompare(b.date))
-      .map(d => ({ ...d, pnl: +d.pnl.toFixed(2) }));
+      ?.map(d => ({ ...d, pnl: +d.pnl.toFixed(2) }));
   }, [sorted]);
 
   if (loading) return <div className="muted" style={{ padding: 24 }}>Loading analytics...</div>;
@@ -140,7 +140,7 @@ export default function AnalyticsTab({ scope }) {
             <YAxis tick={chartTheme} />
             <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
             <Bar dataKey="pnl">
-              {setupData.map((d, i) => (
+              {setupData?.map((d, i) => (
                 <Cell key={i} fill={d.pnl >= 0 ? GREEN : RED} />
               ))}
             </Bar>
@@ -158,7 +158,7 @@ export default function AnalyticsTab({ scope }) {
             <YAxis tick={chartTheme} />
             <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
             <Bar dataKey="count">
-              {distribution.map((d, i) => (
+              {distribution?.map((d, i) => (
                 <Cell key={i} fill={d.range >= 0 ? GREEN : RED} />
               ))}
             </Bar>
@@ -176,7 +176,7 @@ export default function AnalyticsTab({ scope }) {
             <YAxis dataKey="pnl" name="P&L" tick={chartTheme} />
             <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
             <Scatter data={scatterData}>
-              {scatterData.map((d, i) => (
+              {scatterData?.map((d, i) => (
                 <Cell key={i} fill={d.pnl >= 0 ? GREEN : RED} />
               ))}
             </Scatter>
@@ -194,7 +194,7 @@ export default function AnalyticsTab({ scope }) {
             <YAxis tick={chartTheme} />
             <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
             <Bar dataKey="pnl">
-              {dailyPnl.map((d, i) => (
+              {dailyPnl?.map((d, i) => (
                 <Cell key={i} fill={d.pnl >= 0 ? GREEN : RED} />
               ))}
             </Bar>

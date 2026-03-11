@@ -70,7 +70,7 @@ export default function Sidebar() {
   const { features, loading } = useFeatureAccess();
 
   const visibleGroups = navGroups
-    .map((group) => ({
+    ?.map((group) => ({
       ...group,
       items: loading
         ? group.items
@@ -96,7 +96,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
-        {visibleGroups.map(({ label: groupLabel, items }) => (
+        {visibleGroups?.map(({ label: groupLabel, items }) => (
           <div key={groupLabel} className="mb-3">
             {!sidebarCollapsed && (
               <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
@@ -104,7 +104,7 @@ export default function Sidebar() {
               </p>
             )}
             <div className="space-y-0.5">
-              {items.map(({ to, label, icon: Icon }) => (
+              {items?.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
                   to={to}

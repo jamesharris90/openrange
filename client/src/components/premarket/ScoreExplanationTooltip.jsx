@@ -15,7 +15,7 @@ export default function ScoreExplanationTooltip({ row }) {
     <div className="invisible absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 text-xs opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
       <div className="mb-2 font-semibold">Score: {Math.round(score)}</div>
       <div className="space-y-1">
-        {breakdown.map((item) => (
+        {breakdown?.map((item) => (
           <div key={item.label} className="flex items-center justify-between">
             <span className="text-[var(--text-muted)]">{item.label}</span>
             <span>+{item.value}</span>

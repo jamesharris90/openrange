@@ -3,7 +3,7 @@ import { apiJSON } from '../../config/api';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
 function parseNarrativeText(text) {
-  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = String(text || '').split('\n')?.map((line) => line.trim()).filter(Boolean);
   const drivers = [];
   const opportunities = [];
   let section = '';
@@ -68,7 +68,7 @@ export default function MarketNarrative() {
           <div className="muted">No active drivers listed.</div>
         ) : (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {parsed.drivers.map((item, idx) => <li key={`drv-${idx}`}>{item}</li>)}
+            {parsed.drivers?.map((item, idx) => <li key={`drv-${idx}`}>{item}</li>)}
           </ul>
         )}
       </div>
@@ -79,7 +79,7 @@ export default function MarketNarrative() {
           <div className="muted">No opportunities listed.</div>
         ) : (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {parsed.opportunities.map((item, idx) => <li key={`opp-${idx}`}>{item}</li>)}
+            {parsed.opportunities?.map((item, idx) => <li key={`opp-${idx}`}>{item}</li>)}
           </ul>
         )}
       </div>

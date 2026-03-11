@@ -15,7 +15,7 @@ export default function TradePlanModal({ plan, onClose }) {
       `Direction: ${plan.direction?.toUpperCase()}`,
       `Entry: $${plan.entry}`,
       `Stop: $${plan.stop} (risk: $${plan.riskPerShare}/share)`,
-      ...plan.targets.map(t => `Target ${t.label}: $${t.price} (${t.rr})`),
+      ...plan.targets?.map(t => `Target ${t.label}: $${t.price} (${t.rr})`),
       `ATR: $${plan.atr} (${plan.atrPercent}%)`,
       plan.expectedMove ? `Expected Move: $${plan.expectedMove}` : '',
       '',
@@ -74,7 +74,7 @@ export default function TradePlanModal({ plan, onClose }) {
             {/* Targets */}
             <div className="aiq-plan-targets">
               <div className="aiq-plan-targets__title">Targets</div>
-              {plan.targets.map(t => (
+              {plan.targets?.map(t => (
                 <div key={t.label} className="aiq-plan-target">
                   <span className="aiq-plan-target__label">{t.label}</span>
                   <span className="aiq-plan-target__price">${t.price}</span>
@@ -94,7 +94,7 @@ export default function TradePlanModal({ plan, onClose }) {
               <div className="aiq-plan-notes">
                 <div className="aiq-plan-notes__title">Strategy Notes</div>
                 <ul>
-                  {plan.notes.map((n, i) => <li key={i}>{n}</li>)}
+                  {plan.notes?.map((n, i) => <li key={i}>{n}</li>)}
                 </ul>
               </div>
             )}

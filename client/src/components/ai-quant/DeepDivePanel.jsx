@@ -111,10 +111,10 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
 
   // Strategy Score breakdown (from row data)
   const strategyBreakdown = rowData?.breakdown && typeof rowData.breakdown === 'object'
-    ? Object.fromEntries(Object.entries(rowData.breakdown).map(([k, v]) => [k, typeof v === 'object' ? v.pts : v]))
+    ? Object.fromEntries(Object.entries(rowData.breakdown)?.map(([k, v]) => [k, typeof v === 'object' ? v.pts : v]))
     : null;
   const strategyMaxMap = rowData?.breakdown && typeof rowData.breakdown === 'object'
-    ? Object.fromEntries(Object.entries(rowData.breakdown).map(([k, v]) => [k, typeof v === 'object' ? v.max : 20]))
+    ? Object.fromEntries(Object.entries(rowData.breakdown)?.map(([k, v]) => [k, typeof v === 'object' ? v.max : 20]))
     : {};
 
   // Setup Score (from earnings-research API)
@@ -132,13 +132,13 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
   // Catalyst Score (normalized to 0-100)
   const catalystScore = catalyst ? Math.round((catalyst.score / catalyst.max) * 100) : null;
   const catalystBreakdown = catalyst?.breakdown
-    ? Object.fromEntries(catalyst.breakdown.map(b => [b.factor, b.pts]))
+    ? Object.fromEntries(catalyst.breakdown?.map(b => [b.factor, b.pts]))
     : null;
   const catalystMaxMap = catalyst?.breakdown
-    ? Object.fromEntries(catalyst.breakdown.map(b => [b.factor, b.max]))
+    ? Object.fromEntries(catalyst.breakdown?.map(b => [b.factor, b.max]))
     : {};
   const catalystLabels = catalyst?.breakdown
-    ? Object.fromEntries(catalyst.breakdown.map(b => [b.factor, b.factor]))
+    ? Object.fromEntries(catalyst.breakdown?.map(b => [b.factor, b.factor]))
     : {};
 
   const warningFlags = riskFlags.filter(f => f.level !== 'positive');
@@ -146,7 +146,7 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
 
   // Performance pills from Finviz row data (ORB and continuation modules)
   const perfData = (activeStrategy === 'orb' || activeStrategy === 'continuation') && rowData
-    ? PERF_KEYS.map(({ key, label }) => {
+    ? PERF_KEYS?.map(({ key, label }) => {
         const raw = rowData[key];
         if (raw == null || raw === '') return null;
         const val = typeof raw === 'string' ? parseFloat(raw.replace('%', '')) : Number(raw);
@@ -183,8 +183,8 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
         <div className="aiq-dd-content">
           {/* Price Header + Tier */}
           <div className="aiq-dd-price-header">
-            <span className="aiq-dd-price">{fmtCurrency(data.price)}</span>
-            <span className="aiq-dd-name">{data.name}</span>
+            <span className="aiq-dd-price">{fmtCurrency(data?.price)}</span>
+            <span className="aiq-dd-name">{data?.name}</span>
             {rowData && <ConfidenceTierBadge tier={rowData.confidenceTier} />}
             {rowData && <DataQualityDot quality={rowData.dataQuality} />}
           </div>
@@ -235,7 +235,7 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
           {/* Performance Row */}
           {perfData.length > 0 && (
             <div className="aiq-dd-perf-row">
-              {perfData.map((p, i) => (
+              {perfData?.map((p, i) => (
                 <span key={i} className="aiq-dd-perf-pill" style={{
                   color: p.val > 0 ? 'var(--accent-green)' : p.val < 0 ? 'var(--accent-red)' : 'var(--text-muted)',
                   borderColor: p.val > 0 ? 'var(--accent-green)' : p.val < 0 ? 'var(--accent-red)' : 'var(--border-color)'
@@ -255,7 +255,7 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
                 Bullish Signals
               </div>
               <div className="aiq-risk-flags">
-                {bullishSignals.map((flag, i) => {
+                {bullishSignals?.map((flag, i) => {
                   const { color, icon: FlagIcon } = FLAG_STYLES.positive;
                   return (
                     <div key={i} className="aiq-risk-flag" style={{ borderLeftColor: color }}>
@@ -273,7 +273,7 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Risk Flags</div>
               <div className="aiq-risk-flags">
-                {warningFlags.map((flag, i) => {
+                {warningFlags?.map((flag, i) => {
                   const { color, icon: FlagIcon } = FLAG_STYLES[flag.level] || FLAG_STYLES.low;
                   return (
                     <div key={i} className="aiq-risk-flag" style={{ borderLeftColor: color }}>
@@ -287,36 +287,36 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
           )}
 
           {/* Company Snapshot */}
-          {data.company && (
+          {data?.company && (
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Company</div>
               <div className="aiq-dd-grid">
-                <StatRow label="Sector" value={data.company.sector || '—'} />
-                <StatRow label="Industry" value={data.company.industry || '—'} />
-                <StatRow label="Market Cap" value={fmtMktCap(data.company.marketCap)} />
-                <StatRow label="Avg Volume" value={fmtVol(data.company.avgVolume)} />
-                <StatRow label="Float" value={data.company.floatShares ? fmtVol(data.company.floatShares) : '—'}
+                <StatRow label="Sector" value={data?.company.sector || '—'} />
+                <StatRow label="Industry" value={data?.company.industry || '—'} />
+                <StatRow label="Market Cap" value={fmtMktCap(data?.company.marketCap)} />
+                <StatRow label="Avg Volume" value={fmtVol(data?.company.avgVolume)} />
+                <StatRow label="Float" value={data?.company.floatShares ? fmtVol(data?.company.floatShares) : '—'}
                   tooltip={TOOLTIPS.float} />
-                <StatRow label="Short %" value={data.company.shortPercentOfFloat ? `${data.company.shortPercentOfFloat}%` : '—'}
+                <StatRow label="Short %" value={data?.company.shortPercentOfFloat ? `${data?.company.shortPercentOfFloat}%` : '—'}
                   tooltip={TOOLTIPS.short} />
-                <StatRow label="Beta" value={data.company.beta?.toFixed(2) || '—'}
+                <StatRow label="Beta" value={data?.company.beta?.toFixed(2) || '—'}
                   tooltip={TOOLTIPS.beta} />
               </div>
             </div>
           )}
 
           {/* Technicals */}
-          {data.technicals?.available && (
+          {data?.technicals?.available && (
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Technicals</div>
               <div className="aiq-dd-grid">
-                <StatRow label="Trend" value={data.technicals.trend} valueColor={data.technicals.trend === 'bullish' ? 'var(--accent-green)' : data.technicals.trend === 'bearish' ? 'var(--accent-red)' : undefined} />
-                <StatRow label="RSI(14)" value={data.technicals.rsi?.toFixed(1) || '—'}
+                <StatRow label="Trend" value={data?.technicals.trend} valueColor={data?.technicals.trend === 'bullish' ? 'var(--accent-green)' : data?.technicals.trend === 'bearish' ? 'var(--accent-red)' : undefined} />
+                <StatRow label="RSI(14)" value={data?.technicals.rsi?.toFixed(1) || '—'}
                   tooltip={TOOLTIPS.rsi} />
-                <StatRow label="ATR(14)" value={data.technicals.atr ? `$${data.technicals.atr.toFixed(2)} (${data.technicals.atrPercent}%)` : '—'}
+                <StatRow label="ATR(14)" value={data?.technicals.atr ? `$${data?.technicals.atr.toFixed(2)} (${data?.technicals.atrPercent}%)` : '—'}
                   tooltip={TOOLTIPS.atr} />
-                <StatRow label="vs 20-SMA" value={data.technicals.distSMA20 != null ? `${data.technicals.distSMA20 > 0 ? '+' : ''}${data.technicals.distSMA20}%` : '—'} />
-                <StatRow label="vs 50-SMA" value={data.technicals.distSMA50 != null ? `${data.technicals.distSMA50 > 0 ? '+' : ''}${data.technicals.distSMA50}%` : '—'} />
+                <StatRow label="vs 20-SMA" value={data?.technicals.distSMA20 != null ? `${data?.technicals.distSMA20 > 0 ? '+' : ''}${data?.technicals.distSMA20}%` : '—'} />
+                <StatRow label="vs 50-SMA" value={data?.technicals.distSMA50 != null ? `${data?.technicals.distSMA50 > 0 ? '+' : ''}${data?.technicals.distSMA50}%` : '—'} />
               </div>
               {/* 52W Range Slider */}
               {has52wRange && (
@@ -338,45 +338,45 @@ export default function DeepDivePanel({ ticker, onClose, onBuildPlan, activeStra
           )}
 
           {/* Expected Move */}
-          {data.expectedMove?.available && (
+          {data?.expectedMove?.available && (
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Expected Move</div>
               <div className="aiq-dd-grid">
-                <StatRow label="Straddle" value={`$${data.expectedMove.straddle}`} />
-                <StatRow label="Exp Move" value={`±$${data.expectedMove.expectedMove} (${data.expectedMove.expectedMovePercent}%)`} />
-                <StatRow label="IV" value={data.expectedMove.ivPercent ? `${data.expectedMove.ivPercent}%` : '—'}
+                <StatRow label="Straddle" value={`$${data?.expectedMove.straddle}`} />
+                <StatRow label="Exp Move" value={`±$${data?.expectedMove.expectedMove} (${data?.expectedMove.expectedMovePercent}%)`} />
+                <StatRow label="IV" value={data?.expectedMove.ivPercent ? `${data?.expectedMove.ivPercent}%` : '—'}
                   tooltip={TOOLTIPS.iv} />
-                <StatRow label="Range" value={`$${data.expectedMove.rangeLow} – $${data.expectedMove.rangeHigh}`} />
+                <StatRow label="Range" value={`$${data?.expectedMove.rangeLow} – $${data?.expectedMove.rangeHigh}`} />
               </div>
             </div>
           )}
 
           {/* Earnings */}
-          {data.earnings && (
+          {data?.earnings && (
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Earnings</div>
               <div className="aiq-dd-grid">
-                <StatRow label="Next Date" value={fmtEarningsDate(data.earnings.earningsDate)} />
-                <StatRow label="EPS Est" value={data.earnings.epsEstimate != null ? `$${data.earnings.epsEstimate.toFixed(2)}` : '—'} />
-                <StatRow label="Beats" value={data.earnings.beatsInLast4 != null ? `${data.earnings.beatsInLast4}/4` : '—'} />
-                <StatRow label="Rev Growth" value={data.earnings.revenueGrowth != null ? `${data.earnings.revenueGrowth}%` : '—'} />
+                <StatRow label="Next Date" value={fmtEarningsDate(data?.earnings.earningsDate)} />
+                <StatRow label="EPS Est" value={data?.earnings.epsEstimate != null ? `$${data?.earnings.epsEstimate.toFixed(2)}` : '—'} />
+                <StatRow label="Beats" value={data?.earnings.beatsInLast4 != null ? `${data?.earnings.beatsInLast4}/4` : '—'} />
+                <StatRow label="Rev Growth" value={data?.earnings.revenueGrowth != null ? `${data?.earnings.revenueGrowth}%` : '—'} />
               </div>
             </div>
           )}
 
           {/* Sentiment */}
-          {data.sentiment && (
+          {data?.sentiment && (
             <div className="aiq-dd-section">
               <div className="aiq-dd-section__title">Sentiment</div>
               <div className="aiq-dd-grid">
                 {(() => {
-                  const r = fmtRating(data.sentiment.recommendationKey);
+                  const r = fmtRating(data?.sentiment.recommendationKey);
                   return <StatRow label="Rating" value={r.label} valueColor={r.color} />;
                 })()}
-                <StatRow label="# Analysts" value={data.sentiment.numberOfAnalysts ?? '—'} />
-                <StatRow label="Target" value={data.sentiment.targetMeanPrice ? fmtCurrency(data.sentiment.targetMeanPrice) : '—'} />
-                <StatRow label="Upside" value={data.sentiment.targetVsPrice != null ? `${data.sentiment.targetVsPrice > 0 ? '+' : ''}${data.sentiment.targetVsPrice}%` : '—'}
-                  valueColor={data.sentiment.targetVsPrice > 0 ? 'var(--accent-green)' : data.sentiment.targetVsPrice < 0 ? 'var(--accent-red)' : undefined}
+                <StatRow label="# Analysts" value={data?.sentiment.numberOfAnalysts ?? '—'} />
+                <StatRow label="Target" value={data?.sentiment.targetMeanPrice ? fmtCurrency(data?.sentiment.targetMeanPrice) : '—'} />
+                <StatRow label="Upside" value={data?.sentiment.targetVsPrice != null ? `${data?.sentiment.targetVsPrice > 0 ? '+' : ''}${data?.sentiment.targetVsPrice}%` : '—'}
+                  valueColor={data?.sentiment.targetVsPrice > 0 ? 'var(--accent-green)' : data?.sentiment.targetVsPrice < 0 ? 'var(--accent-red)' : undefined}
                   tooltip={TOOLTIPS.upside} />
               </div>
             </div>

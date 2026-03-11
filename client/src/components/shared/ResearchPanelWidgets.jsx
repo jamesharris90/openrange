@@ -66,7 +66,7 @@ export function ScoreGauge({ score = 0, breakdown, maxPerCategory, labels }) {
       <div className="erp-score__label" style={{ color }}>{getLabel(clampedScore)}</div>
       {breakdown && typeof breakdown === 'object' && (
         <div className="erp-score__breakdown">
-          {Object.entries(breakdown).map(([key, val]) => {
+          {Object.entries(breakdown)?.map(([key, val]) => {
             const numVal = Number(val) || 0;
             const maxVal = maxMap[key] || 20;
             return (
@@ -131,7 +131,7 @@ export function MiniScoreGauge({ score = 0, label = 'Score', breakdown, maxPerCa
       {showPopover && breakdown && typeof breakdown === 'object' && (
         <div className="mini-score-gauge__popover" onClick={e => e.stopPropagation()}>
           <div className="mini-score-gauge__popover-title">{label} Breakdown</div>
-          {Object.entries(breakdown).map(([key, val]) => {
+          {Object.entries(breakdown)?.map(([key, val]) => {
             const numVal = Number(val) || 0;
             const maxVal = maxMap[key] || 20;
             return (
@@ -186,7 +186,7 @@ export function StatRow({ label, value, color }) {
 export function LoadingSkeleton() {
   return (
     <div className="erp-loading">
-      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+      {[1, 2, 3, 4, 5, 6, 7, 8]?.map(i => (
         <div key={i} className="erp-skeleton" style={{ height: 18, width: `${50 + Math.random() * 50}%` }} />
       ))}
     </div>

@@ -16,7 +16,7 @@ function highlightKeywords(text) {
   const value = String(text || '');
   if (!value) return '--';
   const regex = new RegExp(`(${KEYWORDS.join('|')})`, 'ig');
-  return value.split(regex).map((part, index) => {
+  return value.split(regex)?.map((part, index) => {
     const hit = KEYWORDS.some((word) => word.toLowerCase() === part.toLowerCase());
     return hit
       ? <mark key={`${part}-${index}`} className="rounded bg-amber-300/30 px-1 text-amber-200">{part}</mark>
@@ -59,7 +59,7 @@ export default function NewsPanel() {
       </div>
 
       <div className="space-y-2">
-        {rows.map((item, index) => (
+        {rows?.map((item, index) => (
           <article key={`${item?.url || 'news'}-${index}`} className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3 text-xs">
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="font-semibold text-[var(--text-secondary)]">{item?.source || 'source'}</span>

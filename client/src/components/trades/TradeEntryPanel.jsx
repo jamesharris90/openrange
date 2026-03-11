@@ -43,7 +43,7 @@ export default function TradeEntryPanel({ onSaved, onClose }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to save trade');
+        throw new Error(data?.error || 'Failed to save trade');
       }
       success('Trade logged successfully');
       setForm({ symbol: '', side: 'long', entryPrice: '', exitPrice: '', qty: '', commission: '', openedAt: new Date().toISOString().slice(0, 16), closedAt: '', setupType: '', conviction: '', notes: '' });
@@ -110,7 +110,7 @@ export default function TradeEntryPanel({ onSaved, onClose }) {
               <label className="profile-label">Setup Type</label>
               <select className="profile-select" value={form.setupType} onChange={e => update('setupType', e.target.value)}>
                 <option value="">—</option>
-                {SETUP_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                {SETUP_TYPES?.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div className="profile-field">

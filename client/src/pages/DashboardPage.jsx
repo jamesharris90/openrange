@@ -100,7 +100,7 @@ export default function DashboardPage() {
 
   const opportunities = useMemo(() => {
     return setups
-      .map((row) => {
+      ?.map((row) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         const metric = metricsBySymbol.get(symbol) || {};
         return {
@@ -197,7 +197,7 @@ export default function DashboardPage() {
             ) : (
               <>
               <div className="space-y-2 md:hidden">
-                {opportunities.map((row) => (
+                {opportunities?.map((row) => (
                   <div key={`m-${row.symbol}-${row.setupType}`} className="rounded border border-[var(--border-color)] p-2 text-xs">
                     <div className="flex items-center justify-between">
                       <TickerLink symbol={row.symbol} />
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {opportunities.map((row) => (
+                    {opportunities?.map((row) => (
                       <tr key={`${row.symbol}-${row.setupType}`}>
                         <td><TickerLink symbol={row.symbol} /></td>
                         <td>{row.setupType}</td>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                 <div className="muted">No catalysts available.</div>
               ) : (
                 <div className="space-y-2">
-                  {catalysts.slice(0, 12).map((item, idx) => (
+                  {catalysts.slice(0, 12)?.map((item, idx) => (
                     <div key={`${item.symbol}-${item.published_at || idx}`} className="rounded border border-[var(--border-color)] p-2">
                       <div className="flex items-center justify-between">
                         <TickerLink symbol={item.symbol} />

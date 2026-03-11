@@ -32,7 +32,7 @@ function SectorPerformance() {
   return (
     <div className="aiq-sectors">
       <div className="aiq-section-label">Sector Performance</div>
-      {visible.map(s => (
+      {visible?.map(s => (
         <div key={s.etf} className="aiq-sector-row">
           <span className="aiq-sector-row__name">{s.sector}</span>
           <span className="aiq-sector-row__etf">{s.etf}</span>
@@ -83,13 +83,13 @@ export default function MarketContextPanel() {
       {/* Bias Reasons */}
       {biasReasons?.length > 0 && (
         <ul className="aiq-bias-reasons">
-          {biasReasons.map((r, i) => <li key={i}>{r}</li>)}
+          {biasReasons?.map((r, i) => <li key={i}>{r}</li>)}
         </ul>
       )}
 
       {/* Index Prices */}
       <div className="aiq-indices">
-        {(indices || []).map(idx => {
+        {(indices || [])?.map(idx => {
           if (idx.error) return <div key={idx.ticker} className="aiq-index-row aiq-index-row--error">{idx.ticker}: unavailable</div>;
           const isUp = idx.changePercent >= 0;
           return (
@@ -108,7 +108,7 @@ export default function MarketContextPanel() {
       {technicals && Object.keys(technicals).length > 0 && (
         <div className="aiq-technicals">
           <div className="aiq-section-label">Technicals</div>
-          {Object.entries(technicals).map(([sym, t]) => (
+          {Object.entries(technicals)?.map(([sym, t]) => (
             <div key={sym} className="aiq-tech-row">
               <span className="aiq-tech-row__sym">{sym}</span>
               <div className="aiq-tech-row__mas">

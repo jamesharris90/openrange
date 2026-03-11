@@ -8,7 +8,7 @@ function SelectField({ label, value, options, onChange }) {
       <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
       <select className="input-field h-9 w-full" value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">Any</option>
-        {options.map((option) => (
+        {options?.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
@@ -40,7 +40,7 @@ export default function StructuredFilters({ values, onChange, onApply, onClear, 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {tabs.map((tab) => (
+        {tabs?.map((tab) => (
           <button
             key={tab}
             type="button"
@@ -56,7 +56,7 @@ export default function StructuredFilters({ values, onChange, onApply, onClear, 
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {visibleFilters.map((filter) => {
+        {visibleFilters?.map((filter) => {
           if (filter.type === 'number') {
             return (
               <SelectField

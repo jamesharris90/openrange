@@ -10,7 +10,7 @@ const TAGS = [
 
 function inferTags(row) {
   const text = `${row?.catalyst_type || ''} ${row?.headline || ''}`.toLowerCase();
-  return TAGS.filter((tag) => text.includes(tag.key)).map((tag) => tag.label);
+  return TAGS.filter((tag) => text.includes(tag.key))?.map((tag) => tag.label);
 }
 
 export default function CatalystCards({ catalysts = [], onSelectSymbol }) {
@@ -19,7 +19,7 @@ export default function CatalystCards({ catalysts = [], onSelectSymbol }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {rows.length === 0 ? <div className="muted">No catalysts available.</div> : null}
-      {rows.map((row, idx) => {
+      {rows?.map((row, idx) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         const tone = sentimentTone(row?.sentiment);
         const tags = inferTags(row);
@@ -43,7 +43,7 @@ export default function CatalystCards({ catalysts = [], onSelectSymbol }) {
             </div>
             <div className="mt-1 text-sm">{row?.headline || 'No headline summary available.'}</div>
             <div className="mt-2 flex flex-wrap gap-1">
-              {(tags.length ? tags : ['Catalyst']).map((tag) => (
+              {(tags.length ? tags : ['Catalyst'])?.map((tag) => (
                 <span key={`${symbol}-${tag}`} className="rounded px-2 py-1 text-xs" style={{ border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}>
                   {tag}
                 </span>

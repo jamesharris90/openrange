@@ -30,7 +30,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
         const calendar = Array.isArray(resp) ? resp : (resp.earnings || []);
         const entries = calendar.filter(e => e.symbol).slice(0, 120);
 
-        const symbolList = Array.from(new Set(entries.map((entry) => String(entry.symbol || '').trim().toUpperCase()).filter(Boolean)));
+        const symbolList = Array.from(new Set(entries?.map((entry) => String(entry.symbol || '').trim().toUpperCase()).filter(Boolean)));
         let technicalBySymbol = {};
         try {
           const techResp = await authFetch('/api/v3/screener/technical?limit=3000');
@@ -52,7 +52,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
         for (let i = 0; i < entries.length; i += 8) {
           const batch = entries.slice(i, i + 8);
           const results = await Promise.allSettled(
-            batch.map(e =>
+            batch?.map(e =>
               authFetch(`/api/options/expected-move/${encodeURIComponent(e.symbol)}`)
                 .then(r => r.ok ? r.json() : null)
             )
@@ -88,7 +88,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
           });
         }
 
-        const scored = enriched.map(row => {
+        const scored = enriched?.map(row => {
           const result = computeEarningsMomentumScore(row);
           return { ...row, score: result.score, breakdown: result.breakdown, dataQuality: result.dataQuality };
         });
@@ -137,7 +137,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
       <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>{error}</div>
     </div>
   );
-  if (!data.length) return (
+  if (!data?.length) return (
     <div className="aiq-module-empty">
       <div>No earnings events found for the next 14 days.</div>
       <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Data requires FMP_API_KEY or a populated earnings_events database table.</div>
@@ -148,7 +148,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
     <div className="aiq-module">
       <div className="aiq-module__bar">
         <span className="aiq-module__universe">📅 Universe: Earnings Calendar · Next 14 Days · Options-Enriched</span>
-        <span className="aiq-module__count">{sorted.length} / {data.length}</span>
+        <span className="aiq-module__count">{sorted.length} / {data?.length}</span>
       </div>
       <ExportButtons
         data={sorted}
@@ -181,7 +181,7 @@ export default function EarningsModule({ onSelectTicker, filters, selected, onTo
             </tr>
           </thead>
           <tbody>
-            {sorted.map(row => (
+            {sorted?.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
                 <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>

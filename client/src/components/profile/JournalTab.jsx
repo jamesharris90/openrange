@@ -73,7 +73,7 @@ export default function JournalTab({ scope }) {
   return (
     <div>
       <div className="journal-filters">
-        {FILTERS.map(f => (
+        {FILTERS?.map(f => (
           <button key={f} className={`filter-btn${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>

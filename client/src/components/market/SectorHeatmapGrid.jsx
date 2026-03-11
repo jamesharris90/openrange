@@ -37,7 +37,7 @@ export default function SectorHeatmapGrid() {
         const next = sectors.flatMap((sector) => {
           const leaders = Array.isArray(sector?.tickers) ? sector.tickers : [];
           const sectorVolume = Number(sector?.market_cap || 0);
-          return leaders.map((leader) => ({
+          return leaders?.map((leader) => ({
             sector: sector?.sector || 'Unknown',
             symbol: String(leader?.symbol || '').toUpperCase(),
             change_percent: Number(leader?.price_change || 0),
@@ -61,7 +61,7 @@ export default function SectorHeatmapGrid() {
 
   if (!tiles.length) return <div className="muted">No sector tiles available.</div>;
 
-  const maxWeight = useMemo(() => Math.max(...tiles.map((tile) => Number(tile.market_cap_weight || 0)), 1), [tiles]);
+  const maxWeight = useMemo(() => Math.max(...tiles?.map((tile) => Number(tile.market_cap_weight || 0)), 1), [tiles]);
 
   function goToSector(sector, symbol) {
     if (symbol) setSelectedSymbol(String(symbol).toUpperCase());
@@ -70,7 +70,7 @@ export default function SectorHeatmapGrid() {
 
   return (
     <div className="grid auto-rows-[88px] grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-      {tiles.map((tile) => (
+      {tiles?.map((tile) => (
         <button
           key={`${tile.sector}-${tile.symbol}`}
           type="button"

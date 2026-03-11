@@ -56,14 +56,14 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
         if (cancelled) return;
         const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
         const scored = rows
-          .map(mapCanonicalToFinvizRow)
+          ?.map(mapCanonicalToFinvizRow)
           .filter((rawRow) => {
             const s20 = parsePct(rawRow.SMA20);
             const s50 = parsePct(rawRow.SMA50);
             return s20 != null && s20 > 0 && s50 != null && s50 > 0;
           })
           .slice(0, 100)
-          .map(rawRow => {
+          ?.map(rawRow => {
           const row = normalizeFinvizRow(rawRow);
           const result = computeContinuationScore(row);
           return {
@@ -118,13 +118,13 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
 
   if (loading) return <div className="aiq-module-loading">Scanning continuation setups…</div>;
   if (error) return <div className="aiq-module-error">Error: {error}</div>;
-  if (!data.length) return <div className="aiq-module-empty">No continuation candidates found.</div>;
+  if (!data?.length) return <div className="aiq-module-empty">No continuation candidates found.</div>;
 
   return (
     <div className="aiq-module">
       <div className="aiq-module__bar">
         <span className="aiq-module__universe">Continuation Universe: Above 20 &amp; 50 SMA · Avg Vol &gt; 500K</span>
-        <span className="aiq-module__count">{sorted.length} / {data.length}</span>
+        <span className="aiq-module__count">{sorted.length} / {data?.length}</span>
       </div>
       <ExportButtons
         data={sorted}
@@ -157,7 +157,7 @@ export default function ContinuationModule({ onSelectTicker, filters, selected, 
             </tr>
           </thead>
           <tbody>
-            {sorted.map(row => (
+            {sorted?.map(row => (
               <tr key={row.ticker} className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}
                 onClick={() => onSelectTicker?.(row.ticker)}>
                 <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>

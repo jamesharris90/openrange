@@ -27,7 +27,7 @@ export default function MomentumLeaders({ rows = [], onSelectSymbol }) {
             </tr>
           </thead>
           <tbody>
-            {leaders.map((row) => (
+            {leaders?.map((row) => (
               <tr key={String(row?.symbol || '')}>
                 <td>
                   <button type="button" className="font-semibold" style={{ color: 'var(--accent-blue)' }} onClick={() => onSelectSymbol?.(String(row?.symbol || '').toUpperCase())}>

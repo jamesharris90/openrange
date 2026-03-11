@@ -4,13 +4,13 @@ import { apiJSON } from '../../config/api';
 
 function normalizePoints(points) {
   if (!Array.isArray(points) || points.length < 2) return [50, 52, 49, 54, 58, 55, 60];
-  const numbers = points.map((value) => Number(value)).filter((value) => Number.isFinite(value));
+  const numbers = points?.map((value) => Number(value)).filter((value) => Number.isFinite(value));
   return numbers.length >= 2 ? numbers : [50, 52, 49, 54, 58, 55, 60];
 }
 
 function buildFromCandles(candles) {
   const values = (Array.isArray(candles) ? candles : [])
-    .map((candle) => Number(candle?.close))
+    ?.map((candle) => Number(candle?.close))
     .filter((value) => Number.isFinite(value));
   return values.length >= 2 ? values.slice(-80) : null;
 }
@@ -18,7 +18,7 @@ function buildFromCandles(candles) {
 function buildFromMiniSeries(payload) {
   const rows = Array.isArray(payload) ? payload : [];
   const values = rows
-    .map((row) => Number(row?.value))
+    ?.map((row) => Number(row?.value))
     .filter((value) => Number.isFinite(value));
   return values.length >= 2 ? values.slice(-80) : null;
 }
@@ -99,7 +99,7 @@ export default function SparklineMini({ points, symbol, width = 84, height = 24,
       if (cancelled || !seriesRef.current) return;
 
       seriesRef.current.setData(
-        source.map((value, index) => ({
+        source?.map((value, index) => ({
           time: index + 1,
           value,
         }))

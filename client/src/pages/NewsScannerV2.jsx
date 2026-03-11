@@ -72,7 +72,7 @@ function NewsScannerV2() {
   const normalizedSymbols = useMemo(
     () => String(appliedFilters.symbols || '')
       .split(',')
-      .map((value) => value.trim().toUpperCase())
+      ?.map((value) => value.trim().toUpperCase())
       .filter(Boolean),
     [appliedFilters.symbols]
   );
@@ -154,14 +154,14 @@ function NewsScannerV2() {
           <label className="muted text-sm">Freshness
             <select value={filters.freshness} onChange={(e) => setFilters((prev) => ({ ...prev, freshness: e.target.value }))}>
               <option value="">Any</option>
-              {FRESHNESS_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              {FRESHNESS_OPTIONS?.map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
           </label>
 
           <label className="muted text-sm">Catalyst
             <select value={filters.catalyst} onChange={(e) => setFilters((prev) => ({ ...prev, catalyst: e.target.value }))}>
               <option value="">Any</option>
-              {CATALYST_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              {CATALYST_OPTIONS?.map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
           </label>
 
@@ -218,7 +218,7 @@ function NewsScannerV2() {
         {loading && <LoadingSpinner message="Loading news intelligence…" />}
         {!loading && rows.length === 0 && <div className="ns-state-empty">No results for current filters.</div>}
         <div className="news-list ns-news-list">
-          {rows.map((item) => {
+          {rows?.map((item) => {
             const band = scoreBand(Number(item.news_score) || 0);
             const publishedTs = item.publishedAt ? new Date(item.publishedAt) : null;
 

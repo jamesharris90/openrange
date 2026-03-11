@@ -127,7 +127,7 @@ export { STRATEGIES };
 export default function StrategyChips({ active, onSelect }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 py-1">
-      {STRATEGIES.map(s => {
+      {STRATEGIES?.map(s => {
         const isActive = active === s.id;
         return (
           <button

@@ -43,7 +43,7 @@ export default function ScreenerModule({
         const rows = Array.isArray(payload?.data) ? payload.data
           : Array.isArray(payload) ? payload : [];
 
-        const normalized = rows.map(r => ({
+        const normalized = rows?.map(r => ({
           ticker: String(r.symbol || '').toUpperCase(),
           name: r.name || null,
           sector: r.sector || null,
@@ -73,7 +73,7 @@ export default function ScreenerModule({
 
   // Apply strategy chip filter
   const strategyFiltered = useMemo(
-    () => strategyFilter ? data.filter(strategyFilter) : data,
+    () => strategyFilter ? data?.filter(strategyFilter) : data,
     [data, strategyFilter]
   );
 
@@ -121,7 +121,7 @@ export default function ScreenerModule({
       <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>{error}</div>
     </div>
   );
-  if (!data.length) return (
+  if (!data?.length) return (
     <div className="aiq-module-empty">
       <div>No data in screener universe.</div>
       <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>
@@ -134,10 +134,10 @@ export default function ScreenerModule({
     <div className="aiq-module">
       <div className="aiq-module__bar">
         <span className="aiq-module__universe">
-          📊 Universe: Full Market · {data.length.toLocaleString()} stocks
+          📊 Universe: Full Market · {data?.length.toLocaleString()} stocks
         </span>
         <span className="aiq-module__count">
-          {filtered.length.toLocaleString()} / {data.length.toLocaleString()}
+          {filtered.length.toLocaleString()} / {data?.length.toLocaleString()}
         </span>
       </div>
 
@@ -174,7 +174,7 @@ export default function ScreenerModule({
             </tr>
           </thead>
           <tbody>
-            {visible.map(row => (
+            {visible?.map(row => (
               <tr
                 key={row.ticker}
                 className={`aiq-row ${selected?.has(row.ticker) ? 'aiq-row--selected' : ''}`}

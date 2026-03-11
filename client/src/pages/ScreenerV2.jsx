@@ -91,10 +91,10 @@ const COLUMN_GROUPS = {
 };
 
 const ALL_COLUMNS = Object.entries(COLUMN_GROUPS).flatMap(([group, cols]) =>
-  cols.map(col => ({ ...col, group }))
+  cols?.map(col => ({ ...col, group }))
 );
 
-const COL_MAP = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, c]));
+const COL_MAP = Object.fromEntries(ALL_COLUMNS?.map(c => [c.key, c]));
 
 const DEFAULT_VISIBLE = [
   'symbol', 'price', 'changePercent', 'gapPercent',
@@ -324,7 +324,7 @@ export default function ScreenerV2() {
       // Detect newly-appearing symbols (only meaningful on same page/filters)
       if (prevSymbolsRef.current.size > 0 && silent) {
         const prevSet = prevSymbolsRef.current;
-        const appeared = newRows.filter(r => !prevSet.has(r.symbol)).map(r => r.symbol);
+        const appeared = newRows.filter(r => !prevSet.has(r.symbol))?.map(r => r.symbol);
         if (appeared.length > 0) {
           const now = Date.now();
           setHighlighted(prev => {
@@ -337,7 +337,7 @@ export default function ScreenerV2() {
           });
         }
       }
-      prevSymbolsRef.current = new Set(newRows.map(r => r.symbol));
+      prevSymbolsRef.current = new Set(newRows?.map(r => r.symbol));
 
       setRows(newRows);
       setTotalCount(Number.isFinite(payload.total) ? payload.total : 0);
@@ -537,7 +537,7 @@ export default function ScreenerV2() {
                 value={filters.exchange}
                 onChange={e => setFilters(p => ({ ...p, exchange: e.target.value }))}
               >
-                {EXCHANGE_OPTIONS.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+                {EXCHANGE_OPTIONS?.map(ex => <option key={ex} value={ex}>{ex}</option>)}
               </select>
             </div>
             {[
@@ -548,7 +548,7 @@ export default function ScreenerV2() {
               { f: 'minChangePercent',  lb: 'Min Chg %',   ph: '2'       },
               { f: 'minRelativeVolume', lb: 'Min RVOL',    ph: '1.5'     },
               { f: 'minGapPercent',     lb: 'Min Gap %',   ph: '3'       },
-            ].map(({ f, lb, ph }) => (
+            ]?.map(({ f, lb, ph }) => (
               <div key={f}>
                 <label className={LABEL_CLS}>{lb}</label>
                 <input
@@ -611,13 +611,13 @@ export default function ScreenerV2() {
                 className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl z-30 p-4 max-h-[75vh] overflow-y-auto"
                 onMouseLeave={() => setShowColMenu(false)}
               >
-                {Object.entries(COLUMN_GROUPS).map(([group, cols]) => (
+                {Object.entries(COLUMN_GROUPS)?.map(([group, cols]) => (
                   <div key={group} className="mb-3 last:mb-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                       {group}
                     </p>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-                      {cols.map(col => (
+                      {cols?.map(col => (
                         <label
                           key={col.key}
                           className="flex items-center gap-1.5 py-0.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer hover:text-indigo-500 dark:hover:text-indigo-400"
@@ -653,7 +653,7 @@ export default function ScreenerV2() {
                 <tr>
                   {/* Star column */}
                   <th className="w-8 px-2" />
-                  {visibleColumns.map(key => {
+                  {visibleColumns?.map(key => {
                     const def = COL_MAP[key] || { label: key, sortable: false };
                     const isLeft = LEFT_ALIGN_COLS.has(key);
                     return (
@@ -693,7 +693,7 @@ export default function ScreenerV2() {
                   </tr>
                 )}
 
-                {!loading && sortedRows.map(row => {
+                {!loading && sortedRows?.map(row => {
                   const isNew      = highlighted.has(row.symbol);
                   const inWL       = watchlistSet.has(row.symbol);
                   const wlBusy     = watchlistBusy.has(row.symbol);
@@ -715,7 +715,7 @@ export default function ScreenerV2() {
                         </button>
                       </td>
 
-                      {visibleColumns.map(key => {
+                      {visibleColumns?.map(key => {
                         const isLeft   = LEFT_ALIGN_COLS.has(key);
                         const isSymbol = key === 'symbol';
                         const colorCls = signedClass(row, key);
@@ -750,7 +750,7 @@ export default function ScreenerV2() {
             >
               ‹ Prev
             </button>
-            {pageButtons.map(n => (
+            {pageButtons?.map(n => (
               <button
                 key={n}
                 className={`px-3 py-1 rounded border text-xs ${n === currentPage + 1 ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'}`}

@@ -89,7 +89,7 @@ export default function ScreenerFull() {
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Saved Presets</span>
-          {Object.keys(presets).map((name) => (
+          {Object.keys(presets)?.map((name) => (
             <button key={name} className="rounded border border-[var(--border-color)] px-2 py-1 text-xs" onClick={() => applyPreset(name)}>{name}</button>
           ))}
         </div>
@@ -127,7 +127,7 @@ export default function ScreenerFull() {
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((row) => (
+              {sortedRows?.map((row) => (
                 <tr key={row?.symbol}>
                   <td><TickerLink symbol={row?.symbol} /></td>
                   <td style={{ textAlign: 'right' }}>{Number(row?.price || 0).toFixed(2)}</td>

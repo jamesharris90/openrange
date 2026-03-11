@@ -37,7 +37,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
       }
       const data = await res.json();
       setParsed(data);
-      setTrades(data.trades.map(t => ({ ...t, include: true })));
+      setTrades(data?.trades?.map(t => ({ ...t, include: true })));
       setStep('review');
     } catch (err) {
       setError(err.message);
@@ -67,7 +67,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
       }
       const data = await res.json();
       setParsed(data);
-      setTrades(data.trades.map(t => ({ ...t, include: true })));
+      setTrades(data?.trades?.map(t => ({ ...t, include: true })));
       setStep('review');
     } catch (err) {
       setError(err.message);
@@ -77,7 +77,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
   };
 
   const updateTrade = (idx, field, value) => {
-    setTrades(prev => prev.map((t, i) => {
+    setTrades(prev => prev?.map((t, i) => {
       if (i !== idx) return t;
       const updated = { ...t, [field]: value };
       const missing = [];
@@ -94,11 +94,11 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
   };
 
   const toggleInclude = (idx) => {
-    setTrades(prev => prev.map((t, i) => i === idx ? { ...t, include: !t.include } : t));
+    setTrades(prev => prev?.map((t, i) => i === idx ? { ...t, include: !t.include } : t));
   };
 
   const handleConfirm = async () => {
-    const toSave = trades.filter(t => t.include).map(t => ({
+    const toSave = trades.filter(t => t.include)?.map(t => ({
       ticker: t.ticker,
       side: t.side,
       entryPrice: t.entryPrice,
@@ -234,7 +234,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
         <>
           {parsed.warnings.length > 0 && (
             <div className="upload-warnings">
-              {parsed.warnings.map((w, i) => (
+              {parsed.warnings?.map((w, i) => (
                 <div key={i} className="upload-warning-item">
                   <AlertTriangle size={14} /> {w}
                 </div>
@@ -271,7 +271,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {trades.map((t, idx) => (
+                {trades?.map((t, idx) => (
                   <tr key={idx} className={!t.include ? 'row-excluded' : t.status === 'incomplete' ? 'row-incomplete' : ''}>
                     <td>
                       <input type="checkbox" checked={t.include} onChange={() => toggleInclude(idx)} />
@@ -287,7 +287,7 @@ export default function TradeUploadPanel({ onSaved, onClose }) {
                     </td>
                     <td>
                       <select className="upload-input" value={t.side} onChange={e => updateTrade(idx, 'side', e.target.value)}>
-                        {SIDE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        {SIDE_OPTIONS?.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
                     <td>

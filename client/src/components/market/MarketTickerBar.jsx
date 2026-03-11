@@ -42,7 +42,7 @@ export default function MarketTickerBar() {
         const summaryRows = Array.isArray(premarketSummary?.index_cards) ? premarketSummary.index_cards : [];
         const contextMap = marketContext && typeof marketContext === 'object' ? marketContext : {};
 
-        const payloads = TARGETS.map((symbol) => {
+        const payloads = TARGETS?.map((symbol) => {
           const ctx = contextMap[symbol] || {};
           const summary = summaryRows.find((row) => String(row?.symbol || '').toUpperCase() === symbol) || {};
           return {
@@ -77,7 +77,7 @@ export default function MarketTickerBar() {
   }, []);
 
   const stream = useMemo(() => {
-    const normalized = TARGETS.map((symbol) => ({
+    const normalized = TARGETS?.map((symbol) => ({
       symbol,
       row: findRow(rows, symbol) || { symbol, price: null, change_percent: null, sparkline: null },
     }));
@@ -88,7 +88,7 @@ export default function MarketTickerBar() {
     <div className="border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
       <div className="group overflow-hidden px-3">
         <div className="flex min-w-max items-center gap-6 py-2 text-xs group-hover:[animation-play-state:paused]" style={{ animation: 'ticker-scroll 38s linear infinite' }}>
-          {stream.map((item, idx) => {
+          {stream?.map((item, idx) => {
             const cp = Number(item.row?.change_percent);
             const color = !Number.isFinite(cp) ? 'text-amber-300' : cp > 0 ? 'text-emerald-400' : cp < 0 ? 'text-rose-400' : 'text-amber-300';
             return (

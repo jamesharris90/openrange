@@ -105,7 +105,7 @@ export default function AdminDiagnostics() {
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        {cards.map((card) => (
+        {cards?.map((card) => (
           <div key={card.label} className={`rounded-lg border p-3 ${statusTone(card.status)}`}>
             <p className="text-xs uppercase tracking-wide">{card.label}</p>
             <p className="mt-1 text-xl font-semibold">{Number(card.value || 0).toLocaleString()}</p>
@@ -120,7 +120,7 @@ export default function AdminDiagnostics() {
           <p className="text-sm text-[var(--text-muted)]">No engine diagnostics output.</p>
         ) : (
           <div className="space-y-1 text-sm text-[var(--text-secondary)]">
-            {(diagnostics.lines || []).map((line, index) => (
+            {(diagnostics.lines || [])?.map((line, index) => (
               <div key={`${index}-${line}`}>{line}</div>
             ))}
           </div>

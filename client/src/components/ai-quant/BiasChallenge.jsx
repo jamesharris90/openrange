@@ -30,7 +30,7 @@ export default function BiasChallenge({ ticker, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, contextSource: 'scanner' }),
       });
-      setResponse(data.answer);
+      setResponse(data?.answer);
     } catch (e) {
       setResponse(`Error: ${e.message}`);
     } finally {

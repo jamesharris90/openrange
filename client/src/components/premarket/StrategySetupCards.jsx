@@ -7,7 +7,7 @@ export default function StrategySetupCards({ setups = [], selectedSymbol, onSele
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {rows.length === 0 ? <div className="muted">No strategy setups available.</div> : null}
-      {rows.map((row, index) => {
+      {rows?.map((row, index) => {
         const symbol = String(row?.symbol || '').toUpperCase();
         const active = selectedSymbol === symbol;
         const idea = row?.trade_idea || (toNumber(row?.gap_percent, 0) >= 0

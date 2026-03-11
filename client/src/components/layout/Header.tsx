@@ -85,7 +85,7 @@ export default function Header() {
   const toggleMobileSidebar = useAppStore((state) => state.toggleMobileSidebar);
 
   const [markets, setMarkets] = useState<MarketState[]>(
-    MARKETS.map((market) => ({
+    MARKETS?.map((market) => ({
       key: market.key,
       flag: market.flag,
       time: '--:--',
@@ -97,7 +97,7 @@ export default function Header() {
   useEffect(() => {
     const update = () => {
       setMarkets(
-        MARKETS.map((market) => ({
+        MARKETS?.map((market) => ({
           key: market.key,
           flag: market.flag,
           ...computeState(market.timeZone, market.hours),
@@ -152,7 +152,7 @@ export default function Header() {
           </button>
 
           <div className="flex items-center gap-2 sm:gap-3 whitespace-nowrap">
-            {markets.map((market) => (
+            {markets?.map((market) => (
               <div key={market.key} className="flex items-center gap-1.5 text-xs leading-none">
                 <span aria-hidden="true">{market.flag}</span>
                 <span className="hidden font-semibold text-[var(--text-secondary)] md:inline">{market.key}</span>

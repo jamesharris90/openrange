@@ -69,9 +69,9 @@ export default function SignalIntelligenceAdmin() {
     };
   }, []);
 
-  const topScore = useMemo(() => Math.max(1, ...(signals || []).map((row) => toNumber(row?.score))), [signals]);
-  const topPressure = useMemo(() => Math.max(1, ...(orderFlow || []).map((row) => toNumber(row?.pressure_score))), [orderFlow]);
-  const maxMove = useMemo(() => Math.max(1, ...(strategy || []).map((row) => Math.abs(toNumber(row?.max_move)))), [strategy]);
+  const topScore = useMemo(() => Math.max(1, ...(signals || [])?.map((row) => toNumber(row?.score))), [signals]);
+  const topPressure = useMemo(() => Math.max(1, ...(orderFlow || [])?.map((row) => toNumber(row?.pressure_score))), [orderFlow]);
+  const maxMove = useMemo(() => Math.max(1, ...(strategy || [])?.map((row) => Math.abs(toNumber(row?.max_move)))), [strategy]);
 
   return (
     <PageContainer className="space-y-3">
@@ -100,7 +100,7 @@ export default function SignalIntelligenceAdmin() {
           <Card>
             <h3 className="m-0 mb-3">Top Signals</h3>
             <div className="space-y-2 text-sm">
-              {(signals || []).slice(0, 15).map((row) => (
+              {(signals || []).slice(0, 15)?.map((row) => (
                 <div key={String(row?.symbol || row?.id)}>
                   <div className="mb-1 flex items-center justify-between">
                     <span>{row?.symbol || '--'} • {row?.strategy || 'Setup'}</span>
@@ -121,7 +121,7 @@ export default function SignalIntelligenceAdmin() {
               <div className="muted">No order flow detections available.</div>
             ) : (
               <div className="space-y-2 text-sm">
-                {(orderFlow || []).slice(0, 20).map((row) => (
+                {(orderFlow || []).slice(0, 20)?.map((row) => (
                   <div key={String(row?.id || `${row?.symbol}-${row?.detected_at}`)}>
                     <div className="mb-1 flex items-center justify-between">
                       <span>{row?.symbol || '--'} • {row?.pressure_level || 'WEAK'}</span>
@@ -154,7 +154,7 @@ export default function SignalIntelligenceAdmin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(early || []).slice(0, 20).map((row) => (
+                    {(early || []).slice(0, 20)?.map((row) => (
                       <tr key={String(row?.id || `${row?.symbol}-${row?.detected_at}`)}>
                         <td>{row?.symbol || '--'}</td>
                         <td>{row?.pressure_level || '--'}</td>
@@ -176,7 +176,7 @@ export default function SignalIntelligenceAdmin() {
               <div className="muted">No strategy outcome rows found.</div>
             ) : (
               <div className="space-y-2 text-sm">
-                {(strategy || []).map((row) => (
+                {(strategy || [])?.map((row) => (
                   <div key={String(row?.strategy || 'unknown')}>
                     <div className="mb-1 flex items-center justify-between">
                       <span>{row?.strategy || 'Unknown'}</span>

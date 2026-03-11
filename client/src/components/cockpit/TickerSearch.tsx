@@ -180,7 +180,7 @@ export default function TickerSearch({ symbol, onSelect }: TickerSearchProps) {
             <div className="px-3 py-2 text-xs text-gray-500">No US-listed stocks found</div>
           )}
 
-          {!loading && results.map((row, index) => {
+          {!loading && results?.map((row, index) => {
             const marketCapLabel = formatMarketCap(row.marketCap);
             const isActive = index === activeIndex;
 

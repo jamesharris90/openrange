@@ -10,7 +10,7 @@ function toNumber(value) {
 export default function TickerHeatmap({ tickers = [], width = 1000, height = 540 }) {
   const layout = useMemo(() => {
     const root = hierarchy({
-      children: (Array.isArray(tickers) ? tickers : []).map((ticker) => {
+      children: (Array.isArray(tickers) ? tickers : [])?.map((ticker) => {
         const symbol = String(ticker?.symbol || '?').toUpperCase();
         const change = toNumber(ticker?.change ?? ticker?.change_percent);
         const rvol = toNumber(ticker?.rvol ?? ticker?.relative_volume);
@@ -36,7 +36,7 @@ export default function TickerHeatmap({ tickers = [], width = 1000, height = 540
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="h-[440px] w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)]">
-      {layout.map((node) => {
+      {layout?.map((node) => {
         const w = Math.max(0, node.x1 - node.x0);
         const h = Math.max(0, node.y1 - node.y0);
         if (w < 10 || h < 10) return null;

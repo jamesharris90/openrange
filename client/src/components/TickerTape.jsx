@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function TickerTape() {
   const [data, setData] = useState({});
 
   useEffect(() => {
-    fetch('/api/market/context')
-      .then((r) => r.json())
+    apiFetch('/api/market/context')
       .then(setData)
       .catch(() => setData({}));
   }, []);
@@ -14,7 +14,7 @@ export default function TickerTape() {
 
   return (
     <div className="tickerTape">
-      {symbols.map((s) => (
+      {symbols?.map((s) => (
         <span key={s}>
           {s} {Number.isFinite(Number(data[s]?.change_percent)) ? `${Number(data[s].change_percent).toFixed(2)}%` : '--'}
         </span>

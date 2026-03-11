@@ -91,7 +91,7 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
 
             {Array.isArray(e?.quarterlyHistory) && e.quarterlyHistory.length > 0 && (
               <div className="erp-quarters">
-                {e.quarterlyHistory.map((q, i) => (
+                {e.quarterlyHistory?.map((q, i) => (
                   <div key={i} className="erp-quarter" style={{
                     borderLeft: `3px solid ${q.beat === true ? 'var(--accent-green)' : q.beat === false ? 'var(--accent-red)' : 'var(--border-color)'}`,
                   }}>
@@ -148,7 +148,7 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
             {Array.isArray(c?.recentInsiderTxns) && c.recentInsiderTxns.length > 0 && (
               <div className="erp-insider-txns">
                 <div className="erp-sub-label">Recent Insider Activity</div>
-                {c.recentInsiderTxns.map((tx, i) => (
+                {c.recentInsiderTxns?.map((tx, i) => (
                   <div key={i} className="erp-insider-txn">
                     <span className="erp-insider-txn__name">{tx.name ?? '—'}</span>
                     <span className={`erp-insider-txn__type ${(tx.type || '').toLowerCase().includes('sale') ? 'sell' : 'buy'}`}>
@@ -196,13 +196,13 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
                 <div className="erp-rec-bar">
                   <div className="erp-sub-label">Analyst Ratings</div>
                   <div className="erp-rec-bar__track">
-                    {segments.map(r => (
+                    {segments?.map(r => (
                       <div key={r.label} className="erp-rec-bar__seg" style={{ flex: r.val, background: r.color }}
                         title={`${r.label}: ${r.val}`} />
                     ))}
                   </div>
                   <div className="erp-rec-bar__labels">
-                    {segments.map(r => (
+                    {segments?.map(r => (
                       <span key={r.label} style={{ color: r.color, fontWeight: 600, fontSize: 10 }}>
                         {r.val} {r.abbr}
                       </span>
@@ -216,7 +216,7 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
             {Array.isArray(s?.recentUpgrades) && s.recentUpgrades.length > 0 && (
               <div className="erp-upgrades">
                 <div className="erp-sub-label">Recent Actions (90d)</div>
-                {s.recentUpgrades.slice(0, 5).map((u, i) => (
+                {s.recentUpgrades.slice(0, 5)?.map((u, i) => (
                   <div key={i} className="erp-upgrade">
                     <span className={`erp-upgrade__action ${u.action || ''}`}>{u.action ?? '—'}</span>
                     <span className="erp-upgrade__firm">{u.firm ?? '—'}</span>
@@ -232,7 +232,7 @@ export default function EarningsResearchPanel({ symbol, earningsRow, onClose }) 
           <Section title="News & Catalysts" icon={Newspaper} defaultOpen={true}>
             {n.length > 0 ? (
               <div className="erp-news">
-                {n.map((item, i) => (
+                {n?.map((item, i) => (
                   <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="erp-news-item">
                     <div className="erp-news-item__headline">{item.headline ?? 'Untitled'} <ExternalLink size={11} /></div>
                     <div className="erp-news-item__meta">

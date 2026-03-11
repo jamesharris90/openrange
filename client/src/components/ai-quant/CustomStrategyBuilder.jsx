@@ -135,7 +135,7 @@ export default function CustomStrategyBuilder({ onClose, onSave, editing }) {
             <div className="aiq-csb__section">
               <div className="aiq-csb__section-title">Screening Filters</div>
               <div className="aiq-csb__filters">
-                {FILTER_DEFS.map(f => (
+                {FILTER_DEFS?.map(f => (
                   <div key={f.id} className="aiq-csb__filter-row">
                     <span className="aiq-csb__filter-label">{f.label}</span>
                     {f.type === 'toggle' ? (
@@ -147,7 +147,7 @@ export default function CustomStrategyBuilder({ onClose, onSave, editing }) {
                       <select className="aiq-select aiq-select--sm" value={filterState[f.id] || ''}
                         onChange={e => setSelectFilter(f.id, e.target.value)}>
                         <option value="">Off</option>
-                        {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     )}
                   </div>
@@ -164,7 +164,7 @@ export default function CustomStrategyBuilder({ onClose, onSave, editing }) {
                 </span>
               </div>
               <div className="aiq-csb__weights">
-                {WEIGHT_FIELDS.map(w => (
+                {WEIGHT_FIELDS?.map(w => (
                   <div key={w.id} className="aiq-csb__weight-row">
                     <label>{w.label}</label>
                     <input type="range" min="0" max="100" step="5" value={weights[w.id]}

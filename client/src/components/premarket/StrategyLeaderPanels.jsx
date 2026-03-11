@@ -52,7 +52,7 @@ export default function StrategyLeaderPanels({ rows = [], onSelectTicker }) {
       </div>
 
       <div className="space-y-3">
-        {Object.entries(panels).map(([title, list]) => {
+        {Object.entries(panels)?.map(([title, list]) => {
           const top = list.slice(0, sliceCount);
           return (
             <div key={title}>
@@ -60,7 +60,7 @@ export default function StrategyLeaderPanels({ rows = [], onSelectTicker }) {
               <div className="grid gap-2 sm:grid-cols-2">
                 {top.length === 0 ? (
                   <div className="text-xs text-[var(--text-muted)]">No market data available yet.</div>
-                ) : top.map((row, index) => {
+                ) : top?.map((row, index) => {
                   const symbol = String(row?.symbol || '').toUpperCase();
                   const change = toNum(row?.gap_percent ?? row?.change_percent, 0);
                   return (

@@ -15,13 +15,13 @@ export default function DailyReviewPanel({ date, scope = 'user', onClose }) {
     authFetch(`/api/reviews/${date}?scope=${scope}`)
       .then(r => r.json())
       .then(data => {
-        if (data && data.review_id) {
+        if (data && data?.review_id) {
           setForm({
-            summaryText: data.summary_text || '',
-            lessonsText: data.lessons_text || '',
-            planTomorrow: data.plan_tomorrow || '',
-            mood: data.mood || 3,
-            rating: data.rating || 3,
+            summaryText: data?.summary_text || '',
+            lessonsText: data?.lessons_text || '',
+            planTomorrow: data?.plan_tomorrow || '',
+            mood: data?.mood || 3,
+            rating: data?.rating || 3,
           });
         }
         setLoaded(true);

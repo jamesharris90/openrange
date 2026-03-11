@@ -11,7 +11,7 @@ export default function ConfirmationBadges({ badges }) {
   if (!badges?.length) return <span className="aiq-conf-none">—</span>;
   return (
     <span className="aiq-conf-badges">
-      {badges.map(b => {
+      {badges?.map(b => {
         const def = BADGE_DEFS[b] || { label: b, color: '#666', tip: b };
         return (
           <span key={b} className="aiq-conf-badge" title={def.tip}

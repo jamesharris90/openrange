@@ -42,7 +42,7 @@ export default function StrategyLeaderboard() {
 
   return (
     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-      {BUCKETS.map((bucket) => {
+      {BUCKETS?.map((bucket) => {
         const row = topByStrategy.get(bucket);
         return (
           <div key={bucket} className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] p-3">

@@ -20,7 +20,7 @@ export function loadStrategyPrefs() {
   } catch { /* ignore */ }
   return {
     order: [...SYSTEM_STRATEGIES],
-    active: Object.fromEntries(SYSTEM_STRATEGIES.map(s => [s, true])),
+    active: Object.fromEntries(SYSTEM_STRATEGIES?.map(s => [s, true])),
   };
 }
 
@@ -83,7 +83,7 @@ export default function StrategyManager({ prefs, setPrefs, onAddCustom }) {
       {open && (
         <div className="aiq-strat-mgr__dropdown">
           <div className="aiq-strat-mgr__title">Strategies</div>
-          {prefs.order.map((id, idx) => {
+          {prefs.order?.map((id, idx) => {
             const isCustom = !SYSTEM_STRATEGIES.includes(id);
             const label = LABELS[id] || id;
             return (

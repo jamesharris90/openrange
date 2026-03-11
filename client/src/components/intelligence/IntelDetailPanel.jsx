@@ -103,7 +103,7 @@ export default function IntelDetailPanel({ open, detail, onClose, onOpenSetup })
                 </ResponsiveContainer>
               </div>
               <div className="rounded border border-[var(--border-color)] p-2 text-xs">
-                {rows.map((row) => (
+                {rows?.map((row) => (
                   <div key={row.key} className="mb-1 flex items-center justify-between" title={row.tip}>
                     <span>{row.label}</span>
                     <strong>{toNum(row.value).toFixed(2)}</strong>
@@ -121,7 +121,7 @@ export default function IntelDetailPanel({ open, detail, onClose, onOpenSetup })
             <div className="muted text-xs">No data sources provided.</div>
           ) : (
             <div className="grid gap-2 md:grid-cols-2">
-              {detail.data_sources.map((source, idx) => (
+              {detail.data_sources?.map((source, idx) => (
                 <a
                   key={`${idx}-${source?.title || source?.type || 'source'}`}
                   href={source?.url || '#'}
@@ -168,7 +168,7 @@ export default function IntelDetailPanel({ open, detail, onClose, onOpenSetup })
             <div className="muted text-xs">No affected tickers available.</div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-              {detail.affected_tickers.map((ticker, idx) => {
+              {detail.affected_tickers?.map((ticker, idx) => {
                 const s = String(ticker?.symbol || ticker).toUpperCase();
                 const intensity = Math.max(0.1, Math.min(1, toNum(ticker?.intensity, 0.45)));
                 return (
@@ -197,7 +197,7 @@ export default function IntelDetailPanel({ open, detail, onClose, onOpenSetup })
             <div className="muted text-xs">No mapped setups available.</div>
           ) : (
             <div className="space-y-2">
-              {detail.setups.map((setup, idx) => (
+              {detail.setups?.map((setup, idx) => (
                 <button
                   key={`${setup?.name || 'setup'}-${idx}`}
                   type="button"

@@ -38,7 +38,7 @@ export default function AdminPage() {
       const res = await authFetch('/api/users/admin/list');
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.users || data || []);
+        setUsers(data?.users || data || []);
       }
     } catch {}
   }, []);
@@ -48,7 +48,7 @@ export default function AdminPage() {
       const res = await authFetch('/api/users/admin/activity');
       if (res.ok) {
         const data = await res.json();
-        setActivityLog(data.activities || data || []);
+        setActivityLog(data?.activities || data || []);
       }
     } catch {}
   }, []);
@@ -74,7 +74,7 @@ export default function AdminPage() {
         loadStats();
       } else {
         const data = await res.json().catch(() => ({}));
-        showAlert(data.error || 'Delete failed', 'error');
+        showAlert(data?.error || 'Delete failed', 'error');
       }
     } catch {
       showAlert('Network error', 'error');
@@ -95,7 +95,7 @@ export default function AdminPage() {
         loadStats();
       } else {
         const data = await res.json().catch(() => ({}));
-        showAlert(data.error || 'Create failed', 'error');
+        showAlert(data?.error || 'Create failed', 'error');
       }
     } catch {
       showAlert('Network error', 'error');
@@ -119,7 +119,7 @@ export default function AdminPage() {
       {alert && <div className={`admin-alert admin-alert--${alert.type}`}>{alert.msg}</div>}
 
       <nav className="admin-tabs">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS?.map(({ id, label, icon: Icon }) => (
           <button key={id} className={`admin-tab ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
             <Icon size={16} /> {label}
           </button>
@@ -144,7 +144,7 @@ export default function AdminPage() {
                 <table className="admin-table min-w-[900px]">
                   <thead><tr><th>Username</th><th>Email</th><th>Created</th></tr></thead>
                   <tbody>
-                    {users.slice(0, 5).map(u => (
+                    {users.slice(0, 5)?.map(u => (
                       <tr key={u.id}>
                         <td>{u.username}</td>
                         <td>{u.email}</td>
@@ -159,7 +159,7 @@ export default function AdminPage() {
             <div className="panel">
               <h3 className="panel-title">Recent Activity</h3>
               <div className="admin-activity-list">
-                {activityLog.slice(0, 8).map((a, i) => (
+                {activityLog.slice(0, 8)?.map((a, i) => (
                   <div key={i} className="admin-activity-item">
                     <div className="admin-activity-action">{a.action}</div>
                     <div className="admin-activity-details">{a.username || a.user_id} · {a.ip_address || ''}</div>
@@ -185,7 +185,7 @@ export default function AdminPage() {
               <table className="admin-table min-w-[900px]">
                 <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Broker</th><th>Created</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {filteredUsers.map(u => (
+                  {filteredUsers?.map(u => (
                     <tr key={u.id}>
                       <td>{u.username}</td>
                       <td>{u.email}</td>
@@ -209,7 +209,7 @@ export default function AdminPage() {
       {tab === 'activity' && (
         <div className="panel">
           <div className="admin-activity-list">
-            {activityLog.map((a, i) => (
+            {activityLog?.map((a, i) => (
               <div key={i} className="admin-activity-item">
                 <div className="admin-activity-action">{a.action}</div>
                 <div className="admin-activity-details">{a.username || a.user_id} · {a.ip_address || ''}</div>

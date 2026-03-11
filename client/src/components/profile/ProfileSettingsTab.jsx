@@ -28,7 +28,7 @@ export default function ProfileSettingsTab() {
     try {
       const res = await authFetch('/api/broker/status');
       const data = await res.json();
-      setBroker({ connected: !!data.connected, provider: (data.provider || data.broker || '').toUpperCase() || null });
+      setBroker({ connected: !!data?.connected, provider: (data?.provider || data?.broker || '').toUpperCase() || null });
     } catch {
       setBroker({ connected: false, provider: null });
     }

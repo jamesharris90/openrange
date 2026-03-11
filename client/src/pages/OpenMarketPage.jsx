@@ -94,7 +94,7 @@ export default function OpenMarketPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedRows.map((row) => {
+                  {sortedRows?.map((row) => {
                     const symbol = String(row?.symbol || '').toUpperCase();
                     return (
                       <tr

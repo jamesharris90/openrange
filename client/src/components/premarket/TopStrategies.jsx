@@ -35,7 +35,7 @@ export default function TopStrategies({ rows = [], onSelectTicker, onExpandWatch
         <button type="button" onClick={onExpandWatchlist} className="rounded border border-[var(--border-color)] px-2 py-1 text-xs">Expand Watchlist</button>
       </div>
       <div className="space-y-2">
-        {top.map((row, index) => {
+        {top?.map((row, index) => {
           const symbol = String(row?.symbol || '').toUpperCase();
           const strategy = row?.setup_type || row?.strategy || 'Momentum Continuation';
           const accuracy = accuracyRows.find((item) => String(item?.strategy || '').toLowerCase() === String(strategy).toLowerCase());

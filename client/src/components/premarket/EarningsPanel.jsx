@@ -7,7 +7,7 @@ function EarningsGroup({ title, rows, onSelectTicker }) {
       <div className="mb-1 text-xs font-semibold text-[var(--text-muted)]">{title}</div>
       <div className="space-y-2">
         {rows.length === 0 ? <div className="text-xs text-[var(--text-muted)]">No market data available yet.</div> : null}
-        {rows.slice(0, 4).map((row, idx) => {
+        {rows.slice(0, 4)?.map((row, idx) => {
           const symbol = String(row?.symbol || '').toUpperCase();
           return (
             <button key={`${title}-${symbol}-${idx}`} type="button" onClick={() => onSelectTicker?.(symbol)} className="w-full rounded border border-[var(--border-color)] bg-[var(--bg-elevated)] p-2 text-left text-xs">

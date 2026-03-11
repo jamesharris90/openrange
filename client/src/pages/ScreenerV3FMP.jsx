@@ -109,7 +109,7 @@ export default function ScreenerV3FMP() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows?.map((row) => (
                 <tr key={row.symbol} className="border-t border-gray-100 dark:border-gray-800">
                   <td className="px-3 py-2">{row.symbol}</td>
                   <td className="px-3 py-2">{row.headline}</td>

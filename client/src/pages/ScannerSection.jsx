@@ -31,8 +31,8 @@ export default function ScannerSection({ title, icon, description, queryPreset =
     setError(null);
     try {
       const data = await apiJSON('/api/scanner');
-      const rawRows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-      const nextRows = rawRows.map((row) => ({
+      const rawRows = Array.isArray(data?.data) ? data?.data : (Array.isArray(data) ? data : []);
+      const nextRows = rawRows?.map((row) => ({
         symbol: row?.symbol,
         ticker: row?.symbol,
         Ticker: row?.symbol,
@@ -146,7 +146,7 @@ export default function ScannerSection({ title, icon, description, queryPreset =
             {!loading && display.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)' }}>No results</td></tr>
             )}
-            {display.map(row => {
+            {display?.map(row => {
               const ticker = String(pickField(row, ['symbol', 'ticker', 'Ticker'], '')).toUpperCase();
               const company = pickField(row, ['name', 'companyName', 'Company'], '--');
               const price = toNumber(pickField(row, ['price', 'Price']));

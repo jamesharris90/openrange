@@ -350,7 +350,7 @@ export default function NewsScannerPage() {
 
   useEffect(() => {
     if (!news.length) return;
-    setNews((prev) => prev.map((item) => {
+    setNews((prev) => prev?.map((item) => {
       const tickers = parseTickers(item.Ticker || '');
       const stock = stockMap[tickers[0]];
       return { ...item, _score: item._score ?? computeStockScore(stock) };
@@ -373,7 +373,7 @@ export default function NewsScannerPage() {
       if (!resp.ok) return {};
       const payload = await resp.json();
       const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-      const needed = new Set(tickers.map((ticker) => String(ticker || '').toUpperCase()));
+      const needed = new Set(tickers?.map((ticker) => String(ticker || '').toUpperCase()));
       const result = {};
       rows.forEach((row) => {
         const symbol = String(row?.symbol || '').toUpperCase();
@@ -388,7 +388,7 @@ export default function NewsScannerPage() {
 
   async function fetchLatestBySymbol(symbols) {
     const out = {};
-    await Promise.all(symbols.map(async (symbol) => {
+    await Promise.all(symbols?.map(async (symbol) => {
       try {
         const resp = await authFetch(`/api/v5/news?symbol=${encodeURIComponent(symbol)}&limit=5`);
         if (!resp.ok) return;
@@ -423,7 +423,7 @@ export default function NewsScannerPage() {
       const payload = await resp.json();
       const rawItems = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
 
-      const deduped = rawItems.map((item) => ({
+      const deduped = rawItems?.map((item) => ({
         Ticker: item?.symbol || '',
         Title: item?.headline || '',
         Date: formatLegacyDate(item?.publishedDate || item?.publishedAt || ''),
@@ -441,7 +441,7 @@ export default function NewsScannerPage() {
         fetchLatestBySymbol(symbols),
       ]);
 
-      const enriched = deduped.map((item) => {
+      const enriched = deduped?.map((item) => {
         const primary = parseTickers(item.Ticker || '')[0];
         const latest = latestNews[primary] || null;
         return {
@@ -455,7 +455,7 @@ export default function NewsScannerPage() {
         };
       });
 
-      const scored = enriched.map((item) => {
+      const scored = enriched?.map((item) => {
         const primary = parseTickers(item.Ticker || '')[0];
         const stock = stocks[primary];
         return { ...item, _score: computeStockScore(stock) };
@@ -488,9 +488,9 @@ export default function NewsScannerPage() {
 
   function exportResults(format) {
     const data = sortedNews.length ? sortedNews : news;
-    if (!data.length) return;
+    if (!data?.length) return;
     const rows = [];
-    data.forEach((item) => {
+    data?.forEach((item) => {
       const tickers = parseTickers(item.Ticker || '');
       const catalysts = detectCatalysts(item.Title || '').join('|');
       const url = item.Url || item.URL || '';
@@ -503,13 +503,13 @@ export default function NewsScannerPage() {
       }
     });
     if (format === 'text') {
-      const text = rows.map((r) => `${r.ticker} | ${r.headline} | ${r.url} | ${r.catalysts}`).join('\n');
+      const text = rows?.map((r) => `${r.ticker} | ${r.headline} | ${r.url} | ${r.catalysts}`).join('\n');
       downloadBlob(text, 'text/plain', 'news-export.txt');
       return;
     }
     const header = ['Ticker', 'Headline', 'Link', 'Type', 'Source', 'Published'];
-    const csvLines = [header.join(',')].concat(rows.map((r) => {
-      return [r.ticker, r.headline, r.url, r.catalysts, r.source, r.published].map(toCsvValue).join(',');
+    const csvLines = [header.join(',')].concat(rows?.map((r) => {
+      return [r.ticker, r.headline, r.url, r.catalysts, r.source, r.published]?.map(toCsvValue).join(',');
     }));
     downloadBlob(csvLines.join('\n'), 'text/csv', 'news-export.csv');
   }
@@ -665,7 +665,7 @@ export default function NewsScannerPage() {
             {lastUpdated && <div className="muted text-xs">Updated {getTimeAgo(lastUpdated)}</div>}
             <div className="ns-active-filters ns-active-filters--header">
               {activeFilterChips.length === 0 && <span className="muted">No active filters</span>}
-              {activeFilterChips.map((chip) => (
+              {activeFilterChips?.map((chip) => (
                 <button key={`${chip.key}-${chip.value}`} className="ns-filter-chip" onClick={() => removeFilterChip(chip)}>
                   {chip.label} <X size={12} />
                 </button>
@@ -737,7 +737,7 @@ export default function NewsScannerPage() {
           )}
 
           <div className="news-list ns-news-list">
-            {sortedNews.map((item, idx) => {
+            {sortedNews?.map((item, idx) => {
               const tickers = parseTickers(item.Ticker || '');
               const primary = tickers[0] || 'N/A';
               const stock = stockMap[primary];
@@ -764,7 +764,7 @@ export default function NewsScannerPage() {
                     style={{ gridTemplateColumns: `${leftColWidth} 1fr` }}
                   >
                     <div className={`ns-card-left ${useWideTickerColumn ? 'ns-card-left--two-col' : ''}`}>
-                      {tickerList.map((ticker) => {
+                      {tickerList?.map((ticker) => {
                         const tickerStock = stockMap[ticker];
                         const tickerScore = computeStockScore(tickerStock);
                         return renderTickerChip(ticker, tickerStock, tickerScore, catalysts, item, cardKey);
@@ -788,7 +788,7 @@ export default function NewsScannerPage() {
                       {tickers.length > 1 && <div className="ns-card-preview">{previewText}</div>}
 
                       <div className="ns-card-badges">
-                        {catalysts.map((c) => {
+                        {catalysts?.map((c) => {
                           const insight = getCatalystInsight(c);
                           return (
                             <div key={c} className="ns-insight-anchor">
@@ -869,11 +869,11 @@ export default function NewsScannerPage() {
                   </Card>
                   <Card className="ns-intel-section">
                     <h4>What to Watch</h4>
-                    <ul>{panelState.impact.watch.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                    <ul>{panelState.impact.watch?.map((x, i) => <li key={i}>{x}</li>)}</ul>
                   </Card>
                   <Card className="ns-intel-section">
                     <h4>Risk Factors</h4>
-                    <ul>{panelState.impact.risk.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                    <ul>{panelState.impact.risk?.map((x, i) => <li key={i}>{x}</li>)}</ul>
                   </Card>
                 </>
               )}
@@ -911,7 +911,7 @@ export default function NewsScannerPage() {
                   <Card className="ns-intel-section">
                     <h4>Recent Headlines</h4>
                     <div className="ns-intel-news-list">
-                      {panelStories.slice(0, panelStoriesVisible).map((story, i) => {
+                      {panelStories.slice(0, panelStoriesVisible)?.map((story, i) => {
                         const storyUrl = story.Url || story.URL || '#';
                         return (
                           <a key={`${storyUrl}-${i}`} href={storyUrl} target="_blank" rel="noopener noreferrer" className="ns-intel-story">
@@ -944,7 +944,7 @@ export default function NewsScannerPage() {
                         <span className={`ns-score-total__strength ns-score-total__strength--${panelScore.strength.toLowerCase()}`}>{panelScore.strength}</span>
                       </div>
                       <div className="ns-score-bars">
-                        {panelScore.metrics.map((metric) => {
+                        {panelScore.metrics?.map((metric) => {
                           const percent = metric.max ? Math.max(0, Math.min(100, (metric.value / metric.max) * 100)) : 0;
                           return (
                             <div key={metric.label} className="ns-score-row">
@@ -964,15 +964,15 @@ export default function NewsScannerPage() {
                   </Card>
                   <Card className="ns-intel-section">
                     <h4>Confirmation Signals</h4>
-                    <ul>{(panelState.impact?.watch || ['Sustained RVOL expansion and directional close above intraday value.']).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                    <ul>{(panelState.impact?.watch || ['Sustained RVOL expansion and directional close above intraday value.'])?.map((x, i) => <li key={i}>{x}</li>)}</ul>
                   </Card>
                   <Card className="ns-intel-section">
                     <h4>Invalidators</h4>
-                    <ul>{(panelState.impact?.invalidators || ['Failure to hold VWAP after initial impulse.']).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                    <ul>{(panelState.impact?.invalidators || ['Failure to hold VWAP after initial impulse.'])?.map((x, i) => <li key={i}>{x}</li>)}</ul>
                   </Card>
                   <Card className="ns-intel-section">
                     <h4>Risk Factors</h4>
-                    <ul>{(panelState.impact?.risk || [panelCatalystInsight.risk]).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                    <ul>{(panelState.impact?.risk || [panelCatalystInsight.risk])?.map((x, i) => <li key={i}>{x}</li>)}</ul>
                   </Card>
                 </>
               )}

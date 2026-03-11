@@ -93,7 +93,7 @@ export default function SectorHeatmap() {
 
         const tickers = Array.isArray(json?.tickers)
           ? json.tickers
-          : Object.values(json || {}).map((row) => ({
+          : Object.values(json || {})?.map((row) => ({
               symbol: row?.symbol || '?',
               change: Number(row?.change ?? row?.change_percent ?? 0),
               rvol: Number(row?.rvol ?? row?.relative_volume ?? 0),
@@ -159,7 +159,7 @@ export default function SectorHeatmap() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {rows?.map((row) => {
                 return (
                   <tr key={row?.sector || 'unknown'}>
                     <td>{row?.sector || 'Unknown'}</td>
@@ -169,7 +169,7 @@ export default function SectorHeatmap() {
                     <td>
                       {Array.isArray(row?.leaders) && row.leaders.length ? (
                         <div className="flex flex-wrap gap-1">
-                          {row.leaders.map((symbol) => (
+                          {row.leaders?.map((symbol) => (
                             <span key={`${row?.sector || 's'}-${symbol || 'x'}`}>
                               <TickerLink symbol={symbol} />
                             </span>

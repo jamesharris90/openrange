@@ -27,7 +27,7 @@ export default function ResearchPage() {
             <InputField className="w-full sm:w-auto sm:min-w-[220px]" label="Ticker" placeholder="Enter ticker" value={input} onChange={e => setInput(e.target.value)} />
             <button className="btn-primary" type="submit">Load</button>
             <div className="flex flex-wrap gap-1.5">
-              {QUICK_TICKERS.map(t => (
+              {QUICK_TICKERS?.map(t => (
                 <button key={t} type="button" className={`pill-btn${symbol === t ? ' pill-btn--active' : ''}`} onClick={() => { setSymbol(t); setInput(t); }}>
                   {t}
                 </button>

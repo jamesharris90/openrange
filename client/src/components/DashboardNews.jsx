@@ -37,7 +37,7 @@ export default function DashboardNews() {
         <div className="muted text-sm">No catalysts available.</div>
       ) : (
         <div className="space-y-2 text-sm">
-          {items.map((row, idx) => (
+          {items?.map((row, idx) => (
             <div key={`${row?.symbol || 'x'}-${idx}`} className="rounded border border-[var(--border-color)] p-2">
               <div className="flex items-center justify-between">
                 <strong>{row?.symbol || '--'}</strong>

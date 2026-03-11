@@ -12,7 +12,7 @@ export default function StrategySignalsBoard({ rows = [], onSelectSymbol }) {
     <Card>
       <h3 className="m-0 mb-3">Strategy Signals</h3>
       <div className="space-y-2">
-        {list.map((row, idx) => {
+        {list?.map((row, idx) => {
           const symbol = String(row?.symbol || '').toUpperCase();
           const accuracy = row?.accuracy || {};
           return (

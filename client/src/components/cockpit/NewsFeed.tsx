@@ -68,7 +68,7 @@ export default function NewsFeed({ symbol }: { symbol: string }) {
             ? payload.news
             : [];
         let mapped = rows
-          .map((row, index) => toItem(row, index))
+          ?.map((row, index) => toItem(row, index))
           .filter(Boolean) as NewsItem[];
 
         if (!mapped.length) {
@@ -79,7 +79,7 @@ export default function NewsFeed({ symbol }: { symbol: string }) {
             const fallbackPayload = await fallback.json();
             const fallbackRows = Array.isArray(fallbackPayload) ? fallbackPayload : [];
             mapped = fallbackRows
-              .map((row, index) => toItem(row, index))
+              ?.map((row, index) => toItem(row, index))
               .filter(Boolean) as NewsItem[];
           }
         }
@@ -123,7 +123,7 @@ export default function NewsFeed({ symbol }: { symbol: string }) {
       )}
 
       <div className="space-y-3">
-        {news.map((item) => (
+        {news?.map((item) => (
           <a
             key={item.id}
             href={item.url}

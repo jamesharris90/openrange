@@ -19,7 +19,7 @@ export default function ToastContainer({ toasts }) {
   if (!toasts?.length) return null;
   return (
     <div className="aiq-toast-container">
-      {toasts.map(t => (
+      {toasts?.map(t => (
         <div key={t.id} className={`aiq-toast aiq-toast-${t.type}`}>
           {t.type === 'success' && '✓ '}
           {t.type === 'error' && '✗ '}

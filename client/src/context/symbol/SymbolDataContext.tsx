@@ -52,7 +52,7 @@ function asNumber(value: unknown): number | undefined {
 function asCandles(input: unknown): Candle[] {
   if (!Array.isArray(input)) return [];
   return input
-    .map((item: any) => ({
+    ?.map((item: any) => ({
       time: Number(item?.time),
       open: Number(item?.open),
       high: Number(item?.high),
@@ -67,7 +67,7 @@ function asCandles(input: unknown): Candle[] {
 function extractValues(input: unknown): number[] {
   if (!Array.isArray(input)) return [];
   return input
-    .map((item: any) => {
+    ?.map((item: any) => {
       const v = typeof item === 'object' && item !== null ? item.value : item;
       return Number(v);
     })
@@ -142,9 +142,9 @@ export function SymbolDataProvider({ children }: { children: React.ReactNode }) 
       indicators: asIndicators(data),
       levels: asLevels(data),
       events: Array.isArray(data?.events)
-        ? data.events
-        : (data?.events && typeof data.events === 'object')
-          ? data.events
+        ? data?.events
+        : (data?.events && typeof data?.events === 'object')
+          ? data?.events
           : [],
       meta: {
         lastFetched: now,
@@ -198,7 +198,7 @@ export function SymbolDataProvider({ children }: { children: React.ReactNode }) 
         loading: false,
         error: '',
         meta: {
-          ...cachedEntry.data.meta,
+          ...cachedEntry.data?.meta,
           source: 'cache',
         },
       });
@@ -214,7 +214,7 @@ export function SymbolDataProvider({ children }: { children: React.ReactNode }) 
         loading: false,
         error: '',
         meta: {
-          ...cachedEntry.data.meta,
+          ...cachedEntry.data?.meta,
           source: 'cache',
         },
       });

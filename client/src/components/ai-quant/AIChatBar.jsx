@@ -29,7 +29,7 @@ export default function AIChatBar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text, contextSource: 'scanner' }),
       });
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer, ts: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data?.answer, ts: Date.now() }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${e.message}`, ts: Date.now(), error: true }]);
     } finally {
@@ -59,7 +59,7 @@ export default function AIChatBar() {
                 Ask about tickers, setups, or market conditions. The AI has access to live scanner context.
               </div>
             )}
-            {messages.map((m, i) => (
+            {messages?.map((m, i) => (
               <div key={i} className={`aiq-chat__msg aiq-chat__msg--${m.role} ${m.error ? 'aiq-chat__msg--error' : ''}`}>
                 <div className="aiq-chat__msg-icon">
                   {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}

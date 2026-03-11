@@ -61,9 +61,9 @@ export default function SystemMonitorPage() {
     }
 
     return {
-      events: (data.recent_events || []).length,
-      integrity: (data.integrity_events || []).length,
-      alerts: (data.system_alerts || []).length,
+      events: (data?.recent_events || []).length,
+      integrity: (data?.integrity_events || []).length,
+      alerts: (data?.system_alerts || []).length,
     };
   }, [data]);
 
@@ -103,7 +103,7 @@ export default function SystemMonitorPage() {
               </tr>
             </thead>
             <tbody>
-              {(data?.recent_events || []).map((row) => (
+              {(data?.recent_events || [])?.map((row) => (
                 <tr key={`event-${row.id}`} className="border-t border-[var(--border-color)]">
                   <td className="px-2 py-1">{new Date(row.created_at).toLocaleTimeString()}</td>
                   <td className="px-2 py-1">{row.event_type}</td>
@@ -120,7 +120,7 @@ export default function SystemMonitorPage() {
         <Section title="Integrity Events">
           <div className="mb-2 text-sm text-[var(--text-muted)]">{overview.integrity} integrity items</div>
           <div className="space-y-2">
-            {(data?.integrity_events || []).slice(0, 20).map((row) => (
+            {(data?.integrity_events || []).slice(0, 20)?.map((row) => (
               <div key={`integrity-${row.id}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div>{row.symbol || 'N/A'} - {row.issue || row.event_type}</div>
@@ -135,7 +135,7 @@ export default function SystemMonitorPage() {
         <Section title="Alerts">
           <div className="mb-2 text-sm text-[var(--text-muted)]">{overview.alerts} alerts</div>
           <div className="space-y-2">
-            {(data?.system_alerts || []).slice(0, 20).map((row) => (
+            {(data?.system_alerts || []).slice(0, 20)?.map((row) => (
               <div key={`alert-${row.id}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div>{row.type}</div>
@@ -152,7 +152,7 @@ export default function SystemMonitorPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Section title="Providers">
           <div className="grid gap-2 md:grid-cols-2">
-            {Object.entries(data?.provider_health || {}).map(([name, provider]) => (
+            {Object.entries(data?.provider_health || {})?.map(([name, provider]) => (
               <div key={name} className="rounded border border-[var(--border-color)] p-2 text-sm">
                 <div className="mb-1 flex items-center justify-between">
                   <div className="font-semibold uppercase">{name}</div>
@@ -167,7 +167,7 @@ export default function SystemMonitorPage() {
 
         <Section title="Engines">
           <div className="grid gap-2 md:grid-cols-2">
-            {Object.entries(data?.engine_health || {}).map(([name, engine]) => (
+            {Object.entries(data?.engine_health || {})?.map(([name, engine]) => (
               <div key={name} className="rounded border border-[var(--border-color)] p-2 text-sm">
                 <div className="mb-1 flex items-center justify-between">
                   <div className="font-semibold">{name}</div>
@@ -193,7 +193,7 @@ export default function SystemMonitorPage() {
           </div>
           <div className="rounded border border-[var(--border-color)] p-3">
             <div className="text-xs text-[var(--text-muted)]">Cache Refresh</div>
-            <div className="mt-1 text-sm">{data?.cache_health?.cache_refresh_time ? new Date(data.cache_health.cache_refresh_time).toLocaleString() : '--'}</div>
+            <div className="mt-1 text-sm">{data?.cache_health?.cache_refresh_time ? new Date(data?.cache_health.cache_refresh_time).toLocaleString() : '--'}</div>
           </div>
         </div>
       </Section>

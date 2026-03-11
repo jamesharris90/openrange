@@ -25,9 +25,9 @@ export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSele
   const [exportOpen, setExportOpen] = useState(false);
 
   // Build ordered, filtered tab list
-  const orderedTabs = (strategyPrefs?.order || SYSTEM_TABS.map(t => t.id))
+  const orderedTabs = (strategyPrefs?.order || SYSTEM_TABS?.map(t => t.id))
     .filter(id => strategyPrefs?.active?.[id] !== false)
-    .map(id => {
+    ?.map(id => {
       const sys = SYSTEM_TABS.find(t => t.id === id);
       if (sys) return sys;
       const custom = customStrategies?.find(c => c.id === id);
@@ -61,7 +61,7 @@ export default function StrategyPanel({ activeStrategy, onChangeStrategy, onSele
   return (
     <div className="aiq-panel aiq-strategy">
       <div className="aiq-tabs">
-        {orderedTabs.map(t => {
+        {orderedTabs?.map(t => {
           const Icon = t.icon;
           const count = (allData?.[t.id] || []).length;
           return (
