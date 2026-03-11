@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-11T17:54:16.247Z",
-  "commit": "d6aa6db",
+  "generated_at": "2026-03-11T19:10:32.057Z",
+  "commit": "f616dac",
   "scheduler_status": {
     "status": "idle",
     "started_at": null,
@@ -29,8 +29,8 @@
     "fmp": {
       "provider": "fmp",
       "status": "ok",
-      "latency": 459,
-      "last_success": "2026-03-11T17:54:16.233Z",
+      "latency": 418,
+      "last_success": "2026-03-11T19:10:31.447Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -38,8 +38,8 @@
     "finnhub": {
       "provider": "finnhub",
       "status": "ok",
-      "latency": 188,
-      "last_success": "2026-03-11T17:54:16.025Z",
+      "latency": 974,
+      "last_success": "2026-03-11T19:10:32.047Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -47,8 +47,8 @@
     "polygon": {
       "provider": "polygon",
       "status": "ok",
-      "latency": 250,
-      "last_success": "2026-03-11T17:54:16.089Z",
+      "latency": 327,
+      "last_success": "2026-03-11T19:10:31.402Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -56,8 +56,8 @@
     "finviz": {
       "provider": "finviz",
       "status": "ok",
-      "latency": 215,
-      "last_success": "2026-03-11T17:54:16.055Z",
+      "latency": 219,
+      "last_success": "2026-03-11T19:10:31.296Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -73,27 +73,23 @@
   "api_health": [
     {
       "endpoint": "/api/system/monitor",
-      "ok": false,
-      "status": 0,
-      "error": "fetch failed"
+      "ok": true,
+      "status": 200
     },
     {
       "endpoint": "/api/admin/system",
       "ok": false,
-      "status": 0,
-      "error": "fetch failed"
+      "status": 401
     },
     {
       "endpoint": "/api/admin/users",
       "ok": false,
-      "status": 0,
-      "error": "fetch failed"
+      "status": 401
     },
     {
       "endpoint": "/api/system/engine-diagnostics",
-      "ok": false,
-      "status": 0,
-      "error": "fetch failed"
+      "ok": true,
+      "status": 200
     }
   ],
   "admin_routes": [

@@ -1,5 +1,4 @@
-const axios = require('axios');
-const limitProvider = require('../utils/providerLimiter');
+const fmpSafeRequest = require('../utils/fmpSafeRequest');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const QUOTE_CONCURRENCY = 5;
@@ -80,21 +79,26 @@ async function fetchCompanyScreenerSlice(exchange, marketCapMin, marketCapMax, p
   const maxRetries = 5;
   let lastStatus = null;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const response = await limitProvider(() =>
-      axios.get(url, { timeout: 30000, validateStatus: () => true })
-    );
-    lastStatus = response.status;
-    if (response.status === 200) {
-      return Array.isArray(response.data) ? response.data : [];
+    try {
+      const data = await fmpSafeRequest(url);
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      const status = Number(err?.response?.status || 0);
+      lastStatus = status;
+      if (status === 429) {
+        const backoff = Math.min(2000 * 2 ** attempt, 30000);
+        await delay(backoff);
+        continue;
+      }
+
+      console.error('FMP request failed', err.message);
+      return [];
     }
-    if (response.status === 429) {
-      const backoff = Math.min(2000 * 2 ** attempt, 30000);
-      await delay(backoff);
-      continue;
-    }
-    throw new Error(`FMP company-screener failed with status ${response.status}`);
   }
-  throw new Error(`FMP company-screener rate-limited after ${maxRetries} retries (429)`);
+  if (lastStatus === 429) {
+    console.error(`FMP company-screener rate-limited after ${maxRetries} retries (429)`);
+  }
+  return [];
 }
 
 async function collectByPriceBuckets(exchange, minCap, maxCap) {
@@ -168,25 +172,24 @@ async function fetchQuotesBatch(symbols) {
   async function fetchSingle(symbol, attempt = 1) {
     const url = `${FMP_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`;
     console.log('Calling FMP with:', url);
-    const response = await limitProvider(() =>
-      axios.get(url, { timeout: 30000, validateStatus: () => true })
-    );
-
-    if (response.status === 429) {
-      if (attempt >= QUOTE_MAX_RETRIES) {
-        throw new Error(`FMP quote endpoint returned 429 for ${symbol}`);
+    try {
+      const data = await fmpSafeRequest(url);
+      const rows = Array.isArray(data) ? data : [];
+      return rows[0] || null;
+    } catch (err) {
+      const status = Number(err?.response?.status || 0);
+      if (status === 429) {
+        if (attempt >= QUOTE_MAX_RETRIES) {
+          throw new Error(`FMP quote endpoint returned 429 for ${symbol}`);
+        }
+        const backoff = 250 * (2 ** (attempt - 1));
+        await delay(backoff);
+        return fetchSingle(symbol, attempt + 1);
       }
-      const backoff = 250 * (2 ** (attempt - 1));
-      await delay(backoff);
-      return fetchSingle(symbol, attempt + 1);
-    }
 
-    if (response.status !== 200) {
-      throw new Error(`FMP quote failed for ${symbol} with status ${response.status}`);
+      console.error('FMP request failed', err.message);
+      return null;
     }
-
-    const rows = Array.isArray(response.data) ? response.data : [];
-    return rows[0] || null;
   }
 
   async function worker() {
