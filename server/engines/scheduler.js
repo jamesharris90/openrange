@@ -11,12 +11,18 @@ const { runSectorEngine } = require('./sectorEngine');
 const { runOpportunityEngine } = require('./opportunityEngine');
 const { runFlowDetectionEngine } = require('./flowDetectionEngine');
 const { runShortSqueezeEngine } = require('./shortSqueezeEngine');
+const { runMarketNarrativeEngine } = require('./marketNarrativeEngine');
 const { runStrategyEngine } = require('./strategyEngine');
 const { runTrendDetectionEngine } = require('./trendDetectionEngine');
 const { runEarningsEngine } = require('./earningsEngine');
 const { runExpectedMoveEngine } = require('./expectedMoveEngine');
 const { runIntelNewsWithFallback } = require('../services/intelNewsRunner');
 const safeEngineRun = require('../utils/engineSafeRun');
+const { heartbeat } = require('../system/pipelineWatchdog');
+const {
+  registerEngine,
+  startAllEngines,
+} = require('../system/engineSupervisor');
 
 let started = false;
 let ingestionInterval = null;
@@ -394,6 +400,7 @@ async function runSchedulerCycleNow() {
 }
 
 async function runPipeline() {
+  heartbeat();
   await safeEngineRun('ingestion', runIngestionNow);
   await safeEngineRun('news', runIntelNewsNow);
   await safeEngineRun('opportunity', runOpportunityNow);
@@ -408,6 +415,15 @@ function startEngineScheduler() {
   if (started) return;
   started = true;
   state.started = true;
+
+  registerEngine('ingestion', runIngestionNow);
+  registerEngine('news', runIntelNewsNow);
+  registerEngine('opportunity', runOpportunityNow);
+  registerEngine('flow', runFlowDetectionEngine);
+  registerEngine('squeeze', runShortSqueezeEngine);
+  registerEngine('marketNarrative', runMarketNarrativeEngine);
+
+  startAllEngines();
 
   schedulerCronJob = cron.schedule('* * * * *', () => {
     runPipeline();

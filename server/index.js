@@ -111,7 +111,11 @@ const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
   runPipeline,
+  runIngestionNow,
+  runIntelNewsNow,
+  runOpportunityNow,
 } = require('./engines/scheduler');
+const { monitorPipeline } = require('./system/pipelineWatchdog');
 const { startEngineScheduler: startPerformanceEngineScheduler, getEngineSchedulerHealth } = require('./system/engineScheduler');
 const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
@@ -5310,12 +5314,20 @@ async function startSystem() {
   await initRedis();
 
   console.log('Running feature bootstrap...');
-  await runFeatureBootstrap();
-  console.log('Feature bootstrap complete');
+  try {
+    await runFeatureBootstrap();
+    console.log('Feature bootstrap complete');
+  } catch (err) {
+    console.error('Feature bootstrap failed', err);
+  }
 
   console.log('Running integrity bootstrap...');
-  await runIntegrityBootstrap();
-  console.log('Integrity bootstrap complete');
+  try {
+    await runIntegrityBootstrap();
+    console.log('Integrity bootstrap complete');
+  } catch (err) {
+    console.error('Integrity bootstrap failed', err);
+  }
 
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
@@ -5367,7 +5379,11 @@ async function startSystem() {
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     startEngineScheduler();
     console.log('[SCHEDULER] Engine scheduler started');
+    monitorPipeline();
 
+    await runIngestionNow();
+    await runIntelNewsNow();
+    await runOpportunityNow();
     await runPipeline();
     await refreshTickerCache();
     await refreshSparklineCache();
