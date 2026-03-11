@@ -1,4 +1,5 @@
 const axios = require('axios');
+const limitProvider = require('../utils/providerLimiter');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const QUOTE_CONCURRENCY = 5;
@@ -79,7 +80,9 @@ async function fetchCompanyScreenerSlice(exchange, marketCapMin, marketCapMax, p
   const maxRetries = 5;
   let lastStatus = null;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const response = await axios.get(url, { timeout: 30000, validateStatus: () => true });
+    const response = await limitProvider(() =>
+      axios.get(url, { timeout: 30000, validateStatus: () => true })
+    );
     lastStatus = response.status;
     if (response.status === 200) {
       return Array.isArray(response.data) ? response.data : [];
@@ -165,7 +168,9 @@ async function fetchQuotesBatch(symbols) {
   async function fetchSingle(symbol, attempt = 1) {
     const url = `${FMP_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`;
     console.log('Calling FMP with:', url);
-    const response = await axios.get(url, { timeout: 30000, validateStatus: () => true });
+    const response = await limitProvider(() =>
+      axios.get(url, { timeout: 30000, validateStatus: () => true })
+    );
 
     if (response.status === 429) {
       if (attempt >= QUOTE_MAX_RETRIES) {

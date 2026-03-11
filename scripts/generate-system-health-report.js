@@ -27,10 +27,11 @@ function readLastErrorLines() {
 
 async function getTableSnapshot() {
   const tables = await queryWithTimeout(
-    `SELECT table_schema, table_name
+    `SELECT table_name
      FROM information_schema.tables
-     WHERE table_schema IN ('public', 'auth')
-     ORDER BY table_schema, table_name`,
+     WHERE table_schema = 'public'
+       AND table_type = 'BASE TABLE'
+     ORDER BY table_name`,
     [],
     { timeoutMs: 5000, label: 'report.db_tables', maxRetries: 0 }
   ).catch(() => ({ rows: [] }));

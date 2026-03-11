@@ -110,6 +110,7 @@ const { getSystemHealth } = require('./monitoring/systemHealth');
 const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
+  runPipeline,
 } = require('./engines/scheduler');
 const { startEngineScheduler: startPerformanceEngineScheduler, getEngineSchedulerHealth } = require('./system/engineScheduler');
 const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
@@ -128,7 +129,7 @@ const { runEngineDiagnostics } = require('./system/engineDiagnostics');
 const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligencePipelineScheduler } = require('./engines/intelligencePipeline');
 const { runProviderHealthCheck, getProviderHealth } = require('./engines/providerHealthEngine');
 const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./cache/sparklineCacheEngine');
-const { startTickerCache, getTickerTapeCache } = require('./cache/tickerCache');
+const { startTickerCache, getTickerTapeCache, refreshTickerCache } = require('./cache/tickerCache');
 const { getTelemetry } = require('./cache/telemetryCache');
 const { initRedis } = require('./cache/redisClient');
 const eventBus = require('./events/eventBus');
@@ -5295,50 +5296,98 @@ async function runIntegrityBootstrap() {
   });
 }
 
-(async () => {
-  try {
-    console.log('Running ensureSchema...');
-    await ensureSchema();
-    console.log('ensureSchema complete');
-  } catch (err) {
-    console.error('ensureSchema failed', err);
-  }
+async function startSystem() {
+  console.log('Running ensureSchema...');
+  await ensureSchema();
+  console.log('ensureSchema complete');
 
-  try {
-    console.log('Running ensureAdminSchema...');
-    await ensureAdminSchema();
-    console.log('ensureAdminSchema complete');
-  } catch (err) {
-    console.error('ensureAdminSchema failed', err);
-  }
+  console.log('Running ensureAdminSchema...');
+  await ensureAdminSchema();
+  console.log('ensureAdminSchema complete');
 
   initEventLogger(eventBus);
   startSystemAlertEngine();
   await initRedis();
 
-  try {
-    console.log('Running feature bootstrap...');
-    await runFeatureBootstrap();
-    console.log('Feature bootstrap complete');
-  } catch (err) {
-    console.error('Feature bootstrap failed', err);
-  }
+  console.log('Running feature bootstrap...');
+  await runFeatureBootstrap();
+  console.log('Feature bootstrap complete');
 
-  try {
-    console.log('Running integrity bootstrap...');
-    await runIntegrityBootstrap();
-    console.log('Integrity bootstrap complete');
-  } catch (err) {
-    console.error('Integrity bootstrap failed', err);
-  }
+  console.log('Running integrity bootstrap...');
+  await runIntegrityBootstrap();
+  console.log('Integrity bootstrap complete');
+
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    logger.info(`OpenRange server listening on port ${PORT}`);
+    console.log('[Intelligence] Ingestion endpoint ready');
+    console.log('Scheduler active');
+    console.log('Opportunity engine active');
+
+    (async () => {
+      try {
+        await queryWithTimeout('SELECT 1 AS ok', [], {
+          timeoutMs: 5000,
+          label: 'startup.db.connection_check',
+          maxRetries: 1,
+          retryDelayMs: 200,
+        });
+        console.log('DB connection successful');
+
+        await userModel.ensureFallbackAdminUser().catch((error) => {
+          logger.warn('Fallback admin bootstrap skipped', { error: error.message });
+        });
+
+        const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
+          getMetricsHealth(),
+          getIngestionHealth(),
+          getUniverseHealth(),
+          getQueueHealth(),
+          getSetupHealth(),
+          getCatalystHealth(),
+          getDiscoveryHealth(),
+        ]);
+
+        logger.info('OpenRange System Status', {
+          metricsRows: metricsHealth.rows,
+          lastMetricsRun: metricsHealth.last_update,
+          ingestionRows: ingestionHealth.tables,
+          universeCount: universeHealth.total_symbols,
+          queueSize: queueHealth.queue_size,
+          setupCount: setupHealth.setup_count,
+          catalystCount: catalystHealth.catalyst_count,
+          discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
+        });
+      } catch (err) {
+        logger.error('OpenRange System Status failed', { error: err.message });
+      }
+    })();
+  });
 
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
-    try {
-      await startEngineScheduler();
-      console.log('Engine scheduler started (ordered startup)');
-    } catch (err) {
-      console.error('Engine scheduler startup failed', err);
-    }
+    startEngineScheduler();
+    console.log('[SCHEDULER] Engine scheduler started');
+
+    await runPipeline();
+    await refreshTickerCache();
+    await refreshSparklineCache();
+
+    const [oppRows, newsRows] = await Promise.all([
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS count FROM opportunities WHERE created_at > NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 3500, label: 'startup.opportunities_24h', maxRetries: 0 }
+      ).catch(() => ({ rows: [{ count: 0 }] })),
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS count FROM intel_news WHERE created_at > NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 3500, label: 'startup.intel_news_24h', maxRetries: 0 }
+      ).catch(() => ({ rows: [{ count: 0 }] })),
+    ]);
+
+    console.log('[DATA STATUS]');
+    console.log(`opportunities_24h: ${Number(oppRows.rows?.[0]?.count || 0)}`);
+    console.log(`news_24h: ${Number(newsRows.rows?.[0]?.count || 0)}`);
   }
 
   // Start daily review cron
@@ -5434,50 +5483,10 @@ async function runIntegrityBootstrap() {
     console.log('Engines enabled (scheduler already started in ordered bootstrap)');
   }
 
-  app.listen(PORT, () => {
-    console.log(`OpenRange server running on port ${PORT}`);
-    logger.info(`OpenRange server listening on port ${PORT}`);
-    console.log('[Intelligence] Ingestion endpoint ready');
-    console.log('Scheduler active');
-    console.log('Opportunity engine active');
+  return server;
+}
 
-    (async () => {
-      try {
-        await queryWithTimeout('SELECT 1 AS ok', [], {
-          timeoutMs: 5000,
-          label: 'startup.db.connection_check',
-          maxRetries: 1,
-          retryDelayMs: 200,
-        });
-        console.log('DB connection successful');
-
-        await userModel.ensureFallbackAdminUser().catch((error) => {
-          logger.warn('Fallback admin bootstrap skipped', { error: error.message });
-        });
-
-        const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
-          getMetricsHealth(),
-          getIngestionHealth(),
-          getUniverseHealth(),
-          getQueueHealth(),
-          getSetupHealth(),
-          getCatalystHealth(),
-          getDiscoveryHealth(),
-        ]);
-
-        logger.info('OpenRange System Status', {
-          metricsRows: metricsHealth.rows,
-          lastMetricsRun: metricsHealth.last_update,
-          ingestionRows: ingestionHealth.tables,
-          universeCount: universeHealth.total_symbols,
-          queueSize: queueHealth.queue_size,
-          setupCount: setupHealth.setup_count,
-          catalystCount: catalystHealth.catalyst_count,
-          discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
-        });
-      } catch (err) {
-        logger.error('OpenRange System Status failed', { error: err.message });
-      }
-    })();
-  });
-})();
+startSystem().catch((err) => {
+  console.error('System startup failed', err);
+  process.exit(1);
+});

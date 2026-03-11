@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-03-11T17:53:52.274Z",
+  "scheduler_status": {
+    "started": false,
+    "ingestionEverySeconds": 60,
+    "metricsEverySeconds": 60,
+    "universeEverySeconds": 60,
+    "sectorEverySeconds": 120,
+    "opportunityEverySeconds": 60,
+    "strategyEverySeconds": 60,
+    "trendEverySeconds": 300,
+    "earningsEverySeconds": 3600,
+    "expectedMoveEverySeconds": 300,
+    "intelNewsEverySeconds": 300,
+    "bootstrapCompleted": false,
+    "lastIngestionRunAt": null,
+    "lastIngestionError": null,
+    "lastMetricsRunAt": null,
+    "lastMetricsError": null,
+    "lastUniverseRunAt": null,
+    "lastUniverseError": null,
+    "lastSectorRunAt": null,
+    "lastSectorError": null,
+    "lastOpportunityRunAt": null,
+    "lastOpportunityError": null,
+    "lastStrategyRunAt": null,
+    "lastStrategyError": null,
+    "lastTrendRunAt": null,
+    "lastTrendError": null,
+    "lastEarningsRunAt": null,
+    "lastEarningsError": null,
+    "lastExpectedMoveRunAt": null,
+    "lastExpectedMoveError": null,
+    "lastIntelNewsRunAt": null,
+    "lastIntelNewsError": null,
+    "bootstrapTargetRows": 2000,
+    "ingestionTimerActive": false,
+    "metricsTimerActive": false,
+    "universeTimerActive": false,
+    "sectorTimerActive": false,
+    "opportunityTimerActive": false,
+    "strategyTimerActive": false,
+    "trendTimerActive": false,
+    "earningsTimerActive": false,
+    "expectedMoveTimerActive": false,
+    "intelNewsTimerActive": false,
+    "cronTimerActive": false,
+    "schedulerSequentialMode": true,
+    "engineDelayMs": 1500
+  },
+  "pipeline_last_run": {
+    "status": "idle",
+    "last_run": null,
+    "execution_time_ms": 0,
+    "stages": {},
+    "validation": [],
+    "errors": []
+  },
+  "opportunities_count": 0,
+  "intel_news_count": 0,
+  "alerts_count": 0,
+  "providers_status": {
+    "checked_at": "2026-03-11T17:53:52.260Z",
+    "providers": {
+      "fmp": {
+        "provider": "fmp",
+        "status": "ok",
+        "latency": 470,
+        "last_success": "2026-03-11T17:53:52.260Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "finnhub": {
+        "provider": "finnhub",
+        "status": "ok",
+        "latency": 176,
+        "last_success": "2026-03-11T17:53:52.028Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "polygon": {
+        "provider": "polygon",
+        "status": "ok",
+        "latency": 279,
+        "last_success": "2026-03-11T17:53:52.133Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "finviz": {
+        "provider": "finviz",
+        "status": "ok",
+        "latency": 228,
+        "last_success": "2026-03-11T17:53:52.084Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      }
+    }
+  }
+}

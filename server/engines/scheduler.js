@@ -1,4 +1,5 @@
 const logger = require('../logger');
+const cron = require('node-cron');
 const { poolWrite, runWithDbPool } = require('../db/pg');
 const {
   ingestMarketQuotesBootstrap,
@@ -8,11 +9,14 @@ const { runMetricsEngine } = require('./metricsEngine');
 const { runUniverseBuilder } = require('./universeBuilder');
 const { runSectorEngine } = require('./sectorEngine');
 const { runOpportunityEngine } = require('./opportunityEngine');
+const { runFlowDetectionEngine } = require('./flowDetectionEngine');
+const { runShortSqueezeEngine } = require('./shortSqueezeEngine');
 const { runStrategyEngine } = require('./strategyEngine');
 const { runTrendDetectionEngine } = require('./trendDetectionEngine');
 const { runEarningsEngine } = require('./earningsEngine');
 const { runExpectedMoveEngine } = require('./expectedMoveEngine');
 const { runIntelNewsWithFallback } = require('../services/intelNewsRunner');
+const safeEngineRun = require('../utils/engineSafeRun');
 
 let started = false;
 let ingestionInterval = null;
@@ -35,6 +39,7 @@ let expectedMoveInFlight = false;
 let intelNewsInFlight = false;
 let schedulerInFlight = false;
 let bootstrapCompleted = false;
+let schedulerCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 
@@ -388,19 +393,27 @@ async function runSchedulerCycleNow() {
   }
 }
 
+async function runPipeline() {
+  await safeEngineRun('ingestion', runIngestionNow);
+  await safeEngineRun('news', runIntelNewsNow);
+  await safeEngineRun('opportunity', runOpportunityNow);
+  await safeEngineRun('flow', runFlowDetectionEngine);
+  await safeEngineRun('squeeze', runShortSqueezeEngine);
+
+  // Keep existing sequential scheduler cycle for full engine coverage.
+  await runSchedulerCycleNow();
+}
+
 function startEngineScheduler() {
   if (started) return;
   started = true;
   state.started = true;
 
-  // Single sequential cycle timer to avoid parallel DB pressure from multiple intervals.
-  metricsInterval = setInterval(() => {
-    runSchedulerCycleNow();
-  }, state.metricsEverySeconds * 1000);
+  schedulerCronJob = cron.schedule('* * * * *', () => {
+    runPipeline();
+  });
 
-  if (typeof metricsInterval.unref === 'function') metricsInterval.unref();
-
-  runSchedulerCycleNow();
+  runPipeline();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
@@ -414,6 +427,7 @@ function startEngineScheduler() {
     expectedMoveEverySeconds: state.expectedMoveEverySeconds,
     intelNewsEverySeconds: state.intelNewsEverySeconds,
     mode: 'phase_2_intelligence',
+    schedule: '* * * * *',
   });
 }
 
@@ -430,6 +444,7 @@ function getEngineSchedulerStatus() {
     earningsTimerActive: Boolean(metricsInterval),
     expectedMoveTimerActive: Boolean(metricsInterval),
     intelNewsTimerActive: Boolean(metricsInterval),
+    cronTimerActive: Boolean(schedulerCronJob),
     schedulerSequentialMode: true,
     engineDelayMs: ENGINE_DELAY_MS,
   };
@@ -450,5 +465,6 @@ module.exports = {
   runEarningsNow,
   runExpectedMoveNow,
   runIntelNewsNow,
+  runPipeline,
   getEngineSchedulerStatus,
 };

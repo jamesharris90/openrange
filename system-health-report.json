@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-11T16:58:02.168Z",
-  "commit": "262dce7",
+  "generated_at": "2026-03-11T17:54:16.247Z",
+  "commit": "d6aa6db",
   "scheduler_status": {
     "status": "idle",
     "started_at": null,
@@ -29,8 +29,8 @@
     "fmp": {
       "provider": "fmp",
       "status": "ok",
-      "latency": 799,
-      "last_success": "2026-03-11T16:58:02.151Z",
+      "latency": 459,
+      "last_success": "2026-03-11T17:54:16.233Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -38,8 +38,8 @@
     "finnhub": {
       "provider": "finnhub",
       "status": "ok",
-      "latency": 203,
-      "last_success": "2026-03-11T16:58:01.617Z",
+      "latency": 188,
+      "last_success": "2026-03-11T17:54:16.025Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -47,8 +47,8 @@
     "polygon": {
       "provider": "polygon",
       "status": "ok",
-      "latency": 305,
-      "last_success": "2026-03-11T16:58:01.721Z",
+      "latency": 250,
+      "last_success": "2026-03-11T17:54:16.089Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
@@ -56,8 +56,8 @@
     "finviz": {
       "provider": "finviz",
       "status": "ok",
-      "latency": 250,
-      "last_success": "2026-03-11T16:58:01.669Z",
+      "latency": 215,
+      "last_success": "2026-03-11T17:54:16.055Z",
       "error_rate": 0,
       "errors": 0,
       "checks": 1
