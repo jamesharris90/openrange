@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { createChart, LineSeries } from 'lightweight-charts';
 import { apiJSON } from '../../config/api';
 
@@ -8,7 +8,7 @@ function normalize(values = []) {
   return [50, 52, 51, 53, 54, 55, 56, 57, 58, 59, 58, 60, 61, 62, 61, 63, 64, 65, 66, 67];
 }
 
-export default function Sparkline({ symbol, points = [], width = undefined, height = 40, positive = true }) {
+function Sparkline({ symbol, points = [], width = undefined, height = 40, positive = true }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
@@ -88,3 +88,5 @@ export default function Sparkline({ symbol, points = [], width = undefined, heig
 
   return <div ref={containerRef} style={{ width: width || '100%', height: height || 40 }} aria-label="sparkline" />;
 }
+
+export default memo(Sparkline);

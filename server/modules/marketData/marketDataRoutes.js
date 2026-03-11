@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const marketCache = require('../../cache/marketCache');
+const { getTickerTapeCache } = require('../../cache/tickerCache');
 const { queryWithTimeout } = require('../../db/pg');
 
 const router = express.Router();
@@ -240,30 +241,22 @@ router.get('/indices', async (_req, res) => {
 });
 
 router.get('/ticker-tape', async (_req, res) => {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return res.json([]);
-  }
+  const cache = getTickerTapeCache();
+  const rows = Array.isArray(cache?.rows) ? cache.rows : [];
+  const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
 
-  try {
-    const rows = await fetchQuotes(TICKER_TAPE_SYMBOLS, apiKey);
-    const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const data = TICKER_TAPE_SYMBOLS.map((symbol) => {
+    const row = map.get(symbol) || {};
+    return {
+      symbol,
+      price: toNum(row.price),
+      change: toNum(row.change),
+      changesPercentage: toNum(row.change_percent),
+      volume: toNum(row.volume),
+    };
+  });
 
-    const data = TICKER_TAPE_SYMBOLS.map((symbol) => {
-      const row = map.get(symbol) || {};
-      return {
-        symbol,
-        price: toNum(row.price),
-        change: toNum(row.change),
-        changesPercentage: toNum(row.changesPercentage),
-        volume: toNum(row.volume),
-      };
-    });
-
-    return res.json(data);
-  } catch (_error) {
-    return res.json([]);
-  }
+  return res.json(data);
 });
 
 module.exports = router;

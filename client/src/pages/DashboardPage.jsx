@@ -82,8 +82,10 @@ export default function DashboardPage() {
     }
 
     load();
+    const timer = setInterval(load, 15_000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 

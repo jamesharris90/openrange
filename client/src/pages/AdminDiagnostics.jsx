@@ -16,7 +16,7 @@ function cardStatus(count) {
 export default function AdminDiagnostics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [health, setHealth] = useState({ status: 'warning', tables: {} });
+  const [health, setHealth] = useState({ status: 'warning', database_health: { tables: {} }, provider_health: { providers: {} }, cache_health: {} });
   const [diagnostics, setDiagnostics] = useState({ lines: [], checked_at: null, health: null });
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function AdminDiagnostics() {
         ]);
 
         if (cancelled) return;
-        setHealth(healthPayload || { status: 'warning', tables: {} });
+        setHealth(healthPayload || { status: 'warning', database_health: { tables: {} }, provider_health: { providers: {} }, cache_health: {} });
         setDiagnostics(enginePayload || { lines: [], checked_at: null, health: null });
       } catch (err) {
         if (cancelled) return;
@@ -49,7 +49,7 @@ export default function AdminDiagnostics() {
   }, []);
 
   const cards = useMemo(() => {
-    const tables = health?.tables || {};
+    const tables = health?.database_health?.tables || health?.tables || {};
     return [
       { label: 'Market Data', value: tables.intraday_1m ?? 0, status: cardStatus(tables.intraday_1m) },
       { label: 'News Feed', value: tables.news_articles ?? 0, status: cardStatus(tables.news_articles) },
@@ -79,6 +79,11 @@ export default function AdminDiagnostics() {
 
       <div className={`rounded-lg border p-3 text-sm ${statusTone(health?.status || 'warning')}`}>
         SYSTEM STATUS: {String(health?.status || 'warning').toUpperCase()}
+      </div>
+
+      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-sm text-[var(--text-secondary)]">
+        <div>Providers: {Object.values(health?.provider_health?.providers || {}).every((p) => p?.status === 'ok') ? 'OK' : 'Warning'}</div>
+        <div>Cache: {(health?.cache_health?.ticker_cache || '').toLowerCase() === 'ok' ? 'OK' : 'Warning'}</div>
       </div>
 
       {loading ? (

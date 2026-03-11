@@ -16,6 +16,7 @@ if (!process.env.FMP_API_KEY) {
 }
 
 const express = require('express');
+const cron = require('node-cron');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const csv = require('csvtojson');
@@ -114,11 +115,17 @@ const { getFilterRegistry, getScoringRules } = require('./config/intelligenceCon
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
 const runMigrations = require('./db/runMigrations');
+const { runDbSchemaGuard } = require('./db/schemaGuard');
+const { ensurePerformanceIndexes } = require('./db/performanceIndexes');
 const startEnginesSequentially = require('./system/startEngines');
 const { runSchemaGuard } = require('./system/schemaGuard');
 const { runFeatureBootstrap } = require('./system/featureBootstrap');
 const { getDataHealth } = require('./system/dataHealthEngine');
 const { runEngineDiagnostics } = require('./system/engineDiagnostics');
+const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligencePipelineScheduler } = require('./engines/intelligencePipeline');
+const { runProviderHealthCheck, getProviderHealth } = require('./engines/providerHealthEngine');
+const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./engines/sparklineCacheEngine');
+const { startTickerCache, getTickerTapeCache } = require('./cache/tickerCache');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -968,23 +975,86 @@ app.get('/api/system/report', async (req, res) => {
 
 app.get('/api/system/data-health', async (_req, res) => {
   try {
-    const payload = await getDataHealth();
-    return res.json(payload);
+    const [databaseHealth, providerHealth, sparklineStats] = await Promise.all([
+      getDataHealth(),
+      Promise.resolve(getProviderHealth()),
+      getSparklineCacheStats(),
+    ]);
+
+    const pipeline = getIntelligencePipelineHealth();
+    const tickerState = getTickerTapeCache();
+
+    const engineHealth = {
+      pipeline: pipeline?.status || 'unknown',
+      squeeze: pipeline?.stages?.short_squeeze?.ok ? 'ok' : (pipeline?.stages?.short_squeeze ? 'warning' : 'unknown'),
+      flow: pipeline?.stages?.flow_detection?.ok ? 'ok' : (pipeline?.stages?.flow_detection ? 'warning' : 'unknown'),
+      narrative: pipeline?.stages?.market_narrative?.ok ? 'ok' : (pipeline?.stages?.market_narrative ? 'warning' : 'unknown'),
+      last_run: pipeline?.last_run || null,
+    };
+
+    const providers = providerHealth?.providers || {};
+    const providerSummary = {
+      fmp: providers?.fmp?.status || 'unknown',
+      finnhub: providers?.finnhub?.status || 'unknown',
+      polygon: providers?.polygon?.status || 'unknown',
+      finviz: providers?.finviz?.status || 'unknown',
+    };
+
+    const cacheHealth = {
+      sparkline_cache_rows: Number(sparklineStats?.rows || 0),
+      sparkline_cache_updated_at: sparklineStats?.updated_at || null,
+      ticker_cache: tickerState?.status || 'unknown',
+      ticker_cache_refresh_time: tickerState?.updated_at || null,
+    };
+
+    const status = [databaseHealth?.status, ...Object.values(providerSummary), engineHealth.pipeline, cacheHealth.ticker_cache]
+      .some((item) => item && item !== 'ok' && item !== 'unknown')
+      ? 'warning'
+      : 'ok';
+
+    return res.json({
+      status,
+      database_health: databaseHealth,
+      provider_health: providerHealth,
+      engine_health: engineHealth,
+      cache_health: cacheHealth,
+      engines: engineHealth,
+      providers: providerSummary,
+      cache: {
+        sparkline_cache_rows: cacheHealth.sparkline_cache_rows,
+        ticker_cache: cacheHealth.ticker_cache,
+      },
+    });
   } catch (error) {
     return res.json({
       status: 'warning',
-      tables: {
-        intraday_1m: 0,
-        market_quotes: 0,
-        news_articles: 0,
-        earnings_events: 0,
-        trade_setups: 0,
-        trade_catalysts: 0,
-        opportunity_stream: 0,
+      database_health: {
+        status: 'warning',
+        tables: {
+          intraday_1m: 0,
+          market_quotes: 0,
+          news_articles: 0,
+          earnings_events: 0,
+          trade_setups: 0,
+          trade_catalysts: 0,
+          opportunity_stream: 0,
+        },
       },
+      provider_health: { providers: {} },
+      engine_health: { pipeline: 'warning', squeeze: 'warning', flow: 'warning', narrative: 'warning' },
+      cache_health: { sparkline_cache_rows: 0, ticker_cache: 'warning' },
       error: 'Data health unavailable',
       message: error.message,
     });
+  }
+});
+
+app.get('/api/system/provider-health', async (_req, res) => {
+  try {
+    const payload = await runProviderHealthCheck();
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message, providers: {} });
   }
 });
 
@@ -4517,43 +4587,11 @@ async function handleSparkline(req, res) {
   const symbol = String(req.query.symbol || '').trim().toUpperCase();
   if (!symbol) return res.status(400).json([]);
 
-  const cacheKey = `api.chart.sparkline:${symbol}`;
-  const cacheTtlMs = 30_000;
-  const cached = getCachedValue(cacheKey);
-
-  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
-    return res.json(Array.isArray(cached.points) ? cached.points : []);
-  }
-
   try {
-    const { rows } = await queryWithTimeout(
-      `SELECT
-         EXTRACT(EPOCH FROM "timestamp")::bigint AS time,
-         close AS value
-       FROM intraday_1m
-       WHERE symbol = $1
-       ORDER BY "timestamp" DESC
-       LIMIT 30`,
-      [symbol],
-      { label: 'api.chart.sparkline', timeoutMs: 1600, maxRetries: 0 }
-    );
-
-    const points = rows
-      .slice()
-      .reverse()
-      .map((row) => ({
-        time: Number(row.time),
-        value: Number(row.value),
-      }))
-      .filter((row) => Number.isFinite(row.time) && Number.isFinite(row.value));
-
-    setCachedValue(cacheKey, {
-      points,
-      timestamp: new Date().toISOString(),
-    });
-
+    const points = await getSparklineFromCache(symbol);
     return res.json(points);
-  } catch (_error) {
+  } catch (error) {
+    logger.warn('sparkline cache endpoint failed', { symbol, error: error.message });
     return res.json([]);
   }
 }
@@ -5135,6 +5173,22 @@ if (process.env.NODE_ENV === 'production') {
   }
 
   try {
+    console.log('Running DB schema guard...');
+    await runDbSchemaGuard();
+    console.log('DB schema guard complete');
+  } catch (err) {
+    console.error('DB schema guard failed', err);
+  }
+
+  try {
+    console.log('Ensuring performance indexes...');
+    await ensurePerformanceIndexes();
+    console.log('Performance indexes complete');
+  } catch (err) {
+    console.error('Performance indexes failed', err);
+  }
+
+  try {
     console.log('Running feature bootstrap...');
     await runFeatureBootstrap();
     console.log('Feature bootstrap complete');
@@ -5199,6 +5253,20 @@ if (process.env.NODE_ENV === 'production') {
   if (process.env.ENABLE_OPPORTUNITY_STREAM_SCHEDULER === 'true') {
     startOpportunityStreamScheduler();
   }
+
+  startTickerCache();
+  await refreshSparklineCache();
+  await runProviderHealthCheck();
+  await runIntelligencePipeline();
+  startIntelligencePipelineScheduler();
+
+  cron.schedule('*/1 * * * *', async () => {
+    await refreshSparklineCache();
+  });
+
+  cron.schedule('*/1 * * * *', async () => {
+    await runProviderHealthCheck();
+  });
 
   if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {
     startNarrativeScheduler();

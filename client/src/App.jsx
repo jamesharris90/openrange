@@ -4,7 +4,6 @@ import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
 import safeLazy from "./utils/safeLazy";
 import AppLayout from './components/layout/AppLayout';
-import TickerTape from './components/TickerTape';
 import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
@@ -46,13 +45,13 @@ const MobileDashboard = safeLazy(() => import('./pages/MobileDashboard'));
 const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
+const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-        <TickerTape />
         <Suspense fallback={<div className="grid gap-2 p-4 md:grid-cols-2"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}>
           <Routes>
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
@@ -108,6 +107,7 @@ export default function App() {
                   <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminDiagnostics /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><IntelligenceMonitorPage /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>

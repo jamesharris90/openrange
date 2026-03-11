@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+
 const { ingestMarketQuotesRefresh, ingestMarketQuotesBootstrap } = require('../engines/fmpMarketIngestion');
 const { runMarketNarrativeEngine } = require('../engines/marketNarrativeEngine');
 const runRadarEngine = require('../engines/radarEngine');
@@ -6,6 +9,10 @@ const { runStocksInPlayEngine } = require('../engines/stocksInPlayEngine');
 const { runShortSqueezeEngine } = require('../engines/shortSqueezeEngine');
 const { runFlowDetectionEngine } = require('../engines/flowDetectionEngine');
 const { getDataHealth } = require('./dataHealthEngine');
+const { runIntelligencePipeline } = require('../engines/intelligencePipeline');
+const { runProviderHealthCheck } = require('../engines/providerHealthEngine');
+const { refreshSparklineCache, getSparklineCacheStats } = require('../engines/sparklineCacheEngine');
+const { refreshTickerCache, getTickerTapeCache } = require('../cache/tickerCache');
 const logger = require('../logger');
 
 function line(label, status, detail = '') {
@@ -53,6 +60,7 @@ async function runEngineDiagnostics() {
   await runStep('short_squeeze', 'SHORT SQUEEZE ENGINE', runShortSqueezeEngine);
   await runStep('flow_detection', 'FLOW DETECTION ENGINE', runFlowDetectionEngine);
   await runStep('market_narrative', 'MARKET NARRATIVE ENGINE', runMarketNarrativeEngine);
+  await runStep('pipeline', 'PIPELINE ENGINE', runIntelligencePipeline);
 
   const health = await getDataHealth();
   if (Number(health.tables?.earnings_events || 0) === 0) {
@@ -73,13 +81,32 @@ async function runEngineDiagnostics() {
     results.push(line('EARNINGS ENGINE', 'OK'));
   }
 
-  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok');
+  const providerHealth = await runProviderHealthCheck();
+  const providerNodes = Object.values(providerHealth?.providers || {});
+  const providersOk = providerNodes.length > 0 && providerNodes.every((p) => p.status === 'ok');
+  results.push(line('PROVIDERS', providersOk ? 'OK' : 'WARN'));
+
+  await refreshTickerCache();
+  await refreshSparklineCache();
+  const tickerState = getTickerTapeCache();
+  const sparklineStats = await getSparklineCacheStats();
+  const cacheOk = tickerState?.status === 'ok' && Number(sparklineStats?.rows || 0) >= 0;
+  results.push(line('CACHE', cacheOk ? 'OK' : 'WARN'));
+
+  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok') && providersOk && cacheOk;
   results.unshift(line('SYSTEM STATUS', allOk ? 'OK' : 'WARN'));
   results.push(line('ALL ENGINES', allOk ? 'OK' : 'WARN'));
 
   return {
     lines: results,
     health,
+    provider_health: providerHealth,
+    cache_health: {
+      ticker_cache: tickerState?.status || 'unknown',
+      ticker_cache_rows: (tickerState?.rows || []).length,
+      sparkline_cache_rows: Number(sparklineStats?.rows || 0),
+      cache_refresh_time: tickerState?.updated_at || sparklineStats?.updated_at || null,
+    },
     engines: engineStatus,
     status: allOk ? 'ok' : 'warning',
     checked_at: new Date().toISOString(),
