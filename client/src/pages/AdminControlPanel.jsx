@@ -288,6 +288,7 @@ export default function AdminControlPanel() {
 
         {activeTab === 'system' && (
           <div className="grid gap-3 md:grid-cols-2">
+            <a className="rounded border border-[var(--border-color)] p-3" href="/admin/diagnostics">System Diagnostics</a>
             <a className="rounded border border-[var(--border-color)] p-3" href="/signal-intelligence-admin">Signal Intelligence Admin</a>
             <a className="rounded border border-[var(--border-color)] p-3" href="/strategy-evaluation">Strategy Evaluation</a>
             <button type="button" className="rounded border border-[var(--border-color)] p-3 text-left" onClick={triggerNewsletterSend}>

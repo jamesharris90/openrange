@@ -117,6 +117,8 @@ const runMigrations = require('./db/runMigrations');
 const startEnginesSequentially = require('./system/startEngines');
 const { runSchemaGuard } = require('./system/schemaGuard');
 const { runFeatureBootstrap } = require('./system/featureBootstrap');
+const { getDataHealth } = require('./system/dataHealthEngine');
+const { runEngineDiagnostics } = require('./system/engineDiagnostics');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -965,31 +967,38 @@ app.get('/api/system/report', async (req, res) => {
 });
 
 app.get('/api/system/data-health', async (_req, res) => {
-  const response = {
-    intraday_rows: 0,
-    metrics_rows: 0,
-    setups_rows: 0,
-    catalysts_rows: 0,
-    earnings_rows: 0,
-  };
-
   try {
-    const [intraday, metrics, setups, catalysts, earnings] = await Promise.all([
-      queryWithTimeout('SELECT COUNT(*)::int AS count FROM intraday_1m', [], { label: 'api.system.data_health.intraday', timeoutMs: 2500, maxRetries: 0 }),
-      queryWithTimeout('SELECT COUNT(*)::int AS count FROM market_metrics', [], { label: 'api.system.data_health.metrics', timeoutMs: 2500, maxRetries: 0 }),
-      queryWithTimeout('SELECT COUNT(*)::int AS count FROM trade_setups', [], { label: 'api.system.data_health.setups', timeoutMs: 2500, maxRetries: 0 }),
-      queryWithTimeout('SELECT COUNT(*)::int AS count FROM trade_catalysts', [], { label: 'api.system.data_health.catalysts', timeoutMs: 2500, maxRetries: 0 }),
-      queryWithTimeout('SELECT COUNT(*)::int AS count FROM earnings_events', [], { label: 'api.system.data_health.earnings', timeoutMs: 2500, maxRetries: 0 }),
-    ]);
+    const payload = await getDataHealth();
+    return res.json(payload);
+  } catch (error) {
+    return res.json({
+      status: 'warning',
+      tables: {
+        intraday_1m: 0,
+        market_quotes: 0,
+        news_articles: 0,
+        earnings_events: 0,
+        trade_setups: 0,
+        trade_catalysts: 0,
+        opportunity_stream: 0,
+      },
+      error: 'Data health unavailable',
+      message: error.message,
+    });
+  }
+});
 
-    response.intraday_rows = Number(intraday.rows?.[0]?.count || 0);
-    response.metrics_rows = Number(metrics.rows?.[0]?.count || 0);
-    response.setups_rows = Number(setups.rows?.[0]?.count || 0);
-    response.catalysts_rows = Number(catalysts.rows?.[0]?.count || 0);
-    response.earnings_rows = Number(earnings.rows?.[0]?.count || 0);
-    return res.json(response);
-  } catch (_error) {
-    return res.json(response);
+app.get('/api/system/engine-diagnostics', async (_req, res) => {
+  try {
+    const result = await runEngineDiagnostics();
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Engine diagnostics failure',
+      message: error.message,
+      lines: [],
+    });
   }
 });
 
@@ -2626,8 +2635,8 @@ app.post('/api/query/run', async (req, res) => {
     const isValidation = error?.code === 'INVALID_QUERY_TREE_FIELD';
     return res.status(isValidation ? 400 : 500).json({
       rows: [],
-      error: isValidation ? error.message : 'Failed to execute query tree',
-      detail: isValidation ? undefined : error.message,
+      error: isValidation ? 'Invalid query tree' : 'Query engine failure',
+      message: error.message,
     });
   }
 });

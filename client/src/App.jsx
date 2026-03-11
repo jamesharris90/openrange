@@ -45,6 +45,7 @@ const TradeSetup = safeLazy(() => import('./pages/TradeSetup'));
 const MobileDashboard = safeLazy(() => import('./pages/MobileDashboard'));
 const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
+const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
@@ -106,6 +107,7 @@ export default function App() {
                   <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminDiagnostics /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>

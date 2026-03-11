@@ -54,6 +54,17 @@ router.get('/strategy/trades', requireFeature('strategy_evaluation'), async (req
 
 router.get('/narratives/latest', async (req, res) => {
   try {
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS market_narratives (
+        id BIGSERIAL PRIMARY KEY,
+        narrative TEXT NOT NULL,
+        regime TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      [],
+      { timeoutMs: 5000, label: 'routes.narratives.latest.ensure_table', maxRetries: 0 }
+    );
+
     const { rows } = await queryWithTimeout(
       `SELECT id, narrative, regime, created_at
        FROM market_narratives
@@ -80,7 +91,14 @@ router.get('/narratives/latest', async (req, res) => {
       items: Array.isArray(parsed) ? parsed : [],
     });
   } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message || 'Failed to load latest narratives' });
+    return res.status(500).json({
+      ok: false,
+      error: 'Narratives endpoint failure',
+      message: error.message || 'Failed to load latest narratives',
+      regime: 'Neutral',
+      generated_at: null,
+      items: [],
+    });
   }
 });
 

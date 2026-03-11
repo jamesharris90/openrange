@@ -164,7 +164,7 @@ router.patch('/api/admin/features/user/:userId/feature', requireAdmin, async (re
   }
 });
 
-router.get('/api/admin/features/audit', requireAdmin, async (_req, res) => {
+async function handleFeatureAudit(_req, res) {
   try {
     const { rows } = await queryWithTimeout(
       `SELECT
@@ -193,9 +193,17 @@ router.get('/api/admin/features/audit', requireAdmin, async (_req, res) => {
 
     return res.json({ ok: true, items: rows || [] });
   } catch (error) {
-    return res.status(500).json({ ok: false, error: 'Failed to load audit trail', detail: error.message });
+    return res.status(500).json({
+      ok: false,
+      error: 'Feature audit failure',
+      message: error.message,
+      items: [],
+    });
   }
-});
+}
+
+router.get('/api/admin/features/audit', requireAdmin, handleFeatureAudit);
+router.get('/api/features/audit', requireAdmin, handleFeatureAudit);
 
 router.get('/api/admin/features/newsletter/summary', requireAdmin, async (_req, res) => {
   try {

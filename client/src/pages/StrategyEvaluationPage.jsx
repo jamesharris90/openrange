@@ -71,13 +71,13 @@ export default function StrategyEvaluationPage() {
     };
   }, []);
 
-  const strategies = useMemo(() => ['ALL', ...new Set(trades.map((row) => String(row?.strategy || 'Unknown')))], [trades]);
-  const sectors = useMemo(() => ['ALL', ...new Set(trades.map((row) => String(row?.sector || 'Unknown')))], [trades]);
-  const catalysts = useMemo(() => ['ALL', ...new Set(trades.map((row) => String(row?.catalyst_type || 'unknown')))], [trades]);
-  const confidences = useMemo(() => ['ALL', ...new Set(trades.map((row) => String(row?.confidence || 'N/A')))], [trades]);
+  const strategies = useMemo(() => ['ALL', ...new Set((trades || []).map((row) => String(row?.strategy || 'Unknown')))], [trades]);
+  const sectors = useMemo(() => ['ALL', ...new Set((trades || []).map((row) => String(row?.sector || 'Unknown')))], [trades]);
+  const catalysts = useMemo(() => ['ALL', ...new Set((trades || []).map((row) => String(row?.catalyst_type || 'unknown')))], [trades]);
+  const confidences = useMemo(() => ['ALL', ...new Set((trades || []).map((row) => String(row?.confidence || 'N/A')))], [trades]);
 
   const filteredTrades = useMemo(() => {
-    return trades.filter((row) => {
+    return (trades || []).filter((row) => {
       const strategy = String(row?.strategy || 'Unknown');
       const sector = String(row?.sector || 'Unknown');
       const catalyst = String(row?.catalyst_type || 'unknown');
@@ -180,25 +180,25 @@ export default function StrategyEvaluationPage() {
               <label>
                 <div className="muted text-xs">Strategy</div>
                 <select className="input-field" value={strategyFilter} onChange={(e) => setStrategyFilter(e.target.value)}>
-                  {strategies.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {(strategies || []).map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label>
                 <div className="muted text-xs">Sector</div>
                 <select className="input-field" value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value)}>
-                  {sectors.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {(sectors || []).map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label>
                 <div className="muted text-xs">Catalyst</div>
                 <select className="input-field" value={catalystFilter} onChange={(e) => setCatalystFilter(e.target.value)}>
-                  {catalysts.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {(catalysts || []).map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label>
                 <div className="muted text-xs">Confidence</div>
                 <select className="input-field" value={confidenceFilter} onChange={(e) => setConfidenceFilter(e.target.value)}>
-                  {confidences.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {(confidences || []).map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
             </div>
@@ -244,7 +244,7 @@ export default function StrategyEvaluationPage() {
               <div className="muted">No strategy performance data available.</div>
             ) : (
               <div className="space-y-2">
-                {strategyBars.map((row) => (
+                {(strategyBars || []).map((row) => (
                   <div key={String(row?.strategy || 'unknown')}>
                     <div className="mb-1 flex items-center justify-between text-sm">
                       <span>{row?.strategy || 'Unknown'}</span>
@@ -265,7 +265,7 @@ export default function StrategyEvaluationPage() {
               <div className="muted">No recent trade points available.</div>
             ) : (
               <div className="space-y-1 text-xs">
-                {scoreVsOutcome.map((row) => (
+                {(scoreVsOutcome || []).map((row) => (
                   <div key={String(row?.id || row?.symbol)} className="flex items-center justify-between rounded border border-[var(--border-color)] px-2 py-1">
                     <span>{row?.symbol || '--'}</span>
                     <span className="muted">Signal {fmt(row?.score, 2)} vs Outcome {pct(row?.outcome)}</span>
@@ -278,7 +278,7 @@ export default function StrategyEvaluationPage() {
           <Card>
             <h3 className="m-0 mb-3">Entry vs Exit Timing</h3>
             <div className="space-y-1 text-xs">
-              {timingHistogram.buckets.map((bucket) => (
+              {(timingHistogram?.buckets || []).map((bucket) => (
                 <div key={bucket.hour} className="grid grid-cols-[48px_1fr_1fr] items-center gap-2">
                   <span>{String(bucket.hour).padStart(2, '0')}:00</span>
                   <div className="h-2 rounded bg-[var(--bg-card-hover)]">
@@ -311,7 +311,7 @@ export default function StrategyEvaluationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {experimentalSignals.slice(0, 20).map((row) => (
+                    {(experimentalSignals || []).slice(0, 20).map((row) => (
                       <tr key={String(row?.id || `${row?.symbol}-${row?.detected_at}`)}>
                         <td>{row?.symbol || '--'}</td>
                         <td>{row?.pressure_level || '--'}</td>
@@ -350,7 +350,7 @@ export default function StrategyEvaluationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTrades.slice(0, 300).map((row) => {
+                    {(filteredTrades || []).slice(0, 300).map((row) => {
                       const result = toNumber(row?.result_percent);
                       return (
                         <tr key={String(row?.id || `${row?.symbol}-${row?.entry_time}`)}>
