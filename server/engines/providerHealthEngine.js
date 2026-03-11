@@ -1,5 +1,7 @@
 const axios = require('axios');
 const logger = require('../logger');
+const eventBus = require('../events/eventBus');
+const EVENT_TYPES = require('../events/eventTypes');
 
 const PROVIDERS = [
   {
@@ -44,11 +46,27 @@ async function probeProvider(provider) {
     } else {
       entry.status = 'warning';
       entry.errors += 1;
+      eventBus.emit(EVENT_TYPES.PROVIDER_FAILURE, {
+        source: 'provider_health_engine',
+        provider: provider.key,
+        issue: 'provider_http_failure',
+        severity: 'high',
+        status_code: response.status,
+        timestamp: new Date().toISOString(),
+      });
     }
   } catch (error) {
     entry.latency = Date.now() - startedAt;
     entry.status = 'warning';
     entry.errors += 1;
+    eventBus.emit(EVENT_TYPES.PROVIDER_FAILURE, {
+      source: 'provider_health_engine',
+      provider: provider.key,
+      issue: 'provider_request_failure',
+      severity: 'high',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
     logger.warn('[PROVIDER_HEALTH] probe failed', { provider: provider.key, error: error.message });
   }
 

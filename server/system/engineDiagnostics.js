@@ -13,6 +13,11 @@ const { runIntelligencePipeline } = require('../engines/intelligencePipeline');
 const { runProviderHealthCheck } = require('../engines/providerHealthEngine');
 const { refreshSparklineCache, getSparklineCacheStats } = require('../engines/sparklineCacheEngine');
 const { refreshTickerCache, getTickerTapeCache } = require('../cache/tickerCache');
+const { runDataIntegrityEngine, getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
+const { runProviderCrossCheckEngine } = require('../engines/providerCrossCheckEngine');
+const { initEventLogger, getEventBusHealth } = require('../events/eventLogger');
+const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('../engines/systemAlertEngine');
+const eventBus = require('../events/eventBus');
 const logger = require('../logger');
 
 function line(label, status, detail = '') {
@@ -20,6 +25,9 @@ function line(label, status, detail = '') {
 }
 
 async function runEngineDiagnostics() {
+  initEventLogger(eventBus);
+  startSystemAlertEngine();
+
   const results = [];
   const engineStatus = {};
 
@@ -61,6 +69,8 @@ async function runEngineDiagnostics() {
   await runStep('flow_detection', 'FLOW DETECTION ENGINE', runFlowDetectionEngine);
   await runStep('market_narrative', 'MARKET NARRATIVE ENGINE', runMarketNarrativeEngine);
   await runStep('pipeline', 'PIPELINE ENGINE', runIntelligencePipeline);
+  await runStep('integrity', 'DATA INTEGRITY', runDataIntegrityEngine);
+  await runStep('crosscheck', 'CROSSCHECK ENGINE', runProviderCrossCheckEngine);
 
   const health = await getDataHealth();
   if (Number(health.tables?.earnings_events || 0) === 0) {
@@ -86,6 +96,18 @@ async function runEngineDiagnostics() {
   const providersOk = providerNodes.length > 0 && providerNodes.every((p) => p.status === 'ok');
   results.push(line('PROVIDERS', providersOk ? 'OK' : 'WARN'));
 
+  const eventBusHealth = getEventBusHealth();
+  const eventBusOk = Boolean(eventBusHealth?.logger_initialized);
+  results.push(line('EVENT BUS', eventBusOk ? 'OK' : 'WARN'));
+
+  const integrityHealth = getDataIntegrityHealth();
+  const integrityOk = ['ok', 'warning'].includes(String(integrityHealth?.status || '').toLowerCase());
+  results.push(line('INTEGRITY ENGINE', integrityOk ? 'OK' : 'WARN'));
+
+  const alertEngineHealth = getSystemAlertEngineHealth();
+  const alertOk = Boolean(alertEngineHealth?.initialized);
+  results.push(line('ALERT SYSTEM', alertOk ? 'OK' : 'WARN'));
+
   await refreshTickerCache();
   await refreshSparklineCache();
   const tickerState = getTickerTapeCache();
@@ -93,7 +115,7 @@ async function runEngineDiagnostics() {
   const cacheOk = tickerState?.status === 'ok' && Number(sparklineStats?.rows || 0) >= 0;
   results.push(line('CACHE', cacheOk ? 'OK' : 'WARN'));
 
-  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok') && providersOk && cacheOk;
+  const allOk = Object.values(engineStatus).every((item) => item.status === 'ok') && providersOk && cacheOk && eventBusOk && integrityOk && alertOk;
   results.unshift(line('SYSTEM STATUS', allOk ? 'OK' : 'WARN'));
   results.push(line('ALL ENGINES', allOk ? 'OK' : 'WARN'));
 
@@ -101,6 +123,9 @@ async function runEngineDiagnostics() {
     lines: results,
     health,
     provider_health: providerHealth,
+    event_bus_health: eventBusHealth,
+    integrity_health: integrityHealth,
+    alert_engine_health: alertEngineHealth,
     cache_health: {
       ticker_cache: tickerState?.status || 'unknown',
       ticker_cache_rows: (tickerState?.rows || []).length,

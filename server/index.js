@@ -126,6 +126,12 @@ const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligenc
 const { runProviderHealthCheck, getProviderHealth } = require('./engines/providerHealthEngine');
 const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./engines/sparklineCacheEngine');
 const { startTickerCache, getTickerTapeCache } = require('./cache/tickerCache');
+const eventBus = require('./events/eventBus');
+const EVENT_TYPES = require('./events/eventTypes');
+const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
+const { runDataIntegrityEngine, getDataIntegrityHealth } = require('./engines/dataIntegrityEngine');
+const { runProviderCrossCheckEngine } = require('./engines/providerCrossCheckEngine');
+const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engines/systemAlertEngine');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -1007,7 +1013,11 @@ app.get('/api/system/data-health', async (_req, res) => {
       ticker_cache_refresh_time: tickerState?.updated_at || null,
     };
 
-    const status = [databaseHealth?.status, ...Object.values(providerSummary), engineHealth.pipeline, cacheHealth.ticker_cache]
+    const eventBusHealth = getEventBusHealth();
+    const integrityHealth = getDataIntegrityHealth();
+    const alertHealth = getSystemAlertEngineHealth();
+
+    const status = [databaseHealth?.status, ...Object.values(providerSummary), engineHealth.pipeline, cacheHealth.ticker_cache, integrityHealth?.status, alertHealth?.status]
       .some((item) => item && item !== 'ok' && item !== 'unknown')
       ? 'warning'
       : 'ok';
@@ -1018,6 +1028,9 @@ app.get('/api/system/data-health', async (_req, res) => {
       provider_health: providerHealth,
       engine_health: engineHealth,
       cache_health: cacheHealth,
+      event_bus_health: eventBusHealth,
+      integrity_health: integrityHealth,
+      alert_engine_health: alertHealth,
       engines: engineHealth,
       providers: providerSummary,
       cache: {
@@ -1055,6 +1068,108 @@ app.get('/api/system/provider-health', async (_req, res) => {
     return res.json({ ok: true, ...payload });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message, providers: {} });
+  }
+});
+
+app.get('/api/system/events', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const { rows } = await queryWithTimeout(
+      `SELECT id, event_type, source, symbol, payload, created_at
+       FROM system_events
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+      { timeoutMs: 5000, label: 'api.system.events', maxRetries: 0 }
+    );
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message, items: [] });
+  }
+});
+
+app.get('/api/system/integrity-events', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const { rows } = await queryWithTimeout(
+      `SELECT id, event_type, source, symbol, issue, severity, payload, created_at
+       FROM data_integrity_events
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+      { timeoutMs: 5000, label: 'api.system.integrity_events', maxRetries: 0 }
+    );
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message, items: [] });
+  }
+});
+
+app.get('/api/system/alerts', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const { rows } = await queryWithTimeout(
+      `SELECT id, type, source, severity, message, acknowledged, created_at
+       FROM system_alerts
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+      { timeoutMs: 5000, label: 'api.system.alerts', maxRetries: 0 }
+    );
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message, items: [] });
+  }
+});
+
+app.get('/api/system/monitor', async (_req, res) => {
+  try {
+    const [health, providerHealth, diagnostics, eventRows, integrityRows, alertRows] = await Promise.all([
+      getDataHealth(),
+      runProviderHealthCheck(),
+      runEngineDiagnostics(),
+      queryWithTimeout(
+        `SELECT id, event_type, source, symbol, payload, created_at
+         FROM system_events
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'api.system.monitor.events', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT id, event_type, source, symbol, issue, severity, payload, created_at
+         FROM data_integrity_events
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'api.system.monitor.integrity', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT id, type, source, severity, message, acknowledged, created_at
+         FROM system_alerts
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        { timeoutMs: 5000, label: 'api.system.monitor.alerts', maxRetries: 0 }
+      ),
+    ]);
+
+    return res.json({
+      ok: true,
+      system_status: diagnostics.status,
+      engine_health: diagnostics.engines,
+      provider_health: providerHealth.providers,
+      data_health: health,
+      event_bus_health: getEventBusHealth(),
+      integrity_health: getDataIntegrityHealth(),
+      alert_engine_health: getSystemAlertEngineHealth(),
+      cache_health: diagnostics.cache_health,
+      recent_events: eventRows.rows || [],
+      integrity_events: integrityRows.rows || [],
+      system_alerts: alertRows.rows || [],
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
   }
 });
 
@@ -5188,6 +5303,9 @@ if (process.env.NODE_ENV === 'production') {
     console.error('Performance indexes failed', err);
   }
 
+  initEventLogger(eventBus);
+  startSystemAlertEngine();
+
   try {
     console.log('Running feature bootstrap...');
     await runFeatureBootstrap();
@@ -5257,6 +5375,8 @@ if (process.env.NODE_ENV === 'production') {
   startTickerCache();
   await refreshSparklineCache();
   await runProviderHealthCheck();
+  await runDataIntegrityEngine();
+  await runProviderCrossCheckEngine();
   await runIntelligencePipeline();
   startIntelligencePipelineScheduler();
 
@@ -5266,6 +5386,14 @@ if (process.env.NODE_ENV === 'production') {
 
   cron.schedule('*/1 * * * *', async () => {
     await runProviderHealthCheck();
+  });
+
+  cron.schedule('*/1 * * * *', async () => {
+    await runDataIntegrityEngine();
+  });
+
+  cron.schedule('*/1 * * * *', async () => {
+    await runProviderCrossCheckEngine();
   });
 
   if (process.env.ENABLE_NARRATIVE_SCHEDULER === 'true') {

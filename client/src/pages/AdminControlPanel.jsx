@@ -131,6 +131,7 @@ export default function AdminControlPanel() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Admin</Link>
           <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin/diagnostics">Diagnostics</Link>
+          <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin/system-monitor">System Monitor</Link>
           <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Features</Link>
           <Link className="rounded border border-[var(--border-color)] px-3 py-1" to="/admin-control">Users</Link>
         </div>

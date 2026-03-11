@@ -1,5 +1,7 @@
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../logger');
+const eventBus = require('../events/eventBus');
+const EVENT_TYPES = require('../events/eventTypes');
 
 async function ensureEngineErrorsTable() {
   await queryWithTimeout(
@@ -56,6 +58,13 @@ async function runIsolated(engine, fn) {
     };
   } catch (error) {
     await recordEngineError(engine, error);
+    eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
+      source: engine,
+      issue: 'engine_failure',
+      severity: 'high',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
     return {
       ok: false,
       result: null,

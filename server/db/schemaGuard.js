@@ -42,6 +42,45 @@ async function runDbSchemaGuard() {
       'db.schema_guard.engine_errors.table'
     );
 
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS system_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        source TEXT,
+        symbol TEXT,
+        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.system_events.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS data_integrity_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        source TEXT,
+        symbol TEXT,
+        issue TEXT,
+        severity TEXT,
+        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.data_integrity_events.table'
+    );
+
+    await ensureTable(
+      `CREATE TABLE IF NOT EXISTS system_alerts (
+        id BIGSERIAL PRIMARY KEY,
+        type TEXT NOT NULL,
+        source TEXT,
+        severity TEXT NOT NULL DEFAULT 'medium',
+        message TEXT NOT NULL,
+        acknowledged BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      'db.schema_guard.system_alerts.table'
+    );
+
     await ensureColumn('market_quotes', 'short_float', 'NUMERIC');
     await ensureColumn('market_quotes', 'float', 'NUMERIC');
     await ensureColumn('market_quotes', 'relative_volume', 'NUMERIC');

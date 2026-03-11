@@ -1,0 +1,1966 @@
+{
+  "generated_at": "2026-03-11T07:54:35.731Z",
+  "engine_health": {
+    "status": "ok",
+    "engines": {
+      "ingestion": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:53.780Z",
+        "execution_time": 3
+      },
+      "narrative": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:54.187Z",
+        "execution_time": 407
+      },
+      "radar": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:54.226Z",
+        "execution_time": 39
+      },
+      "opportunity": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:56.333Z",
+        "execution_time": 2107
+      },
+      "stocks_in_play": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:57.525Z",
+        "execution_time": 1192
+      },
+      "short_squeeze": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:53:57.612Z",
+        "execution_time": 87
+      },
+      "flow_detection": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:02.675Z",
+        "execution_time": 5063
+      },
+      "market_narrative": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:02.742Z",
+        "execution_time": 67
+      },
+      "pipeline": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:18.936Z",
+        "execution_time": 16194
+      },
+      "integrity": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:26.695Z",
+        "execution_time": 7759
+      },
+      "crosscheck": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:26.695Z",
+        "execution_time": 0
+      },
+      "earnings": {
+        "status": "ok",
+        "errors": [],
+        "last_run": "2026-03-11T07:54:26.738Z",
+        "execution_time": 0
+      }
+    },
+    "lines": [
+      "SYSTEM STATUS: OK",
+      "INGESTION ENGINE: OK",
+      "NARRATIVE ENGINE: OK",
+      "RADAR ENGINE: OK",
+      "OPPORTUNITY ENGINE: OK",
+      "STOCKS IN PLAY ENGINE: OK",
+      "SHORT SQUEEZE ENGINE: OK",
+      "FLOW DETECTION ENGINE: OK",
+      "MARKET NARRATIVE ENGINE: OK",
+      "PIPELINE ENGINE: OK",
+      "DATA INTEGRITY: OK",
+      "CROSSCHECK ENGINE: OK",
+      "EARNINGS ENGINE: OK",
+      "PROVIDERS: OK",
+      "EVENT BUS: OK",
+      "INTEGRITY ENGINE: OK",
+      "ALERT SYSTEM: OK",
+      "CACHE: OK",
+      "ALL ENGINES: OK"
+    ]
+  },
+  "provider_health": {
+    "checked_at": "2026-03-11T07:54:27.199Z",
+    "providers": {
+      "fmp": {
+        "provider": "fmp",
+        "status": "ok",
+        "latency": 386,
+        "last_success": "2026-03-11T07:54:27.124Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "finnhub": {
+        "provider": "finnhub",
+        "status": "ok",
+        "latency": 143,
+        "last_success": "2026-03-11T07:54:26.901Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "polygon": {
+        "provider": "polygon",
+        "status": "ok",
+        "latency": 249,
+        "last_success": "2026-03-11T07:54:27.009Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      },
+      "finviz": {
+        "provider": "finviz",
+        "status": "ok",
+        "latency": 437,
+        "last_success": "2026-03-11T07:54:27.199Z",
+        "error_rate": 0,
+        "errors": 0,
+        "checks": 1
+      }
+    }
+  },
+  "event_bus_health": {
+    "logger_initialized": true,
+    "status": "ok",
+    "last_event_at": "2026-03-11T07:54:26.766Z",
+    "events_logged": 629,
+    "errors": 0,
+    "events_logged_total": 1258
+  },
+  "integrity_events": {
+    "total": 624,
+    "recent": [
+      {
+        "id": "624",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.689Z"
+      },
+      {
+        "id": "623",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.650Z"
+      },
+      {
+        "id": "622",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.606Z"
+      },
+      {
+        "id": "621",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.566Z"
+      },
+      {
+        "id": "620",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.525Z"
+      },
+      {
+        "id": "619",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.485Z"
+      },
+      {
+        "id": "618",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.444Z"
+      },
+      {
+        "id": "617",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.403Z"
+      },
+      {
+        "id": "616",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.363Z"
+      },
+      {
+        "id": "615",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.323Z"
+      },
+      {
+        "id": "614",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.282Z"
+      },
+      {
+        "id": "613",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.241Z"
+      },
+      {
+        "id": "612",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.200Z"
+      },
+      {
+        "id": "611",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.161Z"
+      },
+      {
+        "id": "610",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.120Z"
+      },
+      {
+        "id": "609",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.079Z"
+      },
+      {
+        "id": "608",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.041Z"
+      },
+      {
+        "id": "607",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:26.004Z"
+      },
+      {
+        "id": "606",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.960Z"
+      },
+      {
+        "id": "605",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.921Z"
+      },
+      {
+        "id": "604",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.881Z"
+      },
+      {
+        "id": "603",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.840Z"
+      },
+      {
+        "id": "602",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.799Z"
+      },
+      {
+        "id": "601",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.758Z"
+      },
+      {
+        "id": "600",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.719Z"
+      },
+      {
+        "id": "599",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.675Z"
+      },
+      {
+        "id": "598",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.581Z"
+      },
+      {
+        "id": "597",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.540Z"
+      },
+      {
+        "id": "596",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.499Z"
+      },
+      {
+        "id": "595",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.460Z"
+      },
+      {
+        "id": "594",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.420Z"
+      },
+      {
+        "id": "593",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.378Z"
+      },
+      {
+        "id": "592",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.233Z"
+      },
+      {
+        "id": "591",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.193Z"
+      },
+      {
+        "id": "590",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.152Z"
+      },
+      {
+        "id": "589",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.113Z"
+      },
+      {
+        "id": "588",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.072Z"
+      },
+      {
+        "id": "587",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:25.034Z"
+      },
+      {
+        "id": "586",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.989Z"
+      },
+      {
+        "id": "585",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.948Z"
+      },
+      {
+        "id": "584",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.909Z"
+      },
+      {
+        "id": "583",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.862Z"
+      },
+      {
+        "id": "582",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.824Z"
+      },
+      {
+        "id": "581",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.785Z"
+      },
+      {
+        "id": "580",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.745Z"
+      },
+      {
+        "id": "579",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.704Z"
+      },
+      {
+        "id": "578",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.664Z"
+      },
+      {
+        "id": "577",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.625Z"
+      },
+      {
+        "id": "576",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.585Z"
+      },
+      {
+        "id": "575",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.546Z"
+      },
+      {
+        "id": "574",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.507Z"
+      },
+      {
+        "id": "573",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.466Z"
+      },
+      {
+        "id": "572",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.426Z"
+      },
+      {
+        "id": "571",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.386Z"
+      },
+      {
+        "id": "570",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.347Z"
+      },
+      {
+        "id": "569",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.309Z"
+      },
+      {
+        "id": "568",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.255Z"
+      },
+      {
+        "id": "567",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "SAFX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.214Z"
+      },
+      {
+        "id": "566",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.175Z"
+      },
+      {
+        "id": "565",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.132Z"
+      },
+      {
+        "id": "564",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.093Z"
+      },
+      {
+        "id": "563",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:24.053Z"
+      },
+      {
+        "id": "562",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.995Z"
+      },
+      {
+        "id": "561",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.954Z"
+      },
+      {
+        "id": "560",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.892Z"
+      },
+      {
+        "id": "559",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.852Z"
+      },
+      {
+        "id": "558",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.813Z"
+      },
+      {
+        "id": "557",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.753Z"
+      },
+      {
+        "id": "556",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.714Z"
+      },
+      {
+        "id": "555",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.658Z"
+      },
+      {
+        "id": "554",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.617Z"
+      },
+      {
+        "id": "553",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.578Z"
+      },
+      {
+        "id": "552",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.536Z"
+      },
+      {
+        "id": "551",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.497Z"
+      },
+      {
+        "id": "550",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.456Z"
+      },
+      {
+        "id": "549",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.417Z"
+      },
+      {
+        "id": "548",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.377Z"
+      },
+      {
+        "id": "547",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "RENX",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:23.338Z"
+      },
+      {
+        "id": "546",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.490Z"
+      },
+      {
+        "id": "545",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.449Z"
+      },
+      {
+        "id": "544",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.410Z"
+      },
+      {
+        "id": "543",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.371Z"
+      },
+      {
+        "id": "542",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.326Z"
+      },
+      {
+        "id": "541",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.285Z"
+      },
+      {
+        "id": "540",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.245Z"
+      },
+      {
+        "id": "539",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.203Z"
+      },
+      {
+        "id": "538",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.163Z"
+      },
+      {
+        "id": "537",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.121Z"
+      },
+      {
+        "id": "536",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.082Z"
+      },
+      {
+        "id": "535",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:10.043Z"
+      },
+      {
+        "id": "534",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.999Z"
+      },
+      {
+        "id": "533",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.958Z"
+      },
+      {
+        "id": "532",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.918Z"
+      },
+      {
+        "id": "531",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.878Z"
+      },
+      {
+        "id": "530",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.836Z"
+      },
+      {
+        "id": "529",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.795Z"
+      },
+      {
+        "id": "528",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.756Z"
+      },
+      {
+        "id": "527",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.710Z"
+      },
+      {
+        "id": "526",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.671Z"
+      },
+      {
+        "id": "525",
+        "event_type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "symbol": "LBGJ",
+        "issue": "missing_candle",
+        "severity": "medium",
+        "created_at": "2026-03-11T07:54:09.631Z"
+      }
+    ]
+  },
+  "system_alerts": {
+    "total": 624,
+    "recent": [
+      {
+        "id": "624",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.689Z"
+      },
+      {
+        "id": "623",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.650Z"
+      },
+      {
+        "id": "622",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.605Z"
+      },
+      {
+        "id": "621",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.566Z"
+      },
+      {
+        "id": "620",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.525Z"
+      },
+      {
+        "id": "619",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.485Z"
+      },
+      {
+        "id": "618",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.444Z"
+      },
+      {
+        "id": "617",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.403Z"
+      },
+      {
+        "id": "616",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.364Z"
+      },
+      {
+        "id": "615",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.323Z"
+      },
+      {
+        "id": "614",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.281Z"
+      },
+      {
+        "id": "613",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.241Z"
+      },
+      {
+        "id": "612",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.200Z"
+      },
+      {
+        "id": "611",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.160Z"
+      },
+      {
+        "id": "610",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.119Z"
+      },
+      {
+        "id": "609",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.079Z"
+      },
+      {
+        "id": "608",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.041Z"
+      },
+      {
+        "id": "607",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:26.004Z"
+      },
+      {
+        "id": "606",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.960Z"
+      },
+      {
+        "id": "605",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.920Z"
+      },
+      {
+        "id": "604",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.881Z"
+      },
+      {
+        "id": "603",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.839Z"
+      },
+      {
+        "id": "602",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.799Z"
+      },
+      {
+        "id": "601",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.758Z"
+      },
+      {
+        "id": "600",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.719Z"
+      },
+      {
+        "id": "599",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.675Z"
+      },
+      {
+        "id": "598",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.580Z"
+      },
+      {
+        "id": "597",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.541Z"
+      },
+      {
+        "id": "596",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.500Z"
+      },
+      {
+        "id": "595",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.459Z"
+      },
+      {
+        "id": "594",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.420Z"
+      },
+      {
+        "id": "593",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.378Z"
+      },
+      {
+        "id": "592",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.233Z"
+      },
+      {
+        "id": "591",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.192Z"
+      },
+      {
+        "id": "590",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.153Z"
+      },
+      {
+        "id": "589",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.113Z"
+      },
+      {
+        "id": "588",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.072Z"
+      },
+      {
+        "id": "587",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:25.028Z"
+      },
+      {
+        "id": "586",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.989Z"
+      },
+      {
+        "id": "585",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.948Z"
+      },
+      {
+        "id": "584",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.908Z"
+      },
+      {
+        "id": "583",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.862Z"
+      },
+      {
+        "id": "582",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.824Z"
+      },
+      {
+        "id": "581",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.785Z"
+      },
+      {
+        "id": "580",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.745Z"
+      },
+      {
+        "id": "579",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.705Z"
+      },
+      {
+        "id": "578",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.664Z"
+      },
+      {
+        "id": "577",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.624Z"
+      },
+      {
+        "id": "576",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.585Z"
+      },
+      {
+        "id": "575",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.546Z"
+      },
+      {
+        "id": "574",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.506Z"
+      },
+      {
+        "id": "573",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.466Z"
+      },
+      {
+        "id": "572",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.426Z"
+      },
+      {
+        "id": "571",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.386Z"
+      },
+      {
+        "id": "570",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.347Z"
+      },
+      {
+        "id": "569",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.309Z"
+      },
+      {
+        "id": "568",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.256Z"
+      },
+      {
+        "id": "567",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=SAFX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.214Z"
+      },
+      {
+        "id": "566",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.175Z"
+      },
+      {
+        "id": "565",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.133Z"
+      },
+      {
+        "id": "564",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.092Z"
+      },
+      {
+        "id": "563",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:24.053Z"
+      },
+      {
+        "id": "562",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.995Z"
+      },
+      {
+        "id": "561",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.954Z"
+      },
+      {
+        "id": "560",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.892Z"
+      },
+      {
+        "id": "559",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.853Z"
+      },
+      {
+        "id": "558",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.813Z"
+      },
+      {
+        "id": "557",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.752Z"
+      },
+      {
+        "id": "556",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.713Z"
+      },
+      {
+        "id": "555",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.657Z"
+      },
+      {
+        "id": "554",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.617Z"
+      },
+      {
+        "id": "553",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.578Z"
+      },
+      {
+        "id": "552",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.535Z"
+      },
+      {
+        "id": "551",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.497Z"
+      },
+      {
+        "id": "550",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.456Z"
+      },
+      {
+        "id": "549",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.417Z"
+      },
+      {
+        "id": "548",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.376Z"
+      },
+      {
+        "id": "547",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "data_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=RENX issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:23.338Z"
+      },
+      {
+        "id": "546",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.042Z"
+      },
+      {
+        "id": "545",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.033Z"
+      },
+      {
+        "id": "544",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.033Z"
+      },
+      {
+        "id": "543",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.020Z"
+      },
+      {
+        "id": "541",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.020Z"
+      },
+      {
+        "id": "542",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.020Z"
+      },
+      {
+        "id": "539",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.008Z"
+      },
+      {
+        "id": "540",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:21.008Z"
+      },
+      {
+        "id": "538",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.997Z"
+      },
+      {
+        "id": "537",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.997Z"
+      },
+      {
+        "id": "536",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.997Z"
+      },
+      {
+        "id": "534",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.989Z"
+      },
+      {
+        "id": "535",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.989Z"
+      },
+      {
+        "id": "533",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.972Z"
+      },
+      {
+        "id": "532",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.972Z"
+      },
+      {
+        "id": "531",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.972Z"
+      },
+      {
+        "id": "530",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.971Z"
+      },
+      {
+        "id": "529",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.970Z"
+      },
+      {
+        "id": "528",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.928Z"
+      },
+      {
+        "id": "527",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.928Z"
+      },
+      {
+        "id": "526",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.928Z"
+      },
+      {
+        "id": "524",
+        "type": "DATA_INTEGRITY_WARNING",
+        "source": "candle_integrity_engine",
+        "severity": "medium",
+        "message": "DATA_INTEGRITY_WARNING symbol=LBGJ issue=missing_candle",
+        "acknowledged": false,
+        "created_at": "2026-03-11T07:54:20.927Z"
+      }
+    ]
+  },
+  "cache_health": {
+    "ticker_cache": "ok",
+    "ticker_cache_rows": 60,
+    "sparkline_cache_rows": 400,
+    "cache_refresh_time": "2026-03-11T07:54:27.221Z"
+  }
+}

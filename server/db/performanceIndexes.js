@@ -10,6 +10,18 @@ const INDEX_SQL = [
    ON news_articles(symbol)`,
   `CREATE INDEX IF NOT EXISTS idx_opportunity_stream_score
    ON opportunity_stream(score DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_system_events_created_at
+   ON system_events(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_system_events_type_created
+   ON system_events(event_type, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_data_integrity_events_created_at
+   ON data_integrity_events(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_data_integrity_events_symbol_created
+   ON data_integrity_events(symbol, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_system_alerts_created_at
+   ON system_alerts(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_system_alerts_ack_created
+   ON system_alerts(acknowledged, created_at DESC)`,
 ];
 
 async function ensurePerformanceIndexes() {

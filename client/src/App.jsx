@@ -46,6 +46,7 @@ const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
+const SystemMonitorPage = safeLazy(() => import('./pages/admin/SystemMonitorPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
@@ -108,6 +109,7 @@ export default function App() {
                   <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminControlPanel /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><AdminDiagnostics /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><IntelligenceMonitorPage /></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemMonitorPage /></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
