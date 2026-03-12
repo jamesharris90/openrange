@@ -20,6 +20,8 @@ const { runProviderCrossCheckEngine } = require('../engines/providerCrossCheckEn
 const { initEventLogger, getEventBusHealth } = require('../events/eventLogger');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('../engines/systemAlertEngine');
 const { startEngineScheduler, getEngineSchedulerHealth } = require('./engineScheduler');
+const { supabaseAdmin } = require('../services/supabaseClient');
+const { getOpportunityCountLast24h, getOpportunityFreshnessSeconds } = require('../repositories/opportunityRepository');
 const eventBus = require('../events/eventBus');
 const logger = require('../logger');
 
@@ -138,15 +140,16 @@ async function runEngineDiagnostics(options = {}) {
   const eventsLastMin = Number(eventStats.rows?.[0]?.events_last_min || 0);
   let opportunities24h = 0;
   let opportunitiesStatus = 'ok';
+  let dataFreshnessSeconds = null;
   try {
-    const oppRows = await queryWithTimeout(
-      `SELECT COUNT(*)::int AS count
-       FROM opportunities
-       WHERE created_at > NOW() - INTERVAL '24 hours'`,
-      [],
-      { timeoutMs: 2500, label: 'diagnostics.opportunities_24h', maxRetries: 0 }
-    );
-    opportunities24h = Number(oppRows.rows?.[0]?.count || 0);
+    opportunities24h = await getOpportunityCountLast24h(supabaseAdmin)
+      .catch(() => getOpportunityCountLast24h(null));
+    dataFreshnessSeconds = await getOpportunityFreshnessSeconds(supabaseAdmin)
+      .catch(() => getOpportunityFreshnessSeconds(null));
+    results.push(line('OPPORTUNITIES_24H', opportunities24h > 0 ? 'OK' : 'WARN', String(opportunities24h)));
+    if (dataFreshnessSeconds !== null) {
+      results.push(line('DATA_FRESHNESS_SECONDS', 'OK', String(dataFreshnessSeconds)));
+    }
   } catch (error) {
     opportunities24h = 0;
     opportunitiesStatus = 'warning';
@@ -165,6 +168,7 @@ async function runEngineDiagnostics(options = {}) {
     events_per_second: Number((eventsLastMin / 60).toFixed(4)),
     opportunities_24h: opportunities24h,
     opportunities_24h_status: opportunitiesStatus,
+    data_freshness_seconds: dataFreshnessSeconds,
     queue_depth: queueDepth,
     avg_engine_runtime: Number(telemetry?.avg_engine_runtime || 0),
     cache_hit_rate: cacheHitRate,

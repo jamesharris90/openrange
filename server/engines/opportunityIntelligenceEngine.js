@@ -63,6 +63,7 @@ async function generateOpportunityIntelligence(db) {
   const startedAt = Date.now();
   let processed = 0;
   let errors = 0;
+  logger.info('[ENGINE_START] opportunityIntelligenceEngine');
 
   try {
     await runQuery(
@@ -165,10 +166,12 @@ async function generateOpportunityIntelligence(db) {
     }
 
     const runtimeMs = Date.now() - startedAt;
+    logger.info(`[ENGINE_COMPLETE] opportunityIntelligenceEngine rows_processed=${processed}`);
     logger.info('[INTELLIGENCE ENGINE] run complete', { processed, errors, runtimeMs });
     return { ok: true, processed, errors, runtimeMs };
   } catch (error) {
     const runtimeMs = Date.now() - startedAt;
+    logger.error(`[ENGINE_ERROR] opportunityIntelligenceEngine error=${error.message}`);
     logger.error('[INTELLIGENCE ENGINE] run failed', { error: error.message, runtimeMs });
     return { ok: false, processed, errors: errors + 1, runtimeMs, error: error.message };
   }

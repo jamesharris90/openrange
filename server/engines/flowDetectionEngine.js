@@ -46,6 +46,7 @@ async function ensureMarketMetricsColumns() {
 
 async function runFlowDetectionEngine() {
   const startedAt = Date.now();
+  logger.info('[ENGINE_START] flowDetectionEngine');
   try {
     await ensureFlowSignalsTable();
     await ensureMarketMetricsColumns();
@@ -106,6 +107,8 @@ async function runFlowDetectionEngine() {
       inserted += result.rowCount || 0;
     }
 
+    logger.info(`[ENGINE_COMPLETE] flowDetectionEngine rows_processed=${inserted}`);
+
     return {
       ok: true,
       scanned: (rows || []).length,
@@ -114,6 +117,7 @@ async function runFlowDetectionEngine() {
       last_run: new Date().toISOString(),
     };
   } catch (error) {
+    logger.error(`[ENGINE_ERROR] flowDetectionEngine error=${error.message}`);
     logger.error('[ENGINE ERROR] flow_detection run failed', { error: error.message });
     return {
       ok: false,

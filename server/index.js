@@ -131,6 +131,7 @@ const {
   getRecentOpportunityStream,
   getTopOpportunities,
   getOpportunityCountLast24h,
+  getOpportunityFreshnessSeconds,
 } = require('./repositories/opportunityRepository');
 const runMigrations = require('./db/runMigrations');
 const { runDbSchemaGuard } = require('./db/schemaGuard');
@@ -1156,6 +1157,7 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
       alertHealth,
       scheduler,
       opportunities24h,
+      dataFreshnessSeconds,
     ] = await Promise.all([
       getTelemetry(),
       Promise.resolve(getProviderHealth()),
@@ -1163,22 +1165,20 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
       Promise.resolve(getDataIntegrityHealth()),
       Promise.resolve(getSystemAlertEngineHealth()),
       Promise.resolve(getEngineSchedulerHealth()),
-      getOpportunityCountLast24h(supabaseAdmin).catch(() => 0),
+      getOpportunityCountLast24h(supabaseAdmin)
+        .catch(() => getOpportunityCountLast24h(null))
+        .catch(() => 0),
+      getOpportunityFreshnessSeconds(supabaseAdmin)
+        .catch(() => getOpportunityFreshnessSeconds(null))
+        .catch(() => null),
     ]);
 
     const schedulerStatus = String(scheduler?.status || '').toLowerCase();
     const schedulerOk = schedulerStatus === 'running' || schedulerStatus === 'idle';
     const pipelineOk = telemetry?.pipeline_runtime?.status !== 'failed';
     const providersOk = Boolean(providerHealth?.providers);
-    let opportunitiesValue = Number(opportunities24h || 0);
-    if (opportunitiesValue === 0 && supabaseAdmin && typeof supabaseAdmin.from === 'function') {
-      const cutoffIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count } = await supabaseAdmin
-        .from('opportunities_v2')
-        .select('symbol', { count: 'exact', head: true })
-        .gte('updated_at', cutoffIso);
-      opportunitiesValue = Number(count || 0);
-    }
+    const opportunitiesValue = Number(opportunities24h || 0);
+    const freshnessValue = dataFreshnessSeconds === null ? null : Number(dataFreshnessSeconds);
 
     return res.json({
       ok: true,
@@ -1190,10 +1190,12 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
         `PIPELINE: ${pipelineOk ? 'OK' : 'WARN'}`,
         `PROVIDERS: ${providersOk ? 'OK' : 'WARN'}`,
         `OPPORTUNITIES_24H: ${opportunitiesValue}`,
+        `DATA_FRESHNESS_SECONDS: ${freshnessValue === null ? 'n/a' : freshnessValue}`,
       ],
       engines: {
         ...(telemetry || {}),
         opportunities_24h: opportunitiesValue,
+        data_freshness_seconds: freshnessValue,
       },
       provider_health: providerHealth,
       event_bus_health: eventBusHealth,

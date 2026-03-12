@@ -93,27 +93,34 @@ async function insertMarketEvents() {
 }
 
 async function runOpportunityStreamCycle() {
-  const [setupCount, catalystCount, marketCount] = await Promise.all([
-    insertSetupEvents(),
-    insertCatalystEvents(),
-    insertMarketEvents(),
-  ]);
+  logger.info('[ENGINE_START] stream_engine');
+  try {
+    const [setupCount, catalystCount, marketCount] = await Promise.all([
+      insertSetupEvents(),
+      insertCatalystEvents(),
+      insertMarketEvents(),
+    ]);
 
-  const inserted = setupCount + catalystCount + marketCount;
+    const inserted = setupCount + catalystCount + marketCount;
 
-  logger.info('Opportunity stream cycle complete', {
-    setupInserted: setupCount,
-    catalystInserted: catalystCount,
-    marketInserted: marketCount,
-    inserted,
-  });
+    logger.info(`[ENGINE_COMPLETE] stream_engine rows_processed=${inserted}`);
+    logger.info('Opportunity stream cycle complete', {
+      setupInserted: setupCount,
+      catalystInserted: catalystCount,
+      marketInserted: marketCount,
+      inserted,
+    });
 
-  return {
-    setupInserted: setupCount,
-    catalystInserted: catalystCount,
-    marketInserted: marketCount,
-    inserted,
-  };
+    return {
+      setupInserted: setupCount,
+      catalystInserted: catalystCount,
+      marketInserted: marketCount,
+      inserted,
+    };
+  } catch (error) {
+    logger.error(`[ENGINE_ERROR] stream_engine error=${error.message}`);
+    throw error;
+  }
 }
 
 module.exports = {

@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-03-12T19:20:00Z",
+  "validation_query": "select symbol,count(*) from opportunity_stream group by symbol having count(*)>5 limit 10;",
+  "duplicate_sample": [
+    { "symbol": "A", "count": 249 },
+    { "symbol": "AACB", "count": 6 },
+    { "symbol": "AACBU", "count": 10 },
+    { "symbol": "AACG", "count": 96 },
+    { "symbol": "AACI", "count": 22 },
+    { "symbol": "AACIU", "count": 902 },
+    { "symbol": "AACOU", "count": 9 },
+    { "symbol": "AAL", "count": 95 },
+    { "symbol": "AAME", "count": 110 },
+    { "symbol": "AAMI", "count": 14 }
+  ],
+  "notes": [
+    "High duplicate frequency exists in raw opportunity_stream as expected for streaming events.",
+    "Deduplicated read model is available via opportunity_stream_dedup view."
+  ]
+}
