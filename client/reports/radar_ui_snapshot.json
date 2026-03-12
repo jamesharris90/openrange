@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-03-12T21:21:08.824Z",
+  "api_route": "/api/radar/today",
+  "api_ok": true,
+  "api_field_check": {
+    "stocks_in_play": true,
+    "momentum_leaders": true,
+    "news_catalysts": true,
+    "a_plus_setups": true
+  },
+  "dashboard_sections_present": {
+    "Stocks in Play": true,
+    "Momentum Leaders": true,
+    "News Catalysts": true,
+    "A+ Setups": true
+  },
+  "item_counts": {
+    "stocks_in_play": 4,
+    "momentum_leaders": 25,
+    "news_catalysts": 25,
+    "a_plus_setups": 0
+  },
+  "fallback_text_present": true,
+  "status": "OK"
+}
