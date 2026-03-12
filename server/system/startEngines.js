@@ -19,6 +19,8 @@ const { runSignalHierarchyEngine } = require('../engines/signalHierarchyEngine')
 const { runPremarketNewsletter } = require('../engines/newsletterEngine');
 const { runSignalLearningEngine } = require('../engines/signalLearningEngine');
 const { updateSignalOutcomeResults } = require('../engines/signalOutcomeWriter');
+const { runOpportunityRanker } = require('../engines/opportunityRanker');
+const { runOpportunityIntelligenceEngine } = require('../engines/opportunityIntelligenceEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -39,6 +41,8 @@ let strategyEvaluationInFlight = false;
 let marketNarrativeInFlight = false;
 let signalLearningInFlight = false;
 let signalOutcomeUpdateInFlight = false;
+let opportunityInFlight = false;
+let intelligenceInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -357,6 +361,30 @@ async function startEnginesSequentially() {
       });
     }
 
+    if (!global.opportunitySchedulerStarted) {
+      global.opportunitySchedulerStarted = true;
+      console.log('[OPPORTUNITY] scheduler registered (*/5 * * * *)');
+
+      opportunityInFlight = true;
+      runOpportunityRanker().catch((error) =>
+        console.error('[OPPORTUNITY] initial run error', error.message)
+      ).finally(() => {
+        opportunityInFlight = false;
+      });
+
+      cron.schedule('*/5 * * * *', async () => {
+        if (opportunityInFlight) return;
+        opportunityInFlight = true;
+        try {
+          await runOpportunityRanker();
+        } catch (error) {
+          console.error('[OPPORTUNITY] scheduled run error', error.message);
+        } finally {
+          opportunityInFlight = false;
+        }
+      });
+    }
+
     if (!global.newsletterSchedulerStarted) {
       global.newsletterSchedulerStarted = true;
       console.log('[NEWSLETTER] scheduler registered (08:15 ET weekdays)');
@@ -421,6 +449,30 @@ async function startEnginesSequentially() {
           console.error('[OUTCOME_UPDATER] scheduled run error', error.message);
         } finally {
           signalOutcomeUpdateInFlight = false;
+        }
+      });
+    }
+
+    if (!global.intelligenceEngineStarted) {
+      global.intelligenceEngineStarted = true;
+      console.log('[INTELLIGENCE_ENGINE] scheduler registered (*/10 * * * *)');
+
+      intelligenceInFlight = true;
+      runOpportunityIntelligenceEngine().catch((error) =>
+        console.error('[INTELLIGENCE_ENGINE] initial run error', error.message)
+      ).finally(() => {
+        intelligenceInFlight = false;
+      });
+
+      cron.schedule('*/10 * * * *', async () => {
+        if (intelligenceInFlight) return;
+        intelligenceInFlight = true;
+        try {
+          await runOpportunityIntelligenceEngine();
+        } catch (error) {
+          console.error('[INTELLIGENCE_ENGINE] scheduled run error', error.message);
+        } finally {
+          intelligenceInFlight = false;
         }
       });
     }

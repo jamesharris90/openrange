@@ -73,6 +73,7 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
+const schemaHealthRoutes = require('./routes/schemaHealth');
 const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
 const signalsRoutes = require('./routes/signals');
 const newsletterRoutes = require('./routes/newsletter');
@@ -83,6 +84,9 @@ const briefingRoutes = require('./routes/briefingRoutes');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const intelDetailsRoutes = require('./routes/intelDetails');
 const { getUIHealth } = require('./routes/uiHealth');
+const { uiError, uiErrorLog } = require('./routes/uiErrors');
+const { getEmailDiagnostics } = require('./system/emailDiagnostics');
+const { platformHealth } = require('./system/platformHealth');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { fetchUnifiedSignals } = require('./services/signalService');
@@ -122,6 +126,12 @@ const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetec
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
+const { supabaseAdmin } = require('./services/supabaseClient');
+const {
+  getRecentOpportunityStream,
+  getTopOpportunities,
+  getOpportunityCountLast24h,
+} = require('./repositories/opportunityRepository');
 const runMigrations = require('./db/runMigrations');
 const { runDbSchemaGuard } = require('./db/schemaGuard');
 const { ensurePerformanceIndexes } = require('./db/performanceIndexes');
@@ -1138,14 +1148,37 @@ app.get('/api/system/alerts', async (req, res) => {
 
 app.get('/api/system/engine-diagnostics', async (_req, res) => {
   try {
-    const [telemetry, providerHealth, eventBusHealth, integrityHealth, alertHealth, scheduler] = await Promise.all([
+    const [
+      telemetry,
+      providerHealth,
+      eventBusHealth,
+      integrityHealth,
+      alertHealth,
+      scheduler,
+      opportunities24h,
+    ] = await Promise.all([
       getTelemetry(),
       Promise.resolve(getProviderHealth()),
       Promise.resolve(getEventBusHealth()),
       Promise.resolve(getDataIntegrityHealth()),
       Promise.resolve(getSystemAlertEngineHealth()),
       Promise.resolve(getEngineSchedulerHealth()),
+      getOpportunityCountLast24h(supabaseAdmin).catch(() => 0),
     ]);
+
+    const schedulerStatus = String(scheduler?.status || '').toLowerCase();
+    const schedulerOk = schedulerStatus === 'running' || schedulerStatus === 'idle';
+    const pipelineOk = telemetry?.pipeline_runtime?.status !== 'failed';
+    const providersOk = Boolean(providerHealth?.providers);
+    let opportunitiesValue = Number(opportunities24h || 0);
+    if (opportunitiesValue === 0 && supabaseAdmin && typeof supabaseAdmin.from === 'function') {
+      const cutoffIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from('opportunities_v2')
+        .select('symbol', { count: 'exact', head: true })
+        .gte('updated_at', cutoffIso);
+      opportunitiesValue = Number(count || 0);
+    }
 
     return res.json({
       ok: true,
@@ -1153,11 +1186,15 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
       lines: [
         'SYSTEM STATUS: OK',
         `CACHE: ${telemetry ? 'OK' : 'WARN'}`,
-        `SCHEDULER: ${scheduler?.status === 'running' ? 'OK' : 'WARN'}`,
-        `PIPELINE: ${telemetry?.pipeline_runtime?.status === 'failed' ? 'WARN' : 'OK'}`,
-        `PROVIDERS: ${providerHealth?.providers ? 'OK' : 'WARN'}`,
+        `SCHEDULER: ${schedulerOk ? 'OK' : 'WARN'}`,
+        `PIPELINE: ${pipelineOk ? 'OK' : 'WARN'}`,
+        `PROVIDERS: ${providersOk ? 'OK' : 'WARN'}`,
+        `OPPORTUNITIES_24H: ${opportunitiesValue}`,
       ],
-      engines: telemetry,
+      engines: {
+        ...(telemetry || {}),
+        opportunities_24h: opportunitiesValue,
+      },
       provider_health: providerHealth,
       event_bus_health: eventBusHealth,
       integrity_health: integrityHealth,
@@ -1176,6 +1213,10 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
 });
 
 app.get('/api/system/ui-health', getUIHealth);
+app.get('/api/system/platform-health', platformHealth);
+app.get('/api/system/email-health', getEmailDiagnostics);
+app.get('/api/system/ui-error-log', uiErrorLog);
+app.post('/api/system/ui-error', uiError);
 
 async function fastRowsQuery(sql, params, label, timeoutMs = 180) {
   try {
@@ -2901,20 +2942,8 @@ app.get('/api/scanner/status', async (req, res) => {
 
 app.get('/api/opportunity-stream', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT id,
-              symbol,
-              event_type,
-              headline,
-              score,
-              source,
-              created_at,
-              created_at AS timestamp
-       FROM opportunity_stream
-       ORDER BY created_at DESC
-       LIMIT 50`
-    );
-    res.json(rows);
+    const rows = await getRecentOpportunityStream(supabaseAdmin, { limit: 50 });
+    res.json((rows || []).map((row) => ({ ...row, timestamp: row.created_at })));
   } catch (err) {
     logger.error('opportunity stream endpoint db error', { error: err.message });
     res.json([]);
@@ -2924,24 +2953,22 @@ app.get('/api/opportunity-stream', async (req, res) => {
 app.get('/api/opportunities', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
-    const { rows } = await queryWithTimeout(
-      `SELECT
-              symbol,
-              score,
-              strategy,
-              change_percent,
-              relative_volume,
-              gap_percent,
-              volume,
-              updated_at,
-              updated_at AS timestamp
-       FROM opportunities_v2
-       ORDER BY score DESC NULLS LAST
-       LIMIT $1`,
-      [limit],
-      { label: 'api.opportunities', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 200 }
-    );
-    return res.json({ opportunities: rows });
+    const rows = await getTopOpportunities(supabaseAdmin, {
+      limit,
+      source: 'opportunity_ranker',
+    });
+    const mapped = (rows || []).map((row) => ({
+      symbol: row.symbol,
+      score: row.score,
+      strategy: row.event_type || 'Ranked Opportunity',
+      change_percent: null,
+      relative_volume: null,
+      gap_percent: null,
+      volume: null,
+      updated_at: row.created_at,
+      timestamp: row.created_at,
+    }));
+    return res.json({ opportunities: mapped });
   } catch (err) {
     logger.error('opportunities endpoint db error', { error: err.message });
     return res.json({ opportunities: [] });
@@ -3222,6 +3249,24 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
     });
   } catch (error) {
     return res.json({ success: true, item: null });
+  }
+});
+
+app.get('/api/intelligence/top', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT *
+       FROM opportunity_intelligence
+       ORDER BY confidence DESC NULLS LAST
+       LIMIT 20`,
+      [],
+      { label: 'api.intelligence.top', timeoutMs: 5000, maxRetries: 0 }
+    );
+
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    logger.warn('intelligence top endpoint unavailable', { error: error.message });
+    return res.status(500).json({ ok: false, items: [], error: error.message });
   }
 });
 
@@ -4785,15 +4830,21 @@ app.get('/api/intelligence/summary', async (req, res) => {
         'api.intelligence.summary.sectors',
         300
       ),
-      fastRowsQuery(
-        `SELECT symbol, score, strategy, change_percent, relative_volume, gap_percent, updated_at
-         FROM opportunities_v2
-         ORDER BY score DESC NULLS LAST
-         LIMIT 10`,
-        [],
-        'api.intelligence.summary.opportunities',
-        300
-      ),
+      (async () => {
+        const rows = await getTopOpportunities(supabaseAdmin, {
+          limit: 10,
+          source: 'opportunity_ranker',
+        });
+        return (rows || []).map((row) => ({
+          symbol: row.symbol,
+          score: row.score,
+          strategy: row.event_type || 'Ranked Opportunity',
+          change_percent: null,
+          relative_volume: null,
+          gap_percent: null,
+          updated_at: row.created_at,
+        }));
+      })(),
       fastRowsQuery(
         `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
          FROM earnings_events
@@ -4881,6 +4932,7 @@ app.use('/api', alertsRoutes);
 
 // Top opportunities feed (protected by global auth middleware above)
 app.use('/api', opportunitiesRoutes);
+app.use('/api', schemaHealthRoutes);
 app.use('/api', strategyIntelligenceRoutes);
 app.use('/api', signalsRoutes);
 app.use('/api', intelDetailsRoutes);
@@ -5391,12 +5443,8 @@ async function startSystem() {
     await refreshTickerCache();
     await refreshSparklineCache();
 
-    const [oppRows, newsRows] = await Promise.all([
-      queryWithTimeout(
-        `SELECT COUNT(*)::int AS count FROM opportunities WHERE created_at > NOW() - INTERVAL '24 hours'`,
-        [],
-        { timeoutMs: 3500, label: 'startup.opportunities_24h', maxRetries: 0 }
-      ).catch(() => ({ rows: [{ count: 0 }] })),
+    const [oppCount, newsRows] = await Promise.all([
+      getOpportunityCountLast24h(supabaseAdmin).catch(() => 0),
       queryWithTimeout(
         `SELECT COUNT(*)::int AS count FROM intel_news WHERE created_at > NOW() - INTERVAL '24 hours'`,
         [],
@@ -5405,7 +5453,7 @@ async function startSystem() {
     ]);
 
     console.log('[DATA STATUS]');
-    console.log(`opportunities_24h: ${Number(oppRows.rows?.[0]?.count || 0)}`);
+    console.log(`opportunities_24h: ${Number(oppCount || 0)}`);
     console.log(`news_24h: ${Number(newsRows.rows?.[0]?.count || 0)}`);
   }
 
