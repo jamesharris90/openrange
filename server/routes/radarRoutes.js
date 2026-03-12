@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { queryWithTimeout } = require('../db/pg');
 const { runQueryTree } = require('../services/queryEngine');
+const { fetchRadarData } = require('../engines/radarEngine');
 
 router.get('/', async (_req, res) => {
   try {
@@ -75,6 +76,23 @@ router.get('/summary', async (_req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to load radar summary',
+      detail: error.message,
+    });
+  }
+});
+
+router.get('/today', async (_req, res) => {
+  try {
+    const radar = await fetchRadarData();
+    return res.json({
+      ok: true,
+      generated_at: new Date().toISOString(),
+      radar,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Radar today fetch failed',
       detail: error.message,
     });
   }

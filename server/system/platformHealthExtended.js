@@ -35,6 +35,17 @@ export async function platformHealthExtended(supabase) {
     intelligenceRows24h = 0;
   }
 
+  let radarGeneratedAt = null;
+  try {
+    const { data } = await supabase
+      .from("radar_market_summary")
+      .select("generated_at")
+      .limit(1);
+    radarGeneratedAt = data?.[0]?.generated_at ?? null;
+  } catch (_error) {
+    radarGeneratedAt = null;
+  }
+
   report.opportunities_24h = opportunitiesCount || 0;
 
   return {
@@ -44,5 +55,6 @@ export async function platformHealthExtended(supabase) {
     market_metrics_rows: marketMetricsCount || 0,
     intraday_rows_24h: intradayCount || 0,
     intelligence_rows_24h: intelligenceRows24h,
+    RADAR_GENERATED_AT: radarGeneratedAt,
   };
 }

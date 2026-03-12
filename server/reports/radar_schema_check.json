@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-03-12T00:00:00.000Z",
+  "query": "select table_name from information_schema.views where table_schema='public' and table_name like 'radar_%'",
+  "views_found": [
+    "radar_a_setups",
+    "radar_market_summary",
+    "radar_momentum",
+    "radar_news",
+    "radar_stocks_in_play"
+  ],
+  "expected_views": [
+    "radar_stocks_in_play",
+    "radar_momentum",
+    "radar_news",
+    "radar_a_setups",
+    "radar_market_summary"
+  ],
+  "all_present": true,
+  "status": "OK"
+}
