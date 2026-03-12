@@ -80,7 +80,9 @@ const newsletterRoutes = require('./routes/newsletter');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const radarRoutes = require('./routes/radar');
+const radarTradesRoutes = require('./routes/radarTrades');
 const briefingRoutes = require('./routes/briefingRoutes');
+const systemWatchdogRoutes = require('./routes/systemWatchdog');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const intelDetailsRoutes = require('./routes/intelDetails');
 const { getUIHealth } = require('./routes/uiHealth');
@@ -764,6 +766,7 @@ app.use('/api', (req, _res, next) => {
   app.use(earningsRoutes);
   app.use('/api/performance', performanceRoutes);
   app.use('/api/radar', radarRoutes);
+  app.use('/api/radar', radarTradesRoutes);
   app.use('/api/briefing', briefingRoutes);
   app.use('/api/market', marketRoutes);
   app.use('/api/market/context', marketContextRoutes);
@@ -774,6 +777,7 @@ app.use('/api', (req, _res, next) => {
   app.use('/api', profileRoutes);
   app.use('/api', testNewsDbRoute);
   app.use('/api/system', systemStatusRoutes);
+  app.use('/api/system', systemWatchdogRoutes);
   app.use('/api/system', systemMonitorRoutes);
   app.use('/api/data', screenerV3Routes);
   app.use('/api/v3/screener', screenerV3EngineRoutes);

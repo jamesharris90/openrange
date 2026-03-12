@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchRadar } from '../../api/radarApi';
+import { fetchRadar, fetchRadarTopTrades } from '../../api/radarApi';
 import RadarSection from './RadarSection';
 import RadarDiagnostics from '../system/RadarDiagnostics';
+import SystemWatchdog from '../system/SystemWatchdog';
 
 const RADAR_TIMEOUT_MS = 10000;
 
@@ -38,6 +39,7 @@ export default function OpenRangeRadar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [payload, setPayload] = useState(() => normalizeRadarPayload({}));
+  const [topTrades, setTopTrades] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,11 +48,33 @@ export default function OpenRangeRadar() {
       setLoading(true);
       setError('');
       try {
-        const data = await withTimeout(fetchRadar(), RADAR_TIMEOUT_MS);
-        if (!cancelled) setPayload(normalizeRadarPayload(data));
+        const [radarResult, topTradesResult] = await Promise.allSettled([
+          withTimeout(fetchRadar(), RADAR_TIMEOUT_MS),
+          withTimeout(fetchRadarTopTrades(), RADAR_TIMEOUT_MS),
+        ]);
+
+        if (cancelled) return;
+
+        if (radarResult.status === 'fulfilled') {
+          setPayload(normalizeRadarPayload(radarResult.value));
+        } else {
+          setPayload(normalizeRadarPayload({}));
+        }
+
+        if (topTradesResult.status === 'fulfilled') {
+          setTopTrades(Array.isArray(topTradesResult.value?.trades) ? topTradesResult.value.trades : []);
+        } else {
+          setTopTrades([]);
+        }
+
+        const errors = [];
+        if (radarResult.status === 'rejected') errors.push(radarResult.reason?.message || 'Failed to load radar data');
+        if (topTradesResult.status === 'rejected') errors.push(topTradesResult.reason?.message || 'Failed to load top trades');
+        setError(errors.join(' | '));
       } catch (err) {
         if (!cancelled) {
           setPayload(normalizeRadarPayload({}));
+          setTopTrades([]);
           setError(err?.message || 'Failed to load radar data');
         }
       } finally {
@@ -70,19 +94,20 @@ export default function OpenRangeRadar() {
   const sections = useMemo(() => {
     const radar = payload.radar;
     return [
+      { title: 'Top Trades Today', items: topTrades },
       { title: 'Stocks in Play', items: radar.stocks_in_play },
       { title: 'Momentum Leaders', items: radar.momentum_leaders },
       { title: 'News Catalysts', items: radar.news_catalysts },
       { title: 'A+ Setups', items: radar.a_plus_setups },
     ];
-  }, [payload]);
+  }, [payload, topTrades]);
 
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4">
         <h2 className="m-0 text-lg">OpenRange Radar Command Center</h2>
         <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">
-          Live command view sourced from <code>/api/radar/today</code>.
+          Live command view sourced from <code>/api/radar/today</code> and <code>/api/radar/top-trades</code>.
         </p>
       </div>
 
@@ -98,7 +123,10 @@ export default function OpenRangeRadar() {
         </div>
       )}
 
-      <RadarDiagnostics generatedAt={payload.generated_at} radar={payload.radar} />
+      <div className="grid gap-3 xl:grid-cols-2">
+        <RadarDiagnostics generatedAt={payload.generated_at} radar={payload.radar} />
+        <SystemWatchdog />
+      </div>
 
       <div className="grid gap-3 xl:grid-cols-2">
         {sections.map((section) => (

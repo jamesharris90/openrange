@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-03-12T21:50:31.206Z",
+  "top_trades": {
+    "ok": true,
+    "count": 4,
+    "passes": true
+  },
+  "watchdog": {
+    "ok": true,
+    "status": "OK",
+    "signals_generated": 4,
+    "news_events": 1555,
+    "last_opportunity": "2026-03-12T21:50:22.658Z",
+    "passes": true
+  },
+  "engine_diagnostics": {
+    "ok": true,
+    "opportunities_24h": 301334,
+    "passes": true
+  },
+  "overall_pass": true
+}

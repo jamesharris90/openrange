@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-03-12T21:46:00.000Z",
+  "required_tables": [
+    "opportunity_stream",
+    "opportunity_intelligence",
+    "market_metrics",
+    "market_news"
+  ],
+  "required_views": [
+    "radar_stocks_in_play",
+    "radar_momentum",
+    "radar_news",
+    "radar_a_setups",
+    "radar_market_summary",
+    "radar_top_trades"
+  ],
+  "found": {
+    "tables": [
+      "market_metrics",
+      "market_news",
+      "opportunity_intelligence",
+      "opportunity_stream"
+    ],
+    "views": [
+      "radar_a_setups",
+      "radar_market_summary",
+      "radar_momentum",
+      "radar_news",
+      "radar_stocks_in_play",
+      "radar_top_trades"
+    ]
+  },
+  "schema_match": true,
+  "status": "OK"
+}

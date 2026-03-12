@@ -46,6 +46,44 @@ export async function platformHealthExtended(supabase) {
     radarGeneratedAt = null;
   }
 
+  let watchdogStatus = 'UNKNOWN';
+  let secondsSinceLastOpportunity = null;
+  let intelligenceSignalCount = intelligenceRows24h;
+  try {
+    const { data } = await supabase
+      .from("platform_watchdog_status")
+      .select("stream_status, seconds_since_last_opportunity, intelligence_signals")
+      .limit(1);
+
+    const watchdog = data?.[0] ?? null;
+    if (watchdog?.stream_status) watchdogStatus = watchdog.stream_status;
+    if (watchdog?.seconds_since_last_opportunity != null) {
+      const parsed = Number(watchdog.seconds_since_last_opportunity);
+      secondsSinceLastOpportunity = Number.isFinite(parsed) ? parsed : null;
+    }
+    if (watchdog?.intelligence_signals != null) {
+      const parsed = Number(watchdog.intelligence_signals);
+      intelligenceSignalCount = Number.isFinite(parsed) ? parsed : intelligenceSignalCount;
+    }
+  } catch (_error) {
+    watchdogStatus = 'UNKNOWN';
+  }
+
+  if (secondsSinceLastOpportunity == null) {
+    try {
+      const { data } = await safeFrom(supabase, DATA_CONTRACT.OPPORTUNITY_STREAM)
+        .select("created_at")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const createdAt = data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : null;
+      if (createdAt) {
+        secondsSinceLastOpportunity = Math.max(0, (Date.now() - createdAt) / 1000);
+      }
+    } catch (_error) {
+      secondsSinceLastOpportunity = null;
+    }
+  }
+
   report.opportunities_24h = opportunitiesCount || 0;
 
   return {
@@ -56,5 +94,8 @@ export async function platformHealthExtended(supabase) {
     intraday_rows_24h: intradayCount || 0,
     intelligence_rows_24h: intelligenceRows24h,
     RADAR_GENERATED_AT: radarGeneratedAt,
+    WATCHDOG_STATUS: watchdogStatus,
+    SECONDS_SINCE_LAST_OPPORTUNITY: secondsSinceLastOpportunity,
+    INTELLIGENCE_SIGNAL_COUNT: intelligenceSignalCount,
   };
 }
