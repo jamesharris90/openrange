@@ -1,0 +1,6 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[deploy]
+healthcheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"

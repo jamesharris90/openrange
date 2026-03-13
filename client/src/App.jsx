@@ -10,6 +10,9 @@ import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
 import RequireAdmin from './components/auth/RequireAdmin';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import SystemDiagnostics from './pages/Admin/SystemDiagnostics';
+import LearningDashboard from './pages/Admin/LearningDashboard';
+import StrategyEdgeDashboard from './pages/Admin/StrategyEdgeDashboard';
 const LoginPage = safeLazy(() => import('./pages/LoginPage'));
 const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
 const LandingPage = safeLazy(() => import('./pages/LandingPage'));
@@ -47,12 +50,9 @@ const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
-const SystemMonitorPage = safeLazy(() => import('./pages/admin/SystemMonitorPage'));
-const SystemDiagnostics = safeLazy(() => import('./pages/Admin/SystemDiagnostics'));
-const LearningDashboard = safeLazy(() => import('./pages/Admin/LearningDashboard'));
-const StrategyEdgeDashboard = safeLazy(() => import('./pages/Admin/StrategyEdgeDashboard'));
-const CalibrationDashboard = safeLazy(() => import('./pages/admin/CalibrationDashboard'));
-const MissedOpportunitiesPage = safeLazy(() => import('./pages/admin/MissedOpportunitiesPage'));
+const SystemMonitorPage = safeLazy(() => import('./pages/Admin/SystemMonitorPage'));
+const CalibrationDashboard = safeLazy(() => import('./pages/Admin/CalibrationDashboard'));
+const MissedOpportunitiesPage = safeLazy(() => import('./pages/Admin/MissedOpportunitiesPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
