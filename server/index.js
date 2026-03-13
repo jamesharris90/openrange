@@ -835,10 +835,10 @@ async function resolvePplxConfig(req) {
 
 // Public endpoints (no auth required)
 app.get('/api/health', (req, res) => {
-  res.json({
-    ok: true,
-    ts: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development'
+  res.status(200).json({
+    status: 'ok',
+    service: 'openrange-backend',
+    timestamp: new Date().toISOString()
   });
 });
 
