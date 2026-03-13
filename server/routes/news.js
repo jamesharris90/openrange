@@ -1,6 +1,7 @@
 const express = require('express');
 const market = require('../services/marketDataService');
-const { pool } = require('../db/pg');
+const { supabaseAdmin } = require('../services/supabaseClient');
+const { getLatestNews } = require('../repositories/newsRepository');
 const router = express.Router();
 
 router.get('/api/news', async (req, res) => {
@@ -12,28 +13,11 @@ router.get('/api/news', async (req, res) => {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
     const cutoff = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
 
-    let rows;
-    if (symbols.length > 0) {
-      const result = await pool.query(
-        `SELECT symbol, headline, source, url, published_at AS "publishedAt"
-         FROM news_articles
-         WHERE symbol = ANY($1::text[]) AND published_at >= $2
-         ORDER BY published_at DESC
-         LIMIT $3`,
-        [symbols, cutoff, limit],
-      );
-      rows = result.rows;
-    } else {
-      const result = await pool.query(
-        `SELECT symbol, headline, source, url, published_at AS "publishedAt"
-         FROM news_articles
-         WHERE published_at >= $1
-         ORDER BY published_at DESC
-         LIMIT $2`,
-        [cutoff, limit],
-      );
-      rows = result.rows;
-    }
+    const rows = await getLatestNews(supabaseAdmin, {
+      symbols,
+      limit,
+      cutoffIso: cutoff,
+    });
 
     const payload = rows.map((item) => ({
       symbol: item.symbol,
@@ -41,7 +25,7 @@ router.get('/api/news', async (req, res) => {
       summary: '',
       source: item.source || 'FMP',
       url: item.url || null,
-      publishedAt: item.publishedAt,
+      publishedAt: item.published_at,
       newsScore: null,
     }));
 

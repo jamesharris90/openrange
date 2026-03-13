@@ -1,7 +1,8 @@
 const express = require('express');
 const { getCachedValue, setCachedValue } = require('../utils/responseCache');
-const { queryWithTimeout } = require('../db/pg');
 const { runOpportunityRanker } = require('../engines/opportunityRanker');
+const { supabaseAdmin } = require('../services/supabaseClient');
+const { getTopOpportunities } = require('../repositories/opportunityRepository');
 
 const router = express.Router();
 
@@ -21,30 +22,12 @@ router.get('/opportunities/top', async (req, res) => {
   }
 
   try {
-    const dbRows = await queryWithTimeout(
-      `WITH ranked AS (
-         SELECT
-           os.symbol,
-           os.score,
-           os.headline,
-           os.created_at,
-           ROW_NUMBER() OVER (
-             PARTITION BY os.symbol
-             ORDER BY os.created_at DESC
-           ) AS rank_per_symbol
-         FROM opportunity_stream os
-         WHERE os.source = 'opportunity_ranker'
-       )
-       SELECT symbol, score, headline, created_at
-       FROM ranked
-       WHERE rank_per_symbol = 1
-       ORDER BY score DESC NULLS LAST, created_at DESC
-       LIMIT $1`,
-      [limit],
-      { timeoutMs: 2200, label: 'api.opportunities.top.ranked', maxRetries: 0 }
-    );
+    const dbRows = await getTopOpportunities(supabaseAdmin, {
+      limit,
+      source: 'opportunity_ranker',
+    });
 
-    let mapped = (dbRows.rows || []).map((row) => ({
+    let mapped = (dbRows || []).map((row) => ({
       symbol: row.symbol,
       score: row.score,
       confidence: row.score,
@@ -65,17 +48,12 @@ router.get('/opportunities/top', async (req, res) => {
 
     if (!mapped.length) {
       await runOpportunityRanker();
-      const fallbackRows = await queryWithTimeout(
-        `SELECT symbol, score, headline, created_at
-         FROM opportunity_stream
-         WHERE source = 'opportunity_ranker'
-         ORDER BY created_at DESC
-         LIMIT $1`,
-        [limit],
-        { timeoutMs: 2200, label: 'api.opportunities.top.ranked_fallback', maxRetries: 0 }
-      );
+      const fallbackRows = await getTopOpportunities(supabaseAdmin, {
+        limit,
+        source: 'opportunity_ranker',
+      });
 
-      mapped = (fallbackRows.rows || []).map((row) => ({
+      mapped = (fallbackRows || []).map((row) => ({
         symbol: row.symbol,
         score: row.score,
         confidence: row.score,

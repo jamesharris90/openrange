@@ -74,6 +74,7 @@ const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
 const calibrationRoutes = require('./routes/calibration');
+const calibrationRoutesExt = require('./routes/calibrationRoutes');
 const schemaHealthRoutes = require('./routes/schemaHealth');
 const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
 const signalsRoutes = require('./routes/signals');
@@ -766,6 +767,7 @@ app.use('/api', (req, _res, next) => {
   app.use(optionsRoutes);
   app.use(earningsRoutes);
   app.use('/api/calibration', calibrationRoutes);
+  app.use('/api/calibration', calibrationRoutesExt);
   app.use('/api/performance', performanceRoutes);
   app.use('/api/radar', radarRoutes);
   app.use('/api/radar', radarTradesRoutes);

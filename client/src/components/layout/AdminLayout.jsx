@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 const LINKS = [
   { to: '/admin-control', label: 'Admin Control Panel' },
   { to: '/admin/diagnostics', label: 'Diagnostics' },
+  { to: '/admin/system-diagnostics', label: 'System Diagnostics' },
   { to: '/admin/system-monitor', label: 'System Monitor' },
   { to: '/admin/intelligence-monitor', label: 'Intelligence Monitor' },
   { to: '/admin/features', label: 'Feature Controls' },

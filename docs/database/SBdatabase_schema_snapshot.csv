@@ -1,0 +1,949 @@
+table_schema,table_name,column_name,data_type
+public,activity_log,id,integer
+public,activity_log,user_id,integer
+public,activity_log,action,text
+public,activity_log,details,text
+public,activity_log,ip_address,text
+public,activity_log,user_agent,text
+public,activity_log,created_at,timestamp with time zone
+public,alert_history,id,uuid
+public,alert_history,alert_id,uuid
+public,alert_history,symbol,text
+public,alert_history,message,text
+public,alert_history,triggered_at,timestamp with time zone
+public,alerts,id,bigint
+public,alerts,type,text
+public,alerts,source,text
+public,alerts,severity,text
+public,alerts,message,text
+public,alerts,acknowledged,boolean
+public,alerts,created_at,timestamp with time zone
+public,alerts,updated_at,timestamp with time zone
+public,audit_log,id,integer
+public,audit_log,actor,text
+public,audit_log,action,text
+public,audit_log,target,text
+public,audit_log,created_at,timestamp with time zone
+public,broker_executions,exec_id,integer
+public,broker_executions,user_id,integer
+public,broker_executions,dataset_scope,character varying
+public,broker_executions,broker,character varying
+public,broker_executions,symbol,character varying
+public,broker_executions,side,character varying
+public,broker_executions,qty,numeric
+public,broker_executions,price,numeric
+public,broker_executions,commission,numeric
+public,broker_executions,exec_time,timestamp with time zone
+public,broker_executions,raw_json,jsonb
+public,broker_executions,created_at,timestamp with time zone
+public,chart_trends,symbol,text
+public,chart_trends,trend,text
+public,chart_trends,support,jsonb
+public,chart_trends,resistance,jsonb
+public,chart_trends,channel,jsonb
+public,chart_trends,breakouts,jsonb
+public,chart_trends,computed_at,timestamp with time zone
+public,chart_trends,updated_at,timestamp with time zone
+public,company_profiles,symbol,text
+public,company_profiles,company_name,text
+public,company_profiles,exchange,text
+public,company_profiles,sector,text
+public,company_profiles,industry,text
+public,company_profiles,description,text
+public,company_profiles,ceo,text
+public,company_profiles,website,text
+public,company_profiles,country,text
+public,company_profiles,market_cap,bigint
+public,company_profiles,float,bigint
+public,company_profiles,shares_outstanding,bigint
+public,company_profiles,ipo_date,date
+public,company_profiles,logo_url,text
+public,company_profiles,last_updated,timestamp without time zone
+public,daily_ohlc,symbol,text
+public,daily_ohlc,date,date
+public,daily_ohlc,open,double precision
+public,daily_ohlc,high,double precision
+public,daily_ohlc,low,double precision
+public,daily_ohlc,close,double precision
+public,daily_ohlc,volume,bigint
+public,daily_reviews,review_id,integer
+public,daily_reviews,user_id,integer
+public,daily_reviews,dataset_scope,character varying
+public,daily_reviews,review_date,date
+public,daily_reviews,total_pnl,numeric
+public,daily_reviews,total_trades,integer
+public,daily_reviews,win_rate,numeric
+public,daily_reviews,summary_text,text
+public,daily_reviews,lessons_text,text
+public,daily_reviews,plan_tomorrow,text
+public,daily_reviews,mood,smallint
+public,daily_reviews,rating,smallint
+public,daily_reviews,created_at,timestamp with time zone
+public,daily_reviews,updated_at,timestamp with time zone
+public,daily_signal_snapshot,id,uuid
+public,daily_signal_snapshot,symbol,text
+public,daily_signal_snapshot,score,numeric
+public,daily_signal_snapshot,confidence,text
+public,daily_signal_snapshot,strategy,text
+public,daily_signal_snapshot,catalyst,text
+public,daily_signal_snapshot,sector,text
+public,daily_signal_snapshot,entry_price,numeric
+public,daily_signal_snapshot,snapshot_time,timestamp without time zone
+public,daily_signal_snapshot,snapshot_date,date
+public,daily_signal_snapshot,created_at,timestamp with time zone
+public,data_integrity,id,bigint
+public,data_integrity,symbol,text
+public,data_integrity,issue,text
+public,data_integrity,payload,jsonb
+public,data_integrity,created_at,timestamp with time zone
+public,data_integrity_events,id,bigint
+public,data_integrity_events,event_type,text
+public,data_integrity_events,source,text
+public,data_integrity_events,symbol,text
+public,data_integrity_events,issue,text
+public,data_integrity_events,severity,text
+public,data_integrity_events,payload,jsonb
+public,data_integrity_events,created_at,timestamp with time zone
+public,discovered_symbols,symbol,text
+public,discovered_symbols,source,text
+public,discovered_symbols,score,numeric
+public,discovered_symbols,detected_at,timestamp without time zone
+public,dynamic_watchlist,id,uuid
+public,dynamic_watchlist,symbol,text
+public,dynamic_watchlist,score,numeric
+public,dynamic_watchlist,confidence,text
+public,dynamic_watchlist,catalyst_type,text
+public,dynamic_watchlist,sector,text
+public,dynamic_watchlist,float_rotation,numeric
+public,dynamic_watchlist,liquidity_surge,numeric
+public,dynamic_watchlist,created_at,timestamp without time zone
+public,dynamic_watchlist,strategy,text
+public,dynamic_watchlist,narrative,text
+public,dynamic_watchlist,score_breakdown,jsonb
+public,dynamic_watchlist,updated_at,timestamp with time zone
+public,dynamic_watchlist,hierarchy_rank,numeric
+public,early_accumulation_signals,id,uuid
+public,early_accumulation_signals,symbol,text
+public,early_accumulation_signals,price,numeric
+public,early_accumulation_signals,volume,numeric
+public,early_accumulation_signals,avg_volume_30d,numeric
+public,early_accumulation_signals,relative_volume,numeric
+public,early_accumulation_signals,float_shares,numeric
+public,early_accumulation_signals,float_rotation,numeric
+public,early_accumulation_signals,liquidity_surge,numeric
+public,early_accumulation_signals,volume_delta,numeric
+public,early_accumulation_signals,accumulation_score,numeric
+public,early_accumulation_signals,pressure_level,text
+public,early_accumulation_signals,sector,text
+public,early_accumulation_signals,catalyst_type,text
+public,early_accumulation_signals,detected_at,timestamp without time zone
+public,early_accumulation_signals,alert_sent,boolean
+public,early_signal_outcomes,id,uuid
+public,early_signal_outcomes,signal_id,uuid
+public,early_signal_outcomes,symbol,text
+public,early_signal_outcomes,entry_price,numeric
+public,early_signal_outcomes,price_1h,numeric
+public,early_signal_outcomes,price_4h,numeric
+public,early_signal_outcomes,price_1d,numeric
+public,early_signal_outcomes,price_5d,numeric
+public,early_signal_outcomes,price_30d,numeric
+public,early_signal_outcomes,max_move_percent,numeric
+public,early_signal_outcomes,result_label,text
+public,early_signal_outcomes,evaluated_at,timestamp without time zone
+public,early_signal_outcomes,created_at,timestamp with time zone
+public,early_signal_outcomes,updated_at,timestamp with time zone
+public,earnings_events,id,integer
+public,earnings_events,symbol,text
+public,earnings_events,report_date,date
+public,earnings_events,report_time,text
+public,earnings_events,eps_estimate,double precision
+public,earnings_events,eps_actual,double precision
+public,earnings_events,rev_estimate,double precision
+public,earnings_events,rev_actual,double precision
+public,earnings_events,eps_surprise_pct,double precision
+public,earnings_events,rev_surprise_pct,double precision
+public,earnings_events,guidance_direction,text
+public,earnings_events,market_cap,double precision
+public,earnings_events,float,double precision
+public,earnings_events,sector,text
+public,earnings_events,industry,text
+public,earnings_events,created_at,timestamp without time zone
+public,earnings_events,company,text
+public,earnings_events,earnings_date,date
+public,earnings_events,revenue_estimate,numeric
+public,earnings_events,updated_at,timestamp with time zone
+public,earnings_events,time,text
+public,earnings_market_reaction,id,integer
+public,earnings_market_reaction,symbol,text
+public,earnings_market_reaction,report_date,date
+public,earnings_market_reaction,pre_market_gap_pct,numeric
+public,earnings_market_reaction,open_gap_pct,numeric
+public,earnings_market_reaction,high_of_day_pct,numeric
+public,earnings_market_reaction,low_of_day_pct,numeric
+public,earnings_market_reaction,close_pct,numeric
+public,earnings_market_reaction,day2_followthrough_pct,numeric
+public,earnings_market_reaction,volume_vs_avg,numeric
+public,earnings_market_reaction,rvol,numeric
+public,earnings_market_reaction,atr_pct,numeric
+public,earnings_market_reaction,implied_move_pct,numeric
+public,earnings_market_reaction,actual_move_pct,numeric
+public,earnings_market_reaction,move_vs_implied_ratio,numeric
+public,earnings_market_reaction,created_at,timestamp without time zone
+public,earnings_scores,id,integer
+public,earnings_scores,symbol,text
+public,earnings_scores,report_date,date
+public,earnings_scores,surprise_score,integer
+public,earnings_scores,guidance_score,integer
+public,earnings_scores,reaction_score,integer
+public,earnings_scores,positioning_score,integer
+public,earnings_scores,total_score,integer
+public,earnings_scores,tier,text
+public,earnings_scores,created_at,timestamp without time zone
+public,earnings_scores,earnings_expected_move_pct,numeric
+public,earnings_scores,earnings_expected_move_dollar,numeric
+public,earnings_scores,earnings_iv,numeric
+public,engine_errors,id,bigint
+public,engine_errors,engine,text
+public,engine_errors,message,text
+public,engine_errors,stack,text
+public,engine_errors,timestamp,timestamp with time zone
+public,engine_errors,metadata,jsonb
+public,engine_runtime,id,bigint
+public,engine_runtime,engine_name,text
+public,engine_runtime,status,text
+public,engine_runtime,execution_time_ms,integer
+public,engine_runtime,details,jsonb
+public,engine_runtime,created_at,timestamp with time zone
+public,engine_runtime,updated_at,timestamp with time zone
+public,engine_status,engine,text
+public,engine_status,status,text
+public,engine_status,last_run,timestamp without time zone
+public,engine_status,runtime_ms,integer
+public,engine_status,updated_at,timestamp without time zone
+public,engine_telemetry,id,bigint
+public,engine_telemetry,engine,text
+public,engine_telemetry,payload,jsonb
+public,engine_telemetry,updated_at,timestamp with time zone
+public,event_log,id,bigint
+public,event_log,event_type,text
+public,event_log,payload,jsonb
+public,event_log,created_at,timestamp with time zone
+public,expected_moves,symbol,text
+public,expected_moves,expected_move,numeric
+public,expected_moves,atr_percent,numeric
+public,expected_moves,price,numeric
+public,expected_moves,earnings_date,date
+public,expected_moves,updated_at,timestamp with time zone
+public,feature_access_audit,id,uuid
+public,feature_access_audit,admin_user_id,uuid
+public,feature_access_audit,target_user_id,uuid
+public,feature_access_audit,feature_key,text
+public,feature_access_audit,old_enabled,boolean
+public,feature_access_audit,new_enabled,boolean
+public,feature_access_audit,created_at,timestamp with time zone
+public,feature_access_audit,changed_at,timestamp with time zone
+public,feature_audit,id,bigint
+public,feature_audit,actor_id,bigint
+public,feature_audit,action,text
+public,feature_audit,target,text
+public,feature_audit,metadata,jsonb
+public,feature_audit,created_at,timestamp with time zone
+public,feature_audit,changed_at,timestamp with time zone
+public,feature_flags,key,text
+public,feature_flags,enabled,boolean
+public,feature_flags,description,text
+public,feature_flags,category,text
+public,feature_overrides,id,bigint
+public,feature_overrides,user_id,bigint
+public,feature_overrides,feature_key,text
+public,feature_overrides,enabled,boolean
+public,feature_overrides,updated_at,timestamp with time zone
+public,feature_registry,id,uuid
+public,feature_registry,feature_key,text
+public,feature_registry,feature_name,text
+public,feature_registry,category,text
+public,feature_registry,description,text
+public,feature_registry,release_stage,text
+public,feature_registry,default_free,boolean
+public,feature_registry,default_pro,boolean
+public,feature_registry,default_ultimate,boolean
+public,feature_registry,default_admin,boolean
+public,feature_registry,created_at,timestamp with time zone
+public,feature_registry,updated_at,timestamp with time zone
+public,feature_roles,id,bigint
+public,feature_roles,user_id,bigint
+public,feature_roles,role,text
+public,feature_roles,updated_at,timestamp with time zone
+public,feature_roles,changed_at,timestamp with time zone
+public,flow_signals,id,bigint
+public,flow_signals,symbol,text
+public,flow_signals,flow_score,numeric
+public,flow_signals,pressure_level,text
+public,flow_signals,relative_volume,numeric
+public,flow_signals,float_rotation,numeric
+public,flow_signals,liquidity_surge,numeric
+public,flow_signals,detected_at,timestamp with time zone
+public,flow_signals,timestamp,timestamp with time zone
+public,ingestion_state,id,integer
+public,ingestion_state,phase,text
+public,ingestion_state,last_symbol_index,integer
+public,ingestion_state,status,text
+public,ingestion_state,last_updated,timestamp without time zone
+public,institutional_flow,id,bigint
+public,institutional_flow,symbol,text
+public,institutional_flow,relative_volume,numeric
+public,institutional_flow,volume,numeric
+public,institutional_flow,breakout_score,numeric
+public,institutional_flow,score,numeric
+public,institutional_flow,detected_at,timestamp with time zone
+public,integrity_events,id,bigint
+public,integrity_events,source,text
+public,integrity_events,issue,text
+public,integrity_events,severity,text
+public,integrity_events,payload,jsonb
+public,integrity_events,created_at,timestamp with time zone
+public,integrity_events,updated_at,timestamp with time zone
+public,intel_news,id,bigint
+public,intel_news,symbol,text
+public,intel_news,headline,text
+public,intel_news,source,text
+public,intel_news,url,text
+public,intel_news,published_at,timestamp with time zone
+public,intel_news,sentiment,text
+public,intel_news,updated_at,timestamp with time zone
+public,intel_news,narrative,text
+public,intel_news,detected_symbols,ARRAY
+public,intel_news,catalyst_type,text
+public,intel_news,expected_move,numeric
+public,intel_news,score_breakdown,jsonb
+public,intel_news,narrative_confidence,numeric
+public,intel_news,narrative_type,text
+public,intel_news,time_horizon,text
+public,intel_news,regime,text
+public,intelligence_briefs,id,bigint
+public,intelligence_briefs,email_id,bigint
+public,intelligence_briefs,summary,text
+public,intelligence_briefs,market_sentiment,numeric
+public,intelligence_briefs,geopolitical_score,numeric
+public,intelligence_briefs,sector_tags,ARRAY
+public,intelligence_briefs,tickers,ARRAY
+public,intelligence_briefs,created_at,timestamp with time zone
+public,intelligence_emails,id,bigint
+public,intelligence_emails,sender,text
+public,intelligence_emails,subject,text
+public,intelligence_emails,received_at,timestamp with time zone
+public,intelligence_emails,raw_text,text
+public,intelligence_emails,raw_html,text
+public,intelligence_emails,source_tag,text
+public,intelligence_emails,processed,boolean
+public,intelligence_emails,created_at,timestamp with time zone
+public,intraday_1h,symbol,text
+public,intraday_1h,timestamp,timestamp with time zone
+public,intraday_1h,open,numeric
+public,intraday_1h,high,numeric
+public,intraday_1h,low,numeric
+public,intraday_1h,close,numeric
+public,intraday_1h,volume,bigint
+public,intraday_1m,symbol,text
+public,intraday_1m,timestamp,timestamp with time zone
+public,intraday_1m,open,double precision
+public,intraday_1m,high,double precision
+public,intraday_1m,low,double precision
+public,intraday_1m,close,double precision
+public,intraday_1m,volume,bigint
+public,intraday_ohlc,id,uuid
+public,intraday_ohlc,symbol,text
+public,intraday_ohlc,timeframe,text
+public,intraday_ohlc,open,numeric
+public,intraday_ohlc,high,numeric
+public,intraday_ohlc,low,numeric
+public,intraday_ohlc,close,numeric
+public,intraday_ohlc,volume,bigint
+public,intraday_ohlc,timestamp,timestamp with time zone
+public,market_metrics,symbol,text
+public,market_metrics,price,numeric
+public,market_metrics,gap_percent,numeric
+public,market_metrics,relative_volume,numeric
+public,market_metrics,atr,numeric
+public,market_metrics,rsi,numeric
+public,market_metrics,vwap,numeric
+public,market_metrics,float_rotation,numeric
+public,market_metrics,last_updated,timestamp without time zone
+public,market_metrics,change_percent,numeric
+public,market_metrics,avg_volume_30d,numeric
+public,market_metrics,updated_at,timestamp with time zone
+public,market_metrics,volume,bigint
+public,market_metrics,previous_high,numeric
+public,market_metrics,float_shares,numeric
+public,market_metrics,atr_percent,numeric
+public,market_metrics,short_float,numeric
+public,market_metrics,liquidity_surge,numeric
+public,market_narratives,id,integer
+public,market_narratives,narrative,text
+public,market_narratives,regime,text
+public,market_narratives,created_at,timestamp without time zone
+public,market_news,id,uuid
+public,market_news,symbol,text
+public,market_news,headline,text
+public,market_news,source,text
+public,market_news,url,text
+public,market_news,published_at,timestamp with time zone
+public,market_news,created_at,timestamp with time zone
+public,market_quotes,symbol,text
+public,market_quotes,price,numeric
+public,market_quotes,change_percent,numeric
+public,market_quotes,volume,bigint
+public,market_quotes,market_cap,bigint
+public,market_quotes,sector,text
+public,market_quotes,updated_at,timestamp with time zone
+public,market_quotes,short_float,numeric
+public,market_quotes,float,numeric
+public,market_quotes,relative_volume,numeric
+public,market_quotes,premarket_volume,numeric
+public,morning_briefings,id,integer
+public,morning_briefings,created_at,timestamp without time zone
+public,morning_briefings,signals,jsonb
+public,morning_briefings,market,jsonb
+public,morning_briefings,news,jsonb
+public,morning_briefings,as_of_date,date
+public,morning_briefings,narrative,jsonb
+public,morning_briefings,email_status,jsonb
+public,morning_briefings,stocks_in_play,jsonb
+public,news_articles,id,uuid
+public,news_articles,headline,text
+public,news_articles,symbols,ARRAY
+public,news_articles,source,text
+public,news_articles,url,text
+public,news_articles,published_at,timestamp without time zone
+public,news_articles,summary,text
+public,news_articles,catalyst_type,text
+public,news_articles,news_score,integer
+public,news_articles,score_breakdown,jsonb
+public,news_articles,raw_payload,jsonb
+public,news_articles,created_at,timestamp without time zone
+public,news_articles,symbol,text
+public,news_articles,sector,text
+public,news_articles,narrative,text
+public,news_catalysts,id,bigint
+public,news_catalysts,symbol,text
+public,news_catalysts,catalyst_type,text
+public,news_catalysts,headline,text
+public,news_catalysts,source,text
+public,news_catalysts,sentiment,text
+public,news_catalysts,impact_score,integer
+public,news_catalysts,published_at,timestamp with time zone
+public,news_catalysts,created_at,timestamp with time zone
+public,news_catalysts,updated_at,timestamp with time zone
+public,news_events,id,bigint
+public,news_events,symbol,text
+public,news_events,published_at,timestamp with time zone
+public,news_events,headline,text
+public,news_events,source,text
+public,news_events,url,text
+public,news_events,created_at,timestamp with time zone
+public,newsletter_campaigns,id,uuid
+public,newsletter_campaigns,subject,text
+public,newsletter_campaigns,content_html,text
+public,newsletter_campaigns,content_text,text
+public,newsletter_campaigns,created_at,timestamp without time zone
+public,newsletter_send_history,id,bigint
+public,newsletter_send_history,subject,text
+public,newsletter_send_history,recipients_count,integer
+public,newsletter_send_history,provider_id,text
+public,newsletter_send_history,status,text
+public,newsletter_send_history,open_rate,numeric
+public,newsletter_send_history,click_rate,numeric
+public,newsletter_send_history,sent_at,timestamp with time zone
+public,newsletter_send_history,created_at,timestamp with time zone
+public,newsletter_sends,id,uuid
+public,newsletter_sends,campaign_id,uuid
+public,newsletter_sends,email,text
+public,newsletter_sends,opened,boolean
+public,newsletter_sends,clicked,boolean
+public,newsletter_sends,sent_at,timestamp without time zone
+public,newsletter_subscribers,id,uuid
+public,newsletter_subscribers,email,text
+public,newsletter_subscribers,name,text
+public,newsletter_subscribers,plan,text
+public,newsletter_subscribers,confirmed,boolean
+public,newsletter_subscribers,created_at,timestamp without time zone
+public,newsletter_subscribers,is_active,boolean
+public,opportunities,id,bigint
+public,opportunities,symbol,text
+public,opportunities,score,numeric
+public,opportunities,created_at,timestamp with time zone
+public,opportunities_v2,symbol,text
+public,opportunities_v2,score,numeric
+public,opportunities_v2,change_percent,numeric
+public,opportunities_v2,relative_volume,numeric
+public,opportunities_v2,gap_percent,numeric
+public,opportunities_v2,strategy,text
+public,opportunities_v2,volume,bigint
+public,opportunities_v2,updated_at,timestamp with time zone
+public,opportunity_stream,id,integer
+public,opportunity_stream,symbol,text
+public,opportunity_stream,event_type,text
+public,opportunity_stream,headline,text
+public,opportunity_stream,score,numeric
+public,opportunity_stream,source,text
+public,opportunity_stream,created_at,timestamp without time zone
+public,options_cache,symbol,text
+public,options_cache,expiration,integer
+public,options_cache,atm_iv,real
+public,options_cache,expected_move_pct,real
+public,options_cache,expected_move_dollar,real
+public,options_cache,days_to_expiry,real
+public,options_cache,fetched_at,timestamp with time zone
+public,options_cache,null_reason,text
+public,order_flow_signals,id,bigint
+public,order_flow_signals,symbol,text
+public,order_flow_signals,price,numeric
+public,order_flow_signals,relative_volume,numeric
+public,order_flow_signals,float_rotation,numeric
+public,order_flow_signals,liquidity_surge,numeric
+public,order_flow_signals,pressure_score,numeric
+public,order_flow_signals,pressure_level,text
+public,order_flow_signals,detected_at,timestamp with time zone
+public,plan_features,plan,text
+public,plan_features,feature,text
+public,profiles,id,uuid
+public,profiles,username,text
+public,profiles,role,text
+public,profiles,created_at,timestamp without time zone
+public,profiles,plan,text
+public,profiles,trial_end,timestamp without time zone
+public,profiles,is_active,boolean
+public,provider_health,id,bigint
+public,provider_health,provider,text
+public,provider_health,status,text
+public,provider_health,latency,numeric
+public,provider_health,created_at,timestamp with time zone
+public,provider_health,updated_at,timestamp with time zone
+public,qualified_signals,id,integer
+public,qualified_signals,signal_id,integer
+public,qualified_signals,symbol,text
+public,qualified_signals,strategy,text
+public,qualified_signals,class,text
+public,qualified_signals,score,integer
+public,qualified_signals,probability,numeric
+public,qualified_signals,signal_time,timestamp without time zone
+public,qualified_signals,signal_origin,text
+public,qualified_signals,scanner_name,text
+public,qualified_signals,catalyst_type,text
+public,qualified_signals,catalyst_summary,text
+public,qualified_signals,sector,text
+public,qualified_signals,industry,text
+public,qualified_signals,market_cap,numeric
+public,qualified_signals,float,numeric
+public,qualified_signals,relative_volume,numeric
+public,qualified_signals,spy_direction,text
+public,qualified_signals,market_session,text
+public,qualified_signals,time_of_day,text
+public,qualified_signals,created_at,timestamp without time zone
+public,roles,id,integer
+public,roles,user_id,bigint
+public,roles,role,text
+public,roles,created_at,timestamp with time zone
+public,scheduler_status,id,integer
+public,scheduler_status,last_heartbeat,timestamp without time zone
+public,scheduler_status,jobs_run,integer
+public,schema_migrations,version,character varying
+public,schema_migrations,applied_at,timestamp with time zone
+public,sector_heatmap,sector,text
+public,sector_heatmap,avg_change,numeric
+public,sector_heatmap,total_volume,bigint
+public,sector_heatmap,stocks,integer
+public,sector_heatmap,leaders,jsonb
+public,sector_heatmap,updated_at,timestamp with time zone
+public,sector_momentum,sector,text
+public,sector_momentum,momentum_score,numeric
+public,sector_momentum,avg_gap,numeric
+public,sector_momentum,avg_rvol,numeric
+public,sector_momentum,top_symbol,text
+public,sector_momentum,updated_at,timestamp with time zone
+public,settings,key,text
+public,settings,value,text
+public,settings,updated_at,timestamp with time zone
+public,signal_alerts,id,uuid
+public,signal_alerts,symbol,text
+public,signal_alerts,score,numeric
+public,signal_alerts,confidence,text
+public,signal_alerts,alert_type,text
+public,signal_alerts,message,text
+public,signal_alerts,created_at,timestamp without time zone
+public,signal_alerts,acknowledged,boolean
+public,signal_alerts,strategy,text
+public,signal_behaviour,id,integer
+public,signal_behaviour,signal_id,integer
+public,signal_behaviour,symbol,text
+public,signal_behaviour,entry_price,numeric
+public,signal_behaviour,peak_price,numeric
+public,signal_behaviour,peak_time,timestamp without time zone
+public,signal_behaviour,low_price,numeric
+public,signal_behaviour,low_time,timestamp without time zone
+public,signal_behaviour,max_upside,numeric
+public,signal_behaviour,max_drawdown,numeric
+public,signal_behaviour,time_to_peak_minutes,integer
+public,signal_behaviour,close_price,numeric
+public,signal_behaviour,close_return,numeric
+public,signal_behaviour,outcome,text
+public,signal_behaviour,evaluated_at,timestamp without time zone
+public,signal_catalysts,id,integer
+public,signal_catalysts,signal_id,integer
+public,signal_catalysts,symbol,text
+public,signal_catalysts,strategy,text
+public,signal_catalysts,catalyst_type,text
+public,signal_catalysts,catalyst_source,text
+public,signal_catalysts,headline,text
+public,signal_catalysts,source,text
+public,signal_catalysts,strength,integer
+public,signal_catalysts,published_at,timestamp without time zone
+public,signal_catalysts,raw_payload,jsonb
+public,signal_catalysts,created_at,timestamp without time zone
+public,signal_component_outcomes,id,uuid
+public,signal_component_outcomes,symbol,text
+public,signal_component_outcomes,snapshot_date,date
+public,signal_component_outcomes,score,numeric
+public,signal_component_outcomes,gap_percent,numeric
+public,signal_component_outcomes,rvol,numeric
+public,signal_component_outcomes,float_rotation,numeric
+public,signal_component_outcomes,liquidity_surge,numeric
+public,signal_component_outcomes,catalyst_score,numeric
+public,signal_component_outcomes,sector_score,numeric
+public,signal_component_outcomes,confirmation_score,numeric
+public,signal_component_outcomes,outcome_percent,numeric
+public,signal_component_outcomes,success,boolean
+public,signal_component_outcomes,created_at,timestamp with time zone
+public,signal_component_outcomes,open_price,numeric
+public,signal_component_outcomes,high_price,numeric
+public,signal_component_outcomes,close_price,numeric
+public,signal_component_outcomes,move_percent,numeric
+public,signal_component_outcomes,snapshot_day,date
+public,signal_component_outcomes,outcome_updated_at,timestamp with time zone
+public,signal_engine_metrics,id,uuid
+public,signal_engine_metrics,symbol,text
+public,signal_engine_metrics,rvol,numeric
+public,signal_engine_metrics,gap_percent,numeric
+public,signal_engine_metrics,atr_percent,numeric
+public,signal_engine_metrics,float_shares,numeric
+public,signal_engine_metrics,volume,numeric
+public,signal_engine_metrics,avg_volume_30d,numeric
+public,signal_engine_metrics,float_rotation,numeric
+public,signal_engine_metrics,liquidity_surge,numeric
+public,signal_engine_metrics,created_at,timestamp without time zone
+public,signal_engine_metrics,engine,text
+public,signal_engine_metrics,metric_value,numeric
+public,signal_engine_metrics,score_contribution,numeric
+public,signal_engine_metrics,payload,jsonb
+public,signal_engine_metrics,updated_at,timestamp with time zone
+public,signal_hierarchy,id,uuid
+public,signal_hierarchy,symbol,text
+public,signal_hierarchy,hierarchy_rank,integer
+public,signal_hierarchy,signal_class,text
+public,signal_hierarchy,strategy,text
+public,signal_hierarchy,score,numeric
+public,signal_hierarchy,confidence,text
+public,signal_hierarchy,created_at,timestamp without time zone
+public,signal_hierarchy,updated_at,timestamp with time zone
+public,signal_narratives,id,integer
+public,signal_narratives,signal_id,integer
+public,signal_narratives,symbol,text
+public,signal_narratives,narrative_type,text
+public,signal_narratives,sentiment,text
+public,signal_narratives,summary,text
+public,signal_narratives,source,text
+public,signal_narratives,confidence_score,numeric
+public,signal_narratives,created_at,timestamp without time zone
+public,signal_narratives,mcp_context,jsonb
+public,signal_outcomes,id,uuid
+public,signal_outcomes,symbol,text
+public,signal_outcomes,entry_price,numeric
+public,signal_outcomes,exit_price,numeric
+public,signal_outcomes,return_percent,numeric
+public,signal_outcomes,hold_minutes,integer
+public,signal_outcomes,strategy,text
+public,signal_outcomes,created_at,timestamp without time zone
+public,signal_performance,id,integer
+public,signal_performance,signal_id,integer
+public,signal_performance,symbol,text
+public,signal_performance,strategy,text
+public,signal_performance,class,text
+public,signal_performance,score,integer
+public,signal_performance,probability,numeric
+public,signal_performance,entry_price,numeric
+public,signal_performance,max_upside,numeric
+public,signal_performance,max_drawdown,numeric
+public,signal_performance,outcome,text
+public,signal_performance,created_at,timestamp without time zone
+public,signal_performance,evaluated_at,timestamp without time zone
+public,signal_performance,snapshot_date,date
+public,signal_performance,current_price,numeric
+public,signal_performance,return_percent,numeric
+public,signal_performance,updated_at,timestamp with time zone
+public,signal_performance,exit_price,numeric
+public,signal_weight_calibration,id,uuid
+public,signal_weight_calibration,component,text
+public,signal_weight_calibration,weight,numeric
+public,signal_weight_calibration,success_rate,numeric
+public,signal_weight_calibration,updated_at,timestamp with time zone
+public,signal_weight_calibration,avg_move,numeric
+public,signal_weight_calibration,signals_analyzed,integer
+public,signal_weight_calibration,created_at,timestamp with time zone
+public,sparkline_cache,symbol,text
+public,sparkline_cache,data,jsonb
+public,sparkline_cache,updated_at,timestamp with time zone
+public,squeeze_signals,id,bigint
+public,squeeze_signals,symbol,text
+public,squeeze_signals,short_float,numeric
+public,squeeze_signals,relative_volume,numeric
+public,squeeze_signals,price_change,numeric
+public,squeeze_signals,float_shares,numeric
+public,squeeze_signals,score,numeric
+public,squeeze_signals,detected_at,timestamp with time zone
+public,squeeze_signals,timestamp,timestamp with time zone
+public,stocks_in_play,id,bigint
+public,stocks_in_play,symbol,text
+public,stocks_in_play,gap_percent,numeric
+public,stocks_in_play,rvol,numeric
+public,stocks_in_play,catalyst,text
+public,stocks_in_play,score,numeric
+public,stocks_in_play,detected_at,timestamp with time zone
+public,strategy_accuracy,strategy,text
+public,strategy_accuracy,total_signals,integer
+public,strategy_accuracy,wins,integer
+public,strategy_accuracy,losses,integer
+public,strategy_accuracy,accuracy_rate,numeric
+public,strategy_accuracy,updated_at,timestamp with time zone
+public,strategy_learning,id,integer
+public,strategy_learning,strategy,text
+public,strategy_learning,sector,text
+public,strategy_learning,catalyst_type,text
+public,strategy_learning,time_of_day,text
+public,strategy_learning,signals_count,integer
+public,strategy_learning,win_count,integer
+public,strategy_learning,avg_upside,numeric
+public,strategy_learning,avg_drawdown,numeric
+public,strategy_learning,win_rate,numeric
+public,strategy_learning,last_updated,timestamp without time zone
+public,strategy_signals,symbol,text
+public,strategy_signals,strategy,text
+public,strategy_signals,class,text
+public,strategy_signals,score,numeric
+public,strategy_signals,probability,numeric
+public,strategy_signals,change_percent,numeric
+public,strategy_signals,gap_percent,numeric
+public,strategy_signals,relative_volume,numeric
+public,strategy_signals,volume,bigint
+public,strategy_signals,updated_at,timestamp with time zone
+public,strategy_signals,id,integer
+public,strategy_signals,entry_price,numeric
+public,strategy_signals,created_at,timestamp without time zone
+public,strategy_signals,catalyst_count,integer
+public,strategy_signals,exit_price,numeric
+public,strategy_signals,result,boolean
+public,strategy_signals,timestamp,timestamp with time zone
+public,strategy_trades,id,integer
+public,strategy_trades,symbol,text
+public,strategy_trades,strategy,text
+public,strategy_trades,entry_price,numeric
+public,strategy_trades,exit_price,numeric
+public,strategy_trades,entry_time,timestamp without time zone
+public,strategy_trades,exit_time,timestamp without time zone
+public,strategy_trades,max_move,numeric
+public,strategy_trades,result_percent,numeric
+public,strategy_trades,created_at,timestamp without time zone
+public,symbol_queue,symbol,text
+public,symbol_queue,reason,text
+public,symbol_queue,created_at,timestamp without time zone
+public,system_alerts,id,bigint
+public,system_alerts,type,text
+public,system_alerts,source,text
+public,system_alerts,severity,text
+public,system_alerts,message,text
+public,system_alerts,acknowledged,boolean
+public,system_alerts,created_at,timestamp with time zone
+public,system_events,id,bigint
+public,system_events,event_type,text
+public,system_events,source,text
+public,system_events,symbol,text
+public,system_events,payload,jsonb
+public,system_events,created_at,timestamp with time zone
+public,ticker_universe,symbol,text
+public,ticker_universe,company_name,text
+public,ticker_universe,exchange,text
+public,ticker_universe,sector,text
+public,ticker_universe,industry,text
+public,ticker_universe,market_cap,bigint
+public,ticker_universe,is_active,boolean
+public,ticker_universe,last_updated,timestamp without time zone
+public,tier_feature_defaults,feature_key,text
+public,tier_feature_defaults,role,text
+public,tier_feature_defaults,enabled,boolean
+public,tradable_universe,symbol,text
+public,tradable_universe,price,numeric
+public,tradable_universe,change_percent,numeric
+public,tradable_universe,relative_volume,numeric
+public,tradable_universe,volume,bigint
+public,tradable_universe,avg_volume_30d,numeric
+public,tradable_universe,updated_at,timestamp with time zone
+public,tradable_universe,gap_percent,numeric
+public,trade_catalysts,symbol,text
+public,trade_catalysts,catalyst_type,text
+public,trade_catalysts,headline,text
+public,trade_catalysts,source,text
+public,trade_catalysts,sentiment,text
+public,trade_catalysts,published_at,timestamp without time zone
+public,trade_catalysts,score,numeric
+public,trade_catalysts,created_at,timestamp without time zone
+public,trade_metadata,metadata_id,integer
+public,trade_metadata,trade_id,integer
+public,trade_metadata,setup_type,character varying
+public,trade_metadata,conviction,smallint
+public,trade_metadata,notes,text
+public,trade_metadata,screenshot_url,text
+public,trade_metadata,tags_json,jsonb
+public,trade_metadata,review_status,character varying
+public,trade_metadata,created_at,timestamp with time zone
+public,trade_metadata,updated_at,timestamp with time zone
+public,trade_setups,symbol,text
+public,trade_setups,setup,text
+public,trade_setups,grade,text
+public,trade_setups,score,numeric
+public,trade_setups,gap_percent,numeric
+public,trade_setups,relative_volume,numeric
+public,trade_setups,atr,numeric
+public,trade_setups,float_rotation,numeric
+public,trade_setups,detected_at,timestamp without time zone
+public,trade_signals,id,bigint
+public,trade_signals,symbol,text
+public,trade_signals,strategy,text
+public,trade_signals,score,numeric
+public,trade_signals,gap_percent,numeric
+public,trade_signals,rvol,numeric
+public,trade_signals,atr_percent,numeric
+public,trade_signals,created_at,timestamp with time zone
+public,trade_signals,updated_at,timestamp with time zone
+public,trade_signals,signal_explanation,text
+public,trade_signals,rationale,text
+public,trade_signals,score_breakdown,jsonb
+public,trade_signals,liquidity_surge,numeric
+public,trade_signals,float_rotation,numeric
+public,trade_signals,confirmation_score,numeric
+public,trade_signals,catalyst_score,numeric
+public,trade_signals,sector_score,numeric
+public,trade_signals,confidence,text
+public,trade_signals,narrative,text
+public,trade_signals,triggered_alert,boolean
+public,trade_signals,entered_watchlist,boolean
+public,trade_signals,included_in_brief,boolean
+public,trade_signals,catalyst_type,text
+public,trade_signals,sector,text
+public,trade_signals,include_in_briefing,boolean
+public,trade_signals,signal_class,text
+public,trade_signals,hierarchy_rank,numeric
+public,trade_tags,tag_id,integer
+public,trade_tags,user_id,integer
+public,trade_tags,tag_name,character varying
+public,trade_tags,colour_hex,character varying
+public,trade_tags,created_at,timestamp with time zone
+public,trades,trade_id,integer
+public,trades,user_id,integer
+public,trades,dataset_scope,character varying
+public,trades,symbol,character varying
+public,trades,side,character varying
+public,trades,entry_price,numeric
+public,trades,exit_price,numeric
+public,trades,qty,numeric
+public,trades,pnl_dollar,numeric
+public,trades,pnl_percent,numeric
+public,trades,commission_total,numeric
+public,trades,opened_at,timestamp with time zone
+public,trades,closed_at,timestamp with time zone
+public,trades,duration_seconds,integer
+public,trades,status,character varying
+public,trades,created_at,timestamp with time zone
+public,usage_events,id,integer
+public,usage_events,ts,bigint
+public,usage_events,user,text
+public,usage_events,path,text
+public,user_alerts,alert_id,uuid
+public,user_alerts,id,uuid
+public,user_alerts,user_id,text
+public,user_alerts,alert_name,text
+public,user_alerts,query_tree,jsonb
+public,user_alerts,message_template,text
+public,user_alerts,frequency,integer
+public,user_alerts,enabled,boolean
+public,user_alerts,created_at,timestamp with time zone
+public,user_alerts,last_triggered,timestamp with time zone
+public,user_feature_access,id,uuid
+public,user_feature_access,feature_key,text
+public,user_feature_access,enabled,boolean
+public,user_feature_access,source,text
+public,user_feature_access,created_at,timestamp with time zone
+public,user_feature_access,updated_at,timestamp with time zone
+public,user_feature_access,user_id,integer
+public,user_preferences,user_id,bigint
+public,user_preferences,min_price,numeric
+public,user_preferences,max_price,numeric
+public,user_preferences,min_rvol,numeric
+public,user_preferences,min_gap,numeric
+public,user_preferences,preferred_sectors,ARRAY
+public,user_preferences,enabled_strategies,ARRAY
+public,user_preferences,updated_at,timestamp with time zone
+public,user_presets,id,integer
+public,user_presets,user_id,integer
+public,user_presets,name,text
+public,user_presets,min_price,numeric
+public,user_presets,max_price,numeric
+public,user_presets,min_market_cap,bigint
+public,user_presets,max_market_cap,bigint
+public,user_presets,exchanges,ARRAY
+public,user_presets,sectors,ARRAY
+public,user_presets,include_etfs,boolean
+public,user_presets,include_spacs,boolean
+public,user_presets,include_warrants,boolean
+public,user_presets,is_default,boolean
+public,user_presets,created_at,timestamp with time zone
+public,user_presets,updated_at,timestamp with time zone
+public,user_roles,id,uuid
+public,user_roles,role,text
+public,user_roles,created_at,timestamp with time zone
+public,user_roles,updated_at,timestamp with time zone
+public,user_roles,user_id,integer
+public,user_signal_feedback,id,bigint
+public,user_signal_feedback,user_id,bigint
+public,user_signal_feedback,signal_id,text
+public,user_signal_feedback,rating,text
+public,user_signal_feedback,created_at,timestamp with time zone
+public,user_watchlists,id,integer
+public,user_watchlists,user_id,integer
+public,user_watchlists,symbol,text
+public,user_watchlists,added_at,timestamp with time zone
+public,user_watchlists,created_at,timestamp with time zone
+public,users,id,integer
+public,users,username,text
+public,users,email,text
+public,users,password,text
+public,users,is_admin,integer
+public,users,is_active,integer
+public,users,last_login,timestamp with time zone
+public,users,login_count,integer
+public,users,saxo_access_token,text
+public,users,saxo_refresh_token,text
+public,users,saxo_token_expires,timestamp with time zone
+public,users,saxo_connected_at,timestamp with time zone
+public,users,broker_type,text
+public,users,broker_access_token,text
+public,users,broker_refresh_token,text
+public,users,broker_connected_at,timestamp with time zone
+public,users,broker_status,text
+public,users,pplx_api_key,text
+public,users,pplx_model,text
+public,users,created_at,timestamp with time zone
+public,users,updated_at,timestamp with time zone
+public,users,trading_timezone,text
+public,users,active_preset_id,integer
+public,users,password_hash,text
+public,users,plan,text
+public,users,role,text

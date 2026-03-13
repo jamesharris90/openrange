@@ -1,9 +1,9 @@
-const axios = require('axios');
 const logger = require('../logger');
 const eventBus = require('../events/eventBus');
 const EVENT_TYPES = require('../events/eventTypes');
 const { updateTelemetry } = require('../cache/telemetryCache');
 const { queryWithTimeout } = require('../db/pg');
+const { providerRequest } = require('../utils/providerRequest');
 
 const PROVIDERS = [
   {
@@ -40,7 +40,11 @@ async function probeProvider(provider) {
   entry.checks += 1;
 
   try {
-    const response = await axios.get(provider.url, { timeout: 8000, validateStatus: () => true });
+    const response = await providerRequest(provider.url, {
+      timeout: 8000,
+      validateStatus: () => true,
+      rawResponse: true,
+    });
     entry.latency = Date.now() - startedAt;
     if (response.status >= 200 && response.status < 500) {
       entry.status = 'ok';

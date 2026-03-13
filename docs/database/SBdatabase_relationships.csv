@@ -1,0 +1,8 @@
+table_name,column_name,foreign_table,foreign_column
+activity_log,user_id,users,id
+trade_metadata,trade_id,trades,trade_id
+user_presets,user_id,users,id
+user_watchlists,user_id,users,id
+users,active_preset_id,user_presets,id
+intelligence_briefs,email_id,intelligence_emails,id
+early_signal_outcomes,signal_id,early_accumulation_signals,id

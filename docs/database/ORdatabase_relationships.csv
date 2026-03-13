@@ -1,0 +1,16 @@
+source_table,source_column,target_table,target_column,constraint_name
+users,,,,activity_log_user_id_fkey
+users,,,,user_presets_user_id_fkey
+users,,,,fk_users_active_preset
+users,,,,user_watchlists_user_id_fkey
+activity_log,,,,activity_log_user_id_fkey
+trades,,,,trade_metadata_trade_id_fkey
+trade_metadata,,,,trade_metadata_trade_id_fkey
+user_presets,,,,user_presets_user_id_fkey
+user_presets,,,,fk_users_active_preset
+user_watchlists,,,,user_watchlists_user_id_fkey
+intelligence_emails,,,,intelligence_briefs_email_id_fkey
+intelligence_briefs,,,,intelligence_briefs_email_id_fkey
+early_accumulation_signals,,,,early_signal_outcomes_signal_id_fkey
+early_signal_outcomes,,,,early_signal_outcomes_signal_id_fkey
+profiles,,,,profiles_id_fkey

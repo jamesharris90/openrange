@@ -152,10 +152,10 @@ router.get('/api/admin/diagnostics', requireAdminAccess, async (_req, res) => {
     opportunityCount,
   ] = await Promise.all([
     tableCount(['intraday_1m', 'market_quotes', 'stocks_in_play'], 'admin.diagnostics.market_data'),
-    tableCount(['news_articles', 'intel_news', 'market_news'], 'admin.diagnostics.news'),
+    tableCount(['news_articles'], 'admin.diagnostics.news'),
     tableCount(['earnings_events', 'earnings_calendar', 'earnings_calendar_cache'], 'admin.diagnostics.earnings'),
     tableCount(['trade_setups', 'trade_signals'], 'admin.diagnostics.strategy'),
-    tableCount(['opportunity_stream', 'opportunities'], 'admin.diagnostics.opportunity'),
+    tableCount(['opportunity_stream'], 'admin.diagnostics.opportunity'),
   ]);
   const scheduler = safeQuery(() => Promise.resolve(getEngineSchedulerHealth()), {}, 'admin.diagnostics.scheduler');
 

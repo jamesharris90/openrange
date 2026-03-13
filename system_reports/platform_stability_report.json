@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-03-12T09:43:47.750Z",
+  "checks": [
+    "schema_drift",
+    "engine_status",
+    "scheduler_status",
+    "provider_health"
+  ]
+}

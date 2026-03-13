@@ -84,6 +84,38 @@ export async function platformHealthExtended(supabase) {
     }
   }
 
+  let signalRegistryCount = 0;
+  let signalOutcomesCount = 0;
+  let strategyCount = 0;
+  try {
+    const { count } = await supabase
+      .from("signal_registry")
+      .select("id", { count: "exact", head: true });
+    signalRegistryCount = count || 0;
+  } catch (_error) {
+    signalRegistryCount = 0;
+  }
+
+  try {
+    const { count } = await supabase
+      .from("signal_outcomes")
+      .select("id", { count: "exact", head: true });
+    signalOutcomesCount = count || 0;
+  } catch (_error) {
+    signalOutcomesCount = 0;
+  }
+
+  try {
+    const { data } = await supabase
+      .from("signal_calibration_log")
+      .select("strategy")
+      .limit(1000);
+    const strategies = new Set((Array.isArray(data) ? data : []).map((r) => r?.strategy).filter(Boolean));
+    strategyCount = strategies.size;
+  } catch (_error) {
+    strategyCount = 0;
+  }
+
   let calibrationSignalCount = 0;
   let calibrationWinRate = 0;
   let calibrationLastUpdate = null;
@@ -117,6 +149,34 @@ export async function platformHealthExtended(supabase) {
 
   report.opportunities_24h = opportunitiesCount || 0;
 
+  // Replay engine: count replay-sourced signals and get last replay run time
+  let replaySignalCount = 0;
+  let replayLastRunAt = null;
+  try {
+    const { count, data: replayRows } = await supabase
+      .from("signal_registry")
+      .select("source, entry_time", { count: "exact" })
+      .eq("source", "replay")
+      .order("entry_time", { ascending: false })
+      .limit(1);
+    replaySignalCount = count || 0;
+    replayLastRunAt = replayRows?.[0]?.entry_time ?? null;
+  } catch (_error) {
+    replaySignalCount = 0;
+    replayLastRunAt = null;
+  }
+
+  const replaySecondsSinceLastRun = replayLastRunAt
+    ? Math.max(0, (Date.now() - new Date(replayLastRunAt).getTime()) / 1000)
+    : null;
+
+  const replayEngineStatus =
+    replaySignalCount === 0
+      ? 'NEVER_RUN'
+      : replaySecondsSinceLastRun !== null && replaySecondsSinceLastRun < 90000 // 25h
+      ? 'OK'
+      : 'STALE';
+
   return {
     opportunities_24h: report.opportunities_24h,
     flow_signals_24h: flowSignalsCount || 0,
@@ -131,6 +191,12 @@ export async function platformHealthExtended(supabase) {
     CALIBRATION_SIGNAL_COUNT: calibrationSignalCount,
     CALIBRATION_WIN_RATE: calibrationWinRate,
     CALIBRATION_LAST_UPDATE: calibrationLastUpdate,
+    SIGNAL_REGISTRY_COUNT: signalRegistryCount,
+    SIGNAL_OUTCOMES_COUNT: signalOutcomesCount,
+    STRATEGY_COUNT: strategyCount,
+    REPLAY_ENGINE_STATUS: replayEngineStatus,
+    REPLAY_SIGNAL_COUNT: replaySignalCount,
+    REPLAY_LAST_RUN_AT: replayLastRunAt,
   };
 }
 DATABASE RELATIONSHIPS

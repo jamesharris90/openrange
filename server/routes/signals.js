@@ -3,6 +3,8 @@ const { queryWithTimeout } = require('../db/pg');
 const { ensureSignalRouterTables } = require('../system/signalRouter');
 const { ensureSignalHierarchyTable } = require('../engines/signalHierarchyEngine');
 const requireFeature = require('../middleware/requireFeature');
+const { supabaseAdmin } = require('../services/supabaseClient');
+const { getLatestSignalAlerts } = require('../repositories/alertsRepository');
 
 const router = express.Router();
 
@@ -27,14 +29,7 @@ router.get('/signals/watchlist', async (req, res) => {
 router.get('/signals/alerts', async (req, res) => {
   try {
     await ensureSignalRouterTables();
-    const { rows } = await queryWithTimeout(
-      `SELECT id, symbol, strategy, score, confidence, alert_type, message, acknowledged, created_at
-       FROM signal_alerts
-       ORDER BY created_at DESC NULLS LAST
-       LIMIT 50`,
-      [],
-      { timeoutMs: 7000, label: 'routes.signals.alerts', maxRetries: 0 }
-    );
+    const rows = await getLatestSignalAlerts(supabaseAdmin, { limit: 50 });
 
     return res.json({ ok: true, items: rows });
   } catch (error) {

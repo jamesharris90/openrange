@@ -19,6 +19,8 @@ const { runExpectedMoveEngine } = require('./expectedMoveEngine');
 const { runIntelNewsWithFallback } = require('../services/intelNewsRunner');
 const safeEngineRun = require('../utils/engineSafeRun');
 const { heartbeat } = require('../system/pipelineWatchdog');
+const { startTrace, traceStep, endTrace } = require('../system/traceBus');
+const { publish } = require('../system/eventBus');
 const {
   registerEngine,
   startAllEngines,
@@ -400,15 +402,38 @@ async function runSchedulerCycleNow() {
 }
 
 async function runPipeline() {
-  heartbeat();
-  await safeEngineRun('ingestion', runIngestionNow);
-  await safeEngineRun('news', runIntelNewsNow);
-  await safeEngineRun('opportunity', runOpportunityNow);
-  await safeEngineRun('flow', runFlowDetectionEngine);
-  await safeEngineRun('squeeze', runShortSqueezeEngine);
+  const traceId = startTrace('scheduler.pipeline');
+  publish('pipeline:cycle:start', { traceId, at: new Date().toISOString() });
 
-  // Keep existing sequential scheduler cycle for full engine coverage.
-  await runSchedulerCycleNow();
+  try {
+    heartbeat();
+    traceStep(traceId, 'heartbeat');
+
+    await safeEngineRun('ingestion', runIngestionNow);
+    traceStep(traceId, 'ingestion');
+
+    await safeEngineRun('news', runIntelNewsNow);
+    traceStep(traceId, 'news');
+
+    await safeEngineRun('opportunity', runOpportunityNow);
+    traceStep(traceId, 'opportunity');
+
+    await safeEngineRun('flow', runFlowDetectionEngine);
+    traceStep(traceId, 'flow');
+
+    await safeEngineRun('squeeze', runShortSqueezeEngine);
+    traceStep(traceId, 'squeeze');
+
+    // Keep existing sequential scheduler cycle for full engine coverage.
+    await runSchedulerCycleNow();
+    traceStep(traceId, 'scheduler_cycle');
+    publish('pipeline:cycle:done', { traceId, at: new Date().toISOString() });
+  } catch (error) {
+    publish('pipeline:cycle:error', { traceId, error: error.message, at: new Date().toISOString() });
+    throw error;
+  } finally {
+    endTrace(traceId);
+  }
 }
 
 function startEngineScheduler() {

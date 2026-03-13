@@ -24,6 +24,7 @@ const { runOpportunityIntelligenceEngine } = require('../engines/opportunityInte
 const { runSignalCalibrationEngine } = require('../engines/signalCalibrationEngine');
 const { runCalibrationPriceUpdater } = require('../engines/calibrationPriceUpdater');
 const { runSignalOutcomeEngine } = require('../engines/signalOutcomeEngine');
+const { runHistoricalReplay } = require('../engines/replay/historicalSignalReplayEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -49,6 +50,7 @@ let intelligenceInFlight = false;
 let signalCalibrationInFlight = false;
 let calibrationPriceUpdateInFlight = false;
 let signalOutcomeEngineInFlight = false;
+let historicalReplayInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -551,6 +553,27 @@ async function startEnginesSequentially() {
           console.error('[SIGNAL_OUTCOME_ENGINE] scheduled run error', error.message);
         } finally {
           signalOutcomeEngineInFlight = false;
+        }
+      });
+    }
+
+    if (!global.historicalReplayStarted) {
+      global.historicalReplayStarted = true;
+      console.log('[REPLAY ENGINE] scheduler registered (0 2 * * *)');
+
+      // Nightly replay at 02:00 server time
+      cron.schedule('0 2 * * *', async () => {
+        if (historicalReplayInFlight) return;
+        historicalReplayInFlight = true;
+        global.replayLastRunAt = null; // reset while in progress
+        try {
+          await runHistoricalReplay();
+          global.replayLastRunAt = new Date().toISOString();
+          console.log('[REPLAY ENGINE] nightly run complete', global.replayLastRunAt);
+        } catch (error) {
+          console.error('[REPLAY ENGINE] scheduled run error', error.message);
+        } finally {
+          historicalReplayInFlight = false;
         }
       });
     }

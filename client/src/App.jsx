@@ -48,6 +48,7 @@ const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
 const SystemMonitorPage = safeLazy(() => import('./pages/admin/SystemMonitorPage'));
+const SystemDiagnostics = safeLazy(() => import('./pages/Admin/SystemDiagnostics'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
@@ -111,6 +112,7 @@ export default function App() {
                   <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/users" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/system-diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />

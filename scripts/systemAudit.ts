@@ -4,6 +4,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
 const { Client } = require('pg');
+const { DATA_CONTRACT } = require('../server/contracts/dataContract.cjs');
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config({ path: path.join(__dirname, '..', 'server', '.env') });
@@ -14,7 +15,12 @@ const SERVER_BASE_URL = String(process.env.SERVER_BASE_URL || '').trim().replace
 const DATABASE_URL = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || '';
 
 const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SERVER_BASE_URL'];
-const TABLES = ['daily_ohlc', 'intraday_1m', 'earnings_events', 'news_events'];
+const TABLES = [
+  DATA_CONTRACT.MARKET_DATA.DAILY,
+  DATA_CONTRACT.MARKET_DATA.INTRADAY,
+  DATA_CONTRACT.MARKET_DATA.EARNINGS,
+  DATA_CONTRACT.NEWS.EVENTS,
+];
 const SQL_RPC_CANDIDATES = ['exec_sql', 'run_sql', 'execute_sql', 'sql'];
 
 function nowIso() {
@@ -228,32 +234,32 @@ async function main() {
     printSection('ROW VOLUME CHECKS');
 
     const symbolCountResult = await supabase
-      .from('daily_ohlc')
+      .from(DATA_CONTRACT.MARKET_DATA.DAILY)
       .select('symbol', { count: 'exact', head: true });
     if (symbolCountResult.error) throw new Error(`daily_ohlc count failed: ${symbolCountResult.error.message}`);
 
     const dailyRowCountResult = await supabase
-      .from('daily_ohlc')
+      .from(DATA_CONTRACT.MARKET_DATA.DAILY)
       .select('symbol', { count: 'exact', head: true });
     if (dailyRowCountResult.error) throw new Error(`daily_ohlc row count failed: ${dailyRowCountResult.error.message}`);
 
     const intradayRowCountResult = await supabase
-      .from('intraday_1m')
+      .from(DATA_CONTRACT.MARKET_DATA.INTRADAY)
       .select('symbol', { count: 'exact', head: true });
     if (intradayRowCountResult.error) throw new Error(`intraday_1m row count failed: ${intradayRowCountResult.error.message}`);
 
     const earningsRowCountResult = await supabase
-      .from('earnings_events')
+      .from(DATA_CONTRACT.MARKET_DATA.EARNINGS)
       .select('symbol', { count: 'exact', head: true });
     if (earningsRowCountResult.error) throw new Error(`earnings_events row count failed: ${earningsRowCountResult.error.message}`);
 
     const newsRowCountResult = await supabase
-      .from('news_events')
+      .from(DATA_CONTRACT.NEWS.EVENTS)
       .select('symbol', { count: 'exact', head: true });
     if (newsRowCountResult.error) throw new Error(`news_events row count failed: ${newsRowCountResult.error.message}`);
 
     const symbolRows = await supabase
-      .from('daily_ohlc')
+      .from(DATA_CONTRACT.MARKET_DATA.DAILY)
       .select('symbol')
       .limit(1);
     if (symbolRows.error) throw new Error(`daily_ohlc symbol sample failed: ${symbolRows.error.message}`);
@@ -290,7 +296,7 @@ async function main() {
       const pageSize = 1000;
       while (true) {
         const page = await supabase
-          .from('daily_ohlc')
+          .from(DATA_CONTRACT.MARKET_DATA.DAILY)
           .select('symbol')
           .range(from, from + pageSize - 1);
         if (page.error) throw new Error(`daily_ohlc symbol pagination failed: ${page.error.message}`);
@@ -302,14 +308,14 @@ async function main() {
       counters.symbolCount = allSymbols.size;
 
       const recentNewsCount = await supabase
-        .from('news_events')
+        .from(DATA_CONTRACT.NEWS.EVENTS)
         .select('symbol', { count: 'exact', head: true })
         .gte('published_at', cutoff20d);
       if (recentNewsCount.error) throw new Error(`news recent count failed: ${recentNewsCount.error.message}`);
       counters.newsRows20d = Number(recentNewsCount.count || 0);
 
       const oldNewsCount = await supabase
-        .from('news_events')
+        .from(DATA_CONTRACT.NEWS.EVENTS)
         .select('symbol', { count: 'exact', head: true })
         .lt('published_at', cutoff60d);
       if (oldNewsCount.error) throw new Error(`news old count failed: ${oldNewsCount.error.message}`);

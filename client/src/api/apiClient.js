@@ -45,4 +45,12 @@ export async function apiJSON(path, options = {}) {
   return apiFetch(path, options);
 }
 
+export async function apiClient(path, options = {}) {
+  const response = await apiFetch(path, options);
+  if (response && Object.prototype.hasOwnProperty.call(response, 'ok') && Object.prototype.hasOwnProperty.call(response, 'data')) {
+    return response.data;
+  }
+  return response;
+}
+
 export default API_BASE;

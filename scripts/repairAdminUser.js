@@ -19,6 +19,7 @@ dotenv.config({ path: 'server/.env' });
 
 const bcrypt = loadDep('bcrypt');
 const { createClient } = loadDep('@supabase/supabase-js');
+const { DATA_CONTRACT } = require('../server/contracts/dataContract.cjs');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,7 +42,7 @@ async function repairAdmin() {
 
     console.log('Updating admin user...');
     const { data, error } = await supabase
-      .from('users')
+      .from(DATA_CONTRACT.USERS.ACCOUNTS)
       .update({
         password: passwordHash,
         is_admin: 1,
@@ -67,7 +68,7 @@ async function repairAdmin() {
 
     console.log('Verifying admin record...');
     const { data: verify, error: verifyError } = await supabase
-      .from('users')
+      .from(DATA_CONTRACT.USERS.ACCOUNTS)
       .select('id, username, email, is_admin, plan, is_active')
       .eq('username', TARGET_USERNAME);
 

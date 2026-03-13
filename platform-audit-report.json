@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-03-11T21:29:32.193Z",
+  "checks": {
+    "routes": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "{\"ok\":true,\"data\":{\"scheduler\":\"unknown\",\"pipeline\":\"unknown\",\"providers\":{},\"eventBus\":{\"events\":907,\"events_per_minute\":907},\"traces\":{\"active\":0},\"uiErrors\":0,\"email\":\"unknown\","
+    },
+    "provider_connectivity": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "{\"ok\":true,\"checked_at\":null,\"providers\":{\"fmp\":{\"provider\":\"fmp\",\"status\":\"unknown\",\"latency\":null,\"last_success\":null,\"error_rate\":0,\"errors\":0,\"checks\":0},\"finnhub\":{\"provider\":"
+    },
+    "data_freshness": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "{\"status\":\"warning\",\"database_health\":{\"status\":\"ok\",\"tables\":{\"intraday_1m\":88291,\"market_quotes\":5839,\"news_articles\":1451,\"earnings_events\":20803,\"trade_setups\":219,\"trade_catal"
+    },
+    "chart_rendering": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {}"
+    },
+    "filters": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {}"
+    },
+    "email_sending": {
+      "ok": true,
+      "status": 200,
+      "body_preview": "{\"ok\":true,\"data\":{\"last_email_sent\":null,\"email_queue_length\":0,\"smtp_status\":\"unknown\"},\"error\":null}"
+    }
+  }
+}
