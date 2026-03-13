@@ -837,7 +837,7 @@ async function resolvePplxConfig(req) {
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'openrange-backend',
+    uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
 });
@@ -5397,7 +5397,10 @@ async function runIntegrityBootstrap() {
   });
 }
 
-async function startSystem() {
+async function bootstrapEngines() {
+  console.log('[SYSTEM] Bootstrapping engines...');
+
+  try {
   console.log('Running ensureSchema...');
   await ensureSchema();
   console.log('ensureSchema complete');
@@ -5426,52 +5429,42 @@ async function startSystem() {
     console.error('Integrity bootstrap failed', err);
   }
 
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    logger.info(`OpenRange server listening on port ${PORT}`);
-    console.log('[Intelligence] Ingestion endpoint ready');
-    console.log('Scheduler active');
-    console.log('Opportunity engine active');
+  try {
+    await queryWithTimeout('SELECT 1 AS ok', [], {
+      timeoutMs: 5000,
+      label: 'startup.db.connection_check',
+      maxRetries: 1,
+      retryDelayMs: 200,
+    });
+    console.log('DB connection successful');
 
-    (async () => {
-      try {
-        await queryWithTimeout('SELECT 1 AS ok', [], {
-          timeoutMs: 5000,
-          label: 'startup.db.connection_check',
-          maxRetries: 1,
-          retryDelayMs: 200,
-        });
-        console.log('DB connection successful');
+    await userModel.ensureFallbackAdminUser().catch((error) => {
+      logger.warn('Fallback admin bootstrap skipped', { error: error.message });
+    });
 
-        await userModel.ensureFallbackAdminUser().catch((error) => {
-          logger.warn('Fallback admin bootstrap skipped', { error: error.message });
-        });
+    const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
+      getMetricsHealth(),
+      getIngestionHealth(),
+      getUniverseHealth(),
+      getQueueHealth(),
+      getSetupHealth(),
+      getCatalystHealth(),
+      getDiscoveryHealth(),
+    ]);
 
-        const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
-          getMetricsHealth(),
-          getIngestionHealth(),
-          getUniverseHealth(),
-          getQueueHealth(),
-          getSetupHealth(),
-          getCatalystHealth(),
-          getDiscoveryHealth(),
-        ]);
-
-        logger.info('OpenRange System Status', {
-          metricsRows: metricsHealth.rows,
-          lastMetricsRun: metricsHealth.last_update,
-          ingestionRows: ingestionHealth.tables,
-          universeCount: universeHealth.total_symbols,
-          queueSize: queueHealth.queue_size,
-          setupCount: setupHealth.setup_count,
-          catalystCount: catalystHealth.catalyst_count,
-          discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
-        });
-      } catch (err) {
-        logger.error('OpenRange System Status failed', { error: err.message });
-      }
-    })();
-  });
+    logger.info('OpenRange System Status', {
+      metricsRows: metricsHealth.rows,
+      lastMetricsRun: metricsHealth.last_update,
+      ingestionRows: ingestionHealth.tables,
+      universeCount: universeHealth.total_symbols,
+      queueSize: queueHealth.queue_size,
+      setupCount: setupHealth.setup_count,
+      catalystCount: catalystHealth.catalyst_count,
+      discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
+    });
+  } catch (err) {
+    logger.error('OpenRange System Status failed', { error: err.message });
+  }
 
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     startEngineScheduler();
@@ -5503,42 +5496,35 @@ async function startSystem() {
   const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
   startDailyReviewCron();
 
-  // Phase scheduler boot: always start when API key is available.
-  if (FMP_API_KEY) {
-    // Resolve the scheduler user (whose active preset drives the engine).
-    // Falls back to user ID from env, then first admin user in DB.
-    const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
-      ? Number(process.env.SCHEDULER_USER_ID)
-      : null;
+  if (process.env.FMP_API_KEY) {
+    try {
+      const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
+        ? Number(process.env.SCHEDULER_USER_ID)
+        : null;
+      let schedulerUserId = SCHEDULER_USER_ID;
 
-    (async () => {
-      try {
-        let schedulerUserId = SCHEDULER_USER_ID;
-        if (!schedulerUserId) {
-          const adminUser = await userModel.findByUsernameOrEmail(
-            process.env.ADMIN_EMAIL || 'admin'
-          ).catch(() => null);
-          schedulerUserId = adminUser?.id || 1;
-        }
-
-        setTimeout(async () => {
-          try {
-            console.log('[SYSTEM] Starting Phase Scheduler...');
-            await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
-            console.log('[SYSTEM] Phase Scheduler started');
-          } catch (schedulerErr) {
-            logger.error('Phase scheduler failed to start', { error: schedulerErr.message });
-            startScheduler(FMP_API_KEY, logger);
-          }
-        }, 5000);
-      } catch (err) {
-        logger.error('Phase scheduler failed to start', { error: err.message });
-        // Fallback: old scheduler still available if needed
-        startScheduler(FMP_API_KEY, logger);
+      if (!schedulerUserId) {
+        const adminUser = await userModel.findByUsernameOrEmail(
+          process.env.ADMIN_EMAIL || 'admin'
+        ).catch(() => null);
+        schedulerUserId = adminUser?.id || 1;
       }
-    })();
+
+      console.log('[SYSTEM] Starting Phase Scheduler...');
+      startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger)
+        .then(() => {
+          console.log('[SYSTEM] Phase Scheduler started');
+        })
+        .catch((schedulerErr) => {
+          logger.error('Phase scheduler failed to start', { error: schedulerErr.message });
+          startScheduler(FMP_API_KEY, logger);
+        });
+    } catch (err) {
+      logger.error('Phase scheduler failed to start', { error: err.message });
+      startScheduler(FMP_API_KEY, logger);
+    }
   } else {
-    logger.warn('Phase scheduler not started: missing FMP_API_KEY');
+    console.warn('[SYSTEM] FMP_API_KEY missing - ingestion disabled');
   }
 
   if (FMP_API_KEY && process.env.ENABLE_LEGACY_SCHEDULER_SERVICE === 'true') {
@@ -5604,10 +5590,14 @@ async function startSystem() {
     console.log('Engines enabled (scheduler already started in ordered bootstrap)');
   }
 
-  return server;
+  } catch (err) {
+    console.error('[SYSTEM] Engine bootstrap failed', err);
+    logger.error('[SYSTEM] Engine bootstrap failed', { error: err.message });
+  }
 }
 
-startSystem().catch((err) => {
-  console.error('System startup failed', err);
-  process.exit(1);
+const server = app.listen(PORT, () => {
+  console.log(`[SYSTEM] Server listening on port ${PORT}`);
+  logger.info(`OpenRange server listening on port ${PORT}`);
+  bootstrapEngines();
 });
