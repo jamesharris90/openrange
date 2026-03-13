@@ -1,74 +1,122 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 
-async function ensureExpectedMovesTable() {
-  await queryWithTimeout(
-    `CREATE TABLE IF NOT EXISTS expected_moves (
-      symbol TEXT PRIMARY KEY,
-      expected_move NUMERIC,
-      atr_percent NUMERIC,
-      price NUMERIC,
-      earnings_date DATE,
-      updated_at TIMESTAMPTZ DEFAULT now()
-    )`,
-    [],
-    { timeoutMs: 5000, label: 'engines.expectedMove.ensure_table', maxRetries: 0 }
-  );
+function num(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 async function runExpectedMoveEngine() {
   const startedAt = Date.now();
-  await ensureExpectedMovesTable();
 
-  const { rows } = await queryWithTimeout(
-    `SELECT
-      e.symbol,
-      e.earnings_date,
-      COALESCE(m.price, q.price, 0) AS price,
-      COALESCE(
-        m.atr_percent,
-        CASE
-          WHEN COALESCE(m.price, q.price) > 0 AND m.atr IS NOT NULL
-            THEN (m.atr / COALESCE(m.price, q.price)) * 100
-          ELSE NULL
-        END,
-        ABS(m.gap_percent),
-        ABS(COALESCE(m.change_percent, q.change_percent)),
-        0
-      ) AS atr_percent
-    FROM earnings_events e
-    LEFT JOIN market_metrics m ON m.symbol = e.symbol
-    LEFT JOIN market_quotes q ON q.symbol = e.symbol
-    WHERE e.earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'`,
-    [],
-    { timeoutMs: 10000, label: 'engines.expectedMove.select', maxRetries: 0 }
-  );
-
-  for (const row of rows) {
-    const price = Number(row.price || 0);
-    const atrPercent = Number(row.atr_percent || 0);
-    const expectedMove = price > 0 && atrPercent > 0
-      ? (price * atrPercent) / 100
-      : 0;
-
-    await queryWithTimeout(
-      `INSERT INTO expected_moves (symbol, expected_move, atr_percent, price, earnings_date, updated_at)
-       VALUES ($1, $2, $3, $4, $5, now())
-       ON CONFLICT (symbol)
-       DO UPDATE SET
-         expected_move = EXCLUDED.expected_move,
-         atr_percent = EXCLUDED.atr_percent,
-         price = EXCLUDED.price,
-         earnings_date = EXCLUDED.earnings_date,
-         updated_at = now()`,
-      [row.symbol, expectedMove, atrPercent, price, row.earnings_date],
-      { timeoutMs: 5000, label: 'engines.expectedMove.upsert', maxRetries: 0 }
+  try {
+    const result = await queryWithTimeout(
+      `WITH candidates AS (
+         SELECT
+           sr.id AS signal_id,
+           sr.symbol,
+           sr.entry_price,
+           DATE(COALESCE(sr.entry_time, sr.created_at)) AS entry_date,
+           d.high,
+           d.low,
+           d.close,
+           COALESCE(sf.rvol, 1) AS rvol,
+           COALESCE(sf.gap_percent, 0) AS gap_percent,
+           COALESCE(sf.relative_strength, 0) AS relative_strength,
+           COALESCE(sf.volume_spike_ratio, sf.rvol, 1) AS volume_spike_ratio
+         FROM signal_registry sr
+         LEFT JOIN daily_ohlc d
+           ON d.symbol = sr.symbol
+          AND d.date = DATE(COALESCE(sr.entry_time, sr.created_at))
+         LEFT JOIN signal_features sf ON sf.signal_id = sr.id
+         WHERE NOT EXISTS (
+           SELECT 1
+           FROM expected_move_tracking emt
+           WHERE emt.signal_id = sr.id
+         )
+         ORDER BY COALESCE(sr.entry_time, sr.created_at) DESC
+         LIMIT 2000
+       )
+       INSERT INTO expected_move_tracking (
+         signal_id,
+         symbol,
+         expected_move_percent,
+         actual_move_percent,
+         expected_move_hit,
+         expected_move_error,
+         implied_volatility,
+         historical_volatility,
+         iv_hv_ratio,
+         atr_percent,
+         created_at
+       )
+       SELECT
+         c.signal_id,
+         c.symbol,
+         (
+           GREATEST(ABS(c.gap_percent), 0)
+           + GREATEST(c.rvol - 1, 0) * 2
+           + ABS(c.relative_strength) * 0.25
+         )::numeric AS expected_move_percent,
+         CASE
+           WHEN NULLIF(c.entry_price, 0) IS NULL OR c.high IS NULL THEN 0
+           ELSE ((c.high - c.entry_price) / NULLIF(c.entry_price, 0) * 100)::numeric
+         END AS actual_move_percent,
+         CASE
+           WHEN NULLIF(c.entry_price, 0) IS NULL OR c.high IS NULL THEN false
+           ELSE (((c.high - c.entry_price) / NULLIF(c.entry_price, 0) * 100) >= (
+             GREATEST(ABS(c.gap_percent), 0)
+             + GREATEST(c.rvol - 1, 0) * 2
+             + ABS(c.relative_strength) * 0.25
+           ))
+         END AS expected_move_hit,
+         CASE
+           WHEN NULLIF(c.entry_price, 0) IS NULL OR c.high IS NULL THEN 0
+           ELSE ABS(
+             ((c.high - c.entry_price) / NULLIF(c.entry_price, 0) * 100)
+             - (
+               GREATEST(ABS(c.gap_percent), 0)
+               + GREATEST(c.rvol - 1, 0) * 2
+               + ABS(c.relative_strength) * 0.25
+             )
+           )::numeric
+         END AS expected_move_error,
+         (
+           GREATEST(ABS(c.gap_percent), 0)
+           + GREATEST(c.volume_spike_ratio - 1, 0) * 3
+         )::numeric AS implied_volatility,
+         CASE
+           WHEN NULLIF(c.close, 0) IS NULL OR c.high IS NULL OR c.low IS NULL THEN 0
+           ELSE ((c.high - c.low) / NULLIF(c.close, 0) * 100)::numeric
+         END AS historical_volatility,
+         CASE
+           WHEN (CASE WHEN NULLIF(c.close, 0) IS NULL OR c.high IS NULL OR c.low IS NULL THEN 0 ELSE ((c.high - c.low) / NULLIF(c.close, 0) * 100) END) = 0
+             THEN 0
+           ELSE (
+             (GREATEST(ABS(c.gap_percent), 0) + GREATEST(c.volume_spike_ratio - 1, 0) * 3)
+             / NULLIF((CASE WHEN NULLIF(c.close, 0) IS NULL OR c.high IS NULL OR c.low IS NULL THEN 0 ELSE ((c.high - c.low) / NULLIF(c.close, 0) * 100) END), 0)
+           )::numeric
+         END AS iv_hv_ratio,
+         CASE
+           WHEN NULLIF(c.close, 0) IS NULL OR c.high IS NULL OR c.low IS NULL THEN 0
+           ELSE ((c.high - c.low) / NULLIF(c.close, 0) * 100)::numeric
+         END AS atr_percent,
+         NOW()
+       FROM candidates c
+       RETURNING signal_id`,
+      [],
+      { timeoutMs: 25000, label: 'engines.expectedMove.insert_tracking', maxRetries: 0 }
     );
-  }
 
-  const runtimeMs = Date.now() - startedAt;
-  logger.info('Expected move engine complete', { updated: rows.length, runtimeMs });
-  return { updated: rows.length, runtimeMs };
+    const updated = Array.isArray(result?.rows) ? result.rows.length : 0;
+    const runtimeMs = Date.now() - startedAt;
+    logger.info('Expected move engine complete', { updated, runtimeMs });
+    return { updated, runtimeMs };
+  } catch (error) {
+    const runtimeMs = Date.now() - startedAt;
+    logger.error('Expected move engine failed', { error: error.message, runtimeMs });
+    return { updated: 0, runtimeMs, error: error.message };
+  }
 }
 
 module.exports = {

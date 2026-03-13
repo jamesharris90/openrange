@@ -29,6 +29,11 @@ const { updateStrategyWeights } = require('../engines/adaptiveStrategyEngine');
 const { runMissedOpportunityEngine } = require('../engines/missedOpportunityEngine');
 const { runMissedOpportunityReplay } = require('../engines/missedOpportunityReplay');
 const { runValidationTests, runWeeklyValidationAggregation } = require('../engines/validationEngine');
+const { runSignalFeatureEngine } = require('../engines/signalFeatureEngine');
+const { runExpectedMoveEngine } = require('../engines/expectedMoveEngine');
+const { runMarketRegimeEngine } = require('../engines/marketRegimeEngine');
+const { runSignalCaptureEngine } = require('../engines/signalCaptureEngine');
+const { runStrategyLearningEngine } = require('../engines/strategyLearningEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -59,6 +64,11 @@ let adaptiveStrategyInFlight = false;
 let validationDailyInFlight = false;
 let missedOpportunityInFlight = false;
 let missedOpportunityReplayInFlight = false;
+let signalFeatureInFlight = false;
+let expectedMoveInFlight = false;
+let marketRegimeInFlight = false;
+let signalCaptureInFlight = false;
+let strategyLearningInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -659,6 +669,75 @@ async function startEnginesSequentially() {
           console.error('[MISSED_REPLAY_ENGINE] scheduled run error', error.message);
         } finally {
           missedOpportunityReplayInFlight = false;
+        }
+      });
+    }
+
+    if (!global.learningEngineSchedulerStarted) {
+      global.learningEngineSchedulerStarted = true;
+      console.log('[SIGNAL_FEATURE_ENGINE] scheduler registered (every 1 minute)');
+      console.log('[EXPECTED_MOVE_ENGINE] scheduler registered (hourly)');
+      console.log('[MARKET_REGIME_ENGINE] scheduler registered (daily 00:05)');
+      console.log('[SIGNAL_CAPTURE_ENGINE] scheduler registered (daily 00:15)');
+      console.log('[STRATEGY_LEARNING_ENGINE] scheduler registered (weekly Monday 00:30)');
+
+      cron.schedule('* * * * *', async () => {
+        if (signalFeatureInFlight) return;
+        signalFeatureInFlight = true;
+        try {
+          await runSignalFeatureEngine();
+        } catch (error) {
+          console.error('[SIGNAL_FEATURE_ENGINE] scheduled run error', error.message);
+        } finally {
+          signalFeatureInFlight = false;
+        }
+      });
+
+      cron.schedule('0 * * * *', async () => {
+        if (expectedMoveInFlight) return;
+        expectedMoveInFlight = true;
+        try {
+          await runExpectedMoveEngine();
+        } catch (error) {
+          console.error('[EXPECTED_MOVE_ENGINE] scheduled run error', error.message);
+        } finally {
+          expectedMoveInFlight = false;
+        }
+      });
+
+      cron.schedule('5 0 * * *', async () => {
+        if (marketRegimeInFlight) return;
+        marketRegimeInFlight = true;
+        try {
+          await runMarketRegimeEngine();
+        } catch (error) {
+          console.error('[MARKET_REGIME_ENGINE] scheduled run error', error.message);
+        } finally {
+          marketRegimeInFlight = false;
+        }
+      });
+
+      cron.schedule('15 0 * * *', async () => {
+        if (signalCaptureInFlight) return;
+        signalCaptureInFlight = true;
+        try {
+          await runSignalCaptureEngine();
+        } catch (error) {
+          console.error('[SIGNAL_CAPTURE_ENGINE] scheduled run error', error.message);
+        } finally {
+          signalCaptureInFlight = false;
+        }
+      });
+
+      cron.schedule('30 0 * * 1', async () => {
+        if (strategyLearningInFlight) return;
+        strategyLearningInFlight = true;
+        try {
+          await runStrategyLearningEngine();
+        } catch (error) {
+          console.error('[STRATEGY_LEARNING_ENGINE] scheduled run error', error.message);
+        } finally {
+          strategyLearningInFlight = false;
         }
       });
     }
