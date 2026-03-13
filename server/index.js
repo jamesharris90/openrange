@@ -5404,51 +5404,45 @@ async function runIntegrityBootstrap() {
   });
 }
 
-async function bootstrapEngines() {
+function bootstrapEngines() {
   console.log('[SYSTEM] Bootstrapping engines...');
 
-  try {
-  console.log('Running ensureSchema...');
-  await ensureSchema();
-  console.log('ensureSchema complete');
+  const runSafe = (label, fn) => {
+    Promise.resolve()
+      .then(fn)
+      .then(() => {
+        logger.info(`[SYSTEM] ${label} complete`);
+      })
+      .catch((err) => {
+        logger.error(`[SYSTEM] ${label} failed`, { error: err.message });
+      });
+  };
 
-  console.log('Running ensureAdminSchema...');
-  await ensureAdminSchema();
-  console.log('ensureAdminSchema complete');
+  runSafe('ensureSchema', () => ensureSchema());
+  runSafe('ensureAdminSchema', () => ensureAdminSchema());
+  runSafe('initRedis', () => initRedis());
+  runSafe('featureBootstrap', () => runFeatureBootstrap());
+  runSafe('integrityBootstrap', () => runIntegrityBootstrap());
 
   initEventLogger(eventBus);
   startSystemAlertEngine();
-  await initRedis();
 
-  console.log('Running feature bootstrap...');
-  try {
-    await runFeatureBootstrap();
-    console.log('Feature bootstrap complete');
-  } catch (err) {
-    console.error('Feature bootstrap failed', err);
-  }
-
-  console.log('Running integrity bootstrap...');
-  try {
-    await runIntegrityBootstrap();
-    console.log('Integrity bootstrap complete');
-  } catch (err) {
-    console.error('Integrity bootstrap failed', err);
-  }
-
-  try {
+  runSafe('startupDbConnectionCheck', async () => {
     await queryWithTimeout('SELECT 1 AS ok', [], {
       timeoutMs: 5000,
       label: 'startup.db.connection_check',
       maxRetries: 1,
       retryDelayMs: 200,
     });
-    console.log('DB connection successful');
+  });
 
-    await userModel.ensureFallbackAdminUser().catch((error) => {
+  runSafe('fallbackAdminBootstrap', () =>
+    userModel.ensureFallbackAdminUser().catch((error) => {
       logger.warn('Fallback admin bootstrap skipped', { error: error.message });
-    });
+    })
+  );
 
+  runSafe('systemStatusSnapshot', async () => {
     const [metricsHealth, ingestionHealth, universeHealth, queueHealth, setupHealth, catalystHealth, discoveryHealth] = await Promise.all([
       getMetricsHealth(),
       getIngestionHealth(),
@@ -5469,34 +5463,34 @@ async function bootstrapEngines() {
       catalystCount: catalystHealth.catalyst_count,
       discoveredSymbolCount: discoveryHealth.discovered_symbol_count,
     });
-  } catch (err) {
-    logger.error('OpenRange System Status failed', { error: err.message });
-  }
+  });
 
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     startEngineScheduler();
     console.log('[SCHEDULER] Engine scheduler started');
     monitorPipeline();
 
-    await runIngestionNow();
-    await runIntelNewsNow();
-    await runOpportunityNow();
-    await runPipeline();
-    await refreshTickerCache();
-    await refreshSparklineCache();
+    runSafe('engineWarmup', async () => {
+      await runIngestionNow();
+      await runIntelNewsNow();
+      await runOpportunityNow();
+      await runPipeline();
+      await refreshTickerCache();
+      await refreshSparklineCache();
 
-    const [oppCount, newsRows] = await Promise.all([
+      const [oppCount, newsRows] = await Promise.all([
       getOpportunityCountLast24h(supabaseAdmin).catch(() => 0),
       queryWithTimeout(
         `SELECT COUNT(*)::int AS count FROM intel_news WHERE created_at > NOW() - INTERVAL '24 hours'`,
         [],
         { timeoutMs: 3500, label: 'startup.intel_news_24h', maxRetries: 0 }
       ).catch(() => ({ rows: [{ count: 0 }] })),
-    ]);
+      ]);
 
-    console.log('[DATA STATUS]');
-    console.log(`opportunities_24h: ${Number(oppCount || 0)}`);
-    console.log(`news_24h: ${Number(newsRows.rows?.[0]?.count || 0)}`);
+      console.log('[DATA STATUS]');
+      console.log(`opportunities_24h: ${Number(oppCount || 0)}`);
+      console.log(`news_24h: ${Number(newsRows.rows?.[0]?.count || 0)}`);
+    });
   }
 
   // Start daily review cron
@@ -5508,24 +5502,22 @@ async function bootstrapEngines() {
       const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
         ? Number(process.env.SCHEDULER_USER_ID)
         : null;
-      let schedulerUserId = SCHEDULER_USER_ID;
+      const resolveAndStartScheduler = async () => {
+        let schedulerUserId = SCHEDULER_USER_ID;
 
-      if (!schedulerUserId) {
-        const adminUser = await userModel.findByUsernameOrEmail(
-          process.env.ADMIN_EMAIL || 'admin'
-        ).catch(() => null);
-        schedulerUserId = adminUser?.id || 1;
-      }
+        if (!schedulerUserId) {
+          const adminUser = await userModel.findByUsernameOrEmail(
+            process.env.ADMIN_EMAIL || 'admin'
+          ).catch(() => null);
+          schedulerUserId = adminUser?.id || 1;
+        }
 
-      console.log('[SYSTEM] Starting Phase Scheduler...');
-      startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger)
-        .then(() => {
-          console.log('[SYSTEM] Phase Scheduler started');
-        })
-        .catch((schedulerErr) => {
-          logger.error('Phase scheduler failed to start', { error: schedulerErr.message });
-          startScheduler(FMP_API_KEY, logger);
-        });
+        console.log('[SYSTEM] Starting Phase Scheduler...');
+        await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
+        console.log('[SYSTEM] Phase Scheduler started');
+      };
+
+      runSafe('phaseSchedulerStartup', resolveAndStartScheduler);
     } catch (err) {
       logger.error('Phase scheduler failed to start', { error: err.message });
       startScheduler(FMP_API_KEY, logger);
@@ -5563,8 +5555,8 @@ async function bootstrapEngines() {
   }
 
   startTickerCache();
-  await refreshSparklineCache();
-  await runIntelligencePipeline();
+  runSafe('refreshSparklineCache', () => refreshSparklineCache());
+  runSafe('runIntelligencePipeline', () => runIntelligencePipeline());
   startIntelligencePipelineScheduler();
   startPerformanceEngineScheduler();
 
@@ -5593,13 +5585,10 @@ async function bootstrapEngines() {
   if (process.env.ENABLE_ENGINE_SCHEDULER !== 'false') {
     logger.info('OpenRange backend starting in bootstrap mode');
     console.log('Starting engines sequentially...');
-    await startEnginesSequentially();
-    console.log('Engines enabled (scheduler already started in ordered bootstrap)');
-  }
-
-  } catch (err) {
-    console.error('[SYSTEM] Engine bootstrap failed', err);
-    logger.error('[SYSTEM] Engine bootstrap failed', { error: err.message });
+    runSafe('startEnginesSequentially', async () => {
+      await startEnginesSequentially();
+      console.log('Engines enabled (scheduler already started in ordered bootstrap)');
+    });
   }
 }
 
