@@ -331,17 +331,9 @@ async function startPhaseScheduler(apiKey, schedulerUserId, logger = console) {
 
   await _loadPresetAndWatchlist();
 
-  // Immediate Layer A+B if universe is empty (fresh server start)
+  // Avoid blocking startup on full universe rebuild; tick will run Layer A/B as needed.
   if (!cacheManager.getBaseUniverse().length) {
-    logger.info('phaseScheduler: universe empty — running initial Layer A+B');
-    await refreshLayerA(logger);
-    if (cacheManager.getBaseUniverse().length > 0) {
-      _lastLayerARun = Date.now();
-      await refreshLayerB(apiKey, logger);
-      _lastLayerBRun = Date.now();
-    } else {
-      logger.warn('phaseScheduler: initial Layer A produced empty universe — skipping Layer B, will retry on next tick');
-    }
+    logger.info('phaseScheduler: universe empty at startup — Layer A/B deferred to scheduler tick');
   }
 
   // If universe is populated but quotes cache is empty, force Tier 3 to run next tick
@@ -356,9 +348,11 @@ async function startPhaseScheduler(apiKey, schedulerUserId, logger = console) {
   );
 
   console.log('[SYSTEM] Running initial intraday ingestion');
-  _runTier2().catch((err) =>
-    _logger.error('phaseScheduler: initial Tier 2 error', { error: err.message })
-  );
+  setTimeout(() => {
+    _runTier2().catch((err) =>
+      _logger.error('phaseScheduler: initial Tier 2 error', { error: err.message })
+    );
+  }, 3000);
 
   _mainInterval = setInterval(() => {
     _tick().catch((err) =>

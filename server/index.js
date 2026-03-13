@@ -5521,9 +5521,16 @@ async function startSystem() {
           schedulerUserId = adminUser?.id || 1;
         }
 
-        console.log('[SYSTEM] Starting Phase Scheduler...');
-        await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
-        console.log('[SYSTEM] Phase Scheduler started');
+        setTimeout(async () => {
+          try {
+            console.log('[SYSTEM] Starting Phase Scheduler...');
+            await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
+            console.log('[SYSTEM] Phase Scheduler started');
+          } catch (schedulerErr) {
+            logger.error('Phase scheduler failed to start', { error: schedulerErr.message });
+            startScheduler(FMP_API_KEY, logger);
+          }
+        }, 5000);
       } catch (err) {
         logger.error('Phase scheduler failed to start', { error: err.message });
         // Fallback: old scheduler still available if needed
