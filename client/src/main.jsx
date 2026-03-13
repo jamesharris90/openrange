@@ -9,6 +9,17 @@ import { SymbolProvider } from './context/SymbolContext';
 import { AuthProvider } from './context/AuthContext';
 import { FeatureAccessProvider } from "./context/FeatureAccessContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 if (import.meta.env.DEV) {
   import('../devtools/chartValidation')
@@ -32,17 +43,19 @@ if ('serviceWorker' in navigator) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <ThemeProvider>
-        <BrokerProvider>
-          <AuthProvider>
-            <FeatureAccessProvider>
-              <SymbolProvider>
-                <App />
-              </SymbolProvider>
-            </FeatureAccessProvider>
-          </AuthProvider>
-        </BrokerProvider>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <BrokerProvider>
+            <AuthProvider>
+              <FeatureAccessProvider>
+                <SymbolProvider>
+                  <App />
+                </SymbolProvider>
+              </FeatureAccessProvider>
+            </AuthProvider>
+          </BrokerProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
