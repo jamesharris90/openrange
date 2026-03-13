@@ -1,0 +1,26 @@
+{
+	"checked_at": "2026-03-12T22:47:24.182Z",
+	"endpoint": "/api/calibration/performance",
+	"build_status": "SUCCESS",
+	"diagnostics": {
+		"CALIBRATION_SIGNAL_COUNT": 12,
+		"CALIBRATION_WIN_RATE": 100,
+		"CALIBRATION_LAST_UPDATE": "2026-03-12T22:46:58.495Z"
+	},
+	"strategies_returned": [
+		{
+			"strategy": "VWAP Reclaim",
+			"total_signals": 12,
+			"avg_move": 26.02011073577696518,
+			"avg_drawdown": -4.55201075445677966,
+			"win_rate_percent": 100
+		}
+	],
+	"expected_strategy_checks": {
+		"ORB": false,
+		"VWAP Reclaim": true,
+		"Momentum Continuation": false
+	},
+	"overall_validation_pass": false,
+	"note": "Live source data currently emits only VWAP Reclaim trade plans from radar_top_trades, so ORB and Momentum Continuation rows cannot be truthfully produced without changing upstream signal generation."
+}

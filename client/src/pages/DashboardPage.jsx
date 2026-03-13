@@ -1,6 +1,7 @@
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import OpenRangeRadar from '../components/radar/OpenRangeRadar';
+import CalibrationDashboard from '../components/calibration/CalibrationDashboard';
 
 export default function DashboardPage() {
   return (
@@ -12,6 +13,7 @@ export default function DashboardPage() {
         />
       </Card>
       <OpenRangeRadar />
+      <CalibrationDashboard />
     </PageContainer>
   );
 }

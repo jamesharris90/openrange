@@ -73,6 +73,7 @@ const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const opportunitiesRoutes = require('./routes/opportunities');
+const calibrationRoutes = require('./routes/calibration');
 const schemaHealthRoutes = require('./routes/schemaHealth');
 const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
 const signalsRoutes = require('./routes/signals');
@@ -764,6 +765,7 @@ app.use('/api', (req, _res, next) => {
   app.use(historicalRoutes);
   app.use(optionsRoutes);
   app.use(earningsRoutes);
+  app.use('/api/calibration', calibrationRoutes);
   app.use('/api/performance', performanceRoutes);
   app.use('/api/radar', radarRoutes);
   app.use('/api/radar', radarTradesRoutes);
@@ -1162,6 +1164,8 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
       scheduler,
       opportunities24h,
       dataFreshnessSeconds,
+      calibrationSummary,
+      calibrationStats,
     ] = await Promise.all([
       getTelemetry(),
       Promise.resolve(getProviderHealth()),
@@ -1175,6 +1179,21 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
       getOpportunityFreshnessSeconds(supabaseAdmin)
         .catch(() => getOpportunityFreshnessSeconds(null))
         .catch(() => null),
+      queryWithTimeout(
+        `SELECT strategy, total_signals, avg_move, avg_drawdown, win_rate_percent
+         FROM strategy_performance_summary
+         ORDER BY total_signals DESC NULLS LAST`,
+        [],
+        { timeoutMs: 5000, label: 'api.system.engine_diagnostics.calibration_summary', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS signal_count,
+                MAX(created_at) AS last_update,
+                AVG(CASE WHEN success = true THEN 100.0 WHEN success = false THEN 0.0 ELSE NULL END) AS win_rate
+         FROM signal_calibration_log`,
+        [],
+        { timeoutMs: 5000, label: 'api.system.engine_diagnostics.calibration_stats', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
     ]);
 
     const schedulerStatus = String(scheduler?.status || '').toLowerCase();
@@ -1183,6 +1202,10 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
     const providersOk = Boolean(providerHealth?.providers);
     const opportunitiesValue = Number(opportunities24h || 0);
     const freshnessValue = dataFreshnessSeconds === null ? null : Number(dataFreshnessSeconds);
+    const calibrationStatsRow = calibrationStats?.rows?.[0] || {};
+    const calibrationSignalCount = Number(calibrationStatsRow?.signal_count || 0);
+    const calibrationWinRate = calibrationStatsRow?.win_rate == null ? null : Number(calibrationStatsRow.win_rate);
+    const calibrationLastUpdate = calibrationStatsRow?.last_update || null;
 
     return res.json({
       ok: true,
@@ -1195,11 +1218,18 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
         `PROVIDERS: ${providersOk ? 'OK' : 'WARN'}`,
         `OPPORTUNITIES_24H: ${opportunitiesValue}`,
         `DATA_FRESHNESS_SECONDS: ${freshnessValue === null ? 'n/a' : freshnessValue}`,
+        `CALIBRATION_SIGNAL_COUNT: ${calibrationSignalCount}`,
+        `CALIBRATION_WIN_RATE: ${calibrationWinRate === null ? 'n/a' : calibrationWinRate.toFixed(2)}`,
+        `CALIBRATION_LAST_UPDATE: ${calibrationLastUpdate || 'n/a'}`,
       ],
       engines: {
         ...(telemetry || {}),
         opportunities_24h: opportunitiesValue,
         data_freshness_seconds: freshnessValue,
+        calibration_signal_count: calibrationSignalCount,
+        calibration_win_rate: calibrationWinRate,
+        calibration_last_update: calibrationLastUpdate,
+        calibration_summary: calibrationSummary?.rows || [],
       },
       provider_health: providerHealth,
       event_bus_health: eventBusHealth,

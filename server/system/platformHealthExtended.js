@@ -84,6 +84,37 @@ export async function platformHealthExtended(supabase) {
     }
   }
 
+  let calibrationSignalCount = 0;
+  let calibrationWinRate = 0;
+  let calibrationLastUpdate = null;
+  try {
+    const { count } = await supabase
+      .from("signal_calibration_log")
+      .select("id", { count: "exact", head: true });
+    calibrationSignalCount = count || 0;
+  } catch (_error) {
+    calibrationSignalCount = 0;
+  }
+
+  try {
+    const { data } = await supabase
+      .from("signal_calibration_log")
+      .select("success, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    const rows = Array.isArray(data) ? data : [];
+    const decidedRows = rows.filter((row) => row?.success === true || row?.success === false);
+    if (decidedRows.length > 0) {
+      const wins = decidedRows.filter((row) => row.success === true).length;
+      calibrationWinRate = (wins / decidedRows.length) * 100;
+    }
+    calibrationLastUpdate = rows[0]?.created_at ?? null;
+  } catch (_error) {
+    calibrationWinRate = 0;
+    calibrationLastUpdate = null;
+  }
+
   report.opportunities_24h = opportunitiesCount || 0;
 
   return {
@@ -97,5 +128,47 @@ export async function platformHealthExtended(supabase) {
     WATCHDOG_STATUS: watchdogStatus,
     SECONDS_SINCE_LAST_OPPORTUNITY: secondsSinceLastOpportunity,
     INTELLIGENCE_SIGNAL_COUNT: intelligenceSignalCount,
+    CALIBRATION_SIGNAL_COUNT: calibrationSignalCount,
+    CALIBRATION_WIN_RATE: calibrationWinRate,
+    CALIBRATION_LAST_UPDATE: calibrationLastUpdate,
   };
 }
+DATABASE RELATIONSHIPS
+
+signal_registry
+----------------
+Stores every detected trading signal.
+
+Primary Key
+id
+
+Columns
+symbol
+strategy
+setup_type
+signal_score
+entry_price
+entry_time
+
+
+signal_outcomes
+----------------
+Stores the evaluated result of a signal after 24 hours.
+
+Primary Key
+id
+
+Foreign Key
+signal_id → signal_registry.id
+
+
+Relationship
+
+signal_registry (1)
+        ↓
+signal_outcomes (1)
+
+
+Meaning
+
+Each signal can produce exactly one evaluated outcome.

@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-03-12T22:00:00.000Z",
+  "required_objects": {
+    "tables": [
+      "opportunity_stream",
+      "opportunity_intelligence",
+      "signal_calibration_log"
+    ],
+    "views": [
+      "radar_top_trades",
+      "strategy_performance_summary"
+    ]
+  },
+  "found": {
+    "tables": [
+      "opportunity_intelligence",
+      "opportunity_stream",
+      "signal_calibration_log"
+    ],
+    "views": [
+      "radar_top_trades",
+      "strategy_performance_summary"
+    ]
+  },
+  "schema_match": true,
+  "status": "OK"
+}

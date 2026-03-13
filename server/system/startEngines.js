@@ -21,6 +21,9 @@ const { runSignalLearningEngine } = require('../engines/signalLearningEngine');
 const { updateSignalOutcomeResults } = require('../engines/signalOutcomeWriter');
 const { runOpportunityRanker } = require('../engines/opportunityRanker');
 const { runOpportunityIntelligenceEngine } = require('../engines/opportunityIntelligenceEngine');
+const { runSignalCalibrationEngine } = require('../engines/signalCalibrationEngine');
+const { runCalibrationPriceUpdater } = require('../engines/calibrationPriceUpdater');
+const { runSignalOutcomeEngine } = require('../engines/signalOutcomeEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -43,6 +46,9 @@ let signalLearningInFlight = false;
 let signalOutcomeUpdateInFlight = false;
 let opportunityInFlight = false;
 let intelligenceInFlight = false;
+let signalCalibrationInFlight = false;
+let calibrationPriceUpdateInFlight = false;
+let signalOutcomeEngineInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -473,6 +479,78 @@ async function startEnginesSequentially() {
           console.error('[INTELLIGENCE_ENGINE] scheduled run error', error.message);
         } finally {
           intelligenceInFlight = false;
+        }
+      });
+    }
+
+    if (!global.signalCalibrationEngineStarted) {
+      global.signalCalibrationEngineStarted = true;
+      console.log('[SIGNAL_CALIBRATION] scheduler registered (*/15 * * * *)');
+
+      signalCalibrationInFlight = true;
+      runSignalCalibrationEngine().catch((error) =>
+        console.error('[SIGNAL_CALIBRATION] initial run error', error.message)
+      ).finally(() => {
+        signalCalibrationInFlight = false;
+      });
+
+      cron.schedule('*/15 * * * *', async () => {
+        if (signalCalibrationInFlight) return;
+        signalCalibrationInFlight = true;
+        try {
+          await runSignalCalibrationEngine();
+        } catch (error) {
+          console.error('[SIGNAL_CALIBRATION] scheduled run error', error.message);
+        } finally {
+          signalCalibrationInFlight = false;
+        }
+      });
+    }
+
+    if (!global.calibrationPriceUpdaterStarted) {
+      global.calibrationPriceUpdaterStarted = true;
+      console.log('[CALIBRATION_PRICE_UPDATER] scheduler registered (*/30 * * * *)');
+
+      calibrationPriceUpdateInFlight = true;
+      runCalibrationPriceUpdater().catch((error) =>
+        console.error('[CALIBRATION_PRICE_UPDATER] initial run error', error.message)
+      ).finally(() => {
+        calibrationPriceUpdateInFlight = false;
+      });
+
+      cron.schedule('*/30 * * * *', async () => {
+        if (calibrationPriceUpdateInFlight) return;
+        calibrationPriceUpdateInFlight = true;
+        try {
+          await runCalibrationPriceUpdater();
+        } catch (error) {
+          console.error('[CALIBRATION_PRICE_UPDATER] scheduled run error', error.message);
+        } finally {
+          calibrationPriceUpdateInFlight = false;
+        }
+      });
+    }
+
+    if (!global.signalOutcomeEngineStarted) {
+      global.signalOutcomeEngineStarted = true;
+      console.log('[SIGNAL_OUTCOME_ENGINE] scheduler registered (*/15 * * * *)');
+
+      signalOutcomeEngineInFlight = true;
+      runSignalOutcomeEngine().catch((error) =>
+        console.error('[SIGNAL_OUTCOME_ENGINE] initial run error', error.message)
+      ).finally(() => {
+        signalOutcomeEngineInFlight = false;
+      });
+
+      cron.schedule('*/15 * * * *', async () => {
+        if (signalOutcomeEngineInFlight) return;
+        signalOutcomeEngineInFlight = true;
+        try {
+          await runSignalOutcomeEngine();
+        } catch (error) {
+          console.error('[SIGNAL_OUTCOME_ENGINE] scheduled run error', error.message);
+        } finally {
+          signalOutcomeEngineInFlight = false;
         }
       });
     }
