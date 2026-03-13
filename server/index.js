@@ -6,6 +6,9 @@ process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED PROMISE REJECTION:', err);
 });
 
+console.log('Starting OpenRange backend...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 
 const path = require('path');
 // Load from server/.env (works regardless of CWD at startup)
@@ -5603,5 +5606,7 @@ async function bootstrapEngines() {
 const server = app.listen(PORT, () => {
   console.log(`[SYSTEM] Server listening on port ${PORT}`);
   logger.info(`OpenRange server listening on port ${PORT}`);
-  bootstrapEngines();
+  setTimeout(() => {
+    bootstrapEngines();
+  }, 2000);
 });
