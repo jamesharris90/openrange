@@ -87,8 +87,9 @@ async function fetchWithRetry(url, attempt = 1) {
 }
 
 async function upsertRows(table, rows, conflictCols, updateCols) {
-  if (!rows.length) return;
+  if (!rows.length) return 0;
   const chunks = chunkArray(rows, UPSERT_CHUNK);
+  let inserted = 0;
 
   for (const chunk of chunks) {
     const cols = Object.keys(chunk[0]);
@@ -114,7 +115,10 @@ async function upsertRows(table, rows, conflictCols, updateCols) {
       ${setClause}
     `;
     await pool.query(sql, values);
+    inserted += chunk.length;
   }
+
+  return inserted;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -190,9 +194,14 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) { logUpdate('INTRADAY_UPDATE_SKIP', { reason: 'no FMP_API_KEY' }); return; }
 
-  const fromDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+  const nowNY = new Date().toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+  });
+  const nyNowDate = new Date(nowNY);
+
+  const fromDate = new Date(nyNowDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000)
     .toISOString().slice(0, 10);
-  const toDate = new Date().toISOString().slice(0, 10);
+  const toDate = nyNowDate.toISOString().slice(0, 10);
 
   const batches = chunkArray(symbols, 20);
   let processed = 0;
@@ -200,6 +209,7 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
   for (const batch of batches) {
     for (const symbol of batch) {
       try {
+        console.log('[INGESTION] Starting intraday fetch from FMP');
         const url = `${FMP_BASE}/historical-chart/1min?symbol=${encodeURIComponent(symbol)}&from=${fromDate}&to=${toDate}&apikey=${encodeURIComponent(apiKey)}`;
         const raw = await fetchWithRetry(url);
         const rows = (Array.isArray(raw) ? raw : [])
@@ -219,7 +229,10 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
           .filter(Boolean);
 
         if (rows.length) {
-          await upsertRows('intraday_1m', rows, ['symbol', 'timestamp'], ['open', 'high', 'low', 'close', 'volume']);
+          const insertedBars = await upsertRows('intraday_1m', rows, ['symbol', 'timestamp'], ['open', 'high', 'low', 'close', 'volume']);
+          console.log('[INGESTION] Inserted intraday bars:', insertedBars);
+        } else {
+          console.log('[INGESTION] Inserted intraday bars:', 0);
         }
         await sleep(RATE_LIMIT_MS);
       } catch (err) {

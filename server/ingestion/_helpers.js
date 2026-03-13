@@ -27,6 +27,9 @@ async function runIngestionJob({
   for (const symbol of symbols) {
     try {
       const endpoint = endpointBuilder(symbol);
+      if (table === 'intraday_1m') {
+        console.log('[INGESTION] Starting intraday fetch from FMP');
+      }
       const payload = await fmpFetch(endpoint);
       const normalized = normalize(payload, symbol);
       if (Array.isArray(normalized) && normalized.length) {
@@ -55,6 +58,10 @@ async function runIngestionJob({
       batchSize: 500,
     });
     inserted = result.inserted;
+  }
+
+  if (table === 'intraday_1m') {
+    console.log('[INGESTION] Inserted intraday bars:', inserted);
   }
 
   const durationMs = Date.now() - startedAt;

@@ -1,7 +1,7 @@
 /**
  * phaseScheduler.js
  *
- * Time-phase aware scheduler for UK (Europe/London) timezone.
+ * Time-phase aware scheduler for US market (America/New_York) timezone.
  *
  * Phases:
  *   overnight          00:00–11:30  — Tier 3 (full universe quotes, ~18h cycle)
@@ -35,20 +35,23 @@ const { updateIntraday1m } = require('../services/candleUpdateService.ts');
 // Phase detection — built-in Intl, no external packages
 // ---------------------------------------------------------------------------
 
-function getUKMinutes() {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London',
+function getNewYorkMinutes() {
+  const nowNY = new Date().toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+  });
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
     hour: 'numeric',
     minute: 'numeric',
     hour12: false,
-  }).formatToParts(new Date());
+  }).formatToParts(new Date(nowNY));
   const h = Number((parts.find((p) => p.type === 'hour') || {}).value || 0);
   const m = Number((parts.find((p) => p.type === 'minute') || {}).value || 0);
   return h * 60 + m;
 }
 
 function detectPhase() {
-  const min = getUKMinutes();
+  const min = getNewYorkMinutes();
   if (min < 11 * 60 + 30) return 'overnight';          // 00:00–11:30
   if (min < 13 * 60)       return 'prescan';            // 11:30–13:00
   if (min < 14 * 60 + 30)  return 'watchlist';          // 13:00–14:30
@@ -58,7 +61,7 @@ function detectPhase() {
 
 // Layer A targets 03:50–04:10 UK (230–250 min from midnight)
 function isLayerAWindow() {
-  const min = getUKMinutes();
+  const min = getNewYorkMinutes();
   return min >= 230 && min <= 250;
 }
 
@@ -170,15 +173,12 @@ async function _runTier2() {
     _lastLayerDRun    = Date.now();
     _lastWatchlistRun = Date.now();
 
-    // Refresh intraday 1m candles in Supabase for operational universe (today's bars only)
-    const phase = detectPhase();
-    if (phase === 'open-acceleration' || phase === 'post-open' || phase === 'prescan' || phase === 'watchlist') {
-      const intradaySymbols = Array.isArray(opSymbols) ? opSymbols.map((s) => s?.symbol || s).filter(Boolean) : [];
-      if (intradaySymbols.length > 0) {
-        updateIntraday1m(intradaySymbols.slice(0, 500), 1).catch((err) =>
-          _logger && _logger.warn && _logger.warn('phaseScheduler: intraday update error', { error: err?.message })
-        );
-      }
+    // TEMPORARY: disable phase/session guard so intraday fetch runs on each Tier 2 cycle.
+    const intradaySymbols = Array.isArray(opSymbols) ? opSymbols.map((s) => s?.symbol || s).filter(Boolean) : [];
+    if (intradaySymbols.length > 0) {
+      updateIntraday1m(intradaySymbols.slice(0, 500), 1).catch((err) =>
+        _logger && _logger.warn && _logger.warn('phaseScheduler: intraday update error', { error: err?.message })
+      );
     }
   } finally {
     _layerCInFlight = false;
@@ -250,8 +250,8 @@ async function _tick() {
     _logger.info('phaseScheduler: phase transition', {
       from: _currentPhase,
       to:   phase,
-      ukTime: new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/London',
+      nyTime: new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
         hour: '2-digit', minute: '2-digit', hour12: false,
       }).format(new Date()),
     });
