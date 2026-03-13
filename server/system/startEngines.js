@@ -26,6 +26,9 @@ const { runCalibrationPriceUpdater } = require('../engines/calibrationPriceUpdat
 const { runSignalOutcomeEngine } = require('../engines/signalOutcomeEngine');
 const { runHistoricalReplay } = require('../engines/replay/historicalSignalReplayEngine');
 const { updateStrategyWeights } = require('../engines/adaptiveStrategyEngine');
+const { runMissedOpportunityEngine } = require('../engines/missedOpportunityEngine');
+const { runMissedOpportunityReplay } = require('../engines/missedOpportunityReplay');
+const { runValidationTests, runWeeklyValidationAggregation } = require('../engines/validationEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -53,6 +56,9 @@ let calibrationPriceUpdateInFlight = false;
 let signalOutcomeEngineInFlight = false;
 let historicalReplayInFlight = false;
 let adaptiveStrategyInFlight = false;
+let validationDailyInFlight = false;
+let missedOpportunityInFlight = false;
+let missedOpportunityReplayInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -603,6 +609,56 @@ async function startEnginesSequentially() {
           console.error('[ADAPTIVE_STRATEGY] scheduled run error', error.message);
         } finally {
           adaptiveStrategyInFlight = false;
+        }
+      });
+    }
+
+    if (!global.phaseFValidationSchedulerStarted) {
+      global.phaseFValidationSchedulerStarted = true;
+      console.log('[VALIDATION_ENGINE] scheduler registered (00:00 daily)');
+      console.log('[MISSED_OPPORTUNITY_ENGINE] scheduler registered (00:10 daily)');
+      console.log('[MISSED_REPLAY_ENGINE] scheduler registered (00:20 daily)');
+
+      cron.schedule('0 0 * * *', async () => {
+        if (validationDailyInFlight) return;
+        validationDailyInFlight = true;
+        try {
+          await runValidationTests();
+          global.validationLastRunAt = new Date().toISOString();
+
+          const now = new Date();
+          // Weekly aggregation on Mondays.
+          if (now.getDay() === 1) {
+            await runWeeklyValidationAggregation();
+          }
+        } catch (error) {
+          console.error('[VALIDATION_ENGINE] scheduled run error', error.message);
+        } finally {
+          validationDailyInFlight = false;
+        }
+      });
+
+      cron.schedule('10 0 * * *', async () => {
+        if (missedOpportunityInFlight) return;
+        missedOpportunityInFlight = true;
+        try {
+          await runMissedOpportunityEngine();
+        } catch (error) {
+          console.error('[MISSED_OPPORTUNITY_ENGINE] scheduled run error', error.message);
+        } finally {
+          missedOpportunityInFlight = false;
+        }
+      });
+
+      cron.schedule('20 0 * * *', async () => {
+        if (missedOpportunityReplayInFlight) return;
+        missedOpportunityReplayInFlight = true;
+        try {
+          await runMissedOpportunityReplay();
+        } catch (error) {
+          console.error('[MISSED_REPLAY_ENGINE] scheduled run error', error.message);
+        } finally {
+          missedOpportunityReplayInFlight = false;
         }
       });
     }

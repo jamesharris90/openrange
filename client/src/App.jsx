@@ -49,6 +49,8 @@ const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
 const SystemMonitorPage = safeLazy(() => import('./pages/admin/SystemMonitorPage'));
 const SystemDiagnostics = safeLazy(() => import('./pages/Admin/SystemDiagnostics'));
+const CalibrationDashboard = safeLazy(() => import('./pages/admin/CalibrationDashboard'));
+const MissedOpportunitiesPage = safeLazy(() => import('./pages/admin/MissedOpportunitiesPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
@@ -115,6 +117,8 @@ export default function App() {
                   <Route path="/admin/system-diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/calibration" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><CalibrationDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/missed-opportunities" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>

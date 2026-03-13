@@ -208,6 +208,44 @@ export async function platformHealthExtended(supabase) {
     strategyWeightLastUpdated = null;
   }
 
+  let missedOpportunityCount = 0;
+  let learningScore = 0;
+  let validationLastRun = null;
+  let missedReplayStatus = 'UNKNOWN';
+
+  try {
+    const { count } = await supabase
+      .from('missed_opportunities')
+      .select('id', { count: 'exact', head: true });
+    missedOpportunityCount = count || 0;
+  } catch (_error) {
+    missedOpportunityCount = 0;
+  }
+
+  try {
+    const { data } = await supabase
+      .from('signal_validation_daily')
+      .select('learning_score,created_at,date')
+      .order('date', { ascending: false })
+      .limit(1);
+    const latest = data?.[0] || null;
+    learningScore = Number(latest?.learning_score || 0);
+    validationLastRun = latest?.created_at || latest?.date || null;
+  } catch (_error) {
+    learningScore = 0;
+    validationLastRun = null;
+  }
+
+  try {
+    const { count } = await supabase
+      .from('missed_opportunities')
+      .select('id', { count: 'exact', head: true })
+      .eq('replayed', false);
+    missedReplayStatus = (count || 0) > 0 ? 'PENDING' : 'OK';
+  } catch (_error) {
+    missedReplayStatus = 'UNKNOWN';
+  }
+
   return {
     opportunities_24h: report.opportunities_24h,
     flow_signals_24h: flowSignalsCount || 0,
@@ -232,5 +270,9 @@ export async function platformHealthExtended(supabase) {
     STRATEGY_WEIGHT_LAST_UPDATED: strategyWeightLastUpdated,
     STRATEGY_WEIGHT_MAX: strategyWeightMax,
     STRATEGY_WEIGHT_MIN: strategyWeightMin,
+    MISSED_OPPORTUNITY_COUNT: missedOpportunityCount,
+    LEARNING_SCORE: learningScore,
+    VALIDATION_LAST_RUN: validationLastRun,
+    MISSED_REPLAY_ENGINE_STATUS: missedReplayStatus,
   };
 }

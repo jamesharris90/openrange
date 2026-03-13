@@ -86,6 +86,7 @@ const radarTradesRoutes = require('./routes/radarTrades');
 const briefingRoutes = require('./routes/briefingRoutes');
 const systemWatchdogRoutes = require('./routes/systemWatchdog');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
+const adminValidationRoutes = require('./routes/adminValidationRoutes');
 const intelDetailsRoutes = require('./routes/intelDetails');
 const { getUIHealth } = require('./routes/uiHealth');
 const { uiError, uiErrorLog } = require('./routes/uiErrors');
@@ -777,6 +778,7 @@ app.use('/api', (req, _res, next) => {
   app.use('/api/options', optionsApiRoutes);
   app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
   app.use(adminRoutes);
+  app.use(adminValidationRoutes);
   // Phase-aware architecture routes
   app.use('/api', profileRoutes);
   app.use('/api', testNewsDbRoute);
