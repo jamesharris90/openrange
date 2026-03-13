@@ -1,150 +1,145 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Activity, Database, Gauge, RadioTower } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import MetricCard from '../../components/admin/MetricCard';
-import HealthIndicator from '../../components/admin/HealthIndicator';
-import SignalTrendChart from '../../components/admin/SignalTrendChart';
-import { apiClient } from '../../api/apiClient';
 
-function toNum(value) {
-	const num = Number(value);
-	return Number.isFinite(num) ? num : 0;
+async function fetchEndpoint(url) {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Request failed: ${response.status}`);
+	}
+	return response.json();
 }
 
-function statusFromLatency(ms) {
-	if (ms <= 300) return 'healthy';
-	if (ms <= 800) return 'warning';
-	return 'failure';
+function formatTimestamp(value) {
+	if (!value) return 'Unavailable';
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return String(value);
+	return date.toLocaleString();
 }
 
-function statusFromRate(rate) {
-	if (rate >= 80) return 'healthy';
-	if (rate >= 50) return 'warning';
-	return 'failure';
+function DetailRow({ label, value }) {
+	return (
+		<div className="flex items-start justify-between gap-3 border-b border-[var(--border-color)] py-2 last:border-b-0">
+			<span className="text-sm text-[var(--text-secondary)]">{label}</span>
+			<span className="text-right text-sm font-medium text-[var(--text-primary)]">{value ?? 'Unavailable'}</span>
+		</div>
+	);
 }
 
-export default function SystemDiagnostics() {
-	const diagnosticsQuery = useQuery({
-		queryKey: ['admin-system-monitor'],
-		queryFn: () => apiClient('/system/monitor'),
-		refetchInterval: 15000,
+function DiagnosticsCard({ title, children }) {
+	return (
+		<section className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
+			<h2 className="mb-3 text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+			<div>{children}</div>
+		</section>
+	);
+}
+
+function SystemDiagnostics() {
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
+	const [diagnostics, setDiagnostics] = useState({
+		dataFreshness: null,
+		engineStatus: null,
+		providerLatency: null,
+		uiErrors: null,
+		emailStatus: null,
 	});
 
-	const monitor = diagnosticsQuery.data || {};
+	useEffect(() => {
+		let cancelled = false;
 
-	const cards = useMemo(() => {
-		const engineLatency = toNum(monitor?.engine_health?.opportunityIntelligence?.execution_time || monitor?.engine_health?.intelligencePipeline?.execution_time);
-		const dbLatency = toNum(monitor?.database_latency_ms || monitor?.database_response_ms || monitor?.db_latency_ms || 0);
-		const throughput = toNum(monitor?.events_per_second || monitor?.throughput_eps || (monitor?.recent_events || []).length);
-		const providerHealthy = Object.values(monitor?.provider_health || {}).filter((provider) => {
-			const status = String(provider?.status || '').toLowerCase();
-			return status === 'ok' || status === 'healthy';
-		}).length;
-		const providerTotal = Object.keys(monitor?.provider_health || {}).length;
-		const providerPct = providerTotal ? Math.round((providerHealthy / providerTotal) * 100) : 0;
+		async function loadDiagnostics() {
+			setLoading(true);
+			setError('');
 
-		return {
-			engineLatency,
-			dbLatency,
-			throughput,
-			providerPct,
-			providerHealthy,
-			providerTotal,
+			const [dataFreshness, engineStatus, providerLatency, uiErrors, emailStatus] = await Promise.allSettled([
+				fetchEndpoint('/api/system/data-freshness'),
+				fetchEndpoint('/api/system/engine-status'),
+				fetchEndpoint('/api/system/provider-latency'),
+				fetchEndpoint('/api/system/ui-errors'),
+				fetchEndpoint('/api/system/email-status'),
+			]);
+
+			if (cancelled) return;
+
+			setDiagnostics({
+				dataFreshness: dataFreshness.status === 'fulfilled' ? dataFreshness.value : null,
+				engineStatus: engineStatus.status === 'fulfilled' ? engineStatus.value : null,
+				providerLatency: providerLatency.status === 'fulfilled' ? providerLatency.value : null,
+				uiErrors: uiErrors.status === 'fulfilled' ? uiErrors.value : null,
+				emailStatus: emailStatus.status === 'fulfilled' ? emailStatus.value : null,
+			});
+
+			const failed = [dataFreshness, engineStatus, providerLatency, uiErrors, emailStatus].filter((result) => result.status === 'rejected').length;
+			if (failed > 0) {
+				setError(`Some diagnostics endpoints failed to load (${failed}/5).`);
+			}
+
+			setLoading(false);
+		}
+
+		loadDiagnostics().catch(() => {
+			if (cancelled) return;
+			setError('Unable to load diagnostics data.');
+			setLoading(false);
+		});
+
+		return () => {
+			cancelled = true;
 		};
-	}, [monitor]);
+	}, []);
 
-	const trendData = useMemo(() => {
-		const recent = Array.isArray(monitor?.recent_events) ? monitor.recent_events.slice(0, 20).reverse() : [];
-		return recent.map((item, idx) => ({
-			label: `${idx + 1}`,
-			value: toNum(item?.processing_ms || item?.latency_ms || 0),
-		}));
-	}, [monitor]);
+	const dataFreshness = useMemo(() => diagnostics.dataFreshness || {}, [diagnostics.dataFreshness]);
+	const engineStatus = useMemo(() => diagnostics.engineStatus || {}, [diagnostics.engineStatus]);
+	const providerLatency = useMemo(() => diagnostics.providerLatency || {}, [diagnostics.providerLatency]);
+	const uiErrors = useMemo(() => diagnostics.uiErrors || {}, [diagnostics.uiErrors]);
+	const emailStatus = useMemo(() => diagnostics.emailStatus || {}, [diagnostics.emailStatus]);
 
 	return (
 		<AdminLayout title="System Diagnostics">
 			<div className="space-y-4">
-				{diagnosticsQuery.isLoading ? (
+				{loading ? (
 					<div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-sm text-[var(--text-muted)]">
-						Loading diagnostics telemetry...
+						Loading diagnostics...
 					</div>
 				) : null}
 
-				{diagnosticsQuery.error ? (
-					<div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
-						Unable to load diagnostics endpoint. Check `/api/system/monitor` availability.
+				{error ? (
+					<div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+						{error}
 					</div>
 				) : null}
 
-				<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-					<MetricCard
-						title="Engine Latency"
-						value={`${cards.engineLatency.toFixed(0)} ms`}
-						subtitle="Core engine execution"
-						status={statusFromLatency(cards.engineLatency)}
-					/>
-					<MetricCard
-						title="Database Response"
-						value={`${cards.dbLatency.toFixed(0)} ms`}
-						subtitle="Round-trip query speed"
-						status={statusFromLatency(cards.dbLatency)}
-					/>
-					<MetricCard
-						title="Signal Throughput"
-						value={`${cards.throughput.toFixed(0)} eps`}
-						subtitle="Events processed"
-						status={statusFromRate(cards.throughput)}
-					/>
-					<MetricCard
-						title="Provider Health"
-						value={`${cards.providerPct}%`}
-						subtitle={`${cards.providerHealthy}/${cards.providerTotal || 0} healthy`}
-						status={statusFromRate(cards.providerPct)}
-					/>
-				</div>
+				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+					<DiagnosticsCard title="Data Freshness">
+						<DetailRow label="intraday_1m last update" value={formatTimestamp(dataFreshness?.intraday_1m_last_update || dataFreshness?.intraday_1m)} />
+						<DetailRow label="daily_ohlc last update" value={formatTimestamp(dataFreshness?.daily_ohlc_last_update || dataFreshness?.daily_ohlc)} />
+					</DiagnosticsCard>
 
-				<div className="grid gap-4 xl:grid-cols-2">
-					<SignalTrendChart title="Engine Latency Trend" data={trendData} dataKey="value" color="#38bdf8" />
+					<DiagnosticsCard title="Engine Status">
+						<DetailRow label="ingestion engine" value={engineStatus?.ingestion_engine || engineStatus?.ingestion || 'Unknown'} />
+						<DetailRow label="strategy engine" value={engineStatus?.strategy_engine || engineStatus?.strategy || 'Unknown'} />
+						<DetailRow label="intelligence engine" value={engineStatus?.intelligence_engine || engineStatus?.intelligence || 'Unknown'} />
+					</DiagnosticsCard>
 
-					<div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
-						<h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Component Health</h3>
-						<div className="grid gap-3 text-sm">
-							<div className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
-								<div className="flex items-center gap-2 text-[var(--text-secondary)]"><Gauge size={16} /> Engine Pipeline</div>
-								<HealthIndicator status={cards.engineLatency ? statusFromLatency(cards.engineLatency) : 'warning'} />
-							</div>
-							<div className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
-								<div className="flex items-center gap-2 text-[var(--text-secondary)]"><Database size={16} /> Database</div>
-								<HealthIndicator status={cards.dbLatency ? statusFromLatency(cards.dbLatency) : 'warning'} />
-							</div>
-							<div className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
-								<div className="flex items-center gap-2 text-[var(--text-secondary)]"><Activity size={16} /> Signal Throughput</div>
-								<HealthIndicator status={statusFromRate(cards.throughput)} />
-							</div>
-							<div className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
-								<div className="flex items-center gap-2 text-[var(--text-secondary)]"><RadioTower size={16} /> Providers</div>
-								<HealthIndicator status={statusFromRate(cards.providerPct)} />
-							</div>
-						</div>
-					</div>
-				</div>
+					<DiagnosticsCard title="Provider Latency">
+						<DetailRow label="FMP" value={providerLatency?.fmp_ms != null ? `${providerLatency.fmp_ms} ms` : providerLatency?.fmp || 'Unavailable'} />
+						<DetailRow label="Finnhub" value={providerLatency?.finnhub_ms != null ? `${providerLatency.finnhub_ms} ms` : providerLatency?.finnhub || 'Unavailable'} />
+						<DetailRow label="Finviz" value={providerLatency?.finviz_ms != null ? `${providerLatency.finviz_ms} ms` : providerLatency?.finviz || 'Unavailable'} />
+					</DiagnosticsCard>
 
-				<div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
-					<h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Provider Status</h3>
-					<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-						{Object.entries(monitor?.provider_health || {}).map(([name, provider]) => (
-							<div key={name} className="rounded border border-[var(--border-color)] p-2">
-								<div className="mb-2 flex items-center justify-between">
-									<span className="text-sm font-semibold uppercase text-[var(--text-primary)]">{name}</span>
-									<HealthIndicator status={provider?.status || 'unknown'} />
-								</div>
-								<div className="text-xs text-[var(--text-muted)]">Latency: {toNum(provider?.latency).toFixed(0)} ms</div>
-							</div>
-						))}
-					</div>
+					<DiagnosticsCard title="UI Error Count">
+						<DetailRow label="last 24h error count" value={uiErrors?.last_24h_error_count ?? uiErrors?.count_24h ?? '0'} />
+					</DiagnosticsCard>
+
+					<DiagnosticsCard title="Email System Status">
+						<DetailRow label="Resend status" value={emailStatus?.resend_status || emailStatus?.status || 'Unknown'} />
+						<DetailRow label="queued emails" value={emailStatus?.queued_emails ?? emailStatus?.queue_size ?? '0'} />
+					</DiagnosticsCard>
 				</div>
 			</div>
 		</AdminLayout>
 	);
 }
+
+export default SystemDiagnostics;
