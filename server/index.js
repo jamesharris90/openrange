@@ -8,6 +8,7 @@ process.on('unhandledRejection', (err) => {
 
 
 const path = require('path');
+const RUNTIME_PORT = process.env.PORT;
 // Load from server/.env (works regardless of CWD at startup)
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 // Fallback: also try root .env in case server is started from project root
@@ -506,7 +507,8 @@ app.use((req, res, next) => {
   next();
 });
 
-const PORT = process.env.PORT || 3000;
+const IS_RAILWAY = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+const PORT = Number(RUNTIME_PORT || (IS_RAILWAY ? 8080 : 3000));
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const FMP_API_KEY = process.env.FMP_API_KEY || null;
 logger.info(`FMP_API_KEY exists: ${!!FMP_API_KEY}`);
