@@ -232,7 +232,7 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
           const insertedBars = await upsertRows('intraday_1m', rows, ['symbol', 'timestamp'], ['open', 'high', 'low', 'close', 'volume']);
           console.log('[INGESTION] Inserted intraday bars:', insertedBars);
         } else {
-          console.log('[INGESTION] Inserted intraday bars:', 0);
+          console.log('[INGESTION] FMP returned zero rows');
         }
         await sleep(RATE_LIMIT_MS);
       } catch (err) {

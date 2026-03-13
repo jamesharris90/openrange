@@ -102,6 +102,7 @@ let _layerDInFlight = false;
 let _tier3InFlight  = false;
 
 let _mainInterval = null;
+let _tier2Interval = null;
 
 // ---------------------------------------------------------------------------
 // Preset + watchlist cache
@@ -162,8 +163,31 @@ async function _runTier1() {
 }
 
 // Tier 2 — operational universe (quotes + news + derived)
+async function runIntradayUpdate() {
+  const opSymbols = _getOpSymbols();
+  const intradaySymbols = Array.isArray(opSymbols)
+    ? opSymbols.map((s) => s?.symbol || s).filter(Boolean)
+    : [];
+
+  if (!intradaySymbols.length) {
+    _logger.info('[INGESTION] No operational symbols available for intraday update');
+    return;
+  }
+
+  await updateIntraday1m(intradaySymbols.slice(0, 500), 1);
+}
+
 async function _runTier2() {
   if (_layerCInFlight) return;
+
+  console.log('[SCHEDULER] Tier2 cycle started');
+
+  try {
+    await runIntradayUpdate();
+  } catch (err) {
+    console.error('[SCHEDULER] Tier2 intraday update failed', err);
+  }
+
   _layerCInFlight = true;
   try {
     const opSymbols = _getOpSymbols();
@@ -172,14 +196,6 @@ async function _runTier2() {
     await refreshLayerD(_apiKey, opSymbols, _watchlist, _logger);
     _lastLayerDRun    = Date.now();
     _lastWatchlistRun = Date.now();
-
-    // TEMPORARY: disable phase/session guard so intraday fetch runs on each Tier 2 cycle.
-    const intradaySymbols = Array.isArray(opSymbols) ? opSymbols.map((s) => s?.symbol || s).filter(Boolean) : [];
-    if (intradaySymbols.length > 0) {
-      updateIntraday1m(intradaySymbols.slice(0, 500), 1).catch((err) =>
-        _logger && _logger.warn && _logger.warn('phaseScheduler: intraday update error', { error: err?.message })
-      );
-    }
   } finally {
     _layerCInFlight = false;
   }
@@ -339,11 +355,22 @@ async function startPhaseScheduler(apiKey, schedulerUserId, logger = console) {
     logger.error('phaseScheduler: initial tick error', { error: err.message })
   );
 
+  console.log('[SYSTEM] Running initial intraday ingestion');
+  _runTier2().catch((err) =>
+    _logger.error('phaseScheduler: initial Tier 2 error', { error: err.message })
+  );
+
   _mainInterval = setInterval(() => {
     _tick().catch((err) =>
       _logger.error('phaseScheduler: tick error', { error: err.message })
     );
   }, 60_000);
+
+  _tier2Interval = setInterval(() => {
+    _runTier2().catch((err) =>
+      _logger.error('phaseScheduler: Tier 2 interval error', { error: err.message })
+    );
+  }, 60000);
 
   logger.info('phaseScheduler: running — 60s tick active');
 }
@@ -352,6 +379,10 @@ function stopPhaseScheduler() {
   if (_mainInterval) {
     clearInterval(_mainInterval);
     _mainInterval = null;
+  }
+  if (_tier2Interval) {
+    clearInterval(_tier2Interval);
+    _tier2Interval = null;
   }
 }
 

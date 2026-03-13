@@ -5503,8 +5503,8 @@ async function startSystem() {
   const { startDailyReviewCron } = require('./services/trades/dailyReviewCron');
   startDailyReviewCron();
 
-  // Phase-aware scheduler (legacy mode, opt-in)
-  if (FMP_API_KEY && process.env.ENABLE_PHASE_SCHEDULER === 'true') {
+  // Phase scheduler boot: always start when API key is available.
+  if (FMP_API_KEY) {
     // Resolve the scheduler user (whose active preset drives the engine).
     // Falls back to user ID from env, then first admin user in DB.
     const SCHEDULER_USER_ID = process.env.SCHEDULER_USER_ID
@@ -5520,13 +5520,18 @@ async function startSystem() {
           ).catch(() => null);
           schedulerUserId = adminUser?.id || 1;
         }
+
+        console.log('[SYSTEM] Starting Phase Scheduler...');
         await startPhaseScheduler(FMP_API_KEY, schedulerUserId, logger);
+        console.log('[SYSTEM] Phase Scheduler started');
       } catch (err) {
         logger.error('Phase scheduler failed to start', { error: err.message });
         // Fallback: old scheduler still available if needed
         startScheduler(FMP_API_KEY, logger);
       }
     })();
+  } else {
+    logger.warn('Phase scheduler not started: missing FMP_API_KEY');
   }
 
   if (FMP_API_KEY && process.env.ENABLE_LEGACY_SCHEDULER_SERVICE === 'true') {
