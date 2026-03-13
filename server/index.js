@@ -5603,7 +5603,9 @@ async function bootstrapEngines() {
   }
 }
 
-const server = app.listen(PORT, () => {
+const HOST = '0.0.0.0';
+
+const server = app.listen(PORT, HOST, () => {
   console.log(`[SYSTEM] Server listening on port ${PORT}`);
   logger.info(`OpenRange server listening on port ${PORT}`);
   setTimeout(() => {
