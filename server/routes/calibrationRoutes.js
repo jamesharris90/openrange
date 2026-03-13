@@ -22,17 +22,7 @@ const router = express.Router();
 router.get('/strategy-performance', async (_req, res) => {
   try {
     const result = await queryWithTimeout(
-      `SELECT
-         strategy,
-         total_signals,
-         wins,
-         losses,
-         win_rate_pct,
-         avg_move_pct,
-         avg_drawdown_pct,
-         last_signal_at
-       FROM strategy_performance_summary
-       ORDER BY win_rate_pct DESC NULLS LAST`,
+      `SELECT * FROM strategy_performance_summary`,
       [],
       { timeoutMs: 8000, label: 'api.calibration.strategy-performance', maxRetries: 0 }
     );
@@ -149,6 +139,38 @@ router.get('/grade-distribution', async (_req, res) => {
     return res.status(500).json({
       ok: false,
       error: 'Failed to load grade distribution',
+      detail: error.message,
+      items: [],
+    });
+  }
+});
+
+// ── GET /api/calibration/strategy-weights ─────────────────────
+router.get('/strategy-weights', async (_req, res) => {
+  try {
+    const result = await queryWithTimeout(
+      `SELECT
+         strategy,
+         weight,
+         signals_used,
+         win_rate,
+         avg_return,
+         confidence,
+         last_updated
+       FROM adaptive_strategy_rank
+       LIMIT 100`,
+      [],
+      { timeoutMs: 8000, label: 'api.calibration.strategy-weights', maxRetries: 0 }
+    );
+
+    return res.json({
+      ok: true,
+      items: Array.isArray(result?.rows) ? result.rows : [],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to load strategy weights',
       detail: error.message,
       items: [],
     });

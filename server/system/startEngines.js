@@ -25,6 +25,7 @@ const { runSignalCalibrationEngine } = require('../engines/signalCalibrationEngi
 const { runCalibrationPriceUpdater } = require('../engines/calibrationPriceUpdater');
 const { runSignalOutcomeEngine } = require('../engines/signalOutcomeEngine');
 const { runHistoricalReplay } = require('../engines/replay/historicalSignalReplayEngine');
+const { updateStrategyWeights } = require('../engines/adaptiveStrategyEngine');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -51,6 +52,7 @@ let signalCalibrationInFlight = false;
 let calibrationPriceUpdateInFlight = false;
 let signalOutcomeEngineInFlight = false;
 let historicalReplayInFlight = false;
+let adaptiveStrategyInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -574,6 +576,33 @@ async function startEnginesSequentially() {
           console.error('[REPLAY ENGINE] scheduled run error', error.message);
         } finally {
           historicalReplayInFlight = false;
+        }
+      });
+    }
+
+    if (!global.adaptiveStrategyEngineStarted) {
+      global.adaptiveStrategyEngineStarted = true;
+      console.log('[ADAPTIVE_STRATEGY] scheduler registered (*/30 * * * *)');
+
+      adaptiveStrategyInFlight = true;
+      updateStrategyWeights().then(() => {
+        global.adaptiveLastRunAt = new Date().toISOString();
+      }).catch((error) =>
+        console.error('[ADAPTIVE_STRATEGY] initial run error', error.message)
+      ).finally(() => {
+        adaptiveStrategyInFlight = false;
+      });
+
+      cron.schedule('*/30 * * * *', async () => {
+        if (adaptiveStrategyInFlight) return;
+        adaptiveStrategyInFlight = true;
+        try {
+          await updateStrategyWeights();
+          global.adaptiveLastRunAt = new Date().toISOString();
+        } catch (error) {
+          console.error('[ADAPTIVE_STRATEGY] scheduled run error', error.message);
+        } finally {
+          adaptiveStrategyInFlight = false;
         }
       });
     }

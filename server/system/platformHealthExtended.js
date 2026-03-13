@@ -177,6 +177,37 @@ export async function platformHealthExtended(supabase) {
       ? 'OK'
       : 'STALE';
 
+  let strategyWeightCount = 0;
+  let strategyWeightLastUpdated = null;
+  let strategyWeightMax = null;
+  let strategyWeightMin = null;
+  try {
+    const { data } = await supabase
+      .from('strategy_weights')
+      .select('weight,last_updated')
+      .limit(500);
+
+    const rows = Array.isArray(data) ? data : [];
+    strategyWeightCount = rows.length;
+    if (rows.length > 0) {
+      const weights = rows
+        .map((r) => Number(r?.weight))
+        .filter((n) => Number.isFinite(n));
+      if (weights.length > 0) {
+        strategyWeightMax = Math.max(...weights);
+        strategyWeightMin = Math.min(...weights);
+      }
+      strategyWeightLastUpdated = rows
+        .map((r) => r?.last_updated)
+        .filter(Boolean)
+        .sort()
+        .at(-1) || null;
+    }
+  } catch (_error) {
+    strategyWeightCount = 0;
+    strategyWeightLastUpdated = null;
+  }
+
   return {
     opportunities_24h: report.opportunities_24h,
     flow_signals_24h: flowSignalsCount || 0,
@@ -197,44 +228,9 @@ export async function platformHealthExtended(supabase) {
     REPLAY_ENGINE_STATUS: replayEngineStatus,
     REPLAY_SIGNAL_COUNT: replaySignalCount,
     REPLAY_LAST_RUN_AT: replayLastRunAt,
+    STRATEGY_WEIGHT_COUNT: strategyWeightCount,
+    STRATEGY_WEIGHT_LAST_UPDATED: strategyWeightLastUpdated,
+    STRATEGY_WEIGHT_MAX: strategyWeightMax,
+    STRATEGY_WEIGHT_MIN: strategyWeightMin,
   };
 }
-DATABASE RELATIONSHIPS
-
-signal_registry
-----------------
-Stores every detected trading signal.
-
-Primary Key
-id
-
-Columns
-symbol
-strategy
-setup_type
-signal_score
-entry_price
-entry_time
-
-
-signal_outcomes
-----------------
-Stores the evaluated result of a signal after 24 hours.
-
-Primary Key
-id
-
-Foreign Key
-signal_id → signal_registry.id
-
-
-Relationship
-
-signal_registry (1)
-        ↓
-signal_outcomes (1)
-
-
-Meaning
-
-Each signal can produce exactly one evaluated outcome.

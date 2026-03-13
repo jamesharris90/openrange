@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/watchdog', async (_req, res) => {
   try {
-    const [watchdogResult, calibrationResult, registryResult, outcomesResult] = await Promise.all([
+    const [watchdogResult, calibrationResult, registryResult, outcomesResult, weightsResult] = await Promise.all([
       queryWithTimeout(
         `SELECT * FROM platform_watchdog_status LIMIT 1`,
         [],
@@ -48,15 +48,26 @@ router.get('/watchdog', async (_req, res) => {
         [],
         { timeoutMs: 5000, maxRetries: 0, label: 'api.system.watchdog.outcomes' }
       ),
+      queryWithTimeout(
+        `SELECT
+           COUNT(*)                                                    AS total_weights,
+           MAX(last_updated)                                           AS last_weight_update,
+           EXTRACT(EPOCH FROM (NOW() - MAX(last_updated)))::INT        AS seconds_since_last_weight_update
+         FROM strategy_weights`,
+        [],
+        { timeoutMs: 5000, maxRetries: 0, label: 'api.system.watchdog.weights' }
+      ),
     ]);
 
     const calibration = calibrationResult?.rows?.[0] || null;
     const registry    = registryResult?.rows?.[0]    || null;
     const outcomes    = outcomesResult?.rows?.[0]    || null;
+    const weights     = weightsResult?.rows?.[0]     || null;
 
     const secsSinceLastSignal  = calibration?.seconds_since_last_signal  != null ? Number(calibration.seconds_since_last_signal)  : null;
     const secsSinceLastOutcome = outcomes?.seconds_since_last_outcome     != null ? Number(outcomes.seconds_since_last_outcome)     : null;
     const secsSinceLastReplay  = registry?.seconds_since_last_replay      != null ? Number(registry.seconds_since_last_replay)      : null;
+    const secsSinceWeightUpdate = weights?.seconds_since_last_weight_update != null ? Number(weights.seconds_since_last_weight_update) : null;
 
     // ── Alert conditions ──────────────────────────────────────────────
     const alerts = [];
@@ -80,6 +91,11 @@ router.get('/watchdog', async (_req, res) => {
       alerts.push('REPLAY_NEVER_RUN');
     } else if (secsSinceLastReplay !== null && secsSinceLastReplay > 90000) {
       alerts.push('REPLAY_STALE');
+    }
+    if (Number(weights?.total_weights) === 0) {
+      alerts.push('WEIGHTS_NEVER_UPDATED');
+    } else if (secsSinceWeightUpdate !== null && secsSinceWeightUpdate > 21600) {
+      alerts.push('WEIGHTS_STALE_6H');
     }
 
     return res.json({
@@ -106,6 +122,11 @@ router.get('/watchdog', async (_req, res) => {
         last_evaluated_at          : outcomes.last_evaluated_at || null,
         seconds_since_last_outcome : secsSinceLastOutcome,
       } : null,
+      strategy_weights: weights ? {
+        total_weights                     : Number(weights.total_weights),
+        last_weight_update                : weights.last_weight_update || null,
+        seconds_since_last_weight_update  : secsSinceWeightUpdate,
+      } : null,
     });
   } catch (error) {
     return res.status(500).json({
@@ -116,6 +137,7 @@ router.get('/watchdog', async (_req, res) => {
       calibration: null,
       signal_registry: null,
       signal_outcomes: null,
+      strategy_weights: null,
       alerts: ['WATCHDOG_QUERY_ERROR'],
     });
   }

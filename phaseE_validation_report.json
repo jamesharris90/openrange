@@ -1,0 +1,50 @@
+{
+  "phase": "E",
+  "name": "adaptive_strategy_weighting",
+  "generated_at": "2026-03-13T07:35:30Z",
+  "status": "pass",
+  "database": {
+    "migration_014_applied": true,
+    "manual_weight_update": {
+      "function_called": "update_strategy_weights()",
+      "updated_count": "",
+      "strategy_weights_total": 1,
+      "sample": [
+        {
+          "strategy": "ORB",
+          "weight": "1.0",
+          "signals_used": 1,
+          "win_rate": "1.00000000000000000000"
+        }
+      ]
+    }
+  },
+  "api_checks": {
+    "strategy_performance": {
+      "endpoint": "/api/calibration/strategy-performance",
+      "ok": true,
+      "items_count": 1
+    },
+    "strategy_weights": {
+      "endpoint": "/api/calibration/strategy-weights",
+      "ok": true,
+      "items_count": 1
+    },
+    "watchdog": {
+      "endpoint": "/api/system/watchdog",
+      "ok": true,
+      "alerts": [
+        "NO_OUTCOMES_4H"
+      ],
+      "strategy_weights": {
+        "total_weights": 1,
+        "seconds_since_last_weight_update": 18
+      }
+    }
+  },
+  "notes": [
+    "Fixed schema drift in /api/calibration/strategy-performance by switching to SELECT * from strategy_performance_summary.",
+    "Adaptive weights table is now populated and no weight-staleness watchdog alert remains.",
+    "Remaining watchdog alert NO_OUTCOMES_4H predates this phase and is data freshness related, not a Phase E regression."
+  ]
+}

@@ -10,6 +10,13 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function strategyFromOpportunity(opportunity, tradePlan) {
+  const direct = String(opportunity?.strategy || '').trim();
+  if (direct) return direct;
+  const fromPlan = String(tradePlan || '').split(':')[0].trim();
+  return fromPlan || 'VWAP Reclaim';
+}
+
 function buildMovementReason(opportunity) {
   const reasons = [];
   if (toNumber(opportunity.gap_percent) > 5) {
@@ -63,6 +70,7 @@ async function generateOpportunityIntelligence(db) {
   const startedAt = Date.now();
   let processed = 0;
   let errors = 0;
+  const strategyWeightCache = new Map();
   logger.info('[ENGINE_START] opportunityIntelligenceEngine');
 
   try {
@@ -111,7 +119,31 @@ async function generateOpportunityIntelligence(db) {
         const movementReason = buildMovementReason(opportunity);
         const tradeReason = buildTradeReason(opportunity);
         const tradePlan = buildTradePlan(opportunity);
-        const confidence = computeConfidence(opportunity);
+        const strategy = strategyFromOpportunity(opportunity, tradePlan);
+
+        let weight = 1;
+        if (strategyWeightCache.has(strategy)) {
+          weight = strategyWeightCache.get(strategy);
+        } else {
+          try {
+            const weightResult = await runQuery(
+              db,
+              `SELECT weight FROM strategy_weights WHERE strategy = $1 LIMIT 1`,
+              [strategy],
+              'intelligence.strategy_weight'
+            );
+            const found = Number(weightResult?.rows?.[0]?.weight);
+            weight = Number.isFinite(found) ? found : 1;
+          } catch (_error) {
+            // Keep scoring resilient until migration/table is present.
+            weight = 1;
+          }
+          strategyWeightCache.set(strategy, weight);
+        }
+
+        const baseScore = toNumber(opportunity.score);
+        const weightedScore = Number(clamp(baseScore * weight, 0, 200).toFixed(4));
+        const confidence = computeConfidence({ ...opportunity, score: weightedScore });
 
         await runQuery(
           db,
@@ -142,7 +174,7 @@ async function generateOpportunityIntelligence(db) {
              created_at = NOW()`,
           [
             opportunity.symbol,
-            toNumber(opportunity.score),
+            weightedScore,
             toNumber(opportunity.price),
             toNumber(opportunity.gap_percent),
             toNumber(opportunity.relative_volume),
