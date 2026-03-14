@@ -50,6 +50,23 @@ function formatHour(bucket) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function toNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function formatRatePerMinute(rowsPerHour) {
+  const rows = toNumber(rowsPerHour);
+  return `${rows.toLocaleString()} / hr (${(rows / 60).toFixed(1)} / min)`;
+}
+
+function rateStatus(rowsPerHour) {
+  const rows = toNumber(rowsPerHour);
+  if (rows > 300) return 'green';
+  if (rows > 0) return 'amber';
+  return 'red';
+}
+
 function ChartShell({ title, children }) {
   return (
     <section className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-[0_12px_40px_rgba(2,6,23,0.45)] backdrop-blur-sm">
@@ -75,27 +92,49 @@ function StatusCard({ title, data }) {
   );
 }
 
+function RateCard({ title, rowsLastHour }) {
+  const status = rateStatus(rowsLastHour);
+  return (
+    <div className="rounded-xl border border-slate-700/70 bg-slate-950/60 p-4 shadow-[0_10px_28px_rgba(2,6,23,0.45)]">
+      <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-400">{title}</div>
+      <div className="mb-3 text-sm text-slate-100">{formatRatePerMinute(rowsLastHour)}</div>
+      <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${STATUS_STYLE[status]}`}>
+        {status}
+      </span>
+    </div>
+  );
+}
+
 export default function SystemDiagnostics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastRefresh, setLastRefresh] = useState(null);
-  const [health, setHealth] = useState(null);
+  const [freshness, setFreshness] = useState(null);
   const [diagnostics, setDiagnostics] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [strategies, setStrategies] = useState([]);
+  const [opportunities, setOpportunities] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [healthData, diagnosticsData] = await Promise.all([
-          authFetchJSON('/api/system/health'),
+        const [freshnessData, diagnosticsData, activityData, strategiesData, opportunitiesData] = await Promise.all([
+          authFetchJSON('/api/system/data-freshness'),
           authFetchJSON('/api/system/diagnostics?hours=24'),
+          authFetchJSON('/api/system/activity'),
+          authFetchJSON('/api/system/strategies'),
+          authFetchJSON('/api/system/opportunities'),
         ]);
 
         if (cancelled) return;
 
-        setHealth(healthData || null);
+        setFreshness(freshnessData || null);
         setDiagnostics(diagnosticsData || null);
+        setActivity(activityData?.items || []);
+        setStrategies(strategiesData?.items || []);
+        setOpportunities(opportunitiesData?.items || []);
         setError('');
         setLastRefresh(new Date().toISOString());
       } catch (err) {
@@ -115,25 +154,30 @@ export default function SystemDiagnostics() {
     };
   }, []);
 
-  const cards = useMemo(() => {
-    const freshness = health?.freshness || diagnostics?.freshness || {};
-    return [
-      { title: 'Market Data Freshness', data: freshness.intraday_1m || {} },
-      { title: 'Signal Engine Status', data: freshness.flow_signals || {} },
-      { title: 'Opportunity Engine Status', data: freshness.opportunity_stream || {} },
-      { title: 'News Ingestion Status', data: freshness.news_articles || {} },
-    ];
-  }, [health, diagnostics]);
+  const freshnessCards = useMemo(() => {
+    const payload = freshness || diagnostics?.freshness || {};
+    return {
+      marketData: payload.intraday_1m || {},
+      flowSignals: payload.flow_signals || {},
+      opportunities: payload.opportunity_stream || {},
+      news: payload.news_articles || {},
+    };
+  }, [freshness, diagnostics]);
+
+  const activityMap = useMemo(() => {
+    return activity.reduce((acc, row) => {
+      acc[String(row.engine || '').toLowerCase()] = toNumber(row.rows_last_hour);
+      return acc;
+    }, {});
+  }, [activity]);
 
   const chartData = useMemo(() => {
     const flow = diagnostics?.charts?.flow_per_hour || [];
     const opportunities = diagnostics?.charts?.opportunities_per_hour || [];
-    const news = diagnostics?.charts?.news_per_hour || [];
 
     return {
       flow: flow.map((row) => ({ label: formatHour(row.bucket), count: Number(row.count || 0) })),
       opportunities: opportunities.map((row) => ({ label: formatHour(row.bucket), count: Number(row.count || 0) })),
-      news: news.map((row) => ({ label: formatHour(row.bucket), count: Number(row.count || 0) })),
     };
   }, [diagnostics]);
 
@@ -144,9 +188,8 @@ export default function SystemDiagnostics() {
     }));
   }, [diagnostics]);
 
-  const telemetryRows = useMemo(() => diagnostics?.engine_telemetry || [], [diagnostics]);
-  const providerRows = useMemo(() => diagnostics?.provider_health || [], [diagnostics]);
-  const eventRows = useMemo(() => (diagnostics?.system_events || []).slice(0, 6), [diagnostics]);
+  const strategyRows = useMemo(() => strategies.slice(0, 20), [strategies]);
+  const topOpportunityRows = useMemo(() => opportunities.slice(0, 50), [opportunities]);
 
   return (
     <AdminLayout title="System Diagnostics">
@@ -166,12 +209,13 @@ export default function SystemDiagnostics() {
         {error ? <div className="rounded-md border border-rose-400/40 bg-rose-500/10 p-2 text-sm text-rose-200">{error}</div> : null}
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => (
-            <StatusCard key={card.title} title={card.title} data={card.data} />
-          ))}
+          <StatusCard title="Market Data Freshness" data={freshnessCards.marketData} />
+          <RateCard title="Signal Engine Rate" rowsLastHour={activityMap.flow_signals} />
+          <RateCard title="Opportunity Engine Rate" rowsLastHour={activityMap.opportunity_stream} />
+          <RateCard title="News Ingestion Rate" rowsLastHour={activityMap.news_articles} />
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-3">
+        <div className="grid gap-3 xl:grid-cols-2">
           <ChartShell title="Signals Per Hour">
             <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
@@ -199,117 +243,79 @@ export default function SystemDiagnostics() {
               </ResponsiveContainer>
             </div>
           </ChartShell>
-
-          <ChartShell title="News Ingestion Per Hour">
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.news}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="label" tick={{ fill: '#cbd5e1', fontSize: 11 }} />
-                  <YAxis tick={{ fill: '#cbd5e1', fontSize: 11 }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
-                  <Bar dataKey="count" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartShell>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-2">
-          <ChartShell title="Signal Type Distribution">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={signalDistribution}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={92}
-                    paddingAngle={2}
-                  >
-                    {signalDistribution.map((entry, index) => (
-                      <Cell key={`${entry.name}-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartShell>
-
-          <ChartShell title="Recent System Events">
-            <div className="max-h-64 overflow-auto rounded-md border border-slate-700/70">
-              <table className="min-w-full text-xs">
-                <thead className="sticky top-0 bg-slate-900/95 text-slate-300">
-                  <tr>
-                    <th className="px-2 py-2 text-left">Time</th>
-                    <th className="px-2 py-2 text-left">Event</th>
-                    <th className="px-2 py-2 text-left">Source</th>
-                    <th className="px-2 py-2 text-left">Symbol</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eventRows.map((row) => (
-                    <tr key={`evt-${row.id}-${row.created_at}`} className="border-t border-slate-700/50 text-slate-200">
-                      <td className="px-2 py-1.5">{formatTimestamp(row.created_at)}</td>
-                      <td className="px-2 py-1.5">{row.event_type || '--'}</td>
-                      <td className="px-2 py-1.5">{row.source || '--'}</td>
-                      <td className="px-2 py-1.5">{row.symbol || '--'}</td>
-                    </tr>
+        <ChartShell title="Strategy Distribution">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={signalDistribution}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={55}
+                  outerRadius={92}
+                  paddingAngle={2}
+                >
+                  {signalDistribution.map((entry, index) => (
+                    <Cell key={`${entry.name}-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </ChartShell>
-        </div>
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartShell>
 
-        <ChartShell title="Engine Telemetry">
+        <ChartShell title="Strategy Performance">
           <div className="max-h-72 overflow-auto rounded-md border border-slate-700/70">
             <table className="min-w-full text-xs">
               <thead className="sticky top-0 bg-slate-900/95 text-slate-300">
                 <tr>
-                  <th className="px-2 py-2 text-left">Engine</th>
-                  <th className="px-2 py-2 text-left">Last Update</th>
-                  <th className="px-2 py-2 text-left">Status</th>
-                  <th className="px-2 py-2 text-right">Rows Processed</th>
+                  <th className="px-2 py-2 text-left">Strategy</th>
+                  <th className="px-2 py-2 text-right">Signals</th>
+                  <th className="px-2 py-2 text-right">Avg Probability</th>
+                  <th className="px-2 py-2 text-right">Avg Move</th>
+                  <th className="px-2 py-2 text-right">Win Rate</th>
                 </tr>
               </thead>
               <tbody>
-                {telemetryRows.map((row, index) => {
-                  const status = toStatus(row.status);
-                  return (
-                    <tr key={`telemetry-${row.engine}-${index}`} className="border-t border-slate-700/50 text-slate-100">
-                      <td className="px-2 py-1.5 font-semibold uppercase tracking-wide">{row.engine}</td>
-                      <td className="px-2 py-1.5">{formatTimestamp(row.updated_at)}</td>
-                      <td className="px-2 py-1.5">
-                        <span className={`rounded border px-2 py-0.5 text-[10px] uppercase ${STATUS_STYLE[status]}`}>{row.status || 'unknown'}</span>
-                      </td>
-                      <td className="px-2 py-1.5 text-right">{Number(row.rows_processed || 0)}</td>
-                    </tr>
-                  );
-                })}
+                {strategyRows.map((row, index) => (
+                  <tr key={`strategy-${row.strategy}-${index}`} className="border-t border-slate-700/50 text-slate-100">
+                    <td className="px-2 py-1.5 font-semibold">{row.strategy}</td>
+                    <td className="px-2 py-1.5 text-right">{toNumber(row.signals)}</td>
+                    <td className="px-2 py-1.5 text-right">{toNumber(row.avg_probability).toFixed(2)}</td>
+                    <td className="px-2 py-1.5 text-right">{toNumber(row.avg_move).toFixed(2)}</td>
+                    <td className="px-2 py-1.5 text-right">{(toNumber(row.win_rate) * 100).toFixed(2)}%</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </ChartShell>
 
-        <ChartShell title="Provider Health">
-          <div className="grid gap-3 md:grid-cols-3">
-            {['fmp', 'finnhub', 'polygon'].map((providerName) => {
-              const row = providerRows.find((item) => String(item.provider || '').toLowerCase() === providerName) || {};
-              const status = toStatus(row.status);
-              return (
-                <div key={providerName} className="rounded-lg border border-slate-700/70 bg-slate-950/55 p-3">
-                  <div className="mb-1 text-[11px] uppercase tracking-[0.14em] text-slate-300">{providerName}</div>
-                  <div className="mb-2 text-sm text-slate-100">Latency: {Number.isFinite(Number(row.latency)) ? `${Number(row.latency)} ms` : 'n/a'}</div>
-                  <div className="mb-2">
-                    <span className={`rounded border px-2 py-1 text-[10px] uppercase ${STATUS_STYLE[status]}`}>{row.status || 'unknown'}</span>
-                  </div>
-                  <div className="text-xs text-slate-400">Updated: {formatTimestamp(row.updated_at)}</div>
-                </div>
-              );
-            })}
+        <ChartShell title="Top Opportunities">
+          <div className="max-h-80 overflow-auto rounded-md border border-slate-700/70">
+            <table className="min-w-full text-xs">
+              <thead className="sticky top-0 bg-slate-900/95 text-slate-300">
+                <tr>
+                  <th className="px-2 py-2 text-left">Symbol</th>
+                  <th className="px-2 py-2 text-left">Event Type</th>
+                  <th className="px-2 py-2 text-right">Score</th>
+                  <th className="px-2 py-2 text-left">Headline</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topOpportunityRows.map((row, index) => (
+                  <tr key={`opportunity-${row.symbol}-${index}`} className="border-t border-slate-700/50 text-slate-100">
+                    <td className="px-2 py-1.5 font-semibold uppercase">{row.symbol}</td>
+                    <td className="px-2 py-1.5">{row.event_type || '--'}</td>
+                    <td className="px-2 py-1.5 text-right">{toNumber(row.score).toFixed(2)}</td>
+                    <td className="px-2 py-1.5">{row.headline || '--'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </ChartShell>
       </div>

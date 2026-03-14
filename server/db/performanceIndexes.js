@@ -10,6 +10,14 @@ const INDEX_SQL = [
    ON news_articles(symbol)`,
   `CREATE INDEX IF NOT EXISTS idx_opportunity_stream_score
    ON opportunity_stream(score DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_opportunity_stream_created
+   ON opportunity_stream(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_flow_signals_detected_at
+   ON flow_signals(detected_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_strategy_signals_strategy_created
+   ON strategy_signals(strategy, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_strategy_signals_result
+   ON strategy_signals(result)`,
   `CREATE INDEX IF NOT EXISTS idx_system_events_created_at
    ON system_events(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_system_events_type_created

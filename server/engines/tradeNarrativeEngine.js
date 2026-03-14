@@ -1,8 +1,10 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { generateSignalStrengthNarrative } = require('../services/mcpClient');
 
 const QUERY_TIMEOUT_MS = 500;
 const MAX_CONCURRENT = 5;
+const MAX_MCP_CALLS_PER_RUN = 10;
 
 function createLimiter(limit) {
   let active = 0;
@@ -141,6 +143,39 @@ function narrativeText({ symbol, strategy, marketRegime, sectorContext, beaconPr
   return `${symbol} triggered a ${strategy} setup.\n\nMarket context: ${marketRegime}\n\nSector context: ${sectorContext}\n\nSignal strength: ${beaconProbability.toFixed(2)}\n\nExpected move: ${expectedMove.toFixed(2)}%`;
 }
 
+async function buildNarrativeWithFallback({
+  symbol,
+  strategy,
+  beaconProbability,
+  expectedMove,
+  marketContext,
+  sectorContext,
+  fallbackNarrative,
+  canUseMcp,
+}) {
+  if (!canUseMcp) return fallbackNarrative;
+
+  try {
+    const generated = await generateSignalStrengthNarrative({
+      symbol,
+      strategy,
+      beacon_probability: Number(beaconProbability.toFixed(6)),
+      expected_move: Number(expectedMove.toFixed(6)),
+      market_context: marketContext,
+      sector_context: sectorContext,
+    });
+
+    const trimmed = String(generated || '').trim();
+    return trimmed || fallbackNarrative;
+  } catch (error) {
+    logger.warn('[TRADE_NARRATIVE] MCP narrative generation failed; using fallback', {
+      symbol,
+      error: error.message,
+    });
+    return fallbackNarrative;
+  }
+}
+
 async function insertNarratives(rows, columns) {
   if (!rows.length) return { inserted: 0 };
 
@@ -222,6 +257,7 @@ function sectorContextText(sector, topSectors) {
 
 async function runTradeNarrativeEngine() {
   const startedAt = Date.now();
+  let mcpCalls = 0;
 
   try {
     const [beaconExists, marketContextExists, sectorRotationExists, marketQuotesExists, narrativesExists] = await Promise.all([
@@ -282,13 +318,29 @@ async function runTradeNarrativeEngine() {
       const marketRegime = String(marketContext.market_regime || 'neutral');
       const sectorContext = sectorContextText(sector, topSectors);
       const catalystContext = `Expected move ${expectedMove.toFixed(2)}%`;
-      const narrative = narrativeText({
+      const fallbackNarrative = narrativeText({
         symbol,
         strategy,
         marketRegime,
         sectorContext,
         beaconProbability,
         expectedMove,
+      });
+
+      const canUseMcp = mcpCalls < MAX_MCP_CALLS_PER_RUN;
+      if (canUseMcp) {
+        mcpCalls += 1;
+      }
+
+      const narrative = await buildNarrativeWithFallback({
+        symbol,
+        strategy,
+        beaconProbability,
+        expectedMove,
+        marketContext: marketRegime,
+        sectorContext,
+        fallbackNarrative,
+        canUseMcp,
       });
 
       rowsToInsert.push({
@@ -308,20 +360,23 @@ async function runTradeNarrativeEngine() {
     logger.info('[TRADE_NARRATIVE] complete', {
       processed: uniqueSignals.length,
       inserted,
+      mcpCalls,
       runtimeMs,
     });
 
     return {
       processed: uniqueSignals.length,
       inserted,
+      mcpCalls,
       runtimeMs,
     };
   } catch (error) {
     const runtimeMs = Date.now() - startedAt;
-    logger.warn('[TRADE_NARRATIVE] run failed', { error: error.message, runtimeMs });
+    logger.warn('[TRADE_NARRATIVE] run failed', { error: error.message, mcpCalls, runtimeMs });
     return {
       processed: 0,
       inserted: 0,
+      mcpCalls,
       runtimeMs,
       error: error.message,
     };
