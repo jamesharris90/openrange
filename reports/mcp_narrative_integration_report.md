@@ -113,12 +113,19 @@ Result:
 - PASS (no syntax errors)
 
 ## Phase 5 - Diff Summary
-Exact git diff summary (pre-commit):
-- `server/engines/tradeNarrativeEngine.js | integrated MCP narrative generation + fallback + per-run call cap`
+Exact git diff summary (`git show --stat --pretty=format:"%H%n%s%n" -1 HEAD`):
+- `60695ac325d5a03dc5adce451bca80601b7b7216`
+- `feat: integrate MCP narrative generation into trade narrative engine`
+- `client/src/pages/admin/SystemDiagnostics.jsx | 240 ++++++++---------`
+- `reports/mcp_narrative_integration_report.md  | 124 +++++++++`
+- `server/db/performanceIndexes.js              |   8 +`
+- `server/engines/tradeNarrativeEngine.js       |  59 ++++-`
+- `supabase_schema_dump.sql                     | 372 +++++++++++++++++++++++++++`
+- `5 files changed, 684 insertions(+), 119 deletions(-)`
 
 ## Phase 6 - Commit
 Commit message used:
 - `feat: integrate MCP narrative generation into trade narrative engine`
 
 New commit hash:
-- `PENDING`
+- `60695ac325d5a03dc5adce451bca80601b7b7216`
