@@ -120,7 +120,7 @@ const { getQueueHealth } = require('./monitoring/queueHealth');
 const { getSetupHealth } = require('./monitoring/setupHealth');
 const { getCatalystHealth } = require('./monitoring/catalystHealth');
 const { getDiscoveryHealth } = require('./monitoring/discoveryHealth');
-const { getSystemHealth } = require('./monitoring/systemHealth');
+const { getSystemHealth, getDataFreshness } = require('./monitoring/systemHealth');
 const { startAlertScheduler } = require('./alerts/alert_scheduler');
 const {
   startEngineScheduler,
@@ -163,6 +163,7 @@ const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const { runDataIntegrityEngine, getDataIntegrityHealth } = require('./engines/dataIntegrityEngine');
 const { runProviderCrossCheckEngine } = require('./engines/providerCrossCheckEngine');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engines/systemAlertEngine');
+const { startRetentionJobs } = require('./system/retentionJobs');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -944,6 +945,161 @@ app.get('/api/system/health', async (req, res) => {
       status: 'degraded',
       error: err.message,
       checked_at: new Date().toISOString(),
+    });
+  }
+});
+
+app.get('/api/system/data-freshness', async (_req, res) => {
+  try {
+    const freshness = await getDataFreshness();
+    return res.json({
+      status: 'ok',
+      checked_at: new Date().toISOString(),
+      ...freshness,
+    });
+  } catch (error) {
+    return res.json({
+      status: 'degraded',
+      checked_at: new Date().toISOString(),
+      intraday_1m: { last_update: null, delay_seconds: null, status: 'red', error: error.message },
+      flow_signals: { last_update: null, delay_seconds: null, status: 'red', error: error.message },
+      opportunity_stream: { last_update: null, delay_seconds: null, status: 'red', error: error.message },
+      news_articles: { last_update: null, delay_seconds: null, status: 'red', error: error.message },
+    });
+  }
+});
+
+app.get('/api/system/diagnostics', async (req, res) => {
+  const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
+
+  const safeSqlRows = async (sql, params, label, timeoutMs = 1800) => {
+    try {
+      const { rows } = await queryWithTimeout(sql, params, {
+        timeoutMs,
+        maxRetries: 0,
+        slowQueryMs: 900,
+        label,
+      });
+      return rows || [];
+    } catch (_error) {
+      return [];
+    }
+  };
+
+  try {
+    const [
+      freshness,
+      flowPerHour,
+      opportunitiesPerHour,
+      newsPerHour,
+      signalTypeDistribution,
+      engineTelemetry,
+      providerHealth,
+      systemEvents,
+    ] = await Promise.all([
+      getDataFreshness(),
+      safeSqlRows(
+        `SELECT date_trunc('hour', detected_at) AS bucket, COUNT(*)::int AS count
+         FROM flow_signals
+         WHERE detected_at >= NOW() - ($1::int * INTERVAL '1 hour')
+         GROUP BY 1
+         ORDER BY 1 ASC`,
+        [hours],
+        'api.system.diagnostics.flow_per_hour'
+      ),
+      safeSqlRows(
+        `SELECT date_trunc('hour', created_at) AS bucket, COUNT(*)::int AS count
+         FROM opportunity_stream
+         WHERE created_at >= NOW() - ($1::int * INTERVAL '1 hour')
+         GROUP BY 1
+         ORDER BY 1 ASC`,
+        [hours],
+        'api.system.diagnostics.opportunities_per_hour'
+      ),
+      safeSqlRows(
+        `SELECT date_trunc('hour', published_at) AS bucket, COUNT(*)::int AS count
+         FROM news_articles
+         WHERE published_at >= NOW() - ($1::int * INTERVAL '1 hour')
+         GROUP BY 1
+         ORDER BY 1 ASC`,
+        [hours],
+        'api.system.diagnostics.news_per_hour'
+      ),
+      safeSqlRows(
+        `SELECT COALESCE(NULLIF(strategy, ''), NULLIF(class, ''), 'unknown') AS signal_type,
+                COUNT(*)::int AS count
+         FROM strategy_signals
+         GROUP BY 1
+         ORDER BY 2 DESC`,
+        [],
+        'api.system.diagnostics.signal_type_distribution'
+      ),
+      safeSqlRows(
+        `SELECT DISTINCT ON (COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')))
+                COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')) AS engine,
+                COALESCE(payload->>'status', 'unknown') AS status,
+                CASE
+                  WHEN COALESCE(payload->>'rows_processed', '') ~ '^-?\\d+$'
+                    THEN (payload->>'rows_processed')::int
+                  ELSE 0
+                END AS rows_processed,
+                updated_at
+         FROM engine_telemetry
+         ORDER BY COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')),
+                  updated_at DESC`,
+        [],
+        'api.system.diagnostics.engine_telemetry'
+      ),
+      safeSqlRows(
+        `SELECT DISTINCT ON (provider)
+                provider,
+                status,
+                latency,
+                COALESCE(updated_at, created_at) AS updated_at
+         FROM provider_health
+         ORDER BY provider, COALESCE(updated_at, created_at) DESC`,
+        [],
+        'api.system.diagnostics.provider_health'
+      ),
+      safeSqlRows(
+        `SELECT id, event_type, source, symbol, created_at
+         FROM system_events
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+        'api.system.diagnostics.system_events'
+      ),
+    ]);
+
+    return res.json({
+      ok: true,
+      checked_at: new Date().toISOString(),
+      freshness,
+      charts: {
+        flow_per_hour: flowPerHour,
+        opportunities_per_hour: opportunitiesPerHour,
+        news_per_hour: newsPerHour,
+      },
+      signal_type_distribution: signalTypeDistribution,
+      engine_telemetry: engineTelemetry,
+      provider_health: providerHealth,
+      system_events: systemEvents,
+    });
+  } catch (error) {
+    return res.json({
+      ok: false,
+      checked_at: new Date().toISOString(),
+      error: error.message,
+      freshness: {},
+      charts: {
+        flow_per_hour: [],
+        opportunities_per_hour: [],
+        news_per_hour: [],
+      },
+      signal_type_distribution: [],
+      engine_telemetry: [],
+      provider_health: [],
+      system_events: [],
     });
   }
 });
@@ -5426,6 +5582,7 @@ function bootstrapEngines() {
 
   initEventLogger(eventBus);
   startSystemAlertEngine();
+  startRetentionJobs();
 
   runSafe('startupDbConnectionCheck', async () => {
     await queryWithTimeout('SELECT 1 AS ok', [], {

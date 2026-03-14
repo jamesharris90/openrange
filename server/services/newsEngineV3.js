@@ -71,6 +71,12 @@ const CATALYST_PATTERNS = {
 };
 
 const symbolMetadataCache = new Map();
+const companyProfileCache = {
+  loadedAt: 0,
+  rows: [],
+};
+const COMPANY_PROFILE_TTL_MS = 15 * 60 * 1000;
+const SYMBOL_STOP_WORDS = new Set(['A', 'AN', 'AND', 'ARE', 'AT', 'BE', 'BY', 'FOR', 'FROM', 'HAS', 'IN', 'IS', 'IT', 'NEW', 'NOT', 'NOW', 'OF', 'ON', 'OR', 'THE', 'TO', 'UP', 'WITH']);
 
 function normalizeSymbols(symbols) {
   return Array.from(
@@ -80,6 +86,58 @@ function normalizeSymbols(symbols) {
         .filter(Boolean)
     )
   );
+}
+
+async function loadCompanyProfiles() {
+  const isFresh = Date.now() - companyProfileCache.loadedAt < COMPANY_PROFILE_TTL_MS;
+  if (isFresh && companyProfileCache.rows.length) {
+    return companyProfileCache.rows;
+  }
+
+  const result = await pool.query(
+    `SELECT symbol, company_name
+     FROM company_profiles
+     WHERE company_name IS NOT NULL
+       AND LENGTH(TRIM(company_name)) >= 3`
+  );
+
+  companyProfileCache.rows = (result.rows || [])
+    .map((row) => ({
+      symbol: String(row.symbol || '').trim().toUpperCase(),
+      company_name: String(row.company_name || '').trim(),
+      company_name_lower: String(row.company_name || '').trim().toLowerCase(),
+    }))
+    .filter((row) => row.symbol && row.company_name_lower.length >= 3);
+  companyProfileCache.loadedAt = Date.now();
+
+  return companyProfileCache.rows;
+}
+
+function detectSymbolFromHeadlineRegex(headline, text) {
+  const blob = `${String(headline || '')} ${String(text || '')}`;
+  const regex = /\$([A-Z]{1,5})\b|\(([A-Z]{1,5})\)|\b([A-Z]{2,5})\b/g;
+  let match;
+
+  while ((match = regex.exec(blob)) !== null) {
+    const candidate = String(match[1] || match[2] || match[3] || '').toUpperCase();
+    if (!candidate || SYMBOL_STOP_WORDS.has(candidate)) continue;
+    return candidate;
+  }
+
+  return null;
+}
+
+function detectSymbolFromCompanyProfiles(headline, text) {
+  if (!companyProfileCache.rows.length) return null;
+  const content = `${String(headline || '')} ${String(text || '')}`.toLowerCase();
+
+  for (const row of companyProfileCache.rows) {
+    if (content.includes(row.company_name_lower)) {
+      return row.symbol;
+    }
+  }
+
+  return null;
 }
 
 function hashId(url, symbol, headline, publishedAt) {
@@ -302,13 +360,16 @@ async function fetchSymbolMetadata(symbols) {
 }
 
 function normalizeNewsItem(rawItem, requestedSymbol) {
-  const symbol = String(rawItem?.symbol || requestedSymbol || '').toUpperCase();
+  const explicitSymbol = String(rawItem?.symbol || requestedSymbol || '').toUpperCase();
   const headline = String(rawItem?.title || rawItem?.headline || '').trim();
   const source = String(rawItem?.site || rawItem?.source || '').trim();
   const publishedAt = rawItem?.publishedDate || rawItem?.publishedAt || null;
   const image = rawItem?.image || null;
   const url = rawItem?.url || rawItem?.link || null;
   const text = rawItem?.text || rawItem?.content || '';
+  const regexSymbol = detectSymbolFromHeadlineRegex(headline, text);
+  const fallbackSymbol = detectSymbolFromCompanyProfiles(headline, text);
+  const symbol = String(explicitSymbol || regexSymbol || fallbackSymbol || '').toUpperCase();
 
   const scored = scoreNewsItem({
     symbol,
@@ -394,6 +455,7 @@ async function insertCanonicalNewsRows(rows) {
     const result = await pool.query(
       `INSERT INTO news_articles (
         id,
+        symbol,
         headline,
         symbols,
         source,
@@ -405,13 +467,14 @@ async function insertCanonicalNewsRows(rows) {
         score_breakdown,
         raw_payload
       ) VALUES (
-        $1, $2, $3::text[], $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb
+        $1, $2, $3, $4::text[], $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb
       )
       ON CONFLICT (id) DO NOTHING`,
       [
         row.id,
+        row.symbol || null,
         row.headline,
-        [row.symbol],
+        row.symbol ? [row.symbol] : [],
         row.source,
         row.url,
         row.publishedAt,
@@ -433,6 +496,10 @@ async function insertCanonicalNewsRows(rows) {
 }
 
 async function refreshNewsForSymbols(symbols, limitPerSymbol = 10) {
+  await loadCompanyProfiles().catch(() => {
+    companyProfileCache.rows = [];
+  });
+
   const canonicalRows = await fetchFmpNewsForSymbols(symbols, limitPerSymbol);
   const write = await insertCanonicalNewsRows(canonicalRows);
   return {

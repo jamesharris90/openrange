@@ -30,6 +30,7 @@ const {
 const { refreshSpyState } = require('../data-engine/spyStateEngine');
 const cacheManager = require('../data-engine/cacheManager');
 const { updateIntraday1m } = require('../services/candleUpdateService.ts');
+const { recordEngineTelemetry, logSystemAlert, normalizeRowsProcessed } = require('../system/engineOps');
 
 // ---------------------------------------------------------------------------
 // Phase detection — built-in Intl, no external packages
@@ -151,12 +152,35 @@ function _getOpSymbols() {
 // Tier 1 — watchlist fast refresh (news + derived, no full quote fetch)
 async function _runTier1() {
   if (_layerDInFlight) return;
+  const startedAt = Date.now();
   _layerDInFlight = true;
   try {
     const opSymbols = _getOpSymbols();
     await refreshLayerD(_apiKey, opSymbols, _watchlist, _logger);
     _lastLayerDRun    = Date.now();
     _lastWatchlistRun = Date.now();
+
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier1',
+      status: 'ok',
+      rowsProcessed: normalizeRowsProcessed(_watchlist.length || 0),
+      runtimeMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier1',
+      status: 'failed',
+      rowsProcessed: 0,
+      runtimeMs: Date.now() - startedAt,
+      details: { error: error.message },
+    });
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'phase_scheduler_tier1',
+      severity: 'high',
+      message: `Phase scheduler Tier 1 failed: ${error.message}`,
+    });
+    throw error;
   } finally {
     _layerDInFlight = false;
   }
@@ -171,21 +195,30 @@ async function runIntradayUpdate() {
 
   if (!intradaySymbols.length) {
     _logger.info('[INGESTION] No operational symbols available for intraday update');
-    return;
+    return { rows_processed: 0 };
   }
 
-  await updateIntraday1m(intradaySymbols.slice(0, 500), 1);
+  return updateIntraday1m(intradaySymbols.slice(0, 500), 1);
 }
 
 async function _runTier2() {
   if (_layerCInFlight) return;
+  const startedAt = Date.now();
+  let rowsProcessed = 0;
 
   console.log('[SCHEDULER] Tier2 cycle started');
 
   try {
-    await runIntradayUpdate();
+    const ingestResult = await runIntradayUpdate();
+    rowsProcessed += normalizeRowsProcessed(ingestResult?.rows_processed || 0);
   } catch (err) {
     console.error('[SCHEDULER] Tier2 intraday update failed', err);
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'phase_scheduler_tier2_intraday',
+      severity: 'high',
+      message: `Tier2 intraday update failed: ${err.message}`,
+    });
   }
 
   _layerCInFlight = true;
@@ -196,6 +229,31 @@ async function _runTier2() {
     await refreshLayerD(_apiKey, opSymbols, _watchlist, _logger);
     _lastLayerDRun    = Date.now();
     _lastWatchlistRun = Date.now();
+
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier2',
+      status: 'ok',
+      rowsProcessed,
+      runtimeMs: Date.now() - startedAt,
+      details: {
+        operational_symbols: opSymbols.length,
+      },
+    });
+  } catch (error) {
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier2',
+      status: 'failed',
+      rowsProcessed,
+      runtimeMs: Date.now() - startedAt,
+      details: { error: error.message },
+    });
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'phase_scheduler_tier2',
+      severity: 'high',
+      message: `Phase scheduler Tier 2 failed: ${error.message}`,
+    });
+    throw error;
   } finally {
     _layerCInFlight = false;
   }
@@ -204,10 +262,32 @@ async function _runTier2() {
 // Tier 3 — full universe quotes (overnight, every 18h)
 async function _runTier3() {
   if (_tier3InFlight) return;
+  const startedAt = Date.now();
   _tier3InFlight = true;
   try {
     await refreshTier3Quotes(_apiKey, _logger);
     _lastTier3Run = Date.now();
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier3',
+      status: 'ok',
+      rowsProcessed: 0,
+      runtimeMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    await recordEngineTelemetry({
+      engineName: 'phase_scheduler_tier3',
+      status: 'failed',
+      rowsProcessed: 0,
+      runtimeMs: Date.now() - startedAt,
+      details: { error: error.message },
+    });
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'phase_scheduler_tier3',
+      severity: 'high',
+      message: `Phase scheduler Tier 3 failed: ${error.message}`,
+    });
+    throw error;
   } finally {
     _tier3InFlight = false;
   }

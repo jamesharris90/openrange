@@ -25,6 +25,7 @@ const {
   registerEngine,
   startAllEngines,
 } = require('../system/engineSupervisor');
+const { recordEngineTelemetry, logSystemAlert, normalizeRowsProcessed } = require('../system/engineOps');
 
 let started = false;
 let ingestionInterval = null;
@@ -88,8 +89,36 @@ const state = {
 };
 
 async function safeRun(label, fn) {
+  const startedAt = Date.now();
+
+  const extractRowsProcessed = (value) => {
+    if (Number.isFinite(Number(value))) return Number(value);
+    if (!value || typeof value !== 'object') return 0;
+
+    const candidates = [
+      value.rows_processed,
+      value.rowsProcessed,
+      value.inserted,
+      value.count,
+      value.total,
+      value.rowCount,
+    ];
+
+    const first = candidates.find((item) => Number.isFinite(Number(item)));
+    return Number.isFinite(Number(first)) ? Number(first) : 0;
+  };
+
   try {
-    await runWithDbPool('write', fn);
+    const result = await runWithDbPool('write', fn);
+
+    await recordEngineTelemetry({
+      engineName: label,
+      status: 'ok',
+      rowsProcessed: normalizeRowsProcessed(extractRowsProcessed(result)),
+      runtimeMs: Date.now() - startedAt,
+    });
+
+    return result;
   } catch (error) {
     const message = String(error?.message || '').toLowerCase();
     const isExpectedMoveMissingColumn =
@@ -108,6 +137,23 @@ async function safeRun(label, fn) {
         error: error.message,
       });
     }
+
+    await recordEngineTelemetry({
+      engineName: label,
+      status: 'failed',
+      rowsProcessed: 0,
+      runtimeMs: Date.now() - startedAt,
+      details: {
+        error: error.message,
+      },
+    });
+
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: label,
+      severity: 'high',
+      message: `${label} failed: ${error.message}`,
+    });
 
     throw error;
   }

@@ -205,6 +205,7 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
 
   const batches = chunkArray(symbols, 20);
   let processed = 0;
+  let totalInserted = 0;
 
   for (const batch of batches) {
     for (const symbol of batch) {
@@ -231,6 +232,7 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
         if (rows.length) {
           const insertedBars = await upsertRows('intraday_1m', rows, ['symbol', 'timestamp'], ['open', 'high', 'low', 'close', 'volume']);
           console.log('[INGESTION] Inserted intraday bars:', insertedBars);
+          totalInserted += Number(insertedBars || 0);
         } else {
           console.log('[INGESTION] FMP returned zero rows');
         }
@@ -246,9 +248,9 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
     }
   }
 
-  // Retention: delete rows older than 31 days
+  // Retention: delete rows older than 7 days
   try {
-    const cutoff = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const result = await pool.query(
       `DELETE FROM intraday_1m WHERE "timestamp" < $1`,
       [cutoff],
@@ -259,6 +261,10 @@ async function updateIntraday1m(symbols, lookbackDays = 1) {
   }
 
   logUpdate('INTRADAY_UPDATE_COMPLETE', { symbols: symbols.length, fromDate, toDate });
+  return {
+    symbols: symbols.length,
+    rows_processed: totalInserted,
+  };
 }
 
 // ─────────────────────────────────────────────────────────
