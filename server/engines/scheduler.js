@@ -27,6 +27,9 @@ const {
 } = require('../system/engineSupervisor');
 const { recordEngineTelemetry, logSystemAlert, normalizeRowsProcessed } = require('../system/engineOps');
 const { sendPremarketScanEmail } = require('../services/emailService');
+const { runBeaconEngine } = require('./beaconEngine');
+const { runBeaconLearningEngine } = require('./beaconLearningEngine');
+const { runBeaconOptimizer } = require('./beaconOptimizer');
 
 let started = false;
 let ingestionInterval = null;
@@ -48,9 +51,15 @@ let earningsInFlight = false;
 let expectedMoveInFlight = false;
 let intelNewsInFlight = false;
 let schedulerInFlight = false;
+let beaconInFlight = false;
+let beaconLearningInFlight = false;
+let beaconOptimizerInFlight = false;
 let bootstrapCompleted = false;
 let schedulerCronJob = null;
 let premarketScanCronJob = null;
+let beaconCronJob = null;
+let beaconLearningCronJob = null;
+let beaconOptimizerCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 
@@ -87,6 +96,12 @@ const state = {
   lastExpectedMoveError: null,
   lastIntelNewsRunAt: null,
   lastIntelNewsError: null,
+  lastBeaconRunAt: null,
+  lastBeaconError: null,
+  lastBeaconLearningRunAt: null,
+  lastBeaconLearningError: null,
+  lastBeaconOptimizerRunAt: null,
+  lastBeaconOptimizerError: null,
   bootstrapTargetRows: BOOTSTRAP_MIN_ROWS,
 };
 
@@ -390,6 +405,66 @@ async function runIntelNewsNow() {
   }
 }
 
+async function runBeaconNow() {
+  if (beaconInFlight) {
+    logger.warn('Skipping beacon run; previous run still in flight');
+    return null;
+  }
+
+  beaconInFlight = true;
+  state.lastBeaconRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('beaconEngine', runBeaconEngine);
+    state.lastBeaconError = null;
+    return result;
+  } catch (error) {
+    state.lastBeaconError = error.message;
+    return null;
+  } finally {
+    beaconInFlight = false;
+  }
+}
+
+async function runBeaconLearningNow() {
+  if (beaconLearningInFlight) {
+    logger.warn('Skipping beacon learning run; previous run still in flight');
+    return null;
+  }
+
+  beaconLearningInFlight = true;
+  state.lastBeaconLearningRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('beaconLearningEngine', runBeaconLearningEngine);
+    state.lastBeaconLearningError = null;
+    return result;
+  } catch (error) {
+    state.lastBeaconLearningError = error.message;
+    return null;
+  } finally {
+    beaconLearningInFlight = false;
+  }
+}
+
+async function runBeaconOptimizerNow() {
+  if (beaconOptimizerInFlight) {
+    logger.warn('Skipping beacon optimizer run; previous run still in flight');
+    return null;
+  }
+
+  beaconOptimizerInFlight = true;
+  state.lastBeaconOptimizerRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('beaconOptimizer', runBeaconOptimizer);
+    state.lastBeaconOptimizerError = null;
+    return result;
+  } catch (error) {
+    state.lastBeaconOptimizerError = error.message;
+    return null;
+  } finally {
+    beaconOptimizerInFlight = false;
+  }
+}
+
 async function runUniverseBuilderNow() {
   return runUniverseNow();
 }
@@ -548,7 +623,30 @@ function startEngineScheduler() {
     timezone: 'Europe/London',
   });
 
+  if (!beaconCronJob) {
+    beaconCronJob = cron.schedule('*/5 * * * *', () => {
+      runBeaconNow();
+    });
+  }
+
+  if (!beaconLearningCronJob) {
+    beaconLearningCronJob = cron.schedule('10 0 * * *', () => {
+      runBeaconLearningNow();
+    }, {
+      timezone: 'Europe/London',
+    });
+  }
+
+  if (!beaconOptimizerCronJob) {
+    beaconOptimizerCronJob = cron.schedule('20 0 * * 0', () => {
+      runBeaconOptimizerNow();
+    }, {
+      timezone: 'Europe/London',
+    });
+  }
+
   runPipeline();
+  runBeaconNow();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
@@ -564,6 +662,9 @@ function startEngineScheduler() {
     mode: 'phase_2_intelligence',
     schedule: '* * * * *',
     premarketScanSchedule: '0 7 * * * Europe/London',
+    beaconSchedule: '*/5 * * * *',
+    beaconLearningSchedule: '10 0 * * * Europe/London',
+    beaconOptimizerSchedule: '20 0 * * 0 Europe/London',
   });
 }
 
@@ -582,6 +683,9 @@ function getEngineSchedulerStatus() {
     intelNewsTimerActive: Boolean(metricsInterval),
     cronTimerActive: Boolean(schedulerCronJob),
     premarketScanTimerActive: Boolean(premarketScanCronJob),
+    beaconTimerActive: Boolean(beaconCronJob),
+    beaconLearningTimerActive: Boolean(beaconLearningCronJob),
+    beaconOptimizerTimerActive: Boolean(beaconOptimizerCronJob),
     schedulerSequentialMode: true,
     engineDelayMs: ENGINE_DELAY_MS,
   };
@@ -602,6 +706,9 @@ module.exports = {
   runEarningsNow,
   runExpectedMoveNow,
   runIntelNewsNow,
+  runBeaconNow,
+  runBeaconLearningNow,
+  runBeaconOptimizerNow,
   runPipeline,
   getEngineSchedulerStatus,
 };

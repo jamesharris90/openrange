@@ -1077,6 +1077,48 @@ app.get('/api/stocks-in-play', async (_req, res) => {
   }
 });
 
+app.get('/api/beacon-signals', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         symbol,
+         strategy,
+         beacon_probability,
+         expected_move,
+         created_at
+       FROM beacon_rankings
+       ORDER BY beacon_probability DESC
+       LIMIT 10`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 450,
+        label: 'api.beacon.signals',
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows || [],
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_beacon_signals',
+      severity: 'medium',
+      message: `beacon-signals endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
 app.get('/api/system/diagnostics', async (req, res) => {
   const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
 
