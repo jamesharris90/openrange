@@ -26,6 +26,7 @@ const {
   startAllEngines,
 } = require('../system/engineSupervisor');
 const { recordEngineTelemetry, logSystemAlert, normalizeRowsProcessed } = require('../system/engineOps');
+const { sendPremarketScanEmail } = require('../services/emailService');
 
 let started = false;
 let ingestionInterval = null;
@@ -49,6 +50,7 @@ let intelNewsInFlight = false;
 let schedulerInFlight = false;
 let bootstrapCompleted = false;
 let schedulerCronJob = null;
+let premarketScanCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 
@@ -482,6 +484,46 @@ async function runPipeline() {
   }
 }
 
+async function runPremarketScanAndEmail() {
+  try {
+    const { rows } = await poolWrite.query(
+      `SELECT
+         symbol,
+         strategy,
+         probability,
+         gap_percent,
+         relative_volume
+       FROM strategy_signals
+       WHERE gap_percent > 2
+         AND relative_volume > 1.5
+       ORDER BY probability DESC
+       LIMIT 20`
+    );
+
+    await sendPremarketScanEmail(rows || [], 'intelligence@openrangetrading.co.uk');
+
+    await recordEngineTelemetry({
+      engineName: 'premarket_scan_email',
+      status: 'ok',
+      rowsProcessed: normalizeRowsProcessed((rows || []).length),
+      runtimeMs: 0,
+    });
+
+    logger.info('Premarket scan email sent', {
+      rows: (rows || []).length,
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'premarket_scan_email',
+      severity: 'high',
+      message: `Premarket scan email failed: ${error.message}`,
+    }).catch(() => null);
+
+    logger.error('Premarket scan email failed', { error: error.message });
+  }
+}
+
 function startEngineScheduler() {
   if (started) return;
   started = true;
@@ -500,6 +542,12 @@ function startEngineScheduler() {
     runPipeline();
   });
 
+  premarketScanCronJob = cron.schedule('0 7 * * *', () => {
+    runPremarketScanAndEmail();
+  }, {
+    timezone: 'Europe/London',
+  });
+
   runPipeline();
 
   logger.info('Engine scheduler started', {
@@ -515,6 +563,7 @@ function startEngineScheduler() {
     intelNewsEverySeconds: state.intelNewsEverySeconds,
     mode: 'phase_2_intelligence',
     schedule: '* * * * *',
+    premarketScanSchedule: '0 7 * * * Europe/London',
   });
 }
 
@@ -532,6 +581,7 @@ function getEngineSchedulerStatus() {
     expectedMoveTimerActive: Boolean(metricsInterval),
     intelNewsTimerActive: Boolean(metricsInterval),
     cronTimerActive: Boolean(schedulerCronJob),
+    premarketScanTimerActive: Boolean(premarketScanCronJob),
     schedulerSequentialMode: true,
     engineDelayMs: ENGINE_DELAY_MS,
   };

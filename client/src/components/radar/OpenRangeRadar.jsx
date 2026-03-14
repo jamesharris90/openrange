@@ -3,6 +3,7 @@ import { fetchRadar, fetchRadarTopTrades } from '../../api/radarApi';
 import RadarSection from './RadarSection';
 import RadarDiagnostics from '../system/RadarDiagnostics';
 import SystemWatchdog from '../system/SystemWatchdog';
+import StocksInPlayPanel from '../StocksInPlayPanel';
 
 const RADAR_TIMEOUT_MS = 10000;
 
@@ -133,6 +134,8 @@ export default function OpenRangeRadar() {
           <RadarSection key={section.title} title={section.title} items={section.items} />
         ))}
       </div>
+
+      <StocksInPlayPanel />
     </div>
   );
 }

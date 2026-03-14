@@ -265,6 +265,86 @@ async function sendBriefingEmail(briefing, recipientOverride) {
   };
 }
 
+async function sendPremarketScanEmail(rows = [], recipientOverride = 'intelligence@openrangetrading.co.uk') {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    logger.warn('[PREMARKET_SCAN_EMAIL] RESEND_API_KEY missing; skipping email send');
+    return { sent: false, reason: 'missing_resend_api_key' };
+  }
+
+  const recipients = recipientOverride ? [recipientOverride] : ['intelligence@openrangetrading.co.uk'];
+  const from = process.env.EMAIL_FROM || 'OpenRange <briefing@openrange.local>';
+  const resend = new Resend(apiKey);
+
+  const bodyRows = rows.slice(0, 20).map((row) => {
+    const symbol = String(row?.symbol || '').toUpperCase() || 'N/A';
+    const strategy = String(row?.strategy || row?.class || 'N/A');
+    const probability = Number(row?.probability || 0);
+    const gap = Number(row?.gap_percent || 0);
+    const rvol = Number(row?.relative_volume || 0);
+    return `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #1f2937;color:#e2e8f0;">${symbol}</td>
+        <td style="padding:8px;border-bottom:1px solid #1f2937;color:#cbd5e1;">${strategy}</td>
+        <td style="padding:8px;border-bottom:1px solid #1f2937;color:#f8fafc;text-align:right;">${probability.toFixed(2)}</td>
+        <td style="padding:8px;border-bottom:1px solid #1f2937;color:#f8fafc;text-align:right;">${gap.toFixed(2)}%</td>
+        <td style="padding:8px;border-bottom:1px solid #1f2937;color:#f8fafc;text-align:right;">${rvol.toFixed(2)}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;background:#020617;color:#e2e8f0;padding:20px;">
+      <h2 style="margin:0 0 12px 0;color:#38bdf8;">OpenRange Premarket Scan</h2>
+      <table style="width:100%;border-collapse:collapse;background:#0f172a;border:1px solid #1e293b;">
+        <thead>
+          <tr>
+            <th style="padding:8px;text-align:left;color:#93c5fd;border-bottom:1px solid #1f2937;">Symbol</th>
+            <th style="padding:8px;text-align:left;color:#93c5fd;border-bottom:1px solid #1f2937;">Strategy</th>
+            <th style="padding:8px;text-align:right;color:#93c5fd;border-bottom:1px solid #1f2937;">Probability</th>
+            <th style="padding:8px;text-align:right;color:#93c5fd;border-bottom:1px solid #1f2937;">Gap %</th>
+            <th style="padding:8px;text-align:right;color:#93c5fd;border-bottom:1px solid #1f2937;">RVOL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bodyRows || '<tr><td colspan="5" style="padding:10px;color:#94a3b8;">No qualifying symbols today.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+
+  const text = [
+    'OpenRange Premarket Scan',
+    '',
+    ...(rows.slice(0, 20).map((row) => {
+      const symbol = String(row?.symbol || '').toUpperCase() || 'N/A';
+      const strategy = String(row?.strategy || row?.class || 'N/A');
+      const probability = Number(row?.probability || 0).toFixed(2);
+      const gap = Number(row?.gap_percent || 0).toFixed(2);
+      const rvol = Number(row?.relative_volume || 0).toFixed(2);
+      return `${symbol} | ${strategy} | ${probability} | ${gap}% | ${rvol}`;
+    })),
+  ].join('\n');
+
+  const response = await resend.emails.send({
+    from,
+    to: recipients,
+    subject: `OpenRange Premarket Scan - ${new Date().toISOString().slice(0, 10)}`,
+    html,
+    text,
+  });
+
+  logger.info('[PREMARKET_SCAN_EMAIL] Sent', {
+    recipients,
+    id: response?.data?.id || null,
+  });
+
+  return {
+    sent: true,
+    recipients,
+    providerId: response?.data?.id || null,
+  };
+}
+
 module.exports = {
   sendBriefingEmail,
+  sendPremarketScanEmail,
 };

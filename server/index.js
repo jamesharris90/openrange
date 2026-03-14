@@ -164,6 +164,7 @@ const { runDataIntegrityEngine, getDataIntegrityHealth } = require('./engines/da
 const { runProviderCrossCheckEngine } = require('./engines/providerCrossCheckEngine');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engines/systemAlertEngine');
 const { startRetentionJobs } = require('./system/retentionJobs');
+const { logSystemAlert } = require('./system/engineOps');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -842,12 +843,28 @@ async function resolvePplxConfig(req) {
 }
 
 // Public endpoints (no auth required)
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await queryWithTimeout('SELECT 1 AS ok', [], {
+      timeoutMs: 250,
+      maxRetries: 0,
+      slowQueryMs: 200,
+      label: 'api.health.db_ping',
+    });
+
+    return res.status(200).json({
+      status: 'ok',
+      database: 'connected',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(503).json({
+      status: 'degraded',
+      database: 'unavailable',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/market-status', (req, res) => {
@@ -969,15 +986,121 @@ app.get('/api/system/data-freshness', async (_req, res) => {
   }
 });
 
+app.get('/api/system/activity', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT engine, rows_last_hour
+       FROM engine_activity_last_hour
+       ORDER BY rows_last_hour DESC
+       LIMIT 50`,
+      [],
+      {
+        timeoutMs: 450,
+        maxRetries: 0,
+        slowQueryMs: 400,
+        label: 'api.system.activity',
+      }
+    );
+
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.json({ ok: false, items: [], error: error.message });
+  }
+});
+
+app.get('/api/system/strategies', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT strategy, signals, avg_probability, avg_move, win_rate
+       FROM strategy_performance_dashboard
+       ORDER BY signals DESC
+       LIMIT 50`,
+      [],
+      {
+        timeoutMs: 450,
+        maxRetries: 0,
+        slowQueryMs: 400,
+        label: 'api.system.strategies',
+      }
+    );
+
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.json({ ok: false, items: [], error: error.message });
+  }
+});
+
+app.get('/api/system/opportunities', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol, event_type, headline, score, source, created_at
+       FROM opportunity_stream
+       WHERE score > 0.75
+       ORDER BY score DESC
+       LIMIT 50`,
+      [],
+      {
+        timeoutMs: 450,
+        maxRetries: 0,
+        slowQueryMs: 400,
+        label: 'api.system.opportunities',
+      }
+    );
+
+    return res.json({ ok: true, items: rows || [] });
+  } catch (error) {
+    return res.json({ ok: false, items: [], error: error.message });
+  }
+});
+
+app.get('/api/stocks-in-play', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT *
+       FROM stocks_in_play_engine
+       WHERE probability > 0.6
+         AND relative_volume > 1.5
+       ORDER BY opportunity_score DESC
+       LIMIT 20`,
+      [],
+      {
+        timeoutMs: 450,
+        maxRetries: 0,
+        slowQueryMs: 400,
+        label: 'api.stocks_in_play',
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows || [],
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_stocks_in_play',
+      severity: 'medium',
+      message: `stocks-in-play endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
 app.get('/api/system/diagnostics', async (req, res) => {
   const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
 
-  const safeSqlRows = async (sql, params, label, timeoutMs = 1800) => {
+  const safeSqlRows = async (sql, params, label, timeoutMs = 450) => {
     try {
       const { rows } = await queryWithTimeout(sql, params, {
         timeoutMs,
         maxRetries: 0,
-        slowQueryMs: 900,
+        slowQueryMs: 400,
         label,
       });
       return rows || [];
@@ -993,9 +1116,9 @@ app.get('/api/system/diagnostics', async (req, res) => {
       opportunitiesPerHour,
       newsPerHour,
       signalTypeDistribution,
-      engineTelemetry,
-      providerHealth,
-      systemEvents,
+      activityRows,
+      strategyRows,
+      topOpportunities,
     ] = await Promise.all([
       getDataFreshness(),
       safeSqlRows(
@@ -1026,7 +1149,7 @@ app.get('/api/system/diagnostics', async (req, res) => {
         'api.system.diagnostics.news_per_hour'
       ),
       safeSqlRows(
-        `SELECT COALESCE(NULLIF(strategy, ''), NULLIF(class, ''), 'unknown') AS signal_type,
+        `SELECT COALESCE(NULLIF(strategy, ''), 'unknown') AS signal_type,
                 COUNT(*)::int AS count
          FROM strategy_signals
          GROUP BY 1
@@ -1035,39 +1158,29 @@ app.get('/api/system/diagnostics', async (req, res) => {
         'api.system.diagnostics.signal_type_distribution'
       ),
       safeSqlRows(
-        `SELECT DISTINCT ON (COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')))
-                COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')) AS engine,
-                COALESCE(payload->>'status', 'unknown') AS status,
-                CASE
-                  WHEN COALESCE(payload->>'rows_processed', '') ~ '^-?\\d+$'
-                    THEN (payload->>'rows_processed')::int
-                  ELSE 0
-                END AS rows_processed,
-                updated_at
-         FROM engine_telemetry
-         ORDER BY COALESCE(NULLIF(engine, ''), COALESCE(payload->>'engine_name', 'unknown')),
-                  updated_at DESC`,
+        `SELECT engine, rows_last_hour
+         FROM engine_activity_last_hour
+         ORDER BY rows_last_hour DESC
+         LIMIT 50`,
         [],
-        'api.system.diagnostics.engine_telemetry'
+        'api.system.diagnostics.activity'
       ),
       safeSqlRows(
-        `SELECT DISTINCT ON (provider)
-                provider,
-                status,
-                latency,
-                COALESCE(updated_at, created_at) AS updated_at
-         FROM provider_health
-         ORDER BY provider, COALESCE(updated_at, created_at) DESC`,
+        `SELECT strategy, signals, avg_probability, avg_move, win_rate
+         FROM strategy_performance_dashboard
+         ORDER BY signals DESC
+         LIMIT 50`,
         [],
-        'api.system.diagnostics.provider_health'
+        'api.system.diagnostics.strategies'
       ),
       safeSqlRows(
-        `SELECT id, event_type, source, symbol, created_at
-         FROM system_events
-         ORDER BY created_at DESC
-         LIMIT 100`,
+        `SELECT symbol, event_type, headline, score, source, created_at
+         FROM opportunity_stream
+         WHERE score > 0.75
+         ORDER BY score DESC
+         LIMIT 50`,
         [],
-        'api.system.diagnostics.system_events'
+        'api.system.diagnostics.top_opportunities'
       ),
     ]);
 
@@ -1081,9 +1194,9 @@ app.get('/api/system/diagnostics', async (req, res) => {
         news_per_hour: newsPerHour,
       },
       signal_type_distribution: signalTypeDistribution,
-      engine_telemetry: engineTelemetry,
-      provider_health: providerHealth,
-      system_events: systemEvents,
+      activity: activityRows,
+      strategy_performance: strategyRows,
+      top_opportunities: topOpportunities,
     });
   } catch (error) {
     return res.json({
@@ -1097,9 +1210,9 @@ app.get('/api/system/diagnostics', async (req, res) => {
         news_per_hour: [],
       },
       signal_type_distribution: [],
-      engine_telemetry: [],
-      provider_health: [],
-      system_events: [],
+      activity: [],
+      strategy_performance: [],
+      top_opportunities: [],
     });
   }
 });
