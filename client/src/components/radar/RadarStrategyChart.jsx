@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { radarFetchJson } from './radarFetch';
+import { radarFetch } from '../../utils/radarFetch';
 
 const POLL_MS = 60000;
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#14b8a6', '#a855f7', '#84cc16'];
@@ -25,7 +25,7 @@ export default function RadarStrategyChart() {
       setError('');
 
       try {
-        const payload = await radarFetchJson('/api/system/strategies', { timeoutMs: 500 });
+        const payload = await radarFetch('/api/system/strategies');
         if (!active || requestId !== requestIdRef.current) return;
 
         const items = Array.isArray(payload?.items) ? payload.items : [];

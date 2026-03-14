@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { radarFetchJson, isLast24Hours } from './radarFetch';
+import { radarFetch, isLast24Hours } from '../../utils/radarFetch';
 
 const POLL_MS = 60000;
 
@@ -22,7 +22,7 @@ export default function RadarOpportunities() {
       setError('');
 
       try {
-        const payload = await radarFetchJson('/api/system/opportunities', { timeoutMs: 500 });
+        const payload = await radarFetch('/api/system/opportunities');
 
         if (!active || requestId !== requestIdRef.current) return;
 

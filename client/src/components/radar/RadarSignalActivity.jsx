@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { radarFetchJson } from './radarFetch';
+import { radarFetch } from '../../utils/radarFetch';
 
 const POLL_MS = 60000;
 
@@ -24,7 +24,7 @@ export default function RadarSignalActivity() {
       setError('');
 
       try {
-        const payload = await radarFetchJson('/api/system/activity', { timeoutMs: 500 });
+        const payload = await radarFetch('/api/system/activity');
         if (!active || requestId !== requestIdRef.current) return;
 
         const items = Array.isArray(payload?.items) ? payload.items : [];

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { radarFetchJson } from './radarFetch';
+import { radarFetch } from '../../utils/radarFetch';
 
 const POLL_MS = 60000;
 
@@ -25,10 +25,7 @@ export default function RadarStocksInPlay() {
       setError('');
 
       try {
-        const payload = await radarFetchJson('/api/stocks-in-play', {
-          timeoutMs: 500,
-          signal: controller.signal,
-        });
+        const payload = await radarFetch('/api/stocks-in-play');
 
         if (!active || requestId !== requestIdRef.current) return;
 
