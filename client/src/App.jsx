@@ -19,6 +19,7 @@ const LandingPage = safeLazy(() => import('./pages/LandingPage'));
 const ForgotPasswordPage = safeLazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = safeLazy(() => import('./pages/ResetPasswordPage'));
 const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
+const OpenRangeRadarPage = safeLazy(() => import('./pages/OpenRangeRadar'));
 const WatchlistPage = safeLazy(() => import('./components/watchlist/WatchlistPage'));
 const EarningsPage = safeLazy(() => import('./components/earnings/EarningsPage'));
 const PreMarketCommandCenter = safeLazy(() => import('./pages/PreMarketCommandCenter'));
@@ -71,6 +72,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/radar" element={<OpenRangeRadarPage />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
                   <Route path="/scanner" element={<Navigate to="/screener" replace />} />
                   <Route path="/screeners" element={<Navigate to="/screener" replace />} />

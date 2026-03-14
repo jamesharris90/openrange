@@ -55,6 +55,7 @@ const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: BarChart2 },
+      { to: '/radar', label: 'Radar', icon: Activity },
       { to: '/mobile-dashboard', label: 'Mobile Dashboard', icon: Activity },
       { to: '/alerts', label: 'Alerts', icon: Bell, feature: 'alerts' },
       { to: '/research', label: 'Research', icon: Search },

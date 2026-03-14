@@ -1,0 +1,44 @@
+import { useEffect } from 'react';
+import { Activity } from 'lucide-react';
+import { PageContainer } from '../components/layout/PagePrimitives';
+import RadarStocksInPlay from '../components/radar/RadarStocksInPlay';
+import RadarOpportunities from '../components/radar/RadarOpportunities';
+import RadarStrategyChart from '../components/radar/RadarStrategyChart';
+import RadarSignalActivity from '../components/radar/RadarSignalActivity';
+import RadarOpportunityFeed from '../components/radar/RadarOpportunityFeed';
+
+export default function OpenRangeRadarPage() {
+  useEffect(() => {
+    document.title = 'OpenRange Radar';
+  }, []);
+
+  return (
+    <PageContainer className="space-y-4">
+      <section className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-5">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg border border-slate-700 bg-slate-800/70 p-2 text-emerald-400">
+            <Activity size={18} />
+          </div>
+          <div>
+            <h1 className="m-0 text-xl font-semibold tracking-tight text-slate-100">OpenRange Radar</h1>
+            <p className="m-0 mt-1 text-sm text-slate-400">
+              Command center for what is moving, why it is moving, and how it can be traded.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <RadarStocksInPlay />
+        <RadarOpportunities />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <RadarStrategyChart />
+        <RadarSignalActivity />
+      </section>
+
+      <RadarOpportunityFeed />
+    </PageContainer>
+  );
+}
