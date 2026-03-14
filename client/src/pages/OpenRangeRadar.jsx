@@ -4,10 +4,11 @@ import { PageContainer } from '../components/layout/PagePrimitives';
 import RadarMarketContext from '../components/radar/RadarMarketContext';
 import RadarBeaconPanel from '../components/radar/RadarBeaconPanel';
 import RadarStocksInPlay from '../components/radar/RadarStocksInPlay';
-import RadarOpportunities from '../components/radar/RadarOpportunities';
+import RadarSectorRotation from '../components/radar/RadarSectorRotation';
 import RadarStrategyChart from '../components/radar/RadarStrategyChart';
 import RadarSignalActivity from '../components/radar/RadarSignalActivity';
 import RadarOpportunityFeed from '../components/radar/RadarOpportunityFeed';
+import RadarTradeNarratives from '../components/radar/RadarTradeNarratives';
 
 export default function OpenRangeRadarPage() {
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function OpenRangeRadarPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <RadarOpportunities />
+        <RadarSectorRotation />
         <RadarStrategyChart />
       </section>
 
@@ -46,6 +47,8 @@ export default function OpenRangeRadarPage() {
         <RadarSignalActivity />
         <RadarOpportunityFeed />
       </section>
+
+      <RadarTradeNarratives />
     </PageContainer>
   );
 }

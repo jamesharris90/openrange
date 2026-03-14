@@ -31,6 +31,8 @@ const { runBeaconEngine } = require('./beaconEngine');
 const { runBeaconLearningEngine } = require('./beaconLearningEngine');
 const { runBeaconOptimizer } = require('./beaconOptimizer');
 const { runMarketContextEngine } = require('./marketContextEngine');
+const { runSectorRotationEngine } = require('./sectorRotationEngine');
+const { runTradeNarrativeEngine } = require('./tradeNarrativeEngine');
 
 let started = false;
 let ingestionInterval = null;
@@ -56,6 +58,8 @@ let beaconInFlight = false;
 let beaconLearningInFlight = false;
 let beaconOptimizerInFlight = false;
 let marketContextInFlight = false;
+let sectorRotationInFlight = false;
+let tradeNarrativeInFlight = false;
 let bootstrapCompleted = false;
 let schedulerCronJob = null;
 let premarketScanCronJob = null;
@@ -63,6 +67,8 @@ let beaconCronJob = null;
 let beaconLearningCronJob = null;
 let beaconOptimizerCronJob = null;
 let marketContextCronJob = null;
+let sectorRotationCronJob = null;
+let tradeNarrativeCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 
@@ -107,6 +113,10 @@ const state = {
   lastBeaconOptimizerError: null,
   lastMarketContextRunAt: null,
   lastMarketContextError: null,
+  lastSectorRotationRunAt: null,
+  lastSectorRotationError: null,
+  lastTradeNarrativeRunAt: null,
+  lastTradeNarrativeError: null,
   bootstrapTargetRows: BOOTSTRAP_MIN_ROWS,
 };
 
@@ -490,6 +500,46 @@ async function runMarketContextNow() {
   }
 }
 
+async function runSectorRotationNow() {
+  if (sectorRotationInFlight) {
+    logger.warn('Skipping sector rotation run; previous run still in flight');
+    return null;
+  }
+
+  sectorRotationInFlight = true;
+  state.lastSectorRotationRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('sectorRotationEngine', runSectorRotationEngine);
+    state.lastSectorRotationError = null;
+    return result;
+  } catch (error) {
+    state.lastSectorRotationError = error.message;
+    return null;
+  } finally {
+    sectorRotationInFlight = false;
+  }
+}
+
+async function runTradeNarrativeNow() {
+  if (tradeNarrativeInFlight) {
+    logger.warn('Skipping trade narrative run; previous run still in flight');
+    return null;
+  }
+
+  tradeNarrativeInFlight = true;
+  state.lastTradeNarrativeRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('tradeNarrativeEngine', runTradeNarrativeEngine);
+    state.lastTradeNarrativeError = null;
+    return result;
+  } catch (error) {
+    state.lastTradeNarrativeError = error.message;
+    return null;
+  } finally {
+    tradeNarrativeInFlight = false;
+  }
+}
+
 async function runUniverseBuilderNow() {
   return runUniverseNow();
 }
@@ -676,9 +726,23 @@ function startEngineScheduler() {
     });
   }
 
+  if (!sectorRotationCronJob) {
+    sectorRotationCronJob = cron.schedule('*/5 * * * *', () => {
+      runSectorRotationNow();
+    });
+  }
+
+  if (!tradeNarrativeCronJob) {
+    tradeNarrativeCronJob = cron.schedule('*/5 * * * *', () => {
+      runTradeNarrativeNow();
+    });
+  }
+
   runPipeline();
   runBeaconNow();
   runMarketContextNow();
+  runSectorRotationNow();
+  runTradeNarrativeNow();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
@@ -698,6 +762,8 @@ function startEngineScheduler() {
     beaconLearningSchedule: '10 0 * * * Europe/London',
     beaconOptimizerSchedule: '20 0 * * 0 Europe/London',
     marketContextSchedule: '*/5 * * * *',
+    sectorRotationSchedule: '*/5 * * * *',
+    tradeNarrativeSchedule: '*/5 * * * *',
   });
 }
 
@@ -720,6 +786,8 @@ function getEngineSchedulerStatus() {
     beaconLearningTimerActive: Boolean(beaconLearningCronJob),
     beaconOptimizerTimerActive: Boolean(beaconOptimizerCronJob),
     marketContextTimerActive: Boolean(marketContextCronJob),
+    sectorRotationTimerActive: Boolean(sectorRotationCronJob),
+    tradeNarrativeTimerActive: Boolean(tradeNarrativeCronJob),
     schedulerSequentialMode: true,
     engineDelayMs: ENGINE_DELAY_MS,
   };
@@ -744,6 +812,8 @@ module.exports = {
   runBeaconLearningNow,
   runBeaconOptimizerNow,
   runMarketContextNow,
+  runSectorRotationNow,
+  runTradeNarrativeNow,
   runPipeline,
   getEngineSchedulerStatus,
 };

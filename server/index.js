@@ -1156,6 +1156,80 @@ app.get('/api/market-context', async (_req, res) => {
   }
 });
 
+app.get('/api/sector-rotation', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT *
+       FROM sector_rotation_snapshot
+       ORDER BY rank ASC
+       LIMIT 10`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 450,
+        label: 'api.sector.rotation',
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows || [],
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_sector_rotation',
+      severity: 'medium',
+      message: `sector-rotation endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
+app.get('/api/trade-narratives', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT *
+       FROM trade_narratives
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 450,
+        label: 'api.trade.narratives',
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows || [],
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_trade_narratives',
+      severity: 'medium',
+      message: `trade-narratives endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
 app.get('/api/system/diagnostics', async (req, res) => {
   const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
 
