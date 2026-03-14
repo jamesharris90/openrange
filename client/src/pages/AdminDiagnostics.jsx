@@ -77,8 +77,8 @@ export default function AdminDiagnostics() {
   }, [health]);
 
   return (
-    <div className="space-y-4">
-      <AdminLayout section="Diagnostics" />
+    <AdminLayout section="Diagnostics">
+      <div className="space-y-4">
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">System Diagnostics</h1>
@@ -132,6 +132,7 @@ export default function AdminDiagnostics() {
         <div>API Health: {(diagnostics?.ok ?? true) ? 'OK' : 'Failed'}</div>
         <div>Scheduler Status: {(diagnostics?.checked_at || health?.status) ? 'Active' : 'Unknown'}</div>
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

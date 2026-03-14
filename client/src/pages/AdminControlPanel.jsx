@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { authFetchJSON, authFetch } from '../utils/api';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import AdminLayout from '../components/layout/AdminLayout';
 
-const TABS = ['users', 'features', 'audit', 'system'];
+const TABS = ['users', 'roles', 'features', 'audit', 'system'];
+
+function normalizeTab(tab) {
+  const value = String(tab || '').trim().toLowerCase();
+  if (value === 'feature-flags') return 'features';
+  if (TABS.includes(value)) return value;
+  return 'users';
+}
 
 function roleColor(role) {
   if (role === 'admin') return 'bg-red-500/15 text-red-300';
@@ -13,8 +21,9 @@ function roleColor(role) {
 }
 
 export default function AdminControlPanel() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { refreshFeatures } = useFeatureAccess();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(() => normalizeTab(searchParams.get('tab')));
   const [users, setUsers] = useState([]);
   const [registryGrouped, setRegistryGrouped] = useState({});
   const [auditRows, setAuditRows] = useState([]);
@@ -76,6 +85,10 @@ export default function AdminControlPanel() {
   }
 
   useEffect(() => {
+    setActiveTab(normalizeTab(searchParams.get('tab')));
+  }, [searchParams]);
+
+  useEffect(() => {
     loadBase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -85,6 +98,14 @@ export default function AdminControlPanel() {
     loadSelectedUser(selectedUserId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUserId]);
+
+  function updateTab(tab) {
+    const normalized = normalizeTab(tab);
+    setActiveTab(normalized);
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', normalized);
+    setSearchParams(next, { replace: true });
+  }
 
   async function updateRole(userId, role) {
     try {
@@ -125,8 +146,8 @@ export default function AdminControlPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <AdminLayout section="Control Panel" />
+    <AdminLayout section="Control Panel">
+      <div className="space-y-4">
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Admin Control Panel</h1>
@@ -154,7 +175,7 @@ export default function AdminControlPanel() {
             <button
               key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)}
+              onClick={() => updateTab(tab)}
               className={`rounded-md px-3 py-1.5 text-sm ${
                 activeTab === tab
                   ? 'bg-[var(--accent-blue)] text-white'
@@ -162,6 +183,7 @@ export default function AdminControlPanel() {
               }`}
             >
               {tab === 'users' && 'Users'}
+              {tab === 'roles' && 'Roles'}
               {tab === 'features' && 'Feature Controls'}
               {tab === 'audit' && 'Audit Trail'}
               {tab === 'system' && 'System Links'}
@@ -172,7 +194,7 @@ export default function AdminControlPanel() {
         {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
         {loading && <p className="mb-2 text-sm text-[var(--text-muted)]">Loading admin data...</p>}
 
-        {activeTab === 'users' && (
+        {(activeTab === 'users' || activeTab === 'roles') && (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
@@ -308,6 +330,7 @@ export default function AdminControlPanel() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

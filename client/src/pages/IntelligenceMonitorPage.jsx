@@ -66,8 +66,8 @@ export default function IntelligenceMonitorPage() {
   }, []);
 
   return (
-    <div className="space-y-4">
-      <AdminLayout section="Intelligence Monitor" />
+    <AdminLayout section="Intelligence Monitor">
+      <div className="space-y-4">
 
       <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Intelligence Monitor</h1>
@@ -108,6 +108,7 @@ export default function IntelligenceMonitorPage() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

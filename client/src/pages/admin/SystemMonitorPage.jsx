@@ -1,202 +1,173 @@
-import { useEffect, useMemo, useState } from 'react';
-import { authFetchJSON } from '../../utils/api';
-import AdminLayout from '../../components/layout/AdminLayout';
+import { memo, useMemo } from 'react';
+import { Activity, Cpu, Gauge, Layers, Radio, Server } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import AdminLayout from '../../components/admin/AdminLayout';
+import StatusBadge from '../../components/admin/StatusBadge';
+import { apiClient } from '../../api/apiClient';
 
-function StatusPill({ value }) {
-  const normalized = String(value || 'unknown').toLowerCase();
-  const cls = normalized === 'ok'
-    ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200'
-    : normalized === 'warning'
-      ? 'border-amber-400/40 bg-amber-400/15 text-amber-200'
-      : 'border-red-400/40 bg-red-400/15 text-red-200';
-
-  return <span className={`rounded border px-2 py-0.5 text-xs ${cls}`}>{value || 'unknown'}</span>;
+function toNum(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
-function Section({ title, children }) {
+function metricPercent(value, max = 100) {
+  return Math.max(0, Math.min(100, Math.round((toNum(value) / Math.max(max, 1)) * 100)));
+}
+
+function MiniProgress({ value }) {
   return (
-    <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
-      <h2 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
-      {children}
+    <div className="h-2 rounded bg-slate-800">
+      <div className="h-2 rounded bg-blue-400" style={{ width: `${Math.max(2, value)}%` }} />
     </div>
   );
 }
 
-export default function SystemMonitorPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [data, setData] = useState(null);
+function MetricBox({ title, value, status, icon: Icon, progress = 0, subtitle }) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-xs uppercase tracking-wide text-slate-400">{title}</div>
+        {Icon ? <Icon size={16} className="text-blue-400" /> : null}
+      </div>
+      <div className="mb-2 text-xl font-semibold text-slate-100">{value}</div>
+      <MiniProgress value={progress} />
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs text-slate-400">{subtitle}</span>
+        <StatusBadge status={status} />
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    let cancelled = false;
+function SystemMonitorPage() {
+  const query = useQuery({
+    queryKey: ['admin-system-monitor-rebuild'],
+    queryFn: async () => {
+      const primary = await apiClient('/system/monitor').catch(() => null);
+      const fallback = await apiClient('/admin/system').catch(() => ({}));
+      return primary?.data || primary || fallback || {};
+    },
+    refetchInterval: 15000,
+  });
 
-    async function load() {
-      setError('');
-      if (!cancelled) setLoading(true);
-      try {
-        const payload = await authFetchJSON('/api/system/monitor');
-        if (!cancelled) setData(payload?.data || payload || null);
-      } catch (err) {
-        if (!cancelled) setError(err?.message || 'Failed to load system monitor');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+  const data = query.data || {};
 
-    load();
-    const timer = setInterval(load, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, []);
-
-  const overview = useMemo(() => {
-    if (!data) {
-      return {
-        events: 0,
-        integrity: 0,
-        alerts: 0,
-      };
-    }
-
-    return {
-      events: (data?.recent_events || []).length,
-      integrity: (data?.integrity_events || []).length,
-      alerts: (data?.system_alerts || []).length,
-    };
+  const telemetry = useMemo(() => {
+    const events = Array.isArray(data.recent_events) ? data.recent_events.length : 0;
+    const integrity = Array.isArray(data.integrity_events) ? data.integrity_events.length : 0;
+    const alerts = Array.isArray(data.system_alerts) ? data.system_alerts.length : 0;
+    return { events, integrity, alerts };
   }, [data]);
 
+  const providers = useMemo(() => {
+    const raw = data.provider_health || {};
+    return Object.entries(raw).slice(0, 8);
+  }, [data]);
+
+  const queueDepth = telemetry.events + telemetry.integrity;
+  const throughput = telemetry.events;
+
   return (
-    <div className="space-y-4">
-      <AdminLayout section="System Monitor" />
+    <AdminLayout title="System Activity" subtitle="Pipeline telemetry, runtime metrics, queue depth, and provider health">
+      <div className="space-y-4">
+        {query.isLoading ? <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-300">Loading system activity...</div> : null}
+        {query.error ? <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-300">Unable to fetch monitor metrics.</div> : null}
 
-      <Section title="System Status">
-        {loading ? <div className="text-sm text-[var(--text-muted)]">Loading system monitor...</div> : null}
-        {error ? <div className="rounded border border-red-400/40 bg-red-500/10 p-2 text-sm text-red-300">{error}</div> : null}
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">System</div>
-            <div className="mt-1"><StatusPill value={data?.system || data?.system_status || 'unknown'} /></div>
-          </div>
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">Event Bus</div>
-            <div className="mt-1"><StatusPill value={data?.event_bus || data?.event_bus_health?.status || (data?.event_bus_health?.logger_initialized ? 'ok' : 'warning')} /></div>
-          </div>
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">Alert Engine</div>
-            <div className="mt-1"><StatusPill value={data?.alert_engine || data?.alert_engine_health?.status || 'unknown'} /></div>
-          </div>
-        </div>
-      </Section>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricBox
+            title="Pipeline Telemetry"
+            value={String(data.system_status || data.system || 'unknown').toUpperCase()}
+            status={data.system_status || data.system || 'unknown'}
+            subtitle="System runtime"
+            progress={metricPercent(data.engines_running, 8)}
+            icon={Radio}
+          />
+          <MetricBox
+            title="Engine Runtime Metrics"
+            value={`${toNum(data.engines_running)} running`}
+            status={toNum(data.engines_running) > 0 ? 'ok' : 'warning'}
+            subtitle="Engine scheduler"
+            progress={metricPercent(data.engines_running, 8)}
+            icon={Cpu}
+          />
+          <MetricBox
+            title="Queue Depth"
+            value={`${queueDepth}`}
+            status={queueDepth < 200 ? 'ok' : 'warning'}
+            subtitle="Events + integrity"
+            progress={metricPercent(queueDepth, 300)}
+            icon={Layers}
+          />
+          <MetricBox
+            title="Event Throughput"
+            value={`${throughput}/window`}
+            status={throughput > 0 ? 'ok' : 'warning'}
+            subtitle="Recent events"
+            progress={metricPercent(throughput, 120)}
+            icon={Activity}
+          />
+        </section>
 
-      <Section title="Recent Events">
-        <div className="mb-2 text-sm text-[var(--text-muted)]">{overview.events} recent events</div>
-        <div className="max-h-64 overflow-auto rounded border border-[var(--border-color)]">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-[var(--text-muted)]">
-                <th className="px-2 py-1">Time</th>
-                <th className="px-2 py-1">Type</th>
-                <th className="px-2 py-1">Source</th>
-                <th className="px-2 py-1">Symbol</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.recent_events || [])?.map((row) => (
-                <tr key={`event-${row.id}`} className="border-t border-[var(--border-color)]">
-                  <td className="px-2 py-1">{new Date(row.created_at).toLocaleTimeString()}</td>
-                  <td className="px-2 py-1">{row.event_type}</td>
-                  <td className="px-2 py-1">{row.source || '--'}</td>
-                  <td className="px-2 py-1">{row.symbol || '--'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Server size={16} className="text-blue-400" />
+            <h2 className="text-sm font-semibold text-slate-100">Provider Health</h2>
+          </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Section title="Integrity Events">
-          <div className="mb-2 text-sm text-[var(--text-muted)]">{overview.integrity} integrity items</div>
-          <div className="space-y-2">
-            {(data?.integrity_events || []).slice(0, 20)?.map((row) => (
-              <div key={`integrity-${row.id}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div>{row.symbol || 'N/A'} - {row.issue || row.event_type}</div>
-                  <StatusPill value={row.severity || 'medium'} />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {providers.map(([name, provider]) => (
+              <div key={name} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">{name}</p>
+                  <StatusBadge status={provider?.status || 'unknown'} />
                 </div>
-                <div className="text-xs text-[var(--text-muted)]">{row.source || '--'} at {new Date(row.created_at).toLocaleString()}</div>
+                <p className="text-sm text-slate-200">Latency: {toNum(provider?.latency)} ms</p>
+                <p className="text-xs text-slate-400">Error rate: {toNum(provider?.error_rate).toFixed(3)}</p>
+                <div className="mt-2">
+                  <MiniProgress value={metricPercent(100 - toNum(provider?.error_rate) * 100, 100)} />
+                </div>
               </div>
             ))}
           </div>
-        </Section>
+        </section>
 
-        <Section title="Alerts">
-          <div className="mb-2 text-sm text-[var(--text-muted)]">{overview.alerts} alerts</div>
-          <div className="space-y-2">
-            {(data?.system_alerts || []).slice(0, 20)?.map((row) => (
-              <div key={`alert-${row.id}`} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div>{row.type}</div>
-                  <StatusPill value={row.severity} />
-                </div>
-                <div className="text-xs">{row.message}</div>
-                <div className="text-xs text-[var(--text-muted)]">{row.source || '--'} at {new Date(row.created_at).toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricBox
+            title="Alerts"
+            value={`${telemetry.alerts}`}
+            status={telemetry.alerts < 10 ? 'ok' : 'warning'}
+            subtitle="System alerts"
+            progress={metricPercent(telemetry.alerts, 30)}
+            icon={Gauge}
+          />
+          <MetricBox
+            title="Integrity Events"
+            value={`${telemetry.integrity}`}
+            status={telemetry.integrity < 20 ? 'ok' : 'warning'}
+            subtitle="Data quality"
+            progress={metricPercent(telemetry.integrity, 60)}
+            icon={Gauge}
+          />
+          <MetricBox
+            title="Cache Rows"
+            value={`${toNum(data.cache_health?.sparkline_cache_rows)}`}
+            status={toNum(data.cache_health?.sparkline_cache_rows) > 0 ? 'ok' : 'warning'}
+            subtitle="Sparkline cache"
+            progress={metricPercent(data.cache_health?.sparkline_cache_rows, 1000)}
+            icon={Layers}
+          />
+          <MetricBox
+            title="Ticker Cache"
+            value={String(data.cache_health?.ticker_cache || 'unknown').toUpperCase()}
+            status={data.cache_health?.ticker_cache || 'unknown'}
+            subtitle="Cache health"
+            progress={data.cache_health?.ticker_cache === 'ok' ? 100 : 35}
+            icon={Radio}
+          />
+        </section>
       </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Section title="Providers">
-          <div className="grid gap-2 md:grid-cols-2">
-            {Object.entries(data?.provider_health || {})?.map(([name, provider]) => (
-              <div key={name} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="font-semibold uppercase">{name}</div>
-                  <StatusPill value={provider?.status || 'unknown'} />
-                </div>
-                <div>Latency: {provider?.latency ?? '--'} ms</div>
-                <div>Error rate: {provider?.error_rate ?? '--'}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Engines">
-          <div className="grid gap-2 md:grid-cols-2">
-            {Object.entries(data?.engine_health || {})?.map(([name, engine]) => (
-              <div key={name} className="rounded border border-[var(--border-color)] p-2 text-sm">
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="font-semibold">{name}</div>
-                  <StatusPill value={engine?.status || 'unknown'} />
-                </div>
-                <div>Last run: {engine?.last_run ? new Date(engine.last_run).toLocaleTimeString() : '--'}</div>
-                <div>Exec: {Number(engine?.execution_time || 0)} ms</div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      </div>
-
-      <Section title="Cache Status">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">Ticker Cache</div>
-            <div className="mt-1"><StatusPill value={data?.cache_health?.ticker_cache || 'unknown'} /></div>
-          </div>
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">Sparkline Cache Rows</div>
-            <div className="mt-1 text-xl font-semibold">{Number(data?.cache_health?.sparkline_cache_rows || 0)}</div>
-          </div>
-          <div className="rounded border border-[var(--border-color)] p-3">
-            <div className="text-xs text-[var(--text-muted)]">Cache Refresh</div>
-            <div className="mt-1 text-sm">{data?.cache_health?.cache_refresh_time ? new Date(data?.cache_health.cache_refresh_time).toLocaleString() : '--'}</div>
-          </div>
-        </div>
-      </Section>
-    </div>
+    </AdminLayout>
   );
 }
+
+export default memo(SystemMonitorPage);

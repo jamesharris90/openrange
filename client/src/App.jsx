@@ -10,9 +10,6 @@ import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
 import RequireAdmin from './components/auth/RequireAdmin';
 import ErrorBoundary from './components/shared/ErrorBoundary';
-import SystemDiagnostics from './pages/admin/SystemDiagnostics';
-import LearningDashboard from './pages/admin/LearningDashboard';
-import StrategyEdgeDashboard from './pages/admin/StrategyEdgeDashboard';
 const LoginPage = safeLazy(() => import('./pages/LoginPage'));
 const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
 const LandingPage = safeLazy(() => import('./pages/LandingPage'));
@@ -51,9 +48,13 @@ const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
-const SystemMonitorPage = safeLazy(() => import('./pages/admin/SystemMonitorPage'));
-const CalibrationDashboard = safeLazy(() => import('./pages/admin/CalibrationDashboard'));
-const MissedOpportunitiesPage = safeLazy(() => import('./pages/admin/MissedOpportunitiesPage'));
+const AdminHome = safeLazy(() => import('./pages/Admin/AdminHome'));
+const SystemDiagnostics = safeLazy(() => import('./pages/Admin/SystemDiagnostics'));
+const LearningDashboard = safeLazy(() => import('./pages/Admin/LearningDashboard'));
+const StrategyEdgeDashboard = safeLazy(() => import('./pages/Admin/StrategyEdgeDashboard'));
+const SystemMonitorPage = safeLazy(() => import('./pages/Admin/SystemMonitorPage'));
+const CalibrationDashboard = safeLazy(() => import('./pages/Admin/CalibrationDashboard'));
+const MissedOpportunitiesPage = safeLazy(() => import('./pages/Admin/MissedOpportunitiesPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
 
 export default function App() {
@@ -113,10 +114,13 @@ export default function App() {
                   <Route path="/sector-heatmap" element={<SectorHeatmap />} />
                   <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
                   <Route path="/signal-intelligence-admin" element={<RequireAdmin><SignalIntelligenceAdmin /></RequireAdmin>} />
-                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/users" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/roles" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/audit" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/home" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/system-diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/system" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
@@ -125,7 +129,7 @@ export default function App() {
                   <Route path="/admin/learning-dashboard" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><LearningDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/learning" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><LearningDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/strategy-edge" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><StrategyEdgeDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/signals" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><StrategyEdgeDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/signals" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SignalIntelligenceAdmin /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/calibration" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><CalibrationDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/missed-opportunities" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/validation" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
