@@ -30,6 +30,7 @@ const { sendPremarketScanEmail } = require('../services/emailService');
 const { runBeaconEngine } = require('./beaconEngine');
 const { runBeaconLearningEngine } = require('./beaconLearningEngine');
 const { runBeaconOptimizer } = require('./beaconOptimizer');
+const { runMarketContextEngine } = require('./marketContextEngine');
 
 let started = false;
 let ingestionInterval = null;
@@ -54,12 +55,14 @@ let schedulerInFlight = false;
 let beaconInFlight = false;
 let beaconLearningInFlight = false;
 let beaconOptimizerInFlight = false;
+let marketContextInFlight = false;
 let bootstrapCompleted = false;
 let schedulerCronJob = null;
 let premarketScanCronJob = null;
 let beaconCronJob = null;
 let beaconLearningCronJob = null;
 let beaconOptimizerCronJob = null;
+let marketContextCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 
@@ -102,6 +105,8 @@ const state = {
   lastBeaconLearningError: null,
   lastBeaconOptimizerRunAt: null,
   lastBeaconOptimizerError: null,
+  lastMarketContextRunAt: null,
+  lastMarketContextError: null,
   bootstrapTargetRows: BOOTSTRAP_MIN_ROWS,
 };
 
@@ -465,6 +470,26 @@ async function runBeaconOptimizerNow() {
   }
 }
 
+async function runMarketContextNow() {
+  if (marketContextInFlight) {
+    logger.warn('Skipping market context run; previous run still in flight');
+    return null;
+  }
+
+  marketContextInFlight = true;
+  state.lastMarketContextRunAt = new Date().toISOString();
+  try {
+    const result = await safeRun('marketContextEngine', runMarketContextEngine);
+    state.lastMarketContextError = null;
+    return result;
+  } catch (error) {
+    state.lastMarketContextError = error.message;
+    return null;
+  } finally {
+    marketContextInFlight = false;
+  }
+}
+
 async function runUniverseBuilderNow() {
   return runUniverseNow();
 }
@@ -645,8 +670,15 @@ function startEngineScheduler() {
     });
   }
 
+  if (!marketContextCronJob) {
+    marketContextCronJob = cron.schedule('*/5 * * * *', () => {
+      runMarketContextNow();
+    });
+  }
+
   runPipeline();
   runBeaconNow();
+  runMarketContextNow();
 
   logger.info('Engine scheduler started', {
     ingestionEverySeconds: state.ingestionEverySeconds,
@@ -665,6 +697,7 @@ function startEngineScheduler() {
     beaconSchedule: '*/5 * * * *',
     beaconLearningSchedule: '10 0 * * * Europe/London',
     beaconOptimizerSchedule: '20 0 * * 0 Europe/London',
+    marketContextSchedule: '*/5 * * * *',
   });
 }
 
@@ -686,6 +719,7 @@ function getEngineSchedulerStatus() {
     beaconTimerActive: Boolean(beaconCronJob),
     beaconLearningTimerActive: Boolean(beaconLearningCronJob),
     beaconOptimizerTimerActive: Boolean(beaconOptimizerCronJob),
+    marketContextTimerActive: Boolean(marketContextCronJob),
     schedulerSequentialMode: true,
     engineDelayMs: ENGINE_DELAY_MS,
   };
@@ -709,6 +743,7 @@ module.exports = {
   runBeaconNow,
   runBeaconLearningNow,
   runBeaconOptimizerNow,
+  runMarketContextNow,
   runPipeline,
   getEngineSchedulerStatus,
 };

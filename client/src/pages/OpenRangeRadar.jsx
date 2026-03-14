@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Activity } from 'lucide-react';
 import { PageContainer } from '../components/layout/PagePrimitives';
+import RadarMarketContext from '../components/radar/RadarMarketContext';
 import RadarBeaconPanel from '../components/radar/RadarBeaconPanel';
 import RadarStocksInPlay from '../components/radar/RadarStocksInPlay';
 import RadarOpportunities from '../components/radar/RadarOpportunities';
@@ -28,6 +29,8 @@ export default function OpenRangeRadarPage() {
           </div>
         </div>
       </section>
+
+      <RadarMarketContext />
 
       <section className="grid gap-4 xl:grid-cols-2">
         <RadarBeaconPanel />

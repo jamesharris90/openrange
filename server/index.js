@@ -1119,6 +1119,43 @@ app.get('/api/beacon-signals', async (_req, res) => {
   }
 });
 
+app.get('/api/market-context', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT *
+       FROM market_context_snapshot
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [],
+      {
+        timeoutMs: 500,
+        maxRetries: 0,
+        slowQueryMs: 450,
+        label: 'api.market.context.latest',
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows?.[0] || {},
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_market_context',
+      severity: 'medium',
+      message: `market-context endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: {},
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
 app.get('/api/system/diagnostics', async (req, res) => {
   const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
 
