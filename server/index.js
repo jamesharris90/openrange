@@ -1,12 +1,14 @@
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION:', err);
+  console.error('[UNCAUGHT EXCEPTION]', err);
 });
 
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED PROMISE REJECTION:', err);
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason);
 });
 
-console.log('Starting OpenRange backend...');
+console.log('[BOOT] OpenRange backend starting');
+console.log(`[BOOT] Node version: ${process.version}`);
+console.log(`[BOOT] PORT env: ${process.env.PORT || 'undefined'}`);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 
 
@@ -445,6 +447,16 @@ function logUniverseDiagnostics(universe) {
 
 const app = express();
 app.set('trust proxy', 1);
+
+// Lightweight health endpoint for platform probes; intentionally no dependencies.
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'openrange-backend',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
@@ -511,11 +523,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const IS_RAILWAY = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
-const parsedPort = Number.parseInt(String(process.env.PORT || ''), 10);
-const PORT = Number.isFinite(parsedPort) && parsedPort > 0
-  ? parsedPort
-  : (IS_RAILWAY ? 8080 : 3000);
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const FMP_API_KEY = process.env.FMP_API_KEY || null;
 logger.info(`FMP_API_KEY exists: ${!!FMP_API_KEY}`);
@@ -843,29 +851,6 @@ async function resolvePplxConfig(req) {
 }
 
 // Public endpoints (no auth required)
-app.get('/api/health', async (_req, res) => {
-  try {
-    await queryWithTimeout('SELECT 1 AS ok', [], {
-      timeoutMs: 250,
-      maxRetries: 0,
-      slowQueryMs: 200,
-      label: 'api.health.db_ping',
-    });
-
-    return res.status(200).json({
-      status: 'ok',
-      database: 'connected',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    return res.status(503).json({
-      status: 'degraded',
-      database: 'unavailable',
-      timestamp: new Date().toISOString(),
-      error: error.message,
-    });
-  }
-});
 
 app.get('/api/market-status', (req, res) => {
   const now = new Date();
@@ -5862,12 +5847,22 @@ function bootstrapEngines() {
   }
 }
 
-const HOST = '0.0.0.0';
-
-const server = app.listen(PORT, HOST, () => {
-  console.log(`[SYSTEM] Server listening on port ${PORT}`);
-  logger.info(`OpenRange server listening on port ${PORT}`);
-  setTimeout(() => {
+async function bootstrapBackgroundServices() {
+  try {
+    console.log('[BOOT] Starting background services');
     bootstrapEngines();
-  }, 2000);
+    console.log('[BOOT] System ready');
+  } catch (err) {
+    console.error('[BOOT ERROR] Background bootstrap failed:', err);
+  }
+}
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[SERVER] OpenRange backend listening on port ${PORT}`);
+  console.log('[BOOT] HTTP server is live');
+  logger.info(`OpenRange server listening on port ${PORT}`);
+
+  setImmediate(() => {
+    bootstrapBackgroundServices();
+  });
 });
