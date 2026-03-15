@@ -13,6 +13,7 @@ import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
 import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
 import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
 import { safeArray, safeObject } from '../utils/safeData';
+import { adaptRadarPayload } from '../adapters/radarAdapter';
 
 function pickArray(...candidates) {
   for (const candidate of candidates) {
@@ -36,13 +37,13 @@ export default function OpenRangeRadarPage() {
         apiClient('/market/sector-strength').catch(() => ([])),
       ]);
 
-      return {
+      return adaptRadarPayload({
         summary: summary || {},
         opportunities: pickArray(opportunities?.data, opportunities?.items, opportunities?.rows, opportunities),
         signals: pickArray(signals?.data, signals?.items, signals?.rows, signals),
         news: pickArray(news?.data, news, news?.items),
         sectors: pickArray(sectors?.data, sectors, sectors?.items, sectors?.rows),
-      };
+      });
     },
     refetchInterval: 30000,
   });

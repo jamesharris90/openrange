@@ -1,7 +1,7 @@
+import { fetchSafe } from './fetchSafe';
+
 async function fetchJson(path) {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(`Request failed: ${path}`);
-  return res.json();
+  return fetchSafe(path, { fallback: {} });
 }
 
 export async function fetchWatchdog() {

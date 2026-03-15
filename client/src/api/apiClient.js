@@ -1,3 +1,5 @@
+import { fetchSafe } from './fetchSafe';
+
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   'https://openrange-backend-production.up.railway.app';
@@ -11,19 +13,7 @@ function normalizeApiPath(path) {
 }
 
 export async function safeFetch(url, options = {}) {
-  const response = await fetch(url, options);
-  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`API error ${response.status}: ${text}`);
-  }
-
-  if (!contentType.includes('application/json')) {
-    throw new Error('Non JSON response');
-  }
-
-  return response.json();
+  return fetchSafe(url, { ...options, fallback: {}, returnFallbackOnError: false });
 }
 
 export async function apiFetch(path, options = {}) {

@@ -1,7 +1,7 @@
+import { fetchSafe } from './fetchSafe';
+
 async function fetchJson(path) {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error('Radar API failed');
-  return res.json();
+  return fetchSafe(path, { fallback: {} });
 }
 
 export async function fetchRadar() {

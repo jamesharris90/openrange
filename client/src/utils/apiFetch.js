@@ -1,12 +1,8 @@
+import { fetchSafe } from '../api/fetchSafe';
+
 export async function apiFetch(url) {
   try {
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error('API error');
-    }
-
-    return await res.json();
+    return await fetchSafe(url, { fallback: { ok: false } });
   } catch (_err) {
     console.error('API failure:', url);
     return { ok: false };

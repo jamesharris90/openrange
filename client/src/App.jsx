@@ -5,19 +5,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
-import AppLayout from './components/layout/AppLayout';
+import AppLayout from './layouts/AppLayout';
 import SkeletonCard from './components/ui/SkeletonCard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
 import RequireAdmin from './components/auth/RequireAdmin';
-import ErrorBoundary from './components/shared/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
 import MarketShell from './layouts/MarketShell';
 import DiscoveryShell from './layouts/DiscoveryShell';
 import BeaconShell from './layouts/BeaconShell';
 import TradingShell from './layouts/TradingShell';
-import LearningShell from './layouts/LearningShell';
-import SystemShell from './layouts/SystemShell';
 import WatchlistPage from './components/watchlist/WatchlistPage';
 import EarningsPage from './components/earnings/EarningsPage';
 import LiveCockpit from './pages/LiveCockpit.tsx';
@@ -80,6 +78,15 @@ const MissedOpportunitiesPage = loadPage('Admin/MissedOpportunitiesPage');
 const SignalIntelligenceAdmin = loadPage('Admin/SignalIntelligenceAdmin');
 const StrategyEdgeDashboard = loadPage('Admin/StrategyEdgeDashboard');
 
+function InlineRouteFallback({ title = 'Page temporarily unavailable' }) {
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-100">
+      <h2 className="text-base font-semibold">{title}</h2>
+      <p className="mt-1 text-sm text-amber-50/90">A rendering error was isolated to this panel. The app shell is still running.</p>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ToastProvider>
@@ -118,26 +125,19 @@ export default function App() {
                 <Route path="/trading/watchlists" element={<ProtectedRoute><TradingShell title="Watchlists"><WatchlistPage /></TradingShell></ProtectedRoute>} />
                 <Route path="/trading/alerts" element={<ProtectedRoute><TradingShell title="Alerts"><FeatureGateRoute featureKey="alerts"><AlertsPage /></FeatureGateRoute></TradingShell></ProtectedRoute>} />
 
-                <Route path="/learning/strategy" element={<ProtectedRoute><LearningShell title="Strategy Evaluation"><StrategyEvaluationPage /></LearningShell></ProtectedRoute>} />
-                <Route path="/learning/calibration" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Calibration"><ErrorBoundary><CalibrationDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/learning/edge" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Strategy Edge"><ErrorBoundary><StrategyEdgeDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/learning/missed" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Missed Opportunities"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/learning/dashboard" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Learning Dashboard"><ErrorBoundary><LearningDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-
-                <Route path="/system/admin" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Admin"><ErrorBoundary><AdminHome /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/diagnostics" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Diagnostics"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/intelligence-monitor" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Intelligence Monitor"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/features" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Feature Flags"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/users" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Users"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/audit" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Audit Logs"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
-                <Route path="/system/profile" element={<ProtectedRoute><SystemShell title="Profile"><ProfilePage /></SystemShell></ProtectedRoute>} />
-
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="/terminal" element={<OpenRangeTerminal />} />
                   <Route path="/dashboard" element={<Navigate to="/terminal" replace />} />
-                  <Route path="/radar" element={<Navigate to="/market/radar" replace />} />
+                  <Route
+                    path="/radar"
+                    element={(
+                      <ErrorBoundary inline fallback={<InlineRouteFallback title="Radar temporarily unavailable" />}>
+                        <OpenRangeRadarPage />
+                      </ErrorBoundary>
+                    )}
+                  />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
-                  <Route path="/scanner" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/scanner" element={<InstitutionalScreener />} />
                   <Route path="/screeners" element={<Navigate to="/discovery/scanner" replace />} />
                   <Route path="/watchlist" element={<WatchlistPage />} />
                   <Route path="/watchlists" element={<Navigate to="/watchlist" replace />} />
@@ -164,19 +164,31 @@ export default function App() {
                   <Route path="/earnings-calendar" element={<Navigate to="/discovery/earnings" replace />} />
                   <Route path="/research" element={<ResearchPage />} />
                   <Route path="/alerts" element={<Navigate to="/trading/alerts" replace />} />
-                  <Route path="/charts" element={<Navigate to="/trading/charts" replace />} />
+                  <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/setup/:symbol" element={<TradeSetup />} />
                   <Route path="/live" element={<LiveCockpit />} />
-                  <Route path="/cockpit" element={<Navigate to="/trading/cockpit" replace />} />
+                  <Route path="/cockpit" element={<FeatureGateRoute featureKey="trading_cockpit"><SymbolDataProvider><CockpitPage /></SymbolDataProvider></FeatureGateRoute>} />
                   <Route path="/intelligence" element={<Navigate to="/beacon/hub" replace />} />
                   <Route path="/intelligence-engine" element={<Navigate to="/beacon/signals" replace />} />
                   <Route path="/intelligence-inbox" element={<Navigate to="/beacon/hub" replace />} />
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
                   <Route path="/expected-move" element={<Navigate to="/discovery/expected-move" replace />} />
                   <Route path="/sector-heatmap" element={<Navigate to="/market/sector-rotation" replace />} />
+                  <Route path="/learning/strategy" element={<StrategyEvaluationPage />} />
+                  <Route path="/learning/calibration" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="Learning module unavailable" />}><CalibrationDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/learning/edge" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="Learning module unavailable" />}><StrategyEdgeDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/learning/missed" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="Learning module unavailable" />}><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/learning/dashboard" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="Learning module unavailable" />}><LearningDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/strategy-evaluation" element={<Navigate to="/learning/strategy" replace />} />
                   <Route path="/signal-intelligence-admin" element={<Navigate to="/beacon/signals" replace />} />
-                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><IntelligenceMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/users" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/audit" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/system/profile" element={<ProfilePage />} />
+                  <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary inline fallback={<InlineRouteFallback title="System panel unavailable" />}><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin/features" element={<Navigate to="/system/features" replace />} />
                   <Route path="/admin/users" element={<Navigate to="/system/users" replace />} />

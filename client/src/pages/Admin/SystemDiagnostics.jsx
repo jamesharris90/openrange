@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { fetchSafe } from '../../api/fetchSafe';
 
 function Badge({ status }) {
   const normalized = String(status || "unknown").toUpperCase();
@@ -24,29 +25,21 @@ export default function SystemDiagnostics() {
       setLoading(true);
       setError("");
       try {
-        const [reportRes, engineRes] = await Promise.all([
-          fetch('/api/system-audit/report', {
+        const [reportJson, engineJson] = await Promise.all([
+          fetchSafe('/api/system-audit/report', {
             headers: { Accept: 'application/json' },
             credentials: 'include',
+            fallback: {},
           }),
-          fetch('/api/system/engine-health', {
+          fetchSafe('/api/system/engine-health', {
             headers: { Accept: 'application/json' },
             credentials: 'include',
+            fallback: { data: { engines: [] } },
           }),
         ]);
-
-        const json = await reportRes.json();
-        const engineJson = await engineRes.json().catch(() => ({}));
         if (cancelled) return;
 
-        if (!reportRes.ok) {
-          setError(json?.detail || json?.error || 'Unable to load system audit report');
-          setReport(null);
-          setEngineHealth([]);
-          return;
-        }
-
-        setReport(json && typeof json === 'object' ? json : null);
+        setReport(reportJson && typeof reportJson === 'object' ? reportJson : null);
         setEngineHealth(Array.isArray(engineJson?.data?.engines) ? engineJson.data.engines : []);
       } catch (err) {
         if (!cancelled) {

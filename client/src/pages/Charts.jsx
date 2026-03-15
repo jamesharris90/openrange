@@ -118,6 +118,7 @@ export default function Charts() {
   });
   const activeBeaconSignal = showBeaconSignals ? getSignal(symbol) : null;
   const activeBeaconSymbolCount = showBeaconSignals && activeBeaconSignal ? 1 : 0;
+  const hasChartData = Array.isArray(state?.candles?.history) && state.candles.history.length > 0;
 
   const profile = useMemo(() => getProfileForTimeframe(timeframe), [timeframe]);
 
@@ -511,22 +512,28 @@ export default function Charts() {
 
           <div className="min-h-0 flex-1">
             <ChartContainer>
-              <ChartEngine
-                symbol={symbol}
-                timeframe={timeframe}
-                profile={profile}
-                candles={state.candles.history}
-                lastUpdateTime={state.candles.lastUpdateTime}
-                indicators={state.indicators}
-                levels={levelsForChart}
-                events={state.events}
-                indicatorState={indicatorState}
-                marketOverlay={marketOverlay}
-                sectorEtfSymbol={sectorEtfSymbol}
-                patternMode={patternMode}
-                loading={state.loading}
-                error={state.error || ''}
-              />
+              {!state.loading && !hasChartData ? (
+                <div className="flex h-full min-h-[360px] items-center justify-center rounded-lg border border-white/10 bg-[var(--bg-surface)] text-sm text-[var(--text-secondary)]">
+                  No chart data available
+                </div>
+              ) : (
+                <ChartEngine
+                  symbol={symbol}
+                  timeframe={timeframe}
+                  profile={profile}
+                  candles={state.candles.history}
+                  lastUpdateTime={state.candles.lastUpdateTime}
+                  indicators={state.indicators}
+                  levels={levelsForChart}
+                  events={state.events}
+                  indicatorState={indicatorState}
+                  marketOverlay={marketOverlay}
+                  sectorEtfSymbol={sectorEtfSymbol}
+                  patternMode={patternMode}
+                  loading={state.loading}
+                  error={state.error || ''}
+                />
+              )}
             </ChartContainer>
           </div>
         </section>

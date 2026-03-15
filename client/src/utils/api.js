@@ -1,3 +1,5 @@
+import { fetchSafeRaw } from '../api/fetchSafe';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export function authFetch(url, options = {}) {
@@ -14,21 +16,15 @@ export function authFetch(url, options = {}) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 
-  return fetch(resolvedUrl, {
+  return fetchSafeRaw(resolvedUrl, {
     ...options,
     headers,
-    credentials: 'include'
+    credentials: 'include',
+    returnFallbackOnError: false,
   });
 }
 
 export async function authFetchJSON(url, options = {}) {
-  const res = await authFetch(url, options);
-  if (!res.ok) {
-    throw new Error(`API error ${res.status}`);
-  }
-  try {
-    return await res.json();
-  } catch (_err) {
-    return {};
-  }
+  const json = await authFetch(url, options);
+  return json && typeof json === 'object' ? json : {};
 }

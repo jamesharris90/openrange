@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchSafe } from '../api/fetchSafe';
 
 const REFRESH_MS = 60_000;
 
@@ -22,19 +23,14 @@ export default function StocksInPlayPanel() {
 
     async function load() {
       try {
-        const response = await fetch('/api/stocks-in-play', {
+        const payload = await fetchSafe('/api/stocks-in-play', {
           method: 'GET',
           headers: {
             ...getAuthHeaders(),
           },
           credentials: 'include',
+          fallback: { data: [] },
         });
-
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
         if (cancelled) return;
 
         setRows(Array.isArray(payload?.data) ? payload.data : []);
