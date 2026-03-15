@@ -6,6 +6,9 @@ const API_PROXY_TARGET = 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'dist',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

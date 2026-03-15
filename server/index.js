@@ -130,7 +130,9 @@ const {
   runIngestionNow,
   runIntelNewsNow,
   runOpportunityNow,
+  runBeaconEvolutionNow,
 } = require('./engines/scheduler');
+const { getBeaconEvolutionState } = require('./engines/beaconEvolutionEngine');
 const { monitorPipeline } = require('./system/pipelineWatchdog');
 const { startEngineScheduler: startPerformanceEngineScheduler, getEngineSchedulerHealth } = require('./system/engineScheduler');
 const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetectionEngine');
@@ -1119,6 +1121,103 @@ app.get('/api/beacon-signals', async (_req, res) => {
   }
 });
 
+async function ensureBeaconEvolutionSnapshot() {
+  const snapshot = getBeaconEvolutionState();
+  if (snapshot?.lastRunAt) {
+    return snapshot;
+  }
+
+  await runBeaconEvolutionNow();
+  return getBeaconEvolutionState();
+}
+
+app.get('/api/beacon/edge', async (_req, res) => {
+  try {
+    const snapshot = await ensureBeaconEvolutionSnapshot();
+    return res.json({
+      success: true,
+      data: snapshot.edge || [],
+      meta: {
+        lastRunAt: snapshot.lastRunAt,
+        runtimeMs: snapshot.lastRuntimeMs,
+        summary: snapshot.summary,
+      },
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_beacon_edge',
+      severity: 'medium',
+      message: `beacon/edge endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
+app.get('/api/beacon/learning', async (_req, res) => {
+  try {
+    const snapshot = await ensureBeaconEvolutionSnapshot();
+    return res.json({
+      success: true,
+      data: snapshot.learning || [],
+      meta: {
+        lastRunAt: snapshot.lastRunAt,
+        runtimeMs: snapshot.lastRuntimeMs,
+        summary: snapshot.summary,
+      },
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_beacon_learning',
+      severity: 'medium',
+      message: `beacon/learning endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
+app.get('/api/beacon/adjusted-probability', async (_req, res) => {
+  try {
+    const snapshot = await ensureBeaconEvolutionSnapshot();
+    return res.json({
+      success: true,
+      data: snapshot.adjustedProbability || [],
+      meta: {
+        lastRunAt: snapshot.lastRunAt,
+        runtimeMs: snapshot.lastRuntimeMs,
+        summary: snapshot.summary,
+      },
+    });
+  } catch (error) {
+    await logSystemAlert({
+      type: 'ENGINE_FAILURE',
+      source: 'api_beacon_adjusted_probability',
+      severity: 'medium',
+      message: `beacon/adjusted-probability endpoint failed: ${error.message}`,
+    }).catch(() => null);
+
+    return res.json({
+      success: false,
+      data: [],
+      error: error.message,
+      unavailable: true,
+    });
+  }
+});
+
 app.get('/api/market-context', async (_req, res) => {
   try {
     const { rows } = await queryWithTimeout(
@@ -1575,6 +1674,17 @@ app.get('/api/system/alerts', async (req, res) => {
 
 app.get('/api/system/engine-diagnostics', async (_req, res) => {
   try {
+    const beaconEvolutionState = getBeaconEvolutionState();
+    const beaconEvolutionSummary = beaconEvolutionState?.summary || {};
+    const beaconEvolutionEngine = {
+      last_run_time: beaconEvolutionState?.lastRunAt || null,
+      last_run_duration_ms: beaconEvolutionState?.lastRuntimeMs ?? null,
+      strategies_processed: Number(beaconEvolutionSummary?.strategies || 0),
+      signals_processed: Number(beaconEvolutionSummary?.sourceRows || 0),
+      adjustments_applied: Number(beaconEvolutionSummary?.adjustedRows || 0),
+      last_error: beaconEvolutionState?.lastError || null,
+    };
+
     const [
       telemetry,
       providerHealth,
@@ -1641,6 +1751,11 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
         `CALIBRATION_SIGNAL_COUNT: ${calibrationSignalCount}`,
         `CALIBRATION_WIN_RATE: ${calibrationWinRate === null ? 'n/a' : calibrationWinRate.toFixed(2)}`,
         `CALIBRATION_LAST_UPDATE: ${calibrationLastUpdate || 'n/a'}`,
+        `BEACON_EVOLUTION_LAST_RUN: ${beaconEvolutionEngine.last_run_time || 'n/a'}`,
+        `BEACON_EVOLUTION_STRATEGIES: ${beaconEvolutionEngine.strategies_processed}`,
+        `BEACON_EVOLUTION_SIGNALS: ${beaconEvolutionEngine.signals_processed}`,
+        `BEACON_EVOLUTION_ADJUSTMENTS: ${beaconEvolutionEngine.adjustments_applied}`,
+        `BEACON_EVOLUTION_ERROR: ${beaconEvolutionEngine.last_error || 'none'}`,
       ],
       engines: {
         ...(telemetry || {}),
@@ -1650,6 +1765,7 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
         calibration_win_rate: calibrationWinRate,
         calibration_last_update: calibrationLastUpdate,
         calibration_summary: calibrationSummary?.rows || [],
+        beaconEvolutionEngine,
       },
       provider_health: providerHealth,
       event_bus_health: eventBusHealth,
@@ -5781,22 +5897,19 @@ app.use('/api', (req, res) => {
 });
 
 // Serve built frontend assets only after API routes are mounted.
-if (process.env.NODE_ENV === 'production') {
-  app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
-  app.use('/js', express.static(path.join(__dirname, '..', 'js')));
-  app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
-  app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
-  app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
-  app.use(express.static(CLIENT_DIST));
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
-  // Production SPA fallback (must be last)
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
-  });
-}
+// Optional legacy static assets preserved for compatibility.
+app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
+app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
+app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
+app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
+
+// SPA fallback must be last and must not intercept /api/* paths.
+app.get(/^\/(?!api(?:\/|$)).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 async function ensureSchema() {
   await runMigrations();

@@ -10,13 +10,19 @@ import PublicRoute from './components/auth/PublicRoute';
 import FeatureGateRoute from './components/auth/FeatureGateRoute';
 import RequireAdmin from './components/auth/RequireAdmin';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import MarketShell from './layouts/MarketShell';
+import DiscoveryShell from './layouts/DiscoveryShell';
+import BeaconShell from './layouts/BeaconShell';
+import TradingShell from './layouts/TradingShell';
+import LearningShell from './layouts/LearningShell';
+import SystemShell from './layouts/SystemShell';
 const LoginPage = safeLazy(() => import('./pages/LoginPage'));
 const RegisterPage = safeLazy(() => import('./pages/RegisterPage'));
 const LandingPage = safeLazy(() => import('./pages/LandingPage'));
 const ForgotPasswordPage = safeLazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = safeLazy(() => import('./pages/ResetPasswordPage'));
-const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
 const OpenRangeRadarPage = safeLazy(() => import('./pages/OpenRangeRadar'));
+const OpenRangeTerminal = safeLazy(() => import('./pages/terminal/OpenRangeTerminal'));
 const WatchlistPage = safeLazy(() => import('./components/watchlist/WatchlistPage'));
 const EarningsPage = safeLazy(() => import('./components/earnings/EarningsPage'));
 const PreMarketCommandCenter = safeLazy(() => import('./pages/PreMarketCommandCenter'));
@@ -48,7 +54,11 @@ const ProfilePage = safeLazy(() => import('./pages/ProfilePage'));
 const AdminControlPanel = safeLazy(() => import('./pages/AdminControlPanel'));
 const AdminDiagnostics = safeLazy(() => import('./pages/AdminDiagnostics'));
 const IntelligenceMonitorPage = safeLazy(() => import('./pages/IntelligenceMonitorPage'));
-const AdminHome = safeLazy(() => import('./pages/Admin/AdminHome'));
+const AdminHome = safeLazy(() =>
+  import('./pages/Admin/AdminHome').catch(() => ({
+    default: () => <div>Admin page unavailable</div>,
+  }))
+);
 const SystemDiagnostics = safeLazy(() => import('./pages/Admin/SystemDiagnostics'));
 const LearningDashboard = safeLazy(() => import('./pages/Admin/LearningDashboard'));
 const StrategyEdgeDashboard = safeLazy(() => import('./pages/Admin/StrategyEdgeDashboard'));
@@ -56,6 +66,10 @@ const SystemMonitorPage = safeLazy(() => import('./pages/Admin/SystemMonitorPage
 const CalibrationDashboard = safeLazy(() => import('./pages/Admin/CalibrationDashboard'));
 const MissedOpportunitiesPage = safeLazy(() => import('./pages/Admin/MissedOpportunitiesPage'));
 const AccessDenied = safeLazy(() => import('./pages/AccessDenied'));
+const BeaconHub = safeLazy(() => import('./pages/beacon/BeaconHub'));
+const OpportunityStream = safeLazy(() => import('./pages/beacon/OpportunityStream'));
+const SignalFeed = safeLazy(() => import('./pages/beacon/SignalFeed'));
+const TradeNarratives = safeLazy(() => import('./pages/beacon/TradeNarratives'));
 
 export default function App() {
   return (
@@ -71,12 +85,51 @@ export default function App() {
                 <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
                 <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
+                <Route path="/market/radar" element={<ProtectedRoute><MarketShell title="Radar"><OpenRangeRadarPage /></MarketShell></ProtectedRoute>} />
+                <Route path="/market/sector-rotation" element={<ProtectedRoute><MarketShell title="Sector Rotation"><SectorHeatmap /></MarketShell></ProtectedRoute>} />
+                <Route path="/market/overview" element={<ProtectedRoute><MarketShell title="Market Overview"><MarketOverviewPage /></MarketShell></ProtectedRoute>} />
+                <Route path="/market/news" element={<ProtectedRoute><MarketShell title="News Feed"><NewsScannerV2 /></MarketShell></ProtectedRoute>} />
+                <Route path="/market/regime" element={<ProtectedRoute><MarketShell title="Market Regime"><IntelligenceFrameworkPage /></MarketShell></ProtectedRoute>} />
+                <Route path="/market/hours" element={<ProtectedRoute><MarketShell title="Market Hours"><MarketHoursPage /></MarketShell></ProtectedRoute>} />
+
+                <Route path="/discovery/scanner" element={<ProtectedRoute><DiscoveryShell title="Scanner"><InstitutionalScreener /></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/discovery/full-screener" element={<ProtectedRoute><DiscoveryShell title="Full Screener"><FeatureGateRoute featureKey="full_screener"><ScreenerFull /></FeatureGateRoute></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/discovery/advanced-screener" element={<ProtectedRoute><DiscoveryShell title="Advanced Screener"><AdvancedScreenerPage /></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/discovery/expected-move" element={<ProtectedRoute><DiscoveryShell title="Expected Move"><ExpectedMove /></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/discovery/earnings" element={<ProtectedRoute><DiscoveryShell title="Earnings Calendar"><EarningsCalendar /></DiscoveryShell></ProtectedRoute>} />
+
+                <Route path="/beacon/hub" element={<ProtectedRoute><BeaconShell title="Beacon Hub"><BeaconHub /></BeaconShell></ProtectedRoute>} />
+                <Route path="/beacon/opportunities" element={<ProtectedRoute><BeaconShell title="Opportunity Stream"><OpportunityStream /></BeaconShell></ProtectedRoute>} />
+                <Route path="/beacon/signals" element={<ProtectedRoute><BeaconShell title="Signal Feed"><SignalFeed /></BeaconShell></ProtectedRoute>} />
+                <Route path="/beacon/narratives" element={<ProtectedRoute><BeaconShell title="Trade Narratives"><TradeNarratives /></BeaconShell></ProtectedRoute>} />
+
+                <Route path="/trading/charts" element={<ProtectedRoute><TradingShell title="Charts"><SymbolDataProvider><Charts /></SymbolDataProvider></TradingShell></ProtectedRoute>} />
+                <Route path="/trading/setup/:symbol" element={<ProtectedRoute><TradingShell title="Trade Setup"><TradeSetup /></TradingShell></ProtectedRoute>} />
+                <Route path="/trading/cockpit" element={<ProtectedRoute><TradingShell title="Cockpit"><FeatureGateRoute featureKey="trading_cockpit"><SymbolDataProvider><CockpitPage /></SymbolDataProvider></FeatureGateRoute></TradingShell></ProtectedRoute>} />
+                <Route path="/trading/watchlists" element={<ProtectedRoute><TradingShell title="Watchlists"><WatchlistPage /></TradingShell></ProtectedRoute>} />
+                <Route path="/trading/alerts" element={<ProtectedRoute><TradingShell title="Alerts"><FeatureGateRoute featureKey="alerts"><AlertsPage /></FeatureGateRoute></TradingShell></ProtectedRoute>} />
+
+                <Route path="/learning/strategy" element={<ProtectedRoute><LearningShell title="Strategy Evaluation"><StrategyEvaluationPage /></LearningShell></ProtectedRoute>} />
+                <Route path="/learning/calibration" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Calibration"><ErrorBoundary><CalibrationDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/learning/edge" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Strategy Edge"><ErrorBoundary><StrategyEdgeDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/learning/missed" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Missed Opportunities"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/learning/dashboard" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><LearningShell title="Learning Dashboard"><ErrorBoundary><LearningDashboard /></ErrorBoundary></LearningShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+
+                <Route path="/system/admin" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Admin"><ErrorBoundary><AdminHome /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/diagnostics" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Diagnostics"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/intelligence-monitor" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Intelligence Monitor"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/features" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Feature Flags"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/users" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Users"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/audit" element={<ProtectedRoute><RequireAdmin><FeatureGateRoute featureKey="admin_panel"><SystemShell title="Audit Logs"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></SystemShell></FeatureGateRoute></RequireAdmin></ProtectedRoute>} />
+                <Route path="/system/profile" element={<ProtectedRoute><SystemShell title="Profile"><ProfilePage /></SystemShell></ProtectedRoute>} />
+
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/radar" element={<OpenRangeRadarPage />} />
+                  <Route path="/terminal" element={<OpenRangeTerminal />} />
+                  <Route path="/dashboard" element={<Navigate to="/terminal" replace />} />
+                  <Route path="/radar" element={<Navigate to="/market/radar" replace />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
-                  <Route path="/scanner" element={<Navigate to="/screener" replace />} />
-                  <Route path="/screeners" element={<Navigate to="/screener" replace />} />
+                  <Route path="/scanner" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/screeners" element={<Navigate to="/discovery/scanner" replace />} />
                   <Route path="/watchlist" element={<WatchlistPage />} />
                   <Route path="/watchlists" element={<Navigate to="/watchlist" replace />} />
                   <Route path="/pre-market-command" element={<PreMarketCommandCenter />} />
@@ -85,56 +138,56 @@ export default function App() {
                   <Route path="/pre-market" element={<Navigate to="/pre-market-command" replace />} />
                   <Route path="/open-market" element={<Navigate to="/open-market-radar" replace />} />
                   <Route path="/post-market" element={<Navigate to="/post-market-review" replace />} />
-                  <Route path="/market-overview" element={<MarketOverviewPage />} />
-                  <Route path="/market" element={<Navigate to="/market-overview" replace />} />
-                  <Route path="/market-hours" element={<MarketHoursPage />} />
-                  <Route path="/screener" element={<InstitutionalScreener />} />
-                  <Route path="/screener-full" element={<FeatureGateRoute featureKey="full_screener"><ScreenerFull /></FeatureGateRoute>} />
-                  <Route path="/screener-v2" element={<Navigate to="/screener" replace />} />
-                  <Route path="/screener-v3" element={<Navigate to="/screener" replace />} />
-                  <Route path="/screener-v3-fmp" element={<ScreenerV3FMP />} />
-                  <Route path="/advanced-screener" element={<AdvancedScreenerPage />} />
-                  <Route path="/news-scanner" element={<NewsScannerV2 />} />
-                  <Route path="/news" element={<Navigate to="/news-feed" replace />} />
-                  <Route path="/news-feed" element={<NewsScannerV2 />} />
+                  <Route path="/market-overview" element={<Navigate to="/market/overview" replace />} />
+                  <Route path="/market" element={<Navigate to="/market/overview" replace />} />
+                  <Route path="/market-hours" element={<Navigate to="/market/hours" replace />} />
+                  <Route path="/screener" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/screener-full" element={<Navigate to="/discovery/full-screener" replace />} />
+                  <Route path="/screener-v2" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/screener-v3" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/screener-v3-fmp" element={<Navigate to="/discovery/scanner" replace />} />
+                  <Route path="/advanced-screener" element={<Navigate to="/discovery/advanced-screener" replace />} />
+                  <Route path="/news-scanner" element={<Navigate to="/market/news" replace />} />
+                  <Route path="/news" element={<Navigate to="/market/news" replace />} />
+                  <Route path="/news-feed" element={<Navigate to="/market/news" replace />} />
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
-                  <Route path="/earnings" element={<EarningsPage />} />
-                  <Route path="/earnings-calendar" element={<EarningsCalendar />} />
+                  <Route path="/earnings" element={<Navigate to="/discovery/earnings" replace />} />
+                  <Route path="/earnings-calendar" element={<Navigate to="/discovery/earnings" replace />} />
                   <Route path="/research" element={<ResearchPage />} />
-                  <Route path="/alerts" element={<FeatureGateRoute featureKey="alerts"><AlertsPage /></FeatureGateRoute>} />
-                  <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
+                  <Route path="/alerts" element={<Navigate to="/trading/alerts" replace />} />
+                  <Route path="/charts" element={<Navigate to="/trading/charts" replace />} />
                   <Route path="/setup/:symbol" element={<TradeSetup />} />
                   <Route path="/live" element={<LiveCockpit />} />
-                  <Route path="/cockpit" element={<FeatureGateRoute featureKey="trading_cockpit"><SymbolDataProvider><CockpitPage /></SymbolDataProvider></FeatureGateRoute>} />
-                  <Route path="/intelligence" element={<IntelligenceEngine />} />
-                  <Route path="/intelligence-engine" element={<IntelligenceEngine />} />
-                  <Route path="/intelligence-inbox" element={<IntelInbox />} />
+                  <Route path="/cockpit" element={<Navigate to="/trading/cockpit" replace />} />
+                  <Route path="/intelligence" element={<Navigate to="/beacon/hub" replace />} />
+                  <Route path="/intelligence-engine" element={<Navigate to="/beacon/signals" replace />} />
+                  <Route path="/intelligence-inbox" element={<Navigate to="/beacon/hub" replace />} />
                   <Route path="/intelligence-framework" element={<IntelligenceFrameworkPage />} />
-                  <Route path="/expected-move" element={<ExpectedMove />} />
-                  <Route path="/sector-heatmap" element={<SectorHeatmap />} />
-                  <Route path="/strategy-evaluation" element={<StrategyEvaluationPage />} />
-                  <Route path="/signal-intelligence-admin" element={<RequireAdmin><SignalIntelligenceAdmin /></RequireAdmin>} />
+                  <Route path="/expected-move" element={<Navigate to="/discovery/expected-move" replace />} />
+                  <Route path="/sector-heatmap" element={<Navigate to="/market/sector-rotation" replace />} />
+                  <Route path="/strategy-evaluation" element={<Navigate to="/learning/strategy" replace />} />
+                  <Route path="/signal-intelligence-admin" element={<Navigate to="/beacon/signals" replace />} />
                   <Route path="/admin" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/admin-control" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/features" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/users" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/roles" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/audit" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminControlPanel /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/home" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminHome /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><AdminDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/system-diagnostics" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/features" element={<Navigate to="/system/features" replace />} />
+                  <Route path="/admin/users" element={<Navigate to="/system/users" replace />} />
+                  <Route path="/admin/roles" element={<Navigate to="/system/users" replace />} />
+                  <Route path="/admin/audit" element={<Navigate to="/system/audit" replace />} />
+                  <Route path="/admin/home" element={<Navigate to="/system/admin" replace />} />
+                  <Route path="/admin/diagnostics" element={<Navigate to="/system/diagnostics" replace />} />
+                  <Route path="/admin/system-diagnostics" element={<Navigate to="/system/diagnostics" replace />} />
                   <Route path="/admin/system" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemDiagnostics /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/intelligence-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><IntelligenceMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/intelligence-monitor" element={<Navigate to="/system/intelligence-monitor" replace />} />
                   <Route path="/admin/system-monitor" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SystemMonitorPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/learning-dashboard" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><LearningDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/learning-dashboard" element={<Navigate to="/learning/dashboard" replace />} />
                   <Route path="/admin/learning" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><LearningDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/strategy-edge" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><StrategyEdgeDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/strategy-edge" element={<Navigate to="/learning/edge" replace />} />
                   <Route path="/admin/signals" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><SignalIntelligenceAdmin /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/calibration" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><CalibrationDashboard /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
-                  <Route path="/admin/missed-opportunities" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
+                  <Route path="/admin/calibration" element={<Navigate to="/learning/calibration" replace />} />
+                  <Route path="/admin/missed-opportunities" element={<Navigate to="/learning/missed" replace />} />
                   <Route path="/admin/validation" element={<RequireAdmin><FeatureGateRoute featureKey="admin_panel"><ErrorBoundary><MissedOpportunitiesPage /></ErrorBoundary></FeatureGateRoute></RequireAdmin>} />
                   <Route path="/access-denied" element={<AccessDenied />} />
-                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/profile" element={<Navigate to="/system/profile" replace />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
