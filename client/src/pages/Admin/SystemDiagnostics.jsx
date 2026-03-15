@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { fetchSafe } from '../../api/fetchSafe';
+import { authFetch } from '../../utils/api';
 
 function Badge({ status }) {
   const normalized = String(status || "unknown").toUpperCase();
@@ -15,6 +16,7 @@ function Badge({ status }) {
 export default function SystemDiagnostics() {
   const [report, setReport] = useState(null);
   const [engineHealth, setEngineHealth] = useState([]);
+  const [newsletterDiagnostics, setNewsletterDiagnostics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -25,7 +27,7 @@ export default function SystemDiagnostics() {
       setLoading(true);
       setError("");
       try {
-        const [reportJson, engineJson] = await Promise.all([
+        const [reportJson, engineJson, newsletterJson] = await Promise.all([
           fetchSafe('/api/system-audit/report', {
             headers: { Accept: 'application/json' },
             credentials: 'include',
@@ -36,16 +38,28 @@ export default function SystemDiagnostics() {
             credentials: 'include',
             fallback: { data: { engines: [] } },
           }),
+          (async () => {
+            try {
+              const response = await authFetch('/api/newsletter/diagnostics');
+              if (!response?.ok) return null;
+              const payload = await response.json();
+              return payload?.success ? payload.data : null;
+            } catch (_error) {
+              return null;
+            }
+          })(),
         ]);
         if (cancelled) return;
 
         setReport(reportJson && typeof reportJson === 'object' ? reportJson : null);
         setEngineHealth(Array.isArray(engineJson?.data?.engines) ? engineJson.data.engines : []);
+        setNewsletterDiagnostics(newsletterJson && typeof newsletterJson === 'object' ? newsletterJson : null);
       } catch (err) {
         if (!cancelled) {
           setError(err.message || 'Unable to load system audit report');
           setReport(null);
           setEngineHealth([]);
+          setNewsletterDiagnostics(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -175,6 +189,26 @@ export default function SystemDiagnostics() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Newsletter / Email Pipeline</h2>
+            {!newsletterDiagnostics ? (
+              <div className="text-sm text-slate-400">Diagnostics unavailable or unauthorized.</div>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Scheduler timezone: {newsletterDiagnostics?.scheduler?.timezone || 'N/A'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Weekday only: {newsletterDiagnostics?.scheduler?.weekdayOnly ? 'Yes' : 'No'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Next morning brief run: {newsletterDiagnostics?.scheduler?.nextMorningBriefRun || 'N/A'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Next newsletter run: {newsletterDiagnostics?.scheduler?.nextNewsletterRun || 'N/A'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Last morning brief run: {newsletterDiagnostics?.summary?.lastMorningBriefRun ? new Date(newsletterDiagnostics.summary.lastMorningBriefRun).toLocaleString() : 'Never'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Last send count: {newsletterDiagnostics?.summary?.lastSendCount ?? 0}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Subscriber count: {newsletterDiagnostics?.summary?.subscriberCount ?? 0}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">MCP enhancement: {newsletterDiagnostics?.latestRun?.mcpEnhancementStatus || 'unknown'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Top tickers: {(newsletterDiagnostics?.latestRun?.selectedTickers || []).join(', ') || 'None'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Last failure: {newsletterDiagnostics?.summary?.lastFailure?.reason || 'None'}</div>
+              </div>
+            )}
           </section>
         </>
       ) : null}

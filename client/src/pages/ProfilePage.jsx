@@ -12,21 +12,48 @@ const EMPTY_PREFS = {
   dataPreference: 'standard',
 };
 
+const EMAIL_TYPES = [
+  { key: 'morning_beacon_brief', label: 'Morning Beacon Brief' },
+  { key: 'premarket_movers', label: 'Premarket Movers' },
+  { key: 'sector_rotation_update', label: 'Sector Rotation Update' },
+  { key: 'evening_review', label: 'Evening Review' },
+  { key: 'high_conviction_alerts', label: 'High Conviction Alerts' },
+];
+
 export default function ProfilePage() {
   const [tab, setTab] = useState('settings');
   const [prefs, setPrefs] = useState(EMPTY_PREFS);
   const [layoutName, setLayoutName] = useState('');
   const [alertSetting, setAlertSetting] = useState('Open market alerts');
+  const [emailPrefs, setEmailPrefs] = useState({
+    isActive: false,
+    timezone: '',
+    emailPreferences: {},
+  });
+  const [emailPrefsSaving, setEmailPrefsSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const response = await authFetch('/api/users/profile/preferences');
-        if (!response.ok) return;
-        const payload = await response.json();
-        if (cancelled) return;
-        setPrefs(payload?.preferences || EMPTY_PREFS);
+        const [profileResponse, emailResponse] = await Promise.all([
+          authFetch('/api/users/profile/preferences'),
+          authFetch('/api/newsletter/preferences'),
+        ]);
+
+        if (!cancelled && profileResponse?.ok) {
+          const payload = await profileResponse.json();
+          setPrefs(payload?.preferences || EMPTY_PREFS);
+        }
+
+        if (!cancelled && emailResponse?.ok) {
+          const emailPayload = await emailResponse.json();
+          setEmailPrefs({
+            isActive: Boolean(emailPayload?.data?.isActive),
+            timezone: String(emailPayload?.data?.timezone || ''),
+            emailPreferences: emailPayload?.data?.emailPreferences || {},
+          });
+        }
       } catch {
       }
     }
@@ -44,6 +71,24 @@ export default function ProfilePage() {
         body: JSON.stringify(next),
       });
     } catch {
+    }
+  }
+
+  async function persistEmailPreferences(next) {
+    setEmailPrefs(next);
+    setEmailPrefsSaving(true);
+    try {
+      await authFetch('/api/newsletter/preferences', {
+        method: 'PUT',
+        body: JSON.stringify({
+          isActive: next.isActive,
+          timezone: next.timezone || null,
+          emailPreferences: next.emailPreferences || {},
+        }),
+      });
+    } catch {
+    } finally {
+      setEmailPrefsSaving(false);
     }
   }
 
@@ -135,6 +180,53 @@ export default function ProfilePage() {
               <option value="institutional">Institutional</option>
               <option value="execution">Execution Focused</option>
             </select>
+          </div>
+
+          <div className="rounded border border-[var(--border-color)] p-3">
+            <h3 className="m-0 mb-2 text-sm">Email Subscriptions</h3>
+            <label className="mb-2 flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={Boolean(emailPrefs.isActive)}
+                onChange={(event) => persistEmailPreferences({ ...emailPrefs, isActive: event.target.checked })}
+              />
+              Enable OpenRange emails
+            </label>
+
+            <div className="mb-2">
+              <label className="mb-1 block text-xs text-[var(--text-muted)]">Timezone (optional)</label>
+              <input
+                className="input-field"
+                placeholder="America/New_York"
+                value={emailPrefs.timezone || ''}
+                onChange={(event) => setEmailPrefs((prev) => ({ ...prev, timezone: event.target.value }))}
+                onBlur={() => persistEmailPreferences(emailPrefs)}
+              />
+            </div>
+
+            <div className="space-y-2 text-xs">
+              {EMAIL_TYPES.map((item) => (
+                <label key={item.key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(emailPrefs?.emailPreferences?.[item.key])}
+                    onChange={(event) => {
+                      const next = {
+                        ...emailPrefs,
+                        emailPreferences: {
+                          ...(emailPrefs.emailPreferences || {}),
+                          [item.key]: event.target.checked,
+                        },
+                      };
+                      persistEmailPreferences(next);
+                    }}
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </div>
+
+            {emailPrefsSaving ? <p className="mt-2 text-xs text-[var(--text-muted)]">Saving email preferences...</p> : null}
           </div>
         </div>
       )}

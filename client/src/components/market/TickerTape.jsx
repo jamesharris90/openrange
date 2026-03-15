@@ -5,18 +5,18 @@ import TickerHoverPanel from './TickerHoverPanel';
 
 function fmtPrice(value) {
   const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(2) : '--';
+  return Number.isFinite(n) ? n.toFixed(2) : '—';
 }
 
 function fmtPercent(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return '--';
+  if (!Number.isFinite(n)) return '—';
   return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
 function fmtVolume(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return '--';
+  if (!Number.isFinite(n)) return '—';
   return n.toLocaleString('en-US');
 }
 
@@ -32,9 +32,10 @@ export default function TickerTape() {
 
     async function load() {
       try {
-        const data = await apiJSON('/api/market/ticker-tape');
-        console.log('TickerTape data', data);
-        const tickers = Array.isArray(data) ? data : [];
+        const payload = await apiJSON('/api/market/ticker-tape');
+        const tickers = Array.isArray(payload?.data)
+          ? payload.data
+          : (Array.isArray(payload) ? payload : []);
         if (cancelled) return;
         setRows(tickers);
         setError(tickers.length ? '' : 'Data temporarily unavailable');

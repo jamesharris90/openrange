@@ -209,7 +209,7 @@ async function startEnginesSequentially() {
         if (morningBriefInFlight) return;
         morningBriefInFlight = true;
         try {
-          await runMorningBriefEngine({ sendEmail: true });
+          await runMorningBriefEngine({ sendEmail: true, scheduleWindowTag: '08:00_ET' });
         } catch (error) {
           console.error('[MORNING_BRIEF] scheduled run error', error.message);
         } finally {

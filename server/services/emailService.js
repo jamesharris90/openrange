@@ -1,12 +1,14 @@
 const { Resend } = require('resend');
 const logger = require('../logger');
+const { EMAIL_TYPES, resolveSubscribedRecipients } = require('./newsletterService');
 
-function getRecipients() {
+function getStaticRecipients() {
   const configured = String(process.env.MORNING_BRIEF_RECIPIENTS || process.env.RESEND_TO || '')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  return configured;
+  const intelligenceAddress = 'intelligence@openrangetrading.co.uk';
+  return Array.from(new Set([...configured, intelligenceAddress]));
 }
 
 function toNumber(value, fallback = 0) {
@@ -226,14 +228,21 @@ function buildBriefingText(briefing) {
   ].join('\n');
 }
 
-async function sendBriefingEmail(briefing, recipientOverride) {
+async function sendBriefingEmail(briefing, recipientOverride, options = {}) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     logger.warn('[BRIEFING_EMAIL] RESEND_API_KEY missing; skipping email send');
     return { sent: false, reason: 'missing_resend_api_key' };
   }
 
-  const recipients = recipientOverride ? [recipientOverride] : getRecipients();
+  const emailType = options.emailType || EMAIL_TYPES.MORNING_BEACON_BRIEF;
+  const recipients = recipientOverride
+    ? [recipientOverride]
+    : await resolveSubscribedRecipients({
+        emailType,
+        includeStaticRecipients: getStaticRecipients(),
+      });
+
   if (!recipients.length) {
     logger.warn('[BRIEFING_EMAIL] No recipients configured; skipping email send');
     return { sent: false, reason: 'missing_recipients' };
@@ -250,12 +259,11 @@ async function sendBriefingEmail(briefing, recipientOverride) {
     text: buildBriefingText(briefing),
   });
 
-  console.log('EMAIL RESPONSE:', response);
-
   logger.info('[BRIEFING_EMAIL] Sent', {
     recipients,
-    rawResponse: response,
+    recipientsCount: recipients.length,
     id: response?.data?.id || null,
+    emailType,
   });
 
   return {

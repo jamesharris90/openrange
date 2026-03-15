@@ -30,7 +30,11 @@ async function requestJsonFromMcp({ systemPrompt, userPrompt, fallback }) {
   const client = getClient();
   if (!client) {
     logger.warn('[MCP] OPENAI_API_KEY missing; using fallback response');
-    return fallback();
+    const fallbackPayload = fallback();
+    return {
+      ...(fallbackPayload && typeof fallbackPayload === 'object' ? fallbackPayload : {}),
+      __source: 'fallback_missing_key',
+    };
   }
 
   let lastError = null;
@@ -47,7 +51,11 @@ async function requestJsonFromMcp({ systemPrompt, userPrompt, fallback }) {
       });
 
       const content = response?.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      if (parsed && typeof parsed === 'object') {
+        return { ...parsed, __source: 'mcp' };
+      }
+      return { __source: 'mcp' };
     } catch (error) {
       lastError = error;
       logger.warn('[MCP] JSON request attempt failed', {
@@ -63,7 +71,11 @@ async function requestJsonFromMcp({ systemPrompt, userPrompt, fallback }) {
     model: MODEL,
     message: lastError?.message || 'Unknown error',
   });
-  return fallback();
+  const fallbackPayload = fallback();
+  return {
+    ...(fallbackPayload && typeof fallbackPayload === 'object' ? fallbackPayload : {}),
+    __source: 'fallback_error',
+  };
 }
 
 function fallbackSignalExplanations(signals = []) {
@@ -212,6 +224,9 @@ async function generateMorningNarrative(payload = {}) {
     risk: String(parsed?.risk || '').trim() || 'No risk summary generated.',
     catalysts: Array.isArray(parsed?.catalysts) ? parsed.catalysts.map((v) => String(v)).slice(0, 6) : [],
     watchlist: Array.isArray(parsed?.watchlist) ? parsed.watchlist.map((v) => String(v)).slice(0, 8) : [],
+    _meta: {
+      source: String(parsed?.__source || 'unknown'),
+    },
   };
 }
 

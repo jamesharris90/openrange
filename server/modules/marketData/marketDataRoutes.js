@@ -24,6 +24,49 @@ function toNum(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function toTickerNumber(value, options = {}) {
+  const { allowZero = false, hasDataPoint = false } = options;
+  if (value === null || value === undefined || value === '') return null;
+
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+
+  if (n === 0 && !allowZero) return null;
+  if (n === 0 && allowZero && !hasDataPoint) return null;
+  return n;
+}
+
+async function loadLatestCatalysts(symbols = []) {
+  if (!Array.isArray(symbols) || !symbols.length) return new Map();
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT DISTINCT ON (symbol)
+         symbol,
+         COALESCE(catalyst_type, catalyst, headline) AS catalyst,
+         COALESCE(timestamp, published_at, created_at) AS catalyst_ts
+       FROM trade_catalysts
+       WHERE symbol = ANY($1::text[])
+       ORDER BY symbol ASC, COALESCE(timestamp, published_at, created_at) DESC NULLS LAST`,
+      [symbols],
+      { timeoutMs: 2000, label: 'market.routes.ticker_tape.trade_catalysts', maxRetries: 0 }
+    );
+
+    const map = new Map();
+    for (const row of rows || []) {
+      const symbol = String(row?.symbol || '').toUpperCase();
+      if (!symbol) continue;
+      map.set(symbol, {
+        text: String(row?.catalyst || '').trim(),
+        ts: row?.catalyst_ts || null,
+      });
+    }
+    return map;
+  } catch (_error) {
+    return new Map();
+  }
+}
+
 function getApiKey() {
   return String(FMP_KEY || '').trim();
 }
@@ -244,22 +287,31 @@ router.get('/ticker-tape', async (_req, res) => {
   const cache = await getTickerTapeCache();
   const rows = Array.isArray(cache?.rows) ? cache.rows : [];
   const map = new Map(rows.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+  const symbols = TICKER_TAPE_SYMBOLS.map((symbol) => String(symbol || '').toUpperCase()).filter(Boolean);
+  const catalystsBySymbol = await loadLatestCatalysts(symbols);
 
   const data = TICKER_TAPE_SYMBOLS.map((symbol) => {
     const row = map.get(symbol) || {};
-    const pct = toNum(row.change_percent);
+    const updatedAt = row?.updated_at || cache?.updated_at || null;
+    const hasDataPoint = Boolean(updatedAt);
+    const changePercent = toTickerNumber(row.change_percent, { allowZero: true, hasDataPoint });
+    const catalystRow = catalystsBySymbol.get(symbol);
+    const catalyst = catalystRow?.text || 'No recent catalyst';
+
     return {
       symbol,
-      price: toNum(row.price),
-      change: toNum(row.change),
-      changesPercentage: pct,
-      changePercent: pct,
-      change_percent: pct,
-      volume: toNum(row.volume),
+      price: toTickerNumber(row.price, { allowZero: false, hasDataPoint }),
+      change: toTickerNumber(row.change, { allowZero: true, hasDataPoint }),
+      changePercent,
+      change_percent: changePercent,
+      volume: toTickerNumber(row.volume, { allowZero: false, hasDataPoint }),
+      relativeVolume: toTickerNumber(row.relative_volume, { allowZero: false, hasDataPoint }),
+      catalyst,
+      updatedAt,
     };
   });
 
-  return res.json(data);
+  return res.json({ success: true, data });
 });
 
 module.exports = router;

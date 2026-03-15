@@ -16,34 +16,66 @@ async function refreshTickerCache() {
   try {
     const [indices, gainers, losers, crypto] = await Promise.all([
       queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         WHERE symbol = ANY($1::text[])
-         ORDER BY array_position($1::text[], symbol)`,
+        `SELECT
+           q.symbol,
+           q.price,
+           COALESCE((to_jsonb(q)->>'change')::numeric, (to_jsonb(m)->>'change')::numeric, NULL) AS change,
+           q.change_percent,
+           COALESCE(q.volume, m.volume, 0) AS volume,
+           COALESCE(m.relative_volume, NULL) AS relative_volume,
+           COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+         WHERE q.symbol = ANY($1::text[])
+         ORDER BY array_position($1::text[], q.symbol)`,
         [['SPY', 'QQQ', 'IWM', 'DIA']],
         { timeoutMs: 1800, label: 'ticker_cache.indices', maxRetries: 0 }
       ),
       queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         ORDER BY COALESCE(change_percent, 0) DESC NULLS LAST
+        `SELECT
+           q.symbol,
+           q.price,
+           COALESCE((to_jsonb(q)->>'change')::numeric, (to_jsonb(m)->>'change')::numeric, NULL) AS change,
+           q.change_percent,
+           COALESCE(q.volume, m.volume, 0) AS volume,
+           COALESCE(m.relative_volume, NULL) AS relative_volume,
+           COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+         ORDER BY COALESCE(q.change_percent, 0) DESC NULLS LAST
          LIMIT 20`,
         [],
         { timeoutMs: 1800, label: 'ticker_cache.gainers', maxRetries: 0 }
       ),
       queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         ORDER BY COALESCE(change_percent, 0) ASC NULLS LAST
+        `SELECT
+           q.symbol,
+           q.price,
+           COALESCE((to_jsonb(q)->>'change')::numeric, (to_jsonb(m)->>'change')::numeric, NULL) AS change,
+           q.change_percent,
+           COALESCE(q.volume, m.volume, 0) AS volume,
+           COALESCE(m.relative_volume, NULL) AS relative_volume,
+           COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+         ORDER BY COALESCE(q.change_percent, 0) ASC NULLS LAST
          LIMIT 20`,
         [],
         { timeoutMs: 1800, label: 'ticker_cache.losers', maxRetries: 0 }
       ),
       queryWithTimeout(
-        `SELECT symbol, price, change_percent
-         FROM market_quotes
-         WHERE symbol = ANY($1::text[])
-         ORDER BY array_position($1::text[], symbol)`,
+        `SELECT
+           q.symbol,
+           q.price,
+           COALESCE((to_jsonb(q)->>'change')::numeric, (to_jsonb(m)->>'change')::numeric, NULL) AS change,
+           q.change_percent,
+           COALESCE(q.volume, m.volume, 0) AS volume,
+           COALESCE(m.relative_volume, NULL) AS relative_volume,
+           COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
+         FROM market_quotes q
+         LEFT JOIN market_metrics m ON m.symbol = q.symbol
+         WHERE q.symbol = ANY($1::text[])
+         ORDER BY array_position($1::text[], q.symbol)`,
         [['BTCUSD', 'ETHUSD', 'SOLUSD', 'DOGEUSD']],
         { timeoutMs: 1800, label: 'ticker_cache.crypto', maxRetries: 0 }
       ),

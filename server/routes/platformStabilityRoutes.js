@@ -33,6 +33,48 @@ function normalizeExpectedMove(row) {
   return normalized;
 }
 
+function toTickerNumber(value, options = {}) {
+  const { allowZero = false, hasDataPoint = false } = options;
+  if (value === null || value === undefined || value === '') return null;
+
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n === 0 && !allowZero) return null;
+  if (n === 0 && allowZero && !hasDataPoint) return null;
+  return n;
+}
+
+async function latestCatalystsBySymbol(symbols = []) {
+  if (!symbols.length) return new Map();
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT DISTINCT ON (symbol)
+         symbol,
+         COALESCE(catalyst_type, catalyst, headline) AS catalyst,
+         COALESCE(timestamp, published_at, created_at) AS catalyst_ts
+       FROM trade_catalysts
+       WHERE symbol = ANY($1::text[])
+       ORDER BY symbol ASC, COALESCE(timestamp, published_at, created_at) DESC NULLS LAST`,
+      [symbols],
+      { label: 'stability.tickerTape.catalyst_fallback', timeoutMs: 2500, maxRetries: 0 }
+    );
+
+    const map = new Map();
+    for (const row of rows || []) {
+      const symbol = String(row?.symbol || '').toUpperCase();
+      if (!symbol) continue;
+      map.set(symbol, {
+        catalyst: String(row?.catalyst || '').trim(),
+        catalystTs: row?.catalyst_ts || null,
+      });
+    }
+    return map;
+  } catch (_error) {
+    return new Map();
+  }
+}
+
 async function safeRows(sql, params, label) {
   try {
     const { rows } = await queryWithTimeout(sql, params, {
@@ -285,14 +327,46 @@ router.get('/api/chart-data', async (_req, res) => {
 
 router.get('/api/ticker-tape', async (_req, res) => {
   const rows = await safeRows(
-    `SELECT symbol, price, change_percent, volume, sector
-     FROM market_quotes
-     ORDER BY ABS(COALESCE(change_percent,0)) DESC NULLS LAST
+    `SELECT
+       q.symbol,
+       q.price,
+       COALESCE((to_jsonb(q)->>'change')::numeric, (to_jsonb(m)->>'change')::numeric, NULL) AS change,
+       q.change_percent,
+       COALESCE(q.volume, m.volume, 0) AS volume,
+       COALESCE(m.relative_volume, NULL) AS relative_volume,
+       q.sector,
+       COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
+     FROM market_quotes q
+     LEFT JOIN market_metrics m ON m.symbol = q.symbol
+     ORDER BY ABS(COALESCE(q.change_percent,0)) DESC NULLS LAST
      LIMIT 50`,
     [],
     'stability.tickerTape'
   );
-  return res.json(success(rows));
+
+  const symbols = (rows || []).map((row) => String(row?.symbol || '').toUpperCase()).filter(Boolean);
+  const catalystsBySymbol = await latestCatalystsBySymbol(symbols);
+
+  const normalized = (rows || []).map((row) => {
+    const symbol = String(row?.symbol || '').toUpperCase();
+    const updatedAt = row?.updated_at || null;
+    const hasDataPoint = Boolean(updatedAt);
+    const catalystRow = catalystsBySymbol.get(symbol);
+
+    return {
+      symbol,
+      price: toTickerNumber(row?.price, { allowZero: false, hasDataPoint }),
+      change: toTickerNumber(row?.change, { allowZero: true, hasDataPoint }),
+      changePercent: toTickerNumber(row?.change_percent, { allowZero: true, hasDataPoint }),
+      change_percent: toTickerNumber(row?.change_percent, { allowZero: true, hasDataPoint }),
+      volume: toTickerNumber(row?.volume, { allowZero: false, hasDataPoint }),
+      relativeVolume: toTickerNumber(row?.relative_volume, { allowZero: false, hasDataPoint }),
+      catalyst: catalystRow?.catalyst || 'No recent catalyst',
+      updatedAt,
+    };
+  });
+
+  return res.json(success(normalized));
 });
 
 router.use('/api', (_req, res, next) => {
