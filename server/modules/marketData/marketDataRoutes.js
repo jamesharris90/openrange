@@ -294,13 +294,14 @@ router.get('/ticker-tape', async (_req, res) => {
     const row = map.get(symbol) || {};
     const updatedAt = row?.updated_at || cache?.updated_at || null;
     const hasDataPoint = Boolean(updatedAt);
+    const price = toTickerNumber(row.price, { allowZero: false, hasDataPoint });
     const changePercent = toTickerNumber(row.change_percent, { allowZero: true, hasDataPoint });
     const catalystRow = catalystsBySymbol.get(symbol);
     const catalyst = catalystRow?.text || 'No recent catalyst';
 
     return {
       symbol,
-      price: toTickerNumber(row.price, { allowZero: false, hasDataPoint }),
+      price,
       change: toTickerNumber(row.change, { allowZero: true, hasDataPoint }),
       changePercent,
       change_percent: changePercent,
@@ -309,7 +310,7 @@ router.get('/ticker-tape', async (_req, res) => {
       catalyst,
       updatedAt,
     };
-  });
+  }).filter((row) => Number.isFinite(Number(row.price)));
 
   return res.json({ success: true, data });
 });

@@ -133,7 +133,7 @@ router.post('/api/newsletter/subscribe', async (req, res) => {
   }
 });
 
-router.get('/api/newsletter/preferences', async (req, res) => {
+async function handleGetPreferences(req, res) {
   const authUser = getUserFromToken(req);
   const email = String(authUser?.email || '').trim().toLowerCase();
 
@@ -162,9 +162,12 @@ router.get('/api/newsletter/preferences', async (req, res) => {
   } catch (error) {
     return res.status(500).json(failure(error.message || 'Failed to load email preferences'));
   }
-});
+}
 
-router.put('/api/newsletter/preferences', async (req, res) => {
+router.get('/api/newsletter/preferences', handleGetPreferences);
+router.get('/api/email/preferences', handleGetPreferences);
+
+async function handleUpdatePreferences(req, res) {
   const authUser = getUserFromToken(req);
   const email = String(authUser?.email || '').trim().toLowerCase();
 
@@ -204,7 +207,10 @@ router.put('/api/newsletter/preferences', async (req, res) => {
   } catch (error) {
     return res.status(500).json(failure(error.message || 'Failed to update email preferences'));
   }
-});
+}
+
+router.put('/api/newsletter/preferences', handleUpdatePreferences);
+router.post('/api/email/preferences', handleUpdatePreferences);
 
 router.post('/api/newsletter/unsubscribe', async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();

@@ -17,6 +17,7 @@ const { runOrderFlowImbalanceEngine } = require('../engines/orderFlowImbalanceEn
 const { runSectorMomentumEngine } = require('../engines/sectorMomentumEngine');
 const { runSignalHierarchyEngine } = require('../engines/signalHierarchyEngine');
 const { runPremarketNewsletter } = require('../engines/newsletterEngine');
+const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher');
 const { runSignalLearningEngine } = require('../engines/signalLearningEngine');
 const { updateSignalOutcomeResults } = require('../engines/signalOutcomeWriter');
 const { runOpportunityRanker } = require('../engines/opportunityRanker');
@@ -426,6 +427,12 @@ async function startEnginesSequentially() {
           newsletterInFlight = false;
         }
       }, { timezone: 'America/New_York' });
+    }
+
+    if (!global.emailIntelligenceSchedulerStarted) {
+      global.emailIntelligenceSchedulerStarted = true;
+      registerEmailIntelligenceSchedules();
+      console.log('[EMAIL_INTELLIGENCE] schedulers registered');
     }
 
     if (!global.signalPerformanceSnapshotSchedulerStarted) {

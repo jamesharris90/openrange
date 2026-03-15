@@ -12,6 +12,10 @@ const { getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
 const { getSystemAlertEngineHealth } = require('../engines/systemAlertEngine');
 const { getEngineSchedulerHealth } = require('../system/engineScheduler');
 const { queryWithTimeout } = require('../db/pg');
+const {
+  getEmailDispatcherStatus,
+  sendImmediateAdminTests,
+} = require('../email/emailDispatcher');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 
 const router = express.Router();
@@ -322,6 +326,54 @@ router.get('/api/admin/system', requireAdminAccess, async (_req, res) => {
     system_alerts: alertRows.rows || [],
     checked_at: new Date().toISOString(),
   });
+});
+
+router.get('/api/admin/email-status', requireAdminAccess, async (_req, res) => {
+  const status = getEmailDispatcherStatus();
+
+  const subscribers = await safeQuery(
+    () => queryWithTimeout(
+      `SELECT COUNT(*)::int AS total
+       FROM newsletter_subscribers
+       WHERE is_active = TRUE`,
+      [],
+      { timeoutMs: 5000, label: 'admin.email_status.subscribers', maxRetries: 0 }
+    ),
+    { rows: [{ total: 0 }] },
+    'admin.email_status.subscribers'
+  );
+
+  const recent = await safeQuery(
+    () => queryWithTimeout(
+      `SELECT sent_at, campaign_type, campaign_key, recipients_count, status
+       FROM newsletter_send_history
+       ORDER BY sent_at DESC NULLS LAST
+       LIMIT 10`,
+      [],
+      { timeoutMs: 5000, label: 'admin.email_status.history', maxRetries: 0 }
+    ),
+    { rows: [] },
+    'admin.email_status.history'
+  );
+
+  return res.json({
+    success: true,
+    data: {
+      scheduler: status,
+      activeSubscribers: Number(subscribers?.rows?.[0]?.total || 0),
+      recentSends: recent?.rows || [],
+    },
+  });
+});
+
+router.post('/api/admin/email-test', requireAdminAccess, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim() || null;
+    const results = await sendImmediateAdminTests(email);
+    return res.json({ success: true, data: results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to run test sends' });
+  }
 });
 
 module.exports = router;

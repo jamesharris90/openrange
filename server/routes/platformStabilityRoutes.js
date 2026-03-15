@@ -352,10 +352,11 @@ router.get('/api/ticker-tape', async (_req, res) => {
     const updatedAt = row?.updated_at || null;
     const hasDataPoint = Boolean(updatedAt);
     const catalystRow = catalystsBySymbol.get(symbol);
+    const price = toTickerNumber(row?.price, { allowZero: false, hasDataPoint });
 
     return {
       symbol,
-      price: toTickerNumber(row?.price, { allowZero: false, hasDataPoint }),
+      price,
       change: toTickerNumber(row?.change, { allowZero: true, hasDataPoint }),
       changePercent: toTickerNumber(row?.change_percent, { allowZero: true, hasDataPoint }),
       change_percent: toTickerNumber(row?.change_percent, { allowZero: true, hasDataPoint }),
@@ -364,7 +365,7 @@ router.get('/api/ticker-tape', async (_req, res) => {
       catalyst: catalystRow?.catalyst || 'No recent catalyst',
       updatedAt,
     };
-  });
+  }).filter((row) => Number.isFinite(Number(row.price)));
 
   return res.json(success(normalized));
 });

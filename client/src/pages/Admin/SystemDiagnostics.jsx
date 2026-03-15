@@ -17,6 +17,9 @@ export default function SystemDiagnostics() {
   const [report, setReport] = useState(null);
   const [engineHealth, setEngineHealth] = useState([]);
   const [newsletterDiagnostics, setNewsletterDiagnostics] = useState(null);
+  const [emailStatus, setEmailStatus] = useState(null);
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,7 +30,7 @@ export default function SystemDiagnostics() {
       setLoading(true);
       setError("");
       try {
-        const [reportJson, engineJson, newsletterJson] = await Promise.all([
+        const [reportJson, engineJson, newsletterJson, emailStatusJson] = await Promise.all([
           fetchSafe('/api/system-audit/report', {
             headers: { Accept: 'application/json' },
             credentials: 'include',
@@ -48,18 +51,30 @@ export default function SystemDiagnostics() {
               return null;
             }
           })(),
+          (async () => {
+            try {
+              const response = await authFetch('/api/admin/email-status');
+              if (!response?.ok) return null;
+              const payload = await response.json();
+              return payload?.success ? payload.data : null;
+            } catch (_error) {
+              return null;
+            }
+          })(),
         ]);
         if (cancelled) return;
 
         setReport(reportJson && typeof reportJson === 'object' ? reportJson : null);
         setEngineHealth(Array.isArray(engineJson?.data?.engines) ? engineJson.data.engines : []);
         setNewsletterDiagnostics(newsletterJson && typeof newsletterJson === 'object' ? newsletterJson : null);
+        setEmailStatus(emailStatusJson && typeof emailStatusJson === 'object' ? emailStatusJson : null);
       } catch (err) {
         if (!cancelled) {
           setError(err.message || 'Unable to load system audit report');
           setReport(null);
           setEngineHealth([]);
           setNewsletterDiagnostics(null);
+          setEmailStatus(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -71,6 +86,29 @@ export default function SystemDiagnostics() {
       cancelled = true;
     };
   }, []);
+
+  const runEmailTests = async () => {
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const response = await authFetch('/api/admin/email-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (!response?.ok) {
+        throw new Error(`Email test failed (${response?.status || 'unknown'})`);
+      }
+
+      const payload = await response.json();
+      setTestResult(payload?.data || { error: 'No result payload' });
+    } catch (err) {
+      setTestResult({ error: err.message || 'Failed to run test emails' });
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const endpoints = Array.isArray(report?.endpoints) ? report.endpoints : [];
   const pages = Array.isArray(report?.pages) ? report.pages : [];
@@ -209,6 +247,37 @@ export default function SystemDiagnostics() {
                 <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Last failure: {newsletterDiagnostics?.summary?.lastFailure?.reason || 'None'}</div>
               </div>
             )}
+          </section>
+
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Email Intelligence Control</h2>
+              <button
+                type="button"
+                onClick={runEmailTests}
+                disabled={testSending}
+                className="rounded bg-sky-500 px-3 py-1.5 text-xs font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {testSending ? 'Sending...' : 'Send Test Emails'}
+              </button>
+            </div>
+
+            {!emailStatus ? (
+              <div className="text-sm text-slate-400">Email dispatcher status unavailable.</div>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Scheduler started: {emailStatus?.scheduler?.schedulerStarted ? 'Yes' : 'No'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Resend configured: {emailStatus?.scheduler?.resendConfigured ? 'Yes' : 'No'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Active subscribers: {emailStatus?.activeSubscribers ?? 0}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Registered jobs: {(emailStatus?.scheduler?.jobs || []).join(', ') || 'None'}</div>
+              </div>
+            )}
+
+            {testResult ? (
+              <div className="mt-3 rounded border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300">
+                {testResult?.error ? `Error: ${testResult.error}` : `Beacon: ${testResult?.beaconMorningBrief?.success ? 'sent' : testResult?.beaconMorningBrief?.message || 'skipped'} | System: ${testResult?.systemMonitor?.success ? 'sent' : testResult?.systemMonitor?.message || 'skipped'}`}
+              </div>
+            ) : null}
           </section>
         </>
       ) : null}
