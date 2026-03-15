@@ -258,4 +258,24 @@ router.post('/api/news/v3/refresh', async (req, res) => {
   }
 });
 
+router.get('/api/sort-score', async (req, res) => {
+  try {
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : 50;
+    const result = await pool.query(
+      `SELECT id::text, symbols, headline, source, published_at, url, raw_payload, news_score, score_breakdown
+       FROM news_articles
+       ORDER BY news_score DESC NULLS LAST, published_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    return res.json(rows.map(mapRowToCanonical));
+  } catch (err) {
+    console.error('sort-score read error:', err);
+    return res.json([]);
+  }
+});
+
 module.exports = router;

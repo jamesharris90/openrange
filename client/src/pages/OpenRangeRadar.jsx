@@ -13,6 +13,17 @@ import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
 import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
 import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
 
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function pickArray(...candidates) {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
 export default function OpenRangeRadarPage() {
   const [compactMode, setCompactMode] = useState(false);
   const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('radar', true);
@@ -30,35 +41,40 @@ export default function OpenRangeRadarPage() {
 
       return {
         summary: summary || {},
-        opportunities: opportunities?.items || opportunities?.rows || opportunities || [],
-        signals: signals?.items || signals?.rows || signals || [],
-        news: Array.isArray(news) ? news : (news?.items || []),
-        sectors: Array.isArray(sectors) ? sectors : (sectors?.items || sectors?.rows || []),
+        opportunities: pickArray(opportunities?.items, opportunities?.rows, opportunities),
+        signals: pickArray(signals?.items, signals?.rows, signals),
+        news: pickArray(news, news?.items),
+        sectors: pickArray(sectors, sectors?.items, sectors?.rows),
       };
     },
     refetchInterval: 30000,
   });
 
+  const opportunities = ensureArray(data?.opportunities);
+  const signals = ensureArray(data?.signals);
+  const news = ensureArray(data?.news);
+  const sectors = ensureArray(data?.sectors);
+
   const stats = useMemo(() => ({
-    opportunities: (data?.opportunities || []).length,
-    signals: (data?.signals || []).length,
-    news: (data?.news || []).length,
-    sectors: (data?.sectors || []).length,
-  }), [data]);
+    opportunities: opportunities.length,
+    signals: signals.length,
+    news: news.length,
+    sectors: sectors.length,
+  }), [opportunities, signals, news, sectors]);
 
   const visibleSymbols = useMemo(() => {
     if (!data) return [];
 
     if (compactMode) {
-      return (data?.signals || []).slice(0, 12).map((item) => item?.symbol).filter(Boolean);
+      return signals.slice(0, 12).map((item) => item?.symbol).filter(Boolean);
     }
 
     return [
-      ...(data?.signals || []).slice(0, 8).map((item) => item?.symbol),
-      ...(data?.opportunities || []).slice(0, 9).map((item) => item?.symbol),
-      ...(data?.news || []).slice(0, 8).map((item) => item?.symbol),
+      ...signals.slice(0, 8).map((item) => item?.symbol),
+      ...opportunities.slice(0, 9).map((item) => item?.symbol),
+      ...news.slice(0, 8).map((item) => item?.symbol),
     ].filter(Boolean);
-  }, [data, compactMode]);
+  }, [data, compactMode, signals, opportunities, news]);
 
   const { getSignal } = useBeaconSignalMap({
     symbols: visibleSymbols,
@@ -70,9 +86,9 @@ export default function OpenRangeRadarPage() {
     const seen = new Set();
     const found = [];
     const symbolPool = [
-      ...(data?.opportunities || []).map((item) => item?.symbol),
-      ...(data?.signals || []).map((item) => item?.symbol),
-      ...(data?.news || []).map((item) => item?.symbol),
+      ...opportunities.map((item) => item?.symbol),
+      ...signals.map((item) => item?.symbol),
+      ...news.map((item) => item?.symbol),
     ];
 
     for (const symbol of symbolPool) {
@@ -84,16 +100,16 @@ export default function OpenRangeRadarPage() {
     }
 
     return found;
-  }, [showBeaconSignals, data, getSignal]);
+  }, [showBeaconSignals, opportunities, signals, news, getSignal]);
   const activeBeaconSymbolCount = showBeaconSignals ? radarOverlaySignals.length : 0;
 
   const compactRows = useMemo(() => {
     return [
-      ...(data?.opportunities || []).slice(0, 8),
-      ...(data?.signals || []).slice(0, 8),
-      ...(data?.news || []).slice(0, 8),
+      ...opportunities.slice(0, 8),
+      ...signals.slice(0, 8),
+      ...news.slice(0, 8),
     ];
-  }, [data]);
+  }, [opportunities, signals, news]);
 
   useEffect(() => {
     document.title = 'OpenRange Radar';
@@ -153,26 +169,26 @@ export default function OpenRangeRadarPage() {
       {!compactMode ? (
         <>
           <section className="grid gap-4 xl:grid-cols-2">
-            {(data?.sectors || []).slice(0, 6).map((sector, idx) => (
+            {sectors.slice(0, 6).map((sector, idx) => (
               <SectorMomentumCard key={`${sector.sector || sector.name || 'sector'}-${idx}`} sector={sector} />
             ))}
             <MarketBreadthCard data={data?.summary?.breadth || data?.summary || {}} />
           </section>
 
           <section className="grid gap-4 xl:grid-cols-3">
-            {(data?.opportunities || []).slice(0, 9).map((item, idx) => (
+            {opportunities.slice(0, 9).map((item, idx) => (
               <OpportunityCard key={`${item.symbol || 'opp'}-${idx}`} item={item} />
             ))}
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            {(data?.signals || []).slice(0, 8).map((signal, idx) => (
+            {signals.slice(0, 8).map((signal, idx) => (
               <SignalCard key={`${signal.symbol || 'signal'}-${idx}`} signal={signal} />
             ))}
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            {(data?.news || []).slice(0, 8).map((item, idx) => (
+            {news.slice(0, 8).map((item, idx) => (
               <NewsCatalystCard key={`${item.id || item.symbol || 'news'}-${idx}`} item={item} />
             ))}
           </section>

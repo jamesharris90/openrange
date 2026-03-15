@@ -7,16 +7,27 @@ const { fetchRadarData } = require('../engines/radarEngine');
 router.get('/', async (_req, res) => {
   try {
     const rows = (await runQueryTree({ AND: [] }, { limit: 120 })).rows || [];
+    const safeRows = Array.isArray(rows) ? rows : [];
     const buckets = { A: [], B: [], C: [] };
 
-    rows.forEach((row) => {
+    safeRows.forEach((row) => {
       const klass = String(row?.class || '').toUpperCase();
       const target = klass === 'A' ? 'A' : klass === 'B' ? 'B' : 'C';
       buckets[target].push(row);
     });
 
+    const sectors = Array.from(
+      new Set(
+        safeRows
+          .map((row) => String(row?.sector || row?.sector_context || '').trim())
+          .filter(Boolean)
+      )
+    );
+
     return res.json({
-      signals: rows,
+      signals: safeRows,
+      opportunities: safeRows,
+      sectors,
       A: buckets.A,
       B: buckets.B,
       C: buckets.C,
@@ -26,6 +37,8 @@ router.get('/', async (_req, res) => {
   } catch (error) {
     return res.json({
       signals: [],
+      opportunities: [],
+      sectors: [],
       A: [],
       B: [],
       C: [],
