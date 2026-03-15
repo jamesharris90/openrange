@@ -2,7 +2,7 @@
 // All page modules referenced here must exist under src/pages with exact casing.
 // Railway builds run on Linux and will fail on case mismatches.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
 import AppLayout from './components/layout/AppLayout';
@@ -18,56 +18,67 @@ import BeaconShell from './layouts/BeaconShell';
 import TradingShell from './layouts/TradingShell';
 import LearningShell from './layouts/LearningShell';
 import SystemShell from './layouts/SystemShell';
-import LoginPage from './pages/LoginPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import LandingPage from './pages/LandingPage.jsx';
-import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
-import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
-import OpenRangeRadarPage from './pages/OpenRangeRadar.jsx';
-import OpenRangeTerminal from './pages/terminal/OpenRangeTerminal.jsx';
 import WatchlistPage from './components/watchlist/WatchlistPage';
 import EarningsPage from './components/earnings/EarningsPage';
-import PreMarketCommandCenter from './pages/PreMarketCommandCenter.jsx';
-import NewsScannerV2 from './pages/NewsScannerV2.jsx';
-import AdvancedScreenerPage from './pages/AdvancedScreenerPage.jsx';
-import ScreenerV3FMP from './pages/ScreenerV3FMP.jsx';
-import InstitutionalScreener from './pages/InstitutionalScreener.jsx';
-import MarketOverviewPage from './pages/MarketOverviewPage.jsx';
-import MarketHoursPage from './pages/MarketHoursPage.jsx';
-import ResearchPage from './pages/ResearchPage.jsx';
-import AlertsPage from './pages/AlertsPage.jsx';
-import OpenMarketRadar from './pages/OpenMarketRadar.jsx';
-import PostMarketReview from './pages/PostMarketReview.jsx';
-import Charts from './pages/Charts.jsx';
 import LiveCockpit from './pages/LiveCockpit.tsx';
-import CockpitPage from './pages/CockpitPage.jsx';
-import IntelligenceFrameworkPage from './pages/IntelligenceFrameworkPage.jsx';
-import EarningsCalendar from './pages/EarningsCalendar.jsx';
-import ExpectedMove from './pages/ExpectedMove.jsx';
-import IntelInbox from './pages/IntelInbox.jsx';
-import IntelligenceEngine from './pages/IntelligenceEngine.jsx';
-import SectorHeatmap from './pages/SectorHeatmap.jsx';
-import StrategyEvaluationPage from './pages/StrategyEvaluationPage.jsx';
-import SignalIntelligenceAdmin from './pages/SignalIntelligenceAdmin.jsx';
-import ScreenerFull from './pages/ScreenerFull.jsx';
-import TradeSetup from './pages/TradeSetup.jsx';
-import MobileDashboard from './pages/MobileDashboard.jsx';
-import ProfilePage from './pages/ProfilePage.jsx';
-import AdminControlPanel from './pages/AdminControlPanel.jsx';
-import AdminDiagnostics from './pages/AdminDiagnostics.jsx';
-import IntelligenceMonitorPage from './pages/IntelligenceMonitorPage.jsx';
-import AdminHome from './pages/Admin/AdminHome.jsx';
-import SystemDiagnostics from './pages/Admin/SystemDiagnostics.jsx';
-import LearningDashboard from './pages/Admin/LearningDashboard.jsx';
-import StrategyEdgeDashboard from './pages/Admin/StrategyEdgeDashboard.jsx';
-import SystemMonitorPage from './pages/Admin/SystemMonitorPage.jsx';
-import CalibrationDashboard from './pages/Admin/CalibrationDashboard.jsx';
-import MissedOpportunitiesPage from './pages/Admin/MissedOpportunitiesPage.jsx';
-import AccessDenied from './pages/AccessDenied.jsx';
-import BeaconHub from './pages/beacon/BeaconHub.jsx';
-import OpportunityStream from './pages/beacon/OpportunityStream.jsx';
-import SignalFeed from './pages/beacon/SignalFeed.jsx';
-import TradeNarratives from './pages/beacon/TradeNarratives.jsx';
+
+const pageModules = import.meta.glob('./pages/**/*.jsx');
+
+function loadPage(path) {
+  const importer = pageModules[`./pages/${path}.jsx`];
+  if (!importer) {
+    throw new Error(`Page not found: ${path}`);
+  }
+  return lazy(importer);
+}
+
+const LoginPage = loadPage('LoginPage');
+const RegisterPage = loadPage('RegisterPage');
+const LandingPage = loadPage('LandingPage');
+const ForgotPasswordPage = loadPage('ForgotPasswordPage');
+const ResetPasswordPage = loadPage('ResetPasswordPage');
+const OpenRangeRadarPage = loadPage('OpenRangeRadar');
+const OpenRangeTerminal = loadPage('terminal/OpenRangeTerminal');
+const PreMarketCommandCenter = loadPage('PreMarketCommandCenter');
+const NewsScannerV2 = loadPage('NewsScannerV2');
+const AdvancedScreenerPage = loadPage('AdvancedScreenerPage');
+const ScreenerV3FMP = loadPage('ScreenerV3FMP');
+const InstitutionalScreener = loadPage('InstitutionalScreener');
+const MarketOverviewPage = loadPage('MarketOverviewPage');
+const MarketHoursPage = loadPage('MarketHoursPage');
+const ResearchPage = loadPage('ResearchPage');
+const AlertsPage = loadPage('AlertsPage');
+const OpenMarketRadar = loadPage('OpenMarketRadar');
+const PostMarketReview = loadPage('PostMarketReview');
+const Charts = loadPage('Charts');
+const CockpitPage = loadPage('CockpitPage');
+const IntelligenceFrameworkPage = loadPage('IntelligenceFrameworkPage');
+const EarningsCalendar = loadPage('EarningsCalendar');
+const ExpectedMove = loadPage('ExpectedMove');
+const IntelInbox = loadPage('IntelInbox');
+const IntelligenceEngine = loadPage('IntelligenceEngine');
+const SectorHeatmap = loadPage('SectorHeatmap');
+const StrategyEvaluationPage = loadPage('StrategyEvaluationPage');
+const ScreenerFull = loadPage('ScreenerFull');
+const TradeSetup = loadPage('TradeSetup');
+const MobileDashboard = loadPage('MobileDashboard');
+const ProfilePage = loadPage('ProfilePage');
+const AdminControlPanel = loadPage('AdminControlPanel');
+const IntelligenceMonitorPage = loadPage('IntelligenceMonitorPage');
+const AccessDenied = loadPage('AccessDenied');
+const BeaconHub = loadPage('beacon/BeaconHub');
+const OpportunityStream = loadPage('beacon/OpportunityStream');
+const SignalFeed = loadPage('beacon/SignalFeed');
+const TradeNarratives = loadPage('beacon/TradeNarratives');
+
+const AdminHome = loadPage('Admin/AdminHome');
+const SystemDiagnostics = loadPage('Admin/SystemDiagnostics');
+const SystemMonitorPage = loadPage('Admin/SystemMonitorPage');
+const CalibrationDashboard = loadPage('Admin/CalibrationDashboard');
+const LearningDashboard = loadPage('Admin/LearningDashboard');
+const MissedOpportunitiesPage = loadPage('Admin/MissedOpportunitiesPage');
+const SignalIntelligenceAdmin = loadPage('Admin/SignalIntelligenceAdmin');
+const StrategyEdgeDashboard = loadPage('Admin/StrategyEdgeDashboard');
 
 export default function App() {
   return (
