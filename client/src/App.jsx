@@ -1,3 +1,6 @@
+// NOTE:
+// All page modules referenced here must exist under src/pages with exact casing.
+// Railway builds run on Linux and will fail on case mismatches.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
 import { ToastProvider } from './context/ToastContext';
