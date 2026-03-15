@@ -1,0 +1,452 @@
+{
+  "generatedAt": "2026-03-15T08:57:08.822Z",
+  "baseUrl": "http://localhost:3000",
+  "endpoints": [
+    {
+      "endpoint": "/api/radar",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 340,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/scanner",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 114,
+      "responseType": "array",
+      "arrayLength": 21,
+      "error": null
+    },
+    {
+      "endpoint": "/api/opportunities",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 63,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/signals",
+      "status": 500,
+      "ok": false,
+      "responseTimeMs": 80,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/news",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 96,
+      "responseType": "array",
+      "arrayLength": 5,
+      "error": null
+    },
+    {
+      "endpoint": "/api/catalysts",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 104,
+      "responseType": "array",
+      "arrayLength": 100,
+      "error": null
+    },
+    {
+      "endpoint": "/api/market-breadth",
+      "status": 401,
+      "ok": false,
+      "responseTimeMs": 55,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/sector-rotation",
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 108,
+      "responseType": "object",
+      "arrayLength": 10,
+      "error": null
+    },
+    {
+      "endpoint": "/api/intelligence-feed",
+      "status": 401,
+      "ok": false,
+      "responseTimeMs": 56,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/trade-setups",
+      "status": 401,
+      "ok": false,
+      "responseTimeMs": 57,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/chart-data",
+      "status": 401,
+      "ok": false,
+      "responseTimeMs": 57,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    },
+    {
+      "endpoint": "/api/ticker-tape",
+      "status": 401,
+      "ok": false,
+      "responseTimeMs": 57,
+      "responseType": "object",
+      "arrayLength": 0,
+      "error": null
+    }
+  ],
+  "pages": [
+    {
+      "page": "Radar",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/radar",
+        "/api/market-breadth",
+        "/api/sector-rotation"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/market-breadth",
+          "status": 401
+        }
+      ],
+      "emptyDataDependencies": [
+        "/api/radar"
+      ]
+    },
+    {
+      "page": "Scanner",
+      "status": "OK",
+      "dependencies": [
+        "/api/scanner"
+      ],
+      "failures": [],
+      "emptyDataDependencies": []
+    },
+    {
+      "page": "OpportunityStream",
+      "status": "PARTIAL",
+      "dependencies": [
+        "/api/opportunities",
+        "/api/catalysts"
+      ],
+      "failures": [],
+      "emptyDataDependencies": [
+        "/api/opportunities"
+      ]
+    },
+    {
+      "page": "Charts",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/chart-data"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/chart-data",
+          "status": 401
+        }
+      ],
+      "emptyDataDependencies": []
+    },
+    {
+      "page": "Cockpit",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/signals",
+        "/api/ticker-tape"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/signals",
+          "status": 500
+        },
+        {
+          "endpoint": "/api/ticker-tape",
+          "status": 401
+        }
+      ],
+      "emptyDataDependencies": []
+    },
+    {
+      "page": "StrategyEdge",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/signals",
+        "/api/trade-setups"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/signals",
+          "status": 500
+        },
+        {
+          "endpoint": "/api/trade-setups",
+          "status": 401
+        }
+      ],
+      "emptyDataDependencies": []
+    },
+    {
+      "page": "LearningDashboard",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/signals",
+        "/api/intelligence-feed"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/signals",
+          "status": 500
+        },
+        {
+          "endpoint": "/api/intelligence-feed",
+          "status": 401
+        }
+      ],
+      "emptyDataDependencies": []
+    },
+    {
+      "page": "SystemDiagnostics",
+      "status": "BROKEN",
+      "dependencies": [
+        "/api/system/diagnostics",
+        "/api/system/health"
+      ],
+      "failures": [
+        {
+          "endpoint": "/api/system/diagnostics",
+          "status": "MISSING"
+        },
+        {
+          "endpoint": "/api/system/health",
+          "status": "MISSING"
+        }
+      ],
+      "emptyDataDependencies": []
+    }
+  ],
+  "dataQuality": {
+    "symbolsMissingCatalyst": 31,
+    "rowsMissingSymbol": 15,
+    "rowsMissingTimestamp": 21,
+    "expectedMoveZeroRows": 0,
+    "emptyDatasets": 8,
+    "notArrayResponses": 0
+  },
+  "endpointValidation": [
+    {
+      "endpoint": "/api/radar",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/scanner",
+      "issues": [
+        "Missing catalyst",
+        "Missing timestamp"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 0,
+        "missingCatalyst": 21,
+        "missingTimestamp": 21,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 21
+    },
+    {
+      "endpoint": "/api/opportunities",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/signals",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/news",
+      "issues": [
+        "Missing symbol"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 5,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 5
+    },
+    {
+      "endpoint": "/api/catalysts",
+      "issues": [],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 100
+    },
+    {
+      "endpoint": "/api/market-breadth",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/sector-rotation",
+      "issues": [
+        "Missing symbol",
+        "Missing catalyst"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 10,
+        "missingCatalyst": 10,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 10
+    },
+    {
+      "endpoint": "/api/intelligence-feed",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/trade-setups",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/chart-data",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    },
+    {
+      "endpoint": "/api/ticker-tape",
+      "issues": [
+        "Empty dataset"
+      ],
+      "issueCounts": {
+        "notArray": 0,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
+        "expectedMoveAlwaysZero": 0
+      },
+      "totalRows": 0
+    }
+  ],
+  "chartValidation": {
+    "status": "Chart engine not feeding data",
+    "candles": 0,
+    "missingOhlcRows": 0,
+    "missingTimestamps": 0
+  },
+  "sparklineValidation": {
+    "status": "OK",
+    "message": "Sparklines are not using TradingView embed",
+    "files": []
+  },
+  "catalystVerification": {
+    "status": "WARNING",
+    "message": "Catalyst verification failed: ",
+    "totalRows": 0,
+    "missingCatalystContext": 0
+  }
+}

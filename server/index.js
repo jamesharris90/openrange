@@ -167,6 +167,7 @@ const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const { runDataIntegrityEngine, getDataIntegrityHealth } = require('./engines/dataIntegrityEngine');
 const { runProviderCrossCheckEngine } = require('./engines/providerCrossCheckEngine');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engines/systemAlertEngine');
+const { runSystemAudit } = require('./diagnostics/systemAudit');
 const { startRetentionJobs } = require('./system/retentionJobs');
 const { logSystemAlert } = require('./system/engineOps');
 
@@ -1789,6 +1790,34 @@ app.get('/api/system/platform-health', platformHealth);
 app.get('/api/system/email-health', getEmailDiagnostics);
 app.get('/api/system/ui-error-log', uiErrorLog);
 app.post('/api/system/ui-error', uiError);
+
+app.get('/api/system-audit/report', async (req, res) => {
+  try {
+    if (req.query.refresh === '1') {
+      const { report } = await runSystemAudit({
+        baseUrl: `${req.protocol}://${req.get('host')}`,
+      });
+      return res.json(report);
+    }
+
+    const reportPath = path.resolve(__dirname, 'diagnostics', 'system_audit.json');
+    const raw = await fs.readFile(reportPath, 'utf8');
+    return res.json(JSON.parse(raw));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({
+        ok: false,
+        error: 'System audit report not found',
+        detail: 'Run `node runSystemAudit.js` in server directory to generate report.',
+      });
+    }
+    return res.status(500).json({
+      ok: false,
+      error: 'System audit report read failure',
+      detail: error.message,
+    });
+  }
+});
 
 async function fastRowsQuery(sql, params, label, timeoutMs = 180) {
   try {

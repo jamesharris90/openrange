@@ -1,12 +1,124 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+function Badge({ status }) {
+  const normalized = String(status || "unknown").toUpperCase();
+  const classes = normalized === "OK"
+    ? "bg-emerald-500/20 text-emerald-300"
+    : normalized === "PARTIAL"
+      ? "bg-amber-500/20 text-amber-300"
+      : "bg-rose-500/20 text-rose-300";
+
+  return <span className={`rounded px-2 py-0.5 text-xs font-semibold ${classes}`}>{normalized}</span>;
+}
 
 export default function SystemDiagnostics() {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReport() {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch('/api/system-audit/report', {
+          headers: { Accept: 'application/json' },
+          credentials: 'include',
+        });
+        const json = await res.json();
+        if (cancelled) return;
+
+        if (!res.ok) {
+          setError(json?.detail || json?.error || 'Unable to load system audit report');
+          setReport(null);
+          return;
+        }
+
+        setReport(json && typeof json === 'object' ? json : null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Unable to load system audit report');
+          setReport(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadReport();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const endpoints = Array.isArray(report?.endpoints) ? report.endpoints : [];
+  const pages = Array.isArray(report?.pages) ? report.pages : [];
+  const quality = report?.dataQuality && typeof report.dataQuality === 'object' ? report.dataQuality : {};
+
   return (
-    <div className="p-10 text-slate-100">
-      <h1 className="text-3xl font-bold">System Diagnostics</h1>
-      <p className="text-slate-400 mt-4">
-        Engine health, data freshness, and provider status will appear here.
-      </p>
+    <div className="space-y-6 p-10 text-slate-100">
+      <div>
+        <h1 className="text-3xl font-bold">System Diagnostics</h1>
+        <p className="mt-2 text-slate-400">Endpoint health, data completeness, and page readiness.</p>
+        {report?.generatedAt ? <p className="mt-1 text-xs text-slate-500">Generated: {report.generatedAt}</p> : null}
+      </div>
+
+      {loading ? <div className="rounded border border-slate-800 bg-slate-900 p-4 text-sm">Loading report...</div> : null}
+      {!loading && error ? <div className="rounded border border-rose-500/40 bg-rose-500/10 p-4 text-sm">{error}</div> : null}
+
+      {!loading && !error ? (
+        <>
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Endpoint Health</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-slate-400">
+                  <tr>
+                    <th className="px-2 py-2">Endpoint</th>
+                    <th className="px-2 py-2">Status</th>
+                    <th className="px-2 py-2">Type</th>
+                    <th className="px-2 py-2">Length</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {endpoints.map((row) => (
+                    <tr key={row.endpoint} className="border-t border-slate-800">
+                      <td className="px-2 py-2">{row.endpoint}</td>
+                      <td className="px-2 py-2"><Badge status={row.ok ? 'OK' : 'FAIL'} /></td>
+                      <td className="px-2 py-2 text-slate-300">{row.responseType || 'unknown'}</td>
+                      <td className="px-2 py-2 text-slate-300">{row.arrayLength ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Page Readiness</h2>
+            <div className="grid gap-2 md:grid-cols-2">
+              {pages.map((row) => (
+                <div key={row.page} className="flex items-center justify-between rounded border border-slate-800 bg-slate-950 px-3 py-2">
+                  <span>{row.page}</span>
+                  <Badge status={row.status} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Data Completeness</h2>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Rows missing symbol: {quality.rowsMissingSymbol ?? 0}</div>
+              <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Rows missing timestamp: {quality.rowsMissingTimestamp ?? 0}</div>
+              <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Symbols missing catalysts: {quality.symbolsMissingCatalyst ?? 0}</div>
+              <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Expected move zero rows: {quality.expectedMoveZeroRows ?? 0}</div>
+            </div>
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }
