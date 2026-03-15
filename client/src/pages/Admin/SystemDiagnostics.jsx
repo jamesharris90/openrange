@@ -13,6 +13,7 @@ function Badge({ status }) {
 
 export default function SystemDiagnostics() {
   const [report, setReport] = useState(null);
+  const [engineHealth, setEngineHealth] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,24 +24,35 @@ export default function SystemDiagnostics() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch('/api/system-audit/report', {
-          headers: { Accept: 'application/json' },
-          credentials: 'include',
-        });
-        const json = await res.json();
+        const [reportRes, engineRes] = await Promise.all([
+          fetch('/api/system-audit/report', {
+            headers: { Accept: 'application/json' },
+            credentials: 'include',
+          }),
+          fetch('/api/system/engine-health', {
+            headers: { Accept: 'application/json' },
+            credentials: 'include',
+          }),
+        ]);
+
+        const json = await reportRes.json();
+        const engineJson = await engineRes.json().catch(() => ({}));
         if (cancelled) return;
 
-        if (!res.ok) {
+        if (!reportRes.ok) {
           setError(json?.detail || json?.error || 'Unable to load system audit report');
           setReport(null);
+          setEngineHealth([]);
           return;
         }
 
         setReport(json && typeof json === 'object' ? json : null);
+        setEngineHealth(Array.isArray(engineJson?.data?.engines) ? engineJson.data.engines : []);
       } catch (err) {
         if (!cancelled) {
           setError(err.message || 'Unable to load system audit report');
           setReport(null);
+          setEngineHealth([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -56,6 +68,24 @@ export default function SystemDiagnostics() {
   const endpoints = Array.isArray(report?.endpoints) ? report.endpoints : [];
   const pages = Array.isArray(report?.pages) ? report.pages : [];
   const quality = report?.dataQuality && typeof report.dataQuality === 'object' ? report.dataQuality : {};
+
+  const normalizeEngineStatus = (status, lagSeconds) => {
+    const raw = String(status || 'unknown').toLowerCase();
+    if (raw === 'healthy') return 'Healthy';
+    if (raw === 'delayed') return 'Delayed';
+    if (raw === 'stalled') return 'Stalled';
+    if (raw === 'error') return 'Error';
+    if (raw === 'running') return 'Healthy';
+    if (raw === 'no output') return 'Error';
+    if (Number.isFinite(lagSeconds) && lagSeconds > 0) return 'Delayed';
+    return 'Unknown';
+  };
+
+  const engineStatusClass = (statusLabel) => {
+    if (statusLabel === 'Healthy') return 'bg-emerald-500/20 text-emerald-300';
+    if (statusLabel === 'Delayed') return 'bg-amber-500/20 text-amber-300';
+    return 'bg-rose-500/20 text-rose-300';
+  };
 
   return (
     <div className="space-y-6 p-10 text-slate-100">
@@ -115,6 +145,42 @@ export default function SystemDiagnostics() {
               <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Rows missing timestamp: {quality.rowsMissingTimestamp ?? 0}</div>
               <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Symbols missing catalysts: {quality.symbolsMissingCatalyst ?? 0}</div>
               <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Expected move zero rows: {quality.expectedMoveZeroRows ?? 0}</div>
+            </div>
+          </section>
+
+          <section className="rounded border border-slate-800 bg-slate-900 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Engine Health</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-slate-400">
+                  <tr>
+                    <th className="px-2 py-2">Engine</th>
+                    <th className="px-2 py-2">Status</th>
+                    <th className="px-2 py-2">Last Run</th>
+                    <th className="px-2 py-2">Lag</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {engineHealth.map((engine) => {
+                    const statusLabel = normalizeEngineStatus(engine?.status, engine?.lagSeconds);
+                    const lastRunText = engine?.lastRun
+                      ? new Date(engine.lastRun).toLocaleString()
+                      : 'Never';
+                    return (
+                      <tr key={engine?.key || engine?.name} className="border-t border-slate-800">
+                        <td className="px-2 py-2">{engine?.name || 'Unknown'}</td>
+                        <td className="px-2 py-2">
+                          <span className={`rounded px-2 py-0.5 text-xs font-semibold ${engineStatusClass(statusLabel)}`}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-slate-300">{lastRunText}</td>
+                        <td className="px-2 py-2 text-slate-300">{Number.isFinite(engine?.lagSeconds) ? `${engine.lagSeconds}s` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
         </>

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-03-15T09:05:12.297Z",
+  "generatedAt": "2026-03-15T09:19:12.786Z",
   "baseUrl": "http://localhost:3000",
   "endpoints": [
     {
       "endpoint": "/api/radar",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 4178,
+      "responseTimeMs": 714,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -17,9 +17,9 @@
       "endpoint": "/api/scanner",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2043,
+      "responseTimeMs": 55,
       "responseType": "object",
-      "arrayLength": 0,
+      "arrayLength": 100,
       "contractCompliant": true,
       "contractViolation": false,
       "error": null
@@ -28,7 +28,7 @@
       "endpoint": "/api/opportunities",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2045,
+      "responseTimeMs": 51,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -39,7 +39,7 @@
       "endpoint": "/api/signals",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2045,
+      "responseTimeMs": 53,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -50,9 +50,9 @@
       "endpoint": "/api/news",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2045,
+      "responseTimeMs": 147,
       "responseType": "object",
-      "arrayLength": 0,
+      "arrayLength": 100,
       "contractCompliant": true,
       "contractViolation": false,
       "error": null
@@ -61,7 +61,7 @@
       "endpoint": "/api/catalysts",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 3874,
+      "responseTimeMs": 602,
       "responseType": "object",
       "arrayLength": 100,
       "contractCompliant": true,
@@ -72,9 +72,9 @@
       "endpoint": "/api/market-breadth",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2045,
+      "responseTimeMs": 171,
       "responseType": "object",
-      "arrayLength": 0,
+      "arrayLength": 1,
       "contractCompliant": true,
       "contractViolation": false,
       "error": null
@@ -83,9 +83,9 @@
       "endpoint": "/api/sector-rotation",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2045,
+      "responseTimeMs": 171,
       "responseType": "object",
-      "arrayLength": 0,
+      "arrayLength": 12,
       "contractCompliant": true,
       "contractViolation": false,
       "error": null
@@ -94,7 +94,7 @@
       "endpoint": "/api/intelligence-feed",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2046,
+      "responseTimeMs": 187,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -105,7 +105,7 @@
       "endpoint": "/api/trade-setups",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2046,
+      "responseTimeMs": 187,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -116,7 +116,7 @@
       "endpoint": "/api/chart-data",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2046,
+      "responseTimeMs": 475,
       "responseType": "object",
       "arrayLength": 0,
       "contractCompliant": true,
@@ -127,9 +127,9 @@
       "endpoint": "/api/ticker-tape",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 2047,
+      "responseTimeMs": 479,
       "responseType": "object",
-      "arrayLength": 0,
+      "arrayLength": 50,
       "contractCompliant": true,
       "contractViolation": false,
       "error": null
@@ -146,21 +146,17 @@
       ],
       "failures": [],
       "emptyDataDependencies": [
-        "/api/radar",
-        "/api/market-breadth",
-        "/api/sector-rotation"
+        "/api/radar"
       ]
     },
     {
       "page": "Scanner",
-      "status": "PARTIAL",
+      "status": "OK",
       "dependencies": [
         "/api/scanner"
       ],
       "failures": [],
-      "emptyDataDependencies": [
-        "/api/scanner"
-      ]
+      "emptyDataDependencies": []
     },
     {
       "page": "OpportunityStream",
@@ -194,8 +190,7 @@
       ],
       "failures": [],
       "emptyDataDependencies": [
-        "/api/signals",
-        "/api/ticker-tape"
+        "/api/signals"
       ]
     },
     {
@@ -245,11 +240,11 @@
     }
   ],
   "dataQuality": {
-    "symbolsMissingCatalyst": 0,
-    "rowsMissingSymbol": 0,
-    "rowsMissingTimestamp": 100,
+    "symbolsMissingCatalyst": 163,
+    "rowsMissingSymbol": 113,
+    "rowsMissingTimestamp": 163,
     "expectedMoveZeroRows": 0,
-    "emptyDatasets": 11,
+    "emptyDatasets": 6,
     "notArrayResponses": 0,
     "contractViolations": 0
   },
@@ -274,17 +269,17 @@
       "endpoint": "/api/scanner",
       "contractViolation": false,
       "issues": [
-        "Empty dataset"
+        "Missing catalyst"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 1,
+        "emptyDataset": 0,
         "missingSymbol": 0,
-        "missingCatalyst": 0,
+        "missingCatalyst": 100,
         "missingTimestamp": 0,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 0
+      "totalRows": 100
     },
     {
       "endpoint": "/api/opportunities",
@@ -322,17 +317,17 @@
       "endpoint": "/api/news",
       "contractViolation": false,
       "issues": [
-        "Empty dataset"
+        "Missing symbol"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 1,
-        "missingSymbol": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 100,
         "missingCatalyst": 0,
         "missingTimestamp": 0,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 0
+      "totalRows": 100
     },
     {
       "endpoint": "/api/catalysts",
@@ -354,33 +349,37 @@
       "endpoint": "/api/market-breadth",
       "contractViolation": false,
       "issues": [
-        "Empty dataset"
+        "Missing symbol",
+        "Missing catalyst",
+        "Missing timestamp"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 1,
-        "missingSymbol": 0,
-        "missingCatalyst": 0,
-        "missingTimestamp": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 1,
+        "missingCatalyst": 1,
+        "missingTimestamp": 1,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 0
+      "totalRows": 1
     },
     {
       "endpoint": "/api/sector-rotation",
       "contractViolation": false,
       "issues": [
-        "Empty dataset"
+        "Missing symbol",
+        "Missing catalyst",
+        "Missing timestamp"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 1,
-        "missingSymbol": 0,
-        "missingCatalyst": 0,
-        "missingTimestamp": 0,
+        "emptyDataset": 0,
+        "missingSymbol": 12,
+        "missingCatalyst": 12,
+        "missingTimestamp": 12,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 0
+      "totalRows": 12
     },
     {
       "endpoint": "/api/intelligence-feed",
@@ -434,17 +433,18 @@
       "endpoint": "/api/ticker-tape",
       "contractViolation": false,
       "issues": [
-        "Empty dataset"
+        "Missing catalyst",
+        "Missing timestamp"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 1,
+        "emptyDataset": 0,
         "missingSymbol": 0,
-        "missingCatalyst": 0,
-        "missingTimestamp": 0,
+        "missingCatalyst": 50,
+        "missingTimestamp": 50,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 0
+      "totalRows": 50
     }
   ],
   "chartValidation": {

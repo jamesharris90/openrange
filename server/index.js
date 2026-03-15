@@ -171,6 +171,7 @@ const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engine
 const { runSystemAudit } = require('./diagnostics/systemAudit');
 const { startRetentionJobs } = require('./system/retentionJobs');
 const { logSystemAlert } = require('./system/engineOps');
+const { startOrchestrator, getEngineHealth: getOrchestratorEngineHealth } = require('./orchestrator/engineOrchestrator');
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
@@ -1788,6 +1789,13 @@ app.get('/api/system/engine-diagnostics', async (_req, res) => {
 });
 
 app.get('/api/system/ui-health', getUIHealth);
+app.get('/api/system/engine-health', (_req, res) => {
+  const health = getOrchestratorEngineHealth();
+  res.json({
+    success: true,
+    data: health,
+  });
+});
 app.get('/api/system/platform-health', platformHealth);
 app.get('/api/system/email-health', getEmailDiagnostics);
 app.get('/api/system/ui-error-log', uiErrorLog);
@@ -5957,6 +5965,7 @@ async function runIntegrityBootstrap() {
 
 function bootstrapEngines() {
   console.log('[SYSTEM] Bootstrapping engines...');
+  startOrchestrator();
 
   const runSafe = (label, fn) => {
     Promise.resolve()
