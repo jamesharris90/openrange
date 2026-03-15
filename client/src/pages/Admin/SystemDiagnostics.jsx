@@ -270,6 +270,7 @@ export default function SystemDiagnostics() {
                 <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Resend configured: {emailStatus?.scheduler?.resendConfigured ? 'Yes' : 'No'}</div>
                 <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Active subscribers: {emailStatus?.activeSubscribers ?? 0}</div>
                 <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Registered jobs: {(emailStatus?.scheduler?.jobs || []).join(', ') || 'None'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Next scheduled send: {emailStatus?.scheduler?.nextScheduledSend || 'Unavailable'}</div>
               </div>
             )}
 

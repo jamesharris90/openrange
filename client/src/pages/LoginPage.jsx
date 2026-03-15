@@ -33,10 +33,20 @@ export default function LoginPage() {
         login(data?.token);
         navigate('/dashboard', { replace: true });
       } else {
-        setError(data?.error || data?.detail || 'Login failed');
+        const message = String(data?.error || data?.detail || '').toLowerCase();
+        if (message.includes('invalid credentials') || message.includes('401')) {
+          setError('Incorrect email or password.');
+        } else {
+          setError(data?.error || data?.detail || 'Login failed');
+        }
       }
     } catch (err) {
-      setError(err?.message || 'Network error. Please check your connection.');
+      const message = String(err?.message || '');
+      if (message.includes('HTTP 401')) {
+        setError('Incorrect email or password.');
+      } else {
+        setError(err?.message || 'Network error. Please check your connection.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -76,7 +86,16 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && (
+            <div className="auth-error">
+              <div>{error}</div>
+              {error === 'Incorrect email or password.' ? (
+                <div className="mt-1">
+                  <Link to="/forgot-password">Forgot password? Reset it here.</Link>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           <button type="submit" className="auth-submit" disabled={submitting}>
             {submitting && <span className="auth-spinner-sm" />}

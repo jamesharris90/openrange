@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
 
     setSubmitting(true);
     try {
-      await apiJSON('/api/users/reset-password', {
+      await apiJSON('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, newPassword: password }),

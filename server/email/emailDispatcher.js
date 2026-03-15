@@ -13,6 +13,15 @@ const { renderSystemMonitorTemplate } = require('./templates/SystemMonitorTempla
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'OpenRange <noreply@openrangetrading.co.uk>';
 
+const scheduleConfig = {
+  timezone: 'Europe/London',
+  beaconMorningBrief: '0 7 * * 1-5',
+  breakingAlert: '*/15 8-17 * * 1-5',
+  earningsIntelligence: '0 18 * * 0',
+  weeklyScorecard: '30 17 * * 5',
+  systemMonitor: '0 9 * * *',
+};
+
 const scheduleState = {
   inFlight: new Set(),
   schedulerStarted: false,
@@ -66,18 +75,96 @@ async function getAdminRecipients() {
   return Array.from(new Set((rows || []).map((r) => String(r.email || '').trim()).filter(Boolean)));
 }
 
+async function getPreferenceRecipients(preferenceType) {
+  const sql = `
+    SELECT email
+    FROM email_preferences
+    WHERE is_enabled = TRUE
+      AND preference_key = $1
+      AND email IS NOT NULL
+  `;
+
+  const { rows } = await queryWithTimeout(sql, [preferenceType], {
+    timeoutMs: 5000,
+    label: 'email.dispatcher.preference_recipients',
+    maxRetries: 0,
+  }).catch(() => ({ rows: [] }));
+
+  return (rows || [])
+    .map((row) => String(row.email || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function getNewsletterRecipients(preferenceType) {
+  return newsletterService.resolveSubscribedRecipients({
+    emailType: preferenceType,
+    fallbackToLegacy: true,
+  }).catch(() => []);
+}
+
 async function resolveRecipients(preferenceType, forceTo = null) {
   if (forceTo) {
     return [forceTo];
   }
 
-  const subscribed = await newsletterService.resolveSubscribedRecipients({
-    emailType: preferenceType,
-    fallbackToLegacy: true,
-  }).catch(() => []);
+  // Fallback order:
+  // 1) email_preferences
+  // 2) newsletter_subscribers
+  // 3) admin users
+  // 4) ADMIN_EMAIL env
+  const preferenceRecipients = await getPreferenceRecipients(preferenceType);
+  const newsletterRecipients = await getNewsletterRecipients(preferenceType);
+  const adminRecipients = await getAdminRecipients();
+  const envRecipient = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 
-  const admins = await getAdminRecipients();
-  return Array.from(new Set([...subscribed, ...admins]));
+  const merged = Array.from(new Set([
+    ...preferenceRecipients,
+    ...newsletterRecipients,
+    ...adminRecipients,
+    ...(envRecipient ? [envRecipient] : []),
+  ].filter(Boolean)));
+
+  if (merged.length > 0) {
+    return merged;
+  }
+
+  const finalEnvFallback = String(process.env.MORNING_BRIEF_RECIPIENTS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+  if (finalEnvFallback.length > 0) {
+    return finalEnvFallback;
+  }
+
+  const fromAddressMatch = String(fromEmail).match(/<([^>]+)>/);
+  const fromAddress = String((fromAddressMatch && fromAddressMatch[1]) || fromEmail || '').trim().toLowerCase();
+  return fromAddress ? [fromAddress] : ['noreply@openrangetrading.co.uk'];
+}
+
+async function sendPasswordResetEmail({ to, token, expiresAt }) {
+  const recipient = String(to || '').trim();
+  if (!recipient) {
+    return { success: false, message: 'Missing recipient' };
+  }
+
+  const baseAppUrl = String(process.env.APP_BASE_URL || process.env.CLIENT_BASE_URL || 'https://openrangetrading.co.uk').replace(/\/$/, '');
+  const resetUrl = `${baseAppUrl}/reset-password?token=${encodeURIComponent(String(token || ''))}`;
+  const expiryLabel = new Date(expiresAt || Date.now() + 60 * 60 * 1000).toISOString();
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;background:#020617;color:#e2e8f0;padding:18px;">
+      <h2 style="margin:0 0 10px 0;color:#38bdf8;">OpenRange Password Reset</h2>
+      <p style="margin:0 0 12px 0;line-height:1.6;">A password reset was requested for your account. This link expires in 1 hour.</p>
+      <p style="margin:0 0 14px 0;"><a href="${resetUrl}" style="display:inline-block;background:#38bdf8;color:#0b1220;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:700;">Reset Password</a></p>
+      <p style="margin:0 0 8px 0;font-size:12px;color:#94a3b8;">Expires at: ${expiryLabel}</p>
+      <p style="margin:0;font-size:12px;color:#94a3b8;">If you did not request this, you can ignore this email.</p>
+    </div>
+  `;
+
+  return sendEmail({
+    subject: 'OpenRange Password Reset',
+    html,
+    recipients: [recipient],
+    campaignKey: `password_reset_${Date.now()}`,
+    campaignType: 'passwordReset',
+  });
 }
 
 async function sendEmail({ subject, html, recipients, campaignKey, campaignType }) {
@@ -371,35 +458,35 @@ function registerEmailIntelligenceSchedules() {
 
   scheduleState.schedulerStarted = true;
 
-  scheduleState.jobs.beaconMorningBrief = cron.schedule('45 7 * * 1-5', async () => {
+  scheduleState.jobs.beaconMorningBrief = cron.schedule(scheduleConfig.beaconMorningBrief, async () => {
     await sendBeaconMorningBrief().catch((error) => {
       logger.warn('[EMAIL_DISPATCHER] scheduled beacon morning failure', { message: error.message });
     });
-  }, { timezone: 'America/New_York' });
+  }, { timezone: scheduleConfig.timezone });
 
-  scheduleState.jobs.breakingAlert = cron.schedule('*/15 9-16 * * 1-5', async () => {
+  scheduleState.jobs.breakingAlert = cron.schedule(scheduleConfig.breakingAlert, async () => {
     await sendBreakingAlert().catch((error) => {
       logger.warn('[EMAIL_DISPATCHER] scheduled breaking alert failure', { message: error.message });
     });
-  }, { timezone: 'America/New_York' });
+  }, { timezone: scheduleConfig.timezone });
 
-  scheduleState.jobs.earningsIntelligence = cron.schedule('0 18 * * 0', async () => {
+  scheduleState.jobs.earningsIntelligence = cron.schedule(scheduleConfig.earningsIntelligence, async () => {
     await sendEarningsIntelligence().catch((error) => {
       logger.warn('[EMAIL_DISPATCHER] scheduled earnings failure', { message: error.message });
     });
-  }, { timezone: 'America/New_York' });
+  }, { timezone: scheduleConfig.timezone });
 
-  scheduleState.jobs.weeklyScorecard = cron.schedule('30 17 * * 5', async () => {
+  scheduleState.jobs.weeklyScorecard = cron.schedule(scheduleConfig.weeklyScorecard, async () => {
     await sendWeeklyScorecard().catch((error) => {
       logger.warn('[EMAIL_DISPATCHER] scheduled weekly scorecard failure', { message: error.message });
     });
-  }, { timezone: 'America/New_York' });
+  }, { timezone: scheduleConfig.timezone });
 
-  scheduleState.jobs.systemMonitor = cron.schedule('0 9 * * *', async () => {
+  scheduleState.jobs.systemMonitor = cron.schedule(scheduleConfig.systemMonitor, async () => {
     await sendSystemMonitor().catch((error) => {
       logger.warn('[EMAIL_DISPATCHER] scheduled system monitor failure', { message: error.message });
     });
-  }, { timezone: 'America/New_York' });
+  }, { timezone: scheduleConfig.timezone });
 
   logger.info('[EMAIL_DISPATCHER] schedules registered', {
     beaconMorningBrief: '45 7 * * 1-5 ET',
@@ -419,6 +506,8 @@ function getEmailDispatcherStatus() {
     inFlightKeys: Array.from(scheduleState.inFlight),
     lastRuns: scheduleState.lastRuns,
     resendConfigured: Boolean(resend),
+    schedules: scheduleConfig,
+    nextScheduledSend: `${scheduleConfig.timezone} cron set active`,
   };
 }
 
@@ -447,4 +536,5 @@ module.exports = {
   sendImmediateAdminTests,
   registerEmailIntelligenceSchedules,
   getEmailDispatcherStatus,
+  sendPasswordResetEmail,
 };

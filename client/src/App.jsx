@@ -2,7 +2,7 @@
 // All page modules referenced here must exist under src/pages with exact casing.
 // Railway builds run on Linux and will fail on case mismatches.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { SymbolDataProvider } from './context/symbol/SymbolDataContext';
 import AppLayout from './layouts/AppLayout';
@@ -16,6 +16,7 @@ import MarketShell from './layouts/MarketShell';
 import DiscoveryShell from './layouts/DiscoveryShell';
 import BeaconShell from './layouts/BeaconShell';
 import TradingShell from './layouts/TradingShell';
+import safeLazy from './utils/safeLazy';
 import WatchlistPage from './components/watchlist/WatchlistPage';
 import EarningsPage from './components/earnings/EarningsPage';
 import LiveCockpit from './pages/LiveCockpit.tsx';
@@ -27,7 +28,7 @@ function loadPage(path) {
   if (!importer) {
     throw new Error(`Page not found: ${path}`);
   }
-  return lazy(importer);
+  return safeLazy(importer);
 }
 
 const LoginPage = loadPage('LoginPage');

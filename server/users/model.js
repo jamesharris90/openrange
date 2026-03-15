@@ -1,7 +1,66 @@
 // User model using PostgreSQL (Supabase)
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { pool } = require('../db/pg');
 const { encrypt, decrypt } = require('../utils/encryption');
+
+async function ensurePasswordResetTable() {
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`
+  );
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_lookup
+       ON password_reset_tokens (user_id, token_hash)`
+  );
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+async function createPasswordResetToken(userId, rawToken, expiresAt) {
+  await ensurePasswordResetTable();
+  const tokenHash = hashResetToken(rawToken);
+
+  await pool.query(
+    `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+     VALUES ($1, $2, $3)`,
+    [userId, tokenHash, expiresAt]
+  );
+
+  return true;
+}
+
+async function consumePasswordResetToken(rawToken) {
+  await ensurePasswordResetTable();
+  const tokenHash = hashResetToken(rawToken);
+
+  const result = await pool.query(
+    `UPDATE password_reset_tokens
+     SET used_at = NOW()
+     WHERE id = (
+       SELECT id
+       FROM password_reset_tokens
+       WHERE token_hash = $1
+         AND used_at IS NULL
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1
+     )
+     RETURNING user_id`,
+    [tokenHash]
+  );
+
+  return result.rows[0]?.user_id || null;
+}
 
 // Register new user
 const register = async (username, email, password, is_admin = 0) => {
@@ -353,4 +412,7 @@ module.exports = {
   getSetting,
   setSetting,
   getAllSettings,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  ensurePasswordResetTable,
 };

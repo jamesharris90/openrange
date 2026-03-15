@@ -54,8 +54,23 @@ function renderTickerCard(row = {}) {
 
 function renderBeaconMorningTemplate(payload = {}) {
   const market = payload.market || {};
+  const narrative = payload.narrative || {};
   const setups = Array.isArray(payload.setups) ? payload.setups : [];
   const cards = setups.map((row) => renderTickerCard(row)).join('') || '<div style="color:#94a3b8;">No qualifying A+ setups available.</div>';
+
+  const narrativeBlock = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #1f2937;border-radius:10px;background:#0f172a;margin-bottom:14px;overflow:hidden;">
+      <tr>
+        <td style="padding:12px;border-bottom:1px solid #1f2937;color:#93c5fd;font-size:12px;font-weight:700;">MCP Narrative (${esc(narrative?._meta?.source || 'fallback')})</td>
+      </tr>
+      <tr>
+        <td style="padding:12px;color:#cbd5e1;font-size:13px;line-height:1.6;">
+          <div><strong style="color:#e2e8f0;">Overview:</strong> ${esc(narrative.overview || 'No overview generated.')}</div>
+          <div style="margin-top:6px;"><strong style="color:#e2e8f0;">Risk:</strong> ${esc(narrative.risk || 'No risk summary generated.')}</div>
+        </td>
+      </tr>
+    </table>
+  `;
 
   const body = `
     <div style="font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:12px;">
@@ -64,6 +79,7 @@ function renderBeaconMorningTemplate(payload = {}) {
       QQQ ${formatPercent(market.qqq)},
       VIX ${formatNumber(market.vix, 2)}
     </div>
+    ${narrativeBlock}
     ${cards}
     <div style="margin-top:10px;font-size:13px;">
       <a href="https://openrangetrading.co.uk/radar" style="display:inline-block;background:#38bdf8;color:#0b1220;text-decoration:none;padding:9px 12px;border-radius:8px;font-weight:700;margin-right:8px;">Open Radar</a>

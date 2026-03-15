@@ -1,6 +1,7 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 const { generateChartSnapshot } = require('./chartSnapshotEngine');
+const { generateMorningNarrative } = require('../services/mcpClient');
 
 function toNumber(value) {
   const n = Number(value);
@@ -147,11 +148,20 @@ async function generateBeaconMorningPayload(options = {}) {
     symbols: enriched.map((row) => row.symbol),
   });
 
+  const narrative = await generateMorningNarrative({ market, setups: enriched }).catch(() => ({
+    overview: 'Market tone is mixed; focus on conviction signals and liquidity confirmation.',
+    risk: 'Risk remains elevated around macro headlines and opening volatility.',
+    catalysts: [],
+    watchlist: enriched.map((row) => row.symbol).slice(0, 8),
+    _meta: { source: 'fallback' },
+  }));
+
   return {
     title: 'Beacon Morning Brief',
     preheader: 'Top OpenRange conviction setups for today',
     market,
     setups: enriched,
+    narrative,
   };
 }
 

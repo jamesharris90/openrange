@@ -5112,6 +5112,14 @@ app.post('/api/auth/login', (req, res, next) => {
   req.url = '/login';
   return userRoutes(req, res, next);
 });
+app.post('/api/auth/request-password-reset', (req, res, next) => {
+  req.url = '/request-password-reset';
+  return userRoutes(req, res, next);
+});
+app.post('/api/auth/reset-password', (req, res, next) => {
+  req.url = '/reset-password';
+  return userRoutes(req, res, next);
+});
 app.use('/api/users', userRoutes);
 
 app.get('/api/intelligence/feed', async (req, res) => {
@@ -5936,17 +5944,28 @@ app.use('/api', (req, res) => {
 });
 
 // Serve built frontend assets only after API routes are mounted.
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(path.join(__dirname, '../client/dist'), {
+  index: false,
+}));
+
+// Explicit long-cache for immutable hashed build assets.
+app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), {
+  maxAge: '7d',
+  immutable: true,
+}));
 
 // Optional legacy static assets preserved for compatibility.
-app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets')));
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
 app.use('/pages', express.static(path.join(__dirname, '..', 'pages')));
 app.use('/logo pack', express.static(path.join(__dirname, '..', 'logo pack')));
 app.get('/styles.css', (req, res) => res.sendFile(path.join(__dirname, '..', 'styles.css')));
 
 // SPA fallback must be last and must not intercept /api/* paths.
-app.get(/^\/(?!api(?:\/|$)).*/, (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 

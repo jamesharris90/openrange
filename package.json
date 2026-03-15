@@ -5,7 +5,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "build": "cd server && npm ci && cd ../client && npm install && npm run build",
+    "build": "cd server && npm ci && cd ../client && npm install && rm -rf dist && npm run build",
     "start": "node server/index.js",
     "calibrate": "ts-node server/scripts/runCalibration.ts",
     "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",

@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
 
     setSubmitting(true);
     try {
-      const data = await apiJSON('/api/users/forgot-password', {
+      const data = await apiJSON('/api/auth/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim() }),

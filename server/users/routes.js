@@ -2,7 +2,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const model = require('./model');
+const { sendPasswordResetEmail } = require('../email/emailDispatcher');
 const router = express.Router();
 
 console.log('Auth module loaded');
@@ -313,39 +315,63 @@ router.post('/admin/delete', requireAuth, async (req, res) => {
   }
 });
 
-// Forgot password (request reset)
-// In production, send email with token. Here, just return a reset token.
-router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email required' });
-  try {
-    const user = await model.findByUsernameOrEmail(email);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const resetToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
-    // In production, email this token as a link
-    res.json({ resetToken });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+async function requestPasswordReset(req, res) {
+  const identifier = String(req.body?.identifier || req.body?.email || '').trim();
+  if (!identifier) {
+    return res.status(400).json({ success: false, error: 'Email or username required' });
   }
-});
 
-// Reset password (with token)
-router.post('/reset-password', async (req, res) => {
-  const { token, newPassword } = req.body;
-  if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password required' });
+  try {
+    const user = await model.findByUsernameOrEmail(identifier);
+    if (user?.id && user?.email) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + (60 * 60 * 1000));
 
-  // Validate password
+      await model.createPasswordResetToken(user.id, rawToken, expiresAt);
+      await sendPasswordResetEmail({
+        to: user.email,
+        token: rawToken,
+        expiresAt,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'If an account exists with that username/email, a reset link has been sent.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || 'Failed to request password reset' });
+  }
+}
+
+async function resetPasswordWithToken(req, res) {
+  const token = String(req.body?.token || '').trim();
+  const newPassword = String(req.body?.newPassword || '').trim();
+  if (!token || !newPassword) {
+    return res.status(400).json({ success: false, error: 'Token and new password required' });
+  }
+
   const passwordError = validatePassword(newPassword);
-  if (passwordError) return res.status(400).json({ error: passwordError });
+  if (passwordError) return res.status(400).json({ success: false, error: passwordError });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    await model.updatePassword(payload.id, newPassword);
-    res.json({ success: true });
+    const userId = await model.consumePasswordResetToken(token);
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired token' });
+    }
+
+    await model.updatePassword(userId, newPassword);
+    return res.json({ success: true });
   } catch (err) {
-    res.status(400).json({ error: 'Invalid or expired token' });
+    return res.status(500).json({ success: false, error: err.message || 'Failed to reset password' });
   }
-});
+}
+
+router.post('/request-password-reset', requestPasswordReset);
+router.post('/reset-password', resetPasswordWithToken);
+
+// Backward-compatible aliases
+router.post('/forgot-password', requestPasswordReset);
 
 // ============================================
 // ADMIN ROUTES
