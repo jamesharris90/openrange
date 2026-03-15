@@ -5,3 +5,19 @@ export const DATA_CONTRACT = {
   MARKET_METRICS: "market_metrics",
   INTRADAY_DATA: "intraday_1m",
 };
+
+export function success(data = [], meta = {}) {
+  return {
+    success: true,
+    data: Array.isArray(data) ? data : [],
+    meta,
+  };
+}
+
+export function failure(message = "Unknown error") {
+  return {
+    success: false,
+    data: [],
+    error: message,
+  };
+}

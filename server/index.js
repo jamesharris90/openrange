@@ -89,6 +89,7 @@ const performanceRoutes = require('./routes/performanceRoutes');
 const radarRoutes = require('./routes/radar');
 const radarTradesRoutes = require('./routes/radarTrades');
 const briefingRoutes = require('./routes/briefingRoutes');
+const platformStabilityRoutes = require('./routes/platformStabilityRoutes');
 const systemWatchdogRoutes = require('./routes/systemWatchdog');
 const adminFeatureAccessRoutes = require('./routes/adminFeatureAccess');
 const adminValidationRoutes = require('./routes/adminValidationRoutes');
@@ -728,6 +729,7 @@ app.use('/api', (req, _res, next) => {
   // New modular routes
   app.use(quotesRoutes);
   app.use(quotesBatchRoutes);
+  app.use(platformStabilityRoutes);
 
   app.get('/api/moves', async (_req, res) => {
     try {

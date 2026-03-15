@@ -1,6 +1,7 @@
 const { performance } = require('perf_hooks');
 
 function pickPrimaryArray(data) {
+  if (data && typeof data === 'object' && Array.isArray(data.data)) return data.data;
   if (Array.isArray(data)) return data;
   if (!data || typeof data !== 'object') return [];
 
@@ -29,6 +30,8 @@ async function testEndpoint(baseUrl, endpoint) {
 
     const primaryArray = pickPrimaryArray(json);
     const responseType = Array.isArray(json) ? 'array' : json === null ? 'null' : typeof json;
+    const contractCompliant = Boolean(json && typeof json === 'object' && Object.prototype.hasOwnProperty.call(json, 'success'));
+    const contractViolation = contractCompliant ? json.success !== true : true;
 
     return {
       endpoint,
@@ -38,6 +41,8 @@ async function testEndpoint(baseUrl, endpoint) {
       responseTimeMs: Math.round(performance.now() - startedAt),
       responseType,
       arrayLength: Array.isArray(json) ? json.length : primaryArray.length,
+      contractCompliant,
+      contractViolation,
       parsedData: json,
       primaryArray,
     };
@@ -50,6 +55,8 @@ async function testEndpoint(baseUrl, endpoint) {
       responseTimeMs: Math.round(performance.now() - startedAt),
       responseType: 'error',
       arrayLength: null,
+      contractCompliant: false,
+      contractViolation: true,
       error: err.message,
       parsedData: null,
       primaryArray: [],

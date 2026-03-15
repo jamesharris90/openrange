@@ -1,143 +1,166 @@
 {
-  "generatedAt": "2026-03-15T08:57:08.822Z",
+  "generatedAt": "2026-03-15T09:05:12.297Z",
   "baseUrl": "http://localhost:3000",
   "endpoints": [
     {
       "endpoint": "/api/radar",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 340,
+      "responseTimeMs": 4178,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/scanner",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 114,
-      "responseType": "array",
-      "arrayLength": 21,
+      "responseTimeMs": 2043,
+      "responseType": "object",
+      "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/opportunities",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 63,
+      "responseTimeMs": 2045,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/signals",
-      "status": 500,
-      "ok": false,
-      "responseTimeMs": 80,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2045,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/news",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 96,
-      "responseType": "array",
-      "arrayLength": 5,
+      "responseTimeMs": 2045,
+      "responseType": "object",
+      "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/catalysts",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 104,
-      "responseType": "array",
+      "responseTimeMs": 3874,
+      "responseType": "object",
       "arrayLength": 100,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/market-breadth",
-      "status": 401,
-      "ok": false,
-      "responseTimeMs": 55,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2045,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/sector-rotation",
       "status": 200,
       "ok": true,
-      "responseTimeMs": 108,
+      "responseTimeMs": 2045,
       "responseType": "object",
-      "arrayLength": 10,
+      "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/intelligence-feed",
-      "status": 401,
-      "ok": false,
-      "responseTimeMs": 56,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2046,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/trade-setups",
-      "status": 401,
-      "ok": false,
-      "responseTimeMs": 57,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2046,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/chart-data",
-      "status": 401,
-      "ok": false,
-      "responseTimeMs": 57,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2046,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     },
     {
       "endpoint": "/api/ticker-tape",
-      "status": 401,
-      "ok": false,
-      "responseTimeMs": 57,
+      "status": 200,
+      "ok": true,
+      "responseTimeMs": 2047,
       "responseType": "object",
       "arrayLength": 0,
+      "contractCompliant": true,
+      "contractViolation": false,
       "error": null
     }
   ],
   "pages": [
     {
       "page": "Radar",
-      "status": "BROKEN",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/radar",
         "/api/market-breadth",
         "/api/sector-rotation"
       ],
-      "failures": [
-        {
-          "endpoint": "/api/market-breadth",
-          "status": 401
-        }
-      ],
+      "failures": [],
       "emptyDataDependencies": [
-        "/api/radar"
+        "/api/radar",
+        "/api/market-breadth",
+        "/api/sector-rotation"
       ]
     },
     {
       "page": "Scanner",
-      "status": "OK",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/scanner"
       ],
       "failures": [],
-      "emptyDataDependencies": []
+      "emptyDataDependencies": [
+        "/api/scanner"
+      ]
     },
     {
       "page": "OpportunityStream",
@@ -153,74 +176,53 @@
     },
     {
       "page": "Charts",
-      "status": "BROKEN",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/chart-data"
       ],
-      "failures": [
-        {
-          "endpoint": "/api/chart-data",
-          "status": 401
-        }
-      ],
-      "emptyDataDependencies": []
+      "failures": [],
+      "emptyDataDependencies": [
+        "/api/chart-data"
+      ]
     },
     {
       "page": "Cockpit",
-      "status": "BROKEN",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/signals",
         "/api/ticker-tape"
       ],
-      "failures": [
-        {
-          "endpoint": "/api/signals",
-          "status": 500
-        },
-        {
-          "endpoint": "/api/ticker-tape",
-          "status": 401
-        }
-      ],
-      "emptyDataDependencies": []
+      "failures": [],
+      "emptyDataDependencies": [
+        "/api/signals",
+        "/api/ticker-tape"
+      ]
     },
     {
       "page": "StrategyEdge",
-      "status": "BROKEN",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/signals",
         "/api/trade-setups"
       ],
-      "failures": [
-        {
-          "endpoint": "/api/signals",
-          "status": 500
-        },
-        {
-          "endpoint": "/api/trade-setups",
-          "status": 401
-        }
-      ],
-      "emptyDataDependencies": []
+      "failures": [],
+      "emptyDataDependencies": [
+        "/api/signals",
+        "/api/trade-setups"
+      ]
     },
     {
       "page": "LearningDashboard",
-      "status": "BROKEN",
+      "status": "PARTIAL",
       "dependencies": [
         "/api/signals",
         "/api/intelligence-feed"
       ],
-      "failures": [
-        {
-          "endpoint": "/api/signals",
-          "status": 500
-        },
-        {
-          "endpoint": "/api/intelligence-feed",
-          "status": 401
-        }
-      ],
-      "emptyDataDependencies": []
+      "failures": [],
+      "emptyDataDependencies": [
+        "/api/signals",
+        "/api/intelligence-feed"
+      ]
     },
     {
       "page": "SystemDiagnostics",
@@ -243,16 +245,18 @@
     }
   ],
   "dataQuality": {
-    "symbolsMissingCatalyst": 31,
-    "rowsMissingSymbol": 15,
-    "rowsMissingTimestamp": 21,
+    "symbolsMissingCatalyst": 0,
+    "rowsMissingSymbol": 0,
+    "rowsMissingTimestamp": 100,
     "expectedMoveZeroRows": 0,
-    "emptyDatasets": 8,
-    "notArrayResponses": 0
+    "emptyDatasets": 11,
+    "notArrayResponses": 0,
+    "contractViolations": 0
   },
   "endpointValidation": [
     {
       "endpoint": "/api/radar",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -268,22 +272,23 @@
     },
     {
       "endpoint": "/api/scanner",
+      "contractViolation": false,
       "issues": [
-        "Missing catalyst",
-        "Missing timestamp"
+        "Empty dataset"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 0,
+        "emptyDataset": 1,
         "missingSymbol": 0,
-        "missingCatalyst": 21,
-        "missingTimestamp": 21,
+        "missingCatalyst": 0,
+        "missingTimestamp": 0,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 21
+      "totalRows": 0
     },
     {
       "endpoint": "/api/opportunities",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -299,6 +304,7 @@
     },
     {
       "endpoint": "/api/signals",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -314,34 +320,39 @@
     },
     {
       "endpoint": "/api/news",
+      "contractViolation": false,
       "issues": [
-        "Missing symbol"
+        "Empty dataset"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 0,
-        "missingSymbol": 5,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
         "missingCatalyst": 0,
         "missingTimestamp": 0,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 5
+      "totalRows": 0
     },
     {
       "endpoint": "/api/catalysts",
-      "issues": [],
+      "contractViolation": false,
+      "issues": [
+        "Missing timestamp"
+      ],
       "issueCounts": {
         "notArray": 0,
         "emptyDataset": 0,
         "missingSymbol": 0,
         "missingCatalyst": 0,
-        "missingTimestamp": 0,
+        "missingTimestamp": 100,
         "expectedMoveAlwaysZero": 0
       },
       "totalRows": 100
     },
     {
       "endpoint": "/api/market-breadth",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -357,22 +368,23 @@
     },
     {
       "endpoint": "/api/sector-rotation",
+      "contractViolation": false,
       "issues": [
-        "Missing symbol",
-        "Missing catalyst"
+        "Empty dataset"
       ],
       "issueCounts": {
         "notArray": 0,
-        "emptyDataset": 0,
-        "missingSymbol": 10,
-        "missingCatalyst": 10,
+        "emptyDataset": 1,
+        "missingSymbol": 0,
+        "missingCatalyst": 0,
         "missingTimestamp": 0,
         "expectedMoveAlwaysZero": 0
       },
-      "totalRows": 10
+      "totalRows": 0
     },
     {
       "endpoint": "/api/intelligence-feed",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -388,6 +400,7 @@
     },
     {
       "endpoint": "/api/trade-setups",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -403,6 +416,7 @@
     },
     {
       "endpoint": "/api/chart-data",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],
@@ -418,6 +432,7 @@
     },
     {
       "endpoint": "/api/ticker-tape",
+      "contractViolation": false,
       "issues": [
         "Empty dataset"
       ],

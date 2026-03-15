@@ -12,14 +12,11 @@ import useBeaconSignalMap from '../hooks/beacon/useBeaconSignalMap';
 import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
 import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
 import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
-
-function ensureArray(value) {
-  return Array.isArray(value) ? value : [];
-}
+import { safeArray, safeObject } from '../utils/safeData';
 
 function pickArray(...candidates) {
   for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate)) return safeArray(candidate);
   }
   return [];
 }
@@ -41,19 +38,20 @@ export default function OpenRangeRadarPage() {
 
       return {
         summary: summary || {},
-        opportunities: pickArray(opportunities?.items, opportunities?.rows, opportunities),
-        signals: pickArray(signals?.items, signals?.rows, signals),
-        news: pickArray(news, news?.items),
-        sectors: pickArray(sectors, sectors?.items, sectors?.rows),
+        opportunities: pickArray(opportunities?.data, opportunities?.items, opportunities?.rows, opportunities),
+        signals: pickArray(signals?.data, signals?.items, signals?.rows, signals),
+        news: pickArray(news?.data, news, news?.items),
+        sectors: pickArray(sectors?.data, sectors, sectors?.items, sectors?.rows),
       };
     },
     refetchInterval: 30000,
   });
 
-  const opportunities = ensureArray(data?.opportunities);
-  const signals = ensureArray(data?.signals);
-  const news = ensureArray(data?.news);
-  const sectors = ensureArray(data?.sectors);
+  const radarData = safeObject(data);
+  const opportunities = safeArray(radarData.opportunities);
+  const signals = safeArray(radarData.signals);
+  const news = safeArray(radarData.news);
+  const sectors = safeArray(radarData.sectors);
 
   const stats = useMemo(() => ({
     opportunities: opportunities.length,

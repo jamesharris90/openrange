@@ -29,6 +29,7 @@ function summarizeValidation(validations) {
     expectedMoveZeroRows: 0,
     emptyDatasets: 0,
     notArrayResponses: 0,
+    contractViolations: 0,
   };
 
   validations.forEach((entry) => {
@@ -38,6 +39,7 @@ function summarizeValidation(validations) {
     summary.expectedMoveZeroRows += entry.issueCounts.expectedMoveAlwaysZero;
     summary.emptyDatasets += entry.issueCounts.emptyDataset;
     summary.notArrayResponses += entry.issueCounts.notArray;
+    if (entry.contractViolation) summary.contractViolations += 1;
   });
 
   return summary;
@@ -188,6 +190,7 @@ async function runSystemAudit(options = {}) {
 
   const validations = endpointResults.map((result) => ({
     endpoint: result.endpoint,
+    contractViolation: Boolean(result.contractViolation),
     ...validateData(result.primaryArray),
   }));
 
@@ -206,6 +209,8 @@ async function runSystemAudit(options = {}) {
       responseTimeMs: result.responseTimeMs,
       responseType: result.responseType,
       arrayLength: result.arrayLength,
+      contractCompliant: result.contractCompliant,
+      contractViolation: result.contractViolation,
       error: result.error || null,
     })),
     pages,

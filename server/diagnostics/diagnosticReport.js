@@ -32,6 +32,7 @@ function generateTextReport(report) {
   lines.push(`Rows missing symbols: ${report.dataQuality.rowsMissingSymbol}`);
   lines.push(`Rows missing timestamps: ${report.dataQuality.rowsMissingTimestamp}`);
   lines.push(`Signals returning 0.00 expected move: ${report.dataQuality.expectedMoveZeroRows}`);
+  lines.push(`Contract violations: ${report.dataQuality.contractViolations}`);
   lines.push(`Charts missing OHLC: ${report.chartValidation.missingOhlcRows}`);
   lines.push(`Chart engine status: ${report.chartValidation.status}`);
   lines.push(`Sparkline check: ${report.sparklineValidation.message}`);
