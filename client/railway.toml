@@ -1,2 +1,4 @@
 [phases.setup]
 nixPkgs = ["nodejs_20"]
+
+start = "npx serve -s . -l $PORT"
