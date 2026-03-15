@@ -4,6 +4,7 @@ import Card from '../components/shared/Card';
 import NewsButton from '../components/shared/NewsButton';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { getTimeAgo } from '../features/news/NewsScannerLogic';
+import NewsCatalystCard from '../components/cards/NewsCatalystCard';
 import { apiJSON } from '@/config/api';
 
 const FRESHNESS_OPTIONS = ['1h', '6h', '24h'];
@@ -68,6 +69,7 @@ function NewsScannerV2() {
     sort: 'recency',
   });
   const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [compactMode, setCompactMode] = useState(false);
 
   const normalizedSymbols = useMemo(
     () => String(appliedFilters.symbols || '')
@@ -199,6 +201,13 @@ function NewsScannerV2() {
 
         <div className="mt-3">
           <NewsButton variant="primary" onClick={applyFilters}>Apply Filters</NewsButton>
+          <NewsButton
+            variant="secondary"
+            onClick={() => setCompactMode((current) => !current)}
+            style={{ marginLeft: 8 }}
+          >
+            {compactMode ? 'Card Mode' : 'Compact Table Mode'}
+          </NewsButton>
         </div>
       </Card>
 
@@ -217,56 +226,64 @@ function NewsScannerV2() {
       <Card className="ns-feed-pane">
         {loading && <LoadingSpinner message="Loading news intelligence…" />}
         {!loading && rows.length === 0 && <div className="ns-state-empty">No results for current filters.</div>}
-        <div className="news-list ns-news-list">
-          {rows?.map((item) => {
-            const band = scoreBand(Number(item.news_score) || 0);
-            const publishedTs = item.publishedAt ? new Date(item.publishedAt) : null;
-
-            return (
-              <article key={item.id} className={`news-card ns-news-card ns-news-card--${band}`}>
-                <div className="ns-card-grid" style={{ gridTemplateColumns: '15% 1fr' }}>
-                  <div className="ns-card-left">
-                    <div className="ticker-chip ns-ticker-block">
-                      <div className="ticker-chip__header ns-ticker-block__header">
-                        <button className="ticker-chip__symbol ns-ticker-pill">{item.symbol || '—'}</button>
-                      </div>
-                      <div className="ticker-chip__meta ns-ticker-block__meta">
-                        <div className="ns-ticker-inline-row ns-ticker-inline-row--bottom">
-                          <span className="ns-score-wrap" title={breakdownText(item.score_breakdown)}>
-                            <span className={`ns-score-circle ns-score-circle--${band}`}>{Math.round(Number(item.news_score) || 0)}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="ns-card-right">
-                    <div className="ns-card-headline">{item.headline}</div>
-                    <div className="ns-card-meta">
-                      <span className="news-source">{item.source || 'Unknown'}</span>
-                      <span className="news-time">{publishedTs ? getTimeAgo(publishedTs) : 'Unknown time'}</span>
-                      <span className="news-source">Price: {item.price ?? '—'}</span>
-                      <span className="news-source">Sector: {item.sector || '—'}</span>
-                    </div>
-                    <div className="ns-card-preview">{(item.catalyst_tags || []).length ? `Catalysts: ${item.catalyst_tags.join(', ')}` : 'No catalyst tags'}</div>
-
-                    <div className="ns-card-actions">
-                      <NewsButton variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={() => { setActiveView('Market Behaviour'); setActiveRow(item); }}>
-                        Market Behaviour
-                      </NewsButton>
-                      <NewsButton variant="primary" size="sm" icon={<Info size={16} />} onClick={() => { setActiveView('View Details'); setActiveRow(item); }}>
-                        View Details
-                      </NewsButton>
-                      <NewsButton as="a" variant="secondary" size="sm" href={item.url || '#'} target="_blank" rel="noopener noreferrer" icon={<ExternalLink size={16} />}>
-                        Open Original Article
-                      </NewsButton>
-                    </div>
+        {!compactMode ? (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {rows?.map((item) => {
+              const enriched = {
+                ...item,
+                confidence: item.news_score,
+                expected_move: item.expected_move,
+                catalyst_summary: (item.catalyst_tags || []).length ? item.catalyst_tags.join(', ') : item.headline,
+                sector_context: item.sector,
+              };
+              return (
+                <div key={item.id || `${item.symbol}-${item.headline}`} className="space-y-2">
+                  <button type="button" className="w-full text-left" onClick={() => { setActiveView('View Details'); setActiveRow(item); }}>
+                    <NewsCatalystCard item={enriched} />
+                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <NewsButton variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={() => { setActiveView('Market Behaviour'); setActiveRow(item); }}>
+                      Market Behaviour
+                    </NewsButton>
+                    <NewsButton as="a" variant="secondary" size="sm" href={item.url || '#'} target="_blank" rel="noopener noreferrer" icon={<ExternalLink size={16} />}>
+                      Open Original Article
+                    </NewsButton>
                   </div>
                 </div>
-              </article>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead>
+                <tr className="text-left text-slate-500">
+                  <th className="px-2 py-1">Symbol</th>
+                  <th className="px-2 py-1">Confidence</th>
+                  <th className="px-2 py-1">Expected Move</th>
+                  <th className="px-2 py-1">Catalyst</th>
+                  <th className="px-2 py-1">Sector</th>
+                  <th className="px-2 py-1">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows?.map((item, idx) => {
+                  const publishedTs = item.publishedAt ? new Date(item.publishedAt) : null;
+                  return (
+                    <tr key={`${item.id || item.symbol || 'n'}-${idx}`} className="border-t border-slate-800">
+                      <td className="px-2 py-1 text-slate-100">{item.symbol || '--'}</td>
+                      <td className="px-2 py-1">{Number(item.news_score || 0).toFixed(1)}</td>
+                      <td className="px-2 py-1">{item.expected_move ?? '--'}</td>
+                      <td className="px-2 py-1">{(item.catalyst_tags || []).join(', ') || '--'}</td>
+                      <td className="px-2 py-1">{item.sector || '--'}</td>
+                      <td className="px-2 py-1">{publishedTs ? getTimeAgo(publishedTs) : 'Unknown'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

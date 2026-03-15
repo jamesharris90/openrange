@@ -3,6 +3,11 @@ import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
+import SectorMomentumCard from '../components/cards/SectorMomentumCard';
+import MarketBreadthCard from '../components/cards/MarketBreadthCard';
+import SignalCard from '../components/cards/SignalCard';
+import OpportunityCard from '../components/cards/OpportunityCard';
+import NewsCatalystCard from '../components/cards/NewsCatalystCard';
 
 function fmt(value, digits = 2) {
   const num = Number(value);
@@ -11,8 +16,19 @@ function fmt(value, digits = 2) {
 }
 
 export default function IntelligenceEngine() {
+  const [compactMode, setCompactMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ sectors: [], opportunities: [], earnings: { today: [], week: [] }, news: [] });
+
+  const compactRows = [
+    ...(summary?.opportunities || []).slice(0, 8),
+    ...(summary?.opportunities || []).slice(0, 8).map((item) => ({
+      ...item,
+      confidence: item?.confidence ?? item?.score ?? item?.rank_score,
+      catalyst_summary: item?.catalyst_summary ?? item?.strategy ?? item?.catalyst,
+    })),
+    ...(summary?.news || []).slice(0, 8),
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -45,85 +61,87 @@ export default function IntelligenceEngine() {
         <PageHeader
           title="Intelligence Engine"
           subtitle="Unified overview of sectors, opportunities, earnings, and news."
+          actions={(
+            <button
+              type="button"
+              onClick={() => setCompactMode((current) => !current)}
+              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
+            >
+              {compactMode ? 'Card Mode' : 'Compact Table Mode'}
+            </button>
+          )}
         />
       </Card>
 
       {loading ? (
         <Card><LoadingSpinner message="Loading intelligence summary…" /></Card>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          <Card>
-            <h3 className="m-0 mb-3">Top Sectors</h3>
-            {summary.sectors?.length ? (
-              <table className="data-table data-table--compact">
-                <thead><tr><th>Sector</th><th style={{ textAlign: 'right' }}>Avg %</th></tr></thead>
-                <tbody>
-                  {summary.sectors.slice(0, 5)?.map((row) => (
-                    <tr key={row?.sector || 'sector'}>
-                      <td>{row?.sector || 'Unknown'}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(row?.avg_change, 2)}%</td>
+        compactMode ? (
+          <Card className="overflow-x-auto">
+            <table className="data-table data-table--compact min-w-full">
+              <thead>
+                <tr>
+                  <th>symbol</th>
+                  <th style={{ textAlign: 'right' }}>confidence</th>
+                  <th>expected move</th>
+                  <th>catalyst</th>
+                  <th>sector</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compactRows.length ? (
+                  compactRows.map((item, idx) => (
+                    <tr key={`${item?.symbol || item?.url || 'intel'}-${idx}`}>
+                      <td>{String(item?.symbol || '').toUpperCase() || 'MARKET'}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(item?.confidence ?? item?.score ?? item?.news_score ?? 0, 1)}</td>
+                      <td>{item?.expected_move ?? item?.expectedMove ?? item?.move_percent ?? '--'}</td>
+                      <td>{item?.catalyst_summary ?? item?.catalyst ?? item?.headline ?? '--'}</td>
+                      <td>{item?.sector_context ?? item?.sector ?? item?.industry ?? '--'}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : <div className="muted">No sector summary available.</div>}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="muted">No compact intelligence rows available.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </Card>
+        ) : (
+          <>
+            <section className="grid gap-4 xl:grid-cols-2">
+              {(summary?.sectors || []).slice(0, 6).map((sector, idx) => (
+                <SectorMomentumCard key={`${sector?.sector || sector?.name || 'sector'}-${idx}`} sector={sector} />
+              ))}
+              <MarketBreadthCard
+                data={{
+                  advancers: (summary?.sectors || []).filter((row) => Number(row?.avg_change) >= 0).length,
+                  decliners: (summary?.sectors || []).filter((row) => Number(row?.avg_change) < 0).length,
+                  upVolume: '--',
+                  downVolume: '--',
+                }}
+              />
+            </section>
 
-          <Card>
-            <h3 className="m-0 mb-3">Top Opportunities</h3>
-            {summary.opportunities?.length ? (
-              <table className="data-table data-table--compact">
-                <thead><tr><th>Symbol</th><th>Strategy</th><th style={{ textAlign: 'right' }}>Score</th></tr></thead>
-                <tbody>
-                  {summary.opportunities.slice(0, 10)?.map((row) => (
-                    <tr key={row?.symbol || 'opp'}>
-                      <td>{String(row?.symbol || '').toUpperCase()}</td>
-                      <td>{row?.strategy || '--'}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(row?.score, 2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : <div className="muted">No opportunities available.</div>}
-          </Card>
+            <section className="grid gap-4 xl:grid-cols-2">
+              {(summary?.opportunities || []).slice(0, 8).map((signal, idx) => (
+                <OpportunityCard key={`${signal?.symbol || 'opp'}-${idx}`} item={signal} />
+              ))}
+            </section>
 
-          <Card>
-            <h3 className="m-0 mb-3">Earnings (Today)</h3>
-            {summary.earnings?.today?.length ? (
-              <div className="space-y-2 text-sm">
-                {summary.earnings.today.slice(0, 8)?.map((row, idx) => (
-                  <div key={`${row?.symbol || 'e'}-${idx}`} className="flex items-center justify-between rounded border border-[var(--border-color)] p-2">
-                    <strong>{String(row?.symbol || '').toUpperCase()}</strong>
-                    <span className="muted">{row?.date || '--'}</span>
-                  </div>
-                ))}
-              </div>
-            ) : <div className="muted">No earnings for today.</div>}
-          </Card>
+            <section className="grid gap-4 xl:grid-cols-2">
+              {(summary?.opportunities || []).slice(0, 9).map((item, idx) => (
+                <SignalCard key={`${item?.symbol || 'signal'}-${idx}`} signal={item} />
+              ))}
+            </section>
 
-          <Card>
-            <h3 className="m-0 mb-3">Intel Feed</h3>
-            {summary.news?.length ? (
-              <div className="space-y-2 text-sm">
-                {summary.news.slice(0, 8)?.map((row, idx) => (
-                  <a
-                    key={`${row?.url || 'n'}-${idx}`}
-                    className="block rounded border border-[var(--border-color)] p-2 hover:bg-[var(--bg-card-hover)]"
-                    href={row?.url || '#'}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <strong>{String(row?.symbol || '').toUpperCase() || 'MARKET'}</strong>
-                      <span className="muted">{row?.sentiment || 'neutral'}</span>
-                    </div>
-                    <div>{row?.headline || '--'}</div>
-                  </a>
-                ))}
-              </div>
-            ) : <div className="muted">No intelligence news available.</div>}
-          </Card>
-        </div>
+            <section className="grid gap-4 xl:grid-cols-2">
+              {(summary?.news || []).slice(0, 8).map((item, idx) => (
+                <NewsCatalystCard key={`${item?.url || item?.symbol || 'news'}-${idx}`} item={item} />
+              ))}
+            </section>
+          </>
+        )
       )}
     </PageContainer>
   );

@@ -12,6 +12,10 @@ import ButtonGhost from '../components/ui/ButtonGhost';
 import SetupIntelligencePanel from '../components/charts/SetupIntelligencePanel';
 import ChartSignalsNewsPanel from '../components/charts/ChartSignalsNewsPanel';
 import OpportunityStream from '../components/opportunities/OpportunityStream';
+import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
+import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
+import useBeaconSignalMap from '../hooks/beacon/useBeaconSignalMap';
+import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
 
 const DEFAULT_WATCHLIST = ['SPY', 'QQQ', 'AMD', 'AMZN'];
 const TIMEFRAME_BUTTONS = [
@@ -106,6 +110,14 @@ export default function Charts() {
   const [showIndicatorTools, setShowIndicatorTools] = useState(true);
   const symbol = state.symbol || initialSymbol;
   const timeframe = state.timeframe || initialTimeframe;
+  const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('charts', true);
+  const visibleSymbols = useMemo(() => [symbol], [symbol]);
+  const { getSignal } = useBeaconSignalMap({
+    symbols: visibleSymbols,
+    enabled: showBeaconSignals,
+  });
+  const activeBeaconSignal = showBeaconSignals ? getSignal(symbol) : null;
+  const activeBeaconSymbolCount = showBeaconSignals && activeBeaconSignal ? 1 : 0;
 
   const profile = useMemo(() => getProfileForTimeframe(timeframe), [timeframe]);
 
@@ -526,6 +538,20 @@ export default function Charts() {
             indicators={state.indicators}
             candles={state.candles.history}
           />
+
+          <button
+            type="button"
+            onClick={toggleBeaconSignals}
+            className="w-full rounded border border-white/10 bg-[var(--bg-input)] px-3 py-2 text-left text-xs font-semibold text-[var(--text-primary)]"
+          >
+            {showBeaconSignals ? 'Hide Beacon Signals' : 'Show Beacon Signals'}
+          </button>
+
+          <BeaconOverlayStatusChip isEnabled={showBeaconSignals} activeSymbols={activeBeaconSymbolCount} />
+
+          {showBeaconSignals ? (
+            <BeaconSignalInline signal={activeBeaconSignal} title={`Beacon Overlay • ${symbol}`} />
+          ) : null}
 
           <div className="rounded border border-white/10 p-2">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Quick Switch</div>

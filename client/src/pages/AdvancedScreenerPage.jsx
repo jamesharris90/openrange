@@ -4,6 +4,7 @@ import useWatchlist from '../hooks/useWatchlist';
 import ExportButtons from '../components/shared/ExportButtons';
 import { formatNumber, formatCurrency, formatVolume, formatMarketCap } from '../utils/formatters';
 import FilterSection from '../components/screener/FilterSection';
+import FilterPanel from '../components/filters/FilterPanel';
 import { filterSchema } from '../components/screener/filterSchema';
 import { useAdvancedFilterStore } from '../store/advancedFilterStore';
 import { useAppStore } from '../store/useAppStore';
@@ -12,6 +13,11 @@ import { apiJSON } from '@/config/api';
 import Portal from '../components/shared/Portal';
 import Card from '../components/shared/Card';
 import { useShallow } from 'zustand/react/shallow';
+import { useUnifiedFilters } from '../hooks/filters/useUnifiedFilters';
+import useBeaconSignalMap from '../hooks/beacon/useBeaconSignalMap';
+import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
+import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
+import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
 
 const VIEWS = [
   { id: 'overview', label: 'Overview', viewParam: '111', columns: ['Ticker', 'Company', 'Sector', 'Industry', 'Country', 'Market Cap', 'P/E', 'Price', 'Change', 'Volume'] },
@@ -318,6 +324,7 @@ function ColumnPicker({ activeView, currentVisibleCols, toggleColVisibility, all
 }
 
 export default function AdvancedScreenerPage() {
+  const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('scanner', true);
   const watchlist = useWatchlist();
   const theme = useAppStore((state) => state.theme);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
@@ -335,6 +342,17 @@ export default function AdvancedScreenerPage() {
   const [refreshCountdown, setRefreshCountdown] = useState(60);
   const queryHydratedRef = useRef(false);
   const lastQueryRef = useRef('');
+  const {
+    filters: unifiedFilters,
+    updateRange,
+    updateMulti,
+    clearFilters,
+    presets,
+    savePreset,
+    loadPreset,
+    deletePreset,
+    legacyQueryParams,
+  } = useUnifiedFilters({ storageKey: 'openrange:advanced-screener:unified-filters' });
 
   const {
     activeTab,
@@ -417,6 +435,37 @@ export default function AdvancedScreenerPage() {
     return sortedRows.slice(start, start + PAGE_SIZE);
   }, [sortedRows, page]);
 
+  const visibleBeaconSymbols = useMemo(() => {
+    const set = new Set(pageRows.map((row) => row?.Ticker).filter(Boolean));
+    if (selectedTicker) set.add(selectedTicker);
+    return [...set];
+  }, [pageRows, selectedTicker]);
+
+  const { getSignal } = useBeaconSignalMap({
+    symbols: visibleBeaconSymbols,
+    enabled: showBeaconSignals,
+    debounceMs: 300,
+  });
+
+  const activeBeaconSignals = useMemo(() => {
+    if (!showBeaconSignals) return [];
+    const seen = new Set();
+    const signals = [];
+
+    for (const row of pageRows) {
+      const symbol = row?.Ticker;
+      if (!symbol || seen.has(symbol)) continue;
+      seen.add(symbol);
+
+      const signal = getSignal(symbol);
+      if (signal) signals.push(signal);
+      if (signals.length >= 6) break;
+    }
+
+    return signals;
+  }, [showBeaconSignals, pageRows, getSignal]);
+  const activeBeaconSymbolCount = showBeaconSignals ? activeBeaconSignals.length : 0;
+
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
@@ -468,6 +517,29 @@ export default function AdvancedScreenerPage() {
       if (minGrade) params.set('minGrade', String(minGrade));
       if (adaptToSpy === 'true') params.set('adaptFilters', 'true');
 
+      const globalPriceMin = legacyQueryParams.get('price_min');
+      const globalPriceMax = legacyQueryParams.get('price_max');
+      const globalRvolMin = legacyQueryParams.get('rvol_min');
+      const globalGapMin = legacyQueryParams.get('gap_min');
+      const globalGapMax = legacyQueryParams.get('gap_max');
+      const globalFloatMin = legacyQueryParams.get('float_min');
+      const globalFloatMax = legacyQueryParams.get('float_max');
+      const globalMarketCapMin = legacyQueryParams.get('market_cap_min');
+      const globalMarketCapMax = legacyQueryParams.get('market_cap_max');
+
+      if (globalPriceMin) params.set('priceMin', globalPriceMin);
+      if (globalPriceMax) params.set('priceMax', globalPriceMax);
+      if (globalRvolMin) params.set('rvolMin', globalRvolMin);
+      if (globalGapMin) params.set('minGapPercent', globalGapMin);
+      if (globalGapMax) params.set('maxGapPercent', globalGapMax);
+      if (globalFloatMin) params.set('minFloat', globalFloatMin);
+      if (globalFloatMax) params.set('maxFloat', globalFloatMax);
+      if (globalMarketCapMin) params.set('marketCapMin', globalMarketCapMin);
+      if (globalMarketCapMax) params.set('marketCapMax', globalMarketCapMax);
+
+      const globalSector = legacyQueryParams.get('sector');
+      if (globalSector) params.set('sector', globalSector);
+
       const resp = await authFetch(`/api/v3/screener/technical?${params.toString()}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const payload = await resp.json();
@@ -503,7 +575,7 @@ export default function AdvancedScreenerPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [appliedValues]);
+  }, [appliedValues, legacyQueryParams]);
 
   // Fetch news freshness for visible page tickers
   const fetchNewsFreshness = useCallback(async (tickers) => {
@@ -625,6 +697,17 @@ export default function AdvancedScreenerPage() {
 
       <FilterSection onApply={handleApplyFilters} onReset={handleClearFilters} />
 
+      <FilterPanel
+        filters={unifiedFilters}
+        updateRange={updateRange}
+        updateMulti={updateMulti}
+        clearFilters={clearFilters}
+        presets={presets}
+        savePreset={savePreset}
+        loadPreset={loadPreset}
+        deletePreset={deletePreset}
+      />
+
       {error && (
         <Card style={{ marginBottom: 12 }}>
           <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -645,6 +728,10 @@ export default function AdvancedScreenerPage() {
           ))}
         </div>
         <div className="screener-toolbar__right">
+          <button className="pill-btn" onClick={toggleBeaconSignals}>
+            {showBeaconSignals ? 'Hide Beacon Signals' : 'Show Beacon Signals'}
+          </button>
+          <BeaconOverlayStatusChip isEnabled={showBeaconSignals} activeSymbols={activeBeaconSymbolCount} />
           <button className="pill-btn" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} Theme
           </button>
@@ -669,6 +756,17 @@ export default function AdvancedScreenerPage() {
           {sortedRows.length > 0 ? `Showing ${showStart}-${showEnd} of ${sortedRows.length.toLocaleString()}` : 'No results'}
         </span>
       </div>
+
+      {showBeaconSignals && activeBeaconSignals.length > 0 && (
+        <Card>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Beacon Overlays</div>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {activeBeaconSignals.map((signal, idx) => (
+              <BeaconSignalInline key={`${signal.symbol}-${idx}`} signal={signal} title={`Beacon Overlay • ${signal.symbol}`} />
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Data table */}
       <Card className="screener-table-panel">

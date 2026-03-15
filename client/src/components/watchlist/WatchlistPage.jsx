@@ -13,9 +13,14 @@ import { SOURCE_COLORS } from '../../utils/constants';
 import { Plus } from 'lucide-react';
 import { authFetch } from '../../utils/api';
 import MiniSparkline from '../charts/MiniSparkline';
+import useBeaconSignalMap from '../../hooks/beacon/useBeaconSignalMap';
+import BeaconSignalInline from '../beacon/BeaconSignalInline';
+import useBeaconOverlayVisibility from '../../hooks/beacon/useBeaconOverlayVisibility';
+import BeaconOverlayStatusChip from '../beacon/BeaconOverlayStatusChip';
 
 export default function WatchlistPage() {
   const { items, add, remove } = useWatchlist();
+  const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('watchlists', true);
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedTicker, setSelectedTicker] = useState(null);
   const [addInput, setAddInput] = useState('');
@@ -108,6 +113,25 @@ export default function WatchlistPage() {
       ...(quoteMap[item.symbol] || {}),
     }));
   }, [filtered, quoteMap]);
+
+  const visibleSymbols = useMemo(() => tableData.map((row) => row.symbol).filter(Boolean), [tableData]);
+  const { getSignal } = useBeaconSignalMap({
+    symbols: visibleSymbols,
+    enabled: showBeaconSignals,
+  });
+
+  const selectedSignal = useMemo(() => (showBeaconSignals ? getSignal(selectedTicker) : null), [showBeaconSignals, getSignal, selectedTicker]);
+  const activeWatchlistSignals = useMemo(() => {
+    if (!showBeaconSignals) return [];
+    return tableData
+      .map((row) => getSignal(row.symbol))
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [tableData, getSignal, showBeaconSignals]);
+
+  const activeBeaconSymbolCount = showBeaconSignals
+    ? (selectedSignal ? 1 : activeWatchlistSignals.length)
+    : 0;
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -211,6 +235,10 @@ export default function WatchlistPage() {
         <div className="watchlist-page__controls">
           <SourceFilter active={sourceFilter} onChange={setSourceFilter} />
           <div className="flex items-center gap-2">
+            <button type="button" className="btn-secondary btn-sm" onClick={toggleBeaconSignals}>
+              {showBeaconSignals ? 'Hide Beacon Signals' : 'Show Beacon Signals'}
+            </button>
+            <BeaconOverlayStatusChip isEnabled={showBeaconSignals} activeSymbols={activeBeaconSymbolCount} />
             <ExportButtons
               data={tableData}
               columns={exportColumns}
@@ -267,6 +295,19 @@ export default function WatchlistPage() {
         rowClassName={(row) => selectedTicker === row.symbol ? 'row--selected' : ''}
         virtualizeThreshold={400}
       />
+
+      {showBeaconSignals && selectedSignal ? (
+        <BeaconSignalInline signal={selectedSignal} title={`Beacon Overlay • ${selectedSignal.symbol}`} />
+      ) : null}
+
+      {showBeaconSignals && !selectedSignal && activeWatchlistSignals.length ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {activeWatchlistSignals.map((signal, index) => (
+            <BeaconSignalInline key={`${signal.symbol}-${index}`} signal={signal} title={`Beacon Overlay • ${signal.symbol}`} />
+          ))}
+        </div>
+      ) : null}
+
       {selectedTicker && (
         <ResearchModal
           symbol={selectedTicker}

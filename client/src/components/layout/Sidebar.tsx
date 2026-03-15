@@ -1,76 +1,27 @@
-import { Activity, BarChart2, Bell, BookOpen, CandlestickChart, Compass, Inbox, LayoutDashboard, LineChart, Moon, Newspaper, Search, Sunrise, UserCircle } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import UserPanel from './UserPanel';
+import { pillarNavigation } from '../../config/pillarNavigation';
 
-type NavItem = {
+type PillarNavItem = {
   to: string;
   label: string;
-  icon: typeof BarChart2;
+  icon: any;
   feature?: string;
 };
 
-type NavGroup = {
+type PillarNavGroup = {
   label: string;
-  items: NavItem[];
+  items: PillarNavItem[];
 };
-
-const navGroups: NavGroup[] = [
-  {
-    label: 'Command Centers',
-    items: [
-      { to: '/pre-market-command', label: 'Pre-Market Command', icon: Sunrise },
-      { to: '/open-market-radar',  label: 'Open Market Radar',  icon: Activity },
-      { to: '/post-market-review', label: 'Post-Market Review', icon: Moon },
-    ],
-  },
-  {
-    label: 'Discovery',
-    items: [
-      { to: '/screener',          label: 'Scanner',            icon: BarChart2 },
-      { to: '/screener-full',     label: 'Full Screener',      icon: Compass, feature: 'full_screener' },
-      { to: '/sector-heatmap',    label: 'Sector Heatmap',     icon: Activity },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    items: [
-      { to: '/intelligence-inbox',  label: 'Intel Inbox',        icon: Inbox },
-      { to: '/intelligence-engine', label: 'Intelligence Engine', icon: LineChart },
-      { to: '/news-feed',           label: 'News Feed',          icon: Newspaper },
-    ],
-  },
-  {
-    label: 'Trading Tools',
-    items: [
-      { to: '/charts',             label: 'Charts',             icon: CandlestickChart },
-      { to: '/cockpit',            label: 'Trading Cockpit',    icon: LayoutDashboard, feature: 'trading_cockpit' },
-      { to: '/expected-move',      label: 'Expected Move',      icon: LineChart },
-      { to: '/earnings-calendar',  label: 'Earnings Calendar',  icon: BookOpen },
-      { to: '/strategy-evaluation', label: 'Strategy Evaluation', icon: LineChart },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon: BarChart2 },
-      { to: '/radar', label: 'Radar', icon: Activity },
-      { to: '/mobile-dashboard', label: 'Mobile Dashboard', icon: Activity },
-      { to: '/alerts', label: 'Alerts', icon: Bell, feature: 'alerts' },
-      { to: '/research', label: 'Research', icon: Search },
-      { to: '/admin/features', label: 'Admin Control', icon: LayoutDashboard, feature: 'admin_panel' },
-      { to: '/profile', label: 'Profile', icon: UserCircle },
-    ],
-  },
-];
 
 export default function Sidebar() {
   const sidebarCollapsed = useAppStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useAppStore((state) => state.toggleSidebar);
   const { features, loading } = useFeatureAccess();
 
-  const visibleGroups = navGroups
+  const visibleGroups = (pillarNavigation as PillarNavGroup[])
     ?.map((group) => ({
       ...group,
       items: loading

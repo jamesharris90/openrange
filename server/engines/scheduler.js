@@ -30,6 +30,7 @@ const { sendPremarketScanEmail } = require('../services/emailService');
 const { runBeaconEngine } = require('./beaconEngine');
 const { runBeaconLearningEngine } = require('./beaconLearningEngine');
 const { runBeaconOptimizer } = require('./beaconOptimizer');
+const { runBeaconEvolutionEngine } = require('./beaconEvolutionEngine');
 const { runMarketContextEngine } = require('./marketContextEngine');
 const { runSectorRotationEngine } = require('./sectorRotationEngine');
 const { runTradeNarrativeEngine } = require('./tradeNarrativeEngine');
@@ -57,6 +58,7 @@ let schedulerInFlight = false;
 let beaconInFlight = false;
 let beaconLearningInFlight = false;
 let beaconOptimizerInFlight = false;
+let beaconEvolutionInFlight = false;
 let marketContextInFlight = false;
 let sectorRotationInFlight = false;
 let tradeNarrativeInFlight = false;
@@ -66,11 +68,28 @@ let premarketScanCronJob = null;
 let beaconCronJob = null;
 let beaconLearningCronJob = null;
 let beaconOptimizerCronJob = null;
+let beaconEvolutionCronJob = null;
 let marketContextCronJob = null;
 let sectorRotationCronJob = null;
 let tradeNarrativeCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
+const BEACON_EVOLUTION_MAX_RUNTIME_MS = 10 * 60 * 1000;
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  let timer = null;
+
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  });
+}
 
 const state = {
   started: false,
@@ -111,6 +130,8 @@ const state = {
   lastBeaconLearningError: null,
   lastBeaconOptimizerRunAt: null,
   lastBeaconOptimizerError: null,
+  lastBeaconEvolutionRunAt: null,
+  lastBeaconEvolutionError: null,
   lastMarketContextRunAt: null,
   lastMarketContextError: null,
   lastSectorRotationRunAt: null,
@@ -480,6 +501,39 @@ async function runBeaconOptimizerNow() {
   }
 }
 
+async function runBeaconEvolutionNow() {
+  if (beaconEvolutionInFlight) {
+    logger.warn('Skipping beacon evolution run; previous run still in flight');
+    return null;
+  }
+
+  beaconEvolutionInFlight = true;
+  state.lastBeaconEvolutionRunAt = new Date().toISOString();
+  try {
+    const result = await withTimeout(
+      safeRun('beaconEvolutionEngine', runBeaconEvolutionEngine),
+      BEACON_EVOLUTION_MAX_RUNTIME_MS,
+      `Beacon evolution runtime exceeded ${BEACON_EVOLUTION_MAX_RUNTIME_MS}ms`
+    );
+    state.lastBeaconEvolutionError = null;
+    return result;
+  } catch (error) {
+    const errorMessage = String(error?.message || 'Unknown beacon evolution scheduler failure');
+    state.lastBeaconEvolutionError = errorMessage;
+    logger.error('Beacon evolution scheduler run failed', {
+      error: errorMessage,
+      maxRuntimeMs: BEACON_EVOLUTION_MAX_RUNTIME_MS,
+    });
+    return {
+      ok: false,
+      failed: true,
+      error: errorMessage,
+    };
+  } finally {
+    beaconEvolutionInFlight = false;
+  }
+}
+
 async function runMarketContextNow() {
   if (marketContextInFlight) {
     logger.warn('Skipping market context run; previous run still in flight');
@@ -720,6 +774,12 @@ function startEngineScheduler() {
     });
   }
 
+  if (!beaconEvolutionCronJob) {
+    beaconEvolutionCronJob = cron.schedule('*/30 * * * *', () => {
+      runBeaconEvolutionNow();
+    });
+  }
+
   if (!marketContextCronJob) {
     marketContextCronJob = cron.schedule('*/5 * * * *', () => {
       runMarketContextNow();
@@ -740,6 +800,7 @@ function startEngineScheduler() {
 
   runPipeline();
   runBeaconNow();
+  runBeaconEvolutionNow();
   runMarketContextNow();
   runSectorRotationNow();
   runTradeNarrativeNow();
@@ -761,6 +822,7 @@ function startEngineScheduler() {
     beaconSchedule: '*/5 * * * *',
     beaconLearningSchedule: '10 0 * * * Europe/London',
     beaconOptimizerSchedule: '20 0 * * 0 Europe/London',
+    beaconEvolutionSchedule: '*/30 * * * *',
     marketContextSchedule: '*/5 * * * *',
     sectorRotationSchedule: '*/5 * * * *',
     tradeNarrativeSchedule: '*/5 * * * *',
@@ -785,6 +847,7 @@ function getEngineSchedulerStatus() {
     beaconTimerActive: Boolean(beaconCronJob),
     beaconLearningTimerActive: Boolean(beaconLearningCronJob),
     beaconOptimizerTimerActive: Boolean(beaconOptimizerCronJob),
+    beaconEvolutionTimerActive: Boolean(beaconEvolutionCronJob),
     marketContextTimerActive: Boolean(marketContextCronJob),
     sectorRotationTimerActive: Boolean(sectorRotationCronJob),
     tradeNarrativeTimerActive: Boolean(tradeNarrativeCronJob),
@@ -811,6 +874,7 @@ module.exports = {
   runBeaconNow,
   runBeaconLearningNow,
   runBeaconOptimizerNow,
+  runBeaconEvolutionNow,
   runMarketContextNow,
   runSectorRotationNow,
   runTradeNarrativeNow,

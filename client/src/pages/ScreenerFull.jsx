@@ -1,36 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { apiJSON } from '../config/api';
 import TickerLink from '../components/shared/TickerLink';
 import Table from '../components/ui/Table';
-
-function toQuery(filters) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== '' && value != null) params.set(key, String(value));
-  });
-  return params.toString();
-}
+import FilterPanel from '../components/filters/FilterPanel';
+import { useUnifiedFilters } from '../hooks/filters/useUnifiedFilters';
+import useBeaconSignalMap from '../hooks/beacon/useBeaconSignalMap';
+import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
+import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
+import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
 
 export default function ScreenerFull() {
-  const [filters, setFilters] = useState({
-    price_min: '',
-    price_max: '',
-    rvol_min: '',
-    gap_min: '',
-    sector: '',
-    market_cap: '',
-    strategy: '',
-  });
+  const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('scanner', true);
+  const {
+    filters,
+    updateRange,
+    updateMulti,
+    clearFilters,
+    presets,
+    savePreset,
+    loadPreset,
+    deletePreset,
+    legacyQueryParams,
+  } = useUnifiedFilters({ storageKey: 'openrange:screener-full:unified-filters' });
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('relative_volume');
   const [sortDir, setSortDir] = useState('desc');
 
-  const presets = {
+  const legacyPresets = {
     'Gap & Go': { gap_min: '5', rvol_min: '2', price_min: '1', strategy: 'Gap & Go' },
     'High RVOL': { rvol_min: '3' },
     Momentum: { price_min: '5', rvol_min: '1.5' },
@@ -41,7 +42,7 @@ export default function ScreenerFull() {
     setLoading(true);
     setError('');
     try {
-      const query = toQuery(filters);
+      const query = legacyQueryParams.toString();
       const payload = await apiJSON(`/api/screener/full${query ? `?${query}` : ''}`);
       setRows(Array.isArray(payload?.rows) ? payload.rows : []);
     } catch (err) {
@@ -57,14 +58,32 @@ export default function ScreenerFull() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
-
   const sortedRows = [...rows].sort((a, b) => {
     const av = Number(a?.[sortBy] ?? 0);
     const bv = Number(b?.[sortBy] ?? 0);
     if (sortDir === 'asc') return av - bv;
     return bv - av;
   });
+
+  const visibleSymbols = useMemo(
+    () => sortedRows.map((row) => row?.symbol).filter(Boolean).slice(0, 150),
+    [sortedRows],
+  );
+
+  const { getSignal } = useBeaconSignalMap({
+    symbols: visibleSymbols,
+    enabled: showBeaconSignals,
+    debounceMs: 300,
+  });
+
+  const activeBeaconSignals = useMemo(() => {
+    if (!showBeaconSignals) return [];
+    return sortedRows
+      .map((row) => getSignal(row.symbol))
+      .filter(Boolean)
+      .slice(0, 6);
+  }, [showBeaconSignals, sortedRows, getSignal]);
+  const activeBeaconSymbolCount = showBeaconSignals ? activeBeaconSignals.length : 0;
 
   const onSort = (field) => {
     if (sortBy === field) {
@@ -76,8 +95,15 @@ export default function ScreenerFull() {
   };
 
   const applyPreset = (name) => {
-    const preset = presets[name] || {};
-    setFilters((prev) => ({ ...prev, ...preset }));
+    const preset = legacyPresets[name] || {};
+    if (preset.price_min || preset.price_max) updateRange('price', { min: preset.price_min || '', max: preset.price_max || '' });
+    if (preset.rvol_min || preset.rvol_max) updateRange('relativeVolume', { min: preset.rvol_min || '', max: preset.rvol_max || '' });
+    if (preset.gap_min || preset.gap_max) updateRange('gapPercent', { min: preset.gap_min || '', max: preset.gap_max || '' });
+    if (preset.market_cap || preset.market_cap_min || preset.market_cap_max) updateRange('marketCap', {
+      min: preset.market_cap_min || preset.market_cap || '',
+      max: preset.market_cap_max || '',
+    });
+    if (preset.sector) updateMulti('sector', [preset.sector]);
   };
 
   return (
@@ -89,21 +115,43 @@ export default function ScreenerFull() {
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Saved Presets</span>
-          {Object.keys(presets)?.map((name) => (
+          {Object.keys(legacyPresets)?.map((name) => (
             <button key={name} className="rounded border border-[var(--border-color)] px-2 py-1 text-xs" onClick={() => applyPreset(name)}>{name}</button>
           ))}
         </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-4">
-          <input className="input-field" placeholder="Price Min" value={filters.price_min} onChange={(e) => setFilter('price_min', e.target.value)} />
-          <input className="input-field" placeholder="Price Max" value={filters.price_max} onChange={(e) => setFilter('price_max', e.target.value)} />
-          <input className="input-field" placeholder="RVol Min" value={filters.rvol_min} onChange={(e) => setFilter('rvol_min', e.target.value)} />
-          <input className="input-field" placeholder="Gap Min" value={filters.gap_min} onChange={(e) => setFilter('gap_min', e.target.value)} />
-          <input className="input-field" placeholder="Sector" value={filters.sector} onChange={(e) => setFilter('sector', e.target.value)} />
-          <input className="input-field" placeholder="Market Cap Min" value={filters.market_cap} onChange={(e) => setFilter('market_cap', e.target.value)} />
-          <input className="input-field" placeholder="Strategy" value={filters.strategy} onChange={(e) => setFilter('strategy', e.target.value)} />
-          <button className="btn-primary" onClick={load}>Apply Filters</button>
+        <div className="mt-3">
+          <FilterPanel
+            filters={filters}
+            updateRange={updateRange}
+            updateMulti={updateMulti}
+            clearFilters={clearFilters}
+            presets={presets}
+            savePreset={savePreset}
+            loadPreset={loadPreset}
+            deletePreset={deletePreset}
+          />
+        </div>
+        <div className="mt-3">
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={load}>Apply Filters</button>
+            <button type="button" className="btn-secondary" onClick={toggleBeaconSignals}>
+              {showBeaconSignals ? 'Hide Beacon Signals' : 'Show Beacon Signals'}
+            </button>
+            <BeaconOverlayStatusChip isEnabled={showBeaconSignals} activeSymbols={activeBeaconSymbolCount} />
+          </div>
         </div>
       </Card>
+
+      {showBeaconSignals && activeBeaconSignals.length ? (
+        <Card>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Beacon Overlays</div>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {activeBeaconSignals.map((signal, idx) => (
+              <BeaconSignalInline key={`${signal.symbol}-${idx}`} signal={signal} title={`Beacon Overlay • ${signal.symbol}`} />
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       <Card>
         {loading ? (

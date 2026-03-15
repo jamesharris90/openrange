@@ -10,7 +10,13 @@ import ColumnSelector from '../components/screener/ColumnSelector';
 import ScreenerStats from '../components/screener/ScreenerStats';
 import ScreenerTable, { defaultColumns } from '../components/screener/ScreenerTable';
 import QueryDebugPanel from '../components/debug/QueryDebugPanel';
+import BeaconSignalInline from '../components/beacon/BeaconSignalInline';
+import BeaconOverlayStatusChip from '../components/beacon/BeaconOverlayStatusChip';
+import useBeaconSignalMap from '../hooks/beacon/useBeaconSignalMap';
+import useBeaconOverlayVisibility from '../hooks/beacon/useBeaconOverlayVisibility';
 import { buildQueryTree, buildQueryTreeFromRows, buildStructuredQueryTree, evaluateQueryTree, mapQueryTreeToBackend } from '../utils/queryTree';
+import FilterPanel from '../components/filters/FilterPanel';
+import { useUnifiedFilters } from '../hooks/filters/useUnifiedFilters';
 import filterRegistrySource from '../config/filter_registry.json';
 import presetScannerSource from '../config/preset_scanners.json';
 
@@ -118,6 +124,28 @@ function rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, e
   };
 }
 
+function inRange(value, range) {
+  if (!range || typeof range !== 'object') return true;
+  const min = Number(range.min);
+  const max = Number(range.max);
+  if (range.min !== '' && Number.isFinite(min) && Number(value) < min) return false;
+  if (range.max !== '' && Number.isFinite(max) && Number(value) > max) return false;
+  return true;
+}
+
+function matchesUnifiedFilters(row, filters) {
+  if (!inRange(row.marketCap, filters.marketCap)) return false;
+  if (!inRange(row.relativeVolume, filters.relativeVolume)) return false;
+  if (!inRange(row.price, filters.price)) return false;
+  if (!inRange(row.float, filters.float)) return false;
+  if (!inRange(row.gapPercent, filters.gapPercent)) return false;
+  if (!inRange(row.shortFloat, filters.shortInterest)) return false;
+  if (!inRange(row.daysUntilEarnings, filters.earningsProximity)) return false;
+  if (!inRange(row.earningsBeatRate, filters.institutionalOwnership)) return false;
+  if (Array.isArray(filters.sector) && filters.sector.length && !filters.sector.includes(row.sector)) return false;
+  return true;
+}
+
 function createDefaultFilterRow(filters = SHARED_FILTER_REGISTRY.filters) {
   const first = filters?.[0] || { field: 'price', operators: ['between'] };
   return {
@@ -189,6 +217,18 @@ export default function InstitutionalScreener() {
   const [enableAlertOnSave, setEnableAlertOnSave] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [systemReport, setSystemReport] = useState(null);
+  const { showBeaconSignals, toggleBeaconSignals } = useBeaconOverlayVisibility('scanner', true);
+  const {
+    filters: unifiedFilters,
+    updateRange,
+    updateMulti,
+    clearFilters,
+    presets,
+    savePreset,
+    loadPreset,
+    deletePreset,
+    legacyQueryParams,
+  } = useUnifiedFilters({ storageKey: 'openrange:institutional-screener:unified-filters' });
 
   const debouncedSearch = useDebouncedValue(tickerSearch, 250);
 
@@ -265,6 +305,8 @@ export default function InstitutionalScreener() {
     let system;
     let narrative;
 
+    const globalQuery = legacyQueryParams.toString();
+
     try {
       [
         scanner,
@@ -276,12 +318,12 @@ export default function InstitutionalScreener() {
         system,
         narrative,
       ] = await Promise.all([
-        safe('/api/scanner', []),
-        safe('/api/setups', []),
-        safe('/api/catalysts', []),
-        safe('/api/metrics', []),
-        safe('/api/expected-move', []),
-        safe('/api/earnings', []),
+        safe(`/api/scanner${globalQuery ? `?${globalQuery}` : ''}`, []),
+        safe(`/api/setups${globalQuery ? `?${globalQuery}` : ''}`, []),
+        safe(`/api/catalysts${globalQuery ? `?${globalQuery}` : ''}`, []),
+        safe(`/api/metrics${globalQuery ? `?${globalQuery}` : ''}`, []),
+        safe(`/api/expected-move${globalQuery ? `?${globalQuery}` : ''}`, []),
+        safe(`/api/earnings${globalQuery ? `?${globalQuery}` : ''}`, []),
         safe('/api/system/report', null),
         safe('/api/market-narrative', null),
       ]);
@@ -322,7 +364,7 @@ export default function InstitutionalScreener() {
     setLastRefresh(new Date().toISOString());
     setLoading(false);
     setSelectedSymbol((current) => current || rows[0]?.symbol || '');
-  }, [apiQueryTree, backendQueryTree, filterMode]);
+  }, [apiQueryTree, backendQueryTree, filterMode, legacyQueryParams]);
 
   useEffect(() => {
     return () => {
@@ -348,8 +390,9 @@ export default function InstitutionalScreener() {
         const query = debouncedSearch.trim().toLowerCase();
         return row.symbol.toLowerCase().includes(query) || String(row.companyName || '').toLowerCase().includes(query);
       })
+      .filter((row) => matchesUnifiedFilters(row, unifiedFilters))
       .filter((row) => evaluateQueryTree(appliedQueryTree, row));
-  }, [rawRows, debouncedSearch, appliedQueryTree]);
+  }, [rawRows, debouncedSearch, appliedQueryTree, unifiedFilters]);
 
   const sortedRows = useMemo(() => {
     const next = [...filteredRows];
@@ -384,6 +427,24 @@ export default function InstitutionalScreener() {
   const selectedContext = useMemo(() => {
     return sortedRows.find((row) => row.symbol === selectedSymbol) || null;
   }, [sortedRows, selectedSymbol]);
+
+  const visibleBeaconSymbols = useMemo(() => {
+    const set = new Set((pagedRows || []).map((row) => row?.symbol).filter(Boolean));
+    if (selectedContext?.symbol) set.add(selectedContext.symbol);
+    return [...set];
+  }, [pagedRows, selectedContext?.symbol]);
+
+  const { getSignal } = useBeaconSignalMap({
+    symbols: visibleBeaconSymbols,
+    enabled: showBeaconSignals,
+    debounceMs: 300,
+  });
+
+  const selectedBeaconSignal = useMemo(
+    () => (showBeaconSignals ? getSignal(selectedContext?.symbol) : null),
+    [showBeaconSignals, getSignal, selectedContext?.symbol],
+  );
+  const activeBeaconSymbolCount = showBeaconSignals && selectedBeaconSignal ? 1 : 0;
 
   function updateAdaptiveRow(rowId, key, value) {
     setAdaptiveRows((current) => current?.map((row) => {
@@ -608,10 +669,25 @@ export default function InstitutionalScreener() {
             >
               Heatmap {heatmapMode ? 'On' : 'Off'}
             </button>
+            <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={toggleBeaconSignals}>
+              {showBeaconSignals ? 'Hide Beacon Signals' : 'Show Beacon Signals'}
+            </button>
+            <BeaconOverlayStatusChip isEnabled={showBeaconSignals} activeSymbols={activeBeaconSymbolCount} />
             <button type="button" className="btn-secondary h-10 rounded-lg px-3 text-sm" onClick={loadData}><RefreshCw size={15} className="mr-1 inline" />Refresh</button>
           </div>
         </div>
       </Card>
+
+      <FilterPanel
+        filters={unifiedFilters}
+        updateRange={updateRange}
+        updateMulti={updateMulti}
+        clearFilters={clearFilters}
+        presets={presets}
+        savePreset={savePreset}
+        loadPreset={loadPreset}
+        deletePreset={deletePreset}
+      />
 
       <div className="grid gap-3 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
         <FilterSidebar
@@ -739,6 +815,10 @@ export default function InstitutionalScreener() {
                   <div className="font-semibold">{selectedContext.earningsDate || '--'}</div>
                 </div>
               </div>
+
+              {showBeaconSignals ? (
+                <BeaconSignalInline signal={selectedBeaconSignal} title={`Beacon Overlay • ${selectedContext.symbol}`} />
+              ) : null}
             </>
           )}
 
