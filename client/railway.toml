@@ -1,4 +1,5 @@
-[phases.setup]
-nixPkgs = ["nodejs_20"]
+[build]
+builder = "NIXPACKS"
 
-start = "npx serve -s . -l $PORT"
+[deploy]
+startCommand = "npx serve dist -l $PORT"
