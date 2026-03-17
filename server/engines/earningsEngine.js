@@ -1,6 +1,6 @@
-const axios = require('axios');
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { fmpFetch } = require('../services/fmpClient');
 
 async function ensureEarningsTable() {
   await queryWithTimeout(
@@ -72,9 +72,8 @@ async function runEarningsEngine() {
   const from = today.toISOString().slice(0, 10);
   const to = toDate.toISOString().slice(0, 10);
 
-  const url = `https://financialmodelingprep.com/stable/earning_calendar?from=${from}&to=${to}&apikey=${encodeURIComponent(apiKey)}`;
-  const response = await axios.get(url, { timeout: 20000 });
-  const rawRows = Array.isArray(response.data) ? response.data : [];
+  const payload = await fmpFetch('/earning_calendar', { from, to });
+  const rawRows = Array.isArray(payload) ? payload : [];
   const rows = rawRows.map(normalizeEarningsRow).filter(Boolean);
 
   for (const row of rows) {

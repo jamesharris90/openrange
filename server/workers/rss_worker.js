@@ -1,7 +1,7 @@
-const crypto = require('crypto');
 const Parser = require('rss-parser');
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { ensureNewsStorageSchema, insertNormalizedNewsArticle } = require('../services/newsStorage');
 
 const DEFAULT_FEEDS = [
   'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US',
@@ -19,11 +19,6 @@ function getFeedUrls() {
   return configured.length ? configured : DEFAULT_FEEDS;
 }
 
-function hashIdFromUrl(url) {
-  const hex = crypto.createHash('sha1').update(String(url)).digest('hex').slice(0, 32);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
 function normalizeSymbols(item = {}) {
   const categorySymbols = (item.categories || [])
     .map((value) => String(value || '').trim().toUpperCase())
@@ -38,6 +33,8 @@ function normalizeSymbols(item = {}) {
 }
 
 async function ensureNewsArticlesSchema() {
+  await ensureNewsStorageSchema();
+
   await queryWithTimeout(
     `CREATE TABLE IF NOT EXISTS news_articles (
       id TEXT PRIMARY KEY,
@@ -71,6 +68,7 @@ async function upsertArticle(item, feedUrl) {
   if (!headline || !url) return false;
 
   const source = String(item.creator || item.author || item.source || feedUrl).slice(0, 255);
+  const provider = String(feedUrl || '').toLowerCase().includes('yahoo') ? 'yahoo' : 'fmp';
   const publishedAt = item.isoDate || item.pubDate || null;
   const symbols = normalizeSymbols(item);
   const payload = item && typeof item === 'object' ? item : {};
@@ -100,58 +98,23 @@ async function upsertArticle(item, feedUrl) {
     return true;
   }
 
-  await queryWithTimeout(
-    `INSERT INTO news_articles (
-      id,
-      headline,
-      symbols,
-      source,
-      url,
-      published_at,
-      summary,
-      catalyst_type,
-      news_score,
-      score_breakdown,
-      raw_payload
-    ) VALUES (
-      $1,
-      $2,
-      $3::text[],
-      $4,
-      $5,
-      $6::timestamptz,
-      $7,
-      $8,
-      $9,
-      $10::jsonb,
-      $11::jsonb
-    )
-    ON CONFLICT (id)
-    DO UPDATE SET
-      headline = EXCLUDED.headline,
-      symbols = EXCLUDED.symbols,
-      source = EXCLUDED.source,
-      url = EXCLUDED.url,
-      published_at = EXCLUDED.published_at,
-      summary = EXCLUDED.summary,
-      raw_payload = EXCLUDED.raw_payload`,
-    [
-      hashIdFromUrl(url),
-      headline,
-      symbols,
-      source,
-      url,
-      publishedAt,
-      String(item.contentSnippet || item.content || '').slice(0, 2000) || null,
-      'rss',
-      0,
-      JSON.stringify({ provider: 'rss' }),
-      JSON.stringify(payload),
-    ],
-    { timeoutMs: 7000, label: 'workers.rss.insert_article', maxRetries: 0 }
-  );
+  const symbol = symbols[0] || null;
+  const inserted = await insertNormalizedNewsArticle({
+    symbol,
+    headline,
+    source,
+    provider,
+    url,
+    published_at: publishedAt,
+    sentiment: 'neutral',
+    summary: String(item.contentSnippet || item.content || '').slice(0, 2000) || null,
+    catalyst_type: 'rss',
+    news_score: 0,
+    score_breakdown: { provider },
+    raw_payload: payload,
+  });
 
-  return true;
+  return inserted.inserted || inserted.reason === 'duplicate';
 }
 
 async function runRssWorker() {

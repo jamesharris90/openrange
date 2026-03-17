@@ -51,6 +51,38 @@ function detectPublisherName(sender, subject) {
   return 'Unknown publisher';
 }
 
+async function persistIntelligenceEmail({ sender, subject, received_at, raw_text, raw_html }) {
+  const source_tag = detectSource(sender, subject);
+  const source_name = detectPublisherName(sender, subject);
+  const receivedTs = received_at ? new Date(received_at) : new Date();
+
+  const { rows } = await pool.query(
+    `INSERT INTO intelligence_emails
+       (sender, subject, received_at, raw_text, raw_html, source_tag)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, received_at, source_tag`,
+    [sender, subject, receivedTs, raw_text, raw_html, source_tag]
+  );
+
+  const row = rows[0];
+
+  await bridgeNewsletterEmailToIntelNews({
+    sender,
+    subject,
+    received_at: row?.received_at,
+    raw_text,
+    source_tag: row?.source_tag,
+    source_name,
+  });
+
+  return {
+    id: row.id,
+    source_tag: row.source_tag,
+    source_name,
+    received_at: row.received_at,
+  };
+}
+
 // GET /api/intelligence/ping — health check (requires key)
 router.get('/api/intelligence/ping', requireIntelKey, (req, res) => {
   res.json({ ok: true, service: 'intelligence-ingest', ts: new Date().toISOString() });
@@ -86,33 +118,7 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'raw_text or raw_html is required' });
     }
 
-    const source_tag = detectSource(sender, subject);
-    const source_name = detectPublisherName(sender, subject);
-    const receivedTs = received_at ? new Date(received_at) : new Date();
-
-    const { rows } = await pool.query(
-      `INSERT INTO intelligence_emails
-         (sender, subject, received_at, raw_text, raw_html, source_tag)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, received_at, source_tag`,
-      [sender, subject, receivedTs, raw_text, raw_html, source_tag]
-    );
-
-    const row = rows[0];
-
-    // Bridge newsletter-style email intel into intel_news so Intel Inbox can consume it.
-    try {
-      await bridgeNewsletterEmailToIntelNews({
-        sender,
-        subject,
-        received_at: row?.received_at,
-        raw_text,
-        source_tag: row?.source_tag,
-        source_name,
-      });
-    } catch (bridgeError) {
-      console.error('[intelligence] email bridge error:', bridgeError.message);
-    }
+    const row = await persistIntelligenceEmail({ sender, subject, received_at, raw_text, raw_html });
 
     console.log(JSON.stringify({
       event: 'INTEL_EMAIL_INGESTED',
@@ -123,10 +129,31 @@ router.post('/api/intelligence/email-ingest', async (req, res) => {
       subject,
     }));
 
-    res.json({ ok: true, id: row.id, source_tag: row.source_tag, source_name, received_at: row.received_at });
+    res.json({ ok: true, id: row.id, source_tag: row.source_tag, source_name: row.source_name, received_at: row.received_at });
   } catch (err) {
     console.error('[intelligence] email-ingest error:', err.message);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/intelligence/resend-webhook — ingest Resend inbound payloads
+router.post('/api/intelligence/resend-webhook', requireIntelKey, async (req, res) => {
+  try {
+    const sender = req.body?.from || req.body?.sender || null;
+    const subject = req.body?.subject || null;
+    const raw_text = req.body?.text || req.body?.raw_text || null;
+    const raw_html = req.body?.html || req.body?.raw_html || null;
+    const received_at = req.body?.received_at || req.body?.created_at || new Date().toISOString();
+
+    if (!raw_text && !raw_html) {
+      return res.status(400).json({ ok: false, error: 'text/html payload is required' });
+    }
+
+    const stored = await persistIntelligenceEmail({ sender, subject, received_at, raw_text, raw_html });
+    return res.json({ ok: true, channel: 'resend', ...stored });
+  } catch (error) {
+    console.error('[intelligence] resend-webhook error:', error.message);
+    return res.status(500).json({ ok: false, error: error.message || 'Failed to ingest resend payload' });
   }
 });
 

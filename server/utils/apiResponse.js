@@ -1,7 +1,23 @@
-const ok = (data) => ({ ok: true, data, error: null });
-const fail = (error) => ({ ok: false, data: null, error });
+function successResponse(data, meta = {}) {
+  const normalizedData = Array.isArray(data) ? data : [];
+
+  return {
+    success: true,
+    count: normalizedData.length,
+    data: normalizedData,
+    meta,
+  };
+}
+
+function errorResponse(message, meta = {}) {
+  return {
+    success: false,
+    error: message,
+    meta,
+  };
+}
 
 module.exports = {
-  ok,
-  fail,
+  successResponse,
+  errorResponse,
 };

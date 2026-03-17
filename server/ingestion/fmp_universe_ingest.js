@@ -12,6 +12,8 @@ const logger = require('../utils/logger');
 const { pool } = require('../db/pg');
 
 const ALLOWED_EXCHANGES = new Set(['NASDAQ', 'NYSE', 'AMEX']);
+const EXCLUDED_TYPE_TERMS = ['ETF', 'ETN', 'MUTUAL', 'FUND', 'TRUST', 'CRYPTO', 'INDEX', 'ADR'];
+const EXCLUDED_EXCHANGE_TERMS = ['OTC', 'PINK', 'GREY'];
 
 function normalizeExchange(row) {
   return String(
@@ -25,6 +27,15 @@ function normalizeUniverseRow(row) {
 
   const exchange = normalizeExchange(row);
   if (!ALLOWED_EXCHANGES.has(exchange)) return null;
+
+  const rowType = String(row.type || row.securityType || row.assetType || '').trim().toUpperCase();
+  const isEtf = row.isEtf === true || String(row.isEtf || '').trim().toLowerCase() === 'true';
+  const name = String(row.name || row.companyName || '').trim().toUpperCase();
+
+  if (isEtf) return null;
+  if (rowType && rowType !== 'STOCK') return null;
+  if (EXCLUDED_TYPE_TERMS.some((term) => rowType.includes(term) || name.includes(term))) return null;
+  if (EXCLUDED_EXCHANGE_TERMS.some((term) => exchange.includes(term))) return null;
 
   const marketCapRaw = Number(row.marketCap ?? row.mktCap ?? 0);
 

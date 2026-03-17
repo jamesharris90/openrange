@@ -128,7 +128,7 @@ function startEngineScheduler() {
     runWithTelemetry('opportunityEngine', runOpportunityRanker, 'opportunity_runtime');
   });
 
-  cron.schedule('*/60 * * * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     const result = await runWithTelemetry('providerHealthEngine', runProviderHealthCheck, 'provider_health');
     await updateTelemetry('provider_health', {
       status: 'ok',

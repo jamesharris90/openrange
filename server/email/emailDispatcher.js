@@ -11,7 +11,11 @@ const { renderWeeklyScorecardTemplate } = require('./templates/WeeklyScorecardTe
 const { renderSystemMonitorTemplate } = require('./templates/SystemMonitorTemplate');
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const fromEmail = process.env.RESEND_FROM_EMAIL || 'OpenRange <noreply@openrangetrading.co.uk>';
+const fromEmail = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL || 'OpenRange <intel@openrangetrading.co.uk>';
+
+if (!process.env.RESEND_API_KEY) {
+  console.warn('[EMAIL] RESEND_API_KEY missing — email system disabled');
+}
 
 const scheduleConfig = {
   timezone: 'Europe/London',
@@ -104,7 +108,7 @@ async function getNewsletterRecipients(preferenceType) {
 
 async function resolveRecipients(preferenceType, forceTo = null) {
   if (forceTo) {
-    return [forceTo];
+    return [String(forceTo).trim().toLowerCase()];
   }
 
   // Fallback order:
@@ -133,9 +137,7 @@ async function resolveRecipients(preferenceType, forceTo = null) {
     return finalEnvFallback;
   }
 
-  const fromAddressMatch = String(fromEmail).match(/<([^>]+)>/);
-  const fromAddress = String((fromAddressMatch && fromAddressMatch[1]) || fromEmail || '').trim().toLowerCase();
-  return fromAddress ? [fromAddress] : ['noreply@openrangetrading.co.uk'];
+  return [String(process.env.ADMIN_EMAIL || 'jamesharris4@me.com').trim().toLowerCase()];
 }
 
 async function sendPasswordResetEmail({ to, token, expiresAt }) {
@@ -168,43 +170,78 @@ async function sendPasswordResetEmail({ to, token, expiresAt }) {
 }
 
 async function sendEmail({ subject, html, recipients, campaignKey, campaignType }) {
-  if (!Array.isArray(recipients) || recipients.length === 0) {
-    return {
-      success: false,
-      message: 'No recipients',
-      recipients: [],
-    };
-  }
+  const safeRecipients = Array.isArray(recipients) && recipients.length > 0
+    ? recipients
+    : [String(process.env.ADMIN_EMAIL || 'jamesharris4@me.com').trim()];
 
   if (!resend) {
+    console.warn('[EMAIL] provider unavailable');
     return {
       success: false,
+      reason: 'provider-not-configured',
       message: 'RESEND_API_KEY not configured',
-      recipients,
+      recipients: safeRecipients,
     };
   }
 
-  const response = await resend.emails.send({
-    from: fromEmail,
-    to: recipients,
-    subject,
-    html,
-  });
+  try {
+    const response = await resend.emails.send({
+      from: fromEmail,
+      to: safeRecipients,
+      subject,
+      html,
+    });
 
-  await newsletterService.recordNewsletterSendHistory({
-    campaignType,
-    campaignName: subject,
-    campaignKey,
-    status: 'sent',
-    recipients,
-    responsePayload: response,
-  }).catch(() => undefined);
+    await newsletterService.recordNewsletterSendHistory({
+      campaignType,
+      campaignName: subject,
+      campaignKey,
+      status: 'sent',
+      recipients: safeRecipients,
+      responsePayload: response,
+    }).catch(() => undefined);
 
-  return {
-    success: true,
-    recipients,
-    response,
-  };
+    console.log('[EMAIL SENT]', subject);
+
+    return {
+      success: true,
+      recipients: safeRecipients,
+      response,
+    };
+  } catch (err) {
+    console.error('[EMAIL ERROR]', err);
+    return {
+      success: false,
+      reason: 'provider-error',
+      recipients: safeRecipients,
+      error: err?.message || 'Email provider error',
+    };
+  }
+}
+
+function getNextWeekdayRunInLondon(hour, minute) {
+  const now = new Date();
+  const dayFmt = new Intl.DateTimeFormat('en-GB', { timeZone: scheduleConfig.timezone, weekday: 'short' });
+  const hmFmt = new Intl.DateTimeFormat('en-GB', { timeZone: scheduleConfig.timezone, hour: '2-digit', minute: '2-digit', hour12: false });
+  const dateFmt = new Intl.DateTimeFormat('en-GB', { timeZone: scheduleConfig.timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  const weekday = dayFmt.format(now);
+  const [hh, mm] = hmFmt.format(now).split(':').map((v) => Number(v));
+  const nowMinutes = (hh * 60) + mm;
+  const targetMinutes = (hour * 60) + minute;
+
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const idx = weekdays.indexOf(weekday);
+  let addDays = 0;
+
+  if (idx === -1) {
+    addDays = weekday === 'Sat' ? 2 : 1;
+  } else if (nowMinutes >= targetMinutes) {
+    addDays = idx === 4 ? 3 : 1;
+  }
+
+  const next = new Date(now.getTime() + (addDays * 24 * 60 * 60 * 1000));
+  return `${dateFmt.format(next).replace(/\//g, '-')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${scheduleConfig.timezone}`;
 }
 
 async function withScheduleLock(key, fn) {
@@ -506,13 +543,19 @@ function getEmailDispatcherStatus() {
     inFlightKeys: Array.from(scheduleState.inFlight),
     lastRuns: scheduleState.lastRuns,
     resendConfigured: Boolean(resend),
+    provider: 'Resend',
+    providerConfigured: Boolean(process.env.RESEND_API_KEY),
+    fallbackRecipient: process.env.ADMIN_EMAIL || 'jamesharris4@me.com',
+    schedulerRunning: scheduleState.schedulerStarted,
+    timezone: scheduleConfig.timezone,
+    nextMorningBrief: getNextWeekdayRunInLondon(7, 0),
     schedules: scheduleConfig,
-    nextScheduledSend: `${scheduleConfig.timezone} cron set active`,
+    nextScheduledSend: getNextWeekdayRunInLondon(7, 0),
   };
 }
 
 async function sendImmediateAdminTests(adminEmail) {
-  const recipient = adminEmail || process.env.ADMIN_EMAIL || process.env.MORNING_BRIEF_RECIPIENTS || null;
+  const recipient = String(adminEmail || process.env.ADMIN_EMAIL || 'jamesharris4@me.com').trim();
   const results = {
     beaconMorningBrief: await sendBeaconMorningBrief({ force: true, forceTo: recipient, campaignKey: `${todayKey('test_beacon')}_${Date.now()}` }),
     systemMonitor: await sendSystemMonitor({ force: true, forceTo: recipient, campaignKey: `${todayKey('test_sysmon')}_${Date.now()}` }),

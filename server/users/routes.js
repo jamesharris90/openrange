@@ -9,7 +9,7 @@ const router = express.Router();
 
 console.log('Auth module loaded');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret-key' : '');
 
 // Get client IP helper
 function getClientIp(req) {
@@ -91,6 +91,13 @@ router.post('/login', async (req, res) => {
   const loginIdentifier = String(identifier || username || email || '').trim();
   console.log('Login attempt:', loginIdentifier || 'unknown');
 
+  if (!JWT_SECRET) {
+    return res.status(500).json({
+      success: false,
+      error: 'Authentication service unavailable',
+    });
+  }
+
   if (!loginIdentifier || !password) {
     return res.status(400).json({
       success: false,
@@ -120,7 +127,7 @@ router.post('/login', async (req, res) => {
     const valid = storedHash ? await bcrypt.compare(password, storedHash) : false;
     if (!valid) {
       // Log failed attempt
-      model.logActivity(user.id, 'login_failed', 'Invalid password attempt', getClientIp(req));
+      await model.logActivity(user.id, 'login_failed', 'Invalid password attempt', getClientIp(req));
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials',
@@ -146,10 +153,19 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Login failed:', err.message);
-    return res.status(401).json({
+    const errorMessage = String(err?.message || '').trim();
+    console.error('Login failed:', errorMessage);
+
+    if (!errorMessage || /invalid credentials|not found|no rows/i.test(errorMessage)) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      error: 'Invalid credentials',
+      error: 'Login failed',
     });
   }
 });
@@ -170,6 +186,7 @@ router.post('/dev-login', async (req, res) => {
 
 // Auth middleware
 async function requireAuth(req, res, next) {
+  if (!JWT_SECRET) return res.status(500).json({ error: 'Authentication service unavailable' });
   const token = req.get('Authorization')?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No token' });
   try {

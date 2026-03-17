@@ -185,7 +185,10 @@ async function getCatalystVerification() {
 }
 
 async function runSystemAudit(options = {}) {
-  const baseUrl = options.baseUrl || process.env.AUDIT_BASE_URL || 'http://localhost:3000';
+  const baseUrl = options.baseUrl || process.env.AUDIT_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('Backend API base not configured');
+  }
   const endpointResults = await Promise.all(endpoints.map((endpoint) => testEndpoint(baseUrl, endpoint)));
 
   const validations = endpointResults.map((result) => ({

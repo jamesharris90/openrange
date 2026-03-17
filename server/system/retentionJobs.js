@@ -7,11 +7,6 @@ let retentionTask = null;
 
 const RETENTION_TARGETS = [
   {
-    engineName: 'retention_intraday_1m',
-    tableName: 'intraday_1m',
-    whereSql: `"timestamp" < NOW() - INTERVAL '7 days'`,
-  },
-  {
     engineName: 'retention_flow_signals',
     tableName: 'flow_signals',
     whereSql: `detected_at < NOW() - INTERVAL '30 days'`,
@@ -22,6 +17,76 @@ const RETENTION_TARGETS = [
     whereSql: `created_at < NOW() - INTERVAL '30 days'`,
   },
 ];
+
+async function ensureIntradayIndexes() {
+  await queryWithTimeout(
+    'CREATE INDEX IF NOT EXISTS idx_intraday_1m_symbol ON intraday_1m(symbol)',
+    [],
+    { timeoutMs: 10000, maxRetries: 0, label: 'retention.intraday_1m.index_symbol' }
+  );
+
+  await queryWithTimeout(
+    'CREATE INDEX IF NOT EXISTS idx_intraday_1m_timestamp ON intraday_1m("timestamp")',
+    [],
+    { timeoutMs: 10000, maxRetries: 0, label: 'retention.intraday_1m.index_timestamp' }
+  );
+}
+
+async function intradayRetentionJob() {
+  const startedAt = Date.now();
+  try {
+    await ensureIntradayIndexes();
+
+    const result = await queryWithTimeout(
+      `DELETE FROM intraday_1m
+       WHERE "timestamp" < NOW() - INTERVAL '30 days'`,
+      [],
+      { timeoutMs: 60000, maxRetries: 0, label: 'retention.intraday_1m.delete_30d' }
+    );
+
+    const rowsDeleted = Number(result?.rowCount || 0);
+
+    await recordEngineTelemetry({
+      engineName: 'intradayRetentionJob',
+      status: 'ok',
+      rowsProcessed: rowsDeleted,
+      runtimeMs: Date.now() - startedAt,
+      details: {
+        table: 'intraday_1m',
+        retention_window: '30 days',
+        action: 'retention_cleanup',
+      },
+    });
+
+    logger.info('[RETENTION] intradayRetentionJob complete', {
+      table: 'intraday_1m',
+      rowsDeleted,
+      retentionWindow: '30 days',
+    });
+
+    return rowsDeleted;
+  } catch (error) {
+    await recordEngineTelemetry({
+      engineName: 'intradayRetentionJob',
+      status: 'failed',
+      rowsProcessed: 0,
+      runtimeMs: Date.now() - startedAt,
+      details: {
+        table: 'intraday_1m',
+        retention_window: '30 days',
+        action: 'retention_cleanup',
+        error: error.message,
+      },
+    });
+
+    logger.error('[RETENTION] intradayRetentionJob failed', {
+      table: 'intraday_1m',
+      error: error.message,
+    });
+
+    return 0;
+  }
+}
 
 async function runSingleRetention(target) {
   const startedAt = Date.now();
@@ -86,7 +151,9 @@ async function runSingleRetention(target) {
 }
 
 async function runRetentionCleanup() {
+  const intradayDeleted = await intradayRetentionJob();
   const totals = await Promise.all(RETENTION_TARGETS.map((target) => runSingleRetention(target)));
+  totals.unshift(intradayDeleted);
   const rowsDeleted = totals.reduce((sum, count) => sum + Number(count || 0), 0);
   logger.info('[RETENTION] cycle complete', { rowsDeleted });
   return rowsDeleted;
@@ -95,14 +162,16 @@ async function runRetentionCleanup() {
 function startRetentionJobs() {
   if (retentionTask) return;
 
-  // Run daily at 02:15 server time.
-  retentionTask = cron.schedule('15 2 * * *', () => {
+  // Run daily after market close (17:15 America/New_York).
+  retentionTask = cron.schedule('15 17 * * 1-5', () => {
     runRetentionCleanup().catch((error) => {
       logger.error('[RETENTION] scheduled run failed', { error: error.message });
     });
+  }, {
+    timezone: 'America/New_York',
   });
 
-  logger.info('[RETENTION] scheduler started (daily 02:15)');
+  logger.info('[RETENTION] scheduler started (weekdays 17:15 America/New_York)');
 }
 
 module.exports = {

@@ -1,0 +1,400 @@
+{
+  "generated_at": "2026-03-16T13:31:07.148Z",
+  "base_url": "http://localhost:3000",
+  "environment": {
+    "hasFmpKey": true,
+    "hasIntelIngestKey": true,
+    "hasStocktwitsCredentials": false,
+    "hasPolygonKey": false,
+    "fmpSkipped": false,
+    "stocktwitsSkipped": true,
+    "fmpV3NewsIncluded": false,
+    "rssFeedCount": 4
+  },
+  "providers": {
+    "fmp": {
+      "ready": true,
+      "reachable": true,
+      "endpointSuccessCount": 2,
+      "endpointTotal": 3,
+      "bulk": {
+        "ok": true,
+        "status": 200,
+        "latencyMs": 620,
+        "rowCount": 3,
+        "url": "https://financialmodelingprep.com/stable/quote?symbol=<symbol>&apikey=REDACTED (x3)",
+        "error": null
+      },
+      "endpoints": [
+        {
+          "name": "stable_quote",
+          "url": "https://financialmodelingprep.com/stable/quote?symbol=AAPL&apikey=REDACTED",
+          "status": 200,
+          "ok": true,
+          "latencyMs": 484,
+          "rowCount": 1,
+          "schemaOk": true,
+          "missingFields": []
+        },
+        {
+          "name": "stable_profile",
+          "url": "https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=REDACTED",
+          "status": 200,
+          "ok": true,
+          "latencyMs": 153,
+          "rowCount": 1,
+          "schemaOk": true,
+          "missingFields": []
+        },
+        {
+          "name": "stable_news",
+          "url": "https://financialmodelingprep.com/stable/news?symbols=AAPL&limit=10&apikey=REDACTED",
+          "status": 404,
+          "ok": false,
+          "latencyMs": 147,
+          "rowCount": 0,
+          "schemaOk": false,
+          "missingFields": [
+            "title",
+            "publishedDate",
+            "url"
+          ]
+        }
+      ]
+    },
+    "stocktwits": {
+      "skipped": true,
+      "ready": true,
+      "reachable": true,
+      "reason": "skipped_by_config",
+      "url": "https://api.stocktwits.com/api/2/streams/symbol/AAPL.json"
+    },
+    "polygon": {
+      "configured": false,
+      "ready": false,
+      "reachable": false,
+      "skipped": true,
+      "reason": "POLYGON_API_KEY (or MASSIVE_API_KEY) missing"
+    },
+    "yahoo": {
+      "ready": true,
+      "routePresenceOk": true,
+      "routes": {
+        "/api/yahoo/quote": true,
+        "/api/yahoo/quote-batch": true,
+        "/api/yahoo/options": true,
+        "/api/yahoo/history": true,
+        "/api/yahoo/search": true
+      },
+      "live": {
+        "quote": {
+          "ok": true,
+          "status": 200,
+          "latencyMs": 4,
+          "schemaOk": true,
+          "missingFields": []
+        },
+        "search": {
+          "ok": false,
+          "status": 502,
+          "latencyMs": 166,
+          "rowCount": 0
+        }
+      },
+      "rss": {
+        "ok": true,
+        "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,NVDA&region=US&lang=en-US",
+        "itemCount": 20,
+        "latencyMs": 291,
+        "schemaOk": true,
+        "missingFields": []
+      }
+    },
+    "rss": {
+      "ready": true,
+      "totalFeeds": 4,
+      "passingFeeds": 3,
+      "feeds": [
+        {
+          "feedUrl": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+          "ok": true,
+          "latencyMs": 90,
+          "itemCount": 20,
+          "schemaOk": true,
+          "missingFields": []
+        },
+        {
+          "feedUrl": "https://www.marketwatch.com/feeds/topstories",
+          "ok": false,
+          "latencyMs": null,
+          "itemCount": 0,
+          "schemaOk": false,
+          "error": {
+            "message": "Status code 403",
+            "code": null
+          }
+        },
+        {
+          "feedUrl": "https://www.investing.com/rss/news_301.rss",
+          "ok": true,
+          "latencyMs": 79,
+          "itemCount": 10,
+          "schemaOk": true,
+          "missingFields": []
+        },
+        {
+          "feedUrl": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+          "ok": true,
+          "latencyMs": 182,
+          "itemCount": 30,
+          "schemaOk": true,
+          "missingFields": []
+        }
+      ]
+    }
+  },
+  "pipeline": {
+    "emailWebhook": {
+      "ready": true,
+      "routeReachable": true,
+      "ingestResponse": {
+        "ok": true,
+        "status": 200,
+        "latencyMs": 91,
+        "body": {
+          "ok": true,
+          "channel": "resend",
+          "id": "745",
+          "source_tag": "newsletter",
+          "source_name": "MarketWatch",
+          "received_at": "2026-03-16T13:31:10.121Z"
+        },
+        "error": null
+      },
+      "dbVerification": {
+        "intelligenceEmailInserted": true,
+        "emailRow": {
+          "id": "745",
+          "sender": "marketwatch-newsletter@example.com",
+          "subject": "MarketWatch Newsletter Audit 1773667870121 b8e7f9b4",
+          "source_tag": "newsletter",
+          "received_at": "2026-03-16T13:31:10.121Z"
+        },
+        "catalystRows": 2,
+        "catalystSample": [
+          {
+            "symbol": "AAPL",
+            "catalyst_type": "newsletter_intelligence",
+            "headline": "MarketWatch Newsletter Audit 1773667870121 b8e7f9b4",
+            "source": "MarketWatch",
+            "sentiment": "neutral",
+            "published_at": "2026-03-16T13:31:10.121Z"
+          },
+          {
+            "symbol": "TSLA",
+            "catalyst_type": "newsletter_intelligence",
+            "headline": "MarketWatch Newsletter Audit 1773667870121 b8e7f9b4",
+            "source": "MarketWatch",
+            "sentiment": "neutral",
+            "published_at": "2026-03-16T13:31:10.121Z"
+          }
+        ]
+      }
+    },
+    "schemaAndDedupe": {
+      "ready": true,
+      "requiredColumns": [
+        "symbol",
+        "provider",
+        "sentiment",
+        "published_at",
+        "headline"
+      ],
+      "presentColumns": [
+        "headline",
+        "published_at",
+        "symbol",
+        "provider",
+        "sentiment"
+      ],
+      "missingColumns": [],
+      "dedupe": {
+        "firstInsert": {
+          "inserted": true,
+          "reason": "inserted"
+        },
+        "secondInsert": {
+          "inserted": false,
+          "reason": "duplicate"
+        },
+        "duplicateCount": 1,
+        "dedupeOk": true
+      }
+    }
+  },
+  "stability": {
+    "ready": true,
+    "requiredSuccessRate": 0.8,
+    "runsPerProvider": 5,
+    "providers": {
+      "yahoo_route_quote": {
+        "totalRuns": 5,
+        "successes": 5,
+        "successRate": 1,
+        "avgLatencyMs": 2,
+        "rateLimitedCount": 0,
+        "errorCount": 0,
+        "errors": [],
+        "runs": [
+          {
+            "run": 1,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 3,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 2,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 1,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 3,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 1,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 4,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 2,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 5,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 1,
+            "rateLimited": false,
+            "error": null
+          }
+        ]
+      },
+      "yahoo_rss": {
+        "totalRuns": 5,
+        "successes": 5,
+        "successRate": 1,
+        "avgLatencyMs": 67,
+        "rateLimitedCount": 0,
+        "errorCount": 0,
+        "errors": [],
+        "runs": [
+          {
+            "run": 1,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 70,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 2,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 77,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 3,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 48,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 4,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 81,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 5,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 59,
+            "rateLimited": false,
+            "error": null
+          }
+        ]
+      },
+      "fmp_quote": {
+        "totalRuns": 5,
+        "successes": 5,
+        "successRate": 1,
+        "avgLatencyMs": 119,
+        "rateLimitedCount": 0,
+        "errorCount": 0,
+        "errors": [],
+        "runs": [
+          {
+            "run": 1,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 109,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 2,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 137,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 3,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 122,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 4,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 114,
+            "rateLimited": false,
+            "error": null
+          },
+          {
+            "run": 5,
+            "ok": true,
+            "status": 200,
+            "latencyMs": 111,
+            "rateLimited": false,
+            "error": null
+          }
+        ]
+      }
+    }
+  },
+  "final": {
+    "ready": true,
+    "blockers": []
+  },
+  "runtime_ms": 4530
+}

@@ -103,10 +103,41 @@ async function ensureStrategySignalsTable() {
   }
 }
 
+async function ensureTradeSetupsTable() {
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS trade_setups (
+      symbol TEXT PRIMARY KEY,
+      setup_type TEXT,
+      score NUMERIC,
+      detected_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`,
+    [],
+    { timeoutMs: 5000, label: 'engines.strategy.ensure_trade_setups_table', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `ALTER TABLE trade_setups
+       ADD COLUMN IF NOT EXISTS setup_type TEXT,
+       ADD COLUMN IF NOT EXISTS score NUMERIC,
+       ADD COLUMN IF NOT EXISTS detected_at TIMESTAMPTZ DEFAULT now(),
+       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`,
+    [],
+    { timeoutMs: 5000, label: 'engines.strategy.ensure_trade_setups_columns', maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_trade_setups_symbol_unique ON trade_setups(symbol)',
+    [],
+    { timeoutMs: 5000, label: 'engines.strategy.ensure_trade_setups_unique_idx', maxRetries: 0 }
+  );
+}
+
 async function runStrategyEngine() {
   const startedAt = Date.now();
   try {
     await ensureStrategySignalsTable();
+    await ensureTradeSetupsTable();
 
     const { rows } = await queryWithTimeout(
     `SELECT
@@ -184,6 +215,28 @@ async function runStrategyEngine() {
       { timeoutMs: 5000, label: 'engines.strategy.upsert', maxRetries: 0 }
     );
 
+      await queryWithTimeout(
+      `INSERT INTO trade_setups (
+        symbol,
+        setup_type,
+        score,
+        detected_at,
+        updated_at
+      ) VALUES ($1, $2, $3, now(), now())
+      ON CONFLICT (symbol)
+      DO UPDATE SET
+        setup_type = EXCLUDED.setup_type,
+        score = EXCLUDED.score,
+        detected_at = now(),
+        updated_at = now()`,
+      [
+        row.symbol,
+        strategy,
+        score,
+      ],
+      { timeoutMs: 5000, label: 'engines.strategy.trade_setups_upsert', maxRetries: 0 }
+    );
+
       classified += 1;
     }
 
@@ -192,6 +245,14 @@ async function runStrategyEngine() {
       universeSymbols: rows.length,
       classified,
       runtimeMs,
+    });
+    console.log('[ENGINE]', {
+      setupsGenerated: classified,
+      timestamp: new Date(),
+    });
+    console.log('[SIGNALS GENERATED]', {
+      count: classified,
+      latest: new Date().toISOString(),
     });
 
     return {

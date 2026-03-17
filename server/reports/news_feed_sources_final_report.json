@@ -1,0 +1,283 @@
+{
+  "generatedAt": "2026-03-16T14:18:29.123Z",
+  "config": {
+    "enableFinnhubSocial": false
+  },
+  "sources": {
+    "fmp": {
+      "ready": true,
+      "passing": 6,
+      "total": 6,
+      "endpoints": [
+        {
+          "name": "fmp_articles",
+          "url": "https://financialmodelingprep.com/stable/fmp-articles?page=0&limit=20&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 832,
+          "rowCount": 20,
+          "sampleFields": [
+            "title",
+            "date",
+            "content",
+            "tickers",
+            "image",
+            "link",
+            "author",
+            "site"
+          ],
+          "providerMessage": null
+        },
+        {
+          "name": "general_latest",
+          "url": "https://financialmodelingprep.com/stable/news/general-latest?page=0&limit=20&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 117,
+          "rowCount": 20,
+          "sampleFields": [
+            "symbol",
+            "publishedDate",
+            "publisher",
+            "title",
+            "image",
+            "site",
+            "text",
+            "url"
+          ],
+          "providerMessage": null
+        },
+        {
+          "name": "press_releases_latest",
+          "url": "https://financialmodelingprep.com/stable/news/press-releases-latest?page=0&limit=20&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 582,
+          "rowCount": 20,
+          "sampleFields": [
+            "symbol",
+            "publishedDate",
+            "publisher",
+            "title",
+            "image",
+            "site",
+            "text",
+            "url"
+          ],
+          "providerMessage": null
+        },
+        {
+          "name": "stock_latest",
+          "url": "https://financialmodelingprep.com/stable/news/stock-latest?page=0&limit=20&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 106,
+          "rowCount": 20,
+          "sampleFields": [
+            "symbol",
+            "publishedDate",
+            "publisher",
+            "title",
+            "image",
+            "site",
+            "text",
+            "url"
+          ],
+          "providerMessage": null
+        },
+        {
+          "name": "press_releases_symbol",
+          "url": "https://financialmodelingprep.com/stable/news/press-releases?symbols=AAPL&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 8615,
+          "rowCount": 20,
+          "sampleFields": [
+            "symbol",
+            "publishedDate",
+            "publisher",
+            "title",
+            "image",
+            "site",
+            "text",
+            "url"
+          ],
+          "providerMessage": null
+        },
+        {
+          "name": "stock_symbol",
+          "url": "https://financialmodelingprep.com/stable/news/stock?symbols=AAPL&apikey=REDACTED",
+          "ok": true,
+          "status": 200,
+          "latencyMs": 236,
+          "rowCount": 20,
+          "sampleFields": [
+            "symbol",
+            "publishedDate",
+            "publisher",
+            "title",
+            "image",
+            "site",
+            "text",
+            "url"
+          ],
+          "providerMessage": null
+        }
+      ]
+    },
+    "finnhubSocial": {
+      "ready": true,
+      "skipped": true,
+      "reason": "disabled_by_config",
+      "tickers": []
+    },
+    "alphaVantage": {
+      "ready": true,
+      "rowCount": 50,
+      "sampleTitle": "Madison Small Cap Fund’s Standout Performer: Ciena Corp (CIEN)"
+    },
+    "benzinga": {
+      "ready": true,
+      "status": 200,
+      "rowCount": 10,
+      "sample": [
+        {
+          "title": "Apple Announces New AirPods Max 2 Product Line; To Be Available For Order From March 25, Deliveries To Start Early April",
+          "teaser": null,
+          "published": "Mon, 16 Mar 2026 09:04:38 -0400",
+          "url": "https://www.benzinga.com/news/26/03/51267922/apple-announces-new-airpods-max-2-product-line-to-be-available-for-order-from-march-25-deliveries-to"
+        },
+        {
+          "title": "Consumer Tech News (Mar 9-13): Trump Administration Sues California Over Emissions Targets, Nvidia Announces $26B AI Investment & More",
+          "teaser": null,
+          "published": "Sun, 15 Mar 2026 09:20:41 -0400",
+          "url": "https://www.benzinga.com/markets/tech/26/03/51259469/consumer-tech-news-mar-9-13-trump-administration-sues-california-over-emissions-targets-nvidia-announces-26b-ai-investment-more"
+        },
+        {
+          "title": "China App Store Fee Cut, Musk's Apple Tribute And More: This Week In Appleverse",
+          "teaser": null,
+          "published": "Sun, 15 Mar 2026 07:00:42 -0400",
+          "url": "https://www.benzinga.com/markets/tech/26/03/51259309/china-app-store-fee-cut-musks-apple-tribute-and-more-this-week-in-appleverse"
+        },
+        {
+          "title": "Tim Cook Quit A Safe IBM Job For A Struggling Apple After Asking Himself One Question— 'I Was Warned...'",
+          "teaser": null,
+          "published": "Fri, 13 Mar 2026 14:01:12 -0400",
+          "url": "https://www.benzinga.com/markets/tech/26/03/51249673/tim-cook-quit-a-safe-ibm-job-for-a-struggling-apple-after-asking-himself-one-question-i-was-warned"
+        },
+        {
+          "title": "9 Information Technology Stocks Whale Activity In Today's Session",
+          "teaser": null,
+          "published": "Fri, 13 Mar 2026 13:35:19 -0400",
+          "url": "https://www.benzinga.com/insights/options/26/03/51248859/9-information-technology-stocks-whale-activity-in-todays-session"
+        }
+      ]
+    },
+    "rss": {
+      "ready": true,
+      "feeds": [
+        {
+          "feedUrl": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+          "ok": true,
+          "latencyMs": 95,
+          "rowCount": 10,
+          "sampleTitle": "Trump has 15 days to end the Iran war or markets face a brutal April repricing — from oil to the S&P 500"
+        },
+        {
+          "feedUrl": "https://feeds.content.dowjones.io/public/rss/mw_bulletins",
+          "ok": true,
+          "latencyMs": 14,
+          "rowCount": 10,
+          "sampleTitle": "Is Facebook parent Meta really considering a 20% staff reduction?"
+        },
+        {
+          "feedUrl": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
+          "ok": true,
+          "latencyMs": 14,
+          "rowCount": 30,
+          "sampleTitle": "Jobless claims fall to lowest level since mid-May"
+        },
+        {
+          "feedUrl": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+          "ok": true,
+          "latencyMs": 101,
+          "rowCount": 20,
+          "sampleTitle": "Meritage Homes (MTH): Buy, Sell, or Hold Post Q4 Earnings?"
+        }
+      ]
+    }
+  },
+  "activeStack": [
+    {
+      "provider": "fmp",
+      "source": "fmp_articles",
+      "status": "active"
+    },
+    {
+      "provider": "fmp",
+      "source": "general_latest",
+      "status": "active"
+    },
+    {
+      "provider": "fmp",
+      "source": "press_releases_latest",
+      "status": "active"
+    },
+    {
+      "provider": "fmp",
+      "source": "stock_latest",
+      "status": "active"
+    },
+    {
+      "provider": "fmp",
+      "source": "press_releases_symbol",
+      "status": "active"
+    },
+    {
+      "provider": "fmp",
+      "source": "stock_symbol",
+      "status": "active"
+    },
+    {
+      "provider": "rss",
+      "source": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+      "status": "active"
+    },
+    {
+      "provider": "rss",
+      "source": "https://feeds.content.dowjones.io/public/rss/mw_bulletins",
+      "status": "active"
+    },
+    {
+      "provider": "rss",
+      "source": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
+      "status": "active"
+    },
+    {
+      "provider": "rss",
+      "source": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+      "status": "active"
+    },
+    {
+      "provider": "alpha_vantage",
+      "source": "news_sentiment_feed",
+      "status": "active"
+    },
+    {
+      "provider": "benzinga",
+      "source": "api/v2/news",
+      "status": "active"
+    }
+  ],
+  "removedSources": [
+    {
+      "provider": "finnhub",
+      "source": "stock/social-sentiment",
+      "reason": "disabled_by_config"
+    }
+  ],
+  "final": {
+    "ready": true,
+    "blockers": []
+  }
+}

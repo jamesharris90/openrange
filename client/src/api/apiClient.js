@@ -1,8 +1,9 @@
 import { fetchSafe } from './fetchSafe';
 
 const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
-  'https://openrange-backend-production.up.railway.app';
+  'http://localhost:3001';
 
 function normalizeApiPath(path) {
   const raw = String(path || '').trim();

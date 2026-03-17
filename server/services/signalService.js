@@ -6,8 +6,20 @@ function normalizeLimit(limit, fallback = 50, max = 200) {
   return Math.min(Math.max(1, Math.trunc(parsed)), max);
 }
 
-async function fetchUnifiedSignals({ limit = 50 } = {}) {
+async function fetchUnifiedSignals({ limit = 50, recentHours = null } = {}) {
   const safeLimit = normalizeLimit(limit);
+  const safeRecentHours = Number.isFinite(Number(recentHours)) && Number(recentHours) > 0
+    ? Math.trunc(Number(recentHours))
+    : null;
+
+  const params = [safeLimit];
+  let whereSql = '';
+
+  if (safeRecentHours) {
+    params.push(safeRecentHours);
+    whereSql = `WHERE COALESCE(s.updated_at, s.created_at, now()) > NOW() - make_interval(hours => $${params.length}::int)`;
+  }
+
   const { rows } = await queryWithTimeout(
     `SELECT
       s.symbol,
@@ -42,9 +54,10 @@ async function fetchUnifiedSignals({ limit = 50 } = {}) {
       ORDER BY i.published_at DESC NULLS LAST
       LIMIT 1
     ) inews ON TRUE
+    ${whereSql}
     ORDER BY COALESCE(s.score, 0) DESC NULLS LAST
     LIMIT $1`,
-    [safeLimit],
+    params,
     { label: 'services.signal_service.unified', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
   );
 

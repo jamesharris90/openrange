@@ -14,7 +14,7 @@ console.log("\nOpenRange Supabase Setup\n");
 rl.question("Paste your SUPABASE_SERVICE_ROLE_KEY: ", (serviceKey) => {
 
   const envContent = `
-SUPABASE_URL=https://qyfxbuxuxyvdmwvamztd.supabase.co
+SUPABASE_URL=https://qyfxbuxuxyvdmwamzdtq.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=${serviceKey.trim()}
 `;
 

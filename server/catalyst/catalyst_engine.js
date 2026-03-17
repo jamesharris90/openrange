@@ -84,20 +84,97 @@ async function getUniverseSet() {
 }
 
 async function getRecentNewsRows() {
-  const { rows } = await pool.query(
-    `SELECT headline,
-            source,
-            published_at,
-            summary,
-            symbols
-     FROM news_articles
-     WHERE published_at >= NOW() - ($1::text || ' hours')::interval
-     ORDER BY published_at DESC
-     LIMIT 2000`,
-    [String(RECENT_WINDOW_HOURS)]
-  );
+  const [newsArticles, intelNews, earningsEvents, transcripts, newsletterEmails] = await Promise.all([
+    pool.query(
+      `SELECT headline,
+              source,
+              published_at,
+              summary,
+              symbols,
+              symbol
+       FROM news_articles
+       WHERE published_at >= NOW() - ($1::text || ' hours')::interval
+       ORDER BY published_at DESC
+       LIMIT 2000`,
+      [String(RECENT_WINDOW_HOURS)]
+    ).then((result) => result.rows || []),
+    pool.query(
+      `SELECT headline,
+              source,
+              published_at,
+              NULL::text AS summary,
+              ARRAY[symbol]::text[] AS symbols,
+              symbol
+       FROM intel_news
+       WHERE published_at >= NOW() - ($1::text || ' hours')::interval
+       ORDER BY published_at DESC
+       LIMIT 1000`,
+      [String(RECENT_WINDOW_HOURS)]
+    ).then((result) => result.rows || []),
+    pool.query(
+      `SELECT
+         CONCAT(symbol, ' earnings event') AS headline,
+         'earnings_events' AS source,
+         report_date::timestamp AS published_at,
+         CONCAT('EPS estimate: ', COALESCE(eps_estimate::text, 'n/a')) AS summary,
+         ARRAY[symbol]::text[] AS symbols,
+         symbol
+       FROM earnings_events
+       WHERE report_date::timestamp >= NOW() - INTERVAL '7 days'
+       ORDER BY report_date::timestamp DESC
+       LIMIT 1000`
+    ).then((result) => result.rows || []).catch(async () => {
+      const fallback = await pool.query(
+        `SELECT
+           CONCAT(symbol, ' earnings event') AS headline,
+           'earnings_events' AS source,
+           earnings_date::timestamp AS published_at,
+           CONCAT('EPS estimate: ', COALESCE(eps_estimate::text, 'n/a')) AS summary,
+           ARRAY[symbol]::text[] AS symbols,
+           symbol
+         FROM earnings_events
+         WHERE earnings_date::timestamp >= NOW() - INTERVAL '7 days'
+         ORDER BY earnings_date::timestamp DESC
+         LIMIT 1000`
+      ).catch(() => ({ rows: [] }));
+      return fallback.rows || [];
+    }),
+    pool.query(
+      `SELECT
+         CONCAT(symbol, ' earnings transcript') AS headline,
+         'earnings_transcripts' AS source,
+         COALESCE(updated_at, created_at, NOW()) AS published_at,
+         LEFT(COALESCE(transcript_text, ''), 400) AS summary,
+         ARRAY[symbol]::text[] AS symbols,
+         symbol
+       FROM earnings_transcripts
+       WHERE COALESCE(updated_at, created_at, NOW()) >= NOW() - INTERVAL '7 days'
+       ORDER BY COALESCE(updated_at, created_at, NOW()) DESC
+       LIMIT 1000`
+    ).then((result) => result.rows || []).catch(() => []),
+    pool.query(
+      `SELECT
+         COALESCE(subject, 'newsletter intelligence') AS headline,
+         COALESCE(source_tag, 'newsletter') AS source,
+         COALESCE(received_at, NOW()) AS published_at,
+         LEFT(COALESCE(raw_text, ''), 400) AS summary,
+         NULL::text[] AS symbols,
+         NULL::text AS symbol
+       FROM intelligence_emails
+       WHERE COALESCE(received_at, NOW()) >= NOW() - ($1::text || ' hours')::interval
+       ORDER BY COALESCE(received_at, NOW()) DESC
+       LIMIT 1000`,
+      [String(RECENT_WINDOW_HOURS)]
+    ).then((result) => result.rows || []).catch(() => []),
+  ]);
 
-  return rows;
+  return [
+    ...newsArticles,
+    ...intelNews,
+    ...earningsEvents,
+    ...transcripts,
+    ...newsletterEmails,
+  ];
 }
 
 function buildCatalysts(newsRows, universeSet, catalystScores) {
@@ -108,7 +185,11 @@ function buildCatalysts(newsRows, universeSet, catalystScores) {
     const summary = row.summary || '';
     const combined = `${headline} ${summary}`.trim();
 
-    const symbols = normalizeSymbols(row.symbols, headline, summary)
+    const symbols = normalizeSymbols(
+      row.symbol ? [row.symbol] : row.symbols,
+      headline,
+      summary
+    )
       .filter((symbol) => universeSet.has(symbol));
 
     if (!symbols.length || !headline || !row.published_at) continue;
@@ -135,7 +216,11 @@ function buildCatalysts(newsRows, universeSet, catalystScores) {
 async function upsertCatalysts(rows) {
   if (!rows.length) return 0;
 
-  const payload = JSON.stringify(rows);
+  const deduped = Array.from(new Map(
+    rows.map((row) => [`${row.symbol}|${row.headline}|${row.catalyst_type}|${new Date(row.published_at).toISOString()}`, row])
+  ).values());
+
+  const payload = JSON.stringify(deduped);
 
   await pool.query(
     `INSERT INTO trade_catalysts (
@@ -173,7 +258,7 @@ async function upsertCatalysts(rows) {
     [payload]
   );
 
-  return rows.length;
+  return deduped.length;
 }
 
 async function runCatalystEngine() {

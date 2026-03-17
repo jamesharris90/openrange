@@ -2,10 +2,22 @@ const logger = require('../logger');
 
 const REQUIRED_KEYS = [
   'JWT_SECRET',
+  'FMP_API_KEY',
+  'DATABASE_URL',
+  'RESEND_API_KEY',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_KEY',
+];
+
+const REQUIRED_WARN_KEYS = [
   'PROXY_API_KEY',
+  'ENCRYPTION_KEY',
+  'FINVIZ_NEWS_TOKEN',
+  'FINNHUB_API_KEY',
+  'PPLX_API_KEY',
+  'OPENAI_API_KEY',
+  'SAXO_APP_KEY',
+  'SAXO_APP_SECRET',
 ];
 
 function isMissing(value) {
@@ -15,18 +27,34 @@ function isMissing(value) {
   return normalized === 'REQUIRED';
 }
 
-function runEnvCheck() {
+function runEnvCheck(options = {}) {
+  const { hardFail = false } = options;
   const missing = REQUIRED_KEYS.filter((key) => isMissing(process.env[key]));
 
   if (missing.length) {
-    logger.warn('Environment validation warning: required keys are missing', {
+    logger.error('Environment validation failed: required keys are missing', {
       missing,
+    });
+
+    if (hardFail) {
+      const error = new Error(`Missing required environment keys: ${missing.join(', ')}`);
+      error.code = 'ENV_VALIDATION_FAILED';
+      error.missing = missing;
+      throw error;
+    }
+  }
+
+  const warningMissing = REQUIRED_WARN_KEYS.filter((key) => isMissing(process.env[key]));
+  if (warningMissing.length) {
+    logger.warn('Environment validation warning: recommended keys are missing', {
+      missing: warningMissing,
     });
   }
 
   return {
     ok: missing.length === 0,
     missing,
+    warningMissing,
   };
 }
 

@@ -166,15 +166,47 @@ router.get('/api/scanner', async (_req, res) => {
 });
 
 router.get('/api/opportunities', async (_req, res) => {
-  const rows = await safeRows(
-    `SELECT symbol, strategy, confidence, expected_move, catalyst, created_at
-     FROM opportunity_stream
-     ORDER BY created_at DESC NULLS LAST
-     LIMIT 100`,
-    [],
-    'stability.opportunities'
-  );
-  return res.json(success(rows.map(normalizeExpectedMove)));
+  try {
+    const { rows: primaryRows } = await queryWithTimeout(
+      `SELECT
+         ts.*,
+         ts.detected_at AS updated_at
+       FROM trade_setups ts
+       WHERE ts.detected_at > NOW() - INTERVAL '7 days'
+       ORDER BY ts.detected_at DESC NULLS LAST
+       LIMIT 100`,
+      [],
+      { label: 'stability.opportunities.trade_setups.primary', timeoutMs: 4000, maxRetries: 0 }
+    );
+
+    console.log('[DATA CHECK]', {
+      table: 'trade_setups',
+      rows: primaryRows.length
+    });
+
+    let rows = primaryRows;
+    if (!rows.length) {
+      const { rows: fallbackRows } = await queryWithTimeout(
+        `SELECT *
+         FROM trade_setups
+         ORDER BY detected_at DESC NULLS LAST
+         LIMIT 20`,
+        [],
+        { label: 'stability.opportunities.trade_setups.fallback', timeoutMs: 4000, maxRetries: 0 }
+      );
+
+      console.log('[DATA CHECK]', {
+        table: 'trade_setups',
+        rows: fallbackRows.length
+      });
+
+      rows = fallbackRows;
+    }
+
+    return res.json(success(rows.map(normalizeExpectedMove)));
+  } catch (error) {
+    return res.status(500).json(failure(error.message || 'Failed to load opportunities'));
+  }
 });
 
 router.get('/api/signals', async (_req, res) => {
@@ -191,9 +223,10 @@ router.get('/api/signals', async (_req, res) => {
 
 router.get('/api/news', async (_req, res) => {
   const rows = await safeRows(
-    `SELECT symbol, headline, source, published_at AS timestamp, url
+    `SELECT symbol, headline, source, created_at AS timestamp, url
      FROM news_articles
-     ORDER BY published_at DESC NULLS LAST
+     WHERE created_at > NOW() - INTERVAL '24 hours'
+     ORDER BY created_at DESC NULLS LAST
      LIMIT 100`,
     [],
     'stability.news'

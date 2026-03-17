@@ -94,7 +94,7 @@ export default function SystemDiagnostics() {
       const response = await authFetch('/api/admin/email-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ recipient: 'jamesharris4@me.com' }),
       });
 
       if (!response?.ok) {
@@ -102,7 +102,7 @@ export default function SystemDiagnostics() {
       }
 
       const payload = await response.json();
-      setTestResult(payload?.data || { error: 'No result payload' });
+      setTestResult(payload?.result || payload?.data || { error: 'No result payload' });
     } catch (err) {
       setTestResult({ error: err.message || 'Failed to run test emails' });
     } finally {
@@ -266,11 +266,13 @@ export default function SystemDiagnostics() {
               <div className="text-sm text-slate-400">Email dispatcher status unavailable.</div>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">
-                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Scheduler started: {emailStatus?.scheduler?.schedulerStarted ? 'Yes' : 'No'}</div>
-                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Resend configured: {emailStatus?.scheduler?.resendConfigured ? 'Yes' : 'No'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Email Provider: {emailStatus?.provider || 'Resend'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Configured: {emailStatus?.providerConfigured ? '✔' : '❌'}</div>
                 <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Active subscribers: {emailStatus?.activeSubscribers ?? 0}</div>
-                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Registered jobs: {(emailStatus?.scheduler?.jobs || []).join(', ') || 'None'}</div>
-                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Next scheduled send: {emailStatus?.scheduler?.nextScheduledSend || 'Unavailable'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Fallback recipient: {emailStatus?.fallbackRecipient || 'jamesharris4@me.com'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Scheduler running: {emailStatus?.schedulerRunning ? 'Yes' : 'No'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2">Timezone: {emailStatus?.timezone || 'Europe/London'}</div>
+                <div className="rounded border border-slate-800 bg-slate-950 px-3 py-2 md:col-span-2">Next scheduled send: {emailStatus?.nextMorningBrief || emailStatus?.nextScheduledSend || 'Unavailable'}</div>
               </div>
             )}
 

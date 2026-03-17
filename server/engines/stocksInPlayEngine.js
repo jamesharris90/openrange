@@ -1,9 +1,12 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 const { scoreSignal, ensureTradeSignalsScoringColumns } = require('./signalScoringEngine');
+const { calculateTradeScore } = require('./tradeQualityEngine');
+const { recordSignal, getStrategyStats } = require('./tradeOutcomeEngine');
 const { routeSignalsBatch } = require('../system/signalRouter');
 const { ensureOrderFlowSignalsTable } = require('./orderFlowImbalanceEngine');
 const { ensureSectorMomentumTable } = require('./sectorMomentumEngine');
+const { generateChartSnapshot } = require('../email/chartSnapshotEngine');
 
 function toNumber(value, fallback = 0) {
   const num = Number(value);
@@ -188,6 +191,8 @@ async function selectStocksInPlayCandidates({ minRvol, minGap, minAtrPercent, la
          AND COALESCE(m.relative_volume, 0) >= $1
          AND COALESCE(m.gap_percent, 0) >= $2
          AND COALESCE(m.atr_percent, 0) >= $3
+         AND COALESCE(m.price, 0) > 0
+         AND COALESCE(m.volume, 0) > 0
          AND cl.headline IS NOT NULL
        ORDER BY rank_score DESC
       LIMIT 120
@@ -388,6 +393,7 @@ async function runStocksInPlayEngine() {
       symbol,
       strategy,
       score,
+      price: toNumber(row.price),
       gap_percent: toNumber(row.gap_percent),
       rvol: toNumber(row.relative_volume),
       atr_percent: toNumber(row.atr_percent),
@@ -415,6 +421,17 @@ async function runStocksInPlayEngine() {
     }
 
     const boosted = scoredRows.filter((r) => r.catalyst_impact_8h > 0).length;
+
+    await Promise.all(scoredRows.map((row) => recordSignal({
+      symbol: row.symbol,
+      setup_type: row.strategy,
+      entry_price: toNumber(row.price, 0),
+      rvol: toNumber(row.rvol, 0),
+      strategy: row.strategy,
+      source_engine: 'stocksInPlayEngine',
+      score: row.score,
+    }).catch(() => null)));
+
     const inserted = await upsertTradeSignalsBatch(scoredRows);
     const stocksInserted = await upsertStocksInPlay(scoredRows);
 
@@ -448,6 +465,317 @@ async function runStocksInPlayEngine() {
   }
 }
 
+function chooseSetupType(row = {}) {
+  const change = toNumber(row.price_change_percent);
+  const rvol = toNumber(row.relative_volume);
+  const price = toNumber(row.price);
+  const vwap = toNumber(row.vwap);
+
+  if (change >= 8 && rvol >= 4) return 'ORB continuation';
+  if (price > 0 && vwap > 0 && price >= vwap && rvol >= 3) return 'VWAP reclaim';
+  return 'bull flag';
+}
+
+function buildCatalystSummary(row = {}) {
+  const bits = [];
+  if (row.catalyst_headline) bits.push(`News: ${row.catalyst_headline}`);
+  if (row.has_earnings) bits.push('Earnings catalyst active');
+  if (Number.isFinite(Number(row.sector_move)) && Math.abs(Number(row.sector_move)) >= 1) {
+    bits.push(`Sector move ${Number(row.sector_move).toFixed(2)}%`);
+  }
+  return bits.join(' | ') || 'News/earnings/sector catalyst mix';
+}
+
+function generateTradeNarrative(stock = {}) {
+  return generateStockNarrative(stock);
+}
+
+function generateStockNarrative(stock = {}) {
+  const setupType = String(stock.setupType || chooseSetupType(stock));
+  const change = Number(stock.price_change_percent || 0);
+  const rvol = Number(stock.relative_volume || 0);
+  const symbol = String(stock.symbol || '').toUpperCase();
+  const sector = String(stock.sector || 'active').toLowerCase();
+  const catalyst = buildCatalystSummary(stock);
+
+  const trigger = stock.price ? `a break and hold above $${Number(stock.price).toFixed(2)}` : 'a clean break above the opening range';
+  const risk = stock.price ? `invalidation below $${(Number(stock.price) * 0.985).toFixed(2)}` : 'invalidation below VWAP and the opening range low';
+  const target = stock.price ? `$${(Number(stock.price) * 1.03).toFixed(2)} first target, then trail into strength` : '3-5% continuation target with staged exits';
+
+  return {
+    symbol,
+    whyMoving: `${symbol} is showing unusual participation with relative volume running at ${rvol.toFixed(2)}x normal levels, while price is up ${change.toFixed(2)}%. ${catalyst}.`,
+    whyTradeable: `This places ${symbol} among the strongest relative-strength names in ${sector}, with structure quality that supports intraday continuation setups.`,
+    howToTrade: `When momentum expands without a clean catalyst, traders often focus on the first half of the session and use ${trigger} as the participation trigger.`,
+    risk,
+    target,
+  };
+}
+
+function generateProbabilityContext(stats = null) {
+  if (!stats || Number(stats.sampleSize || 0) <= 0) {
+    return 'Historical performance data building';
+  }
+
+  const winRate = Number(stats.winRate || 0).toFixed(1);
+  const avgMove = Number(stats.avgMove || 0).toFixed(2);
+  const avgDrawdown = Number(stats.avgDrawdown || 0).toFixed(2);
+  const sampleSize = Number(stats.sampleSize || 0);
+
+  return [
+    'Historical Setup Performance',
+    `Win rate: ${winRate}%`,
+    `Average continuation: ${avgMove >= 0 ? '+' : ''}${avgMove}%`,
+    `Average drawdown: ${avgDrawdown >= 0 ? '+' : ''}${avgDrawdown}%`,
+    `Sample size: ${sampleSize} signals`,
+  ].join('\n');
+}
+
+async function getMomentumFallbackCandidate() {
+  const { rows } = await queryWithTimeout(
+    `WITH catalyst_latest AS (
+       SELECT DISTINCT ON (symbol)
+         symbol,
+         headline AS catalyst_headline,
+         COALESCE(url, source_url, link) AS news_url
+       FROM news_catalysts
+       ORDER BY symbol, published_at DESC NULLS LAST
+     )
+     SELECT
+       q.symbol,
+       COALESCE(q.price, m.price, 0) AS price,
+       COALESCE(
+         ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
+         q.change_percent,
+         m.change_percent,
+         0
+       ) AS price_change_percent,
+       COALESCE(m.relative_volume, 0) AS relative_volume,
+       COALESCE(m.volume, 0) AS volume,
+       COALESCE(m.float_shares, 0) AS float_shares,
+       COALESCE(m.vwap, 0) AS vwap,
+       COALESCE(q.sector, 'Unknown') AS sector,
+       cl.catalyst_headline,
+       cl.news_url
+     FROM market_quotes q
+     LEFT JOIN market_metrics m ON m.symbol = q.symbol
+     LEFT JOIN catalyst_latest cl ON cl.symbol = q.symbol
+     WHERE COALESCE(
+             ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
+             q.change_percent,
+             m.change_percent,
+             0
+           ) > 4
+       AND COALESCE(m.relative_volume, 0) >= 2
+       AND COALESCE(q.price, m.price, 0) > 5
+       AND COALESCE(m.volume, 0) > 200000
+     ORDER BY (COALESCE(q.change_percent, m.change_percent, 0) * COALESCE(m.relative_volume, 0)) DESC
+     LIMIT 1`,
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.momentum_fallback', maxRetries: 0 }
+  ).catch(() => ({ rows: [] }));
+
+  const row = rows?.[0];
+  if (!row) {
+    return null;
+  }
+
+  const setupType = 'Momentum Candidate';
+  const strategyStats = {
+    winRate: 0,
+    avgMove: 0,
+    avgDrawdown: 0,
+    sampleSize: 0,
+  };
+  const tradeQuality = calculateTradeScore({ ...row, setupType, strategyStats });
+  const narrative = generateTradeNarrative({ ...row, setupType });
+  const probabilityContext = generateProbabilityContext(strategyStats);
+  const snapshot = await generateChartSnapshot(row.symbol).catch(() => ({ imageUrl: null }));
+  const symbol = String(row.symbol || '').toUpperCase();
+  const logoKey = String(process.env.VITE_LOGO_DEV_KEY || '').trim();
+  const logo = logoKey
+    ? `https://img.logo.dev/ticker/${encodeURIComponent(symbol)}?token=${encodeURIComponent(logoKey)}`
+    : `https://img.logo.dev/ticker/${encodeURIComponent(symbol)}`;
+
+  return {
+    symbol,
+    price: toNumber(row.price),
+    rvol: toNumber(row.relative_volume),
+    relative_volume: toNumber(row.relative_volume),
+    move: toNumber(row.price_change_percent),
+    price_change_percent: toNumber(row.price_change_percent),
+    setupType,
+    tradeScore: tradeQuality.score,
+    confidence: tradeQuality.confidence,
+    grade: tradeQuality.grade,
+    strategyStats,
+    probabilityContext,
+    news: {
+      headline: row.catalyst_headline || 'Momentum expansion without fresh catalyst headline',
+      url: row.news_url || null,
+    },
+    catalyst: buildCatalystSummary(row),
+    sector: row.sector || 'Unknown',
+    logo,
+    narrative,
+    chartImage: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+    chartUrl: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+    label: 'Momentum Candidate',
+    stockOfTheDay: true,
+  };
+}
+
+async function getStocksInPlay() {
+  const { rows } = await queryWithTimeout(
+    `WITH catalyst_latest AS (
+       SELECT DISTINCT ON (symbol)
+         symbol,
+         headline AS catalyst_headline,
+         COALESCE(url, source_url, link) AS news_url
+       FROM news_catalysts
+       ORDER BY symbol, published_at DESC NULLS LAST
+     ),
+     earnings_latest AS (
+       SELECT DISTINCT symbol, TRUE AS has_earnings
+       FROM earnings_calendar
+       WHERE earnings_date BETWEEN CURRENT_DATE - INTERVAL '1 day' AND CURRENT_DATE + INTERVAL '3 days'
+     )
+     SELECT
+       q.symbol,
+       COALESCE(q.price, m.price, 0) AS price,
+       COALESCE(
+         ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
+         q.change_percent,
+         m.change_percent,
+         0
+       ) AS price_change_percent,
+       COALESCE(m.relative_volume, 0) AS relative_volume,
+       COALESCE(m.volume, 0) AS volume,
+       COALESCE(m.float_shares, 0) AS float_shares,
+       COALESCE(m.vwap, 0) AS vwap,
+       COALESCE(q.sector, 'Unknown') AS sector,
+       COALESCE(sm.momentum_score, 0) AS sector_move,
+       cl.catalyst_headline,
+       cl.news_url,
+       COALESCE(el.has_earnings, FALSE) AS has_earnings
+     FROM market_quotes q
+     LEFT JOIN market_metrics m ON m.symbol = q.symbol
+     LEFT JOIN catalyst_latest cl ON cl.symbol = q.symbol
+     LEFT JOIN earnings_latest el ON el.symbol = q.symbol
+     LEFT JOIN sector_momentum sm ON sm.sector = COALESCE(q.sector, 'Unknown')
+     WHERE COALESCE(m.relative_volume, 0) >= 1
+       AND COALESCE(
+             ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
+             q.change_percent,
+             m.change_percent,
+             0
+           ) >= 1
+       AND COALESCE(q.price, m.price, 0) > 0
+       AND COALESCE(m.volume, 0) > 0
+     ORDER BY COALESCE(m.relative_volume, 0) DESC,
+              COALESCE(
+                ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
+                q.change_percent,
+                m.change_percent,
+                0
+              ) DESC
+     LIMIT 40`,
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.email_candidates', maxRetries: 0 }
+  ).catch(() => ({ rows: [] }));
+
+  const mapped = await Promise.all((rows || []).map(async (row) => {
+    if (toNumber(row.price, 0) <= 0 || toNumber(row.volume, 0) <= 0) {
+      return null;
+    }
+
+    const setupType = chooseSetupType(row);
+    const rawStrategyStats = await getStrategyStats(setupType).catch(() => null);
+    const strategyStats = rawStrategyStats
+      ? {
+        winRate: toNumber(rawStrategyStats.win_rate),
+        avgMove: toNumber(rawStrategyStats.avg_move),
+        avgDrawdown: toNumber(rawStrategyStats.avg_drawdown),
+        sampleSize: Number(rawStrategyStats.sample_size || 0),
+      }
+      : {
+        winRate: 0,
+        avgMove: 0,
+        avgDrawdown: 0,
+        sampleSize: 0,
+      };
+
+    const tradeQuality = calculateTradeScore({ ...row, setupType, strategyStats });
+    const narrative = generateTradeNarrative({ ...row, setupType });
+    const probabilityContext = generateProbabilityContext(strategyStats);
+    const snapshot = await generateChartSnapshot(row.symbol).catch(() => ({ imageUrl: null }));
+    const symbol = String(row.symbol || '').toUpperCase();
+    const logoKey = String(process.env.VITE_LOGO_DEV_KEY || '').trim();
+    const logo = logoKey
+      ? `https://img.logo.dev/ticker/${encodeURIComponent(symbol)}?token=${encodeURIComponent(logoKey)}`
+      : `https://img.logo.dev/ticker/${encodeURIComponent(symbol)}`;
+
+    return {
+      symbol,
+      price: toNumber(row.price),
+      rvol: toNumber(row.relative_volume),
+      relative_volume: toNumber(row.relative_volume),
+      move: toNumber(row.price_change_percent),
+      price_change_percent: toNumber(row.price_change_percent),
+      setupType,
+      tradeScore: tradeQuality.score,
+      confidence: tradeQuality.confidence,
+      grade: tradeQuality.grade,
+      strategyStats,
+      probabilityContext,
+      news: {
+        headline: row.catalyst_headline || 'No fresh headline',
+        url: row.news_url || null,
+      },
+      catalyst: buildCatalystSummary(row),
+      sector: row.sector || 'Unknown',
+      logo,
+      narrative,
+      chartImage: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+      chartUrl: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+    };
+  }));
+
+  const candidates = mapped.filter(Boolean);
+  const tier1 = candidates.filter((row) => Number(row.tradeScore || 0) >= 85 && Number(row.rvol || row.relative_volume || 0) >= 3);
+  const tier2 = candidates.filter((row) => Number(row.tradeScore || 0) >= 70 && Number(row.rvol || row.relative_volume || 0) >= 2);
+  const tier3 = candidates.filter((row) => Number(row.tradeScore || 0) >= 60 && Number(row.move || row.price_change_percent || 0) >= 3);
+
+  const selected = tier1.length > 0
+    ? tier1
+    : tier2.length > 0
+      ? tier2
+      : tier3;
+
+  if (!selected.length) {
+    const momentumFallback = await getMomentumFallbackCandidate();
+    if (momentumFallback) {
+      return [momentumFallback];
+    }
+  }
+
+  const topThree = selected
+    .slice()
+    .sort((a, b) => Number(b.tradeScore || 0) - Number(a.tradeScore || 0))
+    .slice(0, 3)
+    .map((row, idx) => ({
+      ...row,
+      stockOfTheDay: idx === 0,
+      label: idx === 0 ? 'Stock of the Day' : 'Secondary Opportunity',
+    }));
+
+  return topThree;
+}
+
 module.exports = {
   runStocksInPlayEngine,
+  getStocksInPlay,
+  generateTradeNarrative,
+  generateStockNarrative,
+  generateProbabilityContext,
 };

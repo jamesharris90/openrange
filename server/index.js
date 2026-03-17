@@ -13,12 +13,52 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 
 
 const path = require('path');
+const fsSync = require('fs');
 // Load from server/.env (works regardless of CWD at startup)
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 // Fallback: also try root .env in case server is started from project root
 if (!process.env.FMP_API_KEY) {
   require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 }
+
+function readDatabaseUrlFromEnvFile(envPath) {
+  try {
+    const raw = fsSync.readFileSync(envPath, 'utf8');
+    const match = raw.match(/^DATABASE_URL=(.*)$/m);
+    return match?.[1]?.trim() || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function toDbHost(databaseUrl) {
+  if (!databaseUrl) return null;
+  try {
+    return new URL(databaseUrl).hostname || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+const serverEnvDbUrl = readDatabaseUrlFromEnvFile(path.resolve(__dirname, '.env'));
+const rootEnvDbUrl = readDatabaseUrlFromEnvFile(path.resolve(__dirname, '../.env'));
+const serverEnvDbHost = toDbHost(serverEnvDbUrl);
+const rootEnvDbHost = toDbHost(rootEnvDbUrl);
+const activeDbHost = toDbHost(process.env.DATABASE_URL);
+
+console.warn(`Active DB Host: ${activeDbHost || 'unknown'}`);
+
+if (serverEnvDbHost && rootEnvDbHost && serverEnvDbHost !== rootEnvDbHost) {
+  console.warn('[BOOT] DATABASE_URL host mismatch detected between server/.env and root .env', {
+    serverEnvDbHost,
+    rootEnvDbHost,
+  });
+}
+
+console.log('----- EMAIL SYSTEM STATUS -----');
+console.log('Resend configured:', Boolean(process.env.RESEND_API_KEY));
+console.log('Fallback recipient:', process.env.ADMIN_EMAIL || 'jamesharris4@me.com');
+console.log('--------------------------------');
 
 const express = require('express');
 const cron = require('node-cron');
@@ -33,10 +73,12 @@ const { applyCors } = require('./app');
 const { withRetry } = require('./utils/retry');
 const { runEnvCheck } = require('./utils/envCheck');
 const { getCachedValue, setCachedValue } = require('./utils/responseCache');
+const { successResponse, errorResponse } = require('./utils/apiResponse');
 
 // New layered architecture pieces
 const loggingMiddleware = require('./middleware/logging');
 const authMiddleware = require('./middleware/auth');
+const { contractGuard } = require('./middleware/contractGuard');
 const requireFeature = require('./middleware/requireFeature');
 const { generalLimiter, registerLimiter } = require('./middleware/rateLimit');
 const usageMiddleware = require('./middleware/usage');
@@ -77,6 +119,7 @@ const chartV2Routes = require('./routes/chartV2.ts');
 const newsV3Routes = require('./routes/newsV3');
 const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
+const marketSymbolRoutes = require('./routes/marketSymbol');
 const opportunitiesRoutes = require('./routes/opportunities');
 const calibrationRoutes = require('./routes/calibration');
 const calibrationRoutesExt = require('./routes/calibrationRoutes');
@@ -105,7 +148,8 @@ const { fetchUnifiedSignals } = require('./services/signalService');
 const { runQueryTree, normalizeQueryTree } = require('./services/queryEngine');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
 const { startSchedulerService } = require('./services/schedulerService.ts');
-const { startIngestionScheduler } = require('./ingestion/scheduler');
+const { startIngestionScheduler, getIngestionSchedulerState } = require('./ingestion/scheduler');
+const { getNewsProviderHealth } = require('./ingestion/fmp_news_ingest');
 const { startMetricsScheduler } = require('./metrics/metrics_scheduler');
 const { startStrategyScheduler } = require('./strategy/strategy_scheduler');
 const { startCatalystScheduler } = require('./catalyst/catalyst_scheduler');
@@ -140,6 +184,15 @@ const { detectTrendForSymbol, ensureTrendTable } = require('./engines/trendDetec
 const { getFilterRegistry, getScoringRules } = require('./config/intelligenceConfig');
 const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
+const {
+  buildIntelligenceNewsQuery,
+  buildOpportunitiesPrimaryQuery,
+  buildOpportunitiesFallbackQuery,
+  buildHeatmapPrimaryQuery,
+  buildHeatmapFallbackQuery,
+  buildSignalsPrimaryQuery,
+  buildSignalsFallbackQuery,
+} = require('./db/queries/intelligenceQueries');
 const { supabaseAdmin } = require('./services/supabaseClient');
 const {
   getRecentOpportunityStream,
@@ -158,6 +211,8 @@ const { getDataHealth } = require('./system/dataHealthEngine');
 const { runEngineDiagnostics } = require('./system/engineDiagnostics');
 const { runIntelligencePipeline, getIntelligencePipelineHealth, startIntelligencePipelineScheduler } = require('./engines/intelligencePipeline');
 const { runProviderHealthCheck, getProviderHealth } = require('./engines/providerHealthEngine');
+const { runCatalystBackfill } = require('./engines/catalystBackfillEngine');
+const { runCatalystReactionEngine } = require('./engines/catalystReactionEngine');
 const { refreshSparklineCache, getSparklineFromCache, getSparklineCacheStats } = require('./cache/sparklineCacheEngine');
 const { startTickerCache, getTickerTapeCache, refreshTickerCache } = require('./cache/tickerCache');
 const { getTelemetry } = require('./cache/telemetryCache');
@@ -196,6 +251,41 @@ function detectSourceName(rawSource, rawUrl) {
   }
 }
 
+const INTRADAY_STALE_THRESHOLD_MINUTES = Number(process.env.INTRADAY_STALE_THRESHOLD_MINUTES || 10);
+let lastIntradayStaleLogAt = 0;
+
+function monitorIntradayFreshness(latestTimestamp) {
+  if (!latestTimestamp) {
+    return { status: 'unknown', lagMinutes: null };
+  }
+
+  const latest = new Date(latestTimestamp).getTime();
+  if (!Number.isFinite(latest)) {
+    return { status: 'unknown', lagMinutes: null };
+  }
+
+  const lagMinutes = Math.max(0, Math.floor((Date.now() - latest) / 60000));
+  const stale = lagMinutes > INTRADAY_STALE_THRESHOLD_MINUTES;
+
+  if (stale) {
+    const now = Date.now();
+    // Avoid repeated high-frequency logs while feed is stale.
+    if (now - lastIntradayStaleLogAt > 60_000) {
+      logger.warn('INTRADAY_FEED_STALE', {
+        lagMinutes,
+        thresholdMinutes: INTRADAY_STALE_THRESHOLD_MINUTES,
+        latestTimestamp,
+      });
+      lastIntradayStaleLogAt = now;
+    }
+  }
+
+  return {
+    status: stale ? 'stale' : 'fresh',
+    lagMinutes,
+  };
+}
+
 // Logger
 const logger = require('./logger');
 
@@ -205,7 +295,7 @@ const userModel = require('./users/model');
 // User management
 const userRoutes = require('./users/routes');
 
-runEnvCheck();
+runEnvCheck({ hardFail: true });
 
 if (!process.env.FMP_API_KEY || process.env.FMP_API_KEY === 'REQUIRED') {
   logger.warn('FMP_API_KEY missing – ingestion disabled');
@@ -467,6 +557,7 @@ app.use(cookieParser());
 
 // New logging middleware
 app.use(loggingMiddleware);
+app.use(contractGuard);
 
 app.use((req, res, next) => {
   req.requestId = req.get('x-request-id') || randomUUID();
@@ -528,8 +619,10 @@ app.use((req, res, next) => {
   next();
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const PROXY_API_KEY = process.env.PROXY_API_KEY || null;
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true';
 const FMP_API_KEY = process.env.FMP_API_KEY || null;
 logger.info(`FMP_API_KEY exists: ${!!FMP_API_KEY}`);
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
@@ -545,6 +638,143 @@ const PREMARKET_REPORT_JSON_PATH = path.join(__dirname, '..', 'premarket-screene
 const PREMARKET_REPORT_MD_PATH = path.join(__dirname, '..', 'premarket-screener', 'sample-output', 'report.md');
 
 let personalizationTablesReady = false;
+let liveValidationLoopStarted = false;
+
+function freshnessStatus(isoTimestamp, maxAgeMs) {
+  if (!isoTimestamp) return 'stale';
+  const ts = new Date(isoTimestamp).getTime();
+  if (!Number.isFinite(ts)) return 'stale';
+  return Date.now() - ts <= maxAgeMs ? 'live' : 'stale';
+}
+
+async function fetchIntelligenceApiCount(baseUrl, endpoint, headers) {
+  const url = `${baseUrl}/api/intelligence/${endpoint}`;
+  const response = await fetch(url, { headers });
+  const text = await response.text();
+
+  let payload = null;
+  try {
+    payload = JSON.parse(text);
+  } catch (_error) {
+    payload = null;
+  }
+
+  const count = Array.isArray(payload?.data)
+    ? payload.data.length
+    : Array.isArray(payload?.items)
+      ? payload.items.length
+      : -1;
+
+  return {
+    endpoint,
+    status: response.status,
+    success: payload?.success === true,
+    count,
+  };
+}
+
+async function runLiveValidationCycle() {
+  const { rows } = await queryWithTimeout(
+    `SELECT
+       (SELECT MAX(updated_at) FROM market_metrics) AS market_latest,
+       (SELECT MAX(detected_at) FROM trade_setups) AS setups_latest,
+       (SELECT MAX(created_at) FROM news_articles) AS news_latest,
+       (SELECT COUNT(*)::int FROM market_metrics) AS market_count,
+       (SELECT COUNT(*)::int FROM trade_setups) AS setups_count,
+       (SELECT COUNT(*)::int FROM news_articles) AS news_count,
+      (SELECT COUNT(*)::int FROM trade_setups WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days') AS opportunities_primary_count,
+       (SELECT COUNT(*)::int FROM trade_setups) AS opportunities_fallback_count,
+       (SELECT COUNT(*)::int FROM market_metrics WHERE COALESCE(updated_at, last_updated) > NOW() - INTERVAL '24 hours') AS heatmap_primary_count,
+       (SELECT COUNT(*)::int FROM market_metrics) AS heatmap_fallback_count,
+       (SELECT COUNT(*)::int FROM news_articles WHERE created_at > NOW() - INTERVAL '24 hours') AS news_recent_count,
+      (SELECT COUNT(*)::int FROM trade_setups WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days') AS signals_primary_count,
+       (SELECT COUNT(*)::int FROM trade_setups) AS signals_fallback_count`,
+    [],
+    { label: 'validation.truth_cycle', timeoutMs: 2800, maxRetries: 1, retryDelayMs: 150 }
+  );
+
+  const truth = rows?.[0] || {};
+  const baseUrl = `http://127.0.0.1:${PORT}`;
+  const headers = PROXY_API_KEY ? { 'x-api-key': PROXY_API_KEY } : {};
+  const endpointChecks = await Promise.all([
+    fetchIntelligenceApiCount(baseUrl, 'opportunities', headers),
+    fetchIntelligenceApiCount(baseUrl, 'heatmap', headers),
+    fetchIntelligenceApiCount(baseUrl, 'news', headers),
+    fetchIntelligenceApiCount(baseUrl, 'signals', headers),
+  ]);
+
+  const expectedOpportunities = (() => {
+    const primary = Number(truth.opportunities_primary_count || 0);
+    const fallback = Number(truth.opportunities_fallback_count || 0);
+    return primary > 0 ? Math.min(primary, 50) : Math.min(fallback, 20);
+  })();
+
+  const expectedHeatmap = (() => {
+    const primary = Number(truth.heatmap_primary_count || 0);
+    const fallback = Number(truth.heatmap_fallback_count || 0);
+    return primary > 0 ? Math.min(primary, 100) : Math.min(fallback, 50);
+  })();
+
+  const expectedNews = Math.min(Number(truth.news_recent_count || 0), 50);
+
+  const expectedSignals = (() => {
+    const primary = Number(truth.signals_primary_count || 0);
+    const fallback = Number(truth.signals_fallback_count || 0);
+    return primary > 0 ? Math.min(primary, 50) : Math.min(fallback, 20);
+  })();
+
+  const expectedByEndpoint = {
+    opportunities: expectedOpportunities,
+    heatmap: expectedHeatmap,
+    news: expectedNews,
+    signals: expectedSignals,
+  };
+
+  console.log('[TRUTH CHECK]', {
+    market: truth.market_latest || null,
+    setups: truth.setups_latest || null,
+    news: truth.news_latest || null,
+    market_count: Number(truth.market_count || 0),
+    setups_count: Number(truth.setups_count || 0),
+    news_count: Number(truth.news_count || 0),
+  });
+
+  for (const check of endpointChecks) {
+    console.log('[API CHECK]', {
+      endpoint: check.endpoint,
+      status: check.status,
+      success: check.success,
+      rows: check.count,
+      expected_rows: expectedByEndpoint[check.endpoint],
+    });
+
+    if (!check.success || check.count !== expectedByEndpoint[check.endpoint]) {
+      console.warn('[VALIDATION MISMATCH]', {
+        endpoint: check.endpoint,
+        status: check.status,
+        success: check.success,
+        api_rows: check.count,
+        expected_rows: expectedByEndpoint[check.endpoint],
+      });
+    }
+  }
+}
+
+function startLiveValidationLoop() {
+  if (liveValidationLoopStarted) return;
+  liveValidationLoopStarted = true;
+
+  console.log('[VALIDATION LOOP] scheduler registered (every 5 minutes)');
+
+  const run = () => {
+    runLiveValidationCycle().catch((error) => {
+      console.error('[VALIDATION LOOP ERROR]', error.message);
+    });
+  };
+
+  run();
+  setInterval(run, 5 * 60 * 1000);
+}
 
 function getOptionalAuthUser(req) {
   if (req?.user?.id) return req.user;
@@ -555,6 +785,19 @@ function getOptionalAuthUser(req) {
   } catch (_error) {
     return null;
   }
+}
+
+function requireAdminAction(req, res, next) {
+  const user = getOptionalAuthUser(req);
+  const apiKey = req.get('x-api-key');
+  const isAdminUser = Boolean(user?.is_admin === true || user?.is_admin === 1);
+  const hasApiKey = Boolean(PROXY_API_KEY && apiKey && apiKey === PROXY_API_KEY);
+
+  if (isAdminUser || hasApiKey) {
+    return next();
+  }
+
+  return res.status(401).json({ ok: false, error: 'Unauthorized admin action' });
 }
 
 async function ensurePersonalizationTables() {
@@ -734,21 +977,42 @@ app.use('/api', (req, _res, next) => {
 
   app.get('/api/moves', async (_req, res) => {
     try {
-      const { rows } = await queryWithTimeout(
+      const { rows: primaryRows } = await queryWithTimeout(
         `SELECT
            m.symbol,
            COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, 0) AS price_change_percent,
            COALESCE(m.relative_volume, 0) AS relative_volume,
-           COALESCE(q.sector, 'Unknown') AS sector
+           COALESCE(q.sector, 'Unknown') AS sector,
+           COALESCE(m.updated_at, q.updated_at, now()) AS updated_at
          FROM market_metrics m
          LEFT JOIN market_quotes q ON q.symbol = m.symbol
+         WHERE COALESCE(m.updated_at, q.updated_at, now()) > NOW() - INTERVAL '24 hours'
          ORDER BY COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, 0) DESC NULLS LAST
          LIMIT 10`,
         [],
         { label: 'api.moves', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
       );
 
-      return res.json({ success: true, items: rows });
+      if (primaryRows.length > 0) {
+        return res.json({ success: true, items: primaryRows });
+      }
+
+      const { rows: fallbackRows } = await queryWithTimeout(
+        `SELECT
+           m.symbol,
+           COALESCE((to_jsonb(m)->>'price_change_percent')::numeric, (to_jsonb(m)->>'change_percent')::numeric, m.gap_percent, 0) AS price_change_percent,
+           COALESCE(m.relative_volume, 0) AS relative_volume,
+           COALESCE(q.sector, 'Unknown') AS sector,
+           COALESCE(m.updated_at, q.updated_at, now()) AS updated_at
+         FROM market_metrics m
+         LEFT JOIN market_quotes q ON q.symbol = m.symbol
+         ORDER BY COALESCE(m.updated_at, q.updated_at, now()) DESC NULLS LAST
+         LIMIT 50`,
+        [],
+        { label: 'api.moves.fallback', timeoutMs: 1500, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json({ success: true, items: fallbackRows });
     } catch (error) {
       return res.json({ success: true, items: [] });
     }
@@ -758,14 +1022,16 @@ app.use('/api', (req, _res, next) => {
     try {
       const symbol = String(req.query.symbol || '').trim().toUpperCase();
       const params = [];
-      let whereSql = '';
+      const clauses = [`published_at > NOW() - INTERVAL '24 hours'`];
 
       if (symbol) {
         params.push(symbol);
-        whereSql = `WHERE symbol = $${params.length}`;
+        clauses.push(`symbol = $${params.length}`);
       }
 
-      const { rows } = await queryWithTimeout(
+      const whereSql = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+
+      const { rows: primaryRows } = await queryWithTimeout(
         `SELECT
            symbol,
            headline,
@@ -775,14 +1041,194 @@ app.use('/api', (req, _res, next) => {
          FROM news_articles
          ${whereSql}
          ORDER BY published_at DESC NULLS LAST
-         LIMIT 5`,
+         LIMIT 50`,
         params,
         { label: 'api.news.compat', timeoutMs: 1400, maxRetries: 1, retryDelayMs: 100 }
       );
 
-      return res.json(rows);
+      if (primaryRows.length > 0) {
+        return res.json(primaryRows);
+      }
+
+      const fallbackSql = symbol
+        ? `SELECT symbol, headline, source, published_at, url
+           FROM news_articles
+           WHERE symbol = $1
+           ORDER BY published_at DESC NULLS LAST
+           LIMIT 50`
+        : `SELECT symbol, headline, source, published_at, url
+           FROM news_articles
+           ORDER BY published_at DESC NULLS LAST
+           LIMIT 50`;
+
+      const fallbackParams = symbol ? [symbol] : [];
+      const { rows: fallbackRows } = await queryWithTimeout(
+        fallbackSql,
+        fallbackParams,
+        { label: 'api.news.compat.fallback', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      if (fallbackRows.length > 0) {
+        return res.json(fallbackRows);
+      }
+
+      const { rows: globalFallbackRows } = await queryWithTimeout(
+        `SELECT symbol, headline, source, published_at, url
+         FROM news_articles
+         ORDER BY published_at DESC NULLS LAST
+         LIMIT 50`,
+        [],
+        { label: 'api.news.compat.global_fallback', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json(globalFallbackRows);
     } catch (error) {
       return res.json([]);
+    }
+  });
+
+  app.get('/api/news/latest', async (req, res) => {
+    const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT
+           na.id,
+           na.symbol,
+           na.headline,
+           na.summary,
+           na.source,
+           na.provider,
+           na.url,
+           na.published_at,
+           na.sector,
+           na.sentiment,
+           na.news_score,
+           na.catalyst_type
+         FROM news_articles na
+         ORDER BY na.published_at DESC NULLS LAST
+         LIMIT $1`,
+        [limit],
+        { label: 'api.news.latest', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json({ ok: true, items: rows });
+    } catch (error) {
+      logger.error('news latest endpoint error', { error: error.message });
+      return res.status(500).json({ ok: false, items: [], error: error.message || 'Failed to load latest news' });
+    }
+  });
+
+  app.get('/api/news/symbol/:symbol', async (req, res) => {
+    const symbol = String(req.params.symbol || '').trim().toUpperCase();
+    if (!symbol) return res.status(400).json({ ok: false, error: 'symbol required' });
+
+    const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT
+           na.id,
+           na.symbol,
+           na.headline,
+           na.summary,
+           na.source,
+           na.provider,
+           na.url,
+           na.published_at,
+           na.sector,
+           na.sentiment,
+           na.news_score,
+           na.catalyst_type
+         FROM news_articles na
+         WHERE UPPER(COALESCE(na.symbol, '')) = $1
+         ORDER BY na.published_at DESC NULLS LAST
+         LIMIT $2`,
+        [symbol, limit],
+        { label: 'api.news.symbol', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      return res.json({ ok: true, items: rows });
+    } catch (error) {
+      logger.error('news symbol endpoint error', { error: error.message, symbol });
+      return res.status(500).json({ ok: false, items: [], error: error.message || 'Failed to load symbol news' });
+    }
+  });
+
+  app.get('/api/news/id/:id', async (req, res) => {
+    const id = String(req.params.id || '').trim();
+    if (!id) return res.status(400).json({ ok: false, error: 'id required' });
+
+    try {
+      const detailTasks = await Promise.allSettled([
+        queryWithTimeout(
+          `SELECT
+             na.id,
+             na.symbol,
+             na.headline,
+             na.summary,
+             na.source,
+             na.provider,
+             na.url,
+             na.published_at,
+             na.sector,
+             na.sentiment,
+             na.news_score,
+             na.catalyst_type,
+             na.narrative
+           FROM news_articles na
+           WHERE na.id = $1
+           LIMIT 1`,
+          [id],
+          { label: 'api.news.id.base', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+        ),
+        queryWithTimeout(
+          `SELECT
+             ci.provider_count,
+             ci.freshness_minutes,
+             ci.sector_trend,
+             ci.market_trend,
+             ci.float_size,
+             ci.short_interest,
+             ci.institutional_ownership,
+             ci.expected_move_low,
+             ci.expected_move_high,
+             ci.confidence_score,
+             ci.narrative AS catalyst_narrative,
+             cr.reaction_type,
+             cr.continuation_probability,
+             cr.expectation_gap_score,
+             cr.priced_in_flag,
+             cr.is_tradeable_now,
+             cr.qqq_trend,
+             cr.spy_trend,
+             cr.sector_alignment
+           FROM catalyst_intelligence ci
+           LEFT JOIN catalyst_reactions cr ON cr.news_id = ci.news_id
+           WHERE ci.news_id = ABS(MOD((('x' || SUBSTRING(md5($1::text), 1, 16))::bit(64)::bigint), 9223372036854775807))::bigint
+           LIMIT 1`,
+          [id],
+          { label: 'api.news.id.catalyst', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+        ),
+      ]);
+
+      const warnings = [];
+      const base = detailTasks[0].status === 'fulfilled' ? detailTasks[0].value.rows[0] : null;
+      const catalyst = detailTasks[1].status === 'fulfilled' ? detailTasks[1].value.rows[0] : null;
+
+      if (detailTasks[0].status !== 'fulfilled') warnings.push(`base: ${detailTasks[0].reason?.message || 'query failed'}`);
+      if (detailTasks[1].status !== 'fulfilled') warnings.push(`catalyst: ${detailTasks[1].reason?.message || 'query failed'}`);
+
+      if (!base) {
+        return res.status(404).json({ ok: false, items: [], warnings, error: 'News item not found' });
+      }
+
+      return res.json({ ok: true, items: [{ ...base, ...(catalyst || {}) }], warnings });
+    } catch (error) {
+      logger.error('news id endpoint error', { error: error.message, id });
+      return res.status(500).json({ ok: false, items: [], error: error.message || 'Failed to load news detail' });
     }
   });
 
@@ -797,6 +1243,7 @@ app.use('/api', (req, _res, next) => {
   app.use('/api/radar', radarRoutes);
   app.use('/api/radar', radarTradesRoutes);
   app.use('/api/briefing', briefingRoutes);
+  app.use(marketSymbolRoutes);
   app.use('/api/market', marketRoutes);
   app.use('/api/market/context', marketContextRoutes);
   app.use('/api/options', optionsApiRoutes);
@@ -912,6 +1359,46 @@ app.get('/api/metrics/health', async (req, res) => {
   }
 });
 
+app.get('/api/metrics/openrange-accuracy', async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         COUNT(*) AS total_trades,
+         COUNT(*) FILTER (WHERE success = true) AS winning_trades,
+         ROUND(
+           100.0 * COUNT(*) FILTER (WHERE success = true) /
+           NULLIF(COUNT(*),0),
+           2
+         ) AS accuracy_percent,
+         ROUND(AVG(max_move),2) AS avg_move
+       FROM trade_outcomes
+       WHERE evaluation_time > NOW() - INTERVAL '7 days'`,
+      [],
+      {
+        timeoutMs: 1500,
+        maxRetries: 0,
+        slowQueryMs: 1000,
+        label: 'api.metrics.openrange_accuracy',
+      }
+    );
+
+    return res.json(rows?.[0] || {
+      total_trades: '0',
+      winning_trades: '0',
+      accuracy_percent: null,
+      avg_move: null,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      total_trades: '0',
+      winning_trades: '0',
+      accuracy_percent: null,
+      avg_move: null,
+      error: error.message,
+    });
+  }
+});
+
 app.get('/api/ingestion/health', async (req, res) => {
   try {
     const health = await getIngestionHealth();
@@ -942,17 +1429,81 @@ app.get('/api/queue/health', async (req, res) => {
   }
 });
 
-app.get('/api/system/health', async (req, res) => {
+app.get('/api/system/health', async (_req, res) => {
   try {
-    const health = await getSystemHealth();
-    res.json(health);
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         (SELECT COUNT(*)::int FROM market_metrics) AS market_metrics_rows,
+         (SELECT COUNT(*)::int FROM trade_setups) AS trade_setups_rows,
+         (SELECT COUNT(*)::int FROM news_articles) AS news_articles_rows,
+         (SELECT MAX(COALESCE(updated_at, last_updated)) FROM market_metrics) AS latest_market_update,
+         (SELECT MAX(COALESCE(detected_at, updated_at)) FROM trade_setups) AS latest_setup_update,
+         (SELECT MAX(COALESCE(created_at, published_at)) FROM news_articles) AS latest_news_update,
+         (SELECT COUNT(*)::int FROM trade_setups WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days') AS signals_count`,
+      [],
+      { label: 'api.system.health.normalized', timeoutMs: 2200, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    const payload = rows?.[0] || {};
+    const marketTimestamp = payload.latest_market_update || null;
+    const setupTimestamp = payload.latest_setup_update || null;
+    const newsTimestamp = payload.latest_news_update || null;
+
+    const db_status = 'live';
+    const signals_status = freshnessStatus(setupTimestamp, 24 * 60 * 60 * 1000);
+    const news_status = freshnessStatus(newsTimestamp, 24 * 60 * 60 * 1000);
+    const market_status = freshnessStatus(marketTimestamp, 30 * 60 * 1000);
+
+    let errors_last_5min = 0;
+    try {
+      const eventErrors = await queryWithTimeout(
+        `SELECT COUNT(*)::int AS error_count
+         FROM system_events
+         WHERE created_at > NOW() - INTERVAL '5 minutes'
+           AND LOWER(COALESCE(level, '')) IN ('error', 'critical')`,
+        [],
+        { label: 'api.system.health.errors_last_5min', timeoutMs: 1800, maxRetries: 0 }
+      );
+      errors_last_5min = Number(eventErrors.rows?.[0]?.error_count || 0);
+    } catch (_error) {
+      errors_last_5min = 0;
+    }
+
+    const api_status = market_status === 'live' && signals_status === 'live' ? 'live' : 'degraded';
+
+    return res.json({
+      db_status,
+      api_status,
+      signals_status,
+      news_status,
+      last_updates: {
+        market: marketTimestamp,
+        setups: setupTimestamp,
+        news: newsTimestamp,
+      },
+      errors_last_5min,
+      market_metrics_rows: Number(payload.market_metrics_rows || 0),
+      trade_setups_rows: Number(payload.trade_setups_rows || 0),
+      news_articles_rows: Number(payload.news_articles_rows || 0),
+      signals_count: Number(payload.signals_count || 0),
+    });
   } catch (err) {
     logger.error('system health endpoint error', { error: err.message });
-    res.json({
-      system: 'openrange',
-      status: 'degraded',
-      error: err.message,
-      checked_at: new Date().toISOString(),
+    return res.json({
+      db_status: 'error',
+      api_status: 'error',
+      signals_status: 'stale',
+      news_status: 'stale',
+      last_updates: {
+        market: null,
+        setups: null,
+        news: null,
+      },
+      errors_last_5min: 0,
+      market_metrics_rows: 0,
+      trade_setups_rows: 0,
+      news_articles_rows: 0,
+      signals_count: 0,
     });
   }
 });
@@ -996,6 +1547,56 @@ app.get('/api/system/activity', async (_req, res) => {
     return res.json({ ok: true, items: rows || [] });
   } catch (error) {
     return res.json({ ok: false, items: [], error: error.message });
+  }
+});
+
+app.get('/api/system/dataset-growth', async (_req, res) => {
+  try {
+    const [newsCount, catalystCount, signalCount, intradayRowsToday] = await Promise.all([
+      queryWithTimeout(
+        `SELECT COUNT(*) AS news_count
+         FROM news_articles
+         WHERE published_at > NOW() - INTERVAL '1 day'`,
+        [],
+        { timeoutMs: 1500, maxRetries: 0, slowQueryMs: 1000, label: 'api.system.dataset_growth.news' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS catalyst_count
+         FROM catalyst_events
+         WHERE created_at > NOW() - INTERVAL '1 day'`,
+        [],
+        { timeoutMs: 1500, maxRetries: 0, slowQueryMs: 1000, label: 'api.system.dataset_growth.catalyst' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS signal_count
+         FROM catalyst_signals
+         WHERE created_at > NOW() - INTERVAL '1 day'`,
+        [],
+        { timeoutMs: 1500, maxRetries: 0, slowQueryMs: 1000, label: 'api.system.dataset_growth.signal' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS intraday_rows_today
+         FROM intraday_1m
+         WHERE timestamp > CURRENT_DATE`,
+        [],
+        { timeoutMs: 1500, maxRetries: 0, slowQueryMs: 1000, label: 'api.system.dataset_growth.intraday' }
+      ),
+    ]);
+
+    return res.json({
+      news_count: newsCount?.rows?.[0]?.news_count || '0',
+      catalyst_count: catalystCount?.rows?.[0]?.catalyst_count || '0',
+      signal_count: signalCount?.rows?.[0]?.signal_count || '0',
+      intraday_rows_today: intradayRowsToday?.rows?.[0]?.intraday_rows_today || '0',
+    });
+  } catch (error) {
+    return res.status(500).json({
+      news_count: '0',
+      catalyst_count: '0',
+      signal_count: '0',
+      intraday_rows_today: '0',
+      error: error.message,
+    });
   }
 });
 
@@ -1915,6 +2516,362 @@ app.get('/api/catalysts', async (req, res) => {
   }
 });
 
+app.get('/api/catalysts/latest', async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+        ci.news_id,
+         ci.symbol,
+         ce.headline,
+         ci.catalyst_type,
+         ci.provider_count,
+         ci.freshness_minutes,
+         ci.sector_trend,
+         ci.market_trend,
+         ci.expected_move_low,
+         ci.expected_move_high,
+         ci.confidence_score,
+         ci.narrative
+       FROM catalyst_intelligence ci
+       LEFT JOIN catalyst_events ce
+         ON ce.news_id = ci.news_id
+       ORDER BY ci.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    logger.error('catalysts latest endpoint db error', { error: err.message });
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load latest catalysts' });
+  }
+});
+
+app.get('/api/catalysts/symbol/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json({ ok: false, error: 'symbol required' });
+
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+        ci.news_id,
+         ci.symbol,
+         ce.headline,
+         ci.catalyst_type,
+         ci.provider_count,
+         ci.freshness_minutes,
+         ci.sector_trend,
+         ci.market_trend,
+         ci.expected_move_low,
+         ci.expected_move_high,
+         ci.confidence_score,
+         ci.narrative
+       FROM catalyst_intelligence ci
+       LEFT JOIN catalyst_events ce
+         ON ce.news_id = ci.news_id
+       WHERE ci.symbol = $1
+       ORDER BY ci.created_at DESC
+       LIMIT $2`,
+      [symbol, limit]
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    logger.error('catalysts symbol endpoint db error', { error: err.message, symbol });
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load symbol catalysts' });
+  }
+});
+
+app.get('/api/catalysts/id/:newsId', async (req, res) => {
+  const newsId = Number.parseInt(String(req.params.newsId || ''), 10);
+  if (!Number.isFinite(newsId)) return res.status(400).json({ ok: false, error: 'newsId must be numeric' });
+
+  try {
+    const settled = await Promise.allSettled([
+      queryWithTimeout(
+        `SELECT
+           ci.news_id,
+           ci.symbol,
+           ce.headline,
+           ci.catalyst_type,
+           ci.provider_count,
+           ci.freshness_minutes,
+           ci.sector,
+           ci.sector_trend,
+           ci.market_trend,
+           ci.float_size,
+           ci.short_interest,
+           ci.institutional_ownership,
+           ci.sentiment_score,
+           ci.expected_move_low,
+           ci.expected_move_high,
+           ci.confidence_score,
+           ci.narrative
+         FROM catalyst_intelligence ci
+         LEFT JOIN catalyst_events ce ON ce.news_id = ci.news_id
+         WHERE ci.news_id = $1
+         LIMIT 1`,
+        [newsId],
+        { label: 'api.catalysts.id.base', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+      ),
+      queryWithTimeout(
+        `SELECT
+           cr.reaction_type,
+           cr.abnormal_volume_ratio,
+           cr.first_5m_move,
+           cr.current_move,
+           cr.continuation_probability,
+           cr.expectation_gap_score,
+           cr.priced_in_flag,
+           cr.qqq_trend,
+           cr.spy_trend,
+           cr.sector_alignment,
+           cr.is_tradeable_now
+         FROM catalyst_reactions cr
+         WHERE cr.news_id = $1
+         LIMIT 1`,
+        [newsId],
+        { label: 'api.catalysts.id.reaction', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+      ),
+      queryWithTimeout(
+        `SELECT
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT COALESCE(na.provider, na.source)), NULL) AS provider_list,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT na.url), NULL) AS source_links
+         FROM news_articles na
+         JOIN catalyst_intelligence ci ON ci.news_id = $1
+         WHERE UPPER(COALESCE(na.symbol, '')) = UPPER(ci.symbol)
+           AND LOWER(COALESCE(na.headline, '')) = LOWER(COALESCE((SELECT ce.headline FROM catalyst_events ce WHERE ce.news_id = ci.news_id LIMIT 1), ''))`,
+        [newsId],
+        { label: 'api.catalysts.id.providers', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+      ),
+    ]);
+
+    const warnings = [];
+    const base = settled[0].status === 'fulfilled' ? settled[0].value.rows[0] : null;
+    const reaction = settled[1].status === 'fulfilled' ? settled[1].value.rows[0] : null;
+    const providers = settled[2].status === 'fulfilled' ? settled[2].value.rows[0] : null;
+
+    if (settled[0].status !== 'fulfilled') warnings.push(`base: ${settled[0].reason?.message || 'query failed'}`);
+    if (settled[1].status !== 'fulfilled') warnings.push(`reaction: ${settled[1].reason?.message || 'query failed'}`);
+    if (settled[2].status !== 'fulfilled') warnings.push(`providers: ${settled[2].reason?.message || 'query failed'}`);
+
+    if (!base) return res.status(404).json({ ok: false, items: [], warnings, error: 'Catalyst not found' });
+
+    return res.json({
+      ok: true,
+      items: [
+        {
+          ...base,
+          ...(reaction || {}),
+          provider_list: providers?.provider_list || [],
+          source_links: providers?.source_links || [],
+        },
+      ],
+      warnings,
+    });
+  } catch (err) {
+    logger.error('catalysts id endpoint db error', { error: err.message, newsId });
+    return res.status(500).json({ ok: false, items: [], error: err.message || 'Failed to load catalyst detail' });
+  }
+});
+
+app.get('/api/catalyst-reactions/latest', async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         cr.symbol,
+         cr.news_id,
+         cr.reaction_type,
+         cr.abnormal_volume_ratio,
+         cr.first_5m_move,
+         cr.current_move,
+         cr.continuation_probability,
+         cr.expectation_gap_score,
+         cr.priced_in_flag,
+         cr.qqq_trend,
+         cr.spy_trend,
+         cr.sector_alignment,
+         cr.is_tradeable_now,
+         ce.headline,
+         ci.catalyst_type,
+         ci.provider_count,
+         ci.freshness_minutes,
+         ci.confidence_score
+       FROM catalyst_reactions cr
+       LEFT JOIN catalyst_events ce ON ce.news_id = cr.news_id
+       LEFT JOIN catalyst_intelligence ci ON ci.news_id = cr.news_id
+       ORDER BY cr.created_at DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'api.catalyst_reactions.latest', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    logger.error('catalyst reactions latest endpoint db error', { error: err.message });
+    return res.status(500).json({ ok: false, items: [], error: err.message || 'Failed to load catalyst reactions' });
+  }
+});
+
+app.get('/api/catalyst-reactions/symbol/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json({ ok: false, error: 'symbol required' });
+
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         cr.symbol,
+         cr.news_id,
+         cr.reaction_type,
+         cr.abnormal_volume_ratio,
+         cr.first_5m_move,
+         cr.current_move,
+         cr.continuation_probability,
+         cr.expectation_gap_score,
+         cr.priced_in_flag,
+         cr.qqq_trend,
+         cr.spy_trend,
+         cr.sector_alignment,
+         cr.is_tradeable_now,
+         ce.headline,
+         ci.catalyst_type,
+         ci.provider_count,
+         ci.freshness_minutes,
+         ci.confidence_score
+       FROM catalyst_reactions cr
+       LEFT JOIN catalyst_events ce ON ce.news_id = cr.news_id
+       LEFT JOIN catalyst_intelligence ci ON ci.news_id = cr.news_id
+       WHERE cr.symbol = $1
+       ORDER BY cr.created_at DESC
+       LIMIT $2`,
+      [symbol, limit],
+      { label: 'api.catalyst_reactions.symbol', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    logger.error('catalyst reactions symbol endpoint db error', { error: err.message, symbol });
+    return res.status(500).json({ ok: false, items: [], error: err.message || 'Failed to load symbol catalyst reactions' });
+  }
+});
+
+console.log('[BOOT] Catalyst public routes mounted: /api/catalysts/latest, /api/catalysts/symbol/:symbol, /api/catalysts/top, /api/catalysts/id/:newsId, /api/catalyst-reactions/latest, /api/catalyst-reactions/symbol/:symbol');
+
+app.get('/api/catalysts/top', async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 25;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+        ci.news_id,
+         ci.symbol,
+         ce.headline,
+         ci.catalyst_type,
+         ci.provider_count,
+         ci.freshness_minutes,
+         ci.sector_trend,
+         ci.market_trend,
+         ci.expected_move_low,
+         ci.expected_move_high,
+         ci.confidence_score,
+         ci.narrative,
+         cs.signal_type,
+         cs.signal_score
+       FROM catalyst_signals cs
+       JOIN catalyst_intelligence ci
+         ON ci.news_id = cs.news_id
+       LEFT JOIN catalyst_events ce
+         ON ce.news_id = ci.news_id
+       ORDER BY cs.signal_score DESC, ci.confidence_score DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    logger.error('catalysts top endpoint db error', { error: err.message });
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to load top catalysts' });
+  }
+});
+
+app.get('/api/system/runtime', async (_req, res) => {
+  try {
+    const tasks = await Promise.allSettled([
+      queryWithTimeout('SELECT COUNT(*)::bigint AS c FROM news_articles', [], { label: 'api.system.runtime.news_articles', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::bigint AS c FROM catalyst_events', [], { label: 'api.system.runtime.catalyst_events', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::bigint AS c FROM catalyst_intelligence', [], { label: 'api.system.runtime.catalyst_intelligence', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::bigint AS c FROM catalyst_signals', [], { label: 'api.system.runtime.catalyst_signals', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::bigint AS c FROM catalyst_reactions', [], { label: 'api.system.runtime.catalyst_reactions', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT MAX(timestamp) AS ts FROM intraday_1m', [], { label: 'api.system.runtime.intraday_max_ts', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 100 }),
+    ]);
+
+    const toCount = (idx) => {
+      const item = tasks[idx];
+      if (item.status !== 'fulfilled') return null;
+      return Number(item.value?.rows?.[0]?.c ?? 0);
+    };
+
+    const intradayMaxTs = tasks[5].status === 'fulfilled'
+      ? tasks[5].value?.rows?.[0]?.ts || null
+      : null;
+
+    const providerHealth = getProviderHealth();
+    const newsProviderHealth = getNewsProviderHealth();
+    const ingestionState = getIngestionSchedulerState();
+
+    const intradayFreshness = monitorIntradayFreshness(intradayMaxTs);
+
+    return res.json({
+      database_host: activeDbHost || null,
+      news_articles_count: toCount(0),
+      catalyst_events_count: toCount(1),
+      catalyst_intelligence_count: toCount(2),
+      catalyst_signals_count: toCount(3),
+      catalyst_reactions_count: toCount(4),
+      latest_intraday_timestamp: intradayMaxTs,
+      intraday_lag_minutes: intradayFreshness.lagMinutes,
+      intraday_status: intradayFreshness.status,
+      providers: {
+        fmp: providerHealth?.providers?.fmp || newsProviderHealth?.providers?.fmp || null,
+        benzinga: newsProviderHealth?.providers?.benzinga || null,
+        alpha_vantage: newsProviderHealth?.providers?.alpha_vantage || null,
+        yahoo: newsProviderHealth?.providers?.yahoo || null,
+        dowjones: newsProviderHealth?.providers?.dowjones || null,
+      },
+      ingestion_in_flight_jobs: ingestionState?.inFlightJobs || [],
+    });
+  } catch (error) {
+    logger.error('system runtime endpoint error', { error: error.message });
+    return res.status(500).json({
+      database_host: activeDbHost || null,
+      news_articles_count: null,
+      catalyst_events_count: null,
+      catalyst_intelligence_count: null,
+      catalyst_signals_count: null,
+      catalyst_reactions_count: null,
+      latest_intraday_timestamp: null,
+      intraday_lag_minutes: null,
+      intraday_status: 'unknown',
+      providers: {},
+      ingestion_in_flight_jobs: [],
+      error: error.message || 'Failed to load runtime diagnostics',
+    });
+  }
+});
+
 app.get('/api/scanner', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -1935,7 +2892,7 @@ app.get('/api/scanner', async (req, res) => {
          ON m.symbol = u.symbol
        JOIN trade_setups s
          ON m.symbol = s.symbol
-       WHERE m.relative_volume > 1.5
+       WHERE COALESCE(m.relative_volume, 0) >= 1
        ORDER BY m.relative_volume DESC
        LIMIT 50`
     );
@@ -1955,8 +2912,8 @@ app.get('/api/premarket', async (req, res) => {
        FROM discovered_symbols d
        JOIN market_metrics m
          ON d.symbol = m.symbol
-       WHERE m.gap_percent > 3
-         AND m.relative_volume > 2
+       WHERE COALESCE(m.gap_percent, 0) >= 1
+         AND COALESCE(m.relative_volume, 0) >= 1
        ORDER BY m.gap_percent DESC
        LIMIT 50`
     );
@@ -1967,20 +2924,36 @@ app.get('/api/premarket', async (req, res) => {
   }
 });
 
-app.get('/api/metrics', async (req, res) => {
+async function handleMarketMetricsRequest(_req, res) {
   try {
-    const { rows } = await pool.query(
+    const { rows: primaryRows } = await pool.query(
       `SELECT *
        FROM market_metrics
+       WHERE COALESCE(updated_at, now()) > NOW() - INTERVAL '24 hours'
        ORDER BY relative_volume DESC NULLS LAST
        LIMIT 100`
     );
-    res.json(rows);
+
+    if (primaryRows.length > 0) {
+      return res.json(primaryRows);
+    }
+
+    const { rows: fallbackRows } = await pool.query(
+      `SELECT *
+       FROM market_metrics
+       ORDER BY updated_at DESC NULLS LAST
+       LIMIT 50`
+    );
+
+    return res.json(fallbackRows);
   } catch (err) {
     logger.error('metrics endpoint db error', { error: err.message });
-    res.json([]);
+    return res.json([]);
   }
-});
+}
+
+app.get('/api/metrics', handleMarketMetricsRequest);
+app.get('/api/market-metrics', handleMarketMetricsRequest);
 
 app.get('/api/pre-market/bias', async (req, res) => {
   const rows = await fastRowsQuery(
@@ -2105,6 +3078,63 @@ app.get('/api/premarket/summary', async (req, res) => {
     }
   };
 
+  const loadMarketMetricsRows = async () => {
+    const { rows: primaryRows } = await queryWithTimeout(
+      `SELECT
+        m.symbol,
+        COALESCE(m.price, q.price) AS price,
+        COALESCE(m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(s.score, 0) AS strategy_score,
+        COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+        q.market_cap,
+        q.sector
+       FROM market_metrics m
+       LEFT JOIN strategy_signals s ON s.symbol = m.symbol
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       WHERE COALESCE(m.updated_at, m.last_updated) > NOW() - INTERVAL '24 hours'
+       ORDER BY COALESCE(m.relative_volume, 0) DESC NULLS LAST, ABS(COALESCE(m.gap_percent, 0)) DESC NULLS LAST
+       LIMIT 30`,
+      [],
+      { label: 'api.radar.summary.momentum_leaders.primary', timeoutMs: 1400, maxRetries: 0, retryDelayMs: 100 }
+    );
+
+    console.log('[DATA CHECK]', {
+      table: 'market_metrics',
+      rows: primaryRows.length
+    });
+
+    if (primaryRows.length > 0) {
+      return primaryRows;
+    }
+
+    const { rows: fallbackRows } = await queryWithTimeout(
+      `SELECT
+        m.symbol,
+        COALESCE(m.price, q.price) AS price,
+        COALESCE(m.gap_percent, 0) AS gap_percent,
+        COALESCE(m.relative_volume, 0) AS relative_volume,
+        COALESCE(s.score, 0) AS strategy_score,
+        COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
+        q.market_cap,
+        q.sector
+       FROM market_metrics m
+       LEFT JOIN strategy_signals s ON s.symbol = m.symbol
+       LEFT JOIN market_quotes q ON q.symbol = m.symbol
+       ORDER BY COALESCE(m.updated_at, m.last_updated) DESC NULLS LAST
+       LIMIT 50`,
+      [],
+      { label: 'api.radar.summary.momentum_leaders.fallback', timeoutMs: 1600, maxRetries: 0, retryDelayMs: 100 }
+    );
+
+    console.log('[DATA CHECK]', {
+      table: 'market_metrics',
+      rows: fallbackRows.length
+    });
+
+    return fallbackRows;
+  };
+
   const [indexRows, sectorRows, gapRows, setupRows, catalystRows, earningsRows, surgeRows] = await Promise.all([
     safeRows(
       'api.premarket.summary.index_cards',
@@ -2152,8 +3182,8 @@ app.get('/api/premarket/summary', async (req, res) => {
          ORDER BY tc.published_at DESC NULLS LAST
          LIMIT 1
        ) c ON TRUE
-       WHERE COALESCE(m.gap_percent, 0) > 3
-         AND COALESCE(m.relative_volume, 0) > 2
+       WHERE COALESCE(m.gap_percent, 0) >= 1
+         AND COALESCE(m.relative_volume, 0) >= 1
        ORDER BY COALESCE(m.gap_percent, 0) DESC NULLS LAST
        LIMIT 24`,
       []
@@ -2211,7 +3241,7 @@ app.get('/api/premarket/summary', async (req, res) => {
         COALESCE(gap_percent, 0) AS gap_percent,
         COALESCE(change_percent, 0) AS change_percent
        FROM market_metrics
-       WHERE COALESCE(relative_volume, 0) > 2
+      WHERE COALESCE(relative_volume, 0) >= 1
        ORDER BY COALESCE(relative_volume, 0) DESC NULLS LAST
        LIMIT 20`,
       []
@@ -2320,24 +3350,7 @@ app.get('/api/radar/summary', async (req, res) => {
        ORDER BY array_position($1::text[], q.symbol)`,
       [['SPY', 'QQQ', 'IWM', 'VIX', 'DXY', '10Y', 'TNX', '^TNX']]
     ),
-    safeRows(
-      'api.radar.summary.momentum_leaders',
-      `SELECT
-        m.symbol,
-        COALESCE(m.price, q.price) AS price,
-        COALESCE(m.gap_percent, 0) AS gap_percent,
-        COALESCE(m.relative_volume, 0) AS relative_volume,
-        COALESCE(s.score, 0) AS strategy_score,
-        COALESCE(m.change_percent, q.change_percent, 0) AS change_percent,
-        q.market_cap,
-        q.sector
-       FROM market_metrics m
-       LEFT JOIN strategy_signals s ON s.symbol = m.symbol
-       LEFT JOIN market_quotes q ON q.symbol = m.symbol
-       ORDER BY COALESCE(m.relative_volume, 0) DESC NULLS LAST, ABS(COALESCE(m.gap_percent, 0)) DESC NULLS LAST
-       LIMIT 30`,
-      []
-    ),
+    loadMarketMetricsRows(),
     safeRows(
       'api.radar.summary.strategy_signals',
       `SELECT
@@ -2478,9 +3491,10 @@ app.get('/api/radar/summary', async (req, res) => {
     ),
     safeRows(
       'api.radar.summary.news',
-      `SELECT symbol, headline, source, sentiment, published_at
-       FROM intel_news
-       ORDER BY published_at DESC NULLS LAST
+      `SELECT symbol, headline, source, sentiment, created_at AS published_at
+       FROM news_articles
+       WHERE created_at > NOW() - INTERVAL '24 hours'
+       ORDER BY created_at DESC NULLS LAST
        LIMIT 30`,
       []
     ),
@@ -2766,7 +3780,26 @@ app.get('/api/signals', async (req, res) => {
   try {
     const symbol = String(req.query.symbol || '').trim().toUpperCase();
     if (symbol) {
-      const { rows } = await queryWithTimeout(
+      const { rows: primaryRows } = await queryWithTimeout(
+        `SELECT
+           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS setup_type,
+           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
+           COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp,
+           ts.symbol
+         FROM trade_setups ts
+         WHERE ts.symbol = $1
+           AND COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) > NOW() - INTERVAL '24 hours'
+         ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
+         LIMIT 3`,
+        [symbol],
+        { label: 'api.signals.by_symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      if (primaryRows.length > 0) {
+        return res.json({ symbol, signals: primaryRows, items: primaryRows });
+      }
+
+      const { rows: fallbackRows } = await queryWithTimeout(
         `SELECT
            COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS setup_type,
            COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
@@ -2775,19 +3808,51 @@ app.get('/api/signals', async (req, res) => {
          FROM trade_setups ts
          WHERE ts.symbol = $1
          ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
-         LIMIT 3`,
+         LIMIT 50`,
         [symbol],
-        { label: 'api.signals.by_symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
+        { label: 'api.signals.by_symbol.fallback', timeoutMs: 1400, maxRetries: 1, retryDelayMs: 100 }
       );
 
-      return res.json({ symbol, signals: rows, items: rows });
+      return res.json({ symbol, signals: fallbackRows, items: fallbackRows });
     }
 
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-    const rows = await fetchUnifiedSignals({ limit });
+    const rows = await fetchUnifiedSignals({ limit, recentHours: 24 });
+
+    if (rows.length > 0) {
+      return res.json({
+        signals: rows,
+        personalized: false,
+      });
+    }
+
+    const { rows: fallbackRows } = await queryWithTimeout(
+      `SELECT
+         ts.symbol,
+         COALESCE(NULLIF(to_jsonb(ts)->>'strategy', ''), NULLIF(to_jsonb(ts)->>'setup_type', ''), 'Historical Setup') AS strategy,
+         NULL::text AS class,
+         COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
+         NULL::numeric AS probability,
+         0::numeric AS change_percent,
+         0::numeric AS gap_percent,
+         0::numeric AS relative_volume,
+         0::bigint AS volume,
+         0::numeric AS rvol,
+         COALESCE(q.sector, 'Unknown') AS sector,
+         'Historical fallback'::text AS catalyst,
+         'historical'::text AS catalyst_type,
+         COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS updated_at,
+         COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp
+       FROM trade_setups ts
+       LEFT JOIN market_quotes q ON q.symbol = ts.symbol
+       ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
+       LIMIT $1`,
+      [Math.min(limit, 50)],
+      { label: 'api.signals.fallback.historical', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
+    );
 
     return res.json({
-      signals: rows,
+      signals: fallbackRows,
       personalized: false,
     });
   } catch (error) {
@@ -3448,7 +4513,8 @@ app.get('/api/query/presets/gap-scanner', async (_req, res) => {
   try {
     const queryTree = {
       AND: [
-        { field: 'gap_percent', operator: '>', value: 3 },
+        { field: 'gap_percent', operator: '>', value: 1 },
+        { field: 'relative_volume', operator: '>', value: 1 },
         { field: 'volume', operator: '>', value: 500000 },
         { field: 'price', operator: '>', value: 2 },
       ],
@@ -3564,25 +4630,62 @@ app.get('/api/opportunity-stream', async (req, res) => {
 app.get('/api/opportunities', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
-    const rows = await getTopOpportunities(supabaseAdmin, {
-      limit,
-      source: 'opportunity_ranker',
+    const { rows: primaryRows } = await queryWithTimeout(
+      `SELECT
+         ts.symbol,
+         COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
+         COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS strategy,
+         COALESCE((to_jsonb(ts)->>'change_percent')::numeric, 0) AS change_percent,
+         COALESCE((to_jsonb(ts)->>'relative_volume')::numeric, 0) AS relative_volume,
+         COALESCE((to_jsonb(ts)->>'gap_percent')::numeric, 0) AS gap_percent,
+         COALESCE((to_jsonb(ts)->>'volume')::bigint, 0) AS volume,
+         ts.detected_at AS updated_at,
+         ts.detected_at AS timestamp
+       FROM trade_setups ts
+       WHERE ts.detected_at > NOW() - INTERVAL '7 days'
+       ORDER BY score DESC NULLS LAST, ts.detected_at DESC NULLS LAST
+       LIMIT $1`,
+      [limit],
+      { label: 'api.opportunities.trade_setups.primary', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    console.log('[DATA CHECK]', {
+      table: 'trade_setups',
+      rows: primaryRows.length
     });
-    const mapped = (rows || []).map((row) => ({
-      symbol: row.symbol,
-      score: row.score,
-      strategy: row.event_type || 'Ranked Opportunity',
-      change_percent: null,
-      relative_volume: null,
-      gap_percent: null,
-      volume: null,
-      updated_at: row.created_at,
-      timestamp: row.created_at,
-    }));
+
+    let mapped = primaryRows;
+    if (!mapped.length) {
+      const { rows: fallbackRows } = await queryWithTimeout(
+        `SELECT
+           ts.symbol,
+           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
+           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS strategy,
+           COALESCE((to_jsonb(ts)->>'change_percent')::numeric, 0) AS change_percent,
+           COALESCE((to_jsonb(ts)->>'relative_volume')::numeric, 0) AS relative_volume,
+           COALESCE((to_jsonb(ts)->>'gap_percent')::numeric, 0) AS gap_percent,
+           COALESCE((to_jsonb(ts)->>'volume')::bigint, 0) AS volume,
+           ts.detected_at AS updated_at,
+           ts.detected_at AS timestamp
+         FROM trade_setups ts
+         ORDER BY ts.detected_at DESC NULLS LAST
+         LIMIT 20`,
+        [],
+        { label: 'api.opportunities.trade_setups.fallback', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
+      );
+
+      console.log('[DATA CHECK]', {
+        table: 'trade_setups',
+        rows: fallbackRows.length
+      });
+
+      mapped = fallbackRows;
+    }
+
     return res.json({ opportunities: mapped });
   } catch (err) {
     logger.error('opportunities endpoint db error', { error: err.message });
-    return res.json({ opportunities: [] });
+    return res.status(500).json({ success: false, error: err.message || 'Failed to load opportunities' });
   }
 });
 
@@ -5153,128 +6256,94 @@ app.get('/api/intelligence/feed', async (req, res) => {
   }
 });
 
-const intelligenceNewsHandler = async (req, res) => {
-  const cacheKey = `api.intelligence.news:${JSON.stringify(req.query || {})}`;
-  const cacheTtlMs = 10_000;
-  const cached = getCachedValue(cacheKey);
+async function getLatestSignals(db) {
+  const primaryQuery = buildSignalsPrimaryQuery();
+  const primary = await db(primaryQuery.text, primaryQuery.params, primaryQuery.options);
 
-  if (cached && (Date.now() - new Date(cached.timestamp || 0).getTime()) <= cacheTtlMs) {
-    return res.json(cached);
+  if (primary.rows.length > 0) {
+    return { rows: primary.rows, source: 'primary' };
   }
 
+  const fallbackQuery = buildSignalsFallbackQuery();
+  const fallback = await db(fallbackQuery.text, fallbackQuery.params, fallbackQuery.options);
+
+  return { rows: fallback.rows, source: 'fallback' };
+}
+
+function applyDebugBypassMeta(req, _res, next) {
+  if (DEBUG_MODE) {
+    req.debugAuthBypass = true;
+  }
+  next();
+}
+
+const intelligenceNewsHandler = async (req, res) => {
   try {
-    const where = [];
-    const params = [];
+    const query = buildIntelligenceNewsQuery({ symbol: req.query.symbol });
+    const { rows } = await queryWithTimeout(query.text, query.params, query.options);
+    const normalizedRows = rows || [];
 
-    const addCondition = (condition, value) => {
-      params.push(value);
-      where.push(condition.replace('?', `$${params.length}`));
-    };
-
-    const symbol = String(req.query.symbol || '').trim().toUpperCase();
-    const sector = String(req.query.sector || '').trim();
-    const sentiment = String(req.query.sentiment || '').trim().toLowerCase();
-    const hours = Math.max(1, Math.min(Number(req.query.hours) || 24, 168));
-
-    params.push(hours);
-    where.push(`COALESCE(n.published_at, now()) >= now() - ($${params.length}::int * INTERVAL '1 hour')`);
-
-    if (symbol) {
-      params.push(symbol);
-      where.push(`(n.symbol = $${params.length} OR n.symbol IS NULL)`);
-    }
-    if (sentiment) addCondition("COALESCE(n.sentiment, '') ILIKE ?", `%${sentiment}%`);
-    if (sector) addCondition("COALESCE(q.sector, '') ILIKE ?", `%${sector}%`);
-
-    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-    const { rows } = await queryWithTimeout(
-      `SELECT
-        n.id,
-        n.symbol,
-        q.sector,
-        n.headline,
-        n.source,
-        n.url,
-        n.sentiment,
-        n.published_at
-         FROM (
-           SELECT
-             i.id,
-             i.symbol,
-             i.headline,
-             i.source,
-             i.url,
-             i.sentiment,
-             i.published_at,
-             i.updated_at,
-             i.published_at AS created_at
-           FROM intel_news i
-
-           UNION ALL
-
-           SELECT
-             NULL::bigint AS id,
-             na.symbol,
-             na.headline,
-             na.source,
-             na.url,
-             'neutral'::text AS sentiment,
-             na.published_at,
-             na.created_at AS updated_at,
-             na.created_at
-           FROM news_articles na
-           WHERE NOT EXISTS (
-             SELECT 1
-             FROM intel_news i2
-             WHERE i2.url IS NOT NULL
-               AND na.url IS NOT NULL
-               AND i2.url = na.url
-           )
-         ) n
-       LEFT JOIN market_quotes q ON q.symbol = n.symbol
-       ${whereClause}
-         ORDER BY COALESCE(n.updated_at, n.created_at) DESC NULLS LAST
-       LIMIT 50`,
-      params,
-      { label: 'api.intelligence.news', timeoutMs: 1500, maxRetries: 0, retryDelayMs: 120 }
-    );
-
-    const items = rows.map((row) => ({
-      ...row,
-      source_name: detectSourceName(row.source, row.url),
-      timestamp: row.published_at || null,
-      published_at: row.published_at || null,
+    return res.json(successResponse(normalizedRows, {
+      source: 'primary',
+      timestamp: new Date().toISOString(),
     }));
-
-    const payload = { success: true, degraded: false, items, data: items, timestamp: new Date().toISOString() };
-    setCachedValue(cacheKey, payload);
-    return res.json(payload);
   } catch (error) {
-    if (isDbTimeoutError(error)) {
-      return res.json({
-        success: true,
-        degraded: true,
-        items: cached?.items || [],
-        data: cached?.items || [],
-        warning: 'INTELLIGENCE_NEWS_CACHE_FALLBACK',
-        detail: error.message || 'Timeout loading intelligence news',
-      });
-    }
-
-    return res.json({
-      success: true,
-      degraded: true,
-      items: cached?.items || [],
-      data: cached?.items || [],
-      warning: 'INTELLIGENCE_NEWS_DEGRADED',
-      detail: error.message || 'Failed to load intelligence news',
-    });
+    return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence news'));
   }
 };
 
-app.get('/api/intelligence/news', intelligenceNewsHandler);
-app.get('/api/intelligence/inbox', intelligenceNewsHandler);
+app.get('/api/intelligence/news', applyDebugBypassMeta, intelligenceNewsHandler);
+app.get('/api/intelligence/inbox', applyDebugBypassMeta, intelligenceNewsHandler);
+
+app.get('/api/intelligence/opportunities', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const primaryQuery = buildOpportunitiesPrimaryQuery(req.query.limit);
+    const { rows: primaryRows } = await queryWithTimeout(primaryQuery.text, primaryQuery.params, primaryQuery.options);
+
+    if (primaryRows.length > 0) {
+      return res.json(successResponse(primaryRows));
+    }
+
+    const fallbackQuery = buildOpportunitiesFallbackQuery();
+    const { rows: fallbackRows } = await queryWithTimeout(fallbackQuery.text, fallbackQuery.params, fallbackQuery.options);
+
+    return res.json(successResponse(fallbackRows));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence opportunities'));
+  }
+});
+
+app.get('/api/intelligence/heatmap', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const primaryQuery = buildHeatmapPrimaryQuery();
+    const { rows: primaryRows } = await queryWithTimeout(primaryQuery.text, primaryQuery.params, primaryQuery.options);
+
+    if (primaryRows.length > 0) {
+      return res.json(successResponse(primaryRows));
+    }
+
+    const fallbackQuery = buildHeatmapFallbackQuery();
+    const { rows: fallbackRows } = await queryWithTimeout(fallbackQuery.text, fallbackQuery.params, fallbackQuery.options);
+
+    return res.json(successResponse(fallbackRows));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence heatmap'));
+  }
+});
+
+app.get('/api/intelligence/signals', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const signalResult = await getLatestSignals(queryWithTimeout);
+    const signals = signalResult.rows;
+    console.log('[SIGNALS]', {
+      rows: signals.length,
+      latest: signals[0]?.detected_at || signals[0]?.updated_at || signals[0]?.created_at || null,
+    });
+    return res.json(successResponse(signals));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence signals'));
+  }
+});
 
 app.get('/api/system/db-status', async (req, res) => {
   const timestamp = new Date().toISOString();
@@ -5439,88 +6508,130 @@ app.get('/api/chart/trend/:symbol', async (req, res) => {
 
 app.get('/api/intelligence/summary', async (req, res) => {
   try {
-    const [sectors, opportunities, earningsToday, earningsWeek, news, topStrategies] = await Promise.all([
-      fastRowsQuery(
-        `SELECT sector, avg_change, total_volume, stocks, leaders, updated_at
-         FROM sector_heatmap
-         ORDER BY avg_change DESC NULLS LAST
-         LIMIT 5`,
-        [],
-        'api.intelligence.summary.sectors',
-        300
-      ),
-      (async () => {
-        const rows = await getTopOpportunities(supabaseAdmin, {
-          limit: 10,
-          source: 'opportunity_ranker',
-        });
-        return (rows || []).map((row) => ({
-          symbol: row.symbol,
-          score: row.score,
-          strategy: row.event_type || 'Ranked Opportunity',
-          change_percent: null,
-          relative_volume: null,
-          gap_percent: null,
-          updated_at: row.created_at,
-        }));
-      })(),
-      fastRowsQuery(
-        `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
-         FROM earnings_events
-         WHERE earnings_date = CURRENT_DATE
-         ORDER BY symbol ASC
-         LIMIT 50`,
-        [],
-        'api.intelligence.summary.earnings_today',
-        300
-      ),
-      fastRowsQuery(
-        `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
-         FROM earnings_events
-         WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
-         ORDER BY earnings_date ASC, symbol ASC
-         LIMIT 200`,
-        [],
-        'api.intelligence.summary.earnings_week',
-        300
-      ),
-      fastRowsQuery(
-        `SELECT symbol, headline, source, url, published_at, sentiment
-         FROM intel_news
-         ORDER BY published_at DESC NULLS LAST
-         LIMIT 15`,
-        [],
-        'api.intelligence.summary.news',
-        300
-      ),
-      fastRowsQuery(
-        `SELECT strategy,
-                class,
-                COUNT(*)::int AS count,
-                AVG(score)::numeric AS avg_score,
-                MAX(probability)::numeric AS max_probability
-         FROM strategy_signals
-         GROUP BY strategy, class
-         ORDER BY avg_score DESC NULLS LAST, count DESC
-         LIMIT 10`,
-        [],
-        'api.intelligence.summary.top_strategies',
-        300
-      ),
-    ]);
+    const tasks = [
+      {
+        key: 'sectors',
+        fallback: [],
+        run: () => fastRowsQuery(
+          `SELECT sector, avg_change, total_volume, stocks, leaders, updated_at
+           FROM sector_heatmap
+           ORDER BY avg_change DESC NULLS LAST
+           LIMIT 5`,
+          [],
+          'api.intelligence.summary.sectors',
+          300
+        ),
+      },
+      {
+        key: 'opportunities',
+        fallback: [],
+        run: async () => {
+          const rows = await getTopOpportunities(supabaseAdmin, {
+            limit: 10,
+            source: 'opportunity_ranker',
+          });
+          return (rows || []).map((row) => ({
+            symbol: row.symbol,
+            score: row.score,
+            strategy: row.event_type || 'Ranked Opportunity',
+            change_percent: null,
+            relative_volume: null,
+            gap_percent: null,
+            updated_at: row.created_at,
+          }));
+        },
+      },
+      {
+        key: 'earningsToday',
+        fallback: [],
+        run: () => fastRowsQuery(
+          `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
+           FROM earnings_events
+           WHERE earnings_date = CURRENT_DATE
+           ORDER BY symbol ASC
+           LIMIT 50`,
+          [],
+          'api.intelligence.summary.earnings_today',
+          300
+        ),
+      },
+      {
+        key: 'earningsWeek',
+        fallback: [],
+        run: () => fastRowsQuery(
+          `SELECT symbol, company, earnings_date::text AS date, eps_estimate, revenue_estimate
+           FROM earnings_events
+           WHERE earnings_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+           ORDER BY earnings_date ASC, symbol ASC
+           LIMIT 200`,
+          [],
+          'api.intelligence.summary.earnings_week',
+          300
+        ),
+      },
+      {
+        key: 'news',
+        fallback: [],
+        run: () => fastRowsQuery(
+          `SELECT symbol, headline, source, url, published_at, sentiment
+           FROM intel_news
+           ORDER BY published_at DESC NULLS LAST
+           LIMIT 15`,
+          [],
+          'api.intelligence.summary.news',
+          300
+        ),
+      },
+      {
+        key: 'topStrategies',
+        fallback: [],
+        run: () => fastRowsQuery(
+          `SELECT strategy,
+                  class,
+                  COUNT(*)::int AS count,
+                  AVG(score)::numeric AS avg_score,
+                  MAX(probability)::numeric AS max_probability
+           FROM strategy_signals
+           GROUP BY strategy, class
+           ORDER BY avg_score DESC NULLS LAST, count DESC
+           LIMIT 10`,
+          [],
+          'api.intelligence.summary.top_strategies',
+          300
+        ),
+      },
+    ];
+
+    const settled = await Promise.allSettled(tasks.map((task) => task.run()));
+    const values = {};
+    const warnings = [];
+
+    settled.forEach((result, index) => {
+      const task = tasks[index];
+      if (result.status === 'fulfilled') {
+        values[task.key] = result.value;
+        return;
+      }
+      values[task.key] = task.fallback;
+      warnings.push({
+        section: task.key,
+        detail: result.reason?.message || 'Section failed',
+      });
+    });
 
     return res.json({
       success: true,
       summary: {
-        sectors,
-        opportunities,
+        sectors: values.sectors,
+        opportunities: values.opportunities,
         earnings: {
-          today: earningsToday,
-          week: earningsWeek,
+          today: values.earningsToday,
+          week: values.earningsWeek,
         },
-        news,
-        top_strategies: topStrategies,
+        news: values.news,
+        top_strategies: values.topStrategies,
       },
+      warnings,
       generated_at: new Date().toISOString(),
     });
   } catch (error) {
@@ -5534,6 +6645,42 @@ app.get('/api/intelligence/summary', async (req, res) => {
     });
   }
 });
+
+async function proxyAliasGet(req, res, targetPath) {
+  try {
+    const queryIndex = req.originalUrl.indexOf('?');
+    const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : '';
+    const targetUrl = `http://127.0.0.1:${PORT}${targetPath}${query}`;
+
+    const headers = {};
+    Object.entries(req.headers || {}).forEach(([key, value]) => {
+      if (typeof value === 'string') headers[key] = value;
+    });
+
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
+
+    const contentType = response.headers.get('content-type');
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
+
+    const body = await response.text();
+    return res.status(response.status).send(body);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      error: 'ALIAS_PROXY_FAILED',
+      detail: error?.message || 'Unknown proxy failure',
+    });
+  }
+}
+
+app.get('/api/intelligence/dashboard', (req, res) => proxyAliasGet(req, res, '/api/intelligence/summary'));
+app.get('/api/intelligence/system', (req, res) => proxyAliasGet(req, res, '/api/system/health'));
 
 // Intelligence ingestion — own key auth, must be before JWT middleware
 app.use(intelligenceRoutes);
@@ -5555,6 +6702,30 @@ app.use('/api', schemaHealthRoutes);
 app.use('/api', strategyIntelligenceRoutes);
 app.use('/api', signalsRoutes);
 app.use('/api', intelDetailsRoutes);
+
+app.post('/api/admin/catalysts/backfill', requireAdminAction, async (req, res) => {
+  try {
+    const batchSize = Number(req.body?.batchSize) > 0 ? Number(req.body.batchSize) : 500;
+    const maxBatches = Number(req.body?.maxBatches) > 0 ? Number(req.body.maxBatches) : 30;
+
+    const result = await runCatalystBackfill({ batchSize, maxBatches });
+    return res.json({ ok: true, result });
+  } catch (error) {
+    logger.error('admin catalysts backfill route error', { error: error.message });
+    return res.status(500).json({ ok: false, error: error.message || 'Failed to run catalyst backfill' });
+  }
+});
+
+app.post('/api/admin/catalysts/reactions/run', requireAdminAction, async (req, res) => {
+  try {
+    const limit = Number(req.body?.limit) > 0 ? Number(req.body.limit) : 300;
+    const result = await runCatalystReactionEngine({ limit });
+    return res.json({ ok: true, result });
+  } catch (error) {
+    logger.error('admin catalyst reaction route error', { error: error.message });
+    return res.status(500).json({ ok: false, error: error.message || 'Failed to run catalyst reaction engine' });
+  }
+});
 
 app.post('/api/intelligence/news/run', async (req, res) => {
   try {
@@ -6137,6 +7308,7 @@ function bootstrapEngines() {
   startTickerCache();
   runSafe('refreshSparklineCache', () => refreshSparklineCache());
   runSafe('runIntelligencePipeline', () => runIntelligencePipeline());
+  runSafe('startLiveValidationLoop', () => startLiveValidationLoop());
   startIntelligencePipelineScheduler();
   startPerformanceEngineScheduler();
 

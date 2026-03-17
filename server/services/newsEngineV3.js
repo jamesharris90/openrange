@@ -1,6 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const pool = require('../pg');
+const { ensureNewsStorageSchema, insertNormalizedNewsArticle } = require('./newsStorage');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable/news/stock-latest';
 const FMP_QUOTE_URL = 'https://financialmodelingprep.com/stable/quote';
@@ -447,46 +448,27 @@ async function insertCanonicalNewsRows(rows) {
     return { attempted: 0, inserted: 0 };
   }
 
+  await ensureNewsStorageSchema();
   await cleanupOldNews();
 
   let inserted = 0;
 
   for (const row of rows) {
-    const result = await pool.query(
-      `INSERT INTO news_articles (
-        id,
-        symbol,
-        headline,
-        symbols,
-        source,
-        url,
-        published_at,
-        summary,
-        catalyst_type,
-        news_score,
-        score_breakdown,
-        raw_payload
-      ) VALUES (
-        $1, $2, $3, $4::text[], $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb
-      )
-      ON CONFLICT (id) DO NOTHING`,
-      [
-        row.id,
-        row.symbol || null,
-        row.headline,
-        row.symbol ? [row.symbol] : [],
-        row.source,
-        row.url,
-        row.publishedAt,
-        String(row.raw_payload?.text || row.raw_payload?.content || '').slice(0, 2000),
-        row.catalyst_tags?.[0] || null,
-        row.news_score,
-        JSON.stringify({ ...(row.score_breakdown || {}), catalyst_tags: row.catalyst_tags || [] }),
-        JSON.stringify(row.raw_payload || {}),
-      ]
-    );
-
-    inserted += result.rowCount || 0;
+    const result = await insertNormalizedNewsArticle({
+      symbol: row.symbol || null,
+      headline: row.headline,
+      source: row.source,
+      provider: 'fmp',
+      url: row.url,
+      published_at: row.publishedAt,
+      sentiment: 'neutral',
+      summary: String(row.raw_payload?.text || row.raw_payload?.content || '').slice(0, 2000),
+      catalyst_type: row.catalyst_tags?.[0] || null,
+      news_score: row.news_score,
+      score_breakdown: { ...(row.score_breakdown || {}), catalyst_tags: row.catalyst_tags || [] },
+      raw_payload: row.raw_payload || {},
+    });
+    if (result.inserted) inserted += 1;
   }
 
   return {

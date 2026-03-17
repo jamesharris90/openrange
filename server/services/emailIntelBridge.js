@@ -1,6 +1,18 @@
 const crypto = require('crypto');
 const { queryWithTimeout } = require('../db/pg');
 
+const NEWSLETTER_PUBLISHERS = [
+  'earnings whispers',
+  'the fly',
+  'marketwatch',
+  'benzinga',
+];
+
+const TICKER_STOP_WORDS = new Set([
+  'A', 'AN', 'AND', 'ARE', 'AS', 'AT', 'BY', 'FOR', 'FROM', 'IN', 'INTO', 'IS', 'IT',
+  'NEW', 'NOT', 'NOW', 'OF', 'ON', 'OR', 'OUT', 'THE', 'TO', 'US', 'USA', 'WAS', 'WITH',
+]);
+
 function inferSentiment(headline = '') {
   const h = String(headline).toLowerCase();
   if (/beat|surge|rally|upgrade|growth|record|bullish/.test(h)) return 'positive';
@@ -18,6 +30,26 @@ function parseTicker(text = '') {
 
   const generic = upper.match(/\b([A-Z]{2,5})\b/);
   return generic?.[1] || null;
+}
+
+function parseTickers(text = '') {
+  const value = String(text || '');
+  const direct = value.match(/\$([A-Z]{1,5})\b/g) || [];
+  const paren = value.match(/\(([A-Z]{1,5})\)/g) || [];
+  const plain = value.match(/\b[A-Z]{2,5}\b/g) || [];
+  const merged = [
+    ...direct.map((token) => token.replace('$', '')),
+    ...paren.map((token) => token.replace(/[()]/g, '')),
+    ...plain,
+  ]
+    .map((item) => String(item || '').trim().toUpperCase())
+    .filter((value) => value && !TICKER_STOP_WORDS.has(value));
+  return Array.from(new Set(merged));
+}
+
+function looksLikeTrackedNewsletter(email = {}) {
+  const source = `${email?.source_name || ''} ${email?.sender || ''} ${email?.subject || ''}`.toLowerCase();
+  return NEWSLETTER_PUBLISHERS.some((publisher) => source.includes(publisher));
 }
 
 function toBridgePayload(email) {
@@ -53,7 +85,7 @@ function toBridgePayload(email) {
 
 async function bridgeNewsletterEmailToIntelNews(emailRow) {
   const sourceTag = String(emailRow?.source_tag || '').toLowerCase();
-  if (!sourceTag.includes('newsletter') && !sourceTag.includes('digest')) {
+  if (!sourceTag.includes('newsletter') && !sourceTag.includes('digest') && !looksLikeTrackedNewsletter(emailRow)) {
     return { bridged: false, reason: 'source_tag_not_newsletter' };
   }
 
@@ -87,6 +119,39 @@ async function bridgeNewsletterEmailToIntelNews(emailRow) {
     ],
     { timeoutMs: 5000, label: 'services.email_intel_bridge.upsert', maxRetries: 0 }
   );
+
+  const candidates = parseTickers(`${emailRow?.subject || ''} ${emailRow?.raw_text || ''}`);
+  const tickers = candidates.length ? candidates : (payload.ticker ? [payload.ticker] : []);
+
+  for (const symbol of tickers) {
+    await queryWithTimeout(
+      `INSERT INTO trade_catalysts (
+         symbol,
+         catalyst_type,
+         headline,
+         source,
+         sentiment,
+         published_at,
+         score,
+         created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+       ON CONFLICT (symbol, headline, published_at, catalyst_type) DO UPDATE
+       SET source = EXCLUDED.source,
+           sentiment = EXCLUDED.sentiment,
+           score = EXCLUDED.score,
+           created_at = NOW()`,
+      [
+        symbol,
+        'newsletter_intelligence',
+        payload.headline,
+        payload.source,
+        inferSentiment(payload.headline),
+        payload.timestamp,
+        6,
+      ],
+      { timeoutMs: 5000, label: 'services.email_intel_bridge.catalyst_upsert', maxRetries: 0 }
+    );
+  }
 
   return {
     bridged: true,

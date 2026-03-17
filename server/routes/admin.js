@@ -15,7 +15,10 @@ const { queryWithTimeout } = require('../db/pg');
 const {
   getEmailDispatcherStatus,
   sendImmediateAdminTests,
+  sendBeaconMorningBrief,
+  sendSystemMonitor,
 } = require('../email/emailDispatcher');
+const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 const PPLX_API_KEY = process.env.PPLX_API_KEY || null;
 
 const router = express.Router();
@@ -359,6 +362,12 @@ router.get('/api/admin/email-status', requireAdminAccess, async (_req, res) => {
   return res.json({
     success: true,
     data: {
+      provider: 'Resend',
+      providerConfigured: Boolean(process.env.RESEND_API_KEY),
+      fallbackRecipient: process.env.ADMIN_EMAIL || 'jamesharris4@me.com',
+      schedulerRunning: Boolean(status?.schedulerRunning ?? status?.schedulerStarted),
+      timezone: status?.timezone || 'Europe/London',
+      nextMorningBrief: status?.nextMorningBrief || null,
       scheduler: status,
       activeSubscribers: Number(subscribers?.rows?.[0]?.total || 0),
       recentSends: recent?.rows || [],
@@ -366,11 +375,53 @@ router.get('/api/admin/email-status', requireAdminAccess, async (_req, res) => {
   });
 });
 
-router.post('/api/admin/email-test', requireAdminAccess, async (req, res) => {
+const emailTestMiddleware = process.env.NODE_ENV === 'production'
+  ? requireAdminAccess
+  : (_req, _res, next) => next();
+
+router.post('/api/admin/email-test', emailTestMiddleware, async (req, res) => {
   try {
-    const email = String(req.body?.email || '').trim() || null;
-    const results = await sendImmediateAdminTests(email);
-    return res.json({ success: true, data: results });
+    const recipient = String(req.body?.recipient || req.body?.email || process.env.ADMIN_EMAIL || 'jamesharris4@me.com').trim();
+    const newsletterType = String(req.body?.newsletterType || 'all').toLowerCase().trim();
+
+    let results;
+    if (newsletterType === 'beacon_morning') {
+      results = {
+        beaconMorningBrief: await sendBeaconMorningBrief({
+          force: true,
+          forceTo: recipient,
+          campaignKey: `test_beacon_${Date.now()}`,
+        }),
+      };
+    } else if (newsletterType === 'system_monitor') {
+      results = {
+        systemMonitor: await sendSystemMonitor({
+          force: true,
+          forceTo: recipient,
+          campaignKey: `test_sysmon_${Date.now()}`,
+        }),
+      };
+    } else if (newsletterType === 'stocks_in_play') {
+      results = {
+        stocksInPlay: await sendStocksInPlayAlert({
+          force: true,
+          forceTo: recipient,
+          campaignKey: `test_stocks_in_play_${Date.now()}`,
+        }),
+      };
+    } else {
+      const baseline = await sendImmediateAdminTests(recipient);
+      results = {
+        ...baseline,
+        stocksInPlay: await sendStocksInPlayAlert({
+          force: true,
+          forceTo: recipient,
+          campaignKey: `test_stocks_in_play_${Date.now()}`,
+        }),
+      };
+    }
+
+    return res.json({ success: true, recipient, result: results, data: results });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to run test sends' });
   }

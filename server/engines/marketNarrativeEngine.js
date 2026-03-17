@@ -6,6 +6,29 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function formatMoverList(topMovers = []) {
+  const names = (topMovers || []).slice(0, 2).map((row) => String(row.symbol || '').toUpperCase()).filter(Boolean);
+  if (names.length === 0) return 'leadership is broadly distributed';
+  if (names.length === 1) return `${names[0]} is pacing early momentum`;
+  return `${names[0]} and ${names[1]} are pacing early momentum`;
+}
+
+function generateMarketNarrative({ spy, qqq, vix, sectorMovers = [], topMovers = [] } = {}) {
+  const spyNum = Number(spy);
+  const qqqNum = Number(qqq);
+  const vixNum = Number(vix);
+
+  const leadSector = (sectorMovers || [])[0]?.sector || 'defensive groups';
+  const riskTone = Number.isFinite(vixNum)
+    ? (vixNum >= 25 ? 'volatility remains elevated' : 'volatility is contained')
+    : 'volatility is mixed';
+  const indexTone = Number.isFinite(spyNum) && Number.isFinite(qqqNum)
+    ? (spyNum >= 0 && qqqNum >= 0 ? 'risk appetite is stabilising' : 'price action is selective')
+    : 'index direction is mixed';
+
+  return `Markets are ${indexTone}, with ${leadSector} leading while ${riskTone}; ${formatMoverList(topMovers)}.`;
+}
+
 function deriveNarrative({ spy, qqq, vix, topSector, topMovers, sentiment }) {
   const sector = topSector?.sector || 'Mixed sectors';
   const movers = topMovers.slice(0, 2).map((row) => row.symbol).filter(Boolean).join(' and ');
@@ -149,4 +172,5 @@ async function getLatestMarketNarrative() {
 module.exports = {
   runMarketNarrativeEngine,
   getLatestMarketNarrative,
+  generateMarketNarrative,
 };

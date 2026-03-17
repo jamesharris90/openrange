@@ -50,33 +50,41 @@ router.get('/', async (_req, res) => {
 
 router.get('/summary', async (_req, res) => {
   try {
-    let rows = [];
-    try {
-      const result = await queryWithTimeout(
-        `SELECT
-           symbol,
-           score,
-           strategy,
-           catalyst,
-           created_at,
-           status
-         FROM strategy_signals
-         WHERE created_at >= NOW() - INTERVAL '1 day'
-         ORDER BY score DESC NULLS LAST, created_at DESC
-         LIMIT 100`,
-        [],
-        { timeoutMs: 7000, label: 'api.radar.summary', maxRetries: 0 }
-      );
-      rows = result.rows;
-    } catch (_error) {
+    const primary = await queryWithTimeout(
+      `SELECT
+         m.*,
+         COALESCE(m.updated_at, m.last_updated) AS updated_at
+       FROM market_metrics m
+       WHERE COALESCE(m.updated_at, m.last_updated) > NOW() - INTERVAL '24 hours'
+       ORDER BY COALESCE(m.relative_volume, 0) DESC NULLS LAST,
+                ABS(COALESCE(m.gap_percent, 0)) DESC NULLS LAST,
+                COALESCE(m.updated_at, m.last_updated) DESC NULLS LAST
+       LIMIT 100`,
+      [],
+      { timeoutMs: 7000, label: 'api.radar.summary.market_metrics.primary', maxRetries: 0 }
+    );
+
+    console.log('[DATA CHECK]', {
+      table: 'market_metrics',
+      rows: primary.rows.length
+    });
+
+    let rows = primary.rows;
+    if (!rows.length) {
       const fallback = await queryWithTimeout(
-        `SELECT symbol, created_at
-         FROM strategy_signals
-         ORDER BY created_at DESC
-         LIMIT 100`,
+        `SELECT *
+         FROM market_metrics
+         ORDER BY updated_at DESC NULLS LAST
+         LIMIT 50`,
         [],
-        { timeoutMs: 7000, label: 'api.radar.summary.fallback', maxRetries: 0 }
+        { timeoutMs: 7000, label: 'api.radar.summary.market_metrics.fallback', maxRetries: 0 }
       );
+
+      console.log('[DATA CHECK]', {
+        table: 'market_metrics',
+        rows: fallback.rows.length
+      });
+
       rows = fallback.rows;
     }
 

@@ -25,6 +25,7 @@ const { runOpportunityIntelligenceEngine } = require('../engines/opportunityInte
 const { runSignalCalibrationEngine } = require('../engines/signalCalibrationEngine');
 const { runCalibrationPriceUpdater } = require('../engines/calibrationPriceUpdater');
 const { runSignalOutcomeEngine } = require('../engines/signalOutcomeEngine');
+const { runDynamicUniverseEngine } = require('../engines/dynamicUniverseEngine');
 const { runHistoricalReplay } = require('../engines/replay/historicalSignalReplayEngine');
 const { updateStrategyWeights } = require('../engines/adaptiveStrategyEngine');
 const { runMissedOpportunityEngine } = require('../engines/missedOpportunityEngine');
@@ -35,6 +36,16 @@ const { runExpectedMoveEngine } = require('../engines/expectedMoveEngine');
 const { runMarketRegimeEngine } = require('../engines/marketRegimeEngine');
 const { runSignalCaptureEngine } = require('../engines/signalCaptureEngine');
 const { runStrategyLearningEngine } = require('../engines/strategyLearningEngine');
+const { evaluateSignals: evaluateTradeOutcomeSignals } = require('../engines/tradeOutcomeEngine');
+const { runCatalystDetectionEngine } = require('../engines/catalystDetectionEngine');
+const { runCatalystIntelligenceEngine } = require('../engines/catalystIntelligenceEngine');
+const { runCatalystPrecedentEngine } = require('../engines/catalystPrecedentEngine');
+const { runCatalystSignalEngine } = require('../engines/catalystSignalEngine');
+const { runCatalystNarrativeEngine } = require('../engines/catalystNarrativeEngine');
+const { runCatalystReactionEngine } = require('../engines/catalystReactionEngine');
+const { runExtendedHoursIngest } = require('../engines/fmp_extended_hours_ingest');
+const { sendBeaconMorningBrief, sendSystemMonitor } = require('../email/emailDispatcher');
+const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -52,6 +63,7 @@ let morningBriefInFlight = false;
 let newsletterInFlight = false;
 let signalPerfSnapshotInFlight = false;
 let strategyEvaluationInFlight = false;
+let strategyEngineMinuteInFlight = false;
 let marketNarrativeInFlight = false;
 let signalLearningInFlight = false;
 let signalOutcomeUpdateInFlight = false;
@@ -60,6 +72,7 @@ let intelligenceInFlight = false;
 let signalCalibrationInFlight = false;
 let calibrationPriceUpdateInFlight = false;
 let signalOutcomeEngineInFlight = false;
+let dynamicUniverseEngineInFlight = false;
 let historicalReplayInFlight = false;
 let adaptiveStrategyInFlight = false;
 let validationDailyInFlight = false;
@@ -70,6 +83,17 @@ let expectedMoveInFlight = false;
 let marketRegimeInFlight = false;
 let signalCaptureInFlight = false;
 let strategyLearningInFlight = false;
+let tradeOutcomeInFlight = false;
+let beaconMorningEmailInFlight = false;
+let stocksInPlayEmailInFlight = false;
+let systemMonitorEmailInFlight = false;
+let catalystDetectionInFlight = false;
+let catalystIntelligenceInFlight = false;
+let catalystPrecedentInFlight = false;
+let catalystSignalInFlight = false;
+let catalystNarrativeInFlight = false;
+let catalystReactionInFlight = false;
+let extendedHoursInFlight = false;
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -240,6 +264,108 @@ async function startEnginesSequentially() {
       }, 5 * 60 * 1000);
     }
 
+    if (!global.catalystDetectionSchedulerStarted) {
+      global.catalystDetectionSchedulerStarted = true;
+      console.log('[CATALYST_DETECTION] scheduler registered (*/2 * * * *)');
+
+      cron.schedule('*/2 * * * *', async () => {
+        if (catalystDetectionInFlight) return;
+        catalystDetectionInFlight = true;
+        try {
+          await runCatalystDetectionEngine();
+        } catch (error) {
+          console.error('[CATALYST_DETECTION] scheduled run error', error.message);
+        } finally {
+          catalystDetectionInFlight = false;
+        }
+      });
+    }
+
+    if (!global.catalystIntelligenceSchedulerStarted) {
+      global.catalystIntelligenceSchedulerStarted = true;
+      console.log('[CATALYST_INTELLIGENCE] scheduler registered (*/5 * * * *)');
+
+      cron.schedule('*/5 * * * *', async () => {
+        if (catalystIntelligenceInFlight) return;
+        catalystIntelligenceInFlight = true;
+        try {
+          await runCatalystIntelligenceEngine();
+        } catch (error) {
+          console.error('[CATALYST_INTELLIGENCE] scheduled run error', error.message);
+        } finally {
+          catalystIntelligenceInFlight = false;
+        }
+      });
+    }
+
+    if (!global.catalystPrecedentSchedulerStarted) {
+      global.catalystPrecedentSchedulerStarted = true;
+      console.log('[CATALYST_PRECEDENT] scheduler registered (0 * * * *)');
+
+      cron.schedule('0 * * * *', async () => {
+        if (catalystPrecedentInFlight) return;
+        catalystPrecedentInFlight = true;
+        try {
+          await runCatalystPrecedentEngine();
+        } catch (error) {
+          console.error('[CATALYST_PRECEDENT] scheduled run error', error.message);
+        } finally {
+          catalystPrecedentInFlight = false;
+        }
+      });
+    }
+
+    if (!global.catalystSignalSchedulerStarted) {
+      global.catalystSignalSchedulerStarted = true;
+      console.log('[CATALYST_SIGNAL] scheduler registered (*/5 * * * *)');
+
+      cron.schedule('*/5 * * * *', async () => {
+        if (catalystSignalInFlight) return;
+        catalystSignalInFlight = true;
+        try {
+          await runCatalystSignalEngine();
+        } catch (error) {
+          console.error('[CATALYST_SIGNAL] scheduled run error', error.message);
+        } finally {
+          catalystSignalInFlight = false;
+        }
+      });
+    }
+
+    if (!global.catalystNarrativeSchedulerStarted) {
+      global.catalystNarrativeSchedulerStarted = true;
+      console.log('[CATALYST_NARRATIVE] scheduler registered (*/5 * * * *)');
+
+      cron.schedule('*/5 * * * *', async () => {
+        if (catalystNarrativeInFlight) return;
+        catalystNarrativeInFlight = true;
+        try {
+          await runCatalystNarrativeEngine();
+        } catch (error) {
+          console.error('[CATALYST_NARRATIVE] scheduled run error', error.message);
+        } finally {
+          catalystNarrativeInFlight = false;
+        }
+      });
+    }
+
+    if (!global.catalystReactionSchedulerStarted) {
+      global.catalystReactionSchedulerStarted = true;
+      console.log('[CATALYST_REACTION] scheduler registered (*/5 * * * *)');
+
+      cron.schedule('*/5 * * * *', async () => {
+        if (catalystReactionInFlight) return;
+        catalystReactionInFlight = true;
+        try {
+          await runCatalystReactionEngine();
+        } catch (error) {
+          console.error('[CATALYST_REACTION] scheduled run error', error.message);
+        } finally {
+          catalystReactionInFlight = false;
+        }
+      });
+    }
+
     if (!global.strategyEvaluationSchedulerStarted) {
       global.strategyEvaluationSchedulerStarted = true;
 
@@ -261,6 +387,23 @@ async function startEnginesSequentially() {
           strategyEvaluationInFlight = false;
         });
       }, 15 * 60 * 1000);
+    }
+
+    if (!global.strategyEngineSchedulerStarted) {
+      global.strategyEngineSchedulerStarted = true;
+      console.log('[STRATEGY_ENGINE] scheduler registered (every 60s)');
+
+      setInterval(async () => {
+        if (strategyEngineMinuteInFlight) return;
+        strategyEngineMinuteInFlight = true;
+        try {
+          await runStrategyEngineNow();
+        } catch (error) {
+          console.error('[STRATEGY_ENGINE] scheduled run error', error.message);
+        } finally {
+          strategyEngineMinuteInFlight = false;
+        }
+      }, 60 * 1000);
     }
 
     if (!global.marketNarrativeSchedulerStarted) {
@@ -433,6 +576,66 @@ async function startEnginesSequentially() {
       global.emailIntelligenceSchedulerStarted = true;
       registerEmailIntelligenceSchedules();
       console.log('[EMAIL_INTELLIGENCE] schedulers registered');
+      console.log('[EMAIL SCHEDULER] Morning Brief active');
+      console.log('[EMAIL SCHEDULER] Weekly Scorecard active');
+      console.log('[EMAIL SCHEDULER] Earnings Intelligence active');
+      console.log('[EMAIL SCHEDULER] System Monitor active');
+
+      console.log('[EMAIL_INTELLIGENCE] additive scheduler registered (07:00 weekdays London beacon)');
+      cron.schedule('0 7 * * 1-5', async () => {
+        if (beaconMorningEmailInFlight) return;
+        beaconMorningEmailInFlight = true;
+        try {
+          await sendBeaconMorningBrief().catch((error) => {
+            console.error('[EMAIL_INTELLIGENCE] beacon morning send error', error.message);
+          });
+        } finally {
+          beaconMorningEmailInFlight = false;
+        }
+      }, { timezone: 'Europe/London' });
+
+      console.log('[EMAIL_INTELLIGENCE] additive scheduler registered (market open stocks in play)');
+      cron.schedule('30 14 * * 1-5', async () => {
+        if (stocksInPlayEmailInFlight) return;
+        stocksInPlayEmailInFlight = true;
+        try {
+          await sendStocksInPlayAlert().catch((error) => {
+            console.error('[EMAIL_INTELLIGENCE] stocks in play send error', error.message);
+          });
+        } finally {
+          stocksInPlayEmailInFlight = false;
+        }
+      }, { timezone: 'Europe/London' });
+
+      console.log('[EMAIL_INTELLIGENCE] additive scheduler registered (06:30 daily London monitor)');
+      cron.schedule('30 6 * * *', async () => {
+        if (systemMonitorEmailInFlight) return;
+        systemMonitorEmailInFlight = true;
+        try {
+          await sendSystemMonitor().catch((error) => {
+            console.error('[EMAIL_INTELLIGENCE] system monitor send error', error.message);
+          });
+        } finally {
+          systemMonitorEmailInFlight = false;
+        }
+      }, { timezone: 'Europe/London' });
+    }
+
+    if (!global.tradeOutcomeSchedulerStarted) {
+      global.tradeOutcomeSchedulerStarted = true;
+      console.log('[TRADE_OUTCOME] scheduler registered (*/30 * * * *)');
+
+      cron.schedule('*/30 * * * *', async () => {
+        if (tradeOutcomeInFlight) return;
+        tradeOutcomeInFlight = true;
+        try {
+          await evaluateTradeOutcomeSignals();
+        } catch (error) {
+          console.error('[TRADE_OUTCOME] scheduled evaluation error', error.message);
+        } finally {
+          tradeOutcomeInFlight = false;
+        }
+      });
     }
 
     if (!global.signalPerformanceSnapshotSchedulerStarted) {
@@ -560,7 +763,7 @@ async function startEnginesSequentially() {
 
     if (!global.signalOutcomeEngineStarted) {
       global.signalOutcomeEngineStarted = true;
-      console.log('[SIGNAL_OUTCOME_ENGINE] scheduler registered (*/15 * * * *)');
+      console.log('[SIGNAL_OUTCOME_ENGINE] scheduler registered (*/10 * * * *)');
 
       signalOutcomeEngineInFlight = true;
       runSignalOutcomeEngine().catch((error) =>
@@ -569,7 +772,7 @@ async function startEnginesSequentially() {
         signalOutcomeEngineInFlight = false;
       });
 
-      cron.schedule('*/15 * * * *', async () => {
+      cron.schedule('*/10 * * * *', async () => {
         if (signalOutcomeEngineInFlight) return;
         signalOutcomeEngineInFlight = true;
         try {
@@ -578,6 +781,30 @@ async function startEnginesSequentially() {
           console.error('[SIGNAL_OUTCOME_ENGINE] scheduled run error', error.message);
         } finally {
           signalOutcomeEngineInFlight = false;
+        }
+      });
+    }
+
+    if (!global.dynamicUniverseEngineStarted) {
+      global.dynamicUniverseEngineStarted = true;
+      console.log('[DYNAMIC_UNIVERSE_ENGINE] scheduler registered (*/15 * * * *)');
+
+      dynamicUniverseEngineInFlight = true;
+      runDynamicUniverseEngine().catch((error) =>
+        console.error('[DYNAMIC_UNIVERSE_ENGINE] initial run error', error.message)
+      ).finally(() => {
+        dynamicUniverseEngineInFlight = false;
+      });
+
+      cron.schedule('*/15 * * * *', async () => {
+        if (dynamicUniverseEngineInFlight) return;
+        dynamicUniverseEngineInFlight = true;
+        try {
+          await runDynamicUniverseEngine();
+        } catch (error) {
+          console.error('[DYNAMIC_UNIVERSE_ENGINE] scheduled run error', error.message);
+        } finally {
+          dynamicUniverseEngineInFlight = false;
         }
       });
     }
@@ -747,6 +974,29 @@ async function startEnginesSequentially() {
           strategyLearningInFlight = false;
         }
       });
+    }
+
+    if (!global.extendedHoursIngestSchedulerStarted) {
+      global.extendedHoursIngestSchedulerStarted = true;
+      console.log('[EXTENDED] scheduler registered (every 10s)');
+
+      extendedHoursInFlight = true;
+      runExtendedHoursIngest().catch((error) => {
+        console.error('[EXTENDED] startup run error', error.message);
+      }).finally(() => {
+        extendedHoursInFlight = false;
+      });
+
+      setInterval(() => {
+        if (extendedHoursInFlight) return;
+        extendedHoursInFlight = true;
+
+        runExtendedHoursIngest().catch((error) => {
+          console.error('[EXTENDED] scheduled run error', error.message);
+        }).finally(() => {
+          extendedHoursInFlight = false;
+        });
+      }, 10000);
     }
 
     console.log('[Engine] All engines started successfully');
