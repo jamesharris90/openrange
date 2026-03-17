@@ -4101,33 +4101,47 @@ app.get('/api/market/quotes', async (req, res) => {
 
     const query = symbols.length > 0
       ? {
-          text: `SELECT DISTINCT ON (symbol)
-                   symbol,
-                   price,
-                   close,
-                   change_percent,
-                   volume,
-                   market_cap,
-                   sector,
-                   updated_at
-                 FROM market_quotes
-                 WHERE symbol = ANY($1::text[])
-                 ORDER BY symbol, COALESCE(updated_at, NOW()) DESC`,
+          text: `SELECT DISTINCT ON (mq.symbol)
+                   mq.symbol,
+                   mq.price,
+                   d.close AS daily_close,
+                   mq.change_percent,
+                   mq.volume,
+                   mq.market_cap,
+                   mq.sector,
+                   mq.updated_at
+                 FROM market_quotes mq
+                 LEFT JOIN LATERAL (
+                   SELECT close
+                   FROM daily_ohlc d
+                   WHERE d.symbol = mq.symbol
+                   ORDER BY d.date DESC
+                   LIMIT 1
+                 ) d ON TRUE
+                 WHERE mq.symbol = ANY($1::text[])
+                 ORDER BY mq.symbol, COALESCE(mq.updated_at, NOW()) DESC`,
           params: [symbols],
           options: { label: 'api.market.quotes.by_symbols', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 },
         }
       : {
-          text: `SELECT DISTINCT ON (symbol)
-                   symbol,
-                   price,
-                   close,
-                   change_percent,
-                   volume,
-                   market_cap,
-                   sector,
-                   updated_at
-                 FROM market_quotes
-                 ORDER BY symbol, COALESCE(updated_at, NOW()) DESC
+          text: `SELECT DISTINCT ON (mq.symbol)
+                   mq.symbol,
+                   mq.price,
+                   d.close AS daily_close,
+                   mq.change_percent,
+                   mq.volume,
+                   mq.market_cap,
+                   mq.sector,
+                   mq.updated_at
+                 FROM market_quotes mq
+                 LEFT JOIN LATERAL (
+                   SELECT close
+                   FROM daily_ohlc d
+                   WHERE d.symbol = mq.symbol
+                   ORDER BY d.date DESC
+                   LIMIT 1
+                 ) d ON TRUE
+                 ORDER BY mq.symbol, COALESCE(mq.updated_at, NOW()) DESC
                  LIMIT $1`,
           params: [limit],
           options: { label: 'api.market.quotes', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 },
@@ -4136,7 +4150,7 @@ app.get('/api/market/quotes', async (req, res) => {
     const { rows } = await queryWithTimeout(query.text, query.params, query.options);
     const data = (rows || []).map((row) => ({
       symbol: String(row?.symbol || '').toUpperCase(),
-      price: Number(row?.price ?? row?.close ?? 0),
+      price: Number(row?.price ?? row?.daily_close ?? 0),
       change_percent: Number(row?.change_percent ?? 0),
       volume: Number(row?.volume ?? 0),
       market_cap: Number(row?.market_cap ?? 0),
