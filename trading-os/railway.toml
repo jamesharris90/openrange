@@ -1,5 +1,2 @@
 [build]
 builder = "NIXPACKS"
-
-[deploy]
-startCommand = "npm run start"
