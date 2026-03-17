@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	--background: #0b0f19;
+	--foreground: #f2f7ff;
+	--panel: #121826;
+	--muted: #1f2a40;
+	--muted-foreground: #90a2c0;
+	--border: #1e293b;
+	--ring: #3b82f6;
+	--accent: #3b82f6;
+	--accent-foreground: #eff6ff;
+	--bull: #16c784;
+	--bear: #ea3943;
+	--input: #162033;
+	--primary: #f2f7ff;
+	--primary-foreground: #0b0f19;
+	--secondary: #253449;
+	--secondary-foreground: #dbeafe;
+	--destructive: #f87171;
+}
+
+.dark {
+	--background: #0b0f19;
+	--foreground: #f2f7ff;
+	--panel: #121826;
+	--muted: #1f2a40;
+	--muted-foreground: #90a2c0;
+	--border: #1e293b;
+	--ring: #3b82f6;
+	--accent: #3b82f6;
+	--accent-foreground: #eff6ff;
+	--bull: #16c784;
+	--bear: #ea3943;
+	--input: #162033;
+	--primary: #f2f7ff;
+	--primary-foreground: #0b0f19;
+	--secondary: #253449;
+	--secondary-foreground: #dbeafe;
+	--destructive: #f87171;
+}
+
+* {
+	border-color: var(--border);
+}
+
+html,
+body {
+	min-height: 100%;
+}
+
+body {
+	background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), transparent 40%),
+		radial-gradient(circle at 100% 0%, rgba(22, 199, 132, 0.08), transparent 35%),
+		var(--background);
+	color: var(--foreground);
+	font-family: var(--font-sans), sans-serif;
+}
+
+.font-mono {
+	font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
