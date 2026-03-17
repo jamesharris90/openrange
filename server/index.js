@@ -1663,9 +1663,12 @@ app.get('/api/stocks-in-play', async (_req, res) => {
       }
     );
 
+    const normalizedRows = normalizeSignalRows(rows || []);
+    console.log('[STOCKS_IN_PLAY] sample response', normalizedRows[0] || null);
+
     return res.json({
       success: true,
-      data: rows || [],
+      data: normalizedRows,
     });
   } catch (error) {
     await logSystemAlert({
@@ -3796,7 +3799,9 @@ app.get('/api/signals', async (req, res) => {
       );
 
       if (primaryRows.length > 0) {
-        return res.json({ symbol, signals: primaryRows, items: primaryRows });
+        const normalizedPrimaryRows = normalizeSignalRows(primaryRows);
+        console.log('[API_SIGNALS] sample response', normalizedPrimaryRows[0] || null);
+        return res.json({ symbol, signals: normalizedPrimaryRows, items: normalizedPrimaryRows });
       }
 
       const { rows: fallbackRows } = await queryWithTimeout(
@@ -3813,15 +3818,19 @@ app.get('/api/signals', async (req, res) => {
         { label: 'api.signals.by_symbol.fallback', timeoutMs: 1400, maxRetries: 1, retryDelayMs: 100 }
       );
 
-      return res.json({ symbol, signals: fallbackRows, items: fallbackRows });
+      const normalizedFallbackRows = normalizeSignalRows(fallbackRows);
+      console.log('[API_SIGNALS] sample response', normalizedFallbackRows[0] || null);
+      return res.json({ symbol, signals: normalizedFallbackRows, items: normalizedFallbackRows });
     }
 
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
     const rows = await fetchUnifiedSignals({ limit, recentHours: 24 });
+    const normalizedRows = normalizeSignalRows(rows);
 
-    if (rows.length > 0) {
+    if (normalizedRows.length > 0) {
+      console.log('[API_SIGNALS] sample response', normalizedRows[0] || null);
       return res.json({
-        signals: rows,
+        signals: normalizedRows,
         personalized: false,
       });
     }
@@ -3851,8 +3860,11 @@ app.get('/api/signals', async (req, res) => {
       { label: 'api.signals.fallback.historical', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
     );
 
+    const normalizedHistoricalRows = normalizeSignalRows(fallbackRows);
+    console.log('[API_SIGNALS] sample response', normalizedHistoricalRows[0] || null);
+
     return res.json({
-      signals: fallbackRows,
+      signals: normalizedHistoricalRows,
       personalized: false,
     });
   } catch (error) {
@@ -4079,18 +4091,124 @@ app.get('/api/market-news', async (req, res) => {
 app.get('/api/market/quotes', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 200, 5000));
-    const { rows } = await queryWithTimeout(
-      `SELECT symbol, price, change_percent, volume, market_cap, sector, updated_at
-       FROM market_quotes
-       ORDER BY updated_at DESC
-       LIMIT $1`,
-      [limit],
-      { label: 'api.market.quotes', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 }
-    );
-    res.json(rows);
+    const rawSymbols = String(req.query.symbols || '').trim();
+    const symbols = rawSymbols
+      ? rawSymbols
+        .split(',')
+        .map((item) => String(item || '').trim().toUpperCase())
+        .filter(Boolean)
+      : [];
+
+    const query = symbols.length > 0
+      ? {
+          text: `SELECT DISTINCT ON (symbol)
+                   symbol,
+                   price,
+                   close,
+                   change_percent,
+                   volume,
+                   market_cap,
+                   sector,
+                   updated_at
+                 FROM market_quotes
+                 WHERE symbol = ANY($1::text[])
+                 ORDER BY symbol, COALESCE(updated_at, NOW()) DESC`,
+          params: [symbols],
+          options: { label: 'api.market.quotes.by_symbols', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 },
+        }
+      : {
+          text: `SELECT DISTINCT ON (symbol)
+                   symbol,
+                   price,
+                   close,
+                   change_percent,
+                   volume,
+                   market_cap,
+                   sector,
+                   updated_at
+                 FROM market_quotes
+                 ORDER BY symbol, COALESCE(updated_at, NOW()) DESC
+                 LIMIT $1`,
+          params: [limit],
+          options: { label: 'api.market.quotes', timeoutMs: 5000, maxRetries: 1, retryDelayMs: 200 },
+        };
+
+    const { rows } = await queryWithTimeout(query.text, query.params, query.options);
+    const data = (rows || []).map((row) => ({
+      symbol: String(row?.symbol || '').toUpperCase(),
+      price: Number(row?.price ?? row?.close ?? 0),
+      change_percent: Number(row?.change_percent ?? 0),
+      volume: Number(row?.volume ?? 0),
+      market_cap: Number(row?.market_cap ?? 0),
+      sector: row?.sector || null,
+      updated_at: row?.updated_at || null,
+    }));
+
+    console.log('QUOTE sample:', data.slice(0, 3));
+    return res.json({ success: true, count: data.length, data });
   } catch (err) {
     logger.error('market quotes endpoint error', { error: err.message });
-    res.status(500).json({ error: 'Failed to load market quotes', detail: err.message });
+    return res.status(500).json({ success: false, count: 0, data: [], error: 'Failed to load market quotes', detail: err.message });
+  }
+});
+
+app.get('/api/market/ohlc', async (req, res) => {
+  try {
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+    if (!symbol) {
+      return res.status(400).json({ success: false, data: [], error: 'symbol is required' });
+    }
+
+    const interval = String(req.query.interval || '1d').trim().toLowerCase();
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || (interval === '1d' ? 365 : 2000), 5000));
+
+    const query = interval === '1d'
+      ? {
+          text: `SELECT
+                   (EXTRACT(EPOCH FROM (date::timestamp)) * 1000)::bigint AS time_ms,
+                   open,
+                   high,
+                   low,
+                   close
+                 FROM daily_ohlc
+                 WHERE symbol = $1
+                 ORDER BY date DESC
+                 LIMIT $2`,
+          params: [symbol, limit],
+          options: { label: 'api.market.ohlc.daily', timeoutMs: 6000, maxRetries: 1, retryDelayMs: 200 },
+        }
+      : {
+          text: `SELECT
+                   (EXTRACT(EPOCH FROM "timestamp") * 1000)::bigint AS time_ms,
+                   open,
+                   high,
+                   low,
+                   close
+                 FROM intraday_1m
+                 WHERE symbol = $1
+                 ORDER BY "timestamp" DESC
+                 LIMIT $2`,
+          params: [symbol, limit],
+          options: { label: 'api.market.ohlc.intraday', timeoutMs: 6000, maxRetries: 1, retryDelayMs: 200 },
+        };
+
+    const { rows } = await queryWithTimeout(query.text, query.params, query.options);
+    const data = (rows || [])
+      .slice()
+      .reverse()
+      .map((row) => ({
+        time: Number(row?.time_ms ?? 0),
+        open: Number(row?.open ?? 0),
+        high: Number(row?.high ?? 0),
+        low: Number(row?.low ?? 0),
+        close: Number(row?.close ?? 0),
+      }));
+
+    console.log('OHLC sample:', data.slice(0, 3));
+    return res.json({ success: true, data });
+  } catch (err) {
+    logger.error('market ohlc endpoint error', { error: err.message });
+    return res.status(500).json({ success: false, data: [], error: 'Failed to load market ohlc', detail: err.message });
   }
 });
 
@@ -6270,6 +6388,23 @@ async function getLatestSignals(db) {
   return { rows: fallback.rows, source: 'fallback' };
 }
 
+function normalizeSignalContract(row = {}) {
+  const strategyValue = String(row.strategy ?? row.setup_type ?? '').trim();
+  const probability = Number(row.probability ?? 0);
+  const confidence = Number(row.confidence ?? 0);
+  return {
+    ...row,
+    symbol: String(row.symbol ?? '').trim().toUpperCase(),
+    strategy: strategyValue || 'Unknown',
+    probability: Number.isFinite(probability) ? probability : 0,
+    confidence: Number.isFinite(confidence) ? confidence : 0,
+  };
+}
+
+function normalizeSignalRows(rows) {
+  return Array.isArray(rows) ? rows.map((row) => normalizeSignalContract(row)) : [];
+}
+
 function applyDebugBypassMeta(req, _res, next) {
   if (DEBUG_MODE) {
     req.debugAuthBypass = true;
@@ -6334,11 +6469,12 @@ app.get('/api/intelligence/heatmap', applyDebugBypassMeta, async (req, res) => {
 app.get('/api/intelligence/signals', applyDebugBypassMeta, async (req, res) => {
   try {
     const signalResult = await getLatestSignals(queryWithTimeout);
-    const signals = signalResult.rows;
+    const signals = normalizeSignalRows(signalResult.rows);
     console.log('[SIGNALS]', {
       rows: signals.length,
       latest: signals[0]?.detected_at || signals[0]?.updated_at || signals[0]?.created_at || null,
     });
+    console.log('[INTELLIGENCE_SIGNALS] sample response', signals[0] || null);
     return res.json(successResponse(signals));
   } catch (error) {
     return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence signals'));
