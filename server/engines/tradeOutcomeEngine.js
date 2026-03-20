@@ -18,98 +18,22 @@ function minutesBetween(start, end) {
 }
 
 async function ensureTradeOutcomeTables() {
-  // Legacy signal table retained for compatibility with stocksInPlayEngine calibration hooks.
-  await queryWithTimeout(
-    `CREATE TABLE IF NOT EXISTS trade_signals (
-      id BIGSERIAL PRIMARY KEY,
-      symbol TEXT NOT NULL UNIQUE,
-      setup_type TEXT,
-      entry_price NUMERIC,
-      rvol NUMERIC,
-      "timestamp" TIMESTAMPTZ,
-      strategy TEXT,
-      source_engine TEXT,
-      score NUMERIC,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )`,
-    [],
-    { timeoutMs: 7000, label: 'engines.trade_outcome.ensure_trade_signals', maxRetries: 0 }
-  );
-
-  await queryWithTimeout(
-    `CREATE TABLE IF NOT EXISTS trade_outcomes (
-      id BIGSERIAL PRIMARY KEY,
-      symbol TEXT NOT NULL,
-      opportunity_id BIGINT,
-      entry_price NUMERIC NOT NULL,
-      stop_loss NUMERIC,
-      take_profit NUMERIC,
-      expected_move_percent NUMERIC,
-      actual_max_move_percent NUMERIC,
-      outcome TEXT NOT NULL,
-      time_to_target_minutes INTEGER,
-      created_at TIMESTAMPTZ NOT NULL,
-      evaluated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )`,
-    [],
-    { timeoutMs: 7000, label: 'engines.trade_outcome.ensure_trade_outcomes', maxRetries: 0 }
-  );
-
-  await queryWithTimeout(
-    `ALTER TABLE trade_outcomes
-     ADD COLUMN IF NOT EXISTS symbol TEXT,
-     ADD COLUMN IF NOT EXISTS opportunity_id BIGINT,
-     ADD COLUMN IF NOT EXISTS entry_price NUMERIC,
-     ADD COLUMN IF NOT EXISTS stop_loss NUMERIC,
-     ADD COLUMN IF NOT EXISTS take_profit NUMERIC,
-     ADD COLUMN IF NOT EXISTS expected_move_percent NUMERIC,
-     ADD COLUMN IF NOT EXISTS actual_max_move_percent NUMERIC,
-     ADD COLUMN IF NOT EXISTS outcome TEXT,
-     ADD COLUMN IF NOT EXISTS time_to_target_minutes INTEGER,
-     ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ,
-     ADD COLUMN IF NOT EXISTS evaluated_at TIMESTAMPTZ DEFAULT NOW(),
-     ADD COLUMN IF NOT EXISTS data_quality TEXT,
-     ADD COLUMN IF NOT EXISTS calibration_eligible BOOLEAN`,
-    [],
-    { timeoutMs: 7000, label: 'engines.trade_outcome.extend_trade_outcomes', maxRetries: 0 }
-  );
-
-  // Existing historical rows are marked as legacy and excluded from calibration.
-  await queryWithTimeout(
-    `UPDATE trade_outcomes
-     SET data_quality = 'legacy',
-         calibration_eligible = FALSE
-     WHERE data_quality IS NULL OR calibration_eligible IS NULL`,
-    [],
-    { timeoutMs: 7000, label: 'engines.trade_outcome.backfill_quality_flags', maxRetries: 0 }
-  );
-
-  await queryWithTimeout(
-    `CREATE TABLE IF NOT EXISTS strategy_performance (
-      signal_type TEXT PRIMARY KEY,
-      win_rate NUMERIC NOT NULL DEFAULT 0.5,
-      avg_return NUMERIC NOT NULL DEFAULT 0,
-      sample_size INT NOT NULL DEFAULT 0,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )`,
-    [],
-    { timeoutMs: 7000, label: 'engines.trade_outcome.ensure_strategy_performance', maxRetries: 0 }
-  );
-
-  await queryWithTimeout(
-    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_symbol_eval
-     ON trade_outcomes(symbol, evaluated_at DESC)`,
-    [],
-    { timeoutMs: 5000, label: 'engines.trade_outcome.idx_symbol_eval', maxRetries: 0 }
-  );
-
-  await queryWithTimeout(
-    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_opportunity
-     ON trade_outcomes(opportunity_id, evaluated_at DESC)`,
-    [],
-    { timeoutMs: 5000, label: 'engines.trade_outcome.idx_opportunity_eval', maxRetries: 0 }
-  );
+  const requiredTables = ['trade_signals', 'trade_outcomes', 'strategy_performance'];
+  for (const table of requiredTables) {
+    const { rows } = await queryWithTimeout(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_name = $1
+       ) AS exists`,
+      [table],
+      { timeoutMs: 3000, label: `engines.trade_outcome.preflight.${table}`, maxRetries: 0 }
+    );
+    if (!rows?.[0]?.exists) {
+      throw new Error(`Missing required table: ${table}`);
+    }
+  }
 }
 
 async function recordSignal(signal = {}) {

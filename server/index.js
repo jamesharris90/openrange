@@ -22,7 +22,7 @@ const {
   INTRADAY_TABLE,
   OPPORTUNITIES_TABLE,
   SIGNALS_TABLE,
-} = require('../lib/data/authority');
+} = require('./lib/data/authority');
 const fsSync = require('fs');
 // Load from server/.env (works regardless of CWD at startup)
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
@@ -7019,38 +7019,35 @@ async function fetchTradeabilityRawRows() {
   return rows || [];
 }
 
-async function ensureTradeOutcomesTable() {
-  await queryWithTimeout(
-    `CREATE TABLE IF NOT EXISTS trade_outcomes (
-       id BIGSERIAL PRIMARY KEY,
-       symbol TEXT NOT NULL,
-       strategy TEXT NOT NULL,
-       "class" TEXT NOT NULL,
-       probability NUMERIC NOT NULL DEFAULT 0,
-       entry_time TIMESTAMPTZ NOT NULL,
-       entry_price NUMERIC,
-       exit_time TIMESTAMPTZ,
-       exit_price NUMERIC,
-       max_runup_pct NUMERIC,
-       max_drawdown_pct NUMERIC,
-       result_pct NUMERIC,
-       outcome TEXT CHECK (outcome IN ('win','loss','breakeven'))
-     )`,
-    [],
-    { label: 'trade_outcomes.ensure_table', timeoutMs: 3500, maxRetries: 0 }
-  );
+async function assertRequiredSchemaColumns() {
+  const checks = [
+    { table: 'trade_outcomes', column: 'symbol' },
+    { table: 'trade_outcomes', column: 'pnl_pct' },
+    { table: 'signal_outcomes', column: 'pnl_pct' },
+  ];
 
-  await queryWithTimeout(
-    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_symbol_entry ON trade_outcomes(symbol, entry_time DESC)`,
-    [],
-    { label: 'trade_outcomes.ensure_idx_symbol', timeoutMs: 2000, maxRetries: 0 }
-  );
+  for (const check of checks) {
+    const { rows } = await queryWithTimeout(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = $1
+           AND column_name = $2
+       ) AS exists`,
+      [check.table, check.column],
+      {
+        label: `preflight.schema.${check.table}.${check.column}`,
+        timeoutMs: 3000,
+        maxRetries: 0,
+      }
+    );
 
-  await queryWithTimeout(
-    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_strategy_class ON trade_outcomes(strategy, "class")`,
-    [],
-    { label: 'trade_outcomes.ensure_idx_strategy_class', timeoutMs: 2000, maxRetries: 0 }
-  );
+    if (!rows?.[0]?.exists) {
+      console.error(`[PREFLIGHT] Missing required schema column: ${check.table}.${check.column}`);
+      process.exit(1);
+    }
+  }
 }
 
 function resolveOutcomeWindow(windowKey) {
@@ -8551,6 +8548,7 @@ async function initDatabase() {
     await runSchemaGuard();
     await runDbSchemaGuard();
     await ensurePerformanceIndexes();
+    await assertRequiredSchemaColumns();
 
     await queryWithTimeout(
       `CREATE TABLE IF NOT EXISTS earnings_events (
@@ -8624,7 +8622,6 @@ async function initDatabase() {
     );
 
     await ensurePersonalizationTables();
-    await ensureTradeOutcomesTable();
     logger.info('[SYSTEM] initDatabase complete');
   })().catch((error) => {
     databaseInitPromise = null;
@@ -8640,7 +8637,7 @@ async function runIntegrityBootstrap() {
   });
 }
 
-function bootstrapEngines() {
+async function bootstrapEngines() {
   console.log('[SYSTEM] Bootstrapping engines...');
 
   const runSafe = (label, fn) => {
@@ -8654,7 +8651,14 @@ function bootstrapEngines() {
       });
   };
 
-  runSafe('initDatabase', () => initDatabase());
+  try {
+    await initDatabase();
+  } catch (err) {
+    logger.error('[SYSTEM] initDatabase failed - aborting startup', { error: err.message });
+    process.exit(1);
+    return;
+  }
+
   runSafe('ensureAdminSchema', () => ensureAdminSchema());
   runSafe('initRedis', () => initRedis());
   runSafe('featureBootstrap', () => runFeatureBootstrap());
@@ -8854,8 +8858,8 @@ function shouldBootstrapBackgroundServices() {
   return process.env.NODE_ENV === 'production';
 }
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SERVER] OpenRange backend listening on port ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
   console.log('[BOOT] HTTP server is live');
   logger.info(`OpenRange server listening on port ${PORT}`);
 

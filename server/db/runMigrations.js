@@ -25,11 +25,13 @@ async function runMigrations() {
         await pool.query(sql);
         console.log(`[Migration] Completed: ${file}`);
       } catch (err) {
-        console.error(`[Migration] Failed: ${file}`, err);
+        console.error(`❌ MIGRATION FAILED: ${file} :: ${err.message}`);
+        process.exit(1);
       }
     }
   } catch (err) {
-    console.error("[Migration] Runner failure", err);
+    console.error(`❌ MIGRATION FAILED: ${err.message}`);
+    process.exit(1);
   } finally {
     if (timeoutDisabled) {
       try {

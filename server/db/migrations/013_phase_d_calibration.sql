@@ -10,6 +10,8 @@ ALTER TABLE signal_registry
 -- 2. strategy_edge_rank view
 --    Ranks strategies by measured outcome quality.
 --    Reads signal_outcomes (joined to signal_registry for strategy label).
+DROP VIEW IF EXISTS strategy_edge_rank;
+
 CREATE OR REPLACE VIEW strategy_edge_rank AS
 SELECT
   sr.strategy,
@@ -18,8 +20,8 @@ SELECT
   ROUND(AVG(CASE WHEN so.pnl_pct > 0 THEN so.pnl_pct  END), 4)       AS avg_upside,
   ROUND(AVG(CASE WHEN so.pnl_pct < 0 THEN ABS(so.pnl_pct) END), 4)   AS avg_drawdown,
   ROUND(
-    SUM(CASE WHEN so.pnl_pct > 0 THEN 1 ELSE 0 END)::FLOAT
-    / NULLIF(COUNT(so.id), 0),
+    SUM(CASE WHEN so.pnl_pct > 0 THEN 1 ELSE 0 END)::NUMERIC
+    / NULLIF(COUNT(so.id)::NUMERIC, 0),
     4
   )                                                                    AS win_rate,
   ROUND(

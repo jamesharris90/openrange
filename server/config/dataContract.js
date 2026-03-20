@@ -2,7 +2,7 @@ const {
   MARKET_QUOTES_TABLE,
   OPPORTUNITIES_TABLE,
   SIGNALS_TABLE,
-} = require('../../lib/data/authority');
+} = require('../lib/data/authority');
 
 const DATA_CONTRACT = {
   news: {

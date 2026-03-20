@@ -1,7 +1,7 @@
 const {
   OPPORTUNITIES_TABLE,
   SIGNALS_TABLE,
-} = require('../../../lib/data/authority');
+} = require('../../lib/data/authority');
 
 function clamp(value, min, max, fallback) {
   const parsed = Number(value);

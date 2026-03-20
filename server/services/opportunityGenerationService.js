@@ -2,7 +2,7 @@ const { queryWithTimeout } = require('../db/pg');
 const {
   MARKET_QUOTES_TABLE,
   INTRADAY_TABLE,
-} = require('../../lib/data/authority');
+} = require('../lib/data/authority');
 
 function clampLimit(limit, fallback = 50, max = 200) {
   const parsed = Number(limit);

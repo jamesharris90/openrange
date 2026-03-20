@@ -5,7 +5,7 @@ const {
   INTRADAY_TABLE,
   OPPORTUNITIES_TABLE,
   SIGNALS_TABLE,
-} = require('../../lib/data/authority');
+} = require('../lib/data/authority');
 
 const router = express.Router();
 

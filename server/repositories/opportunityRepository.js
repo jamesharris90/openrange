@@ -1,5 +1,5 @@
 const { queryWithTimeout } = require('../db/pg');
-const { OPPORTUNITIES_TABLE } = require('../../lib/data/authority');
+const { OPPORTUNITIES_TABLE } = require('../lib/data/authority');
 
 function hasSupabaseClient(client) {
   return Boolean(client && typeof client.from === 'function');

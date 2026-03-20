@@ -1,5 +1,5 @@
 const { queryWithTimeout } = require('../db/pg');
-const { MARKET_QUOTES_TABLE, SIGNALS_TABLE } = require('../../lib/data/authority');
+const { MARKET_QUOTES_TABLE, SIGNALS_TABLE } = require('../lib/data/authority');
 
 function normalizeLimit(limit, fallback = 50, max = 200) {
   const parsed = Number(limit);
