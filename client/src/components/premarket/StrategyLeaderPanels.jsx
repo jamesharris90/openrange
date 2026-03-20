@@ -7,6 +7,14 @@ function toNum(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function toConfidencePercent(row) {
+  const raw = row?.confidence_context_percent ?? row?.confidence_contextual ?? row?.confidence;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  if (n >= 0 && n <= 1) return n * 100;
+  return n;
+}
+
 function pickCategory(strategy = '') {
   const s = String(strategy).toLowerCase();
   if (s.includes('day 2')) return 'Day 2 Continuation';
@@ -63,6 +71,7 @@ export default function StrategyLeaderPanels({ rows = [], onSelectTicker }) {
                 ) : top?.map((row, index) => {
                   const symbol = String(row?.symbol || '').toUpperCase();
                   const change = toNum(row?.gap_percent ?? row?.change_percent, 0);
+                  const adjustedConfidence = toConfidencePercent(row);
                   return (
                     <button
                       key={`${title}-${symbol}-${index}`}
@@ -78,6 +87,9 @@ export default function StrategyLeaderPanels({ rows = [], onSelectTicker }) {
                         <span className={change >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{change >= 0 ? '+' : ''}{change.toFixed(2)}%</span>
                       </div>
                       <div className="mt-1 text-xs text-[var(--text-muted)]">{row?.sector || 'Unknown sector'}</div>
+                      <div className="mt-1 text-xs text-[var(--text-muted)]">
+                        Confidence: {adjustedConfidence == null ? 'N/A' : `${adjustedConfidence.toFixed(0)}%`} (Adjusted)
+                      </div>
                       <div className="mt-1">
                         <Sparkline symbol={symbol} positive={change >= 0} width={140} height={28} />
                       </div>

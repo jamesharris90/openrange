@@ -15,27 +15,22 @@ function headersFrom(request: NextRequest): HeadersInit {
 export async function GET(request: NextRequest) {
   try {
     const query = request.nextUrl.searchParams.toString();
-    const path = query ? `/api/earnings/calendar?${query}` : "/api/earnings/calendar";
+    const path = query ? `/api/earnings?${query}` : "/api/earnings";
 
     const response = await fetch(`${API_BASE}${path}`, {
       headers: headersFrom(request),
       cache: "no-store",
     });
-    const data = await response.json().catch(() => ({}));
 
-    return NextResponse.json(
-      {
-        status: "ok",
-        data,
-      },
-      { status: response.ok ? 200 : response.status }
-    );
+    const data = await response.json().catch(() => ({}));
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json(
       {
         status: "error",
         message: "internal_error",
+        source: "none",
       },
       { status: 500 }
     );

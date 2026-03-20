@@ -1,6 +1,8 @@
 import type { Opportunity } from "@/lib/types";
 
 import { apiGet } from "@/lib/api/client";
+import { adaptOpportunitiesPayload } from "@/lib/adapters";
+import { debugLog } from "@/lib/debug";
 
 export type StocksFilters = {
   minPrice?: number;
@@ -11,6 +13,10 @@ export type StocksFilters = {
   minMarketCap?: number;
   maxMarketCap?: number;
 };
+
+function normalizeRows(payload: unknown): Opportunity[] {
+  return adaptOpportunitiesPayload(payload);
+}
 
 function buildQuery(filters: StocksFilters) {
   const query = new URLSearchParams();
@@ -25,28 +31,15 @@ function buildQuery(filters: StocksFilters) {
 }
 
 export async function getOpportunityStream(): Promise<Opportunity[]> {
-  const response = await apiGet<{ success?: boolean; data?: Opportunity[] }>("/api/intelligence/opportunities");
-  if (response.success !== true) {
-    throw new Error("Intelligence opportunities request failed");
-  }
-
-  if (!Array.isArray(response.data)) {
-    throw new Error("Invalid opportunities response contract");
-  }
-
-  return response.data;
+  const response = await apiGet<Record<string, unknown>>("/api/intelligence/opportunities");
+  debugLog("/api/intelligence/opportunities", response);
+  return normalizeRows(response);
 }
 
 export async function getStocksInPlay(filters: StocksFilters = {}): Promise<Opportunity[]> {
   const query = buildQuery(filters);
-  const response = await apiGet<{ success?: boolean; data?: Opportunity[] }>(`/api/intelligence/opportunities${query ? `?${query}` : ""}`);
-  if (response.success !== true) {
-    throw new Error("Intelligence opportunities request failed");
-  }
-
-  if (!Array.isArray(response.data)) {
-    throw new Error("Invalid opportunities response contract");
-  }
-
-  return response.data;
+  const endpoint = `/api/intelligence/opportunities${query ? `?${query}` : ""}`;
+  const response = await apiGet<Record<string, unknown>>(endpoint);
+  debugLog("/api/intelligence/opportunities", response);
+  return normalizeRows(response);
 }

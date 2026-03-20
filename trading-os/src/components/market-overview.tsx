@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toFixedSafe } from "@/lib/number";
 import { getMarketRegimeInputs } from "@/lib/queries";
 
 export function MarketOverview() {
@@ -20,9 +21,9 @@ export function MarketOverview() {
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-4">
         <Stat label="Regime" value={data.regime} />
-        <Stat label="VIX" value={data.vix.toFixed(1)} mono />
+        {Number.isFinite(data.vix) ? <Stat label="VIX" value={toFixedSafe(data.vix, 1)} mono /> : null}
         <Stat label="Breadth" value={`${Math.round(data.breadth * 100)}%`} mono />
-        <Stat label="Put/Call" value={data.put_call.toFixed(2)} mono />
+        <Stat label="Put/Call" value={toFixedSafe(data.put_call, 2)} mono />
       </CardContent>
     </Card>
   );

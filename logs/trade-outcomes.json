@@ -1,0 +1,332 @@
+[
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:40:16.052Z",
+    "outcome": "win"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:40:16.053Z",
+    "outcome": "breakeven"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:40:16.054Z",
+    "outcome": "win"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:42:49.366Z",
+    "outcome": "win"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:42:49.366Z",
+    "outcome": "win"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 36.12,
+    "timestamp": "2026-03-19T10:42:49.367Z",
+    "outcome": "loss"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 60.199999999999996,
+    "timestamp": "2026-03-19T16:08:11.125Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 60.199999999999996,
+    "timestamp": "2026-03-19T16:08:11.126Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 60.199999999999996,
+    "timestamp": "2026-03-19T16:08:11.126Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.181Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.182Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.183Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "UCL",
+    "strategy": "momentum_long",
+    "entry": "1.63",
+    "stop": "1.5811",
+    "target": "1.7278",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.184Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "AXIA",
+    "strategy": "momentum_long",
+    "entry": "10.94",
+    "stop": "10.611799999999999",
+    "target": "11.596400000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.185Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "TME",
+    "strategy": "momentum_long",
+    "entry": "11.3801",
+    "stop": "11.038697",
+    "target": "12.062906000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:09:21.186Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.462Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.463Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.464Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "UCL",
+    "strategy": "momentum_long",
+    "entry": "1.63",
+    "stop": "1.5811",
+    "target": "1.7278",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.466Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "AXIA",
+    "strategy": "momentum_long",
+    "entry": "10.94",
+    "stop": "10.611799999999999",
+    "target": "11.596400000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.467Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "TME",
+    "strategy": "momentum_long",
+    "entry": "11.3801",
+    "stop": "11.038697",
+    "target": "12.062906000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:37.468Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.259Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.260Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.261Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "UCL",
+    "strategy": "momentum_long",
+    "entry": "1.63",
+    "stop": "1.5811",
+    "target": "1.7278",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.263Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "AXIA",
+    "strategy": "momentum_long",
+    "entry": "10.94",
+    "stop": "10.611799999999999",
+    "target": "11.596400000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.264Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "TME",
+    "strategy": "momentum_long",
+    "entry": "11.3801",
+    "stop": "11.038697",
+    "target": "12.062906000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:20:40.265Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "PLBY",
+    "strategy": "momentum_long",
+    "entry": "1.68",
+    "stop": "1.6296",
+    "target": "1.7808",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.427Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "BGSI",
+    "strategy": "momentum_long",
+    "entry": "162.99",
+    "stop": "158.1003",
+    "target": "172.76940000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.429Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "IHS",
+    "strategy": "momentum_long",
+    "entry": "8.25",
+    "stop": "8.0025",
+    "target": "8.745000000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.430Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "UCL",
+    "strategy": "momentum_long",
+    "entry": "1.63",
+    "stop": "1.5811",
+    "target": "1.7278",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.431Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "AXIA",
+    "strategy": "momentum_long",
+    "entry": "10.94",
+    "stop": "10.611799999999999",
+    "target": "11.596400000000001",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.433Z",
+    "outcome": "pending"
+  },
+  {
+    "symbol": "TME",
+    "strategy": "momentum_long",
+    "entry": "11.3801",
+    "stop": "11.038697",
+    "target": "12.062906000000002",
+    "confidence": 77.4,
+    "timestamp": "2026-03-19T16:54:31.436Z",
+    "outcome": "pending"
+  }
+]

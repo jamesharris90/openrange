@@ -1,0 +1,357 @@
+{
+  "generatedAt": "2026-03-19T00:30:40.546Z",
+  "checks": {
+    "earnings": {
+      "rowsEvaluated": 1612,
+      "surprisesAbove20pct": 203,
+      "sample": [
+        {
+          "symbol": "HTFL",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": -0.16913,
+          "eps_actual": -0.06619,
+          "surprise_ratio": 0.608644238159995
+        },
+        {
+          "symbol": "BYD.TO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.863,
+          "eps_actual": 1.24,
+          "surprise_ratio": 0.436848203939745
+        },
+        {
+          "symbol": "XOMAO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": -0.11454,
+          "eps_actual": 0.3373,
+          "surprise_ratio": 3.94482276933822
+        },
+        {
+          "symbol": "KDDIY",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.3288,
+          "eps_actual": 0.1367,
+          "surprise_ratio": 0.584245742092457
+        },
+        {
+          "symbol": "IFOS.V",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.1648,
+          "eps_actual": 0.2609,
+          "surprise_ratio": 0.583131067961165
+        },
+        {
+          "symbol": "2610.TW",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.4637,
+          "eps_actual": 0.612,
+          "surprise_ratio": 0.319818848393358
+        },
+        {
+          "symbol": "3078.TWO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 1.57,
+          "eps_actual": 1.1,
+          "surprise_ratio": 0.299363057324841
+        },
+        {
+          "symbol": "OSS",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.02333,
+          "eps_actual": 0.1,
+          "surprise_ratio": 3.2863266180883
+        },
+        {
+          "symbol": "4549.TWO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 2.53,
+          "eps_actual": 0.894,
+          "surprise_ratio": 0.646640316205534
+        },
+        {
+          "symbol": "9898.HK",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 2.46,
+          "eps_actual": 1.96,
+          "surprise_ratio": 0.203252032520325
+        },
+        {
+          "symbol": "6763.TWO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.54,
+          "eps_actual": 0.3785,
+          "surprise_ratio": 0.299074074074074
+        },
+        {
+          "symbol": "INPST.AS",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.2278,
+          "eps_actual": 0.09766,
+          "surprise_ratio": 0.571290605794557
+        },
+        {
+          "symbol": "PLX",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.04,
+          "eps_actual": -0.07007,
+          "surprise_ratio": 2.75175
+        },
+        {
+          "symbol": "ACQ.TO",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.4723,
+          "eps_actual": -0.05997,
+          "surprise_ratio": 1.12697438069024
+        },
+        {
+          "symbol": "SVMRF",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": -0.0076,
+          "eps_actual": 0.01914,
+          "surprise_ratio": 3.51842105263158
+        },
+        {
+          "symbol": "MU",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 9.19,
+          "eps_actual": 12.09,
+          "surprise_ratio": 0.315560391730141
+        },
+        {
+          "symbol": "HYPR",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": -0.08,
+          "eps_actual": -0.06276,
+          "surprise_ratio": 0.2155
+        },
+        {
+          "symbol": "XOMA",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": -0.11454,
+          "eps_actual": 0.3373,
+          "surprise_ratio": 3.94482276933822
+        },
+        {
+          "symbol": "1MO.F",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.1659,
+          "eps_actual": 0.08764,
+          "surprise_ratio": 0.471729957805907
+        },
+        {
+          "symbol": "AKTAF",
+          "event_date": "2026-03-18T00:00:00.000Z",
+          "eps_estimate": 0.01231,
+          "eps_actual": 0.02185,
+          "surprise_ratio": 0.77497969130788
+        }
+      ]
+    },
+    "news": {
+      "totalRows": 48,
+      "symbolDistribution": [
+        {
+          "symbol": "MU",
+          "c": 2
+        },
+        {
+          "symbol": "ACGL",
+          "c": 1
+        },
+        {
+          "symbol": "ANDG",
+          "c": 1
+        },
+        {
+          "symbol": "ARQ",
+          "c": 1
+        },
+        {
+          "symbol": "ARX",
+          "c": 1
+        },
+        {
+          "symbol": "ASTS",
+          "c": 1
+        },
+        {
+          "symbol": "BKNG",
+          "c": 1
+        },
+        {
+          "symbol": "BPOP",
+          "c": 1
+        },
+        {
+          "symbol": "BTI",
+          "c": 1
+        },
+        {
+          "symbol": "CA",
+          "c": 1
+        },
+        {
+          "symbol": "CAH",
+          "c": 1
+        },
+        {
+          "symbol": "CIFR",
+          "c": 1
+        },
+        {
+          "symbol": "DRVN",
+          "c": 1
+        },
+        {
+          "symbol": "GOOG",
+          "c": 1
+        },
+        {
+          "symbol": "GRMN",
+          "c": 1
+        },
+        {
+          "symbol": "HAS",
+          "c": 1
+        },
+        {
+          "symbol": "HY",
+          "c": 1
+        },
+        {
+          "symbol": "HYPR",
+          "c": 1
+        },
+        {
+          "symbol": "JHG",
+          "c": 1
+        },
+        {
+          "symbol": "KHC",
+          "c": 1
+        },
+        {
+          "symbol": "LCID",
+          "c": 1
+        },
+        {
+          "symbol": "LITE",
+          "c": 1
+        },
+        {
+          "symbol": "META",
+          "c": 1
+        },
+        {
+          "symbol": "MHO",
+          "c": 1
+        },
+        {
+          "symbol": "MRKR",
+          "c": 1
+        },
+        {
+          "symbol": "NDAQ",
+          "c": 1
+        },
+        {
+          "symbol": "NET",
+          "c": 1
+        },
+        {
+          "symbol": "NVDA",
+          "c": 1
+        },
+        {
+          "symbol": "NVT",
+          "c": 1
+        },
+        {
+          "symbol": "PCVX",
+          "c": 1
+        },
+        {
+          "symbol": "PFBC",
+          "c": 1
+        },
+        {
+          "symbol": "PLD",
+          "c": 1
+        },
+        {
+          "symbol": "PLUG",
+          "c": 1
+        },
+        {
+          "symbol": "PMRTY",
+          "c": 1
+        },
+        {
+          "symbol": "PRRSF",
+          "c": 1
+        },
+        {
+          "symbol": "RWR",
+          "c": 1
+        },
+        {
+          "symbol": "SERA",
+          "c": 1
+        },
+        {
+          "symbol": "SERV",
+          "c": 1
+        },
+        {
+          "symbol": "SLQT",
+          "c": 1
+        },
+        {
+          "symbol": "SONY",
+          "c": 1
+        },
+        {
+          "symbol": "TDOC",
+          "c": 1
+        },
+        {
+          "symbol": "TLRY",
+          "c": 1
+        },
+        {
+          "symbol": "TOGOF",
+          "c": 1
+        },
+        {
+          "symbol": "TOP",
+          "c": 1
+        },
+        {
+          "symbol": "USPS",
+          "c": 1
+        },
+        {
+          "symbol": "AAAU",
+          "c": 1
+        },
+        {
+          "symbol": "WING",
+          "c": 1
+        }
+      ],
+      "topSymbol": "MU",
+      "topShare": 0.041666666666666664,
+      "pass": true
+    },
+    "ipos": {
+      "upcomingOrRecentCount": 35,
+      "pass": true
+    },
+    "splits": {
+      "upcomingOrRecentCount": 35,
+      "pass": true
+    }
+  },
+  "failedValidations": [],
+  "ok": true
+}

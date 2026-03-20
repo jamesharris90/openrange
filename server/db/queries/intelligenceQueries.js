@@ -1,3 +1,8 @@
+const {
+  OPPORTUNITIES_TABLE,
+  SIGNALS_TABLE,
+} = require('../../../lib/data/authority');
+
 function clamp(value, min, max, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -29,7 +34,7 @@ function buildOpportunitiesPrimaryQuery(limit) {
   const normalizedLimit = clamp(limit, 1, 200, 50);
   return {
     text: `SELECT *
-           FROM trade_setups
+           FROM ${OPPORTUNITIES_TABLE}
            WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days'
            ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
            LIMIT $1`,
@@ -41,7 +46,7 @@ function buildOpportunitiesPrimaryQuery(limit) {
 function buildOpportunitiesFallbackQuery() {
   return {
     text: `SELECT *
-           FROM trade_setups
+           FROM ${OPPORTUNITIES_TABLE}
            ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
            LIMIT 20`,
     params: [],
@@ -77,9 +82,9 @@ function buildHeatmapFallbackQuery() {
 function buildSignalsPrimaryQuery() {
   return {
     text: `SELECT *
-           FROM trade_setups
-           WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days'
-           ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
+           FROM ${SIGNALS_TABLE}
+           WHERE updated_at > NOW() - INTERVAL '7 days'
+           ORDER BY updated_at DESC NULLS LAST
            LIMIT 50`,
     params: [],
     options: { label: 'api.intelligence.signals.primary', timeoutMs: 2200, maxRetries: 1, retryDelayMs: 120 },
@@ -89,8 +94,8 @@ function buildSignalsPrimaryQuery() {
 function buildSignalsFallbackQuery() {
   return {
     text: `SELECT *
-           FROM trade_setups
-           ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
+           FROM ${SIGNALS_TABLE}
+           ORDER BY updated_at DESC NULLS LAST
            LIMIT 20`,
     params: [],
     options: { label: 'api.intelligence.signals.fallback', timeoutMs: 2200, maxRetries: 1, retryDelayMs: 120 },

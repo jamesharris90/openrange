@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-03-18T21:58:30.482Z",
+  "strictMode": true,
+  "ok": true,
+  "endpoints": [
+    {
+      "key": "earnings-calendar",
+      "validation_type": "symbol-based",
+      "httpStatus": 200,
+      "rowCount": 4000,
+      "uniqueSymbols": 3999,
+      "timestampCount": 4000,
+      "rawPath": "/Users/jamesharris/Server/logs/fmp/earnings-calendar.raw.json",
+      "checks": {
+        "nonEmptyArray": true,
+        "uniqueSymbolsGte11": true,
+        "timestampsExist": true
+      },
+      "passed": true
+    },
+    {
+      "key": "news-stock-latest",
+      "validation_type": "symbol-based",
+      "httpStatus": 200,
+      "rowCount": 50,
+      "uniqueSymbols": 49,
+      "timestampCount": 50,
+      "rawPath": "/Users/jamesharris/Server/logs/fmp/news-stock-latest.raw.json",
+      "checks": {
+        "nonEmptyArray": true,
+        "uniqueSymbolsGte11": true,
+        "timestampsExist": true
+      },
+      "passed": true
+    },
+    {
+      "key": "news-general-latest",
+      "validation_type": "macro-based",
+      "httpStatus": 200,
+      "rowCount": 50,
+      "uniqueSymbols": 0,
+      "timestampCount": 50,
+      "rawPath": "/Users/jamesharris/Server/logs/fmp/news-general-latest.raw.json",
+      "uniquePublishers": 19,
+      "fieldCoverage": {
+        "publishedDateCount": 50,
+        "titleCount": 50,
+        "publisherOrSiteCount": 50
+      },
+      "checks": {
+        "nonEmptyArray": true,
+        "publishedDateExists": true,
+        "titleExists": true,
+        "publisherOrSiteExists": true,
+        "uniquePublishersGte5": true
+      },
+      "passed": true
+    },
+    {
+      "key": "ipos-calendar",
+      "validation_type": "symbol-based",
+      "httpStatus": 200,
+      "rowCount": 436,
+      "uniqueSymbols": 432,
+      "timestampCount": 436,
+      "rawPath": "/Users/jamesharris/Server/logs/fmp/ipos-calendar.raw.json",
+      "checks": {
+        "nonEmptyArray": true,
+        "uniqueSymbolsGte11": true,
+        "timestampsExist": true
+      },
+      "passed": true
+    },
+    {
+      "key": "splits-calendar",
+      "validation_type": "symbol-based",
+      "httpStatus": 200,
+      "rowCount": 679,
+      "uniqueSymbols": 668,
+      "timestampCount": 679,
+      "rawPath": "/Users/jamesharris/Server/logs/fmp/splits-calendar.raw.json",
+      "checks": {
+        "nonEmptyArray": true,
+        "uniqueSymbolsGte11": true,
+        "timestampsExist": true
+      },
+      "passed": true
+    }
+  ]
+}

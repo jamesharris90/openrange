@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
-import { fetchSafe } from '../api/fetchSafe';
+import { apiFetch } from '../api/apiClient';
 
 const REFRESH_MS = 60_000;
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 function toNumber(value, fallback = 0) {
   const numeric = Number(value);
@@ -23,14 +18,7 @@ export default function StocksInPlayPanel() {
 
     async function load() {
       try {
-        const payload = await fetchSafe('/api/stocks-in-play', {
-          method: 'GET',
-          headers: {
-            ...getAuthHeaders(),
-          },
-          credentials: 'include',
-          fallback: { data: [] },
-        });
+        const payload = await apiFetch('/api/stocks-in-play', { method: 'GET', fallback: { data: [] } });
         if (cancelled) return;
 
         setRows(Array.isArray(payload?.data) ? payload.data : []);

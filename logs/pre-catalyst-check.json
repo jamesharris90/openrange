@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-03-19T10:03:51.488Z",
+  "checks": {
+    "news_articles": {
+      "unique_symbols": 46,
+      "top_symbol_share": 0.04081632653061224,
+      "pass": true
+    },
+    "earnings_calendar": {
+      "validation_mode": "recent_or_upcoming",
+      "symbols": 1612,
+      "recent_or_upcoming_events": 1612,
+      "max_event_date": "2026-03-18T00:00:00.000Z",
+      "pass": true
+    }
+  },
+  "ok": true,
+  "reason": []
+}

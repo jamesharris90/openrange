@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchSafe } from '../../api/fetchSafe';
+import { apiFetch } from '../../api/apiClient';
 import { authFetch } from '../../utils/api';
 
 function Badge({ status }) {
@@ -31,14 +31,12 @@ export default function SystemDiagnostics() {
       setError("");
       try {
         const [reportJson, engineJson, newsletterJson, emailStatusJson] = await Promise.all([
-          fetchSafe('/api/system-audit/report', {
+          apiFetch('/api/system-audit/report', {
             headers: { Accept: 'application/json' },
-            credentials: 'include',
             fallback: {},
           }),
-          fetchSafe('/api/system/engine-health', {
+          apiFetch('/api/system/engine-health', {
             headers: { Accept: 'application/json' },
-            credentials: 'include',
             fallback: { data: { engines: [] } },
           }),
           (async () => {

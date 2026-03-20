@@ -118,11 +118,20 @@ async function getValidSymbolsSet() {
 
 async function getCandidateHeadlines() {
   const { rows } = await queryWithTimeout(
-    `SELECT id, headline, source, published_at
+    `SELECT id, headline, source, published_at, NULL::text AS symbol, 'news_articles'::text AS source_table
      FROM news_articles
      WHERE published_at >= NOW() - interval '72 hours'
        AND headline IS NOT NULL
        AND LENGTH(TRIM(headline)) > 0
+
+     UNION ALL
+
+     SELECT id, headline, source, published_at, UPPER(symbol) AS symbol, 'intel_news'::text AS source_table
+     FROM intel_news
+     WHERE published_at >= NOW() - interval '72 hours'
+       AND headline IS NOT NULL
+       AND LENGTH(TRIM(headline)) > 0
+
      ORDER BY published_at DESC`,
     [],
     { timeoutMs: 10000, label: 'engines.catalyst.news_articles_recent', maxRetries: 0 }
@@ -135,7 +144,10 @@ function buildCatalystRows(newsRows, validSymbolsSet) {
   const catalystRows = [];
 
   for (const row of newsRows) {
-    const symbols = extractTickers(row.headline, validSymbolsSet);
+    const explicitSymbol = toText(row.symbol).toUpperCase();
+    const symbols = explicitSymbol && validSymbolsSet.has(explicitSymbol)
+      ? [explicitSymbol]
+      : extractTickers(row.headline, validSymbolsSet);
     if (!symbols.length) continue;
 
     tickersDetected += symbols.length;

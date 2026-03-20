@@ -1,6 +1,7 @@
 const axios = require('axios');
 const logger = require('../logger');
 const { pool } = require('../db/pg');
+const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('../utils/symbolMap');
 
 const FMP_PROFILE_ENDPOINT = 'https://financialmodelingprep.com/stable/profile';
 const FMP_STOCK_LIST_ENDPOINT = 'https://financialmodelingprep.com/stable/stock-list';
@@ -183,13 +184,15 @@ async function fetchSymbolUniverse(fmpApiKey) {
 }
 
 async function fetchQuotesBatch(fmpApiKey, symbols) {
-  const symbolsParam = symbols.join(',');
+  const canonicalSymbols = symbols.map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol))).filter(Boolean);
+  const providerSymbols = canonicalSymbols.map((symbol) => mapToProviderSymbol(symbol));
+  const symbolsParam = providerSymbols.join(',');
   const batchUrl = `${FMP_QUOTE_ENDPOINT}?symbol=${encodeURIComponent(symbolsParam)}&apikey=${encodeURIComponent(fmpApiKey)}`;
 
   const fetchSingleSymbolQuotes = async () => {
     const rows = [];
     let latencyMs = 0;
-    const groups = chunkArray(symbols, 10);
+    const groups = chunkArray(providerSymbols, 10);
 
     for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
       const group = groups[groupIndex];
@@ -281,15 +284,15 @@ async function upsertQuoteRows(rows) {
 function normalizeQuoteRows(rows, sectorBySymbol = {}) {
   return rows
     .map((row) => ({
-      symbol: String(row?.symbol || '').trim().toUpperCase(),
+      symbol: mapFromProviderSymbol(normalizeSymbol(row?.symbol)),
       price: asNumber(row?.price),
       changePercent: asNumber(row?.changesPercentage ?? row?.change),
       volume: asInteger(row?.volume),
       marketCap: asInteger(row?.marketCap),
       sector:
         (typeof row?.sector === 'string' && row.sector) ||
-        (typeof sectorBySymbol[String(row?.symbol || '').trim().toUpperCase()] === 'string'
-          ? sectorBySymbol[String(row?.symbol || '').trim().toUpperCase()]
+        (typeof sectorBySymbol[mapFromProviderSymbol(normalizeSymbol(row?.symbol))] === 'string'
+          ? sectorBySymbol[mapFromProviderSymbol(normalizeSymbol(row?.symbol))]
           : null),
       timestamp: row?.timestamp || null,
     }))

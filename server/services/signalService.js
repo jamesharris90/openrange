@@ -1,4 +1,5 @@
 const { queryWithTimeout } = require('../db/pg');
+const { MARKET_QUOTES_TABLE, SIGNALS_TABLE } = require('../../lib/data/authority');
 
 function normalizeLimit(limit, fallback = 50, max = 200) {
   const parsed = Number(limit);
@@ -37,9 +38,9 @@ async function fetchUnifiedSignals({ limit = 50, recentHours = null } = {}) {
       COALESCE(tc.catalyst_type, 'news') AS catalyst_type,
       COALESCE(s.updated_at, s.created_at, now()) AS updated_at,
       COALESCE(s.updated_at, s.created_at, now()) AS timestamp
-    FROM strategy_signals s
+    FROM ${SIGNALS_TABLE} s
     LEFT JOIN market_metrics m ON m.symbol = s.symbol
-    LEFT JOIN market_quotes q ON q.symbol = s.symbol
+    LEFT JOIN ${MARKET_QUOTES_TABLE} q ON q.symbol = s.symbol
     LEFT JOIN LATERAL (
       SELECT headline, catalyst_type
       FROM trade_catalysts c

@@ -26,17 +26,24 @@ function withQuery(path: string, request: NextRequest): string {
 }
 
 export async function backendGet(request: NextRequest, path: string): Promise<NextResponse> {
+  const target = `${API_BASE}${withQuery(path, request)}`;
+  console.log("PROXY CALL:", target);
   try {
-    const response = await fetch(`${API_BASE}${withQuery(path, request)}`, {
+    const response = await fetch(target, {
       method: "GET",
       headers: buildHeaders(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
 
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+    console.log("PROXY STATUS:", response.status);
+    console.log("PROXY SAMPLE:", JSON.stringify(payload).slice(0, 500));
     return NextResponse.json(payload, { status: response.status });
   } catch (error) {
+    console.error("PROXY STATUS:", 502);
+    console.error("PROXY SAMPLE:", JSON.stringify({ success: false, error: "BACKEND_UNREACHABLE" }));
     return NextResponse.json(
       { success: false, error: "BACKEND_UNREACHABLE", detail: error instanceof Error ? error.message : "unknown error" },
       { status: 502 }
@@ -45,20 +52,27 @@ export async function backendGet(request: NextRequest, path: string): Promise<Ne
 }
 
 export async function backendPost(request: NextRequest, path: string): Promise<NextResponse> {
+  const target = `${API_BASE}${path}`;
+  console.log("PROXY CALL:", target);
   try {
     const body = await request.json().catch(() => ({}));
 
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetch(target, {
       method: "POST",
       headers: buildHeaders(request, true),
       body: JSON.stringify(body),
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
 
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+    console.log("PROXY STATUS:", response.status);
+    console.log("PROXY SAMPLE:", JSON.stringify(payload).slice(0, 500));
     return NextResponse.json(payload, { status: response.status });
   } catch (error) {
+    console.error("PROXY STATUS:", 502);
+    console.error("PROXY SAMPLE:", JSON.stringify({ success: false, error: "BACKEND_UNREACHABLE" }));
     return NextResponse.json(
       { success: false, error: "BACKEND_UNREACHABLE", detail: error instanceof Error ? error.message : "unknown error" },
       { status: 502 }

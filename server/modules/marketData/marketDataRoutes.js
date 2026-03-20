@@ -3,18 +3,19 @@ const axios = require('axios');
 const marketCache = require('../../cache/marketCache');
 const { getTickerTapeCache } = require('../../cache/tickerCache');
 const { queryWithTimeout } = require('../../db/pg');
+const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('../../utils/symbolMap');
 
 const router = express.Router();
 const FMP_BASE = 'https://financialmodelingprep.com';
 const FMP_KEY = process.env.FMP_API_KEY;
 
-const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', '^VIX', 'DX-Y.NYB', '^TNX'];
+const INDEX_SYMBOLS = ['SPY', 'QQQ', 'IWM', 'VIX', 'DX-Y.NYB', '^TNX'];
 const TICKER_TAPE_SYMBOLS = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'MSFT', 'AMD', 'META', 'AMZN'];
 const INDEX_TARGETS = [
   { key: 'spy', symbol: 'SPY', aliases: ['SPY'] },
   { key: 'qqq', symbol: 'QQQ', aliases: ['QQQ'] },
   { key: 'iwm', symbol: 'IWM', aliases: ['IWM'] },
-  { key: 'vix', symbol: 'VIX', aliases: ['VIX', '^VIX'] },
+  { key: 'vix', symbol: 'VIX', aliases: ['VIX', mapToProviderSymbol('VIX')] },
   { key: 'dxy', symbol: 'DXY', aliases: ['DXY', 'DX-Y.NYB'] },
   { key: 'tenYear', symbol: '10Y', aliases: ['10Y', 'TNX', '^TNX', 'US10Y'] },
 ];
@@ -80,8 +81,13 @@ function degradedResponse(extra = {}) {
 }
 
 async function fetchQuotes(symbols, apiKey) {
-  if (symbols.length === 1) {
-    const symbol = String(symbols[0] || '').trim().toUpperCase();
+  const canonicalSymbols = (Array.isArray(symbols) ? symbols : [])
+    .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
+    .filter(Boolean);
+  const providerSymbols = canonicalSymbols.map((symbol) => mapToProviderSymbol(symbol));
+
+  if (canonicalSymbols.length === 1) {
+    const symbol = canonicalSymbols[0];
     const cacheKey = `quote_${symbol}`;
     const cached = marketCache.get(cacheKey);
     if (cached) {
@@ -89,7 +95,7 @@ async function fetchQuotes(symbols, apiKey) {
     }
   }
 
-  const joined = symbols.join(',');
+  const joined = providerSymbols.join(',');
   const response = await axios.get(`${FMP_BASE}/stable/quote`, {
     params: { symbol: joined, apikey: apiKey },
     timeout: 15000,
@@ -100,10 +106,13 @@ async function fetchQuotes(symbols, apiKey) {
     throw new Error(`FMP quote failed: ${response.status}`);
   }
 
-  const data = Array.isArray(response.data) ? response.data : [];
+  const data = (Array.isArray(response.data) ? response.data : []).map((row) => ({
+    ...row,
+    symbol: mapFromProviderSymbol(normalizeSymbol(row?.symbol)),
+  }));
 
-  if (symbols.length === 1) {
-    const symbol = String(symbols[0] || '').trim().toUpperCase();
+  if (canonicalSymbols.length === 1) {
+    const symbol = canonicalSymbols[0];
     const cacheKey = `quote_${symbol}`;
     marketCache.set(cacheKey, data);
   }
@@ -112,7 +121,7 @@ async function fetchQuotes(symbols, apiKey) {
 }
 
 router.get('/quote', async (req, res) => {
-  const symbol = String(req.query.symbol || '').trim().toUpperCase();
+  const symbol = mapFromProviderSymbol(normalizeSymbol(req.query.symbol));
   if (!symbol) {
     return res.status(400).json(degradedResponse({ error: 'symbol is required' }));
   }
@@ -144,7 +153,8 @@ router.get('/quote', async (req, res) => {
 });
 
 router.get('/chart-mini/:symbol', async (req, res) => {
-  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  const symbol = mapFromProviderSymbol(normalizeSymbol(req.params.symbol));
+  const providerSymbol = mapToProviderSymbol(symbol);
   if (!symbol) {
     return res.status(400).json(degradedResponse({ error: 'symbol is required' }));
   }
@@ -157,7 +167,7 @@ router.get('/chart-mini/:symbol', async (req, res) => {
   try {
     const response = await axios.get(`${FMP_BASE}/stable/historical-price-eod`, {
       params: {
-        symbol,
+        symbol: providerSymbol,
         limit: 30,
         apikey: apiKey,
       },

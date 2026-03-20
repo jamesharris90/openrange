@@ -1,3 +1,9 @@
+const {
+  MARKET_QUOTES_TABLE,
+  OPPORTUNITIES_TABLE,
+  SIGNALS_TABLE,
+} = require('../../lib/data/authority');
+
 const DATA_CONTRACT = {
   news: {
     table: 'news_articles',
@@ -34,7 +40,7 @@ const DATA_CONTRACT = {
   },
 
   signals: {
-    table: 'strategy_signals',
+    table: SIGNALS_TABLE,
     columns: [
       'id',
       'symbol',
@@ -57,6 +63,17 @@ const DATA_CONTRACT = {
   },
 
   opportunities: {
+    table: OPPORTUNITIES_TABLE,
+    columns: [
+      'symbol',
+      'setup_type',
+      'score',
+      'detected_at',
+      'updated_at',
+    ],
+  },
+
+  opportunityStream: {
     table: 'opportunity_stream',
     columns: [
       'id',
@@ -67,10 +84,11 @@ const DATA_CONTRACT = {
       'source',
       'created_at',
     ],
+    nonAuthoritative: true,
   },
 
   marketQuotes: {
-    table: 'market_quotes',
+    table: MARKET_QUOTES_TABLE,
     columns: [
       'symbol',
       'price',

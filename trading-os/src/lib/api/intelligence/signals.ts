@@ -12,16 +12,23 @@ type SignalItem = {
 };
 
 function toOpportunity(item: SignalItem): Opportunity {
-  const score = Number(item.strategy_score ?? item.score ?? 0);
-  const probability = Math.max(1, Math.min(99, score || 50));
+  const symbol = String(item.symbol || "").toUpperCase();
+  const strategy = String(item.setup_type || item.strategy || "").trim();
+  const score = Number(item.strategy_score ?? item.score);
+
+  if (!symbol || !strategy || !Number.isFinite(score)) {
+    throw new Error("Invalid signals response contract");
+  }
+
+  const probability = Math.max(1, Math.min(99, score));
   const confidence = Math.max(1, Math.min(99, probability * 0.9 + 5));
 
   return {
-    symbol: String(item.symbol || "N/A").toUpperCase(),
-    strategy: String(item.setup_type || item.strategy || "Signal"),
+    symbol,
+    strategy,
     probability,
     confidence,
-    expected_move: Number((score / 12).toFixed(2)),
+    expected_move: Math.round((score / 12) * 100) / 100,
   };
 }
 

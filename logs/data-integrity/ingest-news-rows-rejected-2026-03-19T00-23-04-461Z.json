@@ -1,0 +1,1307 @@
+{
+  "jobName": "ingest-news-rows-rejected",
+  "generatedAt": "2026-03-19T00:23:04.461Z",
+  "rejectedCount": 52,
+  "rejected": [
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T19:21:00.000Z",
+        "title": "InnoVision Marketing Group Unveils 'The Fundamentals of Success,' A Video Series on What It Really Takes to Succeed",
+        "body_text": "/PRNewswire/ -- Award-winning marketing agency InnoVision Marketing Group, known as the Anti-Agency for its elevated client service, today announced the",
+        "source": "PRNewsWire",
+        "publisher": "PRNewsWire",
+        "site": "prnewswire.com",
+        "url": "https://www.prnewswire.com/news-releases/innovision-marketing-group-unveils-the-fundamentals-of-success-a-video-series-on-what-it-really-takes-to-succeed-302718115.html",
+        "source_url": "https://www.prnewswire.com/news-releases/innovision-marketing-group-unveils-the-fundamentals-of-success-a-video-series-on-what-it-really-takes-to-succeed-302718115.html",
+        "image_url": "https://images.financialmodelingprep.com/news/innovision-marketing-group-unveils-the-fundamentals-of-success-a-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 19:21:00",
+          "publisher": "PRNewsWire",
+          "title": "InnoVision Marketing Group Unveils 'The Fundamentals of Success,' A Video Series on What It Really Takes to Succeed",
+          "image": "https://images.financialmodelingprep.com/news/innovision-marketing-group-unveils-the-fundamentals-of-success-a-20260318.jpg",
+          "site": "prnewswire.com",
+          "text": "/PRNewswire/ -- Award-winning marketing agency InnoVision Marketing Group, known as the Anti-Agency for its elevated client service, today announced the",
+          "url": "https://www.prnewswire.com/news-releases/innovision-marketing-group-unveils-the-fundamentals-of-success-a-video-series-on-what-it-really-takes-to-succeed-302718115.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T19:08:00.000Z",
+        "title": "$25 Million Project Seeks to Coordinate Data Produced by Human-Based Testing Methods",
+        "body_text": "/PRNewswire/ -- A research team at NYU Langone Health and Sage Bionetworks has been awarded a $25 million grant to establish the data hub and coordinating",
+        "source": "PRNewsWire",
+        "publisher": "PRNewsWire",
+        "site": "prnewswire.com",
+        "url": "https://www.prnewswire.com/news-releases/25-million-project-seeks-to-coordinate-data-produced-by-human-based-testing-methods-302718109.html",
+        "source_url": "https://www.prnewswire.com/news-releases/25-million-project-seeks-to-coordinate-data-produced-by-human-based-testing-methods-302718109.html",
+        "image_url": null,
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 19:08:00",
+          "publisher": "PRNewsWire",
+          "title": "$25 Million Project Seeks to Coordinate Data Produced by Human-Based Testing Methods",
+          "image": null,
+          "site": "prnewswire.com",
+          "text": "/PRNewswire/ -- A research team at NYU Langone Health and Sage Bionetworks has been awarded a $25 million grant to establish the data hub and coordinating",
+          "url": "https://www.prnewswire.com/news-releases/25-million-project-seeks-to-coordinate-data-produced-by-human-based-testing-methods-302718109.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T19:55:00.000Z",
+        "title": "Review & Preview: Powell's Regret",
+        "body_text": "The Federal Reserve kept rate cuts on pause. Of more interest: Chair Jerome Powell's somber tone.",
+        "source": "Barrons",
+        "publisher": "Barrons",
+        "site": "barrons.com",
+        "url": "https://www.barrons.com/articles/fed-rates-powell-stocks-today-89503f32",
+        "source_url": "https://www.barrons.com/articles/fed-rates-powell-stocks-today-89503f32",
+        "image_url": "https://images.financialmodelingprep.com/news/review-preview-powells-regret-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 19:55:00",
+          "publisher": "Barrons",
+          "title": "Review & Preview: Powell's Regret",
+          "image": "https://images.financialmodelingprep.com/news/review-preview-powells-regret-20260318.jpg",
+          "site": "barrons.com",
+          "text": "The Federal Reserve kept rate cuts on pause. Of more interest: Chair Jerome Powell's somber tone.",
+          "url": "https://www.barrons.com/articles/fed-rates-powell-stocks-today-89503f32"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T19:15:02.000Z",
+        "title": "Warsh won't make that ‘mistake': Art Laffer",
+        "body_text": "Economist Art Laffer explains how potential Fed Chair Kevin Warsh could bring interest rates down and more on ‘Making Money.'",
+        "source": "Fox Business",
+        "publisher": "Fox Business",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=lwvB-bapKFA",
+        "source_url": "https://www.youtube.com/watch?v=lwvB-bapKFA",
+        "image_url": "https://images.financialmodelingprep.com/news/warsh-wont-make-that-mistake-art-laffer-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 19:15:02",
+          "publisher": "Fox Business",
+          "title": "Warsh won't make that ‘mistake': Art Laffer",
+          "image": "https://images.financialmodelingprep.com/news/warsh-wont-make-that-mistake-art-laffer-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Economist Art Laffer explains how potential Fed Chair Kevin Warsh could bring interest rates down and more on ‘Making Money.'",
+          "url": "https://www.youtube.com/watch?v=lwvB-bapKFA"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T19:02:33.000Z",
+        "title": "ECB to talk tough as Iran war raises inflation fears",
+        "body_text": "The European Central Bank is all but certain to keep interest rates on hold at 2% on Thursday but will make clear it stands ready to raise them if the Iran war fuels a lasting surge ​in euro zone inflation.",
+        "source": "Reuters",
+        "publisher": "Reuters",
+        "site": "reuters.com",
+        "url": "https://www.reuters.com/business/finance/ecb-talk-tough-iran-war-raises-inflation-fears-2026-03-18/",
+        "source_url": "https://www.reuters.com/business/finance/ecb-talk-tough-iran-war-raises-inflation-fears-2026-03-18/",
+        "image_url": "https://images.financialmodelingprep.com/news/ecb-to-talk-tough-as-iran-war-raises-inflation-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 19:02:33",
+          "publisher": "Reuters",
+          "title": "ECB to talk tough as Iran war raises inflation fears",
+          "image": "https://images.financialmodelingprep.com/news/ecb-to-talk-tough-as-iran-war-raises-inflation-20260318.jpg",
+          "site": "reuters.com",
+          "text": "The European Central Bank is all but certain to keep interest rates on hold at 2% on Thursday but will make clear it stands ready to raise them if the Iran war fuels a lasting surge ​in euro zone inflation.",
+          "url": "https://www.reuters.com/business/finance/ecb-talk-tough-iran-war-raises-inflation-fears-2026-03-18/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:58:34.000Z",
+        "title": "Jim Cramer says you can still find stocks to buy on tough days in the market",
+        "body_text": "Oil spiking and hot inflation data shook Wednesday's stock market, leaving investors with few places to hide. However, CNBC's Jim Cramer said, \"If I didn't own it, I would buy the stock of Nvidia.",
+        "source": "CNBC",
+        "publisher": "CNBC",
+        "site": "cnbc.com",
+        "url": "https://www.cnbc.com/2026/03/18/jim-cramer-you-can-still-find-stocks-to-buy-on-tough-days-in-the-market.html",
+        "source_url": "https://www.cnbc.com/2026/03/18/jim-cramer-you-can-still-find-stocks-to-buy-on-tough-days-in-the-market.html",
+        "image_url": "https://images.financialmodelingprep.com/news/jim-cramer-says-you-can-still-find-stocks-to-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:58:34",
+          "publisher": "CNBC",
+          "title": "Jim Cramer says you can still find stocks to buy on tough days in the market",
+          "image": "https://images.financialmodelingprep.com/news/jim-cramer-says-you-can-still-find-stocks-to-20260318.jpg",
+          "site": "cnbc.com",
+          "text": "Oil spiking and hot inflation data shook Wednesday's stock market, leaving investors with few places to hide. However, CNBC's Jim Cramer said, \"If I didn't own it, I would buy the stock of Nvidia.",
+          "url": "https://www.cnbc.com/2026/03/18/jim-cramer-you-can-still-find-stocks-to-buy-on-tough-days-in-the-market.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:56:26.000Z",
+        "title": "'SaaS Becomes GaaS' - 3 Stocks That I'm Avoiding",
+        "body_text": "Nvidia's GTC 2026 reveals a transformative AI stack, accelerating SaaS's shift to GaaS and threatening seat-based revenue models, while lowering the barriers to entry. I see Monday.com, Atlassian, and HubSpot facing severe commoditization risks as Agentic AI automates workflows and erodes their competitive moats.",
+        "source": "Seeking Alpha",
+        "publisher": "Seeking Alpha",
+        "site": "seekingalpha.com",
+        "url": "https://seekingalpha.com/article/4883856-saas-becomes-gaas-3-stocks-that-im-avoiding",
+        "source_url": "https://seekingalpha.com/article/4883856-saas-becomes-gaas-3-stocks-that-im-avoiding",
+        "image_url": "https://images.financialmodelingprep.com/news/saas-becomes-gaas-3-stocks-that-im-avoiding-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:56:26",
+          "publisher": "Seeking Alpha",
+          "title": "'SaaS Becomes GaaS' - 3 Stocks That I'm Avoiding",
+          "image": "https://images.financialmodelingprep.com/news/saas-becomes-gaas-3-stocks-that-im-avoiding-20260318.jpg",
+          "site": "seekingalpha.com",
+          "text": "Nvidia's GTC 2026 reveals a transformative AI stack, accelerating SaaS's shift to GaaS and threatening seat-based revenue models, while lowering the barriers to entry. I see Monday.com, Atlassian, and HubSpot facing severe commoditization risks as Agentic AI automates workflows and erodes their competitive moats.",
+          "url": "https://seekingalpha.com/article/4883856-saas-becomes-gaas-3-stocks-that-im-avoiding"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:30:13.000Z",
+        "title": "SEC chair on potential shift to end quarterly earnings",
+        "body_text": "SEC Chairman Paul Atkins on Wednesday weighed in on the agency's potential shift to end quarterly earnings reports. \"I think it's high time for us after 50 some years to ask the question and see what people say,\" Atkins told CNBC.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/_HG00Wu1iaw",
+        "source_url": "https://www.youtube.com/shorts/_HG00Wu1iaw",
+        "image_url": "https://images.financialmodelingprep.com/news/sec-chair-on-potential-shift-to-end-quarterly-earnings-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:30:13",
+          "publisher": "CNBC Television",
+          "title": "SEC chair on potential shift to end quarterly earnings",
+          "image": "https://images.financialmodelingprep.com/news/sec-chair-on-potential-shift-to-end-quarterly-earnings-20260318.jpg",
+          "site": "youtube.com",
+          "text": "SEC Chairman Paul Atkins on Wednesday weighed in on the agency's potential shift to end quarterly earnings reports. \"I think it's high time for us after 50 some years to ask the question and see what people say,\" Atkins told CNBC.",
+          "url": "https://www.youtube.com/shorts/_HG00Wu1iaw"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:30:09.000Z",
+        "title": "Powell could still be Fed chair if THIS happens: Strategist",
+        "body_text": "QI Research CEO and chief strategist Danielle DiMartino Booth discusses Federal Reserve chair Jerome Powell's remarks about the federal criminal probe on ‘Making Money.' #fox #media #breakingnews #us #usa #new #news #breaking #foxbusiness #makingmoney #jeromepowell #powell #federalreserve #economy #finance #interestrates #inflation #banking #stocks #markets #investing #policy #government #politics #political #politicalnews #washingtondc #washington #dc #business #money",
+        "source": "Fox Business",
+        "publisher": "Fox Business",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=OYChXFU-UqU",
+        "source_url": "https://www.youtube.com/watch?v=OYChXFU-UqU",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-could-still-be-fed-chair-if-this-happens-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:30:09",
+          "publisher": "Fox Business",
+          "title": "Powell could still be Fed chair if THIS happens: Strategist",
+          "image": "https://images.financialmodelingprep.com/news/powell-could-still-be-fed-chair-if-this-happens-20260318.jpg",
+          "site": "youtube.com",
+          "text": "QI Research CEO and chief strategist Danielle DiMartino Booth discusses Federal Reserve chair Jerome Powell's remarks about the federal criminal probe on ‘Making Money.' #fox #media #breakingnews #us #usa #new #news #breaking #foxbusiness #makingmoney #jeromepowell #powell #federalreserve #economy #finance #interestrates #inflation #banking #stocks #markets #investing #policy #government #politics #political #politicalnews #washingtondc #washington #dc #business #money",
+          "url": "https://www.youtube.com/watch?v=OYChXFU-UqU"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:15:03.000Z",
+        "title": "Powell says not as much progress being made on inflation as 'hoped'",
+        "body_text": "The major averages slid to their lows of the day as Federal Reserve Chair Jerome Powell said that the central bank wasn't making as much progress on bringing down inflation as it had hoped. “The forecast is that we will be making progress on inflation, not as much as we had hoped, but some progress on inflation,” Powell said at his press conference.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/HQSR8K8nk_Y",
+        "source_url": "https://www.youtube.com/shorts/HQSR8K8nk_Y",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-not-as-much-progress-being-made-on-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:15:03",
+          "publisher": "CNBC Television",
+          "title": "Powell says not as much progress being made on inflation as 'hoped'",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-not-as-much-progress-being-made-on-20260318.jpg",
+          "site": "youtube.com",
+          "text": "The major averages slid to their lows of the day as Federal Reserve Chair Jerome Powell said that the central bank wasn't making as much progress on bringing down inflation as it had hoped. “The forecast is that we will be making progress on inflation, not as much as we had hoped, but some progress on inflation,” Powell said at his press conference.",
+          "url": "https://www.youtube.com/shorts/HQSR8K8nk_Y"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:09:20.000Z",
+        "title": "Stock Market Pummeled On Rising Crude Oil, No Change In Interest Rates; This Fear Gauge Up 12%",
+        "body_text": "XLY's 50-day moving average crested in early February and has been sloping lower for five straight weeks. That's bearish.",
+        "source": "Investors Business Daily",
+        "publisher": "Investors Business Daily",
+        "site": "investors.com",
+        "url": "https://www.investors.com/market-trend/the-big-picture/stock-market-pummeled-on-rising-crude-oil-no-change-in-interest-rates-this-fear-gauge-up-12/",
+        "source_url": "https://www.investors.com/market-trend/the-big-picture/stock-market-pummeled-on-rising-crude-oil-no-change-in-interest-rates-this-fear-gauge-up-12/",
+        "image_url": "https://images.financialmodelingprep.com/news/stock-market-pummeled-on-rising-crude-oil-no-change-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:09:20",
+          "publisher": "Investors Business Daily",
+          "title": "Stock Market Pummeled On Rising Crude Oil, No Change In Interest Rates; This Fear Gauge Up 12%",
+          "image": "https://images.financialmodelingprep.com/news/stock-market-pummeled-on-rising-crude-oil-no-change-20260318.jpg",
+          "site": "investors.com",
+          "text": "XLY's 50-day moving average crested in early February and has been sloping lower for five straight weeks. That's bearish.",
+          "url": "https://www.investors.com/market-trend/the-big-picture/stock-market-pummeled-on-rising-crude-oil-no-change-in-interest-rates-this-fear-gauge-up-12/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:00:25.000Z",
+        "title": "Janasiewicz: Look Beyond Mag 7 as Crude Oil Volatility Continues",
+        "body_text": "Hotter-than-expected PPI and crude oil volatility remain key focuses for Jack Janasiewicz ahead of Wednesday's trading session. He talks about investment strategies to keep in mind with inflation concerns heating up once again.",
+        "source": "Schwab Network",
+        "publisher": "Schwab Network",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=PDRmcMdrlS4",
+        "source_url": "https://www.youtube.com/watch?v=PDRmcMdrlS4",
+        "image_url": "https://images.financialmodelingprep.com/news/janasiewicz-look-beyond-mag-7-as-crude-oil-volatility-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:00:25",
+          "publisher": "Schwab Network",
+          "title": "Janasiewicz: Look Beyond Mag 7 as Crude Oil Volatility Continues",
+          "image": "https://images.financialmodelingprep.com/news/janasiewicz-look-beyond-mag-7-as-crude-oil-volatility-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Hotter-than-expected PPI and crude oil volatility remain key focuses for Jack Janasiewicz ahead of Wednesday's trading session. He talks about investment strategies to keep in mind with inflation concerns heating up once again.",
+          "url": "https://www.youtube.com/watch?v=PDRmcMdrlS4"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T18:00:12.000Z",
+        "title": "Powell says U.S. economy is not experiencing stagflation",
+        "body_text": "With fears of higher oil prices heating up inflation while weakening growth, Federal Reserve Chair Jerome Powell said that he wouldn't use the term “stagflation” to describe the U.S. economy.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/CTwQI1IQiz8",
+        "source_url": "https://www.youtube.com/shorts/CTwQI1IQiz8",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-us-economy-is-not-experiencing-stagflation-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 18:00:12",
+          "publisher": "CNBC Television",
+          "title": "Powell says U.S. economy is not experiencing stagflation",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-us-economy-is-not-experiencing-stagflation-20260318.jpg",
+          "site": "youtube.com",
+          "text": "With fears of higher oil prices heating up inflation while weakening growth, Federal Reserve Chair Jerome Powell said that he wouldn't use the term “stagflation” to describe the U.S. economy.",
+          "url": "https://www.youtube.com/shorts/CTwQI1IQiz8"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:52:52.000Z",
+        "title": "What the Federal Reserve's rate decision means for investors",
+        "body_text": "Today, the Federal Reserve held interest rates steady, keeping 1 rate cut in play this year as uncertainty mounts. The central bank voted in a split decision on Wednesday to hold its benchmark interest rate in the range of 3.5% to 3.75%.",
+        "source": "Yahoo Finance",
+        "publisher": "Yahoo Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=KtkIzI5nqTE",
+        "source_url": "https://www.youtube.com/watch?v=KtkIzI5nqTE",
+        "image_url": "https://images.financialmodelingprep.com/news/what-the-federal-reserves-rate-decision-means-for-investors-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:52:52",
+          "publisher": "Yahoo Finance",
+          "title": "What the Federal Reserve's rate decision means for investors",
+          "image": "https://images.financialmodelingprep.com/news/what-the-federal-reserves-rate-decision-means-for-investors-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Today, the Federal Reserve held interest rates steady, keeping 1 rate cut in play this year as uncertainty mounts. The central bank voted in a split decision on Wednesday to hold its benchmark interest rate in the range of 3.5% to 3.75%.",
+          "url": "https://www.youtube.com/watch?v=KtkIzI5nqTE"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:46:11.000Z",
+        "title": "Fed's Powell says it's 'too soon to know' Iran war's impact on economy",
+        "body_text": "Federal Reserve Chair Jerome Powell says it's \"too soon\" to assess Iran conflict's economic impact as oil prices surge above $100 per barrel amid rising tensions.",
+        "source": "Fox Business",
+        "publisher": "Fox Business",
+        "site": "foxbusiness.com",
+        "url": "https://www.foxbusiness.com/politics/feds-powell-says-its-too-soon-know-iran-wars-impact-economy",
+        "source_url": "https://www.foxbusiness.com/politics/feds-powell-says-its-too-soon-know-iran-wars-impact-economy",
+        "image_url": "https://images.financialmodelingprep.com/news/feds-powell-says-its-too-soon-to-know-iran-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:46:11",
+          "publisher": "Fox Business",
+          "title": "Fed's Powell says it's 'too soon to know' Iran war's impact on economy",
+          "image": "https://images.financialmodelingprep.com/news/feds-powell-says-its-too-soon-to-know-iran-20260318.jpg",
+          "site": "foxbusiness.com",
+          "text": "Federal Reserve Chair Jerome Powell says it's \"too soon\" to assess Iran conflict's economic impact as oil prices surge above $100 per barrel amid rising tensions.",
+          "url": "https://www.foxbusiness.com/politics/feds-powell-says-its-too-soon-know-iran-wars-impact-economy"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:46:00.000Z",
+        "title": "Dow falls nearly 800 points after Powell makes one thing clear: There's no rush to rescue the market",
+        "body_text": "U.S. stocks slumped on Wednesday, with the S&P 500 wiping out its gains from earlier in the week, as investors reacted to the Federal Reserve's latest outlook on interest rates and the economy.",
+        "source": "Market Watch",
+        "publisher": "Market Watch",
+        "site": "marketwatch.com",
+        "url": "https://www.marketwatch.com/story/dow-falls-nearly-800-points-after-powell-makes-one-thing-clear-theres-no-rush-to-rescue-the-market-b55a723a",
+        "source_url": "https://www.marketwatch.com/story/dow-falls-nearly-800-points-after-powell-makes-one-thing-clear-theres-no-rush-to-rescue-the-market-b55a723a",
+        "image_url": "https://images.financialmodelingprep.com/news/dow-falls-nearly-800-points-after-powell-makes-one-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:46:00",
+          "publisher": "Market Watch",
+          "title": "Dow falls nearly 800 points after Powell makes one thing clear: There's no rush to rescue the market",
+          "image": "https://images.financialmodelingprep.com/news/dow-falls-nearly-800-points-after-powell-makes-one-20260318.jpg",
+          "site": "marketwatch.com",
+          "text": "U.S. stocks slumped on Wednesday, with the S&P 500 wiping out its gains from earlier in the week, as investors reacted to the Federal Reserve's latest outlook on interest rates and the economy.",
+          "url": "https://www.marketwatch.com/story/dow-falls-nearly-800-points-after-powell-makes-one-thing-clear-theres-no-rush-to-rescue-the-market-b55a723a"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:45:01.000Z",
+        "title": "Powell says he will stay on as head of the Fed until Kevin Warsh is confirmed",
+        "body_text": "Federal Reserve Chair Jerome Powell says he will keep serving as head of the central bank if his nominated successor, Kevin Warsh, is not confirmed by the time his term is up in May, as dictated by the law.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/XXRiMAESatQ",
+        "source_url": "https://www.youtube.com/shorts/XXRiMAESatQ",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-he-will-stay-on-as-head-of-the-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:45:01",
+          "publisher": "CNBC Television",
+          "title": "Powell says he will stay on as head of the Fed until Kevin Warsh is confirmed",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-he-will-stay-on-as-head-of-the-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve Chair Jerome Powell says he will keep serving as head of the central bank if his nominated successor, Kevin Warsh, is not confirmed by the time his term is up in May, as dictated by the law.",
+          "url": "https://www.youtube.com/shorts/XXRiMAESatQ"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:41:00.000Z",
+        "title": "Powell warns of ‘new inflation' from the Iran conflict as gas prices jump 30%",
+        "body_text": "The energy crisis is going to hit you in your 401(k) as well as in your gas tank if Jerome Powell is right.",
+        "source": "Market Watch",
+        "publisher": "Market Watch",
+        "site": "marketwatch.com",
+        "url": "https://www.marketwatch.com/story/powell-warns-of-new-inflation-from-the-iran-conflict-as-gas-prices-jump-30-ca445981",
+        "source_url": "https://www.marketwatch.com/story/powell-warns-of-new-inflation-from-the-iran-conflict-as-gas-prices-jump-30-ca445981",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-warns-of-new-inflation-from-the-iran-conflict-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:41:00",
+          "publisher": "Market Watch",
+          "title": "Powell warns of ‘new inflation' from the Iran conflict as gas prices jump 30%",
+          "image": "https://images.financialmodelingprep.com/news/powell-warns-of-new-inflation-from-the-iran-conflict-20260318.jpg",
+          "site": "marketwatch.com",
+          "text": "The energy crisis is going to hit you in your 401(k) as well as in your gas tank if Jerome Powell is right.",
+          "url": "https://www.marketwatch.com/story/powell-warns-of-new-inflation-from-the-iran-conflict-as-gas-prices-jump-30-ca445981"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:37:11.000Z",
+        "title": "From AI to Consumer Spending: Five Analyst Days Investors Should Track",
+        "body_text": "We are already a few years into 2026.   It sure feels that way, right?",
+        "source": "See It Market",
+        "publisher": "See It Market",
+        "site": "seeitmarket.com",
+        "url": "https://www.seeitmarket.com/from-ai-to-consumer-spending-five-analyst-days-investors-should-track/",
+        "source_url": "https://www.seeitmarket.com/from-ai-to-consumer-spending-five-analyst-days-investors-should-track/",
+        "image_url": "https://images.financialmodelingprep.com/news/from-ai-to-consumer-spending-five-analyst-days-investors-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:37:11",
+          "publisher": "See It Market",
+          "title": "From AI to Consumer Spending: Five Analyst Days Investors Should Track",
+          "image": "https://images.financialmodelingprep.com/news/from-ai-to-consumer-spending-five-analyst-days-investors-20260318.jpg",
+          "site": "seeitmarket.com",
+          "text": "We are already a few years into 2026.   It sure feels that way, right?",
+          "url": "https://www.seeitmarket.com/from-ai-to-consumer-spending-five-analyst-days-investors-should-track/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:20:22.000Z",
+        "title": "Powell: 'No one' knows what impacts of war will be",
+        "body_text": "Fed Chair Jerome Powell said there's uncertainty tied to oil prices amid the U.S.-Iran war. “The U.S. economy is doing pretty well,” Powell said.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/-E9oyJM41hg",
+        "source_url": "https://www.youtube.com/shorts/-E9oyJM41hg",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-no-one-knows-what-impacts-of-war-will-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:20:22",
+          "publisher": "CNBC Television",
+          "title": "Powell: 'No one' knows what impacts of war will be",
+          "image": "https://images.financialmodelingprep.com/news/powell-no-one-knows-what-impacts-of-war-will-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Fed Chair Jerome Powell said there's uncertainty tied to oil prices amid the U.S.-Iran war. “The U.S. economy is doing pretty well,” Powell said.",
+          "url": "https://www.youtube.com/shorts/-E9oyJM41hg"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:20:19.000Z",
+        "title": "Here are the five key takeaways from this week's Fed meeting",
+        "body_text": "Federal Reserve policymakers kept their key interest rate at a range of 3.5% to 3.75% at the conclusion of their March meeting. At his press conference, Fed Chair Jerome Powell faced questions about the oil price shock since the Iran war.",
+        "source": "CNBC",
+        "publisher": "CNBC",
+        "site": "cnbc.com",
+        "url": "https://www.cnbc.com/2026/03/18/here-are-the-five-key-takeaways-from-this-weeks-fed-meeting.html",
+        "source_url": "https://www.cnbc.com/2026/03/18/here-are-the-five-key-takeaways-from-this-weeks-fed-meeting.html",
+        "image_url": "https://images.financialmodelingprep.com/news/here-are-the-five-key-takeaways-from-this-weeks-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:20:19",
+          "publisher": "CNBC",
+          "title": "Here are the five key takeaways from this week's Fed meeting",
+          "image": "https://images.financialmodelingprep.com/news/here-are-the-five-key-takeaways-from-this-weeks-20260318.jpg",
+          "site": "cnbc.com",
+          "text": "Federal Reserve policymakers kept their key interest rate at a range of 3.5% to 3.75% at the conclusion of their March meeting. At his press conference, Fed Chair Jerome Powell faced questions about the oil price shock since the Iran war.",
+          "url": "https://www.cnbc.com/2026/03/18/here-are-the-five-key-takeaways-from-this-weeks-fed-meeting.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:14:01.000Z",
+        "title": "The Fed: No Surprises, Loads of Uncertainty",
+        "body_text": "The Fed holds rates steady",
+        "source": "InvestorPlace",
+        "publisher": "InvestorPlace",
+        "site": "investorplace.com",
+        "url": "https://investorplace.com/2026/03/the-fed-no-surprises-loads-of-uncertainty/",
+        "source_url": "https://investorplace.com/2026/03/the-fed-no-surprises-loads-of-uncertainty/",
+        "image_url": "https://images.financialmodelingprep.com/news/the-fed-no-surprises-loads-of-uncertainty-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:14:01",
+          "publisher": "InvestorPlace",
+          "title": "The Fed: No Surprises, Loads of Uncertainty",
+          "image": "https://images.financialmodelingprep.com/news/the-fed-no-surprises-loads-of-uncertainty-20260318.jpg",
+          "site": "investorplace.com",
+          "text": "The Fed holds rates steady",
+          "url": "https://investorplace.com/2026/03/the-fed-no-surprises-loads-of-uncertainty/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:03:04.000Z",
+        "title": "Fed Chair Powell doesn't want to speculate",
+        "body_text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+        "source": "Yahoo Finance",
+        "publisher": "Yahoo Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/kjGzvFyKDJs",
+        "source_url": "https://www.youtube.com/shorts/kjGzvFyKDJs",
+        "image_url": "https://images.financialmodelingprep.com/news/fed-chair-powell-doesnt-want-to-speculate-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:03:04",
+          "publisher": "Yahoo Finance",
+          "title": "Fed Chair Powell doesn't want to speculate",
+          "image": "https://images.financialmodelingprep.com/news/fed-chair-powell-doesnt-want-to-speculate-20260318.jpg",
+          "site": "youtube.com",
+          "text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+          "url": "https://www.youtube.com/shorts/kjGzvFyKDJs"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:03:00.000Z",
+        "title": "Dimming Hopes for Rate Cuts Drag Down U.S. Stocks",
+        "body_text": "Fed Chair Jerome Powell says the central bank was in ‘a difficult situation.'",
+        "source": "WSJ",
+        "publisher": "WSJ",
+        "site": "wsj.com",
+        "url": "https://www.wsj.com/finance/stocks/global-stocks-markets-dow-news-03-18-2026-8912b0f0",
+        "source_url": "https://www.wsj.com/finance/stocks/global-stocks-markets-dow-news-03-18-2026-8912b0f0",
+        "image_url": "https://images.financialmodelingprep.com/news/dimming-hopes-for-rate-cuts-drag-down-us-stocks-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:03:00",
+          "publisher": "WSJ",
+          "title": "Dimming Hopes for Rate Cuts Drag Down U.S. Stocks",
+          "image": "https://images.financialmodelingprep.com/news/dimming-hopes-for-rate-cuts-drag-down-us-stocks-20260318.jpg",
+          "site": "wsj.com",
+          "text": "Fed Chair Jerome Powell says the central bank was in ‘a difficult situation.'",
+          "url": "https://www.wsj.com/finance/stocks/global-stocks-markets-dow-news-03-18-2026-8912b0f0"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:02:53.000Z",
+        "title": "‘If we were ever to skip an SEP, this is a good one' – Fed Chair Powell sees heightened uncertainty amid Iran war impacts",
+        "body_text": "Ernest Hoffman is a Crypto and Market Reporter for Kitco News. He has over 15 years of experience as a writer, editor, broadcaster and producer for media, educational and cultural organizations.",
+        "source": "Kitco",
+        "publisher": "Kitco",
+        "site": "kitco.com",
+        "url": "https://www.kitco.com/news/article/2026-03-18/if-we-were-ever-skip-sep-good-one-fed-chair-powell-sees-heightened",
+        "source_url": "https://www.kitco.com/news/article/2026-03-18/if-we-were-ever-skip-sep-good-one-fed-chair-powell-sees-heightened",
+        "image_url": "https://images.financialmodelingprep.com/news/if-we-were-ever-to-skip-an-sep-this-20260318.png",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:02:53",
+          "publisher": "Kitco",
+          "title": "‘If we were ever to skip an SEP, this is a good one' – Fed Chair Powell sees heightened uncertainty amid Iran war impacts",
+          "image": "https://images.financialmodelingprep.com/news/if-we-were-ever-to-skip-an-sep-this-20260318.png",
+          "site": "kitco.com",
+          "text": "Ernest Hoffman is a Crypto and Market Reporter for Kitco News. He has over 15 years of experience as a writer, editor, broadcaster and producer for media, educational and cultural organizations.",
+          "url": "https://www.kitco.com/news/article/2026-03-18/if-we-were-ever-skip-sep-good-one-fed-chair-powell-sees-heightened"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:00:37.000Z",
+        "title": "Larry Kudlow: This would do DAMAGE to the US economy",
+        "body_text": "FOX Business host Larry Kudlow analyzes the Fed's decision to keep rates unchanged amid the Iranian conflict on 'Kudlow.' #fox #media #breakingnews #us #usa #new #news #breaking #foxbusiness #kudlow #larrykudlow #economy #useconomy #federalreserve #interestrates #inflation #markets #finance #politics #political #politicalnews #government #iran #conflict #global #trade #business #money #stocks #investing",
+        "source": "Fox Business",
+        "publisher": "Fox Business",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=TKAFyx8JFiM",
+        "source_url": "https://www.youtube.com/watch?v=TKAFyx8JFiM",
+        "image_url": "https://images.financialmodelingprep.com/news/larry-kudlow-this-would-do-damage-to-the-us-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:00:37",
+          "publisher": "Fox Business",
+          "title": "Larry Kudlow: This would do DAMAGE to the US economy",
+          "image": "https://images.financialmodelingprep.com/news/larry-kudlow-this-would-do-damage-to-the-us-20260318.jpg",
+          "site": "youtube.com",
+          "text": "FOX Business host Larry Kudlow analyzes the Fed's decision to keep rates unchanged amid the Iranian conflict on 'Kudlow.' #fox #media #breakingnews #us #usa #new #news #breaking #foxbusiness #kudlow #larrykudlow #economy #useconomy #federalreserve #interestrates #inflation #markets #finance #politics #political #politicalnews #government #iran #conflict #global #trade #business #money #stocks #investing",
+          "url": "https://www.youtube.com/watch?v=TKAFyx8JFiM"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T17:00:32.000Z",
+        "title": "How Historical Oil Surges Influenced Equity Returns In The Following Year (It Doesn't Bode Well)",
+        "body_text": "Historical analysis shows that when oil prices double rapidly, the S&P 500 typically suffers significant declines over the following 12 months. Current Middle East tensions and oil weaponization by Iran suggest oil prices could rise further, with $150 per barrel seen as a potential peak.",
+        "source": "Seeking Alpha",
+        "publisher": "Seeking Alpha",
+        "site": "seekingalpha.com",
+        "url": "https://seekingalpha.com/article/4883711-how-historical-oil-surges-influenced-equity-returns-in-the-following-year-it-doesnt-bode-well",
+        "source_url": "https://seekingalpha.com/article/4883711-how-historical-oil-surges-influenced-equity-returns-in-the-following-year-it-doesnt-bode-well",
+        "image_url": "https://images.financialmodelingprep.com/news/how-historical-oil-surges-influenced-equity-returns-in-the-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 17:00:32",
+          "publisher": "Seeking Alpha",
+          "title": "How Historical Oil Surges Influenced Equity Returns In The Following Year (It Doesn't Bode Well)",
+          "image": "https://images.financialmodelingprep.com/news/how-historical-oil-surges-influenced-equity-returns-in-the-20260318.jpg",
+          "site": "seekingalpha.com",
+          "text": "Historical analysis shows that when oil prices double rapidly, the S&P 500 typically suffers significant declines over the following 12 months. Current Middle East tensions and oil weaponization by Iran suggest oil prices could rise further, with $150 per barrel seen as a potential peak.",
+          "url": "https://seekingalpha.com/article/4883711-how-historical-oil-surges-influenced-equity-returns-in-the-following-year-it-doesnt-bode-well"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:57:45.000Z",
+        "title": "Fmr. Fed Vice Chairman Alan Blinder: Markets are reading FOMC meeting as more hawkish than it was",
+        "body_text": "Alan Blinder, Former Federal Reserve vice chairman, joins 'Closing Bell Overtime' to talk what is ahead for the FOMC after Wednesday's decision to leave rates unchanged.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=xFbA3MdagIs",
+        "source_url": "https://www.youtube.com/watch?v=xFbA3MdagIs",
+        "image_url": "https://images.financialmodelingprep.com/news/fmr-fed-vice-chairman-alan-blinder-markets-are-reading-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:57:45",
+          "publisher": "CNBC Television",
+          "title": "Fmr. Fed Vice Chairman Alan Blinder: Markets are reading FOMC meeting as more hawkish than it was",
+          "image": "https://images.financialmodelingprep.com/news/fmr-fed-vice-chairman-alan-blinder-markets-are-reading-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Alan Blinder, Former Federal Reserve vice chairman, joins 'Closing Bell Overtime' to talk what is ahead for the FOMC after Wednesday's decision to leave rates unchanged.",
+          "url": "https://www.youtube.com/watch?v=xFbA3MdagIs"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:56:34.000Z",
+        "title": "PPI Data Signals Firms Turning to AI and Liquidity to Manage Pricing",
+        "body_text": "The latest producer price data suggest that inflation is no longer being driven primarily by what businesses pay for goods, but by what those enterprises decide to charge as those goods move through the system. February's Producer Price Index (PPI) came in above expectations, rising 0.7% for the month and 3.",
+        "source": "PYMNTS",
+        "publisher": "PYMNTS",
+        "site": "pymnts.com",
+        "url": "https://www.pymnts.com/economy/2026/ppi-data-signals-firms-turning-to-ai-and-liquidity-to-manage-pricing/",
+        "source_url": "https://www.pymnts.com/economy/2026/ppi-data-signals-firms-turning-to-ai-and-liquidity-to-manage-pricing/",
+        "image_url": "https://images.financialmodelingprep.com/news/ppi-data-signals-firms-turning-to-ai-and-liquidity-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:56:34",
+          "publisher": "PYMNTS",
+          "title": "PPI Data Signals Firms Turning to AI and Liquidity to Manage Pricing",
+          "image": "https://images.financialmodelingprep.com/news/ppi-data-signals-firms-turning-to-ai-and-liquidity-20260318.jpg",
+          "site": "pymnts.com",
+          "text": "The latest producer price data suggest that inflation is no longer being driven primarily by what businesses pay for goods, but by what those enterprises decide to charge as those goods move through the system. February's Producer Price Index (PPI) came in above expectations, rising 0.7% for the month and 3.",
+          "url": "https://www.pymnts.com/economy/2026/ppi-data-signals-firms-turning-to-ai-and-liquidity-to-manage-pricing/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:52:32.000Z",
+        "title": "Powell Says He Will Remain as Fed Chair Until Successor Is Confirmed",
+        "body_text": "Jerome H. Powell, who leads the central bank, also said he would not leave the Fed until a criminal investigation into his handling of renovations was over.",
+        "source": "NYTimes",
+        "publisher": "NYTimes",
+        "site": "nytimes.com",
+        "url": "https://www.nytimes.com/2026/03/18/business/economy/fed-chair-powell-warsh-trump.html",
+        "source_url": "https://www.nytimes.com/2026/03/18/business/economy/fed-chair-powell-warsh-trump.html",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-he-will-remain-as-fed-chair-until-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:52:32",
+          "publisher": "NYTimes",
+          "title": "Powell Says He Will Remain as Fed Chair Until Successor Is Confirmed",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-he-will-remain-as-fed-chair-until-20260318.jpg",
+          "site": "nytimes.com",
+          "text": "Jerome H. Powell, who leads the central bank, also said he would not leave the Fed until a criminal investigation into his handling of renovations was over.",
+          "url": "https://www.nytimes.com/2026/03/18/business/economy/fed-chair-powell-warsh-trump.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:36:08.000Z",
+        "title": "Dow falls 700 pts as Fed holds rates, hot PPI fuels inflation fears",
+        "body_text": "Wall Street ended sharply lower on Wednesday as investors reacted to the Federal Reserve's decision to hold interest rates steady, rising inflation pressures, and escalating geopolitical risks linked to the Middle East conflict. Major US indexes extended losses following the Fed's announcement and fresh economic data.",
+        "source": "Invezz",
+        "publisher": "Invezz",
+        "site": "invezz.com",
+        "url": "https://invezz.com/news/2026/03/18/dow-falls-700-pts-as-fed-holds-rates-hot-ppi-fuels-inflation-fears/",
+        "source_url": "https://invezz.com/news/2026/03/18/dow-falls-700-pts-as-fed-holds-rates-hot-ppi-fuels-inflation-fears/",
+        "image_url": "https://images.financialmodelingprep.com/news/dow-falls-700-pts-as-fed-holds-rates-hot-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:36:08",
+          "publisher": "Invezz",
+          "title": "Dow falls 700 pts as Fed holds rates, hot PPI fuels inflation fears",
+          "image": "https://images.financialmodelingprep.com/news/dow-falls-700-pts-as-fed-holds-rates-hot-20260318.jpg",
+          "site": "invezz.com",
+          "text": "Wall Street ended sharply lower on Wednesday as investors reacted to the Federal Reserve's decision to hold interest rates steady, rising inflation pressures, and escalating geopolitical risks linked to the Middle East conflict. Major US indexes extended losses following the Fed's announcement and fresh economic data.",
+          "url": "https://invezz.com/news/2026/03/18/dow-falls-700-pts-as-fed-holds-rates-hot-ppi-fuels-inflation-fears/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:17:05.000Z",
+        "title": "3 big takeaways from the Fed's March meeting",
+        "body_text": "The Fed opted to hold rates steady at its March meeting, as expected. Chair Jerome Powell talked about jobs, inflation, oil prices, and AI productivity gains.",
+        "source": "Business Insider",
+        "publisher": "Business Insider",
+        "site": "businessinsider.com",
+        "url": "https://www.businessinsider.com/inflation-jobs-powell-march-fed-meeting-takeaways-interest-rates-fomc-2026-3",
+        "source_url": "https://www.businessinsider.com/inflation-jobs-powell-march-fed-meeting-takeaways-interest-rates-fomc-2026-3",
+        "image_url": "https://images.financialmodelingprep.com/news/3-big-takeaways-from-the-feds-march-meeting-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:17:05",
+          "publisher": "Business Insider",
+          "title": "3 big takeaways from the Fed's March meeting",
+          "image": "https://images.financialmodelingprep.com/news/3-big-takeaways-from-the-feds-march-meeting-20260318.jpg",
+          "site": "businessinsider.com",
+          "text": "The Fed opted to hold rates steady at its March meeting, as expected. Chair Jerome Powell talked about jobs, inflation, oil prices, and AI productivity gains.",
+          "url": "https://www.businessinsider.com/inflation-jobs-powell-march-fed-meeting-takeaways-interest-rates-fomc-2026-3"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:17:00.000Z",
+        "title": "U.S. Crude Oil Inventories Rise by 6.2 Million Barrels",
+        "body_text": "Commercial crude-oil stockpiles rose by 6.2 million barrels last week. Analysts had predicted crude stockpiles would decline by roughly 40,000 barrels.",
+        "source": "WSJ",
+        "publisher": "WSJ",
+        "site": "wsj.com",
+        "url": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-inventories-rise-by-6-2-million-barrels-cd0630fe",
+        "source_url": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-inventories-rise-by-6-2-million-barrels-cd0630fe",
+        "image_url": "https://images.financialmodelingprep.com/news/us-crude-oil-inventories-rise-by-62-million-barrels-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:17:00",
+          "publisher": "WSJ",
+          "title": "U.S. Crude Oil Inventories Rise by 6.2 Million Barrels",
+          "image": "https://images.financialmodelingprep.com/news/us-crude-oil-inventories-rise-by-62-million-barrels-20260318.jpg",
+          "site": "wsj.com",
+          "text": "Commercial crude-oil stockpiles rose by 6.2 million barrels last week. Analysts had predicted crude stockpiles would decline by roughly 40,000 barrels.",
+          "url": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-inventories-rise-by-6-2-million-barrels-cd0630fe"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:06:03.000Z",
+        "title": "It's Starting To Feel A Lot Like 2007",
+        "body_text": "Current market conditions closely resemble the pre-crisis environment of 2007 in several primary ways, raising caution for investors. Echoes of the subprime crisis and official reassurances highlight systemic risks that may not be fully appreciated.",
+        "source": "Seeking Alpha",
+        "publisher": "Seeking Alpha",
+        "site": "seekingalpha.com",
+        "url": "https://seekingalpha.com/article/4883793-its-starting-to-feel-a-lot-like-2007",
+        "source_url": "https://seekingalpha.com/article/4883793-its-starting-to-feel-a-lot-like-2007",
+        "image_url": "https://images.financialmodelingprep.com/news/its-starting-to-feel-a-lot-like-2007-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:06:03",
+          "publisher": "Seeking Alpha",
+          "title": "It's Starting To Feel A Lot Like 2007",
+          "image": "https://images.financialmodelingprep.com/news/its-starting-to-feel-a-lot-like-2007-20260318.jpg",
+          "site": "seekingalpha.com",
+          "text": "Current market conditions closely resemble the pre-crisis environment of 2007 in several primary ways, raising caution for investors. Echoes of the subprime crisis and official reassurances highlight systemic risks that may not be fully appreciated.",
+          "url": "https://seekingalpha.com/article/4883793-its-starting-to-feel-a-lot-like-2007"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T16:00:54.000Z",
+        "title": "March Fed Meeting: Policymakers Stay The Course Despite Negative Externalities",
+        "body_text": "The March FOMC meeting reflected continued stability despite the multitude of negative externalities. The negative externalities include declining payrolls, rising oil prices, and a highly uncertain geopolitical world outlook.",
+        "source": "Seeking Alpha",
+        "publisher": "Seeking Alpha",
+        "site": "seekingalpha.com",
+        "url": "https://seekingalpha.com/article/4883781-march-fed-meeting-policymakers-stay-the-course-despite-negative-externalities",
+        "source_url": "https://seekingalpha.com/article/4883781-march-fed-meeting-policymakers-stay-the-course-despite-negative-externalities",
+        "image_url": "https://images.financialmodelingprep.com/news/march-fed-meeting-policymakers-stay-the-course-despite-negative-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 16:00:54",
+          "publisher": "Seeking Alpha",
+          "title": "March Fed Meeting: Policymakers Stay The Course Despite Negative Externalities",
+          "image": "https://images.financialmodelingprep.com/news/march-fed-meeting-policymakers-stay-the-course-despite-negative-20260318.jpg",
+          "site": "seekingalpha.com",
+          "text": "The March FOMC meeting reflected continued stability despite the multitude of negative externalities. The negative externalities include declining payrolls, rising oil prices, and a highly uncertain geopolitical world outlook.",
+          "url": "https://seekingalpha.com/article/4883781-march-fed-meeting-policymakers-stay-the-course-despite-negative-externalities"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:53:36.000Z",
+        "title": "Here are five takeaways from the Federal Reserve meeting",
+        "body_text": "Here are five takeaways from the Federal Reserve meeting.",
+        "source": "NYTimes",
+        "publisher": "NYTimes",
+        "site": "nytimes.com",
+        "url": "https://www.nytimes.com/live/2026/03/18/business/federal-reserve-interest-rates/here-are-five-takeaways-from-the-federal-reserve-meeting",
+        "source_url": "https://www.nytimes.com/live/2026/03/18/business/federal-reserve-interest-rates/here-are-five-takeaways-from-the-federal-reserve-meeting",
+        "image_url": "https://images.financialmodelingprep.com/news/here-are-five-takeaways-from-the-federal-reserve-meeting-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:53:36",
+          "publisher": "NYTimes",
+          "title": "Here are five takeaways from the Federal Reserve meeting",
+          "image": "https://images.financialmodelingprep.com/news/here-are-five-takeaways-from-the-federal-reserve-meeting-20260318.jpg",
+          "site": "nytimes.com",
+          "text": "Here are five takeaways from the Federal Reserve meeting.",
+          "url": "https://www.nytimes.com/live/2026/03/18/business/federal-reserve-interest-rates/here-are-five-takeaways-from-the-federal-reserve-meeting"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:45:01.000Z",
+        "title": "Powell: Oil shock 'part of' higher inflation projection for 2026",
+        "body_text": "Federal Reserve Chair Jerome Powell explains what factors in the economy are contributing to the higher inflation projection for 2026.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/KSmM5_Ww3QA",
+        "source_url": "https://www.youtube.com/shorts/KSmM5_Ww3QA",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-oil-shock-part-of-higher-inflation-projection-for-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:45:01",
+          "publisher": "CNBC Television",
+          "title": "Powell: Oil shock 'part of' higher inflation projection for 2026",
+          "image": "https://images.financialmodelingprep.com/news/powell-oil-shock-part-of-higher-inflation-projection-for-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve Chair Jerome Powell explains what factors in the economy are contributing to the higher inflation projection for 2026.",
+          "url": "https://www.youtube.com/shorts/KSmM5_Ww3QA"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:31:21.000Z",
+        "title": "Companies See Inflation Inching Up to 2.1%, Atlanta Fed Says",
+        "body_text": "Firms' year-ahead inflation expectations increased by 0.2 percentage points to 2.1% in March, according to the Federal Reserve Bank of Atlanta's March Business Inflation Expectations (BIE) Survey. That figure is up from the 1.9% recorded in the February BIE Survey but down from the 2.5% recorded in the March 2025 survey.",
+        "source": "PYMNTS",
+        "publisher": "PYMNTS",
+        "site": "pymnts.com",
+        "url": "https://www.pymnts.com/economy/2026/companies-see-inflation-inching-up-to-2-1-atlanta-fed-says/",
+        "source_url": "https://www.pymnts.com/economy/2026/companies-see-inflation-inching-up-to-2-1-atlanta-fed-says/",
+        "image_url": "https://images.financialmodelingprep.com/news/companies-see-inflation-inching-up-to-21-atlanta-fed-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:31:21",
+          "publisher": "PYMNTS",
+          "title": "Companies See Inflation Inching Up to 2.1%, Atlanta Fed Says",
+          "image": "https://images.financialmodelingprep.com/news/companies-see-inflation-inching-up-to-21-atlanta-fed-20260318.jpg",
+          "site": "pymnts.com",
+          "text": "Firms' year-ahead inflation expectations increased by 0.2 percentage points to 2.1% in March, according to the Federal Reserve Bank of Atlanta's March Business Inflation Expectations (BIE) Survey. That figure is up from the 1.9% recorded in the February BIE Survey but down from the 2.5% recorded in the March 2025 survey.",
+          "url": "https://www.pymnts.com/economy/2026/companies-see-inflation-inching-up-to-2-1-atlanta-fed-says/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:30:17.000Z",
+        "title": "Fed warns Middle East tensions could shake markets as it holds rates",
+        "body_text": "US equities held steady on Wednesday after the Federal Reserve left interest rates unchanged, signaling caution amid persistent inflation and growing geopolitical risks in the Middle East. The Fed maintained its target range for the federal funds rate at 3.50%–3.75%, in line with market expectations.",
+        "source": "Proactive Investors",
+        "publisher": "Proactive Investors",
+        "site": "proactiveinvestors.com",
+        "url": "https://www.proactiveinvestors.com/companies/news/1089115",
+        "source_url": "https://www.proactiveinvestors.com/companies/news/1089115",
+        "image_url": "https://images.financialmodelingprep.com/news/fed-warns-middle-east-tensions-could-shake-markets-as-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:30:17",
+          "publisher": "Proactive Investors",
+          "title": "Fed warns Middle East tensions could shake markets as it holds rates",
+          "image": "https://images.financialmodelingprep.com/news/fed-warns-middle-east-tensions-could-shake-markets-as-20260318.jpg",
+          "site": "proactiveinvestors.com",
+          "text": "US equities held steady on Wednesday after the Federal Reserve left interest rates unchanged, signaling caution amid persistent inflation and growing geopolitical risks in the Middle East. The Fed maintained its target range for the federal funds rate at 3.50%–3.75%, in line with market expectations.",
+          "url": "https://www.proactiveinvestors.com/companies/news/1089115"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:30:00.000Z",
+        "title": "Powell: Iran war to increase inflation in the near term",
+        "body_text": "Surging oil prices due to the Iran war are expected to increase inflation in the near term, Federal Reserve Chair Powell said. “Near-term measures of inflation expectations have risen in recent weeks, likely reflecting the substantial rise in oil prices caused by the supply disruptions in the Middle East,” the Fed chair said.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/1A8LSC_uRDA",
+        "source_url": "https://www.youtube.com/shorts/1A8LSC_uRDA",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-iran-war-to-increase-inflation-in-the-near-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:30:00",
+          "publisher": "CNBC Television",
+          "title": "Powell: Iran war to increase inflation in the near term",
+          "image": "https://images.financialmodelingprep.com/news/powell-iran-war-to-increase-inflation-in-the-near-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Surging oil prices due to the Iran war are expected to increase inflation in the near term, Federal Reserve Chair Powell said. “Near-term measures of inflation expectations have risen in recent weeks, likely reflecting the substantial rise in oil prices caused by the supply disruptions in the Middle East,” the Fed chair said.",
+          "url": "https://www.youtube.com/shorts/1A8LSC_uRDA"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:29:27.000Z",
+        "title": "Crude Awakening",
+        "body_text": "Oil price volatility surges as bombs fall in the Middle East Be ready for more wild swings in oil and gas prices. The Cboe Crude Oil ETF Volatility Index (OVX), which measures implied volatility in oil ETF options, estimates the expected volatility of crude oil prices over the next 30 days.",
+        "source": "ETF Trends",
+        "publisher": "ETF Trends",
+        "site": "etftrends.com",
+        "url": "https://www.etftrends.com/etf-strategist-content-hub-crude-awakening/",
+        "source_url": "https://www.etftrends.com/etf-strategist-content-hub-crude-awakening/",
+        "image_url": "https://images.financialmodelingprep.com/news/crude-awakening-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:29:27",
+          "publisher": "ETF Trends",
+          "title": "Crude Awakening",
+          "image": "https://images.financialmodelingprep.com/news/crude-awakening-20260318.jpg",
+          "site": "etftrends.com",
+          "text": "Oil price volatility surges as bombs fall in the Middle East Be ready for more wild swings in oil and gas prices. The Cboe Crude Oil ETF Volatility Index (OVX), which measures implied volatility in oil ETF options, estimates the expected volatility of crude oil prices over the next 30 days.",
+          "url": "https://www.etftrends.com/etf-strategist-content-hub-crude-awakening/"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:26:00.000Z",
+        "title": "Powell delivers his most definitive answer yet on how long he'll stay on as Fed chair",
+        "body_text": "Federal Reserve chair Jerome Powell said on Wednesday that he will stay on as “chair pro tem” if his successor Kevin Warsh is not confirmed by mid-May when Powell's term expires.",
+        "source": "Market Watch",
+        "publisher": "Market Watch",
+        "site": "marketwatch.com",
+        "url": "https://www.marketwatch.com/story/powell-delivers-his-most-definitive-answer-yet-on-how-long-hell-stay-on-as-fed-chair-1b2a5787",
+        "source_url": "https://www.marketwatch.com/story/powell-delivers-his-most-definitive-answer-yet-on-how-long-hell-stay-on-as-fed-chair-1b2a5787",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-delivers-his-most-definitive-answer-yet-on-how-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:26:00",
+          "publisher": "Market Watch",
+          "title": "Powell delivers his most definitive answer yet on how long he'll stay on as Fed chair",
+          "image": "https://images.financialmodelingprep.com/news/powell-delivers-his-most-definitive-answer-yet-on-how-20260318.jpg",
+          "site": "marketwatch.com",
+          "text": "Federal Reserve chair Jerome Powell said on Wednesday that he will stay on as “chair pro tem” if his successor Kevin Warsh is not confirmed by mid-May when Powell's term expires.",
+          "url": "https://www.marketwatch.com/story/powell-delivers-his-most-definitive-answer-yet-on-how-long-hell-stay-on-as-fed-chair-1b2a5787"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:22:42.000Z",
+        "title": "Powell Says He Has No Intention to Leave Fed Until DOJ Probe Over",
+        "body_text": "Federal Reserve Chair Jerome Powell says he plans to stay at the Fed until after the Justice Department's investigation is complete during a news conference after the central bank's policy-setting Federal Open Market Committee to leave interest rates unchanged.",
+        "source": "Bloomberg Markets and Finance",
+        "publisher": "Bloomberg Markets and Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=JLdDJrwffpI",
+        "source_url": "https://www.youtube.com/watch?v=JLdDJrwffpI",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-he-has-no-intention-to-leave-fed-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:22:42",
+          "publisher": "Bloomberg Markets and Finance",
+          "title": "Powell Says He Has No Intention to Leave Fed Until DOJ Probe Over",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-he-has-no-intention-to-leave-fed-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve Chair Jerome Powell says he plans to stay at the Fed until after the Justice Department's investigation is complete during a news conference after the central bank's policy-setting Federal Open Market Committee to leave interest rates unchanged.",
+          "url": "https://www.youtube.com/watch?v=JLdDJrwffpI"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:15:09.000Z",
+        "title": "Fed Chair Powell: If no new Fed chair is confirmed by end of my term I will serve as 'chair pro tem'",
+        "body_text": "Federal Reserve chair Jerome Powell answers questions following the FOMC's decision to leave the Federal Funds rate unchanged.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=3uIhD8BHsuQ",
+        "source_url": "https://www.youtube.com/watch?v=3uIhD8BHsuQ",
+        "image_url": "https://images.financialmodelingprep.com/news/fed-chair-powell-if-no-new-fed-chair-is-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:15:09",
+          "publisher": "CNBC Television",
+          "title": "Fed Chair Powell: If no new Fed chair is confirmed by end of my term I will serve as 'chair pro tem'",
+          "image": "https://images.financialmodelingprep.com/news/fed-chair-powell-if-no-new-fed-chair-is-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve chair Jerome Powell answers questions following the FOMC's decision to leave the Federal Funds rate unchanged.",
+          "url": "https://www.youtube.com/watch?v=3uIhD8BHsuQ"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:14:28.000Z",
+        "title": "Powell Says Fed Rates Are Borderline Restrictive",
+        "body_text": "Federal Reserve Chair Jerome Powell says the Fed is in a \"difficult situation\" and needs to balance current risks during a news conference after the central bank's policy-setting Federal Open Market Committee to leave interest rates unchanged.",
+        "source": "Bloomberg Markets and Finance",
+        "publisher": "Bloomberg Markets and Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=BqhLcgi0Fns",
+        "source_url": "https://www.youtube.com/watch?v=BqhLcgi0Fns",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-fed-rates-are-borderline-restrictive-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:14:28",
+          "publisher": "Bloomberg Markets and Finance",
+          "title": "Powell Says Fed Rates Are Borderline Restrictive",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-fed-rates-are-borderline-restrictive-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve Chair Jerome Powell says the Fed is in a \"difficult situation\" and needs to balance current risks during a news conference after the central bank's policy-setting Federal Open Market Committee to leave interest rates unchanged.",
+          "url": "https://www.youtube.com/watch?v=BqhLcgi0Fns"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:11:25.000Z",
+        "title": "Bitcoin faces pressure after hotter-than-expected inflation data: CNBC Crypto World",
+        "body_text": "On today's episode of CNBC Crypto World, crypto markets are on pace to outperform Wall Street despite a Wednesday pullback driven by hotter-than-expected wholesale data. Also, the SEC and CFTC issue joint guidance on the regulatory classification of crypto assets.",
+        "source": "CNBC Television",
+        "publisher": "CNBC Television",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=IEWU2V79Aa0",
+        "source_url": "https://www.youtube.com/watch?v=IEWU2V79Aa0",
+        "image_url": "https://images.financialmodelingprep.com/news/bitcoin-faces-pressure-after-hotterthanexpected-inflation-data-cnbc-crypto-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:11:25",
+          "publisher": "CNBC Television",
+          "title": "Bitcoin faces pressure after hotter-than-expected inflation data: CNBC Crypto World",
+          "image": "https://images.financialmodelingprep.com/news/bitcoin-faces-pressure-after-hotterthanexpected-inflation-data-cnbc-crypto-20260318.jpg",
+          "site": "youtube.com",
+          "text": "On today's episode of CNBC Crypto World, crypto markets are on pace to outperform Wall Street despite a Wednesday pullback driven by hotter-than-expected wholesale data. Also, the SEC and CFTC issue joint guidance on the regulatory classification of crypto assets.",
+          "url": "https://www.youtube.com/watch?v=IEWU2V79Aa0"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:10:12.000Z",
+        "title": "Fed Chair Powell says that he will serve as Fed Chair until his successor is confirmed",
+        "body_text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+        "source": "Yahoo Finance",
+        "publisher": "Yahoo Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/fxcuCwiKgcU",
+        "source_url": "https://www.youtube.com/shorts/fxcuCwiKgcU",
+        "image_url": "https://images.financialmodelingprep.com/news/fed-chair-powell-says-that-he-will-serve-as-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:10:12",
+          "publisher": "Yahoo Finance",
+          "title": "Fed Chair Powell says that he will serve as Fed Chair until his successor is confirmed",
+          "image": "https://images.financialmodelingprep.com/news/fed-chair-powell-says-that-he-will-serve-as-20260318.jpg",
+          "site": "youtube.com",
+          "text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+          "url": "https://www.youtube.com/shorts/fxcuCwiKgcU"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:10:12.000Z",
+        "title": "Powell: \"The implications of events in the Middle East for the U.S. economy are uncertain.\"",
+        "body_text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+        "source": "Yahoo Finance",
+        "publisher": "Yahoo Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/shorts/6THUQFOh1ps",
+        "source_url": "https://www.youtube.com/shorts/6THUQFOh1ps",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-the-implications-of-events-in-the-middle-east-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:10:12",
+          "publisher": "Yahoo Finance",
+          "title": "Powell: \"The implications of events in the Middle East for the U.S. economy are uncertain.\"",
+          "image": "https://images.financialmodelingprep.com/news/powell-the-implications-of-events-in-the-middle-east-20260318.jpg",
+          "site": "youtube.com",
+          "text": "== Yahoo Finance provides free stock ticker data, up-to-date news, portfolio management resources, comprehensive market data, advanced tools, and more information to help you manage your financial life. Connect with us: — Facebook: https://www.facebook.com/yahoofinance — X/Twitter: https://x.com/YahooFinance — Instagram: https://www.instagram.com/yahoofinance/ — TikTok: https://www.tiktok.com/@yahoofinance — LinkedIn: https://www.linkedin.com/company/yahoo-finance See the Latest News & Data: https://finance.yahoo.com/ Get the Yahoo Finance App: — iOS (https://apple.co/3Rten0R) — Android (https://bit.ly/3t8UnXO)",
+          "url": "https://www.youtube.com/shorts/6THUQFOh1ps"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:06:58.000Z",
+        "title": "Inflation Has Eased, But Is Still Elevated, Powell Says",
+        "body_text": "Federal Reserve Chair Jerome Powell says inflation has eased, but is still \"somewhat elevated relative to our 2% longer run goal.\" -------- More on Bloomberg Television and Markets Like this video?",
+        "source": "Bloomberg Markets and Finance",
+        "publisher": "Bloomberg Markets and Finance",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=jhFtk33uBMQ",
+        "source_url": "https://www.youtube.com/watch?v=jhFtk33uBMQ",
+        "image_url": "https://images.financialmodelingprep.com/news/inflation-has-eased-but-is-still-elevated-powell-says-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:06:58",
+          "publisher": "Bloomberg Markets and Finance",
+          "title": "Inflation Has Eased, But Is Still Elevated, Powell Says",
+          "image": "https://images.financialmodelingprep.com/news/inflation-has-eased-but-is-still-elevated-powell-says-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Federal Reserve Chair Jerome Powell says inflation has eased, but is still \"somewhat elevated relative to our 2% longer run goal.\" -------- More on Bloomberg Television and Markets Like this video?",
+          "url": "https://www.youtube.com/watch?v=jhFtk33uBMQ"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:02:14.000Z",
+        "title": "Powell says he will stay on as head of the Fed until Warsh is confirmed",
+        "body_text": "Powell says he will stay on as head of the Fed until Warsh is confirmed",
+        "source": "CNBC",
+        "publisher": "CNBC",
+        "site": "cnbc.com",
+        "url": "https://www.cnbc.com/2026/03/18/powell-says-he-will-stay-on-as-head-of-the-fed-until-warsh-is-confirmed.html",
+        "source_url": "https://www.cnbc.com/2026/03/18/powell-says-he-will-stay-on-as-head-of-the-fed-until-warsh-is-confirmed.html",
+        "image_url": "https://images.financialmodelingprep.com/news/powell-says-he-will-stay-on-as-head-of-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:02:14",
+          "publisher": "CNBC",
+          "title": "Powell says he will stay on as head of the Fed until Warsh is confirmed",
+          "image": "https://images.financialmodelingprep.com/news/powell-says-he-will-stay-on-as-head-of-20260318.jpg",
+          "site": "cnbc.com",
+          "text": "Powell says he will stay on as head of the Fed until Warsh is confirmed",
+          "url": "https://www.cnbc.com/2026/03/18/powell-says-he-will-stay-on-as-head-of-the-fed-until-warsh-is-confirmed.html"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T15:00:47.000Z",
+        "title": "Rebecca Walser on Private Credit \"Contagions\" Pressuring Wall Street",
+        "body_text": "Rebecca Walser (@walserwealth) tells investors to watch for what dissenters to the FOMC interest rate pause say as macro uncertainties persist. She then turns to the private credit markets and pressures she anticipates lasting in the space.",
+        "source": "Schwab Network",
+        "publisher": "Schwab Network",
+        "site": "youtube.com",
+        "url": "https://www.youtube.com/watch?v=fECTV4qGB-g",
+        "source_url": "https://www.youtube.com/watch?v=fECTV4qGB-g",
+        "image_url": "https://images.financialmodelingprep.com/news/rebecca-walser-on-private-credit-contagions-pressuring-wall-street-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 15:00:47",
+          "publisher": "Schwab Network",
+          "title": "Rebecca Walser on Private Credit \"Contagions\" Pressuring Wall Street",
+          "image": "https://images.financialmodelingprep.com/news/rebecca-walser-on-private-credit-contagions-pressuring-wall-street-20260318.jpg",
+          "site": "youtube.com",
+          "text": "Rebecca Walser (@walserwealth) tells investors to watch for what dissenters to the FOMC interest rate pause say as macro uncertainties persist. She then turns to the private credit markets and pressures she anticipates lasting in the space.",
+          "url": "https://www.youtube.com/watch?v=fECTV4qGB-g"
+        }
+      }
+    },
+    {
+      "reason": "missing_symbol_or_published_date_or_title",
+      "row": {
+        "symbol": "",
+        "published_date": "2026-03-18T14:59:40.000Z",
+        "title": "Fed still expects to cut rates once this year despite spiking oil prices",
+        "body_text": "The Federal Reserve's so-called dot plot showed a median estimate of 3.4% for the federal funds rate at the end of 2026, the same as what it had projected at the end of last year. However, a closer look at the overall dot plot showed the balance of projections moved toward fewer reductions.",
+        "source": "CNBC",
+        "publisher": "CNBC",
+        "site": "cnbc.com",
+        "url": "https://www.cnbc.com/2026/03/18/dot-plot-fed-still-expects-to-cut-rates-once-this-year-despite-spiking-oil-prices-.html",
+        "source_url": "https://www.cnbc.com/2026/03/18/dot-plot-fed-still-expects-to-cut-rates-once-this-year-despite-spiking-oil-prices-.html",
+        "image_url": "https://images.financialmodelingprep.com/news/fed-still-expects-to-cut-rates-once-this-year-20260318.jpg",
+        "raw_json": {
+          "symbol": null,
+          "publishedDate": "2026-03-18 14:59:40",
+          "publisher": "CNBC",
+          "title": "Fed still expects to cut rates once this year despite spiking oil prices",
+          "image": "https://images.financialmodelingprep.com/news/fed-still-expects-to-cut-rates-once-this-year-20260318.jpg",
+          "site": "cnbc.com",
+          "text": "The Federal Reserve's so-called dot plot showed a median estimate of 3.4% for the federal funds rate at the end of 2026, the same as what it had projected at the end of last year. However, a closer look at the overall dot plot showed the balance of projections moved toward fewer reductions.",
+          "url": "https://www.cnbc.com/2026/03/18/dot-plot-fed-still-expects-to-cut-rates-once-this-year-despite-spiking-oil-prices-.html"
+        }
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { getNewsDetail } from "@/lib/api/news";
+import { toFixedSafe } from "@/lib/number";
 
 export default function NewsDetailPage() {
   const params = useParams<{ id: string }>();
@@ -39,12 +40,12 @@ export default function NewsDetailPage() {
         <p className="mt-4 text-sm text-slate-200">{data.summary || "No summary provided."}</p>
         <p className="mt-3 text-sm text-slate-300">{narrative}</p>
         <div className="mt-4 grid gap-2 text-xs text-slate-300 md:grid-cols-2">
-          <div>Confidence: {Number(data.confidence_score || 0).toFixed(2)}</div>
-          <div>Expected move: {Number(data.expected_move_low || 0).toFixed(2)} to {Number(data.expected_move_high || 0).toFixed(2)}</div>
+          <div>Confidence: {toFixedSafe(data.confidence_score || 0, 2)}</div>
+          <div>Expected move: {toFixedSafe(data.expected_move_low || 0, 2)} to {toFixedSafe(data.expected_move_high || 0, 2)}</div>
           <div>Sector trend: {data.sector_trend || "n/a"}</div>
           <div>Market trend: {data.market_trend || "n/a"}</div>
-          <div>Freshness minutes: {Number(data.freshness_minutes || 0).toFixed(0)}</div>
-          <div>Provider count: {Number(data.provider_count || 0).toFixed(0)}</div>
+          <div>Freshness minutes: {toFixedSafe(data.freshness_minutes || 0, 0)}</div>
+          <div>Provider count: {toFixedSafe(data.provider_count || 0, 0)}</div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3 text-xs">
           {data.url ? (

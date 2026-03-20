@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ProtectedRoute } from "@/components/auth/protected-route";
 import { CatalystScannerView } from "@/components/terminal/catalyst-scanner-view";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -10,6 +11,10 @@ export const metadata: Metadata = createPageMetadata(
 );
 
 export default function CatalystScannerPage() {
-  return <CatalystScannerView />;
+  return (
+    <ProtectedRoute>
+      <CatalystScannerView />
+    </ProtectedRoute>
+  );
 }
 

@@ -1,0 +1,247 @@
+{
+  "success": true,
+  "endpoints": [
+    "https://financialmodelingprep.com/stable/news/stock-latest?page=0&limit=50",
+    "https://financialmodelingprep.com/stable/news/general-latest?page=0&limit=50"
+  ],
+  "fetched": 100,
+  "dedupedArticles": 99,
+  "dedupeRejected": 1,
+  "accepted": 49,
+  "rejected": 51,
+  "uniqueSymbols": 46,
+  "topSymbol": "HSBC",
+  "topShare": 0.04081632653061224,
+  "symbolHistogram": [
+    {
+      "symbol": "HSBC",
+      "count": 2,
+      "share": 0.04081632653061224
+    },
+    {
+      "symbol": "MNDY",
+      "count": 2,
+      "share": 0.04081632653061224
+    },
+    {
+      "symbol": "AAPL",
+      "count": 2,
+      "share": 0.04081632653061224
+    },
+    {
+      "symbol": "HRI",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "AAGIY",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "EDV",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "ALO.PA",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "FLTDF",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "TCVNF",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "LMT",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "PGPHF",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "TKC",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "COSA",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "IPHA",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "EPD",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "INTC",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "NXST",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "ACN",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "CRWV",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "BABA",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "JNJ",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "SPGI",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "GOLXF",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "HDB",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "CLOV",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "GOOG",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "BNO",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "NVDA",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "C",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "WTW",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "AZN",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "QMCO",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "DOCN",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "MU",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "CVX",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "LX",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "SSRM",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "AAAU",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "FRSH",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "CSWC",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "ALM",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "MMTOF",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "MSFT",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "ENB",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "SLNO",
+      "count": 1,
+      "share": 0.02040816326530612
+    },
+    {
+      "symbol": "ASGTF",
+      "count": 1,
+      "share": 0.02040816326530612
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "generated_at": "2026-03-18T11:42:00Z",
+  "validation_mode": "runtime_real_data",
+  "pipelines": [
+    {
+      "name": "market_quotes_pipeline",
+      "source_stage": [
+        "server/engines/fmpMarketIngestion.js"
+      ],
+      "database_stage": [
+        "market_quotes",
+        "daily_ohlc (reference close join)"
+      ],
+      "backend_stage": [
+        "GET /api/market/quotes (server/index.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/intelligence/markets (trading-os/src/app/api/intelligence/markets/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/markets.ts:getMarketQuotes"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/market/quotes?symbols=AAPL,SPY",
+          "status": 200,
+          "item_count": 2
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/intelligence/markets?symbols=AAPL,SPY",
+          "status": 200,
+          "item_count": 2
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "name": "intraday_ohlc_pipeline",
+      "source_stage": [
+        "server/ingestion/fmp_intraday_ingest.js"
+      ],
+      "database_stage": [
+        "intraday_1m"
+      ],
+      "backend_stage": [
+        "GET /api/market/ohlc (interval!=1d path in server/index.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/ohlc/intraday (trading-os/src/app/api/ohlc/intraday/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/markets.ts:getMarketChart"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/market/ohlc?symbol=AAPL&interval=1m&limit=5",
+          "status": 200,
+          "item_count": 5
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/ohlc/intraday?symbol=AAPL&interval=1m&limit=5",
+          "status": 200,
+          "item_count": 780
+        },
+        "symbol_coverage": {
+          "AAPL": 780,
+          "SPY": 780,
+          "QQQ": 780,
+          "IWM": 780,
+          "NVDA": 780,
+          "MSFT": 780
+        }
+      },
+      "status": "pass_after_repair",
+      "repairs": [
+        "Pinned symbols injected into intraday priority universe",
+        "Stable provider client used for intraday fetch",
+        "Endpoint path corrected to /historical-chart/1min with symbol query param",
+        "Volume normalized to bigint-safe integer"
+      ]
+    },
+    {
+      "name": "opportunities_pipeline",
+      "source_stage": [
+        "server/engines/strategyEngine.js"
+      ],
+      "database_stage": [
+        "trade_setups"
+      ],
+      "backend_stage": [
+        "GET /api/intelligence/opportunities (server/index.js + server/db/queries/intelligenceQueries.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/intelligence/opportunities (trading-os/src/app/api/intelligence/opportunities/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/opportunities.ts"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/intelligence/opportunities?limit=5",
+          "status": 200,
+          "item_count": 6
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/intelligence/opportunities?limit=5",
+          "status": 200,
+          "item_count": 6
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "name": "signals_pipeline",
+      "source_stage": [
+        "server/engines/strategySignalEngine.js",
+        "server/engines/strategyEngine.js"
+      ],
+      "database_stage": [
+        "strategy_signals"
+      ],
+      "backend_stage": [
+        "GET /api/intelligence/signals (server/index.js:getLatestSignals)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/intelligence/signals (trading-os/src/app/api/intelligence/signals/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/signals.ts"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/intelligence/signals?limit=5",
+          "status": 200,
+          "item_count": 50
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/intelligence/signals?limit=5",
+          "status": 200,
+          "item_count": 50
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "name": "news_catalysts_pipeline",
+      "source_stage": [
+        "server/engines/catalystEngine.js"
+      ],
+      "database_stage": [
+        "news_catalysts"
+      ],
+      "backend_stage": [
+        "GET /api/intelligence/catalysts (server/routes/intelligence.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/intelligence/catalysts (trading-os/src/app/api/intelligence/catalysts/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "internal UI/feed consumers via Next API"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/intelligence/catalysts?limit=5",
+          "status": 200,
+          "item_count": 5
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/intelligence/catalysts?limit=5",
+          "status": 200,
+          "item_count": 5,
+          "note": "Next wraps backend payload as {status,data}; items reside at data.items"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "name": "catalyst_intelligence_pipeline",
+      "source_stage": [
+        "server/engines/catalystIntelligenceEngine.js"
+      ],
+      "database_stage": [
+        "catalyst_intelligence"
+      ],
+      "backend_stage": [
+        "GET /api/catalysts/latest (server/index.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/catalysts/latest (trading-os/src/app/api/catalysts/latest/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/catalysts.ts"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/catalysts/latest?limit=5",
+          "status": 200,
+          "item_count": 5
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/catalysts/latest?limit=5",
+          "status": 200,
+          "item_count": 5
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "name": "catalyst_reactions_pipeline",
+      "source_stage": [
+        "server/engines/catalystReactionEngine.js"
+      ],
+      "database_stage": [
+        "catalyst_reactions"
+      ],
+      "backend_stage": [
+        "GET /api/catalyst-reactions/latest (server/index.js)"
+      ],
+      "next_proxy_stage": [
+        "GET /api/catalyst-reactions/latest (trading-os/src/app/api/catalyst-reactions/latest/route.ts)"
+      ],
+      "frontend_consumer_stage": [
+        "trading-os/src/lib/api/intelligence/catalysts.ts"
+      ],
+      "runtime_validation": {
+        "backend_endpoint": {
+          "url": "http://localhost:3000/api/catalyst-reactions/latest?limit=5",
+          "status": 200,
+          "item_count": 5
+        },
+        "next_endpoint": {
+          "url": "http://localhost:3001/api/catalyst-reactions/latest?limit=5",
+          "status": 200,
+          "item_count": 5
+        }
+      },
+      "status": "pass"
+    }
+  ],
+  "cross_cutting_findings": [
+    {
+      "severity": "info",
+      "message": "All audited backend and Next proxy endpoints returned HTTP 200 during final validation pass."
+    },
+    {
+      "severity": "warning",
+      "message": "Next /api/intelligence/catalysts response shape differs from sibling routes because it wraps backend payload under data.items."
+    },
+    {
+      "severity": "warning",
+      "message": "opportunities table remains empty; live opportunities flow is trade_setups-based in current implementation."
+    }
+  ]
+}

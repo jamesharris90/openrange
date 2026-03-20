@@ -1,0 +1,228 @@
+{
+  "generated_at": "2026-03-18T11:41:00Z",
+  "scope": {
+    "mode": "real_data_only",
+    "constraints": [
+      "No synthetic data accepted as pipeline proof",
+      "No destructive schema change",
+      "Runtime kept on ports 3000 and 3001"
+    ]
+  },
+  "table_inventory": [
+    {
+      "table": "market_quotes",
+      "role": "latest quote snapshot per symbol",
+      "primary_writer_paths": [
+        "server/engines/fmpMarketIngestion.js"
+      ],
+      "primary_reader_paths": [
+        "server/index.js:/api/market/quotes",
+        "server/services/signalService.js"
+      ],
+      "evidence": {
+        "row_count": 5959,
+        "latest_timestamp_column": "updated_at",
+        "latest_timestamp": "2026-03-18T11:40:46.231Z"
+      }
+    },
+    {
+      "table": "intraday_1m",
+      "role": "1-minute OHLC candles",
+      "primary_writer_paths": [
+        "server/ingestion/fmp_intraday_ingest.js",
+        "server/engines/fmp_extended_hours_ingest.js",
+        "server/services/intradayBackfillService.js"
+      ],
+      "primary_reader_paths": [
+        "server/index.js:/api/market/ohlc"
+      ],
+      "evidence": {
+        "row_count": 438357,
+        "latest_timestamp_column": "timestamp",
+        "latest_timestamp": "2026-03-18T11:39:00.000Z"
+      }
+    },
+    {
+      "table": "daily_ohlc",
+      "role": "daily OHLC reference and chart history",
+      "primary_writer_paths": [
+        "server/ingestion/fmp_prices_ingest.js"
+      ],
+      "primary_reader_paths": [
+        "server/index.js:/api/market/quotes",
+        "server/index.js:/api/market/ohlc"
+      ],
+      "evidence": {
+        "row_count": 2350357,
+        "latest_timestamp_column": "date",
+        "latest_timestamp": "2026-03-13T00:00:00.000Z"
+      }
+    },
+    {
+      "table": "trade_setups",
+      "role": "strategy setup stream used by opportunities and fallback signals",
+      "primary_writer_paths": [
+        "server/engines/strategyEngine.js",
+        "server/strategy/strategy_engine.js"
+      ],
+      "primary_reader_paths": [
+        "server/db/queries/intelligenceQueries.js",
+        "server/index.js:/api/intelligence/opportunities",
+        "server/index.js:getLatestSignals fallback path"
+      ],
+      "evidence": {
+        "row_count": 310,
+        "latest_timestamp_column": "updated_at",
+        "latest_timestamp": "2026-03-18T11:40:12.446Z"
+      }
+    },
+    {
+      "table": "strategy_signals",
+      "role": "normalized signal table used by signals API",
+      "primary_writer_paths": [
+        "server/engines/strategySignalEngine.js",
+        "server/engines/strategyEngine.js"
+      ],
+      "primary_reader_paths": [
+        "server/services/signalService.js",
+        "server/index.js:/api/intelligence/signals"
+      ],
+      "evidence": {
+        "row_count": 204,
+        "latest_timestamp_column": "updated_at",
+        "latest_timestamp": "2026-03-18T11:40:10.374Z"
+      }
+    },
+    {
+      "table": "trade_catalysts",
+      "role": "headline-derived catalyst records",
+      "primary_writer_paths": [
+        "server/catalyst/catalyst_engine.js",
+        "server/services/emailIntelBridge.js"
+      ],
+      "primary_reader_paths": [
+        "server/services/signalService.js"
+      ],
+      "evidence": {
+        "row_count": 4397,
+        "latest_timestamp_column": "created_at",
+        "latest_timestamp": "2026-03-16T13:31:10.202Z"
+      }
+    },
+    {
+      "table": "news_catalysts",
+      "role": "latest catalyst feed for intelligence endpoint",
+      "primary_writer_paths": [
+        "server/engines/catalystEngine.js"
+      ],
+      "primary_reader_paths": [
+        "server/routes/intelligence.js:/api/intelligence/catalysts"
+      ],
+      "evidence": {
+        "row_count": 748,
+        "latest_timestamp_column": "updated_at",
+        "latest_timestamp": "2026-03-18T11:40:03.142Z"
+      }
+    },
+    {
+      "table": "catalyst_intelligence",
+      "role": "enriched catalyst intelligence records",
+      "primary_writer_paths": [
+        "server/engines/catalystIntelligenceEngine.js"
+      ],
+      "primary_reader_paths": [
+        "server/index.js:/api/catalysts/latest"
+      ],
+      "evidence": {
+        "row_count": 171,
+        "latest_timestamp_column": "created_at",
+        "latest_timestamp": "2026-03-18T11:40:10.106Z"
+      }
+    },
+    {
+      "table": "catalyst_reactions",
+      "role": "reaction classification for catalyst events",
+      "primary_writer_paths": [
+        "server/engines/catalystReactionEngine.js"
+      ],
+      "primary_reader_paths": [
+        "server/index.js:/api/catalyst-reactions/latest"
+      ],
+      "evidence": {
+        "row_count": 171,
+        "latest_timestamp_column": "created_at",
+        "latest_timestamp": "2026-03-16T17:30:18.934Z"
+      }
+    },
+    {
+      "table": "catalyst_signals",
+      "role": "catalyst-derived signal eligibility stream",
+      "primary_writer_paths": [
+        "server/engines/catalystSignalEngine.js"
+      ],
+      "primary_reader_paths": [
+        "server/ingestion/fmp_intraday_ingest.js (priority symbol selection)"
+      ],
+      "evidence": {
+        "row_count": 171,
+        "latest_timestamp_column": "created_at",
+        "latest_timestamp": "2026-03-16T20:10:01.523Z"
+      }
+    },
+    {
+      "table": "opportunities",
+      "role": "legacy/non-primary opportunities table",
+      "primary_writer_paths": [],
+      "primary_reader_paths": [],
+      "evidence": {
+        "row_count": 0,
+        "latest_timestamp_column": null,
+        "latest_timestamp": null
+      }
+    }
+  ],
+  "symbol_coverage_checks": {
+    "intraday_1m_required_symbols": [
+      {
+        "symbol": "AAPL",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      },
+      {
+        "symbol": "SPY",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      },
+      {
+        "symbol": "QQQ",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      },
+      {
+        "symbol": "IWM",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      },
+      {
+        "symbol": "NVDA",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      },
+      {
+        "symbol": "MSFT",
+        "bars": 780,
+        "latest_timestamp": "2026-03-17T15:59:00.000Z"
+      }
+    ]
+  },
+  "schema_findings": [
+    {
+      "severity": "info",
+      "message": "Live data plane uses market_quotes/intraday_1m/daily_ohlc/trade_setups/strategy_signals and catalyst tables as system-of-record names."
+    },
+    {
+      "severity": "warning",
+      "message": "opportunities table is empty and is not the active path for /api/intelligence/opportunities in current implementation."
+    }
+  ]
+}

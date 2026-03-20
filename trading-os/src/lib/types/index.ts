@@ -1,7 +1,9 @@
+import type { DataSource } from "@/lib/data-source";
+
 export type Timeframe = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w" | "1M";
 
 export type PricePoint = {
-  time: string;
+  time: string | number;
   open?: number;
   high?: number;
   low?: number;
@@ -13,6 +15,7 @@ export type MarketQuote = {
   symbol: string;
   price: number;
   change_percent: number;
+  source?: DataSource;
   volume_24h?: number;
   relative_volume?: number;
   gap_percent?: number;
@@ -28,25 +31,40 @@ export type Opportunity = {
   probability: number;
   confidence: number;
   expected_move: number;
+  expected_move_percent?: number;
+  source?: DataSource;
   catalyst?: string;
   sector?: string;
+  price?: number;
+  iv?: number;
+  lastPrice?: number;
+  prevClose?: number;
+  entry?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  trade_plan?: string;
+  updated_at?: string;
 };
 
 export type EarningsRow = {
   symbol: string;
-  company?: string;
-  earnings_date: string;
-  expected_move?: number;
-  actual_move?: number;
-  beat_miss?: string;
-  post_earnings_move?: number;
-  analyst_revisions?: string;
-  sector?: string;
+  event_date: string;
+  expected_move?: number | null;
+  last_updated_date?: string | null;
+  eps_estimate?: number | null;
+  eps_actual?: number | null;
+  revenue_estimate?: number | null;
+  revenue_actual?: number | null;
+  raw_json?: Record<string, unknown>;
+  ingested_at?: string;
+  source?: DataSource;
+  [key: string]: unknown;
 };
 
 export type HeatmapRow = {
   symbol: string;
   sector: string;
+  source?: DataSource;
   market_cap: number;
   volume_24h: number;
   gap_percent: number;

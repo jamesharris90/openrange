@@ -1,9 +1,4 @@
-import { fetchSafe } from './fetchSafe';
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:3001';
+import { apiFetch as strictApiFetch, API_BASE } from '../lib/apiClient';
 
 function normalizeApiPath(path) {
   const raw = String(path || '').trim();
@@ -13,15 +8,27 @@ function normalizeApiPath(path) {
   return `/api/${raw}`;
 }
 
-export async function safeFetch(url, options = {}) {
-  return fetchSafe(url, { ...options, fallback: {}, returnFallbackOnError: false });
+function buildUrl(path) {
+  const url = `${API_BASE}${normalizeApiPath(path)}`;
+  console.log('[API CALL]', url);
+  return url;
 }
 
-export async function apiFetch(path, options = {}) {
-  const url = `${API_BASE}${normalizeApiPath(path)}`;
+function normalizeResponse(res) {
+  if (!res) return { success: false, data: [] };
+
+  const data = res.data || res.rows || res.result || [];
+
+  return {
+    success: true,
+    data: Array.isArray(data) ? data : [],
+  };
+}
+
+function withAuthHeaders(options = {}) {
   const token = localStorage.getItem('openrange_token') || localStorage.getItem('authToken');
 
-  return safeFetch(url, {
+  return {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -29,7 +36,16 @@ export async function apiFetch(path, options = {}) {
       ...(options.headers || {}),
     },
     ...options,
-  });
+  };
+}
+
+export async function safeFetch(path, options = {}) {
+  const json = await strictApiFetch(normalizeApiPath(path), withAuthHeaders(options));
+  return normalizeResponse(json);
+}
+
+export async function apiFetch(path, options = {}) {
+  return safeFetch(path, options);
 }
 
 export async function apiJSON(path, options = {}) {
@@ -38,10 +54,43 @@ export async function apiJSON(path, options = {}) {
 
 export async function apiClient(path, options = {}) {
   const response = await apiFetch(path, options);
-  if (response && Object.prototype.hasOwnProperty.call(response, 'ok') && Object.prototype.hasOwnProperty.call(response, 'data')) {
-    return response.data;
-  }
-  return response;
+  return response.data;
 }
 
-export default API_BASE;
+export async function get(path, options = {}) {
+  return apiFetch(path, { ...options, method: 'GET' });
+}
+
+export async function post(path, body, options = {}) {
+  return apiFetch(path, {
+    ...options,
+    method: 'POST',
+    body: body == null || typeof body === 'string' ? body : JSON.stringify(body),
+  });
+}
+
+export async function put(path, body, options = {}) {
+  return apiFetch(path, {
+    ...options,
+    method: 'PUT',
+    body: body == null || typeof body === 'string' ? body : JSON.stringify(body),
+  });
+}
+
+export async function patch(path, body, options = {}) {
+  return apiFetch(path, {
+    ...options,
+    method: 'PATCH',
+    body: body == null || typeof body === 'string' ? body : JSON.stringify(body),
+  });
+}
+
+export async function del(path, options = {}) {
+  return apiFetch(path, { ...options, method: 'DELETE' });
+}
+
+const BASE_URL = API_BASE;
+
+export { BASE_URL };
+export { normalizeApiPath, buildUrl, normalizeResponse };
+export default BASE_URL;

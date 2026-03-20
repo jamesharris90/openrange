@@ -1,8 +1,9 @@
 import type { HeatmapRow } from "@/lib/types";
+import { percentSafe, toNumber } from "@/lib/number";
 
 export function SectorLeaderboard({ rows }: { rows: HeatmapRow[] }) {
   const bySector = rows.reduce<Record<string, number>>((acc, row) => {
-    acc[row.sector] = (acc[row.sector] || 0) + row.change_percent;
+    acc[row.sector] = (acc[row.sector] || 0) + toNumber(row.change_percent, 0);
     return acc;
   }, {});
 
@@ -18,7 +19,7 @@ export function SectorLeaderboard({ rows }: { rows: HeatmapRow[] }) {
         {ranked.map((row) => (
           <div key={row.sector} className="flex items-center justify-between text-sm">
             <span className="text-slate-300">{row.sector}</span>
-            <span className={row.value >= 0 ? "text-bull" : "text-bear"}>{row.value.toFixed(2)}%</span>
+            <span className={toNumber(row.value, 0) >= 0 ? "text-bull" : "text-bear"}>{percentSafe(row.value, 2)}</span>
           </div>
         ))}
       </div>

@@ -4,6 +4,7 @@ import { hierarchy, treemap } from "d3-hierarchy";
 import { useMemo, useState } from "react";
 
 import { Sparkline } from "@/components/terminal/sparkline";
+import { percentSafe, toNumber } from "@/lib/number";
 import { useTickerStore } from "@/lib/store/ticker-store";
 import type { HeatmapRow } from "@/lib/types";
 
@@ -35,7 +36,7 @@ export function SectorHeatMap({ rows }: { rows: HeatmapRow[] }) {
     const root = hierarchy({
       children: renderRows.map((row) => ({
         ...row,
-        value: Math.max(1, Number(row[metric] || 0)),
+        value: Math.max(1, toNumber(row[metric], 0)),
       })),
     } as { children: Array<HeatmapRow & { value: number }> }).sum((d: unknown) => Number((d as { value?: number }).value || 0));
 
@@ -88,7 +89,7 @@ export function SectorHeatMap({ rows }: { rows: HeatmapRow[] }) {
       <svg viewBox="0 0 1000 420" className="h-[420px] w-full rounded-xl bg-slate-950">
         {layout.map((node) => {
           const row = node.data as unknown as HeatmapRow;
-          const change = Number(row.change_percent || 0);
+          const change = toNumber(row.change_percent, 0);
           const up = change >= 0;
           return (
             <g key={row.symbol} transform={`translate(${node.x0},${node.y0})`}>
@@ -104,7 +105,7 @@ export function SectorHeatMap({ rows }: { rows: HeatmapRow[] }) {
                 <div className="flex h-full w-full flex-col justify-between text-[11px] text-slate-100">
                   <div>
                     <div className="font-mono">{row.symbol}</div>
-                    <div className={up ? "text-bull" : "text-bear"}>{change.toFixed(2)}%</div>
+                    <div className={up ? "text-bull" : "text-bear"}>{percentSafe(change, 2)}</div>
                   </div>
                   <Sparkline values={row.sparkline || [1, 2, 3, 2, 4]} width={100} height={24} />
                 </div>

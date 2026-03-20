@@ -36,7 +36,9 @@ const { runExpectedMoveEngine } = require('../engines/expectedMoveEngine');
 const { runMarketRegimeEngine } = require('../engines/marketRegimeEngine');
 const { runSignalCaptureEngine } = require('../engines/signalCaptureEngine');
 const { runStrategyLearningEngine } = require('../engines/strategyLearningEngine');
-const { evaluateSignals: evaluateTradeOutcomeSignals } = require('../engines/tradeOutcomeEngine');
+const { evaluateSignals: evaluateTradeOutcomeSignals, updateOutcomes } = require('../engines/tradeOutcomeEngine');
+const { runTQI } = require('../engines/tradeQualityEngine');
+const { runBacktest } = require('../engines/backtestEngine');
 const { runCatalystDetectionEngine } = require('../engines/catalystDetectionEngine');
 const { runCatalystIntelligenceEngine } = require('../engines/catalystIntelligenceEngine');
 const { runCatalystPrecedentEngine } = require('../engines/catalystPrecedentEngine');
@@ -997,6 +999,21 @@ async function startEnginesSequentially() {
           extendedHoursInFlight = false;
         });
       }, 10000);
+    }
+
+    if (!global.tradeQualityBacktestSchedulerStarted) {
+      global.tradeQualityBacktestSchedulerStarted = true;
+      console.log('[TRADE_QUALITY] scheduler registered (every 10 minutes)');
+
+      setInterval(() => {
+        try {
+          updateOutcomes();
+          runTQI();
+          runBacktest();
+        } catch (error) {
+          console.error('[TRADE_QUALITY] scheduled run error', error.message);
+        }
+      }, 600000);
     }
 
     console.log('[Engine] All engines started successfully');

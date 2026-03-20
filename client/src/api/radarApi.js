@@ -1,7 +1,7 @@
-import { fetchSafe } from './fetchSafe';
+import { apiFetch } from './apiClient';
 
 async function fetchJson(path) {
-  return fetchSafe(path, { fallback: {} });
+  return apiFetch(path, { fallback: {} });
 }
 
 export async function fetchRadar() {

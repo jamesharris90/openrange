@@ -1,0 +1,136 @@
+{
+  "generatedAt": "2026-03-19T00:30:05.957Z",
+  "apiBase": "http://localhost:3001",
+  "symbols": {
+    "earnings_symbol": "JRONY",
+    "news_symbol": "AAPL",
+    "ipos_symbol": "AVTM",
+    "splits_symbol": "TR"
+  },
+  "checks": {
+    "earnings": {
+      "status": 200,
+      "dbRows": 1,
+      "apiRows": 1,
+      "topMatches": true,
+      "dbTop": {
+        "symbol": "JRONY",
+        "event_date": "2026-03-18T00:00:00.000Z"
+      },
+      "apiTop": {
+        "symbol": "JRONY",
+        "event_date": "2026-03-18T00:00:00.000Z",
+        "last_updated_date": "2026-03-10T00:00:00.000Z",
+        "eps_estimate": 0.77,
+        "eps_actual": null,
+        "revenue_estimate": "11018350700",
+        "revenue_actual": null,
+        "source": "fmp",
+        "raw_json": {
+          "date": "2026-03-18",
+          "symbol": "JRONY",
+          "epsActual": null,
+          "lastUpdated": "2026-03-10",
+          "epsEstimated": 0.77,
+          "revenueActual": null,
+          "revenueEstimated": 11018350700
+        },
+        "ingested_at": "2026-03-19T00:19:50.980Z"
+      }
+    },
+    "news": {
+      "status": 200,
+      "dbRows": 3,
+      "apiRows": 3,
+      "topMatches": true,
+      "dbTop": {
+        "symbol": "AAPL",
+        "published_date": null,
+        "title": null
+      },
+      "apiTop": {
+        "symbol": "AAPL",
+        "published_date": null,
+        "title": null,
+        "body_text": null,
+        "source": "Yahoo",
+        "publisher": null,
+        "site": null,
+        "url": "https://finnhub.io/api/news?id=cd6b52d57d035a32fb538a71eb075edf458b734e6f9fd18aa4a3f6b2a47a6df9",
+        "image_url": null,
+        "raw_json": {
+          "id": 139420661,
+          "url": "https://finnhub.io/api/news?id=cd6b52d57d035a32fb538a71eb075edf458b734e6f9fd18aa4a3f6b2a47a6df9",
+          "image": "https://s.yimg.com/rz/stage/p/yahoo_finance_en-US_h_p_finance_2.png",
+          "source": "Yahoo",
+          "related": "AAPL",
+          "summary": "For the first time, the world's largest contract electronics maker has issued a full-year revenue outlook, and the message is unambiguous: the AI infrastructure boom has years to run. Bury the profit miss. The more consequential number out of Foxconn on Monday is the one the company has never...",
+          "category": "company",
+          "datetime": 1773648600,
+          "headline": "Foxconn bets the whole of 2026 on AI servers, even as profits slip"
+        },
+        "ingested_at": "2026-03-18T23:09:40.674Z"
+      }
+    },
+    "ipos": {
+      "status": 200,
+      "dbRows": 1,
+      "apiRows": 1,
+      "topMatches": true,
+      "dbTop": {
+        "symbol": "AVTM",
+        "event_date": "2026-02-02T00:00:00.000Z"
+      },
+      "apiTop": {
+        "symbol": "AVTM",
+        "event_date": "2026-02-02T00:00:00.000Z",
+        "company": "Avantis Total Equity Markets ETF 1",
+        "exchange": "NYSE",
+        "actions": "Expected",
+        "price_range": null,
+        "shares": null,
+        "market_cap": null,
+        "source": "fmp",
+        "raw_json": {
+          "daa": "2026-02-02T05:00:00.000Z",
+          "date": "2026-02-02",
+          "shares": null,
+          "symbol": "AVTM",
+          "actions": "Expected",
+          "company": "Avantis Total Equity Markets ETF 1",
+          "exchange": "NYSE",
+          "marketCap": null,
+          "priceRange": null
+        },
+        "ingested_at": "2026-03-19T00:20:46.177Z"
+      }
+    },
+    "splits": {
+      "status": 200,
+      "dbRows": 1,
+      "apiRows": 1,
+      "topMatches": true,
+      "dbTop": {
+        "symbol": "TR",
+        "event_date": "2026-03-05T00:00:00.000Z"
+      },
+      "apiTop": {
+        "symbol": "TR",
+        "event_date": "2026-03-05T00:00:00.000Z",
+        "numerator": 103,
+        "denominator": 100,
+        "split_type": "stock-split",
+        "source": "fmp",
+        "raw_json": {
+          "date": "2026-03-05",
+          "symbol": "TR",
+          "numerator": 103,
+          "splitType": "stock-split",
+          "denominator": 100
+        },
+        "ingested_at": "2026-03-19T00:21:01.958Z"
+      }
+    }
+  },
+  "ok": true
+}

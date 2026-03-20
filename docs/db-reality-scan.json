@@ -1,0 +1,7532 @@
+{
+  "generated_at": "2026-03-18T11:08:32.280Z",
+  "table_count": 174,
+  "tables": [
+    {
+      "table_name": "activity_log",
+      "row_count": 133,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T07:42:36.209Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "action",
+          "data_type": "text"
+        },
+        {
+          "column_name": "details",
+          "data_type": "text"
+        },
+        {
+          "column_name": "ip_address",
+          "data_type": "text"
+        },
+        {
+          "column_name": "user_agent",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "adaptive_strategy_rank",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "signals_used",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "alert_history",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "alert_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "message",
+          "data_type": "text"
+        },
+        {
+          "column_name": "triggered_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "alerts",
+      "row_count": 1269,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-12T06:33:02.968Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "severity",
+          "data_type": "text"
+        },
+        {
+          "column_name": "message",
+          "data_type": "text"
+        },
+        {
+          "column_name": "acknowledged",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "audit_log",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "actor",
+          "data_type": "text"
+        },
+        {
+          "column_name": "action",
+          "data_type": "text"
+        },
+        {
+          "column_name": "target",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "beacon_learning_metrics",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "beacon_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "actual_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "success",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "beacon_rankings",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signal_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "strategy_win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confirmation_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "beacon_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "beacon_weights",
+      "row_count": 2,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-14T14:39:19.940Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "winrate_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "probability_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confirmation_weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "broker_executions",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "exec_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "dataset_scope",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "broker",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "side",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "qty",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "commission",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "exec_time",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "raw_json",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "calibration_health",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "signals_tracked",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "double precision"
+        }
+      ]
+    },
+    {
+      "table_name": "catalyst_events",
+      "row_count": 171,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-16T17:24:02.695Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "news_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "provider_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "freshness_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "sentiment_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "catalyst_intelligence",
+      "row_count": 171,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:05:27.818Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "news_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector_trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "float_size",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "short_interest",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "institutional_ownership",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "provider_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "freshness_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "sentiment_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move_low",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move_high",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "catalyst_precedent",
+      "row_count": 8,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "historical_move_avg",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sample_size",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "success_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "catalyst_reactions",
+      "row_count": 171,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-16T17:30:18.934Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "news_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "reaction_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "abnormal_volume_ratio",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "first_5m_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "current_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "continuation_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expectation_gap_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "priced_in_flag",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "qqq_trend",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "spy_trend",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_alignment",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "is_tradeable_now",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "catalyst_signals",
+      "row_count": 171,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-16T20:10:01.523Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "news_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "signal_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signal_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "chart_trends",
+      "row_count": 1356,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:06:19.909Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "support",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "resistance",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "channel",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "breakouts",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "computed_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "company_profiles",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "company_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "exchange",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "industry",
+          "data_type": "text"
+        },
+        {
+          "column_name": "description",
+          "data_type": "text"
+        },
+        {
+          "column_name": "ceo",
+          "data_type": "text"
+        },
+        {
+          "column_name": "website",
+          "data_type": "text"
+        },
+        {
+          "column_name": "country",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "float",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "shares_outstanding",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "ipo_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "logo_url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "daily_ohlc",
+      "row_count": 2350357,
+      "timestamp_column": "date",
+      "latest_timestamp": "2026-03-13T00:00:00.000Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "open",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "high",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "low",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "close",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "daily_reviews",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "review_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "dataset_scope",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "review_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "total_pnl",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "total_trades",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "summary_text",
+          "data_type": "text"
+        },
+        {
+          "column_name": "lessons_text",
+          "data_type": "text"
+        },
+        {
+          "column_name": "plan_tomorrow",
+          "data_type": "text"
+        },
+        {
+          "column_name": "mood",
+          "data_type": "smallint"
+        },
+        {
+          "column_name": "rating",
+          "data_type": "smallint"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "daily_signal_snapshot",
+      "row_count": 81,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-17T12:15:25.247Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "snapshot_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "snapshot_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "data_freshness_dashboard",
+      "row_count": 4,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "table_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_update",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "data_integrity",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "issue",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "data_integrity_events",
+      "row_count": 1385067,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:08:39.723Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "event_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "issue",
+          "data_type": "text"
+        },
+        {
+          "column_name": "severity",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "discovered_symbols",
+      "row_count": 539,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "dynamic_watchlist",
+      "row_count": 8,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-16T21:10:14.993Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score_breakdown",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "hierarchy_rank",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "early_accumulation_signals",
+      "row_count": 1819,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_shares",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume_delta",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "accumulation_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pressure_level",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "alert_sent",
+          "data_type": "boolean"
+        }
+      ]
+    },
+    {
+      "table_name": "early_signal_outcomes",
+      "row_count": 1768,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T06:31:41.956Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_1h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_4h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_5d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "result_label",
+          "data_type": "text"
+        },
+        {
+          "column_name": "evaluated_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "earnings_events",
+      "row_count": 20803,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-05T21:50:45.064Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "report_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "report_time",
+          "data_type": "text"
+        },
+        {
+          "column_name": "eps_estimate",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "eps_actual",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "rev_estimate",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "rev_actual",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "eps_surprise_pct",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "rev_surprise_pct",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "guidance_direction",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "float",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "industry",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "company",
+          "data_type": "text"
+        },
+        {
+          "column_name": "earnings_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "revenue_estimate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "time",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "earnings_market_reaction",
+      "row_count": 1,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-02-24T00:57:01.697Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "report_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "pre_market_gap_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "open_gap_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_of_day_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_of_day_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "day2_followthrough_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume_vs_avg",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "implied_move_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "actual_move_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_vs_implied_ratio",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "earnings_scores",
+      "row_count": 1,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-02-24T00:57:01.862Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "report_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "surprise_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "guidance_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "reaction_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "positioning_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "total_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "tier",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "earnings_expected_move_pct",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "earnings_expected_move_dollar",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "earnings_iv",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "earnings_transcripts",
+      "row_count": 400,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-16T09:20:16.152Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "fiscal_year",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "fiscal_quarter",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "report_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "transcript_status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "transcript_text",
+          "data_type": "text"
+        },
+        {
+          "column_name": "raw_payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_activity_last_hour",
+      "row_count": 4,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "rows_last_hour",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_activity_rates",
+      "row_count": 3,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "rows_last_hour",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_errors",
+      "row_count": 0,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "message",
+          "data_type": "text"
+        },
+        {
+          "column_name": "stack",
+          "data_type": "text"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "metadata",
+          "data_type": "jsonb"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_health_dashboard",
+      "row_count": 33,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_update",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "delay",
+          "data_type": "interval"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_runtime",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "engine_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "execution_time_ms",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "details",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_status",
+      "row_count": 38,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:08:36.007Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_run",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "runtime_ms",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "engine_telemetry",
+      "row_count": 70274,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:08:35.308Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "event_log",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "event_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "expected_move_tracking",
+      "row_count": 16412,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T02:30:10.893Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "expected_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "actual_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move_hit",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "expected_move_error",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "implied_volatility",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "historical_volatility",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "iv_hv_ratio",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "expected_moves",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "expected_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "earnings_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_access_audit",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "admin_user_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "target_user_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "feature_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "old_enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "new_enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "changed_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_audit",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "actor_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "action",
+          "data_type": "text"
+        },
+        {
+          "column_name": "target",
+          "data_type": "text"
+        },
+        {
+          "column_name": "metadata",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "changed_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_flags",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "description",
+          "data_type": "text"
+        },
+        {
+          "column_name": "category",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_overrides",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "feature_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_registry",
+      "row_count": 16,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-09T19:33:34.622Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "feature_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "feature_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "category",
+          "data_type": "text"
+        },
+        {
+          "column_name": "description",
+          "data_type": "text"
+        },
+        {
+          "column_name": "release_stage",
+          "data_type": "text"
+        },
+        {
+          "column_name": "default_free",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "default_pro",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "default_ultimate",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "default_admin",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "feature_roles",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "changed_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "flow_signals",
+      "row_count": 8718131,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": "2026-03-18T11:08:43.100Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "flow_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pressure_level",
+          "data_type": "text"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "gap_candidates",
+      "row_count": 196,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "ingestion_state",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "phase",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_symbol_index",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "institutional_flow",
+      "row_count": 171641,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "breakout_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "institutional_flow_candidates",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "short_float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "integrity_events",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "issue",
+          "data_type": "text"
+        },
+        {
+          "column_name": "severity",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "intel_news",
+      "row_count": 529871,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:08:50.500Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "sentiment",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "detected_symbols",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "expected_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "score_breakdown",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "narrative_confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "narrative_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "time_horizon",
+          "data_type": "text"
+        },
+        {
+          "column_name": "regime",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "intelligence_briefs",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "email_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "summary",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_sentiment",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "geopolitical_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_tags",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "tickers",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "intelligence_emails",
+      "row_count": 842,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T10:57:09.804Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "sender",
+          "data_type": "text"
+        },
+        {
+          "column_name": "subject",
+          "data_type": "text"
+        },
+        {
+          "column_name": "received_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "raw_text",
+          "data_type": "text"
+        },
+        {
+          "column_name": "raw_html",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source_tag",
+          "data_type": "text"
+        },
+        {
+          "column_name": "processed",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "intraday_1h",
+      "row_count": 0,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "open",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "intraday_1m",
+      "row_count": 382989,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": "2026-03-18T11:06:00.000Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "open",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "high",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "low",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "close",
+          "data_type": "double precision"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "session",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "intraday_ohlc",
+      "row_count": 0,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "timeframe",
+          "data_type": "text"
+        },
+        {
+          "column_name": "open",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "intraday_volume_30m",
+      "row_count": 138,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "volume_last_30m",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "intraday_volume_spikes",
+      "row_count": 71,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "volume_last_30m",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume_spike_ratio",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "liquid_universe",
+      "row_count": 2892,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "market_context_snapshot",
+      "row_count": 3617,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T09:45:11.247Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "spy_trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "qqq_trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_regime",
+          "data_type": "text"
+        },
+        {
+          "column_name": "volatility_level",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strongest_sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "weakest_sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "breadth_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "market_index_snapshot",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "market_metrics",
+      "row_count": 5959,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:02:04.234Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rsi",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "vwap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "previous_high",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_shares",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "short_float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "market_metrics_clean",
+      "row_count": 5959,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:02:04.234Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "vwap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rsi",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "market_narratives",
+      "row_count": 16128,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:07:43.437Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "regime",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "market_news",
+      "row_count": 3012,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-12T10:35:18.814Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "market_quotes",
+      "row_count": 5959,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:08:24.369Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "short_float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "premarket_volume",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "market_regime_daily",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "spy_trend",
+          "data_type": "text"
+        },
+        {
+          "column_name": "vix_level",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "market_regime",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector_strength",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "breadth_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "market_regime_inputs",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "spy_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "qqq_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "iwm_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "vix_level",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "missed_opportunities",
+      "row_count": 218065,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-13T08:28:13.615Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "high_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "replayed",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "expected_move_percent",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "morning_briefings",
+      "row_count": 19,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-13T12:00:09.454Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "signals",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "market",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "news",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "as_of_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "email_status",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "stocks_in_play",
+          "data_type": "jsonb"
+        }
+      ]
+    },
+    {
+      "table_name": "news_articles",
+      "row_count": 2748,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:04:56.248Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "symbols",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "summary",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "news_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "score_breakdown",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "raw_payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "provider",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sentiment",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "news_catalysts",
+      "row_count": 748,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:08:55.685Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sentiment",
+          "data_type": "text"
+        },
+        {
+          "column_name": "impact_score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "news_events",
+      "row_count": 1342773,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-04T21:17:37.728Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "newsletter_campaigns",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "subject",
+          "data_type": "text"
+        },
+        {
+          "column_name": "content_html",
+          "data_type": "text"
+        },
+        {
+          "column_name": "content_text",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "newsletter_send_history",
+      "row_count": 23,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T09:00:37.793Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "subject",
+          "data_type": "text"
+        },
+        {
+          "column_name": "recipients_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "provider_id",
+          "data_type": "text"
+        },
+        {
+          "column_name": "status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "open_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "click_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sent_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "campaign_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "campaign_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "audience",
+          "data_type": "text"
+        },
+        {
+          "column_name": "metadata",
+          "data_type": "jsonb"
+        }
+      ]
+    },
+    {
+      "table_name": "newsletter_sends",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "campaign_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "email",
+          "data_type": "text"
+        },
+        {
+          "column_name": "opened",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "clicked",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "sent_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "newsletter_subscribers",
+      "row_count": 1,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-15T11:49:05.805Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "email",
+          "data_type": "text"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "confirmed",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "is_active",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "timezone",
+          "data_type": "text"
+        },
+        {
+          "column_name": "email_preferences",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "opportunities",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "opportunities_v2",
+      "row_count": 207,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:08.379Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "opportunity_intelligence",
+      "row_count": 28,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T08:50:46.134Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst",
+          "data_type": "text"
+        },
+        {
+          "column_name": "movement_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "opportunity_stream",
+      "row_count": 1989654,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:08:04.866Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "event_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "opportunity_stream_dedup",
+      "row_count": 5394,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:09:30.639Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "options_cache",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "expiration",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "atm_iv",
+          "data_type": "real"
+        },
+        {
+          "column_name": "expected_move_pct",
+          "data_type": "real"
+        },
+        {
+          "column_name": "expected_move_dollar",
+          "data_type": "real"
+        },
+        {
+          "column_name": "days_to_expiry",
+          "data_type": "real"
+        },
+        {
+          "column_name": "fetched_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "null_reason",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "order_flow_signals",
+      "row_count": 1311,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pressure_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pressure_level",
+          "data_type": "text"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "plan_features",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "feature",
+          "data_type": "text"
+        },
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        }
+      ]
+    },
+    {
+      "table_name": "platform_watchdog",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "checked_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "opportunities_24h",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "intelligence_signals",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "news_events",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "last_opportunity",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "seconds_since_last_opportunity",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "platform_watchdog_status",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "checked_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "opportunities_24h",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "intelligence_signals",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "news_events",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "last_opportunity",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "seconds_since_last_opportunity",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "stream_status",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "profiles",
+      "row_count": 1,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-10T13:33:44.261Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "username",
+          "data_type": "text"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trial_end",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "is_active",
+          "data_type": "boolean"
+        }
+      ]
+    },
+    {
+      "table_name": "provider_health",
+      "row_count": 11056,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T09:51:06.763Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "provider",
+          "data_type": "text"
+        },
+        {
+          "column_name": "status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "latency",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "qualified_signals",
+      "row_count": 21,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-07T16:38:31.226Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "signal_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "signal_origin",
+          "data_type": "text"
+        },
+        {
+          "column_name": "scanner_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_summary",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "industry",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "spy_direction",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_session",
+          "data_type": "text"
+        },
+        {
+          "column_name": "time_of_day",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_a_setups",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "movement_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_plan",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_market_summary",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "stocks_in_play",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "momentum_leaders",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "news_catalysts",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "a_plus_setups",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "generated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_momentum",
+      "row_count": 25,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:03.608Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_news",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_stocks_in_play",
+      "row_count": 8,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T08:50:46.134Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "movement_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_top_trades",
+      "row_count": 8,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T08:50:46.134Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "movement_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "trade_plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "setup_grade",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "radar_trade_summary",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "total_trades",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "best_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "worst_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_trade_generated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "roles",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "scheduler_status",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "last_heartbeat",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "jobs_run",
+          "data_type": "integer"
+        }
+      ]
+    },
+    {
+      "table_name": "schema_migrations",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "version",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "applied_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_heatmap",
+      "row_count": 12,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:26.124Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "avg_change",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "total_volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "stocks",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "leaders",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_momentum",
+      "row_count": 12,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T10:50:21.648Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "momentum_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_gap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "top_symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_momentum_ranked",
+      "row_count": 12,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "stock_count",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "total_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "momentum_score",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_momentum_snapshot",
+      "row_count": 2892,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_momentum_summary",
+      "row_count": 12,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "stock_count",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "total_volume",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "sector_rotation_snapshot",
+      "row_count": 3905,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-17T18:25:01.380Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "avg_change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "momentum_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rank",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "settings",
+      "row_count": 1,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-16T16:59:35.235Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "value",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_alerts",
+      "row_count": 1269,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-10T23:55:05.324Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "text"
+        },
+        {
+          "column_name": "alert_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "message",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "acknowledged",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_behaviour",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "peak_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "peak_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "low_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "max_upside",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "time_to_peak_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "close_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "outcome",
+          "data_type": "text"
+        },
+        {
+          "column_name": "evaluated_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_calibration_log",
+      "row_count": 6446,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T10:45:13.042Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "setup_grade",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signal_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_time",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "high_1h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_1h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_1h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_4h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_4h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_4h",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "min_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "success",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_calibration_results",
+      "row_count": 16412,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_time",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "return_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_up_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_down_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "hold_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "setup_grade",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_capture_analysis",
+      "row_count": 5,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:09:16.725Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "total_opportunities",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signals_detected",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "capture_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_missed_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_signal_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_capture_rate_view",
+      "row_count": 5,
+      "timestamp_column": "date",
+      "latest_timestamp": "2026-03-18T00:00:00.000Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "total_opportunities",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signals_detected",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "capture_rate",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_catalysts",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strength",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "raw_payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_component_outcomes",
+      "row_count": 45,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T00:13:36.577Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "snapshot_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confirmation_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "outcome_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "success",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "open_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "high_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "snapshot_day",
+          "data_type": "date"
+        },
+        {
+          "column_name": "outcome_updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_engine_metrics",
+      "row_count": 24,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-09T08:45:01.831Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_shares",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "engine",
+          "data_type": "text"
+        },
+        {
+          "column_name": "metric_value",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "score_contribution",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_features",
+      "row_count": 16412,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T02:30:01.500Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_shares",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "short_interest_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "relative_strength",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume_spike_ratio",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "days_to_event",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "news_sentiment",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_grade_distribution",
+      "row_count": 2,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "setup_grade",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signals",
+          "data_type": "bigint"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_hierarchy",
+      "row_count": 47,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:05:16.084Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "hierarchy_rank",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_narratives",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "narrative_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sentiment",
+          "data_type": "text"
+        },
+        {
+          "column_name": "summary",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "confidence_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "mcp_context",
+          "data_type": "jsonb"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_outcomes",
+      "row_count": 1,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-13T00:54:46.896Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "return_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "hold_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "high_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "low_1d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_up_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_down_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "evaluated_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "max_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "time_to_high_minutes",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "breakout_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pullback_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_15m_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_1h_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "close_move_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "next_day_move_percent",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_performance",
+      "row_count": 81,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T03:30:30.883Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_upside",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "outcome",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "evaluated_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "snapshot_date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "current_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "return_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_registry",
+      "row_count": 16412,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T02:29:41.932Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "setup_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signal_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_time",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_system_metrics",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "signals_generated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "beacon_signals",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "narratives_generated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "avg_beacon_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "strategies_active",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_validation_daily",
+      "row_count": 5,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-17T00:00:00.796Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "date",
+          "data_type": "date"
+        },
+        {
+          "column_name": "signals_generated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signals_evaluated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "missed_opportunities",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "avg_signal_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_top_rank_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "ranking_accuracy",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "learning_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_validation_weekly",
+      "row_count": 2,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-16T00:00:04.538Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "week_start",
+          "data_type": "date"
+        },
+        {
+          "column_name": "week_end",
+          "data_type": "date"
+        },
+        {
+          "column_name": "signals_generated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "signals_evaluated",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "missed_opportunities",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "avg_signal_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_top_rank_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "ranking_accuracy",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "learning_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signal_weight_calibration",
+      "row_count": 7,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T03:00:16.985Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "component",
+          "data_type": "text"
+        },
+        {
+          "column_name": "weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "success_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "signals_analyzed",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "signals_today",
+      "row_count": 8,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T08:50:46.134Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "setup_grade",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signal_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "sparkline_cache",
+      "row_count": 400,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-11T09:35:56.934Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "data",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "squeeze_signals",
+      "row_count": 0,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "short_float",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price_change",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_shares",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "stocks_in_play",
+      "row_count": 20466,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "stocks_in_play_engine",
+      "row_count": 7,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalysts",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "opportunity_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_signal",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_accuracy",
+      "row_count": 4,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-10T18:38:19.811Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "total_signals",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "wins",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "losses",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "accuracy_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_edge_rank",
+      "row_count": 5,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signals_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "edge_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "learning_score",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_learning",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "time_of_day",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signals_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "avg_upside",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_learning_metrics",
+      "row_count": 5,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-17T18:21:40.218Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signals_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "median_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "expected_move_hit_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "false_signal_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "missed_opportunity_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "edge_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "learning_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_performance",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "total_signals",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_upside",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "double precision"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_performance_dashboard",
+      "row_count": 5,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "signals",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "double precision"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_performance_summary",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "total_signals",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "win_rate_percent",
+          "data_type": "double precision"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_signals",
+      "row_count": 204,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:41.145Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "catalyst_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "result",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_stats",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "setup_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sample_size",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_trades",
+      "row_count": 245,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T10:20:52.529Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "entry_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "exit_time",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "max_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "result_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "strategy_weights",
+      "row_count": 1,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "weight",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "signals_used",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "win_rate",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "avg_return",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "symbol_intraday_cache",
+      "row_count": 1,
+      "timestamp_column": "timestamp",
+      "latest_timestamp": "2026-03-16T17:47:03.882Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "symbol_queue",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "system_alerts",
+      "row_count": 2680676,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:09:43.447Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "severity",
+          "data_type": "text"
+        },
+        {
+          "column_name": "message",
+          "data_type": "text"
+        },
+        {
+          "column_name": "acknowledged",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "system_events",
+      "row_count": 5071905,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:09:47.500Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "event_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "ticker_universe",
+      "row_count": 5915,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "company_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "exchange",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "industry",
+          "data_type": "text"
+        },
+        {
+          "column_name": "market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "is_active",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "tier_feature_defaults",
+      "row_count": 64,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "feature_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean"
+        }
+      ]
+    },
+    {
+      "table_name": "top_signals_today",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "return_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_up_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "move_down_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "evaluated_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "tracked_universe",
+      "row_count": 652,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "priority",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "added_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "active",
+          "data_type": "boolean"
+        }
+      ]
+    },
+    {
+      "table_name": "tradable_universe",
+      "row_count": 5959,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:02:04.234Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "avg_volume_30d",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_catalysts",
+      "row_count": 4397,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-16T13:31:10.202Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "headline",
+          "data_type": "text"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sentiment",
+          "data_type": "text"
+        },
+        {
+          "column_name": "published_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_metadata",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "metadata_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "trade_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "setup_type",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "conviction",
+          "data_type": "smallint"
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text"
+        },
+        {
+          "column_name": "screenshot_url",
+          "data_type": "text"
+        },
+        {
+          "column_name": "tags_json",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "review_status",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_narratives",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "beacon_probability",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "market_context",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector_context",
+          "data_type": "text"
+        },
+        {
+          "column_name": "catalyst_context",
+          "data_type": "text"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_opportunities",
+      "row_count": 2248265,
+      "timestamp_column": "created_at",
+      "latest_timestamp": "2026-03-18T11:09:41.274Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_outcomes",
+      "row_count": 0,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "signal_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "max_move",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_drawdown",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "success",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "evaluation_time",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_setups",
+      "row_count": 310,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:43.226Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "setup",
+          "data_type": "text"
+        },
+        {
+          "column_name": "grade",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "detected_at",
+          "data_type": "timestamp without time zone"
+        },
+        {
+          "column_name": "setup_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_signals",
+      "row_count": 47,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:38.175Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "atr_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "signal_explanation",
+          "data_type": "text"
+        },
+        {
+          "column_name": "rationale",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score_breakdown",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "liquidity_surge",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "float_rotation",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confirmation_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "catalyst_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "sector_score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "confidence",
+          "data_type": "text"
+        },
+        {
+          "column_name": "narrative",
+          "data_type": "text"
+        },
+        {
+          "column_name": "triggered_alert",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "entered_watchlist",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "included_in_brief",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "catalyst_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "sector",
+          "data_type": "text"
+        },
+        {
+          "column_name": "include_in_briefing",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "signal_class",
+          "data_type": "text"
+        },
+        {
+          "column_name": "hierarchy_rank",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "setup_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "timestamp",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "source_engine",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "trade_tags",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "tag_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "tag_name",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "colour_hex",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "trades",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "trade_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "dataset_scope",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "side",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "entry_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "exit_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "qty",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pnl_dollar",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "pnl_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "commission_total",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "opened_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "closed_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "duration_seconds",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "status",
+          "data_type": "character varying"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "unified_opportunities",
+      "row_count": 207,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-18T11:09:54.020Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "change_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "relative_volume",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "gap_percent",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "strategy",
+          "data_type": "text"
+        },
+        {
+          "column_name": "volume",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "usage_events",
+      "row_count": 690,
+      "timestamp_column": null,
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "ts",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "user",
+          "data_type": "text"
+        },
+        {
+          "column_name": "path",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "user_alerts",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "alert_id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "text"
+        },
+        {
+          "column_name": "alert_name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "query_tree",
+          "data_type": "jsonb"
+        },
+        {
+          "column_name": "message_template",
+          "data_type": "text"
+        },
+        {
+          "column_name": "frequency",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "last_triggered",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "user_feature_access",
+      "row_count": 7,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-09T22:24:30.455Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "feature_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "source",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        }
+      ]
+    },
+    {
+      "table_name": "user_preferences",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "user_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "min_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "min_rvol",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "min_gap",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "preferred_sectors",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "enabled_strategies",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "user_presets",
+      "row_count": 0,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text"
+        },
+        {
+          "column_name": "min_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "max_price",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "min_market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "max_market_cap",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "exchanges",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "sectors",
+          "data_type": "ARRAY"
+        },
+        {
+          "column_name": "include_etfs",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "include_spacs",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "include_warrants",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "is_default",
+          "data_type": "boolean"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "user_roles",
+      "row_count": 5,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-10T21:29:22.644Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "uuid"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        }
+      ]
+    },
+    {
+      "table_name": "user_signal_feedback",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "signal_id",
+          "data_type": "text"
+        },
+        {
+          "column_name": "rating",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "user_watchlists",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "added_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "table_name": "users",
+      "row_count": 12,
+      "timestamp_column": "updated_at",
+      "latest_timestamp": "2026-03-17T12:05:23.293Z",
+      "active_receiving_data": true,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "username",
+          "data_type": "text"
+        },
+        {
+          "column_name": "email",
+          "data_type": "text"
+        },
+        {
+          "column_name": "password",
+          "data_type": "text"
+        },
+        {
+          "column_name": "is_admin",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "is_active",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "last_login",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "login_count",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "saxo_access_token",
+          "data_type": "text"
+        },
+        {
+          "column_name": "saxo_refresh_token",
+          "data_type": "text"
+        },
+        {
+          "column_name": "saxo_token_expires",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "saxo_connected_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "broker_type",
+          "data_type": "text"
+        },
+        {
+          "column_name": "broker_access_token",
+          "data_type": "text"
+        },
+        {
+          "column_name": "broker_refresh_token",
+          "data_type": "text"
+        },
+        {
+          "column_name": "broker_connected_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "broker_status",
+          "data_type": "text"
+        },
+        {
+          "column_name": "pplx_api_key",
+          "data_type": "text"
+        },
+        {
+          "column_name": "pplx_model",
+          "data_type": "text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone"
+        },
+        {
+          "column_name": "trading_timezone",
+          "data_type": "text"
+        },
+        {
+          "column_name": "active_preset_id",
+          "data_type": "integer"
+        },
+        {
+          "column_name": "password_hash",
+          "data_type": "text"
+        },
+        {
+          "column_name": "plan",
+          "data_type": "text"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text"
+        }
+      ]
+    }
+  ],
+  "focus_tables": {
+    "intraday_prices": null,
+    "daily_prices": null,
+    "quotes": null,
+    "opportunities": {
+      "table_name": "opportunities",
+      "row_count": 0,
+      "timestamp_column": "created_at",
+      "latest_timestamp": null,
+      "active_receiving_data": false,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "bigint"
+        },
+        {
+          "column_name": "symbol",
+          "data_type": "text"
+        },
+        {
+          "column_name": "score",
+          "data_type": "numeric"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone"
+        }
+      ]
+    },
+    "signals": null,
+    "catalysts": null
+  }
+}

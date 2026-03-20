@@ -1,4 +1,4 @@
-import { fetchSafe } from '../../api/fetchSafe';
+import { get } from '../../api/apiClient';
 
 const RADAR_TIMEOUT_MS = 500;
 const MAX_IN_FLIGHT = 5;
@@ -59,14 +59,12 @@ export async function radarFetchJson(endpoint, { timeoutMs = RADAR_TIMEOUT_MS, s
   const { signal: composedSignal, cleanup } = withTimeoutSignal(timeoutMs, signal);
 
   try {
-    return await fetchSafe(endpoint, {
-      method: 'GET',
+    return await get(endpoint, {
       headers: {
         Accept: 'application/json',
         ...authHeaders(),
       },
       signal: composedSignal,
-      credentials: 'include',
       fallback: {},
       returnFallbackOnError: false,
     });

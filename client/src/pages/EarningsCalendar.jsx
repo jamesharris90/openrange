@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
 import Card from '../components/shared/Card';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import API_BASE, { safeFetch } from '../api/apiClient';
+import { apiFetch } from '../api/apiClient';
 
 export default function EarningsCalendar() {
   const [loading, setLoading] = useState(true);
@@ -17,10 +17,7 @@ export default function EarningsCalendar() {
       setLoading(true);
       setHasError(false);
       try {
-        const todayPayload = await safeFetch(`${API_BASE}/api/earnings/today`, {
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
+        const todayPayload = await apiFetch('/api/earnings/today');
 
         if (!cancelled) {
           setToday(Array.isArray(todayPayload?.today) ? todayPayload.today : []);

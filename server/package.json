@@ -1,5 +1,5 @@
 {
-  "name": "saxo-proxy",
+  "name": "openrange-backend",
   "version": "1.0.0",
   "description": "Server-side proxy to forward requests to Saxo OpenAPI and hide client secrets",
   "main": "index.js",
@@ -7,6 +7,8 @@
     "start": "node index.js",
     "build": "echo Backend build step",
     "dev": "nodemon index.js",
+    "deploy": "railway up",
+    "check": "node scripts/checkSystem.js",
     "start-detached": "./scripts/start.sh",
     "stop-detached": "./scripts/stop.sh",
     "check:canonical-schema": "tsc -p tsconfig.canonical.json --noEmit",
@@ -18,7 +20,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

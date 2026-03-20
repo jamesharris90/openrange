@@ -45,10 +45,12 @@ try {
 console.log("\n🔧 Testing database connection...");
 
 const { Client } = require("pg");
+const { resolveDatabaseUrl } = require("../db/connectionConfig");
 
 async function testDB() {
+  const { dbUrl } = resolveDatabaseUrl();
   const client = new Client({
-    connectionString: process.env.DATABASE_URL
+    connectionString: dbUrl
   });
 
   try {

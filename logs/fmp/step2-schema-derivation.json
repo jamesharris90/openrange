@@ -1,0 +1,323 @@
+{
+  "generatedAt": "2026-03-18T22:14:46.125Z",
+  "sources": {
+    "earnings": {
+      "rowCount": 4000,
+      "fields": {
+        "date": {
+          "typeHint": "date-string",
+          "nonNullCount": 4000,
+          "sample": [
+            "2026-03-18",
+            "2026-03-18"
+          ]
+        },
+        "epsActual": {
+          "typeHint": "float",
+          "nonNullCount": 2906,
+          "sample": [
+            0.05004,
+            0.18
+          ]
+        },
+        "epsEstimated": {
+          "typeHint": "float",
+          "nonNullCount": 1706,
+          "sample": [
+            0.05004,
+            1.25
+          ]
+        },
+        "lastUpdated": {
+          "typeHint": "date-string",
+          "nonNullCount": 4000,
+          "sample": [
+            "2026-03-18",
+            "2026-03-18"
+          ]
+        },
+        "revenueActual": {
+          "typeHint": "integer",
+          "nonNullCount": 2502,
+          "sample": [
+            7256987552,
+            170657000
+          ]
+        },
+        "revenueEstimated": {
+          "typeHint": "integer",
+          "nonNullCount": 1780,
+          "sample": [
+            3756292280,
+            149353702
+          ]
+        },
+        "symbol": {
+          "typeHint": "text",
+          "nonNullCount": 4000,
+          "sample": [
+            "0737.HK",
+            "SONDQ"
+          ]
+        }
+      }
+    },
+    "newsStock": {
+      "rowCount": 50,
+      "fields": {
+        "image": {
+          "typeHint": "text",
+          "nonNullCount": 49,
+          "sample": [
+            "https://images.financialmodelingprep.com/news/nation-gold-completes-100-acquisition-of-the-bonito-goldsilver-20260318.jpg",
+            "https://images.financialmodelingprep.com/news/rosen-leading-investor-counsel-encourages-barclays-plc-investors-to-20260318.jpg"
+          ]
+        },
+        "publishedDate": {
+          "typeHint": "datetime-string",
+          "nonNullCount": 50,
+          "sample": [
+            "2026-03-18 17:52:00",
+            "2026-03-18 17:51:00"
+          ]
+        },
+        "publisher": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Newsfile Corp",
+            "Newsfile Corp"
+          ]
+        },
+        "site": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "newsfilecorp.com",
+            "newsfilecorp.com"
+          ]
+        },
+        "symbol": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "NATN",
+            "TOP"
+          ]
+        },
+        "text": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Project Highlights Acquisition of a 100% interest in the Bonito Gold-Silver Project in New Mexico Previous operators (Pioneer Metals and Placer Dome) have invested approximately US$10 million in exploration work, including 3,000 metres across 75 drill holes of historical shallow drilling (1985-1989)(1) Potential near-surface gold-silver system with no modern drilling since 1990. Gold-silver breccia pipes sitting above a potential copper-molybdenum porphyry system remains completely untested at depth below 120 metres New Mexico: Mining-friendly state, a leading jurisdiction in the United States with proven endowment of precious and base metal deposits and operating mines, and a long history of mineral exploration and development Nearby infrastructure with paved and forest service road access from the town of Ruidoso As of a March 2025 Executive Order, gold and silver are now considered strategic minerals by the federal government of the United States Vancouver, British Columbia--(Newsfile Corp. - March 18, 2026) - Nation Gold Corp. (CSE: NATN) (OTCQB: NATNF) (the \"Company\" or \"Nation\") is pleased to announce that, further to its news release dated February 4, 2026, the Company has completed the acquisition of a 100% interest in the Bonito gold-silver project (the \"Bonito Project\") in the Nogal-Bonito Mining District of New Mexico, USA through its wholly-owned subsidiary Nation Gold US Corp. (\"Nation Gold US\") pursuant to the terms of the mineral property purchase and sale agreement dated February 3, 2026 (the \"Purchase Agreement\") with Cannon Bridge Capital Corp. (\"Cannon Bridge\"), Stream Metals LLC, Nation Gold US and an arm's length individual.",
+            "New York, New York--(Newsfile Corp. - March 18, 2026) - WHY: Rosen Law Firm, a global investor rights law firm, continues to investigate potential securities claims on behalf of shareholders of Hub Group, Inc. (NASDAQ: HUBG) resulting from allegations that Hub Group may have issued materially misleading business information to the investing public. SO WHAT: If you purchased Hub Group securities you may be entitled to compensation without payment of any out of pocket fees or costs through a contingency fee arrangement."
+          ]
+        },
+        "title": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Nation Gold Completes 100% Acquisition of the Bonito Gold-Silver Project in New Mexico and Concurrent Non-Brokered Private Placement",
+            "ROSEN, A TOP RANKED LAW FIRM, Encourages Hub Group, Inc. Investors to Inquire About Securities Class Action Investigation - HUBG"
+          ]
+        },
+        "url": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "https://www.newsfilecorp.com/release/289120/Nation-Gold-Completes-100-Acquisition-of-the-Bonito-GoldSilver-Project-in-New-Mexico-and-Concurrent-NonBrokered-Private-Placement",
+            "https://www.newsfilecorp.com/release/289087/ROSEN-A-TOP-RANKED-LAW-FIRM-Encourages-Hub-Group-Inc.-Investors-to-Inquire-About-Securities-Class-Action-Investigation-HUBG"
+          ]
+        }
+      }
+    },
+    "newsGeneral": {
+      "rowCount": 50,
+      "fields": {
+        "image": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "https://images.financialmodelingprep.com/news/feds-powell-says-its-too-soon-to-know-iran-20260318.jpg",
+            "https://images.financialmodelingprep.com/news/dow-falls-nearly-800-points-after-powell-makes-one-20260318.jpg"
+          ]
+        },
+        "publishedDate": {
+          "typeHint": "datetime-string",
+          "nonNullCount": 50,
+          "sample": [
+            "2026-03-18 17:46:11",
+            "2026-03-18 17:46:00"
+          ]
+        },
+        "publisher": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Fox Business",
+            "Market Watch"
+          ]
+        },
+        "site": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "foxbusiness.com",
+            "marketwatch.com"
+          ]
+        },
+        "symbol": {
+          "typeHint": "unknown",
+          "nonNullCount": 0,
+          "sample": []
+        },
+        "text": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Federal Reserve Chair Jerome Powell says it's \"too soon\" to assess Iran conflict's economic impact as oil prices surge above $100 per barrel amid rising tensions.",
+            "U.S. stocks slumped on Wednesday, with the S&P 500 wiping out its gains from earlier in the week, as investors reacted to the Federal Reserve's latest outlook on interest rates and the economy."
+          ]
+        },
+        "title": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "Fed's Powell says it's 'too soon to know' Iran war's impact on economy",
+            "Dow falls nearly 800 points after Powell makes one thing clear: There's no rush to rescue the market"
+          ]
+        },
+        "url": {
+          "typeHint": "text",
+          "nonNullCount": 50,
+          "sample": [
+            "https://www.foxbusiness.com/politics/feds-powell-says-its-too-soon-know-iran-wars-impact-economy",
+            "https://www.marketwatch.com/story/dow-falls-nearly-800-points-after-powell-makes-one-thing-clear-theres-no-rush-to-rescue-the-market-b55a723a"
+          ]
+        }
+      }
+    },
+    "ipos": {
+      "rowCount": 436,
+      "fields": {
+        "actions": {
+          "typeHint": "text",
+          "nonNullCount": 436,
+          "sample": [
+            "Expected",
+            "Expected"
+          ]
+        },
+        "company": {
+          "typeHint": "text",
+          "nonNullCount": 436,
+          "sample": [
+            "Nicholas Bitcoin Tail ETF",
+            "Xsolla SPAC 1 Warrants"
+          ]
+        },
+        "daa": {
+          "typeHint": "text",
+          "nonNullCount": 436,
+          "sample": [
+            "2026-03-18T04:00:00.000Z",
+            "2026-03-18T04:00:00.000Z"
+          ]
+        },
+        "date": {
+          "typeHint": "date-string",
+          "nonNullCount": 436,
+          "sample": [
+            "2026-03-18",
+            "2026-03-18"
+          ]
+        },
+        "exchange": {
+          "typeHint": "text",
+          "nonNullCount": 436,
+          "sample": [
+            "NASDAQ",
+            "NASDAQ"
+          ]
+        },
+        "marketCap": {
+          "typeHint": "integer",
+          "nonNullCount": 99,
+          "sample": [
+            115000000,
+            15000000
+          ]
+        },
+        "priceRange": {
+          "typeHint": "text",
+          "nonNullCount": 13,
+          "sample": [
+            "10 - 10",
+            "5 - 5"
+          ]
+        },
+        "shares": {
+          "typeHint": "integer",
+          "nonNullCount": 117,
+          "sample": [
+            10000000,
+            3000000
+          ]
+        },
+        "symbol": {
+          "typeHint": "text",
+          "nonNullCount": 436,
+          "sample": [
+            "BHDG",
+            "XSLLW"
+          ]
+        }
+      }
+    },
+    "splits": {
+      "rowCount": 679,
+      "fields": {
+        "date": {
+          "typeHint": "date-string",
+          "nonNullCount": 679,
+          "sample": [
+            "2026-03-18",
+            "2026-03-17"
+          ]
+        },
+        "denominator": {
+          "typeHint": "integer",
+          "nonNullCount": 679,
+          "sample": [
+            50,
+            500
+          ]
+        },
+        "numerator": {
+          "typeHint": "integer",
+          "nonNullCount": 679,
+          "sample": [
+            1,
+            1
+          ]
+        },
+        "splitType": {
+          "typeHint": "text",
+          "nonNullCount": 679,
+          "sample": [
+            "stock-split",
+            "stock-split"
+          ]
+        },
+        "symbol": {
+          "typeHint": "text",
+          "nonNullCount": 679,
+          "sample": [
+            "COOK",
+            "ELVG"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,18 +1,7 @@
-import { fetchSafe } from '../api/fetchSafe';
-
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  'https://openrange-backend-production.up.railway.app';
+import { apiFetch } from '../api/apiClient';
 
 export async function radarFetch(path) {
-  const url = `${API_BASE}${path}`;
-
-  return fetchSafe(url, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    fallback: {},
-  });
+  return apiFetch(path, { fallback: {} });
 }
 
 export function isLast24Hours(value) {

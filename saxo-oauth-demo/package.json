@@ -2,6 +2,9 @@
   "name": "saxo-oauth-demo",
   "version": "1.0.0",
   "description": "Saxo Bank OpenAPI OAuth2 Authorization Code demo",
+  "engines": {
+    "node": ">=20"
+  },
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",

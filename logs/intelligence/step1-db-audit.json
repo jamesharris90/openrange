@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-03-19T06:38:39.563Z",
+  "blockingGate": "step1_database_schema_validation",
+  "tables": {
+    "news_articles": {
+      "rowCount": 51,
+      "columns": [
+        "id",
+        "headline",
+        "symbols",
+        "source",
+        "url",
+        "published_at",
+        "summary",
+        "catalyst_type",
+        "news_score",
+        "score_breakdown",
+        "raw_payload",
+        "created_at",
+        "symbol",
+        "sector",
+        "narrative",
+        "provider",
+        "sentiment",
+        "title",
+        "body_text",
+        "publisher",
+        "site",
+        "image_url",
+        "published_date",
+        "source_url",
+        "ingested_at"
+      ],
+      "symbolExpected": true,
+      "symbolPresent": true,
+      "timestamp": {
+        "timestamp_column": "published_date",
+        "non_null": 49,
+        "min": "2026-03-18T22:45:00.000Z",
+        "max": "2026-03-19T02:33:45.000Z",
+        "valid": true
+      }
+    },
+    "earnings_calendar": {
+      "rowCount": 1612,
+      "columns": [
+        "id",
+        "symbol",
+        "event_date",
+        "last_updated_date",
+        "eps_estimate",
+        "eps_actual",
+        "revenue_estimate",
+        "revenue_actual",
+        "source",
+        "raw_json",
+        "ingested_at"
+      ],
+      "symbolExpected": true,
+      "symbolPresent": true,
+      "timestamp": {
+        "timestamp_column": "event_date",
+        "non_null": 1612,
+        "min": "2026-03-13T00:00:00.000Z",
+        "max": "2026-03-18T00:00:00.000Z",
+        "valid": true
+      }
+    },
+    "ipo_calendar": {
+      "rowCount": 436,
+      "columns": [
+        "id",
+        "symbol",
+        "event_date",
+        "company",
+        "exchange",
+        "actions",
+        "price_range",
+        "shares",
+        "market_cap",
+        "source",
+        "raw_json",
+        "ingested_at"
+      ],
+      "symbolExpected": true,
+      "symbolPresent": true,
+      "timestamp": {
+        "timestamp_column": "event_date",
+        "non_null": 436,
+        "min": "2025-12-18T00:00:00.000Z",
+        "max": "2026-03-18T00:00:00.000Z",
+        "valid": true
+      }
+    },
+    "stock_splits": {
+      "rowCount": 679,
+      "columns": [
+        "id",
+        "symbol",
+        "event_date",
+        "numerator",
+        "denominator",
+        "split_type",
+        "source",
+        "raw_json",
+        "ingested_at"
+      ],
+      "symbolExpected": true,
+      "symbolPresent": true,
+      "timestamp": {
+        "timestamp_column": "event_date",
+        "non_null": 679,
+        "min": "2025-12-18T00:00:00.000Z",
+        "max": "2026-03-18T00:00:00.000Z",
+        "valid": true
+      }
+    }
+  },
+  "concentration": {
+    "news_articles": {
+      "total": 49,
+      "topSymbol": "AAPL",
+      "topCount": 2,
+      "topShare": 0.04081632653061224,
+      "pass": true
+    },
+    "earnings_calendar": {
+      "total": 1612,
+      "topSymbol": "000026.SZ",
+      "topCount": 1,
+      "topShare": 0.0006203473945409429,
+      "pass": true
+    },
+    "ipo_calendar": {
+      "total": 436,
+      "topSymbol": "NBRGU",
+      "topCount": 2,
+      "topShare": 0.0045871559633027525,
+      "pass": true
+    },
+    "stock_splits": {
+      "total": 679,
+      "topSymbol": "DTCK",
+      "topCount": 2,
+      "topShare": 0.0029455081001472753,
+      "pass": true
+    }
+  },
+  "checks": {
+    "rowsPositive": true,
+    "symbolPresence": true,
+    "timestampValidity": true,
+    "noAaplDominance": true
+  },
+  "failedChecks": [],
+  "ok": true
+}

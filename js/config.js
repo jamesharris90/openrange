@@ -2,7 +2,7 @@
 const CONFIG = {
     // Dynamic API base URL (prefers explicit override, falls back to origin)
     API_BASE: window.API_BASE || (location.hostname === 'localhost'
-        ? 'http://localhost:3000'
+        ? 'http://localhost:3001'
         : window.location.origin),
     // Broker API Configuration (monitoring-only via server proxy)
     BROKER: {

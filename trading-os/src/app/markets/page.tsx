@@ -5,7 +5,7 @@ import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata(
   "Markets | OpenRange Terminal",
-  "Macro market charts for SPY, QQQ, IWM, and VIX with trend comparison.",
+  "Macro market charts for core index ETFs with trend comparison.",
   "/markets"
 );
 

@@ -61,8 +61,7 @@ export function useMarketStream() {
   const updateHeatmap = useTickerStore((state) => state.updateHeatmap);
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE || "";
-    const eventSource = new EventSource(`${base}/api/stream/market`);
+    const eventSource = new EventSource("/api/stream/market");
 
     eventSource.onmessage = (message) => {
       let event: StreamEvent;
@@ -123,7 +122,7 @@ export function useMarketStream() {
           strategy: String(event.catalyst || "Catalyst"),
           probability: Math.max(1, Math.min(99, asNumber(event.impact, 50))),
           confidence: Math.max(1, Math.min(99, 50 + asNumber(event.impact, 0) * 0.5)),
-          expected_move: Number((asNumber(event.impact, 0) / 10).toFixed(2)),
+          expected_move: Math.round((asNumber(event.impact, 0) / 10) * 100) / 100,
         });
       }
     };

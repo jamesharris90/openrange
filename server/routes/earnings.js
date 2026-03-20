@@ -3,6 +3,24 @@ const market = require('../services/marketDataService');
 const { pool } = require('../db/pg');
 const router = express.Router();
 
+function sendNoData(res, message) {
+  return res.status(200).json({
+    success: true,
+    data: [],
+    message: message || 'No data available',
+    source: 'none',
+  });
+}
+
+function sendError(res, code, message) {
+  return res.status(code).json({
+    success: false,
+    data: [],
+    message,
+    source: 'none',
+  });
+}
+
 /**
  * Batch-fetch FMP /stable/quote for up to 200 symbols at a time.
  * Returns a Map keyed by uppercase symbol.
@@ -76,9 +94,28 @@ router.get('/api/earnings', async (req, res) => {
       LIMIT $${params.length}`;
 
     const { rows } = await pool.query(query, params);
-    return res.json(rows);
+    if (!rows || rows.length === 0) {
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol: symbol || null,
+        missing: ['earnings'],
+      });
+      return sendNoData(res, 'No earnings data available');
+    }
+
+    return res.json({
+      success: true,
+      data: rows,
+      source: 'fmp',
+    });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to fetch earnings', detail: err.message });
+    console.warn('[API DATA FAILURE]', {
+      route: req.path,
+      symbol: symbol || null,
+      missing: ['earnings'],
+      error: err.message,
+    });
+    return sendError(res, 500, 'Failed to fetch earnings data');
   }
 });
 
@@ -147,24 +184,58 @@ router.get('/api/earnings/calendar', async (req, res) => {
         };
       });
 
-      return res.json({ earnings, from: from || null, to: to || null });
+      return res.json({
+        success: true,
+        data: earnings,
+        source: 'fmp',
+      });
     }
-    return res.json({ earnings: [], from: from || null, to: to || null });
+    console.warn('[API DATA FAILURE]', {
+      route: req.path,
+      symbol: null,
+      missing: ['earnings'],
+    });
+    return sendNoData(res, 'No earnings data available');
   } catch (err) {
-    res.json({ earnings: [], from: from || null, to: to || null, error: 'Failed to fetch earnings calendar', detail: err.message });
+    console.warn('[API DATA FAILURE]', {
+      route: req.path,
+      symbol: null,
+      missing: ['earnings'],
+      error: err.message,
+    });
+    return sendError(res, 500, 'Failed to fetch earnings calendar');
   }
 });
 
 router.get('/api/earnings-research/:ticker', async (req, res) => {
   const ticker = (req.params.ticker || '').trim().toUpperCase();
   if (!ticker || !/^[A-Z0-9.^-]{1,10}$/.test(ticker)) {
-    return res.status(400).json({ error: 'Invalid ticker symbol' });
+    return sendError(res, 400, 'Invalid ticker symbol');
   }
   try {
     const data = await market.getEarningsResearch(ticker);
-    res.json(data);
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol: ticker,
+        missing: ['earnings'],
+      });
+      return sendNoData(res, 'No earnings data available');
+    }
+
+    return res.json({
+      success: true,
+      data,
+      source: 'fmp',
+    });
   } catch (err) {
-    res.status(502).json({ error: 'Failed to fetch earnings research data', detail: err.message });
+    console.warn('[API DATA FAILURE]', {
+      route: req.path,
+      symbol: ticker,
+      missing: ['earnings'],
+      error: err.message,
+    });
+    return sendError(res, 502, 'Failed to fetch earnings research data');
   }
 });
 

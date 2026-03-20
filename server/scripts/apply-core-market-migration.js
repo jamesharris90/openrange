@@ -1,13 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
+const { resolveDatabaseUrl } = require('../db/connectionConfig');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 async function main() {
+  const { dbUrl } = resolveDatabaseUrl();
   const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false,
+    connectionString: dbUrl,
+    ssl: dbUrl.includes('supabase') ? { rejectUnauthorized: false } : false,
     connectionTimeoutMillis: 15000,
   });
 

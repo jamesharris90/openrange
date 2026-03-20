@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-03-19T07:39:12.532Z",
+  "avg_confidence": 0.86,
+  "avg_expected_move_percent": 6,
+  "top_3_conviction_scores": [
+    {
+      "symbol": "PLBY",
+      "conviction_score": 0.79,
+      "confidence": 0.86,
+      "cluster_score": 80,
+      "expected_move_percent": 6.000000000000001
+    },
+    {
+      "symbol": "BGSI",
+      "conviction_score": 0.79,
+      "confidence": 0.86,
+      "cluster_score": 80,
+      "expected_move_percent": 6.000000000000005
+    },
+    {
+      "symbol": "IHS",
+      "conviction_score": 0.79,
+      "confidence": 0.86,
+      "cluster_score": 80,
+      "expected_move_percent": 6.000000000000012
+    }
+  ]
+}

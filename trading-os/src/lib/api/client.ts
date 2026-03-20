@@ -1,7 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+function resolveApiBase() {
+  // All frontend requests must stay relative so the browser only talks to Next routes.
+  return "";
+}
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${resolveApiBase()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -18,7 +21,7 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${resolveApiBase()}${path}`, {
     method: "POST",
     ...init,
     headers: {

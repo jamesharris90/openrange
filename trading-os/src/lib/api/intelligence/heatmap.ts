@@ -1,16 +1,16 @@
 import type { HeatmapRow } from "@/lib/types";
 
 import { apiGet } from "@/lib/api/client";
+import { adaptHeatmapPayload } from "@/lib/adapters";
+import { debugLog } from "@/lib/debug";
 
 export async function getHeatmapRows(): Promise<HeatmapRow[]> {
-  const response = await apiGet<{ success?: boolean; data?: HeatmapRow[] }>("/api/intelligence/heatmap");
-  if (response.success !== true) {
-    throw new Error("Intelligence heatmap request failed");
+  try {
+    const response = await apiGet<Record<string, unknown>>("/api/intelligence/heatmap");
+    debugLog("/api/intelligence/heatmap", response);
+    return adaptHeatmapPayload(response);
+  } catch (error) {
+    debugLog("heatmap error", error);
+    return [];
   }
-
-  if (!Array.isArray(response.data)) {
-    throw new Error("Invalid heatmap response contract");
-  }
-
-  return response.data;
 }

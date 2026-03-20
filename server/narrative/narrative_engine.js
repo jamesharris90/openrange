@@ -40,7 +40,7 @@ function buildNarrative({ regime, drivers, opportunities }) {
 async function generateMarketNarrativeSnapshot() {
   const [spyMetrics, vixMetrics, sectorStrength, topSetups, latestCatalysts] = await Promise.all([
     pool.query(`SELECT symbol, price, vwap, relative_volume FROM market_metrics WHERE symbol = 'SPY' LIMIT 1`),
-    pool.query(`SELECT symbol, change_percent, gap_percent FROM market_metrics WHERE symbol IN ('VIX', '^VIX') ORDER BY symbol = 'VIX' DESC LIMIT 1`),
+    pool.query(`SELECT symbol, change_percent, gap_percent FROM market_metrics WHERE symbol = 'VIX' LIMIT 1`),
     pool.query(`
       SELECT u.sector,
              COUNT(*)::int AS symbol_count,

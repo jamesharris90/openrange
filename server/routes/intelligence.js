@@ -9,6 +9,7 @@ const { ensureSectorMomentumTable } = require('../engines/sectorMomentumEngine')
 const { runShortSqueezeEngine, listLatestSqueezeSignals } = require('../engines/shortSqueezeEngine');
 const { runFlowDetectionEngine, listLatestFlowSignals } = require('../engines/flowDetectionEngine');
 const { runMarketNarrativeEngine, getLatestMarketNarrative } = require('../engines/marketNarrativeEngine');
+const { ingestIntelInboxMessage } = require('../services/intelParser');
 
 const router = express.Router();
 
@@ -154,6 +155,35 @@ router.post('/api/intelligence/resend-webhook', requireIntelKey, async (req, res
   } catch (error) {
     console.error('[intelligence] resend-webhook error:', error.message);
     return res.status(500).json({ ok: false, error: error.message || 'Failed to ingest resend payload' });
+  }
+});
+
+// POST /api/intel-inbox — DB-first inbox ingestion (raw -> parsed -> catalysts)
+router.post('/api/intel-inbox', requireIntelKey, async (req, res) => {
+  try {
+    const {
+      sender = null,
+      subject = null,
+      body = null,
+      symbol = null,
+      timestamp = null,
+      source = 'intel_inbox',
+    } = req.body || {};
+
+    const result = await ingestIntelInboxMessage({
+      sender,
+      subject,
+      body,
+      symbol,
+      timestamp,
+      source,
+      raw: req.body || {},
+    });
+
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    const status = /required/i.test(error?.message || '') ? 400 : 500;
+    return res.status(status).json({ ok: false, error: error.message || 'intel inbox ingestion failed' });
   }
 });
 

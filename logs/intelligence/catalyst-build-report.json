@@ -1,0 +1,251 @@
+{
+  "generated_at": "2026-03-19T07:39:12.506Z",
+  "precheck": {
+    "generated_at": "2026-03-19T07:39:01.748Z",
+    "checks": {
+      "news_articles": {
+        "unique_symbols": 46,
+        "top_symbol_share": 0.04081632653061224,
+        "pass": true
+      },
+      "earnings_calendar": {
+        "validation_mode": "recent_or_upcoming",
+        "symbols": 1612,
+        "recent_or_upcoming_events": 1612,
+        "max_event_date": "2026-03-18T00:00:00.000Z",
+        "pass": true
+      }
+    },
+    "ok": true,
+    "reason": []
+  },
+  "step_counts": {
+    "news_catalysts": 49,
+    "earnings_catalysts": 247,
+    "ipo_catalysts": 0,
+    "split_catalysts": 0,
+    "macro_narratives": 4,
+    "clusters": 169,
+    "signals": 7,
+    "opportunities": 6
+  },
+  "final_counts": {
+    "catalyst_count": 296,
+    "cluster_count": 169,
+    "signal_count": 7,
+    "opportunities_count": 6
+  },
+  "integrity": {
+    "invalid_signals": 0,
+    "invalid_opportunities": 0,
+    "duplicate_catalyst_rows": 0,
+    "null_symbol_catalysts": 0
+  },
+  "distribution_check": {
+    "symbol_diversity": 292,
+    "top_symbol": "AAPL",
+    "top_symbol_count": 2,
+    "top_symbol_share": 0.00675675675675676
+  },
+  "samples": {
+    "catalysts": [
+      {
+        "id": "ef12a4b1-f53f-4ee7-bd04-be2500035ec4",
+        "symbol": "HRI",
+        "catalyst_type": "news",
+        "headline": "Herc Holdings: Still Holding Onto This Buy Rating",
+        "source_table": "news_articles",
+        "source_id": "5f3d0ec7-c02b-400b-b8ef-d215b77cab75",
+        "event_time": "2026-03-19T02:33:45.000Z",
+        "strength_score": 0.69,
+        "sentiment_score": "0.2"
+      },
+      {
+        "id": "e5ccf622-57fb-4ce8-aa82-ca421336d6ab",
+        "symbol": "AAGIY",
+        "catalyst_type": "earnings",
+        "headline": "AIA Group Limited (AAGIY) Q4 2025 Earnings Call Transcript",
+        "source_table": "news_articles",
+        "source_id": "3589826e-34bd-4152-898e-0143da43e722",
+        "event_time": "2026-03-19T02:32:20.000Z",
+        "strength_score": 0.63,
+        "sentiment_score": "0"
+      },
+      {
+        "id": "dae2f038-f8cd-4bad-be24-895014c1849e",
+        "symbol": "FLTDF",
+        "catalyst_type": "product",
+        "headline": "Flow Traders Launches OTC Offering With 24/7 Liquidity for Tokenized Assets",
+        "source_table": "news_articles",
+        "source_id": "b9247b43-e47b-4d9f-91dd-d0a8630f4465",
+        "event_time": "2026-03-19T02:30:00.000Z",
+        "strength_score": 0.63,
+        "sentiment_score": "0"
+      }
+    ],
+    "signals": [
+      {
+        "id": "108d7a20-0bf0-4dc0-bac9-89e7a3244f28",
+        "symbol": "UCL",
+        "signal_type": "earnings breakout",
+        "score": 0.8,
+        "confidence": 0.86,
+        "catalyst_ids": [
+          "7e0c2ab4-3535-4c32-8cb3-04d2f12d53a3"
+        ]
+      },
+      {
+        "id": "b38dbbb3-d050-490a-a575-a32305d96164",
+        "symbol": "BGSI",
+        "signal_type": "earnings breakout",
+        "score": 0.8,
+        "confidence": 0.86,
+        "catalyst_ids": [
+          "62b1cb2f-3bb9-4641-8d00-0b76538a9f93"
+        ]
+      }
+    ],
+    "opportunities": [
+      {
+        "id": "2",
+        "symbol": "BGSI",
+        "strategy": "momentum_long",
+        "entry": "162.99",
+        "stop_loss": "158.1003",
+        "take_profit": "172.76940000000002",
+        "expected_move_percent": "6.000000000000005",
+        "confidence": 0.86,
+        "signal_ids": [
+          "b38dbbb3-d050-490a-a575-a32305d96164"
+        ]
+      },
+      {
+        "id": "1",
+        "symbol": "PLBY",
+        "strategy": "momentum_long",
+        "entry": "1.68",
+        "stop_loss": "1.6296",
+        "take_profit": "1.7808",
+        "expected_move_percent": "6.000000000000001",
+        "confidence": 0.86,
+        "signal_ids": [
+          "bd9b772a-bfb3-4993-a790-3e1e87052664"
+        ]
+      }
+    ]
+  },
+  "narrative_example": "WHY: BGSI triggered on Earnings surprise 127.30% (EPS 0.00273 vs -0.01). HOW: Signal is earnings breakout with expected direction up, supported by clustered catalyst strength and sentiment. HOW FAR: Expected move is 6.00%. WHEN: intraday.",
+  "ok": true,
+  "filter_impact": {
+    "generated_at": "2026-03-19T07:39:12.507Z",
+    "before_after": {
+      "catalysts": {
+        "before": 296,
+        "after": 296
+      },
+      "clusters": {
+        "before": 295,
+        "after": 169
+      },
+      "signals": {
+        "before": 7,
+        "after": 7
+      },
+      "opportunities": {
+        "before": 7,
+        "after": 6
+      }
+    },
+    "rejection_reasons": {
+      "clusters": {
+        "by_size_and_strength": 125,
+        "by_min_cluster_score": 1
+      },
+      "signals": {
+        "by_cluster_score": 0,
+        "by_sentiment_abs": 0,
+        "by_signal_type": 0,
+        "by_confidence": 0,
+        "by_symbol_dedupe": 0,
+        "by_market_macro_opposes_direction": 96,
+        "by_market_no_macro_support": 7,
+        "by_market_sector_neutral": 46,
+        "by_market_sector_weak_bullish": 13,
+        "by_market_sector_strong_bearish": 0
+      },
+      "opportunities": {
+        "by_confidence": 0,
+        "by_expected_move_percent": 0,
+        "by_cluster_score": 0,
+        "by_symbol_dedupe": 0,
+        "by_global_top_n": 1
+      }
+    }
+  },
+  "elite_metrics": {
+    "generated_at": "2026-03-19T07:39:12.532Z",
+    "avg_confidence": 0.86,
+    "avg_expected_move_percent": 6,
+    "top_3_conviction_scores": [
+      {
+        "symbol": "PLBY",
+        "conviction_score": 0.79,
+        "confidence": 0.86,
+        "cluster_score": 80,
+        "expected_move_percent": 6.000000000000001
+      },
+      {
+        "symbol": "BGSI",
+        "conviction_score": 0.79,
+        "confidence": 0.86,
+        "cluster_score": 80,
+        "expected_move_percent": 6.000000000000005
+      },
+      {
+        "symbol": "IHS",
+        "conviction_score": 0.79,
+        "confidence": 0.86,
+        "cluster_score": 80,
+        "expected_move_percent": 6.000000000000012
+      }
+    ]
+  },
+  "api_validation": {
+    "base": "http://localhost:3001",
+    "checks": [
+      {
+        "endpoint": "/api/catalysts",
+        "status": 200,
+        "success": true,
+        "dataIsArray": true,
+        "dataCount": 296,
+        "pass": true
+      },
+      {
+        "endpoint": "/api/signals",
+        "status": 200,
+        "success": true,
+        "dataIsArray": true,
+        "dataCount": 7,
+        "pass": true
+      },
+      {
+        "endpoint": "/api/opportunities",
+        "status": 200,
+        "success": true,
+        "dataIsArray": true,
+        "dataCount": 6,
+        "pass": true
+      },
+      {
+        "endpoint": "/api/macro",
+        "status": 200,
+        "success": true,
+        "dataIsArray": true,
+        "dataCount": 4,
+        "pass": true
+      }
+    ],
+    "ok": true
+  }
+}

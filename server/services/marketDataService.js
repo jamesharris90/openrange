@@ -7,6 +7,7 @@ const finnhub = require('../providers/finnhubProvider');
 const expectedMoveService = require('./expectedMoveService');
 const cache = require('../utils/cache');
 const { POLYGON_API_KEY, FINNHUB_API_KEY } = require('../utils/config');
+const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('../utils/symbolMap');
 
 let lastProvider = null;
 let lastFailure = null;
@@ -42,8 +43,12 @@ function recordSuccess(provider) {
 }
 
 async function getQuotes(symbols = []) {
-  const list = Array.isArray(symbols) ? symbols : String(symbols).split(',');
-  const key = `svc:quotes:${list.sort().join(',')}`;
+  const canonicalList = (Array.isArray(symbols) ? symbols : String(symbols).split(','))
+    .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
+    .filter(Boolean);
+  const providerList = canonicalList.map((symbol) => mapToProviderSymbol(symbol));
+
+  const key = `svc:quotes:${canonicalList.slice().sort().join(',')}`;
   const cached = cache.get(key);
   if (cached) return cached;
 
@@ -51,11 +56,22 @@ async function getQuotes(symbols = []) {
   let lastErr;
   for (const p of providers) {
     try {
-      const quotes = await p.getQuotes(list);
+      const quotes = await p.getQuotes(providerList);
+      const mappedQuotes = (Array.isArray(quotes) ? quotes : []).map((quote) => {
+        const canonicalSymbol = mapFromProviderSymbol(normalizeSymbol(quote?.symbol));
+        return {
+          ...quote,
+          symbol: canonicalSymbol,
+        };
+      });
+
+      const requestedSet = new Set(canonicalList);
+      const filteredQuotes = mappedQuotes.filter((quote) => requestedSet.has(quote.symbol));
+
       lastProvider = p.name;
       recordSuccess(p.name);
-      cache.set(key, quotes, QUOTE_TTL);
-      return quotes;
+      cache.set(key, filteredQuotes, QUOTE_TTL);
+      return filteredQuotes;
     } catch (err) {
       lastErr = err;
       recordFailure(p.name, err);
@@ -116,12 +132,14 @@ async function getGappers() {
 }
 
 async function getHistorical(symbol, timeframe = { interval: '1d', range: '1mo' }) {
+  const canonicalSymbol = mapFromProviderSymbol(normalizeSymbol(symbol));
+  const providerSymbol = mapToProviderSymbol(canonicalSymbol);
   const providers = activeQuoteProviders();
   let lastErr;
   for (const p of providers) {
     try {
       if (p.getHistorical) {
-        const data = await p.getHistorical(symbol, timeframe);
+        const data = await p.getHistorical(providerSymbol, timeframe);
         lastProvider = p.name;
         recordSuccess(p.name);
         return data;
@@ -192,12 +210,14 @@ async function getMarketContext() {
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const tickers = ['SPY', 'QQQ', '^VIX', 'DX-Y.NYB'];
-  const quotes = await yahoo.getQuotes(tickers);
+  const tickers = ['SPY', 'QQQ', 'VIX', 'DX-Y.NYB'];
+  const providerTickers = tickers.map((symbol) => mapToProviderSymbol(symbol));
+  const quotes = await yahoo.getQuotes(providerTickers);
   const quoteMap = new Map(quotes.map(q => [q.symbol, q]));
 
   const indices = tickers.map(sym => {
-    const q = quoteMap.get(sym) || {};
+    const providerSymbol = mapToProviderSymbol(sym);
+    const q = quoteMap.get(providerSymbol) || quoteMap.get(sym) || {};
     return {
       ticker: sym,
       name: q.shortName || sym,

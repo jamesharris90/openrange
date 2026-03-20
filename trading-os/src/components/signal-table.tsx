@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toFixedSafe } from "@/lib/number";
 import { getInstitutionalFlowCandidates } from "@/lib/queries";
 import { formatPct } from "@/lib/utils";
 
@@ -39,7 +40,7 @@ export function SignalTable() {
                   <Badge variant="accent">{row.confidence}%</Badge>
                 </td>
                 <td className="py-3 font-mono text-xs">{row.probability}%</td>
-                <td className="py-3 font-mono text-xs">{row.volume_ratio.toFixed(1)}x</td>
+                <td className="py-3 font-mono text-xs">{toFixedSafe(row.volume_ratio, 1)}x</td>
                 <td className={`py-3 font-mono text-xs ${row.change_pct >= 0 ? "text-bull" : "text-bear"}`}>
                   {formatPct(row.change_pct)}
                 </td>

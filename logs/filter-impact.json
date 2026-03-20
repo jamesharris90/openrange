@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-03-19T07:39:12.507Z",
+  "before_after": {
+    "catalysts": {
+      "before": 296,
+      "after": 296
+    },
+    "clusters": {
+      "before": 295,
+      "after": 169
+    },
+    "signals": {
+      "before": 7,
+      "after": 7
+    },
+    "opportunities": {
+      "before": 7,
+      "after": 6
+    }
+  },
+  "rejection_reasons": {
+    "clusters": {
+      "by_size_and_strength": 125,
+      "by_min_cluster_score": 1
+    },
+    "signals": {
+      "by_cluster_score": 0,
+      "by_sentiment_abs": 0,
+      "by_signal_type": 0,
+      "by_confidence": 0,
+      "by_symbol_dedupe": 0,
+      "by_market_macro_opposes_direction": 96,
+      "by_market_no_macro_support": 7,
+      "by_market_sector_neutral": 46,
+      "by_market_sector_weak_bullish": 13,
+      "by_market_sector_strong_bearish": 0
+    },
+    "opportunities": {
+      "by_confidence": 0,
+      "by_expected_move_percent": 0,
+      "by_cluster_score": 0,
+      "by_symbol_dedupe": 0,
+      "by_global_top_n": 1
+    }
+  }
+}

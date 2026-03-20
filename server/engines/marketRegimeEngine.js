@@ -24,7 +24,7 @@ async function runMarketRegimeEngine() {
        vix AS (
          SELECT close
          FROM daily_ohlc
-         WHERE symbol IN ('^VIX', 'VIX')
+         WHERE symbol = 'VIX'
          ORDER BY date DESC
          LIMIT 1
        ),

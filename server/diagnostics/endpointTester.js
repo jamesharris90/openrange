@@ -30,8 +30,12 @@ async function testEndpoint(baseUrl, endpoint) {
 
     const primaryArray = pickPrimaryArray(json);
     const responseType = Array.isArray(json) ? 'array' : json === null ? 'null' : typeof json;
-    const contractCompliant = Boolean(json && typeof json === 'object' && Object.prototype.hasOwnProperty.call(json, 'success'));
-    const contractViolation = contractCompliant ? json.success !== true : true;
+    const status = json && typeof json === 'object' ? String(json.status || '') : '';
+    const validStatuses = new Set(['ok', 'no_data', 'error']);
+    const hasSource = Boolean(json && typeof json === 'object' && Object.prototype.hasOwnProperty.call(json, 'source'));
+    const hasValidOkData = status !== 'ok' || Boolean(json && typeof json === 'object' && Array.isArray(json.data));
+    const contractCompliant = Boolean(json && typeof json === 'object' && validStatuses.has(status) && hasSource && hasValidOkData);
+    const contractViolation = !contractCompliant;
 
     return {
       endpoint,

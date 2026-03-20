@@ -14,11 +14,16 @@ function headersFrom(request: NextRequest): HeadersInit {
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${API_BASE}/api/intelligence/summary`, {
+    const target = `${API_BASE}/api/intelligence/summary`;
+    console.log("PROXY CALL:", target);
+    const response = await fetch(target, {
       headers: headersFrom(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
     const payload = await response.json().catch(() => ({}));
+    console.log("PROXY STATUS:", response.status);
+    console.log("PROXY SAMPLE:", JSON.stringify(payload).slice(0, 500));
 
     return NextResponse.json(
       {
@@ -27,14 +32,16 @@ export async function GET(request: NextRequest) {
       },
       { status: response.ok ? 200 : response.status }
     );
-  } catch (error) {
-    console.error("API error:", error);
+  } catch {
+    console.error("PROXY STATUS:", 502);
+    console.error("PROXY SAMPLE:", JSON.stringify({ status: "error", message: "backend_unreachable" }));
     return NextResponse.json(
       {
         status: "error",
-        message: "internal_error",
+        message: "backend_unreachable",
+        data: {},
       },
-      { status: 500 }
+      { status: 502 }
     );
   }
 }

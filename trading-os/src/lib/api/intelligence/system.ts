@@ -22,11 +22,17 @@ export async function getEmailAnalytics(): Promise<EmailAnalytics> {
   const response = await apiGet<{ data?: { email?: Record<string, unknown> } }>("/api/intelligence/system");
   const email = response.data?.email || {};
   const scheduler = (email.scheduler as Record<string, unknown>) || {};
-  const activeSubscribers = Number(email.activeSubscribers || 0);
+  const activeSubscribers = Number(email.activeSubscribers);
+  const openRate = Number(scheduler.openRate);
+  const clickRate = Number(scheduler.clickRate);
+
+  if (!Number.isFinite(activeSubscribers) || !Number.isFinite(openRate) || !Number.isFinite(clickRate)) {
+    throw new Error("Invalid email analytics response contract");
+  }
 
   return {
-    open_rate: Number(scheduler.openRate || 0),
-    click_rate: Number(scheduler.clickRate || 0),
+    open_rate: openRate,
+    click_rate: clickRate,
     subscriber_growth: activeSubscribers,
     top_links: [],
   };

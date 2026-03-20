@@ -10,6 +10,7 @@
  */
 
 const YahooFinance = require('yahoo-finance2').default;
+const { mapToProviderSymbol } = require('../utils/symbolMap');
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -100,9 +101,10 @@ let _state = {
  * Throws on unrecoverable errors; caller should catch and log.
  */
 async function refreshSpyState(logger = console) {
+  const vixProviderSymbol = mapToProviderSymbol('VIX');
   const [spyQuote, vixQuote] = await Promise.all([
     yf.quote('SPY',  {}, { validateResult: false }),
-    yf.quote('^VIX', {}, { validateResult: false }),
+    yf.quote(vixProviderSymbol, {}, { validateResult: false }),
   ]);
 
   const spyChangePct = spyQuote?.regularMarketChangePercent ?? 0;
@@ -113,7 +115,7 @@ async function refreshSpyState(logger = console) {
   let vixDecile = 5;
   try {
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-    const vixChart   = await yf.chart('^VIX', { period1: oneYearAgo, period2: new Date(), interval: '1d' }, { validateResult: false });
+    const vixChart   = await yf.chart(vixProviderSymbol, { period1: oneYearAgo, period2: new Date(), interval: '1d' }, { validateResult: false });
     const closes     = (vixChart?.quotes || []).map((q) => q.close).filter(Number.isFinite);
     vixDecile = computeVixDecile(vixLevel, closes);
   } catch (err) {

@@ -3,7 +3,6 @@ const logger = require('../logger');
 const REQUIRED_KEYS = [
   'JWT_SECRET',
   'FMP_API_KEY',
-  'DATABASE_URL',
   'RESEND_API_KEY',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -30,6 +29,11 @@ function isMissing(value) {
 function runEnvCheck(options = {}) {
   const { hardFail = false } = options;
   const missing = REQUIRED_KEYS.filter((key) => isMissing(process.env[key]));
+
+  const hasDbUrl = !isMissing(process.env.SUPABASE_DB_URL) || !isMissing(process.env.DATABASE_URL);
+  if (!hasDbUrl) {
+    missing.push('SUPABASE_DB_URL|DATABASE_URL');
+  }
 
   if (missing.length) {
     logger.error('Environment validation failed: required keys are missing', {

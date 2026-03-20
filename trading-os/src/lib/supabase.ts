@@ -1,24 +1,19 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-let cachedClient: SupabaseClient | null = null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export function getSupabaseClient() {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    return null;
-  }
-
-  cachedClient = createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-    },
-  });
-
-  return cachedClient;
+if (!supabaseUrl) {
+  throw new Error("Missing SUPABASE URL");
 }
+
+if (!supabaseAnonKey) {
+  throw new Error("Missing SUPABASE ANON KEY");
+}
+
+console.log("SUPABASE URL:", supabaseUrl);
+
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+);

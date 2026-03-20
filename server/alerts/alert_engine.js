@@ -133,12 +133,19 @@ async function executeQueryTree(queryTree) {
   const whereSql = buildCondition(queryTree, params);
 
   const hasEarnings = schemaCache.columnsByTable.has('earnings_events');
-  const earningsJoin = hasEarnings
+  const earningsDateColumn = hasColumn('earnings_events', 'date')
+    ? 'date'
+    : hasColumn('earnings_events', 'earnings_date')
+      ? 'earnings_date'
+      : hasColumn('earnings_events', 'report_date')
+        ? 'report_date'
+        : null;
+  const earningsJoin = hasEarnings && earningsDateColumn
     ? `LEFT JOIN LATERAL (
-         SELECT ee.date AS earnings_date
+         SELECT ee.${earningsDateColumn} AS earnings_date
          FROM earnings_events ee
          WHERE ee.symbol = m.symbol
-         ORDER BY ee.date ASC
+         ORDER BY ee.${earningsDateColumn} ASC
          LIMIT 1
        ) e ON TRUE`
     : '';

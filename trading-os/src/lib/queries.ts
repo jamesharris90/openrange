@@ -50,10 +50,10 @@ export async function getGapCandidates(): Promise<SignalRow[]> {
 export async function getMarketRegimeInputs(): Promise<RegimeInput> {
   const row = await getMarketRegime();
   return {
-    vix: row.vix ?? 0,
-    breadth: row.breadth ?? 0,
-    put_call: row.put_call ?? 0,
-    regime: row.regime ?? "Neutral",
+    vix: row.vix,
+    breadth: row.breadth,
+    put_call: row.put_call,
+    regime: row.regime || "",
   };
 }
 

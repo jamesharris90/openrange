@@ -10,6 +10,8 @@ import {
 } from "lightweight-charts";
 import { useEffect, useRef } from "react";
 
+import { toFixedSafe } from "@/lib/number";
+
 type TradingChartProps = {
   ticker: string;
 };
@@ -22,7 +24,7 @@ function buildSeries() {
     price += (Math.random() - 0.48) * 1.8;
     return {
       time: (now - (59 - index) * 60) as UTCTimestamp,
-      value: Number(price.toFixed(2)),
+      value: Number(toFixedSafe(price, 2)),
     };
   });
 }

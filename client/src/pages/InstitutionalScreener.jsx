@@ -355,8 +355,8 @@ export default function InstitutionalScreener() {
       ?.map((symbol) => rowFromSources(symbol, scannerMap, setupMap, catalystMap, metricsMap, expectedMoveMap, earningsMap, narrative))
       .filter((row) => row.symbol);
 
-    const rows = Array.isArray(screenerResponse?.rows)
-      ? screenerResponse.rows?.map((row) => ({ ...row, symbol: String(row.symbol || '').toUpperCase() })).filter((row) => row.symbol)
+    const rows = Array.isArray(screenerResponse?.data)
+      ? screenerResponse.data?.map((row) => ({ ...row, symbol: String(row.symbol || '').toUpperCase() })).filter((row) => row.symbol)
       : fallbackRows;
 
     setRawRows(rows);

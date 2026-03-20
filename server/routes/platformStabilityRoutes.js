@@ -1,5 +1,11 @@
 const express = require('express');
 const { queryWithTimeout } = require('../db/pg');
+const {
+  MARKET_QUOTES_TABLE,
+  INTRADAY_TABLE,
+  OPPORTUNITIES_TABLE,
+  SIGNALS_TABLE,
+} = require('../../lib/data/authority');
 
 const router = express.Router();
 
@@ -92,7 +98,7 @@ router.get('/api/radar', async (_req, res) => {
   try {
     const signals = await safeRows(
       `SELECT symbol, strategy, score, expected_move, catalyst_headline AS catalyst, created_at
-       FROM strategy_signals
+        FROM ${SIGNALS_TABLE}
        ORDER BY created_at DESC NULLS LAST
        LIMIT 50`,
       [],
@@ -100,9 +106,14 @@ router.get('/api/radar', async (_req, res) => {
     );
 
     const opportunities = await safeRows(
-      `SELECT symbol, strategy, confidence, expected_move, catalyst, created_at
-       FROM opportunity_stream
-       ORDER BY created_at DESC NULLS LAST
+      `SELECT symbol,
+          COALESCE(NULLIF(setup_type, ''), 'Momentum Continuation') AS strategy,
+          score AS confidence,
+          NULL::numeric AS expected_move,
+          NULL::text AS catalyst,
+          COALESCE(detected_at, updated_at) AS created_at
+       FROM ${OPPORTUNITIES_TABLE}
+       ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
        LIMIT 50`,
       [],
       'stability.radar.opportunities'
@@ -110,7 +121,7 @@ router.get('/api/radar', async (_req, res) => {
 
     const sectors = await safeRows(
       `SELECT COALESCE(sector,'Unknown') AS sector, AVG(COALESCE(change_percent,0)) AS avg_change_percent
-       FROM market_quotes
+       FROM ${MARKET_QUOTES_TABLE}
        GROUP BY 1
        ORDER BY avg_change_percent DESC NULLS LAST
        LIMIT 12`,
@@ -122,7 +133,7 @@ router.get('/api/radar', async (_req, res) => {
       `SELECT
          SUM(CASE WHEN COALESCE(change_percent,0) > 0 THEN 1 ELSE 0 END) AS advancers,
          SUM(CASE WHEN COALESCE(change_percent,0) < 0 THEN 1 ELSE 0 END) AS decliners
-       FROM market_quotes`,
+       FROM ${MARKET_QUOTES_TABLE}`,
       [],
       'stability.radar.breadth'
     );
@@ -156,7 +167,7 @@ router.get('/api/radar', async (_req, res) => {
 router.get('/api/scanner', async (_req, res) => {
   const rows = await safeRows(
     `SELECT symbol, COALESCE(change_percent,0) AS change_percent, COALESCE(volume,0) AS volume, sector, updated_at
-     FROM market_quotes
+      FROM ${MARKET_QUOTES_TABLE}
      ORDER BY ABS(COALESCE(change_percent,0)) DESC NULLS LAST
      LIMIT 100`,
     [],
@@ -165,60 +176,33 @@ router.get('/api/scanner', async (_req, res) => {
   return res.json(success(rows));
 });
 
-router.get('/api/opportunities', async (_req, res) => {
+router.get('/api/signals', async (req, res) => {
   try {
-    const { rows: primaryRows } = await queryWithTimeout(
-      `SELECT
-         ts.*,
-         ts.detected_at AS updated_at
-       FROM trade_setups ts
-       WHERE ts.detected_at > NOW() - INTERVAL '7 days'
-       ORDER BY ts.detected_at DESC NULLS LAST
-       LIMIT 100`,
-      [],
-      { label: 'stability.opportunities.trade_setups.primary', timeoutMs: 4000, maxRetries: 0 }
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    const params = [];
+    let whereClause = '';
+    if (symbol) {
+      params.push(symbol);
+      whereClause = `WHERE symbol = $${params.length}`;
+    }
+    params.push(limit);
+
+    const { rows } = await queryWithTimeout(
+      `SELECT id, symbol, signal_type, score, confidence, catalyst_ids, created_at
+       FROM signals
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${params.length}`,
+      params,
+      { label: 'stability.strict.signals', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
     );
 
-    console.log('[DATA CHECK]', {
-      table: 'trade_setups',
-      rows: primaryRows.length
-    });
-
-    let rows = primaryRows;
-    if (!rows.length) {
-      const { rows: fallbackRows } = await queryWithTimeout(
-        `SELECT *
-         FROM trade_setups
-         ORDER BY detected_at DESC NULLS LAST
-         LIMIT 20`,
-        [],
-        { label: 'stability.opportunities.trade_setups.fallback', timeoutMs: 4000, maxRetries: 0 }
-      );
-
-      console.log('[DATA CHECK]', {
-        table: 'trade_setups',
-        rows: fallbackRows.length
-      });
-
-      rows = fallbackRows;
-    }
-
-    return res.json(success(rows.map(normalizeExpectedMove)));
+    return res.json({ success: true, data: rows });
   } catch (error) {
-    return res.status(500).json(failure(error.message || 'Failed to load opportunities'));
+    return res.status(500).json(failure(error.message || 'Failed to load signals'));
   }
-});
-
-router.get('/api/signals', async (_req, res) => {
-  const rows = await safeRows(
-    `SELECT symbol, strategy, score, expected_move, catalyst_headline AS catalyst, created_at
-     FROM strategy_signals
-     ORDER BY created_at DESC NULLS LAST
-     LIMIT 100`,
-    [],
-    'stability.signals'
-  );
-  return res.json(success(rows.map(normalizeExpectedMove)));
 });
 
 router.get('/api/news', async (_req, res) => {
@@ -234,36 +218,33 @@ router.get('/api/news', async (_req, res) => {
   return res.json(success(rows));
 });
 
-router.get('/api/catalysts', async (_req, res) => {
-  const catalystRows = await safeRows(
-    `SELECT symbol, COALESCE(catalyst, catalyst_type, headline) AS catalyst, COALESCE(timestamp, published_at, created_at) AS timestamp
-     FROM trade_catalysts
-     ORDER BY COALESCE(timestamp, published_at, created_at) DESC NULLS LAST
-     LIMIT 300`,
-    [],
-    'stability.catalysts'
-  );
+router.get('/api/catalysts', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         event_uuid AS id,
+         symbol,
+         catalyst_type,
+         headline,
+         source_table,
+         source_id,
+         event_time,
+         strength_score,
+         sentiment_score,
+         created_at
+       FROM catalyst_events
+       WHERE source_table IN ('news_articles', 'earnings_calendar', 'ipo_calendar', 'stock_splits')
+       ORDER BY COALESCE(event_time, published_at, created_at) DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'stability.strict.catalysts', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
+    );
 
-  if (catalystRows.length > 0) {
-    return res.json(success(catalystRows));
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    return res.status(500).json(failure(error.message || 'Failed to load catalysts'));
   }
-
-  const symbols = await safeRows(
-    `SELECT DISTINCT symbol
-     FROM strategy_signals
-     WHERE symbol IS NOT NULL
-     ORDER BY symbol ASC
-     LIMIT 100`,
-    [],
-    'stability.catalysts.symbols'
-  );
-
-  const placeholders = symbols.map((row) => ({
-    symbol: row.symbol,
-    catalyst: 'No recent catalyst',
-    timestamp: null,
-  }));
-  return res.json(success(placeholders));
 });
 
 router.get('/api/market-breadth', async (_req, res) => {
@@ -272,7 +253,7 @@ router.get('/api/market-breadth', async (_req, res) => {
       SUM(CASE WHEN COALESCE(change_percent,0) > 0 THEN 1 ELSE 0 END) AS advancers,
       SUM(CASE WHEN COALESCE(change_percent,0) < 0 THEN 1 ELSE 0 END) AS decliners,
       SUM(CASE WHEN COALESCE(change_percent,0) = 0 THEN 1 ELSE 0 END) AS unchanged
-     FROM market_quotes`,
+      FROM ${MARKET_QUOTES_TABLE}`,
     [],
     'stability.marketBreadth'
   );
@@ -282,7 +263,7 @@ router.get('/api/market-breadth', async (_req, res) => {
 router.get('/api/sector-rotation', async (_req, res) => {
   const rows = await safeRows(
     `SELECT COALESCE(sector,'Unknown') AS sector, AVG(COALESCE(change_percent,0)) AS avg_change_percent
-     FROM market_quotes
+      FROM ${MARKET_QUOTES_TABLE}
      GROUP BY 1
      ORDER BY avg_change_percent DESC NULLS LAST`,
     [],
@@ -294,7 +275,7 @@ router.get('/api/sector-rotation', async (_req, res) => {
 router.get('/api/intelligence-feed', async (_req, res) => {
   const rows = await safeRows(
     `SELECT symbol, strategy, score, catalyst_headline AS catalyst, created_at AS timestamp
-     FROM strategy_signals
+      FROM ${SIGNALS_TABLE}
      ORDER BY created_at DESC NULLS LAST
      LIMIT 100`,
     [],
@@ -305,9 +286,14 @@ router.get('/api/intelligence-feed', async (_req, res) => {
 
 router.get('/api/trade-setups', async (_req, res) => {
   const rows = await safeRows(
-    `SELECT symbol, setup_type, strategy_score, relative_volume, gap_percent, created_at AS timestamp
-     FROM trade_setups
-     ORDER BY created_at DESC NULLS LAST
+    `SELECT symbol,
+            setup_type,
+            strategy_score,
+            relative_volume,
+            gap_percent,
+            COALESCE(detected_at, updated_at) AS timestamp
+      FROM ${OPPORTUNITIES_TABLE}
+     ORDER BY COALESCE(detected_at, updated_at) DESC NULLS LAST
      LIMIT 100`,
     [],
     'stability.tradeSetups'
@@ -319,7 +305,7 @@ router.get('/api/chart-data', async (_req, res) => {
   try {
     const rows = await safeRows(
       `SELECT symbol, timestamp, open, high, low, close, volume
-       FROM intraday_prices
+        FROM ${INTRADAY_TABLE}
        ORDER BY timestamp DESC
        LIMIT 500`,
       [],
@@ -369,7 +355,7 @@ router.get('/api/ticker-tape', async (_req, res) => {
        COALESCE(m.relative_volume, NULL) AS relative_volume,
        q.sector,
        COALESCE(q.updated_at, m.updated_at, NOW()) AS updated_at
-     FROM market_quotes q
+      FROM ${MARKET_QUOTES_TABLE} q
      LEFT JOIN market_metrics m ON m.symbol = q.symbol
      ORDER BY ABS(COALESCE(q.change_percent,0)) DESC NULLS LAST
      LIMIT 50`,

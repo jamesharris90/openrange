@@ -13,12 +13,25 @@ import {
 import { useEffect, useMemo, useRef } from "react";
 
 import { getMarketChart } from "@/lib/api/markets";
+import { toFixedSafe } from "@/lib/number";
 import { QUERY_POLICY, queryKeys } from "@/lib/queries/policy";
 import { useTickerStore } from "@/lib/store/ticker-store";
 import type { PricePoint } from "@/lib/types";
 
-function toUnix(value: string): UTCTimestamp {
-  return Math.floor(new Date(value).getTime() / 1000) as UTCTimestamp;
+function toUnix(value: string | number): UTCTimestamp {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value > 1_000_000_000_000) {
+      return Math.floor(value / 1000) as UTCTimestamp;
+    }
+    return Math.floor(value) as UTCTimestamp;
+  }
+
+  const parsedMs = Date.parse(String(value || ""));
+  if (Number.isFinite(parsedMs)) {
+    return Math.floor(parsedMs / 1000) as UTCTimestamp;
+  }
+
+  return Math.floor(Date.now() / 1000) as UTCTimestamp;
 }
 
 function ema(values: number[], period: number) {
@@ -48,10 +61,12 @@ export function ChartEngine({
   ticker,
   timeframe,
   height = 260,
+  gammaExposure = 0,
 }: {
   ticker: string;
   timeframe: "daily" | "5m" | "1m";
   height?: number;
+  gammaExposure?: number;
 }) {
   const liveQuote = useTickerStore((state) => state.quotes[ticker.toUpperCase()]);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -63,6 +78,7 @@ export function ChartEngine({
     ema20: ReturnType<IChartApi["addSeries"]> | null;
     ema50: ReturnType<IChartApi["addSeries"]> | null;
     volume: ReturnType<IChartApi["addSeries"]> | null;
+    gamma: ReturnType<IChartApi["addSeries"]> | null;
   }>({
     candles: null,
     vwap: null,
@@ -70,6 +86,7 @@ export function ChartEngine({
     ema20: null,
     ema50: null,
     volume: null,
+    gamma: null,
   });
 
   const { data = [] } = useQuery({
@@ -123,6 +140,11 @@ export function ChartEngine({
       color: "rgba(59,130,246,0.4)",
     });
 
+    const gammaSeries = chart.addSeries(HistogramSeries, {
+      priceScaleId: "left",
+      color: "rgba(245,158,11,0.45)",
+    });
+
     candles.priceScale().applyOptions({
       autoScale: true,
     });
@@ -134,6 +156,7 @@ export function ChartEngine({
       ema20: ema20Series,
       ema50: ema50Series,
       volume: volumeSeries,
+      gamma: gammaSeries,
     };
 
     chartRef.current = chart;
@@ -156,6 +179,7 @@ export function ChartEngine({
         ema20: null,
         ema50: null,
         volume: null,
+        gamma: null,
       };
     };
   }, [height]);
@@ -170,6 +194,7 @@ export function ChartEngine({
     const ema20Series = seriesRef.current.ema20;
     const ema50Series = seriesRef.current.ema50;
     const volumeSeries = seriesRef.current.volume;
+    const gammaSeries = seriesRef.current.gamma;
 
     const candleRows = normalized.map((point) => ({
       time: toUnix(point.time),
@@ -178,6 +203,9 @@ export function ChartEngine({
       low: Number(point.low ?? point.close),
       close: Number(point.close),
     }));
+
+    console.log("CHART RAW DATA:", normalized.slice(0, 5));
+    console.log("CHART MAPPED DATA:", candleRows.slice(0, 5));
 
     const closeValues = normalized.map((point) => Number(point.close));
     const vwapValues = vwap(normalized);
@@ -204,8 +232,24 @@ export function ChartEngine({
       }))
     );
 
+    const gexValue = Number.isFinite(Number(gammaExposure)) ? Number(gammaExposure) : 0;
+    gammaSeries?.setData(
+      normalized.map((point) => {
+        const open = Number(point.open ?? point.close);
+        const close = Number(point.close);
+        const drift = open !== 0 ? (close - open) / Math.abs(open) : 0;
+        const signed = gexValue !== 0 ? gexValue * (1 + drift) : (close - open) * 10;
+
+        return {
+          time: toUnix(point.time),
+          value: signed,
+          color: signed >= 0 ? "rgba(22,199,132,0.40)" : "rgba(234,57,67,0.40)",
+        };
+      })
+    );
+
     chart.timeScale().fitContent();
-  }, [normalized]);
+  }, [normalized, gammaExposure]);
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-panel p-2 shadow-lg">
@@ -213,11 +257,22 @@ export function ChartEngine({
         <span className="font-mono">{ticker}</span>
         <span className="flex items-center gap-2 uppercase">
           <span>{timeframe}</span>
-          {liveQuote ? (
-            <span className={liveQuote.change_percent >= 0 ? "text-bull" : "text-bear"}>
-              ${Number(liveQuote.price || 0).toFixed(2)}
-            </span>
-          ) : null}
+          {liveQuote ? (() => {
+            const livePrice = Number(liveQuote.price);
+            const liveChange = Number(liveQuote.change_percent);
+            const hasLivePrice = Number.isFinite(livePrice);
+            const hasLiveChange = Number.isFinite(liveChange);
+
+            if (!hasLivePrice) {
+              return <span className="text-slate-500">No live price</span>;
+            }
+
+              return (
+                <span className={hasLiveChange && liveChange < 0 ? "text-bear" : "text-bull"}>
+                  ${toFixedSafe(livePrice, 2)}
+                </span>
+              );
+          })() : null}
         </span>
       </div>
       <div ref={ref} className="w-full" />

@@ -1,6 +1,9 @@
 import { apiGet } from "@/lib/api/client";
+import { adaptDashboardPayload } from "@/lib/adapters";
+import { debugLog } from "@/lib/debug";
 
 export type DashboardSummary = {
+  source: string;
   sectors: Array<Record<string, unknown>>;
   opportunities: Array<Record<string, unknown>>;
   earnings: {
@@ -12,15 +15,16 @@ export type DashboardSummary = {
 };
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const response = await apiGet<{ data?: { summary?: DashboardSummary } }>("/api/intelligence/dashboard");
-  const summary = response.data?.summary;
-  return (
-    summary || {
-      sectors: [],
-      opportunities: [],
-      earnings: { today: [], week: [] },
-      news: [],
-      top_strategies: [],
-    }
-  );
+  const response = await apiGet<Record<string, unknown>>("/api/intelligence/dashboard");
+  debugLog("/api/intelligence/dashboard", response);
+  const adapted = adaptDashboardPayload(response);
+
+  return {
+    source: adapted.source,
+    sectors: adapted.sectors,
+    opportunities: adapted.opportunities,
+    earnings: adapted.earnings,
+    news: adapted.news,
+    top_strategies: adapted.top_strategies,
+  };
 }

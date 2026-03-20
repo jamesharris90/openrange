@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "endpoint": "https://financialmodelingprep.com/stable/earnings-calendar",
+  "fetched": 4000,
+  "accepted": 1613,
+  "rejected": 2387,
+  "uniqueSymbols": 1612
+}

@@ -6,6 +6,8 @@ const FMP_AFTERMARKET_QUOTE_ENDPOINT = 'https://financialmodelingprep.com/stable
 const MAX_EXTENDED_SYMBOLS = 150;
 const WATCHLIST_SOURCE_LIMIT = 200;
 const SYMBOL_THROTTLE_MS = 70;
+const MAX_SYMBOLS_PER_BATCH = 10;
+const BATCH_DELAY_MS = 500;
 const REQUEST_TIMEOUT_MS = 12000;
 const DAILY_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -14,6 +16,7 @@ const trackedSymbols = new Set();
 
 let lastCleanupRunAt = 0;
 let activeTrackedSession = null;
+let extendedSchemaInitPromise = null;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -72,6 +75,17 @@ async function ensureIntradaySessionSchema() {
     [],
     { timeoutMs: 10000, maxRetries: 0, label: 'extended_hours.ensure_session_index' }
   );
+}
+
+async function initExtendedHoursSchemaOnce() {
+  if (!extendedSchemaInitPromise) {
+    extendedSchemaInitPromise = ensureIntradaySessionSchema().catch((error) => {
+      extendedSchemaInitPromise = null;
+      throw error;
+    });
+  }
+
+  return extendedSchemaInitPromise;
 }
 
 function buildGainersQuery(hasTickerUniverseChangePercent) {
@@ -301,7 +315,7 @@ async function runExtendedHoursIngest() {
     };
   }
 
-  await ensureIntradaySessionSchema();
+  await initExtendedHoursSchemaOnce();
   await applyDailyCleanupIfNeeded();
 
   const { session, estTime } = resolveSessionFromEtDate();
@@ -358,25 +372,33 @@ async function runExtendedHoursIngest() {
 
   let updates = 0;
 
-  for (const symbol of watchlist) {
-    try {
-      const quote = await fetchAftermarketQuote(symbol, fmpApiKey);
-      if (!quote) {
-        await sleep(SYMBOL_THROTTLE_MS);
-        continue;
+  for (let i = 0; i < watchlist.length; i += MAX_SYMBOLS_PER_BATCH) {
+    const batch = watchlist.slice(i, i + MAX_SYMBOLS_PER_BATCH);
+
+    for (const symbol of batch) {
+      try {
+        const quote = await fetchAftermarketQuote(symbol, fmpApiKey);
+        if (!quote) {
+          await sleep(SYMBOL_THROTTLE_MS);
+          continue;
+        }
+
+        logger.info(`[EXTENDED] price update ${symbol}`);
+        await processSymbolPriceUpdate(symbol, quote.price, quote.minute, session);
+        updates += 1;
+      } catch (error) {
+        logger.warn('[EXTENDED] quote fetch failed', {
+          symbol,
+          error: error.message,
+        });
       }
 
-      logger.info(`[EXTENDED] price update ${symbol}`);
-      await processSymbolPriceUpdate(symbol, quote.price, quote.minute, session);
-      updates += 1;
-    } catch (error) {
-      logger.warn('[EXTENDED] quote fetch failed', {
-        symbol,
-        error: error.message,
-      });
+      await sleep(SYMBOL_THROTTLE_MS);
     }
 
-    await sleep(SYMBOL_THROTTLE_MS);
+    if (i + MAX_SYMBOLS_PER_BATCH < watchlist.length) {
+      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+    }
   }
 
   return {

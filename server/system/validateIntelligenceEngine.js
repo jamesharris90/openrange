@@ -9,7 +9,7 @@ function logStatus(key, ok) {
 async function main() {
   const engineFile = path.resolve(__dirname, '../engines/opportunityIntelligenceEngine.js');
   const startEnginesFile = path.resolve(__dirname, './startEngines.js');
-  const indexFile = path.resolve(__dirname, '../index.js');
+  const indexFile = path.resolve(__dirname, '..', 'index.js');
 
   const engineExists = fs.existsSync(engineFile);
   const startEnginesContent = fs.existsSync(startEnginesFile) ? fs.readFileSync(startEnginesFile, 'utf8') : '';

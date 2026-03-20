@@ -7,6 +7,7 @@ import { ProbabilityBar } from "@/components/probability-bar";
 import { TradingChart } from "@/components/trading-chart";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toFixedSafe } from "@/lib/number";
 import { getInstitutionalFlowCandidates } from "@/lib/queries";
 import { formatPct } from "@/lib/utils";
 
@@ -46,7 +47,7 @@ export function StockDeepDive({ ticker }: { ticker: string }) {
             <CardContent className="space-y-2">
               <Badge variant="accent">{selected.setup}</Badge>
               <p className="text-sm text-muted-foreground">
-                Volume ratio at {selected.volume_ratio.toFixed(1)}x indicates sustained tape interest.
+                Volume ratio at {toFixedSafe(selected.volume_ratio, 1)}x indicates sustained tape interest.
               </p>
             </CardContent>
           </Card>

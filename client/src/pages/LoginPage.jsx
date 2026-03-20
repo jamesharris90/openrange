@@ -22,6 +22,7 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
+      console.log('Attempting login to:', import.meta.env.VITE_API_URL);
       const data = await apiJSON('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

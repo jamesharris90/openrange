@@ -1,0 +1,15 @@
+{
+  "high": {
+    "winRate": 0,
+    "count": 0
+  },
+  "medium": {
+    "winRate": 0,
+    "count": 0
+  },
+  "low": {
+    "winRate": 66.66666666666666,
+    "count": 6
+  },
+  "timestamp": "2026-03-19T10:42:50.207Z"
+}

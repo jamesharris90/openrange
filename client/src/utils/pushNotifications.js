@@ -1,4 +1,4 @@
-import { fetchSafe } from '../api/fetchSafe';
+import { post } from '../api/apiClient';
 
 const STORAGE_KEY = 'openrange:push-alert-prefs';
 
@@ -28,13 +28,7 @@ export function setAlertPreferences(next) {
 
 async function sendSubscriptionToBackend(subscription, prefs) {
   try {
-    await fetchSafe('/api/notifications/subscribe', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription, prefs }),
-      fallback: {},
-    });
+    await post('/api/notifications/subscribe', { subscription, prefs }, { fallback: {} });
   } catch {
     // Backend endpoint may not yet exist; client-side prep still complete.
   }

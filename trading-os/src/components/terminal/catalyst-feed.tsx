@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { percentSafe, toNumber } from "@/lib/number";
 import { useTickerStore } from "@/lib/store/ticker-store";
 import type { Opportunity } from "@/lib/types";
 
@@ -35,11 +36,19 @@ export function CatalystFeed({ grouped }: { grouped: Record<string, Opportunity[
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
-      });
+      }).map((row) => ({
+        ...row,
+        value: toNumber((row as unknown as { value?: unknown }).value, 0),
+        probability: toNumber(row.probability, 0),
+        confidence: toNumber(row.confidence, 0),
+      }));
     }
 
     return merged;
   }, [grouped, liveAlerts, liveSignals]);
+
+  const data = Object.values(mergedGrouped).flat();
+  console.log("COMPONENT DATA:", data);
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-panel p-4 shadow-lg">
@@ -49,7 +58,7 @@ export function CatalystFeed({ grouped }: { grouped: Record<string, Opportunity[
           <div key={category} className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="mb-2 text-xs font-semibold uppercase text-slate-400">{category}</div>
             <div className="space-y-2">
-              {(rows || []).slice(0, 4).map((row) => (
+              {rows.slice(0, 4).map((row) => (
                 <div key={`${category}-${row.symbol}-${row.strategy}`} className="rounded-lg border border-slate-800 px-2 py-2 text-xs">
                   <div className="font-mono text-slate-100">{row.symbol}</div>
                   {row.news_id ? (
@@ -59,7 +68,9 @@ export function CatalystFeed({ grouped }: { grouped: Record<string, Opportunity[
                   ) : (
                     <div className="text-slate-400">{row.strategy}</div>
                   )}
-                  <div className="text-slate-500">P {row.probability.toFixed(0)}% | C {row.confidence.toFixed(0)}%</div>
+                  <div className="text-slate-500">
+                    P {percentSafe(row.probability, 0)} | C {percentSafe(row.confidence, 0)}
+                  </div>
                 </div>
               ))}
               {rows.length === 0 && <div className="text-xs text-slate-500">No active signals</div>}

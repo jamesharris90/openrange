@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ProtectedRoute } from "@/components/auth/protected-route";
 import { DashboardView } from "@/components/terminal/dashboard-view";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -10,5 +11,9 @@ export const metadata: Metadata = createPageMetadata(
 );
 
 export default function DashboardPage() {
-  return <DashboardView />;
+  return (
+    <ProtectedRoute>
+      <DashboardView />
+    </ProtectedRoute>
+  );
 }

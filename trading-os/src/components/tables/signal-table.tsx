@@ -3,6 +3,7 @@
 import { TableVirtuoso } from "react-virtuoso";
 import { useMemo } from "react";
 
+import { percentSafe, toNumber } from "@/lib/number";
 import { useTickerStore } from "@/lib/store/ticker-store";
 import type { Opportunity } from "@/lib/types";
 
@@ -25,10 +26,18 @@ export function SignalTable({ rows }: { rows: Opportunity[] }) {
     return next;
   }, [liveSignals, rows]);
 
+  const safeRows = mergedRows.map((row) => ({
+    ...row,
+    value: toNumber((row as unknown as { value?: unknown }).value, 0),
+    probability: toNumber(row.probability, 0),
+    confidence: toNumber(row.confidence, 0),
+    expected_move: toNumber(row.expected_move, 0),
+  }));
+
   return (
     <div className="h-[460px] rounded-2xl border border-slate-800 bg-panel shadow-lg">
       <TableVirtuoso
-        data={mergedRows}
+        data={safeRows}
         fixedHeaderContent={() => (
           <tr className="bg-slate-900 text-xs uppercase tracking-wide text-slate-400">
             <th className="px-3 py-2 text-left">Symbol</th>
@@ -39,13 +48,21 @@ export function SignalTable({ rows }: { rows: Opportunity[] }) {
           </tr>
         )}
         itemContent={(_, row) => (
+          (() => {
+            const probability = toNumber(row.probability, 0);
+            const confidence = toNumber(row.confidence, 0);
+            const expectedMove = toNumber(row.expected_move, 0);
+            const strategy = String(row.strategy || (row as unknown as { setup?: string }).setup || "N/A");
+            return (
           <>
             <td className="border-t border-slate-800 px-3 py-2 font-mono text-xs text-slate-100">{row.symbol}</td>
-            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{row.strategy}</td>
-            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{row.probability.toFixed(0)}%</td>
-            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{row.confidence.toFixed(0)}%</td>
-            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{row.expected_move.toFixed(2)}%</td>
+            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{strategy}</td>
+            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{percentSafe(probability, 0)}</td>
+            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{percentSafe(confidence, 0)}</td>
+            <td className="border-t border-slate-800 px-3 py-2 text-xs text-slate-300">{percentSafe(expectedMove, 2)}</td>
           </>
+            );
+          })()
         )}
       />
     </div>

@@ -101,26 +101,36 @@ async function hydrateRows(symbols, limit = 250) {
       m.gap_percent,
       m.relative_volume,
       m.volume,
-      m.sector,
-      COALESCE(ts.setup, ts.setup_type, 'Momentum Continuation') AS strategy,
-      COALESCE(ts.class,
+      NULL::text AS sector,
+      COALESCE(
+        NULLIF(to_jsonb(ts)->>'setup', ''),
+        NULLIF(to_jsonb(ts)->>'setup_type', ''),
+        'Momentum Continuation'
+      ) AS strategy,
+      COALESCE(
+        NULLIF(to_jsonb(ts)->>'class', ''),
         CASE
-          WHEN COALESCE(ts.score, 0) >= 90 THEN 'A'
-          WHEN COALESCE(ts.score, 0) >= 75 THEN 'B'
+          WHEN COALESCE((to_jsonb(ts)->>'score')::numeric, 0) >= 90 THEN 'A'
+          WHEN COALESCE((to_jsonb(ts)->>'score')::numeric, 0) >= 75 THEN 'B'
           ELSE 'C'
         END
       ) AS class,
-      COALESCE(ts.score, 0) AS score,
-      COALESCE(ts.probability, ts.confidence, 0) AS probability,
+      COALESCE((to_jsonb(ts)->>'score')::numeric, 0) AS score,
+      COALESCE((to_jsonb(ts)->>'probability')::numeric, (to_jsonb(ts)->>'confidence')::numeric, 0) AS probability,
       COALESCE(lc.headline, 'No catalyst') AS catalyst,
       COALESCE(lc.catalyst_type, 'news') AS catalyst_type,
       COALESCE(lc.sentiment, 'neutral') AS news_sentiment,
-      COALESCE(ts.updated_at, ts.created_at, m.updated_at, NOW()) AS updated_at
+      COALESCE(
+        NULLIF(to_jsonb(ts)->>'updated_at', '')::timestamptz,
+        NULLIF(to_jsonb(ts)->>'created_at', '')::timestamptz,
+        m.updated_at,
+        NOW()
+      ) AS updated_at
     FROM market_metrics m
     LEFT JOIN trade_setups ts ON ts.symbol = m.symbol
     LEFT JOIN latest_catalyst lc ON lc.symbol = m.symbol
     WHERE m.symbol = ANY($1::text[])
-    ORDER BY COALESCE(ts.score, 0) DESC NULLS LAST, m.relative_volume DESC NULLS LAST
+    ORDER BY COALESCE((to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST, m.relative_volume DESC NULLS LAST
     LIMIT $2`,
     [uniqueSymbols, safeLimit]
   );

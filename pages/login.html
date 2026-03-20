@@ -239,7 +239,9 @@
         const errorMessage = document.getElementById('errorMessage');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
-        const API_BASE = window.CONFIG?.API_BASE || window.location.origin;
+        const API_BASE = window.CONFIG?.API_BASE
+            || window.API_BASE
+            || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin);
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();

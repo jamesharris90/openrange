@@ -11,12 +11,29 @@ function toNum(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function sendNoData(res, payload) {
+  return res.status(200).json({
+    status: 'no_data',
+    data: [],
+    message: payload.message,
+    source: 'none',
+  });
+}
+
+function sendError(res, code, message) {
+  return res.status(code).json({
+    status: 'error',
+    message,
+    source: 'none',
+  });
+}
+
 router.get('/api/quote', async (req, res) => {
   const symbol = String(req.query.symbol || req.query.t || '').trim().toUpperCase();
-  if (!symbol) return res.status(400).json({ error: 'symbol required' });
+  if (!symbol) return sendError(res, 400, 'symbol required');
 
   const apiKey = process.env.FMP_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'FMP_API_KEY missing' });
+  if (!apiKey) return sendError(res, 500, 'FMP_API_KEY missing');
 
   try {
     const [quoteResp, profileResp, expectedMove] = await Promise.all([
@@ -34,14 +51,23 @@ router.get('/api/quote', async (req, res) => {
     ]);
 
     if (quoteResp.status < 200 || quoteResp.status >= 300) {
-      return res.status(502).json({ error: 'Failed to fetch quote', detail: `status ${quoteResp.status}` });
+      return sendError(res, 502, `Failed to fetch quote (status ${quoteResp.status})`);
     }
 
     const quote = Array.isArray(quoteResp.data) ? quoteResp.data[0] : null;
     const profile = Array.isArray(profileResp.data) ? profileResp.data[0] : null;
-    if (!quote) return res.status(404).json({ error: `No quote found for ${symbol}` });
+    if (!quote) {
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol,
+        missing: ['price'],
+      });
+      return sendNoData(res, {
+        message: 'No valid price data',
+      });
+    }
 
-    const price = toNum(quote.price);
+    const quotedPrice = toNum(quote.price);
     const volume = toNum(quote.volume);
     const avgVolume =
       toNum(quote.avgVolume) ??
@@ -53,6 +79,27 @@ router.get('/api/quote', async (req, res) => {
       : null;
     const previousClose = toNum(quote.previousClose);
     const open = toNum(quote.open);
+    const price = quotedPrice ?? previousClose ?? open;
+
+    if (!price || price <= 0) {
+      const ivCandidate = expectedMove?.data && Number.isFinite(Number(expectedMove.data.impliedMovePct))
+        ? Number(expectedMove.data.impliedMovePct)
+        : null;
+
+      const missing = ['price'];
+      if (!ivCandidate || ivCandidate <= 0) missing.push('iv');
+
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol,
+        missing,
+      });
+
+      return sendNoData(res, {
+        message: 'No valid price data',
+      });
+    }
+
     const gapPercent = Number.isFinite(open) && Number.isFinite(previousClose) && previousClose !== 0
       ? ((open - previousClose) / previousClose) * 100
       : null;
@@ -61,9 +108,15 @@ router.get('/api/quote', async (req, res) => {
     const spread = Number.isFinite(bid) && Number.isFinite(ask) ? ask - bid : null;
 
     return res.json({
+      status: 'ok',
+      source: 'fmp',
+      data: [{
       symbol,
-      provider: 'fmp',
+      source: 'fmp',
       price,
+      lastPrice: price,
+      prevClose: previousClose,
+      previousClose,
       change: toNum(quote.change),
       changePercent: toNum(quote.changePercentage) ?? toNum(quote.changesPercentage),
       volume,
@@ -85,42 +138,90 @@ router.get('/api/quote', async (req, res) => {
               : null,
           }
         : null,
+      iv: expectedMove?.data && Number.isFinite(Number(expectedMove.data.impliedMovePct))
+        ? Number(expectedMove.data.impliedMovePct)
+        : null,
+      gex: null,
+      openInterest: null,
+      }],
     });
   } catch (err) {
-    return res.status(502).json({ error: 'Failed to fetch quote', detail: err.message });
+    console.warn('[API DATA FAILURE]', {
+      route: req.path,
+      symbol,
+      missing: ['price'],
+      error: err.message,
+    });
+    return sendError(res, 502, 'Failed to fetch quote');
   }
 });
 
 router.get('/api/yahoo/quote-batch', async (req, res) => {
   const symbols = (req.query.symbols || '').split(',').filter(Boolean);
-  if (!symbols.length) return res.status(400).json({ error: 'symbols required' });
+  if (!symbols.length) return sendError(res, 400, 'symbols required');
   try {
     const quotes = await market.getQuotes(symbols);
-    res.json({ quotes });
+    if (!quotes || quotes.length === 0) {
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol: null,
+        missing: ['price'],
+      });
+      return sendNoData(res, { message: 'No quote data available' });
+    }
+
+    return res.json({
+      status: 'ok',
+      data: quotes,
+      source: 'none',
+    });
   } catch (err) {
-    res.status(502).json({ error: 'Failed to fetch quotes', detail: err.message });
+    return sendError(res, 502, 'Failed to fetch quotes');
   }
 });
 
 router.get('/api/yahoo/quote', async (req, res) => {
   const symbol = (req.query.symbol || req.query.t || '').trim().toUpperCase();
-  if (!symbol) return res.status(400).json({ error: 'symbol required' });
+  if (!symbol) return sendError(res, 400, 'symbol required');
   try {
     const quotes = await market.getQuotes([symbol]);
-    res.json(quotes[0] || null);
+    const quote = quotes[0] || null;
+    if (!quote) {
+      console.warn('[API DATA FAILURE]', {
+        route: req.path,
+        symbol,
+        missing: ['price'],
+      });
+      return sendNoData(res, {
+        symbol,
+        message: 'No quote data available',
+      });
+    }
+    return res.json({
+      status: 'ok',
+      data: [quote],
+      source: 'none',
+    });
   } catch (err) {
-    res.status(502).json({ error: 'Failed to fetch quote', detail: err.message });
+    return sendError(res, 502, 'Failed to fetch quote');
   }
 });
 
 router.get('/api/yahoo/search', async (req, res) => {
   const query = (req.query.q || '').trim();
-  if (!query || query.length < 2) return res.json([]);
+  if (!query || query.length < 2) return sendNoData(res, { message: 'No search query provided' });
   try {
     const results = await market.searchSymbols(query);
-    res.json(results);
+    if (!results || results.length === 0) {
+      return sendNoData(res, { message: 'No symbol search results available' });
+    }
+    return res.json({
+      status: 'ok',
+      data: results,
+      source: 'none',
+    });
   } catch (err) {
-    res.status(502).json({ error: 'Failed to search symbols', detail: err.message });
+    return sendError(res, 502, 'Failed to search symbols');
   }
 });
 

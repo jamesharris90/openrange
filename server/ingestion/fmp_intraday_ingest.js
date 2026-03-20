@@ -1,7 +1,10 @@
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
+const { fmpFetch } = require('../services/fmpClient');
+const { normalizeSymbol, mapFromProviderSymbol, mapToProviderSymbol } = require('../utils/symbolMap');
 
-const MAX_SYMBOLS_PER_CYCLE = 100;
+const MAX_SYMBOLS_PER_CYCLE = 10;
+const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
 let ingestionCursor = 0;
 
 const db = {
@@ -78,10 +81,13 @@ async function loadPrioritySymbols() {
   console.log('[INTRADAY] fallback symbols:', fallbackUniverse.rowCount);
 
   const symbols = [
+    ...PINNED_INTRADAY_SYMBOLS,
     ...activeSignals.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
     ...recentSymbols.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
     ...fallbackUniverse.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
-  ].filter(Boolean);
+  ]
+    .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
+    .filter(Boolean);
 
   const seen = new Set();
 
@@ -115,29 +121,17 @@ async function loadPrioritySymbols() {
 
 async function ingestSymbol(symbol) {
   const startedAt = Date.now();
+  const canonicalSymbol = mapFromProviderSymbol(normalizeSymbol(symbol));
+  const providerSymbol = mapToProviderSymbol(canonicalSymbol);
 
   try {
-    if (!process.env.FMP_API_KEY) {
-      throw new Error('FMP_API_KEY is not configured');
-    }
+    console.log('[FMP REQUEST]', `/historical-chart/1min?symbol=${providerSymbol}`);
+    console.log('[INTRADAY] writing bars for', canonicalSymbol);
 
-    const url = `https://financialmodelingprep.com/api/v3/historical-chart/1min/${symbol}?apikey=${process.env.FMP_API_KEY}`;
+    const data = await fmpFetch('/historical-chart/1min', { symbol: providerSymbol });
+    console.log('[FMP BARS]', canonicalSymbol, Array.isArray(data) ? data.length : 0);
 
-    console.log('[FMP REQUEST]', url);
-    console.log('[INTRADAY] writing bars for', symbol);
-
-    const response = await fetch(url);
-
-    console.log('[FMP STATUS]', symbol, response.status);
-
-    if (!response.ok) {
-      throw new Error(`FMP ${url} failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[FMP BARS]', symbol, Array.isArray(data) ? data.length : 0);
-
-    const normalized = normalizeIntraday(data, symbol);
+    const normalized = normalizeIntraday(data, canonicalSymbol);
     const deduped = Array.from(
       new Map(normalized.map((row) => [`${row.symbol}|${row.timestamp}`, row])).values()
     );
@@ -159,7 +153,7 @@ async function ingestSymbol(symbol) {
       durationMs: Date.now() - startedAt,
     };
   } catch (error) {
-    logger.error('intraday symbol ingest failed', { symbol, error: error.message });
+    logger.error('intraday symbol ingest failed', { symbol: canonicalSymbol, error: error.message });
     return {
       jobName: 'fmp_intraday_ingest',
       table: 'intraday_1m',
@@ -182,7 +176,8 @@ function normalizeIntraday(payload, symbol) {
       const open = Number(row.open ?? close);
       const high = Number(row.high ?? close);
       const low = Number(row.low ?? close);
-      const volume = Number(row.volume) || 0;
+      const volumeRaw = Number(row.volume);
+      const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.trunc(volumeRaw)) : 0;
       return {
         symbol,
         timestamp,
@@ -221,14 +216,20 @@ async function runIntradayIngestion() {
     failures: 0,
   };
 
-  for (const symbol of ingestSymbols) {
-    const result = await ingestSymbol(symbol);
-    totals.fetched += Number(result.fetched) || 0;
-    totals.deduped += Number(result.deduped) || 0;
-    totals.inserted += Number(result.inserted) || 0;
-    totals.failures += Number(result.failures) || 0;
+  for (let i = 0; i < ingestSymbols.length; i += 10) {
+    const batch = ingestSymbols.slice(i, i + 10);
 
-    await sleep(50);
+    for (const symbol of batch) {
+      const result = await ingestSymbol(symbol);
+      totals.fetched += Number(result.fetched) || 0;
+      totals.deduped += Number(result.deduped) || 0;
+      totals.inserted += Number(result.inserted) || 0;
+      totals.failures += Number(result.failures) || 0;
+    }
+
+    if (i + 10 < ingestSymbols.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
 
   return {

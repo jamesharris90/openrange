@@ -2,6 +2,9 @@
   "name": "premarket-screener",
   "version": "1.0.0",
   "description": "Pre-market screener and watchlist generator CLI",
+  "engines": {
+    "node": ">=20"
+  },
   "main": "dist/cli.js",
   "bin": {
     "pm-scan": "dist/cli.js"

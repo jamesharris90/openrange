@@ -1,14 +1,6 @@
 const pool = require('./pool');
 const model = require('../users/model');
 
-// Ensure usage table exists (idempotent, fire-and-forget)
-pool.query(`CREATE TABLE IF NOT EXISTS usage_events (
-	id SERIAL PRIMARY KEY,
-	ts BIGINT NOT NULL,
-	"user" TEXT,
-	path TEXT
-)`).catch((err) => console.error('Usage table init error:', err.message));
-
 async function createUser(username, email, password, is_admin = 0) {
 	return model.register(username, email, password, is_admin);
 }

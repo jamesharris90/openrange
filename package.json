@@ -2,10 +2,10 @@
   "name": "openrange",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": ">=20"
   },
   "scripts": {
-    "build": "cd server && npm ci && cd ../client && npm install && rm -rf dist && npm run build",
+    "build": "cd server && npm ci && npm run build",
     "start": "node server/index.js",
     "calibrate": "ts-node server/scripts/runCalibration.ts",
     "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",
