@@ -1,13 +1,18 @@
 {
   "name": "trading-os",
   "version": "0.1.0",
+  "main": "server/index.js",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "clean": "rm -rf .next node_modules/.cache",
     "dev": "next dev",
-    "dev:clean": "npm run clean && next dev",
-    "build": "next build",
-    "start": "next start",
+    "reset": "rm -rf .next node_modules package-lock.json && npm install && npm install tailwind-merge",
+    "dev:clean": "npm run reset && npm run dev",
+    "build": "if [ -n \"$RAILWAY_PROJECT_ID\" ]; then echo 'Railway backend deploy: skipping Next build'; else next build; fi",
+    "start": "node server/index.js",
     "lint": "next lint"
   },
   "dependencies": {

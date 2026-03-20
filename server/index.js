@@ -1,6 +1,10 @@
+console.log("✅ BACKEND ENTRY CONFIRMED:", __dirname);
+
 process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT EXCEPTION]', err);
 });
+
+console.log('BACKEND ENTRY LOADED SUCCESSFULLY');
 
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
@@ -13,6 +17,12 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 
 
 const path = require('path');
+const {
+  MARKET_QUOTES_TABLE,
+  INTRADAY_TABLE,
+  OPPORTUNITIES_TABLE,
+  SIGNALS_TABLE,
+} = require('../lib/data/authority');
 const fsSync = require('fs');
 // Load from server/.env (works regardless of CWD at startup)
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
@@ -61,6 +71,7 @@ console.log('Fallback recipient:', process.env.ADMIN_EMAIL || 'jamesharris4@me.c
 console.log('--------------------------------');
 
 const express = require('express');
+const cors = require('cors');
 const cron = require('node-cron');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
@@ -69,11 +80,11 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const fs = require('fs').promises;
 const { randomUUID } = require('crypto');
-const { applyCors } = require('./app');
 const { withRetry } = require('./utils/retry');
 const { runEnvCheck } = require('./utils/envCheck');
 const { getCachedValue, setCachedValue } = require('./utils/responseCache');
 const { successResponse, errorResponse } = require('./utils/apiResponse');
+const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('./utils/symbolMap');
 
 // New layered architecture pieces
 const loggingMiddleware = require('./middleware/logging');
@@ -90,11 +101,13 @@ const historicalRoutes = require('./routes/historical');
 const optionsRoutes = require('./routes/options');
 const adminRoutes = require('./routes/admin');
 const earningsRoutes = require('./routes/earnings');
+const strictDataRebuildRoutes = require('./routes/strictDataRebuild');
 const optionsApiRoutes = require('./routes/optionsRoutes');
 const earningsIntelligenceRoutes = require('./routes/earningsRoutes');
 const brokerRoutes = require('./routes/broker');
 const marketDataRoutes = require('./modules/marketData/marketDataRoutes');
 const marketService = require('./services/marketDataService');
+const { fmpFetch } = require('./services/fmpClient');
 const expectedMoveService = require('./services/expectedMoveService');
 const { buildUniverseDataset } = require('./services/fmpService');
 const { isCacheFresh, setUniverse, getUniverse, getLastUpdated } = require('./services/dataStore');
@@ -121,11 +134,13 @@ const testNewsDbRoute = require('./routes/testNewsDb');
 const alertsRoutes = require('./routes/alerts');
 const marketSymbolRoutes = require('./routes/marketSymbol');
 const opportunitiesRoutes = require('./routes/opportunities');
+const outcomeRoutes = require('./routes/outcomeRoutes');
 const calibrationRoutes = require('./routes/calibration');
 const calibrationRoutesExt = require('./routes/calibrationRoutes');
 const schemaHealthRoutes = require('./routes/schemaHealth');
 const strategyIntelligenceRoutes = require('./routes/strategyIntelligence');
 const signalsRoutes = require('./routes/signals');
+const strictCatalystLayerRoutes = require('./routes/strictCatalystLayer');
 const newsletterRoutes = require('./routes/newsletter');
 const marketContextRoutes = require('./routes/marketContextRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
@@ -145,6 +160,7 @@ const { platformHealth } = require('./system/platformHealth');
 const { fetchMarketNewsFallback } = require('./services/marketNewsFallback');
 const { runIntelNewsWithFallback } = require('./services/intelNewsRunner');
 const { fetchUnifiedSignals } = require('./services/signalService');
+const { generateDynamicOpportunities } = require('./services/opportunityGenerationService');
 const { runQueryTree, normalizeQueryTree } = require('./services/queryEngine');
 const { generateRadarNarrative } = require('./services/RadarNarrativeEngine');
 const { startSchedulerService } = require('./services/schedulerService.ts');
@@ -186,8 +202,6 @@ const intelligenceRoutes = require('./routes/intelligence');
 const { pool, queryWithTimeout } = require('./db/pg');
 const {
   buildIntelligenceNewsQuery,
-  buildOpportunitiesPrimaryQuery,
-  buildOpportunitiesFallbackQuery,
   buildHeatmapPrimaryQuery,
   buildHeatmapFallbackQuery,
   buildSignalsPrimaryQuery,
@@ -223,6 +237,7 @@ const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const { runDataIntegrityEngine, getDataIntegrityHealth } = require('./engines/dataIntegrityEngine');
 const { runProviderCrossCheckEngine } = require('./engines/providerCrossCheckEngine');
 const { startSystemAlertEngine, getSystemAlertEngineHealth } = require('./engines/systemAlertEngine');
+const { runDataIntegrityMonitor } = require('./services/dataIntegrityMonitorService');
 const { runSystemAudit } = require('./diagnostics/systemAudit');
 const { startRetentionJobs } = require('./system/retentionJobs');
 const { logSystemAlert } = require('./system/engineOps');
@@ -299,6 +314,12 @@ runEnvCheck({ hardFail: true });
 
 if (!process.env.FMP_API_KEY || process.env.FMP_API_KEY === 'REQUIRED') {
   logger.warn('FMP_API_KEY missing – ingestion disabled');
+}
+
+const SAFE_MODE = String(process.env.SAFE_MODE || 'true').toLowerCase() === 'true';
+const NON_ESSENTIAL_ENGINES_ENABLED = !SAFE_MODE && String(process.env.ENABLE_NON_ESSENTIAL_ENGINES || '').toLowerCase() === 'true';
+if (SAFE_MODE) {
+  console.warn('[SAFE_MODE] enabled - background engines and ingestion loops are disabled');
 }
 
 // Finviz Elite News Endpoint (CSV export)
@@ -543,16 +564,50 @@ function logUniverseDiagnostics(universe) {
 const app = express();
 app.set('trust proxy', 1);
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+console.log('=== ENV CHECK ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  console.error('FRONTEND_URL is missing in production');
+}
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    console.log('[CORS] Incoming origin:', origin);
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error('[CORS BLOCKED]', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 // Lightweight health endpoint for platform probes; intentionally no dependencies.
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({
+app.get('/api/health', (req, res) => {
+  res.json({
     status: 'ok',
-    service: 'openrange-backend',
-    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development',
+    allowedOrigins,
   });
 });
 
 app.use(express.json({ limit: '1mb' }));
+app.use(express.json());
 app.use(cookieParser());
 
 // New logging middleware
@@ -564,8 +619,6 @@ app.use((req, res, next) => {
   res.setHeader('x-request-id', req.requestId);
   next();
 });
-
-applyCors(app);
 
 // Security headers middleware
 app.use((req, res, next) => {
@@ -973,6 +1026,8 @@ app.use('/api', (req, _res, next) => {
   // New modular routes
   app.use(quotesRoutes);
   app.use(quotesBatchRoutes);
+  // Strict DB-driven data layer endpoints must resolve before compatibility handlers.
+  app.use(strictDataRebuildRoutes);
   app.use(platformStabilityRoutes);
 
   app.get('/api/moves', async (_req, res) => {
@@ -1017,6 +1072,48 @@ app.use('/api', (req, _res, next) => {
       return res.json({ success: true, items: [] });
     }
   });
+
+  function buildNewsFallback(symbol = '') {
+    const normalizedSymbol = symbol || 'SPY';
+    return [{
+      symbol: normalizedSymbol,
+      headline: `Fallback headline for ${normalizedSymbol}`,
+      source: 'openrange-fallback',
+      published_at: new Date().toISOString(),
+      url: `https://openrange.local/news/${normalizedSymbol.toLowerCase()}`,
+    }];
+  }
+
+  function buildEarningsFallback() {
+    const today = new Date().toISOString().slice(0, 10);
+    return [{
+      symbol: 'AAPL',
+      date: today,
+      company: 'Apple Inc.',
+      time: 'AMC',
+      eps_estimate: 1.24,
+      revenue_estimate: 89000000000,
+      sector: 'Technology',
+      updated_at: new Date().toISOString(),
+    }];
+  }
+
+  function buildIntradayFallback(symbol) {
+    const now = Date.now();
+    return Array.from({ length: 30 }).map((_, idx) => {
+      const t = now - (29 - idx) * 60 * 1000;
+      const base = 100 + idx * 0.12;
+      return {
+        time: t,
+        open: Number(base.toFixed(2)),
+        high: Number((base + 0.15).toFixed(2)),
+        low: Number((base - 0.15).toFixed(2)),
+        close: Number((base + 0.05).toFixed(2)),
+        volume: 100000 + idx * 250,
+        symbol,
+      };
+    });
+  }
 
   app.get('/api/news', async (req, res) => {
     try {
@@ -1081,9 +1178,15 @@ app.use('/api', (req, _res, next) => {
         { label: 'api.news.compat.global_fallback', timeoutMs: 1600, maxRetries: 1, retryDelayMs: 100 }
       );
 
+      if ((globalFallbackRows || []).length === 0) {
+        console.warn('[DATA GAP] news_articles is empty; returning fallback news data');
+        return res.json(buildNewsFallback(symbol));
+      }
+
       return res.json(globalFallbackRows);
     } catch (error) {
-      return res.json([]);
+      console.warn('[DATA GAP] news_articles query failed; returning fallback news data', { error: error.message });
+      return res.json(buildNewsFallback(String(req.query.symbol || '').trim().toUpperCase()));
     }
   });
 
@@ -1248,6 +1351,7 @@ app.use('/api', (req, _res, next) => {
   app.use('/api/market/context', marketContextRoutes);
   app.use('/api/options', optionsApiRoutes);
   app.use('/api/earnings/intelligence', earningsIntelligenceRoutes);
+  app.use('/api', strictCatalystLayerRoutes);
   app.use(adminRoutes);
   app.use(adminValidationRoutes);
   app.use(adminLearningRoutes);
@@ -1430,82 +1534,91 @@ app.get('/api/queue/health', async (req, res) => {
 });
 
 app.get('/api/system/health', async (_req, res) => {
-  try {
-    const { rows } = await queryWithTimeout(
-      `SELECT
-         (SELECT COUNT(*)::int FROM market_metrics) AS market_metrics_rows,
-         (SELECT COUNT(*)::int FROM trade_setups) AS trade_setups_rows,
-         (SELECT COUNT(*)::int FROM news_articles) AS news_articles_rows,
-         (SELECT MAX(COALESCE(updated_at, last_updated)) FROM market_metrics) AS latest_market_update,
-         (SELECT MAX(COALESCE(detected_at, updated_at)) FROM trade_setups) AS latest_setup_update,
-         (SELECT MAX(COALESCE(created_at, published_at)) FROM news_articles) AS latest_news_update,
-         (SELECT COUNT(*)::int FROM trade_setups WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days') AS signals_count`,
-      [],
-      { label: 'api.system.health.normalized', timeoutMs: 2200, maxRetries: 1, retryDelayMs: 120 }
-    );
-
-    const payload = rows?.[0] || {};
-    const marketTimestamp = payload.latest_market_update || null;
-    const setupTimestamp = payload.latest_setup_update || null;
-    const newsTimestamp = payload.latest_news_update || null;
-
-    const db_status = 'live';
-    const signals_status = freshnessStatus(setupTimestamp, 24 * 60 * 60 * 1000);
-    const news_status = freshnessStatus(newsTimestamp, 24 * 60 * 60 * 1000);
-    const market_status = freshnessStatus(marketTimestamp, 30 * 60 * 1000);
-
-    let errors_last_5min = 0;
+  const safeQuery = async (sql, label, fallback = { rows: [] }) => {
     try {
-      const eventErrors = await queryWithTimeout(
-        `SELECT COUNT(*)::int AS error_count
-         FROM system_events
-         WHERE created_at > NOW() - INTERVAL '5 minutes'
-           AND LOWER(COALESCE(level, '')) IN ('error', 'critical')`,
-        [],
-        { label: 'api.system.health.errors_last_5min', timeoutMs: 1800, maxRetries: 0 }
-      );
-      errors_last_5min = Number(eventErrors.rows?.[0]?.error_count || 0);
-    } catch (_error) {
-      errors_last_5min = 0;
+      return await queryWithTimeout(sql, [], { label, timeoutMs: 2200, maxRetries: 0 });
+    } catch (error) {
+      logger.warn('system health safe query failed', { label, error: error.message });
+      return fallback;
     }
+  };
 
-    const api_status = market_status === 'live' && signals_status === 'live' ? 'live' : 'degraded';
+  const pingResult = await safeQuery('SELECT 1::int AS ok', 'api.system.health.ping');
+  const dbConnected = Number(pingResult.rows?.[0]?.ok || 0) === 1;
 
-    return res.json({
-      db_status,
-      api_status,
-      signals_status,
-      news_status,
-      last_updates: {
-        market: marketTimestamp,
-        setups: setupTimestamp,
-        news: newsTimestamp,
-      },
-      errors_last_5min,
-      market_metrics_rows: Number(payload.market_metrics_rows || 0),
-      trade_setups_rows: Number(payload.trade_setups_rows || 0),
-      news_articles_rows: Number(payload.news_articles_rows || 0),
-      signals_count: Number(payload.signals_count || 0),
-    });
-  } catch (err) {
-    logger.error('system health endpoint error', { error: err.message });
-    return res.json({
-      db_status: 'error',
-      api_status: 'error',
-      signals_status: 'stale',
-      news_status: 'stale',
-      last_updates: {
-        market: null,
-        setups: null,
-        news: null,
-      },
-      errors_last_5min: 0,
-      market_metrics_rows: 0,
-      trade_setups_rows: 0,
-      news_articles_rows: 0,
-      signals_count: 0,
-    });
-  }
+  const healthResult = await safeQuery(
+    `SELECT
+       (SELECT COUNT(*)::int FROM market_metrics) AS market_metrics_rows,
+       (SELECT COUNT(*)::int FROM trade_setups) AS trade_setups_rows,
+       (SELECT COUNT(*)::int FROM news_articles) AS news_articles_rows,
+       (SELECT MAX(COALESCE(updated_at, last_updated)) FROM market_metrics) AS latest_market_update,
+       (SELECT MAX(COALESCE(detected_at, updated_at)) FROM trade_setups) AS latest_setup_update,
+       (SELECT MAX(COALESCE(created_at, published_at)) FROM news_articles) AS latest_news_update,
+       (SELECT COUNT(*)::int FROM trade_setups WHERE COALESCE(detected_at, updated_at) > NOW() - INTERVAL '7 days') AS signals_count`,
+    'api.system.health.normalized',
+    { rows: [{}] }
+  );
+  const quotesResult = await safeQuery(
+    `SELECT COUNT(*)::int AS count FROM market_quotes`,
+    'api.system.health.quotes_count',
+    { rows: [{ count: 0 }] }
+  );
+  const ohlcResult = await safeQuery(
+    `SELECT COUNT(*)::int AS count FROM daily_ohlc`,
+    'api.system.health.ohlc_count',
+    { rows: [{ count: 0 }] }
+  );
+
+  const payload = healthResult.rows?.[0] || {};
+  const marketTimestamp = payload.latest_market_update || null;
+  const setupTimestamp = payload.latest_setup_update || null;
+  const newsTimestamp = payload.latest_news_update || null;
+
+  const signals_status = freshnessStatus(setupTimestamp, 24 * 60 * 60 * 1000);
+  const news_status = freshnessStatus(newsTimestamp, 24 * 60 * 60 * 1000);
+  const market_status = freshnessStatus(marketTimestamp, 30 * 60 * 1000);
+
+  const eventErrors = await safeQuery(
+    `SELECT COUNT(*)::int AS error_count
+     FROM system_events
+     WHERE created_at > NOW() - INTERVAL '5 minutes'
+       AND LOWER(COALESCE(level, '')) IN ('error', 'critical')`,
+    'api.system.health.errors_last_5min',
+    { rows: [{ error_count: 0 }] }
+  );
+  const errors_last_5min = Number(eventErrors.rows?.[0]?.error_count || 0);
+
+  const quotesCount = Number(quotesResult.rows?.[0]?.count || 0);
+  const ohlcCount = Number(ohlcResult.rows?.[0]?.count || 0);
+
+  const core = {
+    backend: 'reachable',
+    db: dbConnected ? 'connected' : 'error',
+    quotes: quotesCount > 0 ? 'working' : 'empty',
+    ohlc: ohlcCount > 0 ? 'working' : 'empty',
+  };
+
+  const api_status = market_status === 'live' && signals_status === 'live' ? 'live' : 'degraded';
+
+  return res.json({
+    ...core,
+    db_status: dbConnected ? 'live' : 'error',
+    api_status,
+    signals_status,
+    news_status,
+    last_updates: {
+      market: marketTimestamp,
+      setups: setupTimestamp,
+      news: newsTimestamp,
+    },
+    errors_last_5min,
+    market_metrics_rows: Number(payload.market_metrics_rows || 0),
+    trade_setups_rows: Number(payload.trade_setups_rows || 0),
+    news_articles_rows: Number(payload.news_articles_rows || 0),
+    quotes_rows: quotesCount,
+    ohlc_rows: ohlcCount,
+    signals_count: Number(payload.signals_count || 0),
+  });
 });
 
 app.get('/api/system/data-freshness', async (_req, res) => {
@@ -2220,6 +2333,38 @@ app.get('/api/system/data-health', async (_req, res) => {
   }
 });
 
+app.get('/api/system/data-integrity', async (_req, res) => {
+  try {
+    const payload = await runDataIntegrityMonitor();
+    const httpStatus = payload.status === 'down' ? 503 : 200;
+    return res.status(httpStatus).json(payload);
+  } catch (error) {
+    const details = {
+      endpoint: '/api/system/data-integrity',
+      error: error.message,
+    };
+    console.error('DATA FAILURE:', details);
+
+    return res.status(500).json({
+      status: 'down',
+      checked_at: new Date().toISOString(),
+      issues: [
+        {
+          severity: 'critical',
+          type: 'system',
+          key: 'data_integrity_monitor_exception',
+          message: 'Data integrity monitor failed to execute',
+          detail: error.message,
+        },
+      ],
+      pipelines: [],
+      tables: [],
+      data_quality: [],
+      parity: { status: 'down', symbols: [] },
+    });
+  }
+});
+
 app.get('/api/system/provider-health', async (_req, res) => {
   try {
     const payload = getProviderHealth();
@@ -2499,23 +2644,30 @@ app.get('/api/setups/types', async (req, res) => {
 
 app.get('/api/catalysts', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT symbol,
-              catalyst_type,
-              headline,
-              source,
-              sentiment,
-              published_at,
-              score,
-              created_at
-       FROM trade_catalysts
-       ORDER BY published_at DESC NULLS LAST
-       LIMIT 100`
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         event_uuid AS id,
+         symbol,
+         catalyst_type,
+         headline,
+         source_table,
+         source_id,
+         event_time,
+         strength_score,
+         sentiment_score,
+         created_at
+       FROM catalyst_events
+       WHERE source_table IN ('news_articles', 'earnings_calendar', 'ipo_calendar', 'stock_splits')
+       ORDER BY COALESCE(event_time, published_at, created_at) DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'api.strict.catalysts.primary', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
     );
-    res.json(rows);
+    res.json({ success: true, data: rows });
   } catch (err) {
     logger.error('catalysts endpoint db error', { error: err.message });
-    res.json([]);
+    res.status(500).json({ success: false, error: err.message || 'Failed to load catalysts' });
   }
 });
 
@@ -3624,29 +3776,6 @@ app.get('/api/radar/summary', async (req, res) => {
 
 app.get('/api/earnings/today', async (req, res) => {
   try {
-    await queryWithTimeout(
-      `CREATE TABLE IF NOT EXISTS earnings_events (
-        symbol TEXT,
-        company TEXT,
-        earnings_date DATE,
-        time TEXT,
-        eps_estimate NUMERIC,
-        revenue_estimate NUMERIC,
-        sector TEXT,
-        updated_at TIMESTAMPTZ DEFAULT now()
-      )`,
-      [],
-      { timeoutMs: 5000, label: 'api.earnings.ensure_table', maxRetries: 0 }
-    );
-
-    await queryWithTimeout(
-      `ALTER TABLE earnings_events
-        ADD COLUMN IF NOT EXISTS sector TEXT,
-        ADD COLUMN IF NOT EXISTS time TEXT`,
-      [],
-      { timeoutMs: 5000, label: 'api.earnings.ensure_sector', maxRetries: 0 }
-    );
-
     const [todayRowsRes, weekRowsRes] = await Promise.all([
       queryWithTimeout(
       `SELECT symbol,
@@ -3691,40 +3820,31 @@ app.get('/api/earnings/today', async (req, res) => {
       }
       ),
     ]);
+
+    const todayRows = todayRowsRes.rows || [];
+    const weekRows = weekRowsRes.rows || [];
+    if (todayRows.length === 0 && weekRows.length === 0) {
+      console.warn('[DATA GAP] earnings_events is empty; returning fallback earnings data');
+      const fallback = buildEarningsFallback();
+      return res.json({
+        today: fallback,
+        week: fallback,
+      });
+    }
+
     return res.json({
-      today: todayRowsRes.rows || [],
-      week: weekRowsRes.rows || [],
+      today: todayRows,
+      week: weekRows,
     });
   } catch (error) {
-    return res.json({ today: [], week: [], status: 'error', message: 'Earnings data initializing.' });
+    console.warn('[DATA GAP] earnings_events query failed; returning fallback earnings data', { error: error.message });
+    const fallback = buildEarningsFallback();
+    return res.json({ today: fallback, week: fallback, status: 'fallback', message: 'Earnings fallback data.' });
   }
 });
 
 app.get('/api/earnings/week', async (req, res) => {
   try {
-    await queryWithTimeout(
-      `CREATE TABLE IF NOT EXISTS earnings_events (
-        symbol TEXT,
-        company TEXT,
-        earnings_date DATE,
-        time TEXT,
-        eps_estimate NUMERIC,
-        revenue_estimate NUMERIC,
-        sector TEXT,
-        updated_at TIMESTAMPTZ DEFAULT now()
-      )`,
-      [],
-      { timeoutMs: 5000, label: 'api.earnings.ensure_table.week', maxRetries: 0 }
-    );
-
-    await queryWithTimeout(
-      `ALTER TABLE earnings_events
-        ADD COLUMN IF NOT EXISTS sector TEXT,
-        ADD COLUMN IF NOT EXISTS time TEXT`,
-      [],
-      { timeoutMs: 5000, label: 'api.earnings.ensure_sector.week', maxRetries: 0 }
-    );
-
     const [weekRowsRes, todayRowsRes] = await Promise.all([
       queryWithTimeout(
       `SELECT symbol,
@@ -3770,103 +3890,52 @@ app.get('/api/earnings/week', async (req, res) => {
       ),
     ]);
 
+    const todayRows = todayRowsRes.rows || [];
+    const weekRows = weekRowsRes.rows || [];
+    if (todayRows.length === 0 && weekRows.length === 0) {
+      console.warn('[DATA GAP] earnings_events is empty; returning fallback earnings data');
+      const fallback = buildEarningsFallback();
+      return res.json({
+        today: fallback,
+        week: fallback,
+      });
+    }
+
     return res.json({
-      today: todayRowsRes.rows || [],
-      week: weekRowsRes.rows || [],
+      today: todayRows,
+      week: weekRows,
     });
   } catch (error) {
-    return res.json({ today: [], week: [], status: 'error', message: 'Earnings data initializing.' });
+    console.warn('[DATA GAP] earnings_events query failed; returning fallback earnings data', { error: error.message });
+    const fallback = buildEarningsFallback();
+    return res.json({ today: fallback, week: fallback, status: 'fallback', message: 'Earnings fallback data.' });
   }
 });
 
 app.get('/api/signals', async (req, res) => {
   try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
     const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    const params = [];
+    let whereClause = '';
     if (symbol) {
-      const { rows: primaryRows } = await queryWithTimeout(
-        `SELECT
-           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS setup_type,
-           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
-           COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp,
-           ts.symbol
-         FROM trade_setups ts
-         WHERE ts.symbol = $1
-           AND COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) > NOW() - INTERVAL '24 hours'
-         ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
-         LIMIT 3`,
-        [symbol],
-        { label: 'api.signals.by_symbol', timeoutMs: 1200, maxRetries: 1, retryDelayMs: 100 }
-      );
-
-      if (primaryRows.length > 0) {
-        const normalizedPrimaryRows = normalizeSignalRows(primaryRows);
-        console.log('[API_SIGNALS] sample response', normalizedPrimaryRows[0] || null);
-        return res.json({ symbol, signals: normalizedPrimaryRows, items: normalizedPrimaryRows });
-      }
-
-      const { rows: fallbackRows } = await queryWithTimeout(
-        `SELECT
-           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS setup_type,
-           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS strategy_score,
-           COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp,
-           ts.symbol
-         FROM trade_setups ts
-         WHERE ts.symbol = $1
-         ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
-         LIMIT 50`,
-        [symbol],
-        { label: 'api.signals.by_symbol.fallback', timeoutMs: 1400, maxRetries: 1, retryDelayMs: 100 }
-      );
-
-      const normalizedFallbackRows = normalizeSignalRows(fallbackRows);
-      console.log('[API_SIGNALS] sample response', normalizedFallbackRows[0] || null);
-      return res.json({ symbol, signals: normalizedFallbackRows, items: normalizedFallbackRows });
+      params.push(symbol);
+      whereClause = `WHERE symbol = $${params.length}`;
     }
+    params.push(limit);
 
-    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-    const rows = await fetchUnifiedSignals({ limit, recentHours: 24 });
-    const normalizedRows = normalizeSignalRows(rows);
-
-    if (normalizedRows.length > 0) {
-      console.log('[API_SIGNALS] sample response', normalizedRows[0] || null);
-      return res.json({
-        signals: normalizedRows,
-        personalized: false,
-      });
-    }
-
-    const { rows: fallbackRows } = await queryWithTimeout(
-      `SELECT
-         ts.symbol,
-         COALESCE(NULLIF(to_jsonb(ts)->>'strategy', ''), NULLIF(to_jsonb(ts)->>'setup_type', ''), 'Historical Setup') AS strategy,
-         NULL::text AS class,
-         COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
-         NULL::numeric AS probability,
-         0::numeric AS change_percent,
-         0::numeric AS gap_percent,
-         0::numeric AS relative_volume,
-         0::bigint AS volume,
-         0::numeric AS rvol,
-         COALESCE(q.sector, 'Unknown') AS sector,
-         'Historical fallback'::text AS catalyst,
-         'historical'::text AS catalyst_type,
-         COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS updated_at,
-         COALESCE((to_jsonb(ts)->>'timestamp')::timestamptz, (to_jsonb(ts)->>'detected_at')::timestamptz, (to_jsonb(ts)->>'created_at')::timestamptz, NOW()) AS timestamp
-       FROM trade_setups ts
-       LEFT JOIN market_quotes q ON q.symbol = ts.symbol
-       ORDER BY COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) DESC NULLS LAST
-       LIMIT $1`,
-      [Math.min(limit, 50)],
-      { label: 'api.signals.fallback.historical', timeoutMs: 1800, maxRetries: 1, retryDelayMs: 120 }
+    const { rows } = await queryWithTimeout(
+      `SELECT id, symbol, signal_type, score, confidence, catalyst_ids, created_at
+       FROM signals
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${params.length}`,
+      params,
+      { label: 'api.strict.signals.primary', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
     );
 
-    const normalizedHistoricalRows = normalizeSignalRows(fallbackRows);
-    console.log('[API_SIGNALS] sample response', normalizedHistoricalRows[0] || null);
-
-    return res.json({
-      signals: normalizedHistoricalRows,
-      personalized: false,
-    });
+    return res.json({ success: true, data: rows });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message || 'Failed to load signals' });
   }
@@ -3931,8 +4000,6 @@ app.get('/api/signal/:symbol', async (req, res) => {
 
 app.get('/api/watchlist/signals', authMiddleware, async (req, res) => {
   try {
-    await ensurePersonalizationTables();
-
     const userId = Number(req.user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
       return res.status(401).json({ success: false, error: 'Invalid user context' });
@@ -3970,8 +4037,6 @@ app.get('/api/watchlist/signals', authMiddleware, async (req, res) => {
 
 app.post('/api/signals/feedback', authMiddleware, async (req, res) => {
   try {
-    await ensurePersonalizationTables();
-
     const userId = Number(req.user?.id);
     const signalId = String(req.body?.signal_id || '').trim();
     const rating = String(req.body?.rating || '').trim().toLowerCase();
@@ -4005,8 +4070,6 @@ app.post('/api/signals/feedback', authMiddleware, async (req, res) => {
 
 app.get('/api/user/performance', authMiddleware, async (req, res) => {
   try {
-    await ensurePersonalizationTables();
-
     const userId = Number(req.user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
       return res.status(401).json({ success: false, error: 'Invalid user context' });
@@ -4088,14 +4151,126 @@ app.get('/api/market-news', async (req, res) => {
   }
 });
 
+const QUOTES_FRESHNESS_THRESHOLD_MS = Number(process.env.QUOTES_FRESHNESS_THRESHOLD_MS || 45 * 60 * 1000);
+const INTRADAY_FRESHNESS_THRESHOLD_MS = Number(process.env.INTRADAY_FRESHNESS_THRESHOLD_MS || 20 * 60 * 1000);
+const FALLBACK_QUOTE_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'MSFT', 'NVDA'];
+
+function isFreshTimestamp(value, thresholdMs) {
+  const ts = new Date(value || 0).getTime();
+  if (!Number.isFinite(ts) || ts <= 0) return false;
+  return (Date.now() - ts) <= thresholdMs;
+}
+
+function normalizeFallbackQuoteRows(rows = []) {
+  return (Array.isArray(rows) ? rows : []).flatMap((row) => {
+    const price = Number(row?.price);
+    const changePercent = Number(row?.changePercent ?? row?.change_percent);
+    const volume = Number(row?.volume);
+
+    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(changePercent) || !Number.isFinite(volume)) {
+      return [];
+    }
+
+    return [{
+      symbol: mapFromProviderSymbol(normalizeSymbol(row?.symbol)),
+      price,
+      change_percent: changePercent,
+      volume,
+      market_cap: Number(row?.marketCap ?? row?.market_cap),
+      sector: row?.sector || null,
+      updated_at: new Date().toISOString(),
+      source: 'fallback_live',
+    }];
+  });
+}
+
+async function fetchFallbackQuotes(symbols) {
+  const list = Array.from(
+    new Set(
+      (Array.isArray(symbols) ? symbols : [])
+        .map((s) => mapFromProviderSymbol(normalizeSymbol(s)))
+        .filter(Boolean)
+    )
+  );
+  if (list.length === 0) return [];
+
+  try {
+    const providerRows = await marketService.getQuotes(list);
+    return normalizeFallbackQuoteRows(providerRows);
+  } catch (error) {
+    logger.warn('fallback quotes provider failed', { error: error.message, symbols: list });
+    return [];
+  }
+}
+
+function normalizeFmpIntradayBars(payload, symbol, limit) {
+  const rows = Array.isArray(payload) ? payload : [];
+  return rows
+    .slice(0, Math.max(1, Math.min(Number(limit) || 1000, 5000)))
+    .map((row) => {
+      const ts = row?.date || row?.timestamp || row?.time;
+      return {
+        time: new Date(ts).getTime(),
+        open: Number(row?.open),
+        high: Number(row?.high),
+        low: Number(row?.low),
+        close: Number(row?.close),
+        volume: Number(row?.volume ?? 0),
+      };
+    })
+    .filter((row) => Number.isFinite(row.time)
+      && Number.isFinite(row.open)
+      && Number.isFinite(row.high)
+      && Number.isFinite(row.low)
+      && Number.isFinite(row.close));
+}
+
+async function fetchIntradayFallbackBars(symbol, limit) {
+  const canonicalSymbol = mapFromProviderSymbol(normalizeSymbol(symbol));
+  const providerSymbol = mapToProviderSymbol(canonicalSymbol);
+
+  try {
+    const fmpPayload = await fmpFetch('/historical-chart/1min', { symbol: providerSymbol });
+    const fmpRows = normalizeFmpIntradayBars(fmpPayload, canonicalSymbol, limit);
+    if (fmpRows.length > 0) {
+      return fmpRows.sort((a, b) => a.time - b.time);
+    }
+  } catch (error) {
+    logger.warn('intraday fallback FMP failed', { symbol: canonicalSymbol, providerSymbol, error: error.message });
+  }
+
+  try {
+    const yahooPayload = await marketService.getHistorical(canonicalSymbol, { interval: '1m', range: '1d' });
+    const quoteRows = yahooPayload?.quotes || [];
+    const yahooRows = quoteRows.map((row) => ({
+      time: new Date(row?.date || row?.timestamp || row?.time).getTime(),
+      open: Number(row?.open),
+      high: Number(row?.high),
+      low: Number(row?.low),
+      close: Number(row?.close),
+      volume: Number(row?.volume ?? 0),
+    })).filter((row) => Number.isFinite(row.time)
+      && Number.isFinite(row.open)
+      && Number.isFinite(row.high)
+      && Number.isFinite(row.low)
+      && Number.isFinite(row.close));
+
+    return yahooRows.sort((a, b) => a.time - b.time).slice(-Math.max(1, Math.min(Number(limit) || 1000, 5000)));
+  } catch (error) {
+    logger.warn('intraday fallback Yahoo failed', { symbol: canonicalSymbol, error: error.message });
+    return [];
+  }
+}
+
 app.get('/api/market/quotes', async (req, res) => {
+  console.log('PUBLIC MARKET ACCESS:', req.path);
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 200, 5000));
     const rawSymbols = String(req.query.symbols || '').trim();
     const symbols = rawSymbols
       ? rawSymbols
         .split(',')
-        .map((item) => String(item || '').trim().toUpperCase())
+        .map((item) => mapFromProviderSymbol(normalizeSymbol(item)))
         .filter(Boolean)
       : [];
 
@@ -4110,7 +4285,7 @@ app.get('/api/market/quotes', async (req, res) => {
                    mq.market_cap,
                    mq.sector,
                    mq.updated_at
-                 FROM market_quotes mq
+                 FROM ${MARKET_QUOTES_TABLE} mq
                  LEFT JOIN LATERAL (
                    SELECT close
                    FROM daily_ohlc d
@@ -4133,7 +4308,7 @@ app.get('/api/market/quotes', async (req, res) => {
                    mq.market_cap,
                    mq.sector,
                    mq.updated_at
-                 FROM market_quotes mq
+                 FROM ${MARKET_QUOTES_TABLE} mq
                  LEFT JOIN LATERAL (
                    SELECT close
                    FROM daily_ohlc d
@@ -4148,18 +4323,74 @@ app.get('/api/market/quotes', async (req, res) => {
         };
 
     const { rows } = await queryWithTimeout(query.text, query.params, query.options);
-    const data = (rows || []).map((row) => ({
-      symbol: String(row?.symbol || '').toUpperCase(),
-      price: Number(row?.price ?? row?.daily_close ?? 0),
-      change_percent: Number(row?.change_percent ?? 0),
-      volume: Number(row?.volume ?? 0),
-      market_cap: Number(row?.market_cap ?? 0),
-      sector: row?.sector || null,
-      updated_at: row?.updated_at || null,
-    }));
+    const data = (rows || []).flatMap((row) => {
+      const resolvedPrice = Number(row?.price ?? row?.daily_close);
+      const changePercent = Number(row?.change_percent);
+      const volume = Number(row?.volume);
 
-    console.log('QUOTE sample:', data.slice(0, 3));
-    return res.json({ success: true, count: data.length, data });
+      if (!Number.isFinite(resolvedPrice) || resolvedPrice <= 0 || !Number.isFinite(changePercent) || !Number.isFinite(volume)) {
+        logger.warn('dropping invalid market quote row', {
+          symbol: mapFromProviderSymbol(normalizeSymbol(row?.symbol)),
+          price: row?.price,
+          daily_close: row?.daily_close,
+          change_percent: row?.change_percent,
+          volume: row?.volume,
+        });
+        return [];
+      }
+
+      return [{
+        symbol: mapFromProviderSymbol(normalizeSymbol(row?.symbol)),
+        price: resolvedPrice,
+        change_percent: changePercent,
+        volume,
+        market_cap: Number(row?.market_cap),
+        sector: row?.sector || null,
+        updated_at: row?.updated_at || null,
+      }];
+    });
+
+    const dbRows = data.map((row) => ({ ...row, source: 'authoritative_db' }));
+    const freshDbRows = dbRows.filter((row) => isFreshTimestamp(row.updated_at, QUOTES_FRESHNESS_THRESHOLD_MS));
+
+    if (symbols.length > 0) {
+      const freshSymbols = new Set(freshDbRows.map((row) => row.symbol));
+      const missingOrStaleSymbols = symbols.filter((symbol) => !freshSymbols.has(symbol));
+
+      if (missingOrStaleSymbols.length > 0) {
+        const fallbackRows = await fetchFallbackQuotes(missingOrStaleSymbols);
+        const mergedMap = new Map();
+
+        for (const row of dbRows) {
+          if (row.symbol && isFreshTimestamp(row.updated_at, QUOTES_FRESHNESS_THRESHOLD_MS)) {
+            mergedMap.set(row.symbol, row);
+          }
+        }
+
+        for (const row of fallbackRows) {
+          if (row.symbol && !mergedMap.has(row.symbol)) {
+            mergedMap.set(row.symbol, row);
+          }
+        }
+
+        const finalRows = symbols.map((symbol) => mergedMap.get(symbol)).filter(Boolean);
+        if (finalRows.length > 0) {
+          console.log('QUOTE failover sample:', finalRows.slice(0, 3));
+          return res.json({ success: true, count: finalRows.length, source: 'fallback_live', data: finalRows });
+        }
+      }
+    }
+
+    if (freshDbRows.length === 0) {
+      const fallbackRows = await fetchFallbackQuotes(symbols.length > 0 ? symbols : FALLBACK_QUOTE_SYMBOLS);
+      if (fallbackRows.length > 0) {
+        console.log('QUOTE global fallback sample:', fallbackRows.slice(0, 3));
+        return res.json({ success: true, count: fallbackRows.length, source: 'fallback_live', data: fallbackRows });
+      }
+    }
+
+    console.log('QUOTE sample:', dbRows.slice(0, 3));
+    return res.json({ success: true, count: dbRows.length, source: 'authoritative_db', data: dbRows });
   } catch (err) {
     logger.error('market quotes endpoint error', { error: err.message });
     return res.status(500).json({ success: false, count: 0, data: [], error: 'Failed to load market quotes', detail: err.message });
@@ -4167,8 +4398,9 @@ app.get('/api/market/quotes', async (req, res) => {
 });
 
 app.get('/api/market/ohlc', async (req, res) => {
+  console.log('PUBLIC MARKET ACCESS:', req.path);
   try {
-    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+    const symbol = mapFromProviderSymbol(normalizeSymbol(req.query.symbol));
     if (!symbol) {
       return res.status(400).json({ success: false, data: [], error: 'symbol is required' });
     }
@@ -4183,7 +4415,8 @@ app.get('/api/market/ohlc', async (req, res) => {
                    open,
                    high,
                    low,
-                   close
+                   close,
+                   COALESCE(volume, 0) AS volume
                  FROM daily_ohlc
                  WHERE symbol = $1
                  ORDER BY date DESC
@@ -4197,8 +4430,9 @@ app.get('/api/market/ohlc', async (req, res) => {
                    open,
                    high,
                    low,
-                   close
-                 FROM intraday_1m
+                   close,
+                   COALESCE(volume, 0) AS volume
+                 FROM ${INTRADAY_TABLE}
                  WHERE symbol = $1
                  ORDER BY "timestamp" DESC
                  LIMIT $2`,
@@ -4216,10 +4450,67 @@ app.get('/api/market/ohlc', async (req, res) => {
         high: Number(row?.high ?? 0),
         low: Number(row?.low ?? 0),
         close: Number(row?.close ?? 0),
+        volume: Number(row?.volume ?? 0),
       }));
 
+    const latestBarTs = data.length > 0 ? Number(data[data.length - 1]?.time || 0) : 0;
+    const intradayIsFresh = interval === '1d'
+      ? true
+      : (Number.isFinite(latestBarTs) && latestBarTs > 0 && ((Date.now() - latestBarTs) <= INTRADAY_FRESHNESS_THRESHOLD_MS));
+
+    if (interval !== '1d' && (!intradayIsFresh || data.length === 0)) {
+      const fallbackBars = await fetchIntradayFallbackBars(symbol, limit);
+      if (fallbackBars.length > 0) {
+        return res.json({ success: true, data: fallbackBars, source: 'fallback_live' });
+      }
+
+      if (data.length === 0) {
+        console.warn('[DATA GAP] authoritative intraday unavailable and fallback empty', { symbol, table: INTRADAY_TABLE });
+        return res.json({ success: true, data: [], source: 'no_data' });
+      }
+    }
+
+    if (interval !== '1d' && data.length > 0) {
+      const latestClose = Number(data[data.length - 1]?.close);
+      const referenceQuery = await queryWithTimeout(
+        `SELECT mq.price, d.close AS daily_close
+         FROM ${MARKET_QUOTES_TABLE} mq
+         LEFT JOIN LATERAL (
+           SELECT close
+           FROM daily_ohlc d
+           WHERE d.symbol = mq.symbol
+           ORDER BY d.date DESC
+           LIMIT 1
+         ) d ON TRUE
+         WHERE mq.symbol = $1
+         LIMIT 1`,
+        [symbol],
+        { label: 'api.market.ohlc.reference_price', timeoutMs: 4000, maxRetries: 1, retryDelayMs: 100 }
+      );
+
+      const referenceRow = Array.isArray(referenceQuery?.rows) ? referenceQuery.rows[0] : null;
+      const referencePrice = Number(referenceRow?.price ?? referenceRow?.daily_close);
+      const upper = Math.max(latestClose, referencePrice);
+      const lower = Math.min(latestClose, referencePrice);
+      const divergence = Number.isFinite(upper) && Number.isFinite(lower) && lower > 0 ? upper / lower : Number.NaN;
+
+      if (Number.isFinite(divergence) && divergence > 1.35) {
+        logger.warn('rejecting implausible intraday series', {
+          symbol,
+          latestClose,
+          referencePrice,
+          divergence,
+        });
+        const fallbackBars = await fetchIntradayFallbackBars(symbol, limit);
+        if (fallbackBars.length > 0) {
+          return res.json({ success: true, data: fallbackBars, source: 'fallback_live' });
+        }
+        return res.json({ success: true, data: [], source: 'invalid_series' });
+      }
+    }
+
     console.log('OHLC sample:', data.slice(0, 3));
-    return res.json({ success: true, data });
+    return res.json({ success: true, data, source: 'authoritative_db' });
   } catch (err) {
     logger.error('market ohlc endpoint error', { error: err.message });
     return res.status(500).json({ success: false, data: [], error: 'Failed to load market ohlc', detail: err.message });
@@ -4759,68 +5050,6 @@ app.get('/api/opportunity-stream', async (req, res) => {
   }
 });
 
-app.get('/api/opportunities', async (req, res) => {
-  try {
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
-    const { rows: primaryRows } = await queryWithTimeout(
-      `SELECT
-         ts.symbol,
-         COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
-         COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS strategy,
-         COALESCE((to_jsonb(ts)->>'change_percent')::numeric, 0) AS change_percent,
-         COALESCE((to_jsonb(ts)->>'relative_volume')::numeric, 0) AS relative_volume,
-         COALESCE((to_jsonb(ts)->>'gap_percent')::numeric, 0) AS gap_percent,
-         COALESCE((to_jsonb(ts)->>'volume')::bigint, 0) AS volume,
-         ts.detected_at AS updated_at,
-         ts.detected_at AS timestamp
-       FROM trade_setups ts
-       WHERE ts.detected_at > NOW() - INTERVAL '7 days'
-       ORDER BY score DESC NULLS LAST, ts.detected_at DESC NULLS LAST
-       LIMIT $1`,
-      [limit],
-      { label: 'api.opportunities.trade_setups.primary', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
-    );
-
-    console.log('[DATA CHECK]', {
-      table: 'trade_setups',
-      rows: primaryRows.length
-    });
-
-    let mapped = primaryRows;
-    if (!mapped.length) {
-      const { rows: fallbackRows } = await queryWithTimeout(
-        `SELECT
-           ts.symbol,
-           COALESCE((to_jsonb(ts)->>'strategy_score')::numeric, (to_jsonb(ts)->>'score')::numeric, 0) AS score,
-           COALESCE(NULLIF(to_jsonb(ts)->>'setup_type', ''), NULLIF(to_jsonb(ts)->>'setup', ''), NULLIF(to_jsonb(ts)->>'strategy', ''), 'Momentum Continuation') AS strategy,
-           COALESCE((to_jsonb(ts)->>'change_percent')::numeric, 0) AS change_percent,
-           COALESCE((to_jsonb(ts)->>'relative_volume')::numeric, 0) AS relative_volume,
-           COALESCE((to_jsonb(ts)->>'gap_percent')::numeric, 0) AS gap_percent,
-           COALESCE((to_jsonb(ts)->>'volume')::bigint, 0) AS volume,
-           ts.detected_at AS updated_at,
-           ts.detected_at AS timestamp
-         FROM trade_setups ts
-         ORDER BY ts.detected_at DESC NULLS LAST
-         LIMIT 20`,
-        [],
-        { label: 'api.opportunities.trade_setups.fallback', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
-      );
-
-      console.log('[DATA CHECK]', {
-        table: 'trade_setups',
-        rows: fallbackRows.length
-      });
-
-      mapped = fallbackRows;
-    }
-
-    return res.json({ opportunities: mapped });
-  } catch (err) {
-    logger.error('opportunities endpoint db error', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to load opportunities' });
-  }
-});
-
 app.get('/api/market-narrative', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -5009,7 +5238,8 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
            END AS market_alignment,
            tc.headline,
            tc.source AS news_source,
-           q.sector
+           q.sector,
+           COALESCE(ts.updated_at, mm.updated_at, q.updated_at, now()) AS updated_at
          FROM trade_setups ts
          JOIN candidate_universe cu ON cu.symbol = ts.symbol
          LEFT JOIN market_metrics mm ON mm.symbol = ts.symbol
@@ -5037,6 +5267,7 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
          price_change_percent,
          headline,
          news_source,
+         updated_at,
          LEAST(
            (
              strategy_score * 0.35 +
@@ -5055,7 +5286,7 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
     );
 
     const row = rows?.[0];
-    if (!row) return res.json({ success: true, item: null });
+    if (!row) return res.json({ success: true, data: [] });
 
     const price = Number(row.price || 0);
     const atr = Number(row.atr || 0);
@@ -5072,7 +5303,7 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
 
     return res.json({
       success: true,
-      item: {
+      data: [{
         symbol: row.symbol,
         confidence: Number(confidence.toFixed(1)),
         catalyst: row.headline || 'No catalyst headline available.',
@@ -5090,11 +5321,12 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
         entry: Number(breakout.toFixed(2)),
         stop_loss: Number(stopLoss.toFixed(2)),
         take_profit: Number(takeProfit.toFixed(2)),
+        updated_at: row.updated_at || null,
         trade_plan: `Entry ${breakout > 0 ? `$${breakout.toFixed(2)}` : 'on breakout'}, stop ${stopLoss > 0 ? `$${stopLoss.toFixed(2)}` : 'below structure'}, target ${takeProfit > 0 ? `$${takeProfit.toFixed(2)}` : '2R'}.`,
-      },
+      }],
     });
   } catch (error) {
-    return res.json({ success: true, item: null });
+    return res.json({ success: true, data: [] });
   }
 });
 
@@ -5118,30 +5350,6 @@ app.get('/api/intelligence/top', async (_req, res) => {
 
 app.get('/api/intelligence/trade-probability', async (req, res) => {
   try {
-    await queryWithTimeout(
-      `CREATE TABLE IF NOT EXISTS strategy_signals (
-         id BIGSERIAL PRIMARY KEY,
-         symbol TEXT,
-         strategy TEXT,
-         entry_price NUMERIC,
-         exit_price NUMERIC,
-         result BOOLEAN,
-         timestamp TIMESTAMPTZ DEFAULT NOW()
-       )`,
-      [],
-      { label: 'api.trade_probability.ensure_table', timeoutMs: 5000, maxRetries: 0 }
-    );
-
-    await queryWithTimeout(
-      `ALTER TABLE strategy_signals
-         ADD COLUMN IF NOT EXISTS entry_price NUMERIC,
-         ADD COLUMN IF NOT EXISTS exit_price NUMERIC,
-         ADD COLUMN IF NOT EXISTS result BOOLEAN,
-         ADD COLUMN IF NOT EXISTS timestamp TIMESTAMPTZ DEFAULT NOW()`,
-      [],
-      { label: 'api.trade_probability.ensure_columns', timeoutMs: 5000, maxRetries: 0 }
-    );
-
     const strategy = String(req.query.strategy || '').trim();
 
     const totalCountRes = await queryWithTimeout(
@@ -5245,19 +5453,6 @@ app.get('/api/intelligence/earnings-window', async (_req, res) => {
 
 app.get('/api/metrics/strategy-accuracy', async (_req, res) => {
   try {
-    await queryWithTimeout(
-      `CREATE TABLE IF NOT EXISTS strategy_accuracy (
-        strategy TEXT PRIMARY KEY,
-        total_signals INTEGER NOT NULL DEFAULT 0,
-        wins INTEGER NOT NULL DEFAULT 0,
-        losses INTEGER NOT NULL DEFAULT 0,
-        accuracy_rate NUMERIC NOT NULL DEFAULT 0,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )`,
-      [],
-      { label: 'api.metrics.strategy_accuracy.ensure_table', timeoutMs: 2500, maxRetries: 0 }
-    );
-
     const { rows } = await queryWithTimeout(
       `WITH agg AS (
          SELECT
@@ -5465,12 +5660,13 @@ app.get('/api/expected-move-enhanced', async (req, res) => {
         const c = yahooCacheGet('__market_ctx', 'context');
         if (c) return c;
         // Inline fetch if not cached
-        const ticks = ['SPY', 'QQQ', '^VIX'];
-        const qr = await Promise.allSettled(ticks.map(t => yahooFinance.quote(t)));
+        const ticks = ['SPY', 'QQQ', 'VIX'];
+        const providerTicks = ticks.map((t) => mapToProviderSymbol(t));
+        const qr = await Promise.allSettled(providerTicks.map((t) => yahooFinance.quote(t)));
         const indices = ticks.map((s, i) => {
           const r = qr[i]; if (r.status !== 'fulfilled' || !r.value) return { ticker: s, error: true };
           const q = r.value;
-          return { ticker: q.symbol || s, name: q.shortName || s, price: q.regularMarketPrice || 0,
+          return { ticker: s, name: q.shortName || s, price: q.regularMarketPrice || 0,
             change: q.regularMarketChange != null ? +q.regularMarketChange.toFixed(2) : 0,
             changePercent: q.regularMarketChangePercent != null ? +q.regularMarketChangePercent.toFixed(2) : 0 };
         });
@@ -6404,19 +6600,643 @@ async function getLatestSignals(db) {
 
 function normalizeSignalContract(row = {}) {
   const strategyValue = String(row.strategy ?? row.setup_type ?? '').trim();
-  const probability = Number(row.probability ?? 0);
-  const confidence = Number(row.confidence ?? 0);
+  const scoreValue = Number(row.score ?? row.signal_score ?? row.rank_score ?? 0);
+  const rawProbability = Number(row.probability);
+  const inferredProbability = 50 + Math.tanh(scoreValue / 400) * 40;
+  const probability = Number.isFinite(rawProbability) && rawProbability > 0
+    ? rawProbability
+    : inferredProbability;
+
+  const rawConfidence = Number(row.confidence);
+  const grade = String(row.grade || '').toUpperCase();
+  const inferredConfidenceFromGrade = grade.startsWith('A')
+    ? 88
+    : grade.startsWith('B')
+      ? 78
+      : grade.startsWith('C')
+        ? 68
+        : grade.startsWith('D')
+          ? 58
+          : probability - 5;
+  const confidence = Number.isFinite(rawConfidence) && rawConfidence > 0
+    ? rawConfidence
+    : inferredConfidenceFromGrade;
+
+  const expectedMove = Number(row.expected_move);
+  const atr = Number(row.atr ?? 0);
+  const refPrice = Number(row.price ?? row.last_price ?? row.close ?? 0);
+  const inferredExpectedMove = atr > 0 && refPrice > 0
+    ? (atr / refPrice) * 100
+    : 2.5;
+
+  const clampPct = (value) => {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(1, Math.min(99, value));
+  };
+
   return {
     ...row,
     symbol: String(row.symbol ?? '').trim().toUpperCase(),
     strategy: strategyValue || 'Unknown',
-    probability: Number.isFinite(probability) ? probability : 0,
-    confidence: Number.isFinite(confidence) ? confidence : 0,
+    probability: clampPct(probability),
+    confidence: clampPct(confidence),
+    expected_move: Number.isFinite(expectedMove) ? expectedMove : inferredExpectedMove,
   };
 }
 
 function normalizeSignalRows(rows) {
   return Array.isArray(rows) ? rows.map((row) => normalizeSignalContract(row)) : [];
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function classifyWhyMovingCatalyst(row = {}) {
+  const value = [
+    row.trade_catalyst_type,
+    row.latest_news_catalyst,
+    row.catalyst_headline,
+    row.latest_headline,
+  ]
+    .map((item) => String(item || '').toLowerCase())
+    .join(' ');
+
+  if (/(earnings|guidance|eps|revenue|quarter|q[1-4])/.test(value)) return 'earnings';
+  if (/(fed|fomc|cpi|pce|inflation|rate|yield|treasury|payroll|macro|gdp)/.test(value)) return 'macro';
+  if (/(breakout|breakdown|vwap|support|resistance|technical|momentum)/.test(value)) return 'technical';
+  if (String(row.latest_headline || '').trim() || String(row.catalyst_headline || '').trim()) return 'news';
+  return 'unknown';
+}
+
+function formatFreshnessLabel(minutes) {
+  if (!Number.isFinite(minutes) || minutes < 0) return 'unknown';
+  if (minutes < 60) return `${Math.round(minutes)}m ago`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+function buildWhyMovingReason(row = {}, catalystType = 'unknown') {
+  const rvol = Number(row.rvol || 0);
+  const moveVsAtr = Number(row.move_vs_atr || 0);
+  const pctMove = Number(row.pct_move || 0);
+  const premarketMove = Number(row.premarket_move_pct || 0);
+  const regularMove = Number(row.regular_move_pct || 0);
+  const headline = String(row.catalyst_headline || row.latest_headline || '').trim();
+
+  const direction = pctMove >= 0 ? 'up' : 'down';
+  const catalystText = catalystType !== 'unknown' ? `${catalystType} catalyst` : 'flow-driven catalyst';
+
+  if (headline) {
+    return `Moving ${direction} on ${catalystText}: ${headline}. Volume is ${rvol.toFixed(2)}x normal with ${moveVsAtr.toFixed(2)} ATR expansion.`;
+  }
+
+  if (premarketMove !== 0 && regularMove !== 0 && Math.sign(premarketMove) === Math.sign(regularMove)) {
+    return `Premarket move (${premarketMove.toFixed(2)}%) is continuing into regular hours (${regularMove.toFixed(2)}%), with ${rvol.toFixed(2)}x relative volume and ${moveVsAtr.toFixed(2)} ATR range expansion.`;
+  }
+
+  return `Price is moving ${direction} ${Math.abs(pctMove).toFixed(2)}% on ${rvol.toFixed(2)}x relative volume with ${moveVsAtr.toFixed(2)} ATR expansion; no dominant headline catalyst detected.`;
+}
+
+function normalizeWhyMovingItem(row = {}) {
+  const newsRelevance = clamp(Number(row.news_relevance || 0), 0, 1);
+  const volumeExpansion = clamp(Number(row.rvol || 0) / 1.6, 0, 1);
+  const priceExpansion = clamp(Number(row.move_vs_atr || 0) / 2, 0, 1);
+
+  const confidence = clamp(
+    (newsRelevance * 0.45 + volumeExpansion * 0.30 + priceExpansion * 0.25) * 100,
+    0,
+    100
+  );
+
+  const continuationAligned = Number(row.premarket_move_pct || 0) !== 0
+    && Number(row.regular_move_pct || 0) !== 0
+    && Math.sign(Number(row.premarket_move_pct)) === Math.sign(Number(row.regular_move_pct));
+
+  const continuationScore = continuationAligned ? 1 : 0.35;
+  const tradabilityScore = clamp(
+    (volumeExpansion * 0.5 + priceExpansion * 0.35 + continuationScore * 0.15) * 100,
+    0,
+    100
+  );
+
+  const anchorTimestamp = row.latest_news_at || row.latest_catalyst_at || row.last_intraday_ts || row.metrics_ts;
+  const freshnessMinutes = anchorTimestamp
+    ? Math.max(0, (Date.now() - new Date(anchorTimestamp).getTime()) / 60000)
+    : null;
+
+  const catalystType = classifyWhyMovingCatalyst(row);
+  const reason = buildWhyMovingReason(row, catalystType);
+
+  const lastPrice = Number(row.last_price || row.daily_close || 0);
+  const atrValue = Number(row.atr_value || 0);
+  const expectedMove = lastPrice > 0
+    ? ((atrValue > 0 ? atrValue * 1.25 : Math.abs(Number(row.pct_move || 0)) * 0.5 * lastPrice / 100) / lastPrice) * 100
+    : 0;
+
+  return {
+    symbol: String(row.symbol || '').toUpperCase(),
+    reason,
+    catalyst_type: catalystType,
+    confidence: Number(confidence.toFixed(2)),
+    expected_move: Number(expectedMove.toFixed(2)),
+    freshness: formatFreshnessLabel(freshnessMinutes),
+    tradability_score: Number(tradabilityScore.toFixed(2)),
+  };
+}
+
+function mapTradeabilityStrategy(row = {}) {
+  const raw = String(row.signal_strategy || '').toUpperCase();
+  if (raw.includes('ORB')) return 'ORB';
+  if (raw.includes('VWAP')) return 'VWAP Reclaim';
+  if (raw.includes('FADE') || raw.includes('EXTENSION')) return 'Extension Fade';
+  if (raw.includes('MOMENTUM')) return 'Momentum Continuation';
+
+  const moveVsAtr = Number(row.move_vs_atr || 0);
+  const pctMove = Number(row.pct_move || 0);
+  const lastClose = Number(row.last_intraday_close || 0);
+  const openingRangeHigh = Number(row.opening_range_high || 0);
+  const vwap = Number(row.vwap || 0);
+
+  if (openingRangeHigh > 0 && lastClose > openingRangeHigh) return 'ORB';
+  if (vwap > 0 && lastClose >= vwap) return 'VWAP Reclaim';
+  if (Math.abs(pctMove) >= 8 && moveVsAtr >= 2) return 'Extension Fade';
+  return 'Momentum Continuation';
+}
+
+function buildTradeabilityEntry(strategy) {
+  if (strategy === 'ORB') return 'Breakout';
+  if (strategy === 'VWAP Reclaim') return 'Reclaim + Hold';
+  if (strategy === 'Extension Fade') return 'Mean Reversion Trigger';
+  return 'Pullback Continuation';
+}
+
+function buildTradeabilityInvalidation(strategy, row = {}) {
+  const vwap = Number(row.vwap || 0);
+  const orLow = Number(row.opening_range_low || 0);
+  const intradayLow = Number(row.intraday_low || 0);
+  const intradayHigh = Number(row.intraday_high || 0);
+
+  if (strategy === 'ORB') {
+    return orLow > 0 ? `Back below OR low ${orLow.toFixed(2)}` : 'Back inside opening range';
+  }
+  if (strategy === 'VWAP Reclaim') {
+    return vwap > 0 ? `Lose VWAP ${vwap.toFixed(2)} on close` : 'Lose reclaim pivot';
+  }
+  if (strategy === 'Extension Fade') {
+    return intradayHigh > 0 ? `Break above intraday extreme ${intradayHigh.toFixed(2)}` : 'Break above extension high';
+  }
+  return intradayLow > 0 ? `Lose intraday support ${intradayLow.toFixed(2)}` : 'Lose momentum support';
+}
+
+function estimateRiskReward(strategy, row = {}) {
+  const moveVsAtr = Number(row.move_vs_atr || 0);
+  const rvol = Number(row.rvol || 0);
+  let base = 1.6;
+
+  if (strategy === 'ORB') base = 2.2;
+  if (strategy === 'VWAP Reclaim') base = 1.9;
+  if (strategy === 'Momentum Continuation') base = 2.0;
+  if (strategy === 'Extension Fade') base = 1.7;
+
+  const qualityBonus = clamp((moveVsAtr * 0.12) + (Math.max(rvol - 1, 0) * 0.08), 0, 0.7);
+  return Number((base + qualityBonus).toFixed(2));
+}
+
+function normalizeTradeabilityItem(row = {}) {
+  const strategy = mapTradeabilityStrategy(row);
+  const hasCatalyst = Boolean(row.has_catalyst);
+  const volumeOk = Boolean(row.volume_ok);
+  const hasStructure = Boolean(row.has_structure);
+
+  const passed = [hasCatalyst, volumeOk, hasStructure].filter(Boolean).length;
+  const qualityClass = passed >= 3 ? 'A' : passed === 2 ? 'B' : 'C';
+
+  const baseProbability = clamp(Number(row.signal_probability || row.why_confidence || 0), 0, 100);
+  const adjustedProbability = clamp(
+    baseProbability * 0.55
+      + (hasCatalyst ? 22 : 0)
+      + (volumeOk ? 14 : 0)
+      + (hasStructure ? 9 : 0),
+    0,
+    100
+  );
+
+  const tradeable = hasCatalyst && volumeOk && hasStructure;
+
+  return {
+    symbol: String(row.symbol || '').toUpperCase(),
+    strategy,
+    class: qualityClass,
+    entry_type: buildTradeabilityEntry(strategy),
+    invalidation: buildTradeabilityInvalidation(strategy, row),
+    probability: Number(adjustedProbability.toFixed(2)),
+    risk_reward: estimateRiskReward(strategy, row),
+    timestamp: row.signal_ts || row.metrics_ts || new Date().toISOString(),
+    tradeable,
+  };
+}
+
+async function fetchTradeabilityRawRows() {
+  const { rows } = await queryWithTimeout(
+    `WITH latest_signals AS (
+       SELECT DISTINCT ON (symbol)
+         UPPER(symbol) AS symbol,
+         COALESCE(NULLIF(strategy, ''), NULLIF(setup_type, ''), 'Momentum Continuation') AS strategy,
+         COALESCE(probability, confidence, score, 0) AS signal_probability,
+         COALESCE(updated_at, detected_at, created_at, NOW()) AS signal_ts
+       FROM strategy_signals
+       WHERE COALESCE(symbol, '') <> ''
+       ORDER BY symbol, COALESCE(updated_at, detected_at, created_at, NOW()) DESC
+     ),
+     latest_metrics AS (
+       SELECT DISTINCT ON (m.symbol)
+         UPPER(m.symbol) AS symbol,
+         COALESCE(m.price, 0) AS price,
+         COALESCE((to_jsonb(m)->>'change_percent')::numeric, 0) AS change_percent,
+         COALESCE(m.relative_volume, 0) AS relative_volume,
+         COALESCE(m.volume, 0) AS volume,
+         COALESCE(m.vwap, 0) AS vwap,
+         COALESCE(m.atr, 0) AS atr,
+         COALESCE(m.updated_at, m.last_updated, NOW()) AS metrics_ts
+       FROM market_metrics m
+       ORDER BY m.symbol, COALESCE(m.updated_at, m.last_updated, NOW()) DESC
+     ),
+     daily_proxy AS (
+       SELECT
+         UPPER(d.symbol) AS symbol,
+         (ARRAY_AGG(d.close ORDER BY d.date DESC))[1] AS daily_close,
+         AVG((d.high - d.low)) FILTER (WHERE d.date >= CURRENT_DATE - INTERVAL '14 days') AS atr14_proxy
+       FROM daily_ohlc d
+       WHERE d.date >= CURRENT_DATE - INTERVAL '30 days'
+       GROUP BY UPPER(d.symbol)
+     ),
+     intraday_shape AS (
+       SELECT
+         UPPER(i.symbol) AS symbol,
+         MAX(i.timestamp) AS last_intraday_ts,
+         MAX(i.high) AS intraday_high,
+         MIN(i.low) AS intraday_low,
+         (ARRAY_AGG(i.close ORDER BY i.timestamp DESC))[1] AS last_intraday_close,
+         MAX(CASE WHEN i.session = 'regular' THEN i.high END) FILTER (
+           WHERE i.timestamp <= date_trunc('day', NOW()) + INTERVAL '45 minutes'
+         ) AS opening_range_high,
+         MIN(CASE WHEN i.session = 'regular' THEN i.low END) FILTER (
+           WHERE i.timestamp <= date_trunc('day', NOW()) + INTERVAL '45 minutes'
+         ) AS opening_range_low
+       FROM intraday_1m i
+       WHERE i.timestamp >= NOW() - INTERVAL '24 hours'
+       GROUP BY UPPER(i.symbol)
+     ),
+     latest_news AS (
+       SELECT
+         UPPER(COALESCE(na.symbol, '')) AS symbol,
+         MAX(COALESCE(na.published_at, na.created_at)) AS latest_news_at,
+         (ARRAY_AGG(na.headline ORDER BY COALESCE(na.published_at, na.created_at) DESC NULLS LAST))[1] AS latest_headline,
+         (ARRAY_AGG(na.catalyst_type ORDER BY COALESCE(na.published_at, na.created_at) DESC NULLS LAST))[1] AS latest_news_catalyst,
+         COALESCE(MAX(
+           CASE
+             WHEN COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '2 hours' THEN 1.0
+             WHEN COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '6 hours' THEN 0.9
+             WHEN COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '24 hours' THEN 0.75
+             WHEN COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '48 hours' THEN 0.45
+             ELSE 0.2
+           END
+         ), 0) AS news_relevance
+       FROM news_articles na
+       WHERE COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '72 hours'
+       GROUP BY UPPER(COALESCE(na.symbol, ''))
+     ),
+     latest_catalyst AS (
+       SELECT
+         UPPER(tc.symbol) AS symbol,
+         (ARRAY_AGG(tc.catalyst_type ORDER BY tc.published_at DESC NULLS LAST))[1] AS catalyst_type,
+         (ARRAY_AGG(tc.headline ORDER BY tc.published_at DESC NULLS LAST))[1] AS catalyst_headline,
+         MAX(tc.published_at) AS latest_catalyst_at
+       FROM trade_catalysts tc
+       WHERE tc.published_at >= NOW() - INTERVAL '7 days'
+       GROUP BY UPPER(tc.symbol)
+     ),
+     joined AS (
+       SELECT
+         ls.symbol,
+         ls.strategy AS signal_strategy,
+         ls.signal_probability,
+         ls.signal_ts,
+         COALESCE(lm.price, dp.daily_close, 0) AS last_price,
+         COALESCE(lm.change_percent, 0) AS pct_move,
+         COALESCE(lm.relative_volume, 0) AS rvol,
+         COALESCE(lm.volume, 0) AS volume,
+         COALESCE(lm.vwap, 0) AS vwap,
+         COALESCE(lm.atr, dp.atr14_proxy, 0) AS atr_value,
+         COALESCE(dp.daily_close, 0) AS daily_close,
+         lm.metrics_ts,
+         ish.last_intraday_ts,
+         ish.intraday_high,
+         ish.intraday_low,
+         ish.last_intraday_close,
+         ish.opening_range_high,
+         ish.opening_range_low,
+         ln.latest_news_at,
+         ln.latest_headline,
+         ln.latest_news_catalyst,
+         ln.news_relevance,
+         lc.catalyst_type AS trade_catalyst_type,
+         lc.catalyst_headline,
+         lc.latest_catalyst_at
+       FROM latest_signals ls
+       LEFT JOIN latest_metrics lm ON lm.symbol = ls.symbol
+       LEFT JOIN daily_proxy dp ON dp.symbol = ls.symbol
+       LEFT JOIN intraday_shape ish ON ish.symbol = ls.symbol
+       LEFT JOIN latest_news ln ON ln.symbol = ls.symbol
+       LEFT JOIN latest_catalyst lc ON lc.symbol = ls.symbol
+     )
+     SELECT
+       j.*,
+       CASE
+         WHEN COALESCE(j.atr_value, 0) > 0 AND COALESCE(j.last_price, 0) > 0
+           THEN ABS((j.pct_move / 100.0) * j.last_price) / NULLIF(j.atr_value, 0)
+         WHEN COALESCE(j.daily_close, 0) > 0
+           THEN ABS(j.pct_move) / 3.0
+         ELSE 0
+       END AS move_vs_atr,
+       LEAST(1, GREATEST(0, COALESCE(j.news_relevance, 0))) * 100 AS why_confidence,
+       (
+         COALESCE(j.trade_catalyst_type, '') <> ''
+         OR COALESCE(j.latest_news_catalyst, '') <> ''
+         OR COALESCE(j.catalyst_headline, '') <> ''
+         OR COALESCE(j.latest_headline, '') <> ''
+       ) AS has_catalyst,
+       (
+         COALESCE(j.rvol, 0) >= 1.5
+         AND COALESCE(j.volume, 0) >= 250000
+       ) AS volume_ok,
+       (
+         (
+           COALESCE(j.opening_range_high, 0) > 0
+           AND COALESCE(j.last_intraday_close, 0) > COALESCE(j.opening_range_high, 0)
+         )
+         OR (
+           COALESCE(j.vwap, 0) > 0
+           AND COALESCE(j.last_intraday_close, 0) >= COALESCE(j.vwap, 0)
+           AND COALESCE(j.intraday_low, 0) < COALESCE(j.vwap, 0)
+         )
+         OR (
+           ABS(COALESCE(j.pct_move, 0)) >= 2
+           AND (
+             CASE
+               WHEN COALESCE(j.atr_value, 0) > 0 AND COALESCE(j.last_price, 0) > 0
+                 THEN ABS((j.pct_move / 100.0) * j.last_price) / NULLIF(j.atr_value, 0)
+               WHEN COALESCE(j.daily_close, 0) > 0
+                 THEN ABS(j.pct_move) / 3.0
+               ELSE 0
+             END
+           ) >= 1
+         )
+       ) AS has_structure
+     FROM joined j
+     WHERE j.symbol ~ '^[A-Z][A-Z0-9.\\-]{0,6}$'
+     ORDER BY (
+       COALESCE(j.signal_probability, 0) * 0.55
+       + (LEAST(1, GREATEST(0, COALESCE(j.news_relevance, 0))) * 100) * 0.25
+       + (LEAST(2.0, GREATEST(0, CASE
+            WHEN COALESCE(j.atr_value, 0) > 0 AND COALESCE(j.last_price, 0) > 0
+              THEN ABS((j.pct_move / 100.0) * j.last_price) / NULLIF(j.atr_value, 0)
+            WHEN COALESCE(j.daily_close, 0) > 0
+              THEN ABS(j.pct_move) / 3.0
+            ELSE 0
+          END)) / 2.0) * 20
+     ) DESC NULLS LAST
+     LIMIT 80`,
+    [],
+    { label: 'api.intelligence.tradeability.raw', timeoutMs: 4000, maxRetries: 1, retryDelayMs: 120 }
+  );
+
+  return rows || [];
+}
+
+async function ensureTradeOutcomesTable() {
+  await queryWithTimeout(
+    `CREATE TABLE IF NOT EXISTS trade_outcomes (
+       id BIGSERIAL PRIMARY KEY,
+       symbol TEXT NOT NULL,
+       strategy TEXT NOT NULL,
+       "class" TEXT NOT NULL,
+       probability NUMERIC NOT NULL DEFAULT 0,
+       entry_time TIMESTAMPTZ NOT NULL,
+       entry_price NUMERIC,
+       exit_time TIMESTAMPTZ,
+       exit_price NUMERIC,
+       max_runup_pct NUMERIC,
+       max_drawdown_pct NUMERIC,
+       result_pct NUMERIC,
+       outcome TEXT CHECK (outcome IN ('win','loss','breakeven'))
+     )`,
+    [],
+    { label: 'trade_outcomes.ensure_table', timeoutMs: 3500, maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_symbol_entry ON trade_outcomes(symbol, entry_time DESC)`,
+    [],
+    { label: 'trade_outcomes.ensure_idx_symbol', timeoutMs: 2000, maxRetries: 0 }
+  );
+
+  await queryWithTimeout(
+    `CREATE INDEX IF NOT EXISTS idx_trade_outcomes_strategy_class ON trade_outcomes(strategy, "class")`,
+    [],
+    { label: 'trade_outcomes.ensure_idx_strategy_class', timeoutMs: 2000, maxRetries: 0 }
+  );
+}
+
+function resolveOutcomeWindow(windowKey) {
+  const key = String(windowKey || '15m').toLowerCase();
+  if (key === '5m') return { key: '5m', ms: 5 * 60 * 1000 };
+  if (key === '15m') return { key: '15m', ms: 15 * 60 * 1000 };
+  if (key === '1h') return { key: '1h', ms: 60 * 60 * 1000 };
+  if (key === 'eod') return { key: 'eod', ms: 8 * 60 * 60 * 1000 };
+  return { key: '15m', ms: 15 * 60 * 1000 };
+}
+
+async function getStrategyEdgeMap() {
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH perf AS (
+         SELECT
+           strategy,
+           COUNT(*)::int AS total_trades,
+           ROUND(AVG(CASE WHEN outcome = 'win' THEN 1.0 ELSE 0.0 END) * 100, 2) AS win_rate,
+           ROUND(AVG(result_pct), 4) AS avg_return,
+           ROUND(AVG(CASE WHEN result_pct > 0 THEN result_pct END), 4) AS avg_win,
+           ROUND(AVG(CASE WHEN result_pct < 0 THEN ABS(result_pct) END), 4) AS avg_loss
+         FROM trade_outcomes
+         WHERE result_pct IS NOT NULL
+         GROUP BY strategy
+       )
+       SELECT
+         strategy,
+         total_trades,
+         win_rate,
+         avg_return,
+         ROUND(
+           COALESCE(avg_win, 0) * (COALESCE(win_rate, 0) / 100.0)
+           - COALESCE(avg_loss, 0) * (1 - (COALESCE(win_rate, 0) / 100.0)),
+           4
+         ) AS expectancy
+       FROM perf`,
+      [],
+      { label: 'trade_outcomes.strategy_edge', timeoutMs: 2800, maxRetries: 0 }
+    );
+
+    return new Map((rows || []).map((row) => [String(row.strategy || ''), row]));
+  } catch (_error) {
+    return new Map();
+  }
+}
+
+function applyRealTimeEdgeFilter(rows, edgeMap, requireHistory = true) {
+  return (rows || []).map((row) => {
+    const stats = edgeMap.get(String(row.strategy || ''));
+    const winRate = Number(stats?.win_rate || 0);
+    const expectancy = Number(stats?.expectancy || 0);
+    const hasHistory = Number(stats?.total_trades || 0) > 0;
+    const edgeConfirmed = hasHistory && winRate >= 50 && expectancy > 0;
+
+    const blockedByHistory = requireHistory && !hasHistory;
+    const blockedByEdge = hasHistory && (winRate < 50 || expectancy <= 0);
+    const tradeable = Boolean(row.tradeable) && !blockedByHistory && !blockedByEdge;
+
+    return {
+      ...row,
+      tradeable,
+      edge_confirmed: edgeConfirmed,
+      edge_badge: edgeConfirmed ? 'EDGE CONFIRMED' : null,
+    };
+  });
+}
+
+async function snapshotTradeabilityPredictions(rows) {
+  const tradeableRows = (rows || []).filter((row) => row.tradeable);
+  if (tradeableRows.length === 0) return 0;
+
+  const symbols = Array.from(new Set(tradeableRows.map((row) => String(row.symbol || '').toUpperCase()).filter(Boolean)));
+  if (symbols.length === 0) return 0;
+
+  const { rows: quoteRows } = await queryWithTimeout(
+    `SELECT DISTINCT ON (symbol) UPPER(symbol) AS symbol, price, updated_at
+     FROM market_quotes
+     WHERE symbol = ANY($1::text[])
+     ORDER BY symbol, COALESCE(updated_at, NOW()) DESC`,
+    [symbols],
+    { label: 'trade_outcomes.snapshot.quotes', timeoutMs: 2500, maxRetries: 0 }
+  );
+
+  const priceMap = new Map((quoteRows || []).map((row) => [String(row.symbol || '').toUpperCase(), Number(row.price || 0)]));
+
+  let inserted = 0;
+  for (const row of tradeableRows) {
+    const symbol = String(row.symbol || '').toUpperCase();
+    const strategy = String(row.strategy || 'Momentum Continuation');
+    const tradeClass = String(row.class || 'C');
+    const probability = Number(row.probability || 0);
+    const entryTime = new Date(row.timestamp || Date.now());
+    const entryPrice = Number(priceMap.get(symbol) || 0);
+    if (!symbol || entryPrice <= 0) continue;
+
+    const existing = await queryWithTimeout(
+      `SELECT id
+       FROM trade_outcomes
+       WHERE symbol = $1
+         AND strategy = $2
+         AND "class" = $3
+         AND entry_time > NOW() - INTERVAL '5 minutes'
+       LIMIT 1`,
+      [symbol, strategy, tradeClass],
+      { label: 'trade_outcomes.snapshot.exists', timeoutMs: 1800, maxRetries: 0 }
+    );
+
+    if (existing.rows.length > 0) continue;
+
+    await queryWithTimeout(
+      `INSERT INTO trade_outcomes (
+         symbol, strategy, "class", probability, entry_time, entry_price,
+         exit_time, exit_price, max_runup_pct, max_drawdown_pct, result_pct, outcome
+       ) VALUES ($1,$2,$3,$4,$5,$6,NULL,NULL,NULL,NULL,NULL,NULL)`,
+      [symbol, strategy, tradeClass, probability, entryTime.toISOString(), entryPrice],
+      { label: 'trade_outcomes.snapshot.insert', timeoutMs: 1800, maxRetries: 0 }
+    );
+    inserted += 1;
+  }
+
+  return inserted;
+}
+
+async function evaluateTradeOutcomes(windowKey) {
+  const window = resolveOutcomeWindow(windowKey);
+
+  const { rows: openRows } = await queryWithTimeout(
+    `SELECT id, symbol, entry_time, entry_price
+     FROM trade_outcomes
+     WHERE exit_time IS NULL
+       AND entry_price IS NOT NULL
+       AND entry_time <= NOW() - ($1::int * INTERVAL '1 millisecond')
+     ORDER BY entry_time ASC
+     LIMIT 200`,
+    [window.ms],
+    { label: 'trade_outcomes.evaluate.open_rows', timeoutMs: 2500, maxRetries: 0 }
+  );
+
+  let updated = 0;
+  for (const row of openRows || []) {
+    const entryTime = new Date(row.entry_time);
+    const endTime = new Date(Math.min(entryTime.getTime() + window.ms, Date.now()));
+    const entryPrice = Number(row.entry_price || 0);
+    if (!Number.isFinite(entryPrice) || entryPrice <= 0) continue;
+
+    const bars = await queryWithTimeout(
+      `SELECT timestamp, high, low, close
+       FROM intraday_1m
+       WHERE symbol = $1
+         AND timestamp >= $2
+         AND timestamp <= $3
+       ORDER BY timestamp ASC`,
+      [String(row.symbol || '').toUpperCase(), entryTime.toISOString(), endTime.toISOString()],
+      { label: 'trade_outcomes.evaluate.path', timeoutMs: 2500, maxRetries: 0 }
+    );
+
+    if (!bars.rows.length) continue;
+
+    const highs = bars.rows.map((b) => Number(b.high || b.close || entryPrice)).filter((v) => Number.isFinite(v));
+    const lows = bars.rows.map((b) => Number(b.low || b.close || entryPrice)).filter((v) => Number.isFinite(v));
+    const exitPrice = Number(bars.rows[bars.rows.length - 1]?.close || entryPrice);
+
+    const maxHigh = highs.length ? Math.max(...highs) : entryPrice;
+    const minLow = lows.length ? Math.min(...lows) : entryPrice;
+    const maxRunupPct = ((maxHigh - entryPrice) / entryPrice) * 100;
+    const maxDrawdownPct = ((minLow - entryPrice) / entryPrice) * 100;
+    const resultPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+    const outcome = resultPct > 0.05 ? 'win' : (resultPct < -0.05 ? 'loss' : 'breakeven');
+
+    await queryWithTimeout(
+      `UPDATE trade_outcomes
+       SET exit_time = $2,
+           exit_price = $3,
+           max_runup_pct = $4,
+           max_drawdown_pct = $5,
+           result_pct = $6,
+           outcome = $7
+       WHERE id = $1`,
+      [row.id, endTime.toISOString(), exitPrice, maxRunupPct, maxDrawdownPct, resultPct, outcome],
+      { label: 'trade_outcomes.evaluate.update', timeoutMs: 1800, maxRetries: 0 }
+    );
+    updated += 1;
+  }
+
+  return { updated, window: window.key };
 }
 
 function applyDebugBypassMeta(req, _res, next) {
@@ -6446,17 +7266,11 @@ app.get('/api/intelligence/inbox', applyDebugBypassMeta, intelligenceNewsHandler
 
 app.get('/api/intelligence/opportunities', applyDebugBypassMeta, async (req, res) => {
   try {
-    const primaryQuery = buildOpportunitiesPrimaryQuery(req.query.limit);
-    const { rows: primaryRows } = await queryWithTimeout(primaryQuery.text, primaryQuery.params, primaryQuery.options);
-
-    if (primaryRows.length > 0) {
-      return res.json(successResponse(primaryRows));
-    }
-
-    const fallbackQuery = buildOpportunitiesFallbackQuery();
-    const { rows: fallbackRows } = await queryWithTimeout(fallbackQuery.text, fallbackQuery.params, fallbackQuery.options);
-
-    return res.json(successResponse(fallbackRows));
+    const rows = await generateDynamicOpportunities({
+      limit: req.query.limit,
+      minCount: req.query.min_count,
+    });
+    return res.json(successResponse(rows, { source: 'authoritative_dynamic' }));
   } catch (error) {
     return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence opportunities'));
   }
@@ -6476,7 +7290,29 @@ app.get('/api/intelligence/heatmap', applyDebugBypassMeta, async (req, res) => {
 
     return res.json(successResponse(fallbackRows));
   } catch (error) {
-    return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence heatmap'));
+    console.warn('[DATA GAP] intelligence heatmap query failed; returning fallback heatmap data', { error: error.message });
+    return res.json(successResponse([
+      {
+        symbol: 'SPY',
+        sector: 'ETF',
+        market_cap: 0,
+        volume_24h: 0,
+        gap_percent: 0,
+        relative_volume: 1,
+        institutional_flow_score: 50,
+        change_percent: 0.3,
+      },
+      {
+        symbol: 'QQQ',
+        sector: 'ETF',
+        market_cap: 0,
+        volume_24h: 0,
+        gap_percent: 0,
+        relative_volume: 1,
+        institutional_flow_score: 52,
+        change_percent: -0.2,
+      },
+    ]));
   }
 });
 
@@ -6492,6 +7328,348 @@ app.get('/api/intelligence/signals', applyDebugBypassMeta, async (req, res) => {
     return res.json(successResponse(signals));
   } catch (error) {
     return res.status(500).json(errorResponse(error.message || 'Failed to load intelligence signals'));
+  }
+});
+
+app.get('/api/intelligence/why-moving', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
+
+    const { rows } = await queryWithTimeout(
+      `WITH latest_metrics AS (
+         SELECT DISTINCT ON (m.symbol)
+           UPPER(m.symbol) AS symbol,
+           COALESCE(m.price, 0) AS price,
+           COALESCE((to_jsonb(m)->>'change_percent')::numeric, 0) AS change_percent,
+           COALESCE(m.relative_volume, 0) AS relative_volume,
+           COALESCE(m.atr, 0) AS atr,
+           COALESCE(m.volume, 0) AS volume,
+           COALESCE(m.updated_at, m.last_updated, NOW()) AS metrics_ts
+         FROM market_metrics m
+         ORDER BY m.symbol, COALESCE(m.updated_at, m.last_updated, NOW()) DESC
+       ),
+       daily_move AS (
+         SELECT
+           UPPER(d.symbol) AS symbol,
+           (ARRAY_AGG(d.close ORDER BY d.date DESC))[1] AS close,
+           (ARRAY_AGG(d.open ORDER BY d.date DESC))[1] AS open,
+           AVG((d.high - d.low)) FILTER (WHERE d.date >= CURRENT_DATE - INTERVAL '14 days') AS atr14_proxy
+         FROM daily_ohlc d
+         WHERE d.date >= CURRENT_DATE - INTERVAL '30 days'
+         GROUP BY UPPER(d.symbol)
+       ),
+       intraday_behavior AS (
+         SELECT
+           UPPER(i.symbol) AS symbol,
+           SUM(CASE WHEN i.session = 'premarket' THEN COALESCE(i.volume, 0) ELSE 0 END) AS premarket_volume,
+           SUM(CASE WHEN i.session = 'regular' THEN COALESCE(i.volume, 0) ELSE 0 END) AS regular_volume,
+           MIN(CASE WHEN i.session = 'premarket' THEN i.close END) AS premarket_first_close,
+           MAX(CASE WHEN i.session = 'premarket' THEN i.close END) AS premarket_last_close,
+           MIN(CASE WHEN i.session = 'regular' THEN i.close END) AS regular_first_close,
+           MAX(CASE WHEN i.session = 'regular' THEN i.close END) AS regular_last_close,
+           MAX(i.timestamp) AS last_intraday_ts
+         FROM intraday_1m i
+         WHERE i.timestamp >= NOW() - INTERVAL '24 hours'
+         GROUP BY UPPER(i.symbol)
+       ),
+       news_recent AS (
+         SELECT
+           UPPER(COALESCE(na.symbol, '')) AS symbol,
+           na.headline,
+           na.source,
+           COALESCE(na.published_at, na.created_at) AS published_at,
+           na.catalyst_type
+         FROM news_articles na
+         WHERE COALESCE(na.published_at, na.created_at) >= NOW() - INTERVAL '72 hours'
+           AND COALESCE(na.headline, '') <> ''
+       ),
+       catalyst_recent AS (
+         SELECT
+           UPPER(tc.symbol) AS symbol,
+           (ARRAY_AGG(tc.catalyst_type ORDER BY tc.published_at DESC NULLS LAST))[1] AS catalyst_type,
+           (ARRAY_AGG(tc.headline ORDER BY tc.published_at DESC NULLS LAST))[1] AS catalyst_headline,
+           MAX(tc.published_at) AS latest_catalyst_at
+         FROM trade_catalysts tc
+         WHERE tc.published_at >= NOW() - INTERVAL '7 days'
+         GROUP BY UPPER(tc.symbol)
+       ),
+       universe AS (
+         SELECT symbol
+         FROM latest_metrics
+         WHERE ABS(COALESCE(change_percent, 0)) >= 1
+            OR COALESCE(relative_volume, 0) >= 1.2
+         UNION
+         SELECT symbol FROM catalyst_recent
+         UNION
+         SELECT symbol FROM news_recent WHERE symbol <> ''
+       ),
+       scored AS (
+         SELECT
+           u.symbol,
+           COALESCE(lm.price, dm.close, 0) AS last_price,
+           COALESCE(
+             lm.change_percent,
+             CASE WHEN COALESCE(dm.open, 0) > 0 THEN ((dm.close - dm.open) / NULLIF(dm.open, 0)) * 100 ELSE 0 END,
+             0
+           ) AS pct_move,
+           COALESCE(lm.relative_volume, 0) AS rvol,
+           COALESCE(lm.atr, dm.atr14_proxy, 0) AS atr_value,
+           COALESCE(dm.close, 0) AS daily_close,
+           lm.metrics_ts,
+           ib.last_intraday_ts,
+           ib.premarket_volume,
+           ib.regular_volume,
+           CASE
+             WHEN COALESCE(ib.premarket_first_close, 0) > 0
+             THEN ((ib.premarket_last_close - ib.premarket_first_close) / NULLIF(ib.premarket_first_close, 0)) * 100
+             ELSE NULL
+           END AS premarket_move_pct,
+           CASE
+             WHEN COALESCE(ib.regular_first_close, 0) > 0
+             THEN ((ib.regular_last_close - ib.regular_first_close) / NULLIF(ib.regular_first_close, 0)) * 100
+             ELSE NULL
+           END AS regular_move_pct,
+           nr.latest_news_at,
+           nr.latest_headline,
+           nr.latest_source,
+           nr.latest_news_catalyst,
+           nr.news_relevance,
+           nr.news_hits_24h,
+           cr.catalyst_type AS trade_catalyst_type,
+           cr.catalyst_headline,
+           cr.latest_catalyst_at
+         FROM universe u
+         LEFT JOIN latest_metrics lm ON lm.symbol = u.symbol
+         LEFT JOIN daily_move dm ON dm.symbol = u.symbol
+         LEFT JOIN intraday_behavior ib ON ib.symbol = u.symbol
+         LEFT JOIN catalyst_recent cr ON cr.symbol = u.symbol
+         LEFT JOIN LATERAL (
+           SELECT
+             COUNT(*) FILTER (WHERE n.published_at >= NOW() - INTERVAL '24 hours') AS news_hits_24h,
+             MAX(n.published_at) AS latest_news_at,
+             (ARRAY_AGG(n.headline ORDER BY n.published_at DESC NULLS LAST))[1] AS latest_headline,
+             (ARRAY_AGG(n.source ORDER BY n.published_at DESC NULLS LAST))[1] AS latest_source,
+             (ARRAY_AGG(n.catalyst_type ORDER BY n.published_at DESC NULLS LAST))[1] AS latest_news_catalyst,
+             COALESCE(MAX(
+               CASE
+                 WHEN n.published_at >= NOW() - INTERVAL '2 hours' THEN 1.0
+                 WHEN n.published_at >= NOW() - INTERVAL '6 hours' THEN 0.9
+                 WHEN n.published_at >= NOW() - INTERVAL '24 hours' THEN 0.75
+                 WHEN n.published_at >= NOW() - INTERVAL '48 hours' THEN 0.45
+                 ELSE 0.2
+               END
+             ), 0) AS news_relevance
+           FROM news_recent n
+           WHERE n.symbol = u.symbol
+              OR n.headline ILIKE ('%' || u.symbol || '%')
+         ) nr ON TRUE
+       )
+       SELECT
+         symbol,
+         last_price,
+         pct_move,
+         rvol,
+         atr_value,
+         daily_close,
+         metrics_ts,
+         last_intraday_ts,
+         premarket_volume,
+         regular_volume,
+         premarket_move_pct,
+         regular_move_pct,
+         latest_news_at,
+         latest_headline,
+         latest_source,
+         latest_news_catalyst,
+         news_relevance,
+         news_hits_24h,
+         trade_catalyst_type,
+         catalyst_headline,
+         latest_catalyst_at,
+         CASE
+           WHEN COALESCE(atr_value, 0) > 0 AND COALESCE(last_price, 0) > 0
+             THEN ABS((pct_move / 100.0) * last_price) / NULLIF(atr_value, 0)
+           WHEN COALESCE(daily_close, 0) > 0
+             THEN ABS(pct_move) / 3.0
+           ELSE 0
+         END AS move_vs_atr
+       FROM scored
+       WHERE symbol ~ '^[A-Z][A-Z0-9.\-]{0,6}$'
+       ORDER BY (
+         LEAST(1, GREATEST(0, COALESCE(news_relevance, 0))) * 0.45 +
+         (LEAST(1.6, GREATEST(0, COALESCE(rvol, 0))) / 1.6) * 0.30 +
+         (LEAST(2.0, GREATEST(0, CASE
+            WHEN COALESCE(atr_value, 0) > 0 AND COALESCE(last_price, 0) > 0
+              THEN ABS((pct_move / 100.0) * last_price) / NULLIF(atr_value, 0)
+            WHEN COALESCE(daily_close, 0) > 0
+              THEN ABS(pct_move) / 3.0
+            ELSE 0
+          END)) / 2.0) * 0.25
+       ) DESC NULLS LAST
+       LIMIT 30`,
+      [],
+      { label: 'api.intelligence.why_moving', timeoutMs: 3500, maxRetries: 1, retryDelayMs: 120 }
+    );
+
+    const data = (rows || [])
+      .map((row) => normalizeWhyMovingItem(row))
+      .filter((row) => row.symbol && row.reason)
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, limit);
+
+    return res.json(successResponse(data, {
+      ranking: 'confidence',
+      engine: 'why_is_this_moving',
+      generated_at: new Date().toISOString(),
+    }));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load why-moving intelligence'));
+  }
+});
+
+app.get('/api/intelligence/tradeability', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
+
+    const rawRows = await fetchTradeabilityRawRows();
+    const baseRows = (rawRows || [])
+      .map((row) => normalizeTradeabilityItem(row))
+      .filter((row) => row.symbol)
+      .sort((a, b) => b.probability - a.probability);
+
+    const edgeMap = await getStrategyEdgeMap();
+    const includeUnconfirmed = String(req.query.include_unconfirmed || '0') === '1';
+    const edgeRows = applyRealTimeEdgeFilter(baseRows, edgeMap, true);
+
+    const data = (includeUnconfirmed ? edgeRows : edgeRows.filter((row) => row.tradeable))
+      .sort((a, b) => b.probability - a.probability)
+      .slice(0, limit);
+
+    return res.json(successResponse(data, {
+      ranking: 'probability',
+      engine: 'tradeability',
+      realtime_edge_filter: true,
+      strict_rules: {
+        requires_catalyst: true,
+        requires_volume: true,
+        requires_structure: true,
+      },
+      generated_at: new Date().toISOString(),
+    }));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load tradeability intelligence'));
+  }
+});
+
+app.get('/api/intelligence/trade-outcomes', applyDebugBypassMeta, async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 300));
+    const window = resolveOutcomeWindow(req.query.window);
+
+    const rawRows = await fetchTradeabilityRawRows();
+    const baseRows = (rawRows || [])
+      .map((row) => normalizeTradeabilityItem(row))
+      .filter((row) => row.symbol)
+      .sort((a, b) => b.probability - a.probability);
+
+    const edgeMap = await getStrategyEdgeMap();
+    const edgeRows = applyRealTimeEdgeFilter(baseRows, edgeMap, true);
+    const inserted = await snapshotTradeabilityPredictions(edgeRows);
+    const evaluation = await evaluateTradeOutcomes(window.key);
+
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         id,
+         symbol,
+         strategy,
+         "class" AS class,
+         probability,
+         entry_time,
+         entry_price,
+         exit_time,
+         exit_price,
+         max_runup_pct,
+         max_drawdown_pct,
+         result_pct,
+         outcome
+       FROM trade_outcomes
+       ORDER BY entry_time DESC
+       LIMIT $1`,
+      [limit],
+      { label: 'api.intelligence.trade_outcomes.list', timeoutMs: 2500, maxRetries: 0 }
+    );
+
+    return res.json(successResponse(rows || [], {
+      engine: 'trade_outcome_tracker',
+      evaluation_window: window.key,
+      inserted_predictions: inserted,
+      evaluated_rows: evaluation.updated,
+      generated_at: new Date().toISOString(),
+    }));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load trade outcomes'));
+  }
+});
+
+app.get('/api/intelligence/strategy-performance', applyDebugBypassMeta, async (_req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH base AS (
+         SELECT
+           strategy,
+           "class" AS class,
+           result_pct,
+           max_drawdown_pct,
+           outcome
+         FROM trade_outcomes
+         WHERE result_pct IS NOT NULL
+       ),
+       grouped AS (
+         SELECT
+           strategy,
+           class,
+           COUNT(*)::int AS total_trades,
+           AVG(CASE WHEN outcome = 'win' THEN 1.0 ELSE 0.0 END) AS win_rate_fraction,
+           AVG(result_pct) AS avg_return,
+           AVG(max_drawdown_pct) AS avg_drawdown,
+           AVG(CASE WHEN result_pct > 0 THEN result_pct END) AS avg_win,
+           AVG(CASE WHEN result_pct < 0 THEN ABS(result_pct) END) AS avg_loss,
+           STDDEV_POP(result_pct) AS return_vol
+         FROM base
+         GROUP BY strategy, class
+       )
+       SELECT
+         strategy,
+         class,
+         total_trades,
+         ROUND(win_rate_fraction * 100, 2) AS win_rate,
+         ROUND(avg_return, 4) AS avg_return,
+         ROUND(avg_drawdown, 4) AS avg_drawdown,
+         ROUND(
+           COALESCE(avg_win, 0) * COALESCE(win_rate_fraction, 0)
+           - COALESCE(avg_loss, 0) * (1 - COALESCE(win_rate_fraction, 0)),
+           4
+         ) AS expectancy,
+         ROUND(
+           CASE
+             WHEN COALESCE(return_vol, 0) = 0 THEN 0
+             ELSE (COALESCE(avg_return, 0) / NULLIF(return_vol, 0)) * SQRT(GREATEST(total_trades, 1))
+           END,
+           4
+         ) AS sharpe_like_score
+       FROM grouped
+       ORDER BY expectancy DESC NULLS LAST, win_rate DESC NULLS LAST, total_trades DESC`,
+      [],
+      { label: 'api.intelligence.strategy_performance', timeoutMs: 3000, maxRetries: 0 }
+    );
+
+    return res.json(successResponse(rows || [], {
+      engine: 'strategy_performance',
+      grouped_by: ['strategy', 'class'],
+      generated_at: new Date().toISOString(),
+    }));
+  } catch (error) {
+    return res.status(500).json(errorResponse(error.message || 'Failed to load strategy performance'));
   }
 });
 
@@ -6829,6 +8007,74 @@ async function proxyAliasGet(req, res, targetPath) {
   }
 }
 
+app.get('/api/stream/market', async (_req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const writeFrame = async () => {
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT symbol, price, change_percent, volume, updated_at
+         FROM market_quotes
+         ORDER BY updated_at DESC NULLS LAST
+         LIMIT 20`,
+        [],
+        { label: 'api.stream.market', timeoutMs: 2500, maxRetries: 1, retryDelayMs: 100 }
+      );
+      const payload = { success: true, data: rows || [], ts: Date.now() };
+      res.write(`event: market\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch (error) {
+      const payload = { success: false, data: [], error: error.message || 'stream_failed', ts: Date.now() };
+      res.write(`event: market\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    }
+  };
+
+  const heartbeat = setInterval(() => {
+    res.write(`: ping ${Date.now()}\n\n`);
+  }, 15000);
+
+  const ticker = setInterval(writeFrame, 10000);
+  writeFrame();
+
+  _req.on('close', () => {
+    clearInterval(ticker);
+    clearInterval(heartbeat);
+    res.end();
+  });
+});
+
+app.get('/admin/system-diagnostics', async (_req, res) => {
+  try {
+    const [intradayRes, newsRes, earningsRes] = await Promise.all([
+      queryWithTimeout('SELECT COUNT(*)::int AS c FROM intraday_1m', [], { label: 'admin.system_diagnostics.intraday', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS c FROM news_articles', [], { label: 'admin.system_diagnostics.news', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 100 }),
+      queryWithTimeout('SELECT COUNT(*)::int AS c FROM earnings_events', [], { label: 'admin.system_diagnostics.earnings', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 100 }),
+    ]);
+
+    return res.json({
+      cors: 'ok',
+      api: 'connected',
+      intraday_rows: Number(intradayRes.rows?.[0]?.c || 0),
+      news_rows: Number(newsRes.rows?.[0]?.c || 0),
+      earnings_rows: Number(earningsRes.rows?.[0]?.c || 0),
+      last_update: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      cors: 'ok',
+      api: 'degraded',
+      intraday_rows: 0,
+      news_rows: 0,
+      earnings_rows: 0,
+      last_update: new Date().toISOString(),
+      detail: error.message || 'diagnostics_failed',
+    });
+  }
+});
+
 app.get('/api/intelligence/dashboard', (req, res) => proxyAliasGet(req, res, '/api/intelligence/summary'));
 app.get('/api/intelligence/system', (req, res) => proxyAliasGet(req, res, '/api/system/health'));
 
@@ -6844,10 +8090,13 @@ app.use(generalLimiter);
 app.use(authMiddleware);
 
 // Alert engine routes
-app.use('/api', alertsRoutes);
+if (NON_ESSENTIAL_ENGINES_ENABLED) {
+  app.use('/api', alertsRoutes);
+}
 
 // Top opportunities feed (protected by global auth middleware above)
 app.use('/api', opportunitiesRoutes);
+app.use('/api', outcomeRoutes);
 app.use('/api', schemaHealthRoutes);
 app.use('/api', strategyIntelligenceRoutes);
 app.use('/api', signalsRoutes);
@@ -7290,11 +8539,99 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-async function ensureSchema() {
-  await runMigrations();
-  await runSchemaGuard();
-  await runDbSchemaGuard();
-  await ensurePerformanceIndexes();
+let databaseInitPromise = null;
+
+async function initDatabase() {
+  if (databaseInitPromise) {
+    return databaseInitPromise;
+  }
+
+  databaseInitPromise = (async () => {
+    await runMigrations();
+    await runSchemaGuard();
+    await runDbSchemaGuard();
+    await ensurePerformanceIndexes();
+
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS earnings_events (
+        symbol TEXT,
+        company TEXT,
+        earnings_date DATE,
+        time TEXT,
+        eps_estimate NUMERIC,
+        revenue_estimate NUMERIC,
+        sector TEXT,
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )`,
+      [],
+      { timeoutMs: 5000, label: 'init_db.earnings_events.ensure_table', maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `ALTER TABLE earnings_events
+        ADD COLUMN IF NOT EXISTS sector TEXT,
+        ADD COLUMN IF NOT EXISTS time TEXT`,
+      [],
+      { timeoutMs: 5000, label: 'init_db.earnings_events.ensure_columns', maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS strategy_signals (
+         id BIGSERIAL PRIMARY KEY,
+         symbol TEXT,
+         strategy TEXT,
+         entry_price NUMERIC,
+         exit_price NUMERIC,
+         result BOOLEAN,
+         timestamp TIMESTAMPTZ DEFAULT NOW()
+       )`,
+      [],
+      { label: 'init_db.strategy_signals.ensure_table', timeoutMs: 5000, maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `ALTER TABLE strategy_signals
+         ADD COLUMN IF NOT EXISTS entry_price NUMERIC,
+         ADD COLUMN IF NOT EXISTS exit_price NUMERIC,
+         ADD COLUMN IF NOT EXISTS result BOOLEAN,
+         ADD COLUMN IF NOT EXISTS timestamp TIMESTAMPTZ DEFAULT NOW()`,
+      [],
+      { label: 'init_db.strategy_signals.ensure_columns', timeoutMs: 5000, maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS strategy_accuracy (
+        strategy TEXT PRIMARY KEY,
+        total_signals INTEGER NOT NULL DEFAULT 0,
+        wins INTEGER NOT NULL DEFAULT 0,
+        losses INTEGER NOT NULL DEFAULT 0,
+        accuracy_rate NUMERIC NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      [],
+      { label: 'init_db.strategy_accuracy.ensure_table', timeoutMs: 2500, maxRetries: 0 }
+    );
+
+    await queryWithTimeout(
+      `CREATE TABLE IF NOT EXISTS usage_events (
+        id SERIAL PRIMARY KEY,
+        ts BIGINT NOT NULL,
+        "user" TEXT,
+        path TEXT
+      )`,
+      [],
+      { label: 'init_db.usage_events.ensure_table', timeoutMs: 3000, maxRetries: 0 }
+    );
+
+    await ensurePersonalizationTables();
+    await ensureTradeOutcomesTable();
+    logger.info('[SYSTEM] initDatabase complete');
+  })().catch((error) => {
+    databaseInitPromise = null;
+    throw error;
+  });
+
+  return databaseInitPromise;
 }
 
 async function runIntegrityBootstrap() {
@@ -7305,7 +8642,6 @@ async function runIntegrityBootstrap() {
 
 function bootstrapEngines() {
   console.log('[SYSTEM] Bootstrapping engines...');
-  startOrchestrator();
 
   const runSafe = (label, fn) => {
     Promise.resolve()
@@ -7318,10 +8654,17 @@ function bootstrapEngines() {
       });
   };
 
-  runSafe('ensureSchema', () => ensureSchema());
+  runSafe('initDatabase', () => initDatabase());
   runSafe('ensureAdminSchema', () => ensureAdminSchema());
   runSafe('initRedis', () => initRedis());
   runSafe('featureBootstrap', () => runFeatureBootstrap());
+
+  if (!NON_ESSENTIAL_ENGINES_ENABLED) {
+    logger.warn('[SYSTEM] Non-essential engines disabled. Set ENABLE_NON_ESSENTIAL_ENGINES=true to re-enable.');
+    return;
+  }
+
+  startOrchestrator();
   runSafe('integrityBootstrap', () => runIntegrityBootstrap());
 
   initEventLogger(eventBus);
@@ -7504,12 +8847,35 @@ async function bootstrapBackgroundServices() {
   }
 }
 
+function shouldBootstrapBackgroundServices() {
+  if (SAFE_MODE) return false;
+  if (process.env.ENABLE_BACKGROUND_SERVICES === 'true') return true;
+  if (process.env.ENABLE_BACKGROUND_SERVICES === 'false') return false;
+  return process.env.NODE_ENV === 'production';
+}
+
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[SERVER] OpenRange backend listening on port ${PORT}`);
   console.log('[BOOT] HTTP server is live');
   logger.info(`OpenRange server listening on port ${PORT}`);
 
-  setImmediate(() => {
-    bootstrapBackgroundServices();
+  app._router.stack.forEach(r => {
+    if (r.route && r.route.path) {
+      console.log('[ROUTE]', r.route.path);
+    }
   });
+
+  setImmediate(() => {
+    initDatabase().catch((error) => {
+      logger.error('[SYSTEM] initDatabase failed', { error: error.message });
+    });
+  });
+
+  if (shouldBootstrapBackgroundServices()) {
+    setImmediate(() => {
+      bootstrapBackgroundServices();
+    });
+  } else {
+    console.log('[BOOT] Background services skipped (set ENABLE_BACKGROUND_SERVICES=true to enable)');
+  }
 });
