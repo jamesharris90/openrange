@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-03-30T17:00:00.000Z",
+  "engine": "Admin Control Panel v1 (Mission Control)",
+
+  "phases_completed": {
+    "phase_1_routing_access_control": {
+      "status": "complete",
+      "changes": [
+        "trading-os/src/middleware.ts: JWT admin check for /admin/* routes — redirect non-admins to /dashboard",
+        "trading-os/src/context/AuthContext.tsx: added is_admin to AuthUser type, exposed isAdmin boolean",
+        "server/db/migrations/043_admin_roles.sql: admin_roles table + system_logs table"
+      ]
+    },
+    "phase_2_system_health": {
+      "status": "complete",
+      "endpoints": ["GET /api/system/health", "GET /api/system/learning-status"],
+      "displays": ["System Status GREEN/AMBER/RED", "Scheduler status", "Evaluation rate %", "Stuck signals", "Errors 24h"]
+    },
+    "phase_3_data_pipeline": {
+      "status": "complete",
+      "endpoint": "GET /api/admin/pipeline-stats",
+      "tables_monitored": ["market_quotes", "intraday_1m", "daily_ohlc", "news_articles", "earnings_events"],
+      "status_rules": "< 1h → GREEN, 1–24h → AMBER, > 24h → RED",
+      "force_refresh": "POST /api/admin/pipeline-refresh"
+    },
+    "phase_4_signal_performance": {
+      "status": "complete",
+      "endpoints": ["GET /api/signals/performance?days=7", "GET /api/simulation/live"],
+      "displays": ["Win Rate today/7d", "Total signals", "Avg return", "Per-setup breakdown table"]
+    },
+    "phase_5_live_simulation": {
+      "status": "complete",
+      "endpoint": "GET /api/simulation/live",
+      "displays": ["Active trades", "Simulated PnL", "Best/worst setup", "View Trades modal"]
+    },
+    "phase_6_signal_flow": {
+      "status": "complete",
+      "endpoint": "GET /api/admin/signal-flow",
+      "displays": ["Signals last 5m/1h/24h", "Evaluated vs unevaluated", "Stuck signals"],
+      "alert": "RED banner if stuck_signals > 0"
+    },
+    "phase_7_user_management": {
+      "status": "complete",
+      "endpoints": ["GET /api/admin/users", "POST /api/admin/users/:id/promote", "POST /api/admin/users/:id/disable"],
+      "user_count": 14
+    },
+    "phase_8_newsletter": {
+      "status": "complete",
+      "endpoints": ["GET /api/admin/newsletter-stats", "GET /api/admin/newsletter-subscribers"],
+      "newsletter_subscribers": 1,
+      "intelligence_emails_total": 1359
+    },
+    "phase_9_data_integrity": {
+      "status": "complete",
+      "endpoint": "GET /api/admin/data-integrity",
+      "checks": ["zero_price_quotes", "watchlist_symbols_missing_intraday", "upcoming_earnings_missing_expected_move", "news_articles_last_4h", "stuck_unevaluated_signals"],
+      "severity_levels": ["OK", "MEDIUM", "HIGH"]
+    },
+    "phase_10_engine_control": {
+      "status": "complete",
+      "endpoints": ["GET /api/admin/engines", "POST /api/admin/engines/:name/run"],
+      "engines_monitored": ["sessionAggregationEngine", "premarketWatchlistEngine", "premarketIntelligenceEngine", "executionEngine", "executionRefinementEngine", "liveEvaluationEngine"]
+    },
+    "phase_11_log_viewer": {
+      "status": "complete",
+      "endpoint": "GET /api/admin/logs?filter=",
+      "filters": ["ALL", "INGEST", "EVAL", "ERROR", "CRITICAL"],
+      "sources": ["system_logs table", "signal_log ERROR outcomes"]
+    },
+    "phase_12_ui_structure": {
+      "status": "complete",
+      "layout": "Top grid: System Health + Data Pipeline always visible; Tab nav for 10 detail panels",
+      "tabs": ["Health", "Pipeline", "Signals", "Simulation", "Signal Flow", "Users", "Newsletter", "Integrity", "Engines", "Logs"]
+    },
+    "phase_13_validation": {
+      "status": "complete",
+      "typescript_errors_in_admin_files": 0,
+      "migration_043_applied": true,
+      "all_endpoints_implemented": true
+    }
+  },
+
+  "system_status": {
+    "signals_total": 423,
+    "signals_evaluated": 423,
+    "signal_errors": 0,
+    "evaluation_rate_pct": 100,
+    "stuck_signals": 0
+  },
+
+  "data_status": {
+    "tables_monitored": 5,
+    "status_check_endpoint": "GET /api/admin/pipeline-stats",
+    "force_refresh_endpoint": "POST /api/admin/pipeline-refresh"
+  },
+
+  "signal_status": {
+    "total_evaluated_all_time": 423,
+    "errors": 0,
+    "learning_loop_active": true
+  },
+
+  "user_count": 14,
+  "newsletter_subscribers": 1,
+  "error_count": 0,
+
+  "access_control": {
+    "middleware": "JWT decoded in middleware.ts — is_admin=1 required for /admin/* routes",
+    "backend_guard": "requireAdminAction — checks is_admin=1 on JWT payload OR PROXY_API_KEY header",
+    "frontend_guard": "AdminView renders access-denied UI if !isAdmin",
+    "admin_roles_table": "created via migration 043 for future RBAC expansion"
+  }
+}

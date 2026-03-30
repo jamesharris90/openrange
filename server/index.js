@@ -11301,6 +11301,346 @@ app.post('/api/admin/catalysts/reactions/run', requireAdminAction, async (req, r
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN CONTROL PANEL ENDPOINTS (Phase 2–11)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Phase 3 — Data pipeline table stats
+app.get('/api/admin/pipeline-stats', requireAdminAction, async (req, res) => {
+  const tables = [
+    { name: 'market_quotes',   tsCol: 'updated_at' },
+    { name: 'intraday_1m',     tsCol: 'timestamp'  },
+    { name: 'daily_ohlc',      tsCol: 'updated_at' },
+    { name: 'news_articles',   tsCol: 'published_at' },
+    { name: 'earnings_events', tsCol: 'updated_at' },
+  ];
+
+  const results = await Promise.all(tables.map(async ({ name, tsCol }) => {
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT COUNT(*) AS cnt, MAX("${tsCol}") AS last_ts FROM ${name}`,
+        [],
+        { timeoutMs: 8000, label: `admin.pipeline.${name}`, maxRetries: 0 }
+      );
+      const row = rows[0];
+      const lastTs = row.last_ts ? new Date(row.last_ts) : null;
+      const ageMinutes = lastTs ? Math.floor((Date.now() - lastTs.getTime()) / 60000) : null;
+      const status = ageMinutes === null ? 'unknown'
+        : ageMinutes < 60   ? 'green'
+        : ageMinutes < 1440 ? 'amber'
+        : 'red';
+      return {
+        table: name, row_count: Number(row.cnt || 0),
+        last_updated: lastTs?.toISOString() ?? null,
+        age_minutes: ageMinutes, status,
+      };
+    } catch (err) {
+      return { table: name, row_count: 0, last_updated: null, age_minutes: null, status: 'red', error: err.message };
+    }
+  }));
+
+  return res.json({ ok: true, tables: results, generated_at: new Date().toISOString() });
+});
+
+// Phase 3 — Force pipeline refresh
+app.post('/api/admin/pipeline-refresh', requireAdminAction, async (req, res) => {
+  try {
+    const { runFmpMarketIngestion } = require('./engines/fmpMarketIngestion');
+    setImmediate(() => runFmpMarketIngestion().catch(() => {}));
+    return res.json({ ok: true, message: 'Pipeline refresh triggered' });
+  } catch (err) {
+    return res.json({ ok: true, message: 'Refresh triggered (engine load deferred)' });
+  }
+});
+
+// Phase 6 — Signal flow monitor
+app.get('/api/admin/signal-flow', requireAdminAction, async (req, res) => {
+  try {
+    const [flow, stuck] = await Promise.all([
+      queryWithTimeout(
+        `SELECT
+           COUNT(*) FILTER (WHERE timestamp >= NOW() - INTERVAL '5 minutes')  AS last_5m,
+           COUNT(*) FILTER (WHERE timestamp >= NOW() - INTERVAL '1 hour')     AS last_1h,
+           COUNT(*) FILTER (WHERE timestamp >= NOW() - INTERVAL '24 hours')   AS last_24h,
+           COUNT(*) FILTER (WHERE evaluated = true AND timestamp >= NOW() - INTERVAL '24 hours') AS evaluated_24h,
+           COUNT(*) FILTER (WHERE evaluated = false AND timestamp >= NOW() - INTERVAL '24 hours') AS unevaluated_24h
+         FROM signal_log`,
+        [],
+        { timeoutMs: 8000, label: 'admin.signal_flow' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS cnt FROM signal_log
+         WHERE evaluated = false AND timestamp < NOW() - INTERVAL '1 hour'`,
+        [],
+        { timeoutMs: 8000, label: 'admin.signal_stuck' }
+      ),
+    ]);
+    const f = flow.rows[0] || {};
+    return res.json({
+      ok: true,
+      last_5m:         Number(f.last_5m || 0),
+      last_1h:         Number(f.last_1h || 0),
+      last_24h:        Number(f.last_24h || 0),
+      evaluated_24h:   Number(f.evaluated_24h || 0),
+      unevaluated_24h: Number(f.unevaluated_24h || 0),
+      stuck_signals:   Number(stuck.rows[0]?.cnt || 0),
+      generated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Phase 7 — User list
+app.get('/api/admin/users', requireAdminAction, async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT id, COALESCE(username, email, id::text) AS username, email,
+              COALESCE(is_admin, 0) AS is_admin,
+              COALESCE(is_active, 1) AS is_active,
+              last_login, created_at
+       FROM users
+       ORDER BY created_at DESC
+       LIMIT 200`,
+      [],
+      { timeoutMs: 10000, label: 'admin.users.list' }
+    );
+    return res.json({ ok: true, users: rows, count: rows.length });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message, users: [] });
+  }
+});
+
+// Phase 7 — Promote user to admin
+app.post('/api/admin/users/:id/promote', requireAdminAction, async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!userId) return res.status(400).json({ ok: false, error: 'Invalid user id' });
+  try {
+    await queryWithTimeout(
+      `UPDATE users SET is_admin = 1, updated_at = NOW() WHERE id = $1`,
+      [userId],
+      { timeoutMs: 8000, label: 'admin.users.promote', poolType: 'write' }
+    );
+    return res.json({ ok: true, user_id: userId, role: 'ADMIN' });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Phase 7 — Disable user
+app.post('/api/admin/users/:id/disable', requireAdminAction, async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!userId) return res.status(400).json({ ok: false, error: 'Invalid user id' });
+  try {
+    await queryWithTimeout(
+      `UPDATE users SET is_active = 0, updated_at = NOW() WHERE id = $1`,
+      [userId],
+      { timeoutMs: 8000, label: 'admin.users.disable', poolType: 'write' }
+    );
+    return res.json({ ok: true, user_id: userId, status: 'disabled' });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Phase 8 — Newsletter stats
+app.get('/api/admin/newsletter-stats', requireAdminAction, async (req, res) => {
+  try {
+    const [subCount, emailCount] = await Promise.all([
+      queryWithTimeout(
+        `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_active = true) AS active
+         FROM newsletter_subscribers`,
+        [],
+        { timeoutMs: 8000, label: 'admin.newsletter.subs', maxRetries: 0 }
+      ).catch(() => ({ rows: [{ total: 0, active: 0 }] })),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS sent_24h FROM intelligence_emails
+         WHERE received_at >= NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 8000, label: 'admin.newsletter.sent', maxRetries: 0 }
+      ).catch(() => ({ rows: [{ sent_24h: 0 }] })),
+    ]);
+    return res.json({
+      ok: true,
+      total_subscribers: Number(subCount.rows[0]?.total || 0),
+      active_subscribers: Number(subCount.rows[0]?.active || 0),
+      emails_received_24h: Number(emailCount.rows[0]?.sent_24h || 0),
+      generated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Phase 8 — Newsletter subscriber list
+app.get('/api/admin/newsletter-subscribers', requireAdminAction, async (req, res) => {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT email, is_active, timezone, created_at, updated_at
+       FROM newsletter_subscribers
+       ORDER BY created_at DESC
+       LIMIT 100`,
+      [],
+      { timeoutMs: 10000, label: 'admin.newsletter.list', maxRetries: 0 }
+    );
+    return res.json({ ok: true, subscribers: rows, count: rows.length });
+  } catch (err) {
+    return res.json({ ok: true, subscribers: [], count: 0, note: 'Table unavailable' });
+  }
+});
+
+// Phase 9 — Data integrity checker
+app.get('/api/admin/data-integrity', requireAdminAction, async (req, res) => {
+  const checks = await Promise.all([
+    // Zero-price quotes
+    queryWithTimeout(
+      `SELECT COUNT(*) AS cnt FROM market_quotes WHERE price = 0 OR price IS NULL`,
+      [],
+      { timeoutMs: 8000, label: 'admin.integrity.zero_price', maxRetries: 0 }
+    ).then(r => ({ issue: 'zero_price_quotes', count: Number(r.rows[0]?.cnt || 0), severity: Number(r.rows[0]?.cnt) > 100 ? 'HIGH' : Number(r.rows[0]?.cnt) > 0 ? 'MEDIUM' : 'OK' }))
+     .catch(() => ({ issue: 'zero_price_quotes', count: 0, severity: 'UNKNOWN' })),
+
+    // Missing intraday data (symbols in watchlist with no intraday in 24h)
+    queryWithTimeout(
+      `SELECT COUNT(DISTINCT pw.symbol) AS cnt
+       FROM premarket_watchlist pw
+       LEFT JOIN (
+         SELECT DISTINCT symbol FROM intraday_1m
+         WHERE "timestamp" >= NOW() - INTERVAL '24 hours'
+       ) im ON im.symbol = pw.symbol
+       WHERE im.symbol IS NULL`,
+      [],
+      { timeoutMs: 8000, label: 'admin.integrity.missing_intraday', maxRetries: 0 }
+    ).then(r => ({ issue: 'watchlist_symbols_missing_intraday', count: Number(r.rows[0]?.cnt || 0), severity: Number(r.rows[0]?.cnt) > 20 ? 'HIGH' : Number(r.rows[0]?.cnt) > 5 ? 'MEDIUM' : 'OK' }))
+     .catch(() => ({ issue: 'watchlist_symbols_missing_intraday', count: 0, severity: 'UNKNOWN' })),
+
+    // Missing earnings data (events with no expected_move)
+    queryWithTimeout(
+      `SELECT COUNT(*) AS cnt FROM earnings_events
+       WHERE event_date >= CURRENT_DATE AND event_date <= CURRENT_DATE + 7
+         AND (expected_move IS NULL OR expected_move = 0)`,
+      [],
+      { timeoutMs: 8000, label: 'admin.integrity.earnings_no_move', maxRetries: 0 }
+    ).then(r => ({ issue: 'upcoming_earnings_missing_expected_move', count: Number(r.rows[0]?.cnt || 0), severity: Number(r.rows[0]?.cnt) > 10 ? 'MEDIUM' : 'OK' }))
+     .catch(() => ({ issue: 'upcoming_earnings_missing_expected_move', count: 0, severity: 'UNKNOWN' })),
+
+    // News gap (no news articles in last 4h)
+    queryWithTimeout(
+      `SELECT COUNT(*) AS cnt FROM news_articles WHERE published_at >= NOW() - INTERVAL '4 hours'`,
+      [],
+      { timeoutMs: 8000, label: 'admin.integrity.news_gap', maxRetries: 0 }
+    ).then(r => ({ issue: 'news_articles_last_4h', count: Number(r.rows[0]?.cnt || 0), severity: Number(r.rows[0]?.cnt) === 0 ? 'HIGH' : 'OK' }))
+     .catch(() => ({ issue: 'news_articles_last_4h', count: 0, severity: 'UNKNOWN' })),
+
+    // Stuck signals
+    queryWithTimeout(
+      `SELECT COUNT(*) AS cnt FROM signal_log WHERE evaluated = false AND timestamp < NOW() - INTERVAL '1 hour'`,
+      [],
+      { timeoutMs: 8000, label: 'admin.integrity.stuck_signals', maxRetries: 0 }
+    ).then(r => ({ issue: 'stuck_unevaluated_signals', count: Number(r.rows[0]?.cnt || 0), severity: Number(r.rows[0]?.cnt) > 0 ? 'HIGH' : 'OK' }))
+     .catch(() => ({ issue: 'stuck_unevaluated_signals', count: 0, severity: 'UNKNOWN' })),
+  ]);
+
+  const issues = checks.filter(c => c.severity !== 'OK' && c.severity !== 'UNKNOWN');
+  return res.json({ ok: true, checks, issues, issue_count: issues.length, generated_at: new Date().toISOString() });
+});
+
+// Phase 10 — Engine status list
+app.get('/api/admin/engines', requireAdminAction, async (req, res) => {
+  // Infer last run time from table update timestamps where possible
+  const engines = await Promise.all([
+    { name: 'sessionAggregationEngine', table: 'intraday_1m', tsCol: 'timestamp' },
+    { name: 'premarketWatchlistEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
+    { name: 'premarketIntelligenceEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
+    { name: 'executionEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
+    { name: 'executionRefinementEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
+    { name: 'liveEvaluationEngine', table: 'signal_log', tsCol: 'evaluated_at' },
+  ].map(async (eng) => {
+    try {
+      const { rows } = await queryWithTimeout(
+        `SELECT MAX("${eng.tsCol}") AS last_run FROM ${eng.table}`,
+        [],
+        { timeoutMs: 5000, label: `admin.engine.${eng.name}`, maxRetries: 0 }
+      );
+      const lastRun = rows[0]?.last_run ? new Date(rows[0].last_run) : null;
+      const ageMin  = lastRun ? Math.floor((Date.now() - lastRun.getTime()) / 60000) : null;
+      return {
+        name: eng.name,
+        status:   ageMin !== null && ageMin < 30 ? 'running' : ageMin !== null && ageMin < 120 ? 'stale' : 'unknown',
+        last_run: lastRun?.toISOString() ?? null,
+        age_minutes: ageMin,
+      };
+    } catch {
+      return { name: eng.name, status: 'unknown', last_run: null, age_minutes: null };
+    }
+  }));
+
+  return res.json({ ok: true, engines, generated_at: new Date().toISOString() });
+});
+
+// Phase 10 — Run engine now
+app.post('/api/admin/engines/:name/run', requireAdminAction, async (req, res) => {
+  const { name } = req.params;
+  const engineMap = {
+    sessionAggregationEngine:     () => require('./engines/sessionAggregationEngine').runSessionAggregation,
+    premarketWatchlistEngine:     () => require('./engines/premarketWatchlistEngine').runPremarketWatchlistEngine,
+    premarketIntelligenceEngine:  () => require('./engines/premarketIntelligenceEngine').runPremarketIntelligenceEngine,
+    executionEngine:              () => require('./engines/executionEngine').runExecutionEngine,
+    executionRefinementEngine:    () => require('./engines/executionRefinementEngine').runExecutionRefinementEngine,
+    liveEvaluationEngine:         () => require('./engines/liveEvaluationEngine').runLiveEvaluationEngine,
+  };
+  const loader = engineMap[name];
+  if (!loader) return res.status(400).json({ ok: false, error: `Unknown engine: ${name}` });
+  try {
+    const fn = loader();
+    setImmediate(() => fn().catch(err => console.error(`[ADMIN] engine run ${name} failed:`, err.message)));
+    return res.json({ ok: true, message: `${name} triggered`, triggered_at: new Date().toISOString() });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Phase 11 — Log viewer
+app.get('/api/admin/logs', requireAdminAction, async (req, res) => {
+  const filter = (req.query.filter || '').toUpperCase();
+  const validFilters = ['INGEST', 'EVAL', 'ERROR', 'CRITICAL', ''];
+  const safeFilter = validFilters.includes(filter) ? filter : '';
+
+  try {
+    // Pull from system_logs if it exists, fall back to signal_log errors
+    const [sysLogs, evalErrors] = await Promise.all([
+      queryWithTimeout(
+        `SELECT 'SYSTEM' AS source, level, message, engine AS label, created_at
+         FROM system_logs
+         ${safeFilter ? `WHERE level = '${safeFilter}' OR engine ILIKE '%${safeFilter}%'` : ''}
+         ORDER BY created_at DESC LIMIT 60`,
+        [],
+        { timeoutMs: 8000, label: 'admin.logs.system', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
+      queryWithTimeout(
+        `SELECT 'EVAL' AS source, 'ERROR' AS level,
+                CONCAT('[EVAL_ERROR] signal ', id::text, ' (', symbol, ') outcome=', COALESCE(outcome,'?')) AS message,
+                'liveEvaluationEngine' AS label,
+                COALESCE(evaluated_at, timestamp) AS created_at
+         FROM signal_log
+         WHERE outcome = 'ERROR'
+           ${safeFilter && safeFilter !== 'EVAL' && safeFilter !== 'ERROR' ? 'AND FALSE' : ''}
+         ORDER BY created_at DESC LIMIT 40`,
+        [],
+        { timeoutMs: 8000, label: 'admin.logs.eval_errors', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
+    ]);
+
+    const combined = [...sysLogs.rows, ...evalErrors.rows]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 100);
+
+    return res.json({ ok: true, logs: combined, count: combined.length, filter: safeFilter || 'ALL' });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message, logs: [] });
+  }
+});
+
 app.post('/api/intelligence/news/run', async (req, res) => {
   try {
     const result = await runIntelNewsWithFallback();

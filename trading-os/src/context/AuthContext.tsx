@@ -6,12 +6,14 @@ type AuthUser = {
   id?: number | string;
   username?: string;
   email?: string;
+  is_admin?: number | boolean;
 };
 
 type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   initialized: boolean;
   login: (nextToken: string, nextUser?: AuthUser | null) => void;
   logout: () => void;
@@ -40,8 +42,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
     const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(LEGACY_TOKEN_STORAGE_KEY);
     const storedUser = localStorage.getItem(USER_STORAGE_KEY);
 
@@ -60,13 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback((nextToken: string, nextUser?: AuthUser | null) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
-      localStorage.setItem(LEGACY_TOKEN_STORAGE_KEY, nextToken);
+    localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
+    localStorage.setItem(LEGACY_TOKEN_STORAGE_KEY, nextToken);
 
-      if (nextUser) {
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
-      }
+    if (nextUser) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
     }
 
     writeAuthCookie(nextToken);
@@ -75,11 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
-      localStorage.removeItem(USER_STORAGE_KEY);
-    }
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
 
     writeAuthCookie(null);
     setToken(null);
@@ -91,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       token,
       isAuthenticated: Boolean(token),
+      isAdmin: Boolean(user?.is_admin === true || user?.is_admin === 1),
       initialized,
       login,
       logout,
