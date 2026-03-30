@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-03-30T00:00:00.000Z",
+  "engine_v2": "running",
+  "watchlist_count": 50,
+  "avg_score": 28.63,
+  "top_symbol": "ARTL",
+  "top_score": 100.0,
+  "top_stage": "ACTIVE",
+  "stage_distribution": {
+    "EARLY": 13,
+    "ACTIVE": 19,
+    "NEUTRAL": 18,
+    "EXHAUSTED": 0
+  },
+  "score_range": {
+    "min": 18.00,
+    "max": 100.00
+  },
+  "signals_logged": 33,
+  "signals_evaluated": 0,
+  "win_rate": null,
+  "learning_loop": {
+    "signal_capture": "running — EARLY + ACTIVE rows logged per run, deduped per 30 min",
+    "evaluation": "running — intraday_1m candles, WIN/LOSS/NEUTRAL after 30 min",
+    "aggregation": "running — signal_performance_daily updated hourly"
+  },
+  "data_sources": [
+    "market_metrics",
+    "market_quotes",
+    "news_articles",
+    "earnings_events",
+    "intraday_1m"
+  ],
+  "tables_created": [
+    "premarket_watchlist (upgraded: stage, news_age_minutes, decay_factor, rank_percentile)",
+    "signal_log (new)",
+    "signal_performance_daily (new)"
+  ],
+  "scheduler": {
+    "premarket_engine": "every 10 min",
+    "signal_evaluation": "every 15 min",
+    "performance_aggregation": "every 60 min (4th eval tick)",
+    "data_ingestion": "mode-aware (LIVE/RECENT/PREP)"
+  },
+  "api_endpoints": [
+    "GET /api/premarket/watchlist — score, stage, decay_factor",
+    "GET /api/signals/log — raw signal capture",
+    "GET /api/signals/performance — win_rate, total_signals, avg_return",
+    "GET /api/system/ingestion-status — scheduler health + stale tables"
+  ],
+  "errors": []
+}

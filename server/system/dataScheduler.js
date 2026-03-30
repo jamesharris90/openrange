@@ -12,6 +12,11 @@
  * Guards:
  *   global.marketDataSchedulerStarted — prevents double-start
  *   global.ingestionPaused            — external pause signal
+ *
+ * Phase 2 additions:
+ *   - Row count tracking per job ([INGEST] quotes=X intraday=Y metrics=Z)
+ *   - Stale table detection (>24h → backfill trigger)
+ *   - getIngestionStatus() exported for /api/system/ingestion-status
  */
 
 const { getMarketMode } = require('../utils/marketMode');
@@ -25,13 +30,23 @@ const INTERVALS = {
   PREP:   { quotes: 60 * 60_000,  intraday: null,        daily: 60 * 60_000,    metrics: 60 * 60_000 },
 };
 
+// ── ingestion status (exported via getIngestionStatus) ────────────────────────
+
+const _status = {
+  current_mode:     null,
+  last_run:         { quotes: null, intraday: null, daily: null, metrics: null },
+  rows_written:     { quotes: 0,    intraday: 0,    daily: 0,    metrics: 0    },
+  stale_tables:     [],
+  last_stale_check: null,
+};
+
 // ── state ─────────────────────────────────────────────────────────────────────
 
 const handles = {
-  quotes:   null,
-  intraday: null,
-  daily:    null,
-  metrics:  null,
+  quotes:    null,
+  intraday:  null,
+  daily:     null,
+  metrics:   null,
   modeCheck: null,
 };
 
@@ -45,7 +60,10 @@ function sleep(ms) {
 // ── job runner ────────────────────────────────────────────────────────────────
 
 /**
- * Wraps an ingestion function to skip if already running (no overlap).
+ * Wraps an ingestion function:
+ *  - skip if paused or already running (no overlap)
+ *  - capture return value for row count tracking
+ *  - emit [INGEST] summary line
  */
 function makeJob(name, fn) {
   return async function runJob() {
@@ -58,14 +76,75 @@ function makeJob(name, fn) {
       return;
     }
     runningJobs.add(name);
+    const t0 = Date.now();
     try {
-      await fn();
+      const result = await fn();
+      _status.last_run[name] = new Date().toISOString();
+
+      // Extract row count from various return shapes
+      const rows = result?.rows_written ?? result?.updated ?? result?.rowCount ?? 0;
+      _status.rows_written[name] = rows;
+
+      console.log(
+        `[INGEST] ${name}=+${rows} ` +
+        `quotes=${_status.rows_written.quotes} ` +
+        `intraday=${_status.rows_written.intraday} ` +
+        `daily=${_status.rows_written.daily} ` +
+        `metrics=${_status.rows_written.metrics} ` +
+        `(${Date.now() - t0}ms)`
+      );
     } catch (err) {
       console.error(`[INGEST ERROR] job=${name} reason=${err.message}`);
     } finally {
       runningJobs.delete(name);
     }
   };
+}
+
+// ── stale table detection ─────────────────────────────────────────────────────
+
+async function checkStaleTables() {
+  _status.last_stale_check = new Date().toISOString();
+
+  let pool;
+  try {
+    pool = require('../db/pool');
+  } catch (_) {
+    return;
+  }
+
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const stale    = [];
+
+  const checks = [
+    { name: 'market_quotes',  query: `SELECT MAX(updated_at) AS ts FROM market_quotes` },
+    { name: 'market_metrics', query: `SELECT MAX(updated_at) AS ts FROM market_metrics` },
+    { name: 'intraday_1m',    query: `SELECT MAX("timestamp") AS ts FROM intraday_1m`   },
+  ];
+
+  for (const check of checks) {
+    try {
+      const result = await pool.query(check.query);
+      const ts = result.rows[0]?.ts;
+      if (!ts || (Date.now() - new Date(ts).getTime()) > STALE_MS) {
+        stale.push(check.name);
+      }
+    } catch (_) {
+      // table may not exist yet — skip silently
+    }
+  }
+
+  _status.stale_tables = stale;
+
+  if (stale.length > 0) {
+    console.warn(`[INGEST] stale tables detected: ${stale.join(', ')} — triggering backfill`);
+    if (stale.includes('market_quotes') || stale.includes('market_metrics')) {
+      jobQuotes().catch(() => {});
+    }
+    if (stale.includes('intraday_1m')) {
+      jobIntraday().catch(() => {});
+    }
+  }
 }
 
 // ── interval management ───────────────────────────────────────────────────────
@@ -95,6 +174,7 @@ const jobMetrics  = makeJob('metrics',  () => ingestMetrics());
 async function applySchedule(mode) {
   if (currentMode === mode) return; // no change
   currentMode = mode;
+  _status.current_mode = mode;
 
   console.log(`[INGEST] schedule mode=${mode}`);
   clearAllIntervals();
@@ -116,6 +196,11 @@ async function checkAndApplyMode() {
   } catch (err) {
     console.error(`[INGEST ERROR] mode check failed: ${err.message}`);
   }
+
+  // Run stale check on every mode poll cycle (every 5 min)
+  await checkStaleTables().catch((err) =>
+    console.error(`[INGEST ERROR] stale check failed: ${err.message}`)
+  );
 }
 
 // ── startup ───────────────────────────────────────────────────────────────────
@@ -133,7 +218,7 @@ async function startDataScheduler() {
 
   console.log('[INGEST] dataScheduler starting');
 
-  // Apply initial schedule
+  // Apply initial schedule + stale check
   await checkAndApplyMode();
 
   // Re-check mode every 5 minutes (handles market open/close transitions)
@@ -173,7 +258,22 @@ function stopDataScheduler() {
   console.log('[INGEST] dataScheduler stopped');
 }
 
+/**
+ * Return current ingestion status snapshot.
+ * Used by GET /api/system/ingestion-status.
+ */
+function getIngestionStatus() {
+  return {
+    current_mode:     _status.current_mode,
+    last_run:         { ..._status.last_run },
+    rows_written:     { ..._status.rows_written },
+    stale_tables:     [..._status.stale_tables],
+    last_stale_check: _status.last_stale_check,
+  };
+}
+
 module.exports = {
   startDataScheduler,
   stopDataScheduler,
+  getIngestionStatus,
 };

@@ -176,7 +176,9 @@ const { runAnalystEnrichmentIngestion } = require('./ingestion/fmp_analyst_enric
 const { runTranscriptsIngestion } = require('./ingestion/fmp_transcripts_ingest');
 const { runUniverseIngestion } = require('./ingestion/fmp_universe_ingest');
 const { startDataHealthMonitor } = require('./system/dataHealthMonitor');
-const { startDataScheduler } = require('./system/dataScheduler');
+const { startDataScheduler, getIngestionStatus } = require('./system/dataScheduler');
+const { startPremarketWatchlistScheduler } = require('./engines/premarketWatchlistEngine');
+const { startSignalEvaluationScheduler } = require('./engines/signalEvaluationEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -8520,62 +8522,129 @@ app.get('/api/premarket/report-md', async (req, res) => {
 
 // ── Premarket Intelligence Routes (Step 5) ────────────────────────────────────
 
-// GET /api/premarket/watchlist — top 20 tradeable symbols by confidence
+// GET /api/premarket/watchlist — deterministic scoring from premarket_watchlist table
 app.get('/api/premarket/watchlist', async (req, res) => {
   try {
-    const { runPremarketIntelligenceEngine } = require('./engines/premarketIntelligenceEngine');
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 20, 100));
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
 
-    // Ensure table exists and has recent data; if not run engine first
-    let rows;
+    let rows = [];
     try {
       const result = await queryWithTimeout(
-        `SELECT symbol, catalyst_summary, news_count_72h, latest_news_ts,
-                lifecycle_stage, confidence, tradeable, reason_not_tradeable,
-                catalyst_level, volume_state, price_structure,
-                rvol, gap_percent, change_percent, has_earnings, updated_at
-         FROM premarket_intelligence
-         WHERE lifecycle_stage != 'DEAD'
-           AND tradeable = true
-           AND updated_at >= NOW() - INTERVAL '2 hours'
-         ORDER BY confidence DESC NULLS LAST
+        `SELECT symbol, price, change_percent, gap_percent, relative_volume,
+                volume_ratio, news_count, earnings_flag, score, updated_at
+         FROM premarket_watchlist
+         ORDER BY score DESC
          LIMIT $1`,
         [limit],
         { label: 'api.premarket.watchlist', timeoutMs: 8000 }
       );
       rows = result.rows;
-    } catch (_tableErr) {
-      rows = [];
+    } catch (tableErr) {
+      logger.warn('[PREMARKET] watchlist table read failed', { error: tableErr.message });
     }
 
-    // If stale or empty, trigger engine run
+    // If empty, trigger an on-demand engine run then re-read
     if (rows.length === 0) {
-      console.log('[PREMARKET] watchlist empty — running engine now');
-      await runPremarketIntelligenceEngine();
+      console.log('[PREMARKET] watchlist empty — running engine on demand');
+      const { runPremarketWatchlistEngine } = require('./engines/premarketWatchlistEngine');
+      await runPremarketWatchlistEngine().catch((e) =>
+        console.error('[PREMARKET] on-demand run failed:', e.message)
+      );
       const result = await queryWithTimeout(
-        `SELECT symbol, catalyst_summary, news_count_72h, latest_news_ts,
-                lifecycle_stage, confidence, tradeable, reason_not_tradeable,
-                catalyst_level, volume_state, price_structure,
-                rvol, gap_percent, change_percent, has_earnings, updated_at
-         FROM premarket_intelligence
-         WHERE lifecycle_stage != 'DEAD'
-           AND tradeable = true
-         ORDER BY confidence DESC NULLS LAST
+        `SELECT symbol, price, change_percent, gap_percent, relative_volume,
+                volume_ratio, news_count, earnings_flag, score, updated_at
+         FROM premarket_watchlist
+         ORDER BY score DESC
          LIMIT $1`,
         [limit],
         { label: 'api.premarket.watchlist.post_run', timeoutMs: 8000 }
-      );
+      ).catch(() => ({ rows: [] }));
       rows = result.rows;
     }
 
     if (rows.length === 0) {
-      return res.json({ status: 'NO_DATA', data: [], count: 0 });
+      return res.json({ success: true, data: [], count: 0 });
     }
 
-    return res.json({ status: 'OK', count: rows.length, data: rows });
+    return res.json({ success: true, count: rows.length, data: rows });
   } catch (err) {
     logger.error('premarket watchlist error', { error: err.message });
-    return res.status(500).json({ status: 'ERROR', error: err.message, data: [] });
+    return res.status(500).json({ success: false, error: err.message, data: [] });
+  }
+});
+
+// ── System & Signal routes ─────────────────────────────────────────────────────
+
+// GET /api/system/ingestion-status — data scheduler health + row counts + stale tables
+app.get('/api/system/ingestion-status', async (req, res) => {
+  try {
+    return res.json({ ok: true, ...getIngestionStatus() });
+  } catch (err) {
+    logger.error('ingestion-status error', { error: err.message });
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/signals/log — raw signal capture log (most recent first)
+app.get('/api/signals/log', async (req, res) => {
+  try {
+    const limit  = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    const params = symbol ? [limit, symbol] : [limit];
+    const where  = symbol ? `WHERE symbol = $2` : '';
+
+    const result = await queryWithTimeout(
+      `SELECT id, symbol, timestamp, score, stage, entry_price,
+              expected_move, outcome, max_upside_pct, max_drawdown_pct, evaluated
+       FROM signal_log
+       ${where}
+       ORDER BY timestamp DESC
+       LIMIT $1`,
+      params,
+      { label: 'api.signals.log', timeoutMs: 8000 }
+    );
+
+    return res.json({ ok: true, count: result.rows.length, data: result.rows });
+  } catch (err) {
+    logger.error('signals/log error', { error: err.message });
+    return res.status(500).json({ ok: false, error: err.message, data: [] });
+  }
+});
+
+// GET /api/signals/performance — daily aggregated win/loss/return metrics
+app.get('/api/signals/performance', async (req, res) => {
+  try {
+    const days = Math.max(1, Math.min(Number(req.query.days) || 30, 90));
+
+    const result = await queryWithTimeout(
+      `SELECT date, total_signals, wins, losses, win_rate, avg_return
+       FROM   signal_performance_daily
+       WHERE  date >= CURRENT_DATE - ($1 || ' days')::interval
+       ORDER BY date DESC`,
+      [days],
+      { label: 'api.signals.performance', timeoutMs: 8000 }
+    );
+
+    // Also return aggregate summary
+    const rows = result.rows;
+    const totalSignals = rows.reduce((s, r) => s + Number(r.total_signals), 0);
+    const totalWins    = rows.reduce((s, r) => s + Number(r.wins), 0);
+    const avgReturn    = rows.length > 0
+      ? Math.round(rows.reduce((s, r) => s + Number(r.avg_return || 0), 0) / rows.length * 100) / 100
+      : null;
+    const win_rate     = totalSignals > 0
+      ? Math.round((totalWins / totalSignals) * 1000) / 10
+      : null;
+
+    return res.json({
+      ok: true,
+      summary: { total_signals: totalSignals, wins: totalWins, win_rate, avg_return: avgReturn },
+      data: rows,
+    });
+  } catch (err) {
+    logger.error('signals/performance error', { error: err.message });
+    return res.status(500).json({ ok: false, error: err.message, data: [] });
   }
 });
 
@@ -11740,6 +11809,10 @@ async function bootstrapBackgroundServices() {
     startDataScheduler().catch((err) => {
       console.error('[BOOT] dataScheduler start failed:', err.message);
     });
+    // Premarket watchlist V2: deterministic scoring + signal capture, runs every 10 min
+    startPremarketWatchlistScheduler(10 * 60 * 1000);
+    // Signal evaluation: outcome measurement + performance aggregation, runs every 15 min
+    startSignalEvaluationScheduler(15 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {
