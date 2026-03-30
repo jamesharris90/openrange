@@ -182,6 +182,7 @@ const { startSignalEvaluationScheduler } = require('./engines/signalEvaluationEn
 const { startSessionAggregationScheduler } = require('./engines/sessionAggregationEngine');
 const { startPremarketIntelligenceScheduler } = require('./engines/premarketIntelligenceEngine');
 const { startFallbackDataScheduler } = require('./engines/fallbackDataEngine');
+const { startExecutionScheduler } = require('./engines/executionEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -8593,7 +8594,18 @@ app.get('/api/premarket/watchlist', async (req, res) => {
         pw.premarket_range_percent,
         pw.premarket_gap_confidence,
         pw.premarket_signal_type,
-        pw.premarket_valid
+        pw.premarket_valid,
+        -- Phase 10 execution columns
+        pw.entry_price,
+        pw.stop_price,
+        pw.target_price,
+        pw.risk_percent,
+        pw.reward_percent,
+        pw.risk_reward_ratio,
+        pw.execution_valid,
+        pw.execution_type,
+        pw.position_size_shares,
+        pw.position_size_value
       FROM premarket_watchlist pw
       LEFT JOIN market_quotes mq
         ON pw.symbol = mq.symbol
@@ -11979,6 +11991,8 @@ async function bootstrapBackgroundServices() {
     setTimeout(() => startPremarketIntelligenceScheduler(10 * 60 * 1000), 5 * 60 * 1000);
     // Fallback data: Finnhub fill for symbols missing PM candles, runs every 15 min
     setTimeout(() => startFallbackDataScheduler(15 * 60 * 1000), 3 * 60 * 1000);
+    // Execution engine: entry/stop/target + risk/reward, runs every 10 min (after intelligence engine)
+    setTimeout(() => startExecutionScheduler(10 * 60 * 1000), 7 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {

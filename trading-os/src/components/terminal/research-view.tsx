@@ -41,6 +41,17 @@ type PremarketIntel = {
   premarket_volume?: number | null;
   premarket_candles?: number | null;
   premarket_data_quality?: number | null;
+  // Execution layer
+  entry_price?: number | null;
+  stop_price?: number | null;
+  target_price?: number | null;
+  risk_percent?: number | null;
+  reward_percent?: number | null;
+  risk_reward_ratio?: number | null;
+  execution_valid?: boolean | null;
+  execution_type?: string | null;
+  position_size_shares?: number | null;
+  position_size_value?: number | null;
 };
 
 function premarketNarrative(intel: PremarketIntel): string {
@@ -60,6 +71,26 @@ function premarketNarrative(intel: PremarketIntel): string {
     default:
       return `Premarket data is pending analysis. Check back once market opens for updated signal classification.`;
   }
+}
+
+type ExecutionVerdict = "GOOD" | "WATCH" | "AVOID";
+
+function executionVerdict(intel: PremarketIntel): ExecutionVerdict {
+  const rr = toNum(intel.risk_reward_ratio, 0);
+  if (intel.execution_valid && rr >= 2) return "GOOD";
+  if (rr >= 1 && rr < 2)              return "WATCH";
+  return "AVOID";
+}
+
+function executionFailureReasons(intel: PremarketIntel): string[] {
+  const reasons: string[] = [];
+  if (!intel.execution_valid) {
+    if ((intel.risk_percent ?? 0) > 5)              reasons.push("Risk too high (>5%)");
+    if ((intel.risk_reward_ratio ?? 0) < 1.5)       reasons.push("Poor R:R ratio (<1.5)");
+    if (intel.premarket_gap_confidence === "LOW")    reasons.push("Low confidence gap");
+    if (!intel.premarket_valid)                      reasons.push("Premarket signal not validated");
+  }
+  return reasons;
 }
 
 function logoUrl(symbol: string) {
@@ -316,6 +347,82 @@ export function ResearchView({ ticker }: { ticker: string }) {
           </div>
         </section>
       )}
+
+      {/* Execution Panel — shown when execution data is available */}
+      {(premarketIntel.entry_price || premarketIntel.execution_type) && (() => {
+        const verdict  = executionVerdict(premarketIntel);
+        const failures = executionFailureReasons(premarketIntel);
+        const verdictColor =
+          verdict === "GOOD"  ? "text-green-400 border-green-400/30 bg-green-500/5"  :
+          verdict === "WATCH" ? "text-yellow-400 border-yellow-400/30 bg-yellow-500/5" :
+                                "text-red-400 border-red-400/30 bg-red-500/5";
+
+        return (
+          <section className="cockpit-card bg-[#121826] border-[#1F2937]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs uppercase text-gray-400">Execution Plan</div>
+              <div className={`rounded-lg border px-3 py-1 text-xs font-bold ${verdictColor}`}>
+                {verdict === "GOOD" ? "GOOD SETUP" : verdict === "WATCH" ? "WATCH" : "AVOID"}
+              </div>
+            </div>
+
+            {/* Price levels */}
+            {premarketIntel.entry_price && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                  <div className="text-gray-400 text-xs">Entry</div>
+                  <div className="text-white font-semibold text-sm mt-1">${Number(premarketIntel.entry_price).toFixed(2)}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">{premarketIntel.execution_type ?? "—"}</div>
+                </div>
+                <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                  <div className="text-gray-400 text-xs">Stop</div>
+                  <div className="text-red-400 font-semibold text-sm mt-1">${Number(premarketIntel.stop_price ?? 0).toFixed(2)}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">Risk {Number(premarketIntel.risk_percent ?? 0).toFixed(2)}%</div>
+                </div>
+                <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                  <div className="text-gray-400 text-xs">Target</div>
+                  <div className="text-green-400 font-semibold text-sm mt-1">${Number(premarketIntel.target_price ?? 0).toFixed(2)}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">Reward {Number(premarketIntel.reward_percent ?? 0).toFixed(2)}%</div>
+                </div>
+              </div>
+            )}
+
+            {/* R:R + position size */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                <div className="text-gray-400 text-xs">R:R Ratio</div>
+                <div className={`font-semibold text-sm mt-1 ${(premarketIntel.risk_reward_ratio ?? 0) >= 2 ? "text-green-400" : (premarketIntel.risk_reward_ratio ?? 0) >= 1.5 ? "text-yellow-400" : "text-red-400"}`}>
+                  {premarketIntel.risk_reward_ratio != null ? `${Number(premarketIntel.risk_reward_ratio).toFixed(2)}:1` : "—"}
+                </div>
+              </div>
+              <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                <div className="text-gray-400 text-xs">Position Size</div>
+                <div className="text-white text-sm font-semibold mt-1">
+                  {premarketIntel.position_size_shares != null ? `${Number(premarketIntel.position_size_shares).toFixed(0)} shares` : "—"}
+                </div>
+              </div>
+              <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+                <div className="text-gray-400 text-xs">Position Value</div>
+                <div className="text-white text-sm font-semibold mt-1">
+                  {premarketIntel.position_size_value != null ? `£${Number(premarketIntel.position_size_value).toFixed(2)}` : "—"}
+                </div>
+              </div>
+            </div>
+
+            {/* Failure reasons (Phase 11) */}
+            {failures.length > 0 && (
+              <div className="rounded-xl border border-red-400/20 bg-red-500/5 p-3">
+                <div className="text-red-400 text-xs font-semibold mb-1">Setup not tradeable:</div>
+                <ul className="space-y-0.5">
+                  {failures.map(r => (
+                    <li key={r} className="text-red-300 text-xs">• {r}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="cockpit-card bg-[#121826] border-[#1F2937]">

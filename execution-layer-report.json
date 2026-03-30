@@ -1,0 +1,136 @@
+{
+  "generated_at": "2026-03-30T15:30:00.000Z",
+  "engine": "executionEngine v1",
+  "migration": "040_execution_layer",
+
+  "schema_validation": {
+    "columns_added_to_premarket_watchlist": [
+      "entry_price", "stop_price", "target_price",
+      "risk_percent", "reward_percent", "risk_reward_ratio",
+      "execution_valid", "execution_type",
+      "position_size_shares", "position_size_value"
+    ],
+    "columns_added_to_signal_log": [
+      "stop_price", "target_price", "risk_reward_ratio"
+    ],
+    "all_columns_present": true
+  },
+
+  "engine_pipeline": {
+    "order": [
+      "sessionAggregationEngine (every 10 min)",
+      "fallbackDataEngine (every 15 min, +3 min delay)",
+      "premarketIntelligenceEngine (every 10 min, +5 min delay)",
+      "executionEngine (every 10 min, +7 min delay)",
+      "premarketWatchlistEngine (every 10 min)"
+    ]
+  },
+
+  "live_run_summary": {
+    "processed": 6,
+    "written": 6,
+    "valid_setups": 0,
+    "invalid_setups": 6,
+    "avg_risk_reward": 0.0,
+    "note": "All 6 live candidates were volatile small-caps with PM ranges of 24–46% — correctly rejected by the ≤5% risk filter. This is expected behavior."
+  },
+
+  "aapl_tsla_nvda_simulation": {
+    "note": "AAPL/TSLA/NVDA not in top-50 watchlist today (insufficient market metrics signal), but direct simulation confirms the execution logic produces correct results",
+    "AAPL": {
+      "execution_type": "BREAKOUT",
+      "entry_price": 250.16,
+      "stop_price": 247.05,
+      "target_price": 260.65,
+      "atr": 6.994,
+      "risk_percent": 1.24,
+      "reward_percent": 4.19,
+      "risk_reward_ratio": 3.38,
+      "execution_valid": true,
+      "validity_checks": {
+        "risk_lte_5pct": true,
+        "rr_gte_1_5": true,
+        "entry_matches_pm_high": true,
+        "stop_matches_pm_low": true
+      }
+    },
+    "TSLA": {
+      "execution_type": "BREAKOUT",
+      "entry_price": 367.13,
+      "stop_price": 360.52,
+      "target_price": 387.13,
+      "atr": 13.333,
+      "risk_percent": 1.80,
+      "reward_percent": 5.45,
+      "risk_reward_ratio": 3.03,
+      "execution_valid": true,
+      "validity_checks": {
+        "risk_lte_5pct": true,
+        "rr_gte_1_5": true,
+        "entry_matches_pm_high": true,
+        "stop_matches_pm_low": true
+      }
+    },
+    "NVDA": {
+      "execution_type": "BREAKOUT",
+      "entry_price": 169.50,
+      "stop_price": 167.43,
+      "target_price": 178.89,
+      "atr": 6.257,
+      "risk_percent": 1.22,
+      "reward_percent": 5.54,
+      "risk_reward_ratio": 4.52,
+      "execution_valid": true,
+      "validity_checks": {
+        "risk_lte_5pct": true,
+        "rr_gte_1_5": true,
+        "entry_matches_pm_high": true,
+        "stop_matches_pm_low": true
+      }
+    }
+  },
+
+  "execution_logic": {
+    "GAP_AND_GO":  "entry=PM_HIGH, stop=PM_LOW, target=entry+(ATR*1.5), type=BREAKOUT",
+    "GAP_FADE":    "entry=PM_LOW,  stop=PM_HIGH, target=entry-(ATR*1.5), type=FADE",
+    "RANGE_BUILD": "entry=PM_HIGH, stop=midpoint, target=entry+ATR, type=RANGE"
+  },
+
+  "validity_gate": {
+    "premarket_valid": "must be TRUE",
+    "risk_percent": "<= 5",
+    "risk_reward_ratio": ">= 1.5",
+    "gap_confidence": "!= LOW"
+  },
+
+  "position_sizing": {
+    "max_risk_per_trade_gbp": 10,
+    "formula_shares": "10 / |entry - stop|",
+    "formula_value": "shares * entry_price"
+  },
+
+  "ui_changes": {
+    "research_view": "Execution Panel added with Entry/Stop/Target cards, R:R ratio, position size, GOOD SETUP/WATCH/AVOID verdict badge, and failure reason list"
+  },
+
+  "data_integrity": {
+    "no_synthetic_data": true,
+    "all_levels_from_real_data": true,
+    "graceful_degradation": true,
+    "no_overwrite_of_valid_signals": true
+  },
+
+  "checks": {
+    "migration_040_applied": true,
+    "execution_columns_present": true,
+    "engine_registered_in_boot_sequence": true,
+    "atr_fallback_computed_from_daily_ohlc": true,
+    "signal_log_integration": true,
+    "research_view_execution_panel": true,
+    "failure_reasons_displayed": true,
+    "aapl_entry_matches_pm_high": true,
+    "tsla_entry_matches_pm_high": true,
+    "nvda_entry_matches_pm_high": true,
+    "all_valid_setups_rr_above_1_5": true
+  }
+}
