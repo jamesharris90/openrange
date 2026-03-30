@@ -52,6 +52,12 @@ type PremarketIntel = {
   execution_type?: string | null;
   position_size_shares?: number | null;
   position_size_value?: number | null;
+  // Refinement layer
+  entry_confirmed?: boolean | null;
+  breakout_strength?: number | null;
+  session_phase?: string | null;
+  execution_rating?: string | null;
+  execution_notes?: string | null;
 };
 
 function premarketNarrative(intel: PremarketIntel): string {
@@ -423,6 +429,63 @@ export function ResearchView({ ticker }: { ticker: string }) {
           </section>
         );
       })()}
+
+      {/* Execution Confirmation Panel (Phase 12) */}
+      {premarketIntel.execution_rating && (
+        <section className="cockpit-card bg-[#121826] border-[#1F2937]">
+          <div className="text-xs uppercase text-gray-400 mb-3">Execution Confirmation</div>
+          <div className="grid gap-3 sm:grid-cols-4 mb-3">
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Session</div>
+              <div className={`text-sm font-semibold mt-1 ${
+                premarketIntel.session_phase === "OPEN"  ? "text-green-400"  :
+                premarketIntel.session_phase === "CLOSE" ? "text-yellow-400" :
+                premarketIntel.session_phase === "MIDDAY"? "text-blue-400"   :
+                "text-gray-400"
+              }`}>
+                {premarketIntel.session_phase ?? "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Entry Confirmed</div>
+              <div className={`text-sm font-semibold mt-1 ${premarketIntel.entry_confirmed ? "text-green-400" : "text-red-400"}`}>
+                {premarketIntel.entry_confirmed != null ? (premarketIntel.entry_confirmed ? "YES" : "NO") : "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Breakout Strength</div>
+              <div className={`text-sm font-semibold mt-1 ${
+                (premarketIntel.breakout_strength ?? 0) > 3 ? "text-green-400"  :
+                (premarketIntel.breakout_strength ?? 0) > 1.5 ? "text-yellow-400" :
+                "text-red-400"
+              }`}>
+                {premarketIntel.breakout_strength != null ? `${Number(premarketIntel.breakout_strength).toFixed(1)} / 5` : "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Execution Rating</div>
+              <div className={`text-sm font-bold mt-1 ${
+                premarketIntel.execution_rating === "ELITE" ? "text-green-400"  :
+                premarketIntel.execution_rating === "GOOD"  ? "text-cyan-400"   :
+                premarketIntel.execution_rating === "WATCH" ? "text-yellow-400" :
+                "text-red-400"
+              }`}>
+                {premarketIntel.execution_rating ?? "—"}
+              </div>
+            </div>
+          </div>
+          {premarketIntel.execution_notes && (
+            <div className={`rounded-xl border p-3 text-xs ${
+              premarketIntel.execution_rating === "ELITE" ? "border-green-400/20 bg-green-500/5 text-green-100"  :
+              premarketIntel.execution_rating === "GOOD"  ? "border-cyan-400/20  bg-cyan-500/5  text-cyan-100"   :
+              premarketIntel.execution_rating === "WATCH" ? "border-yellow-400/20 bg-yellow-500/5 text-yellow-100":
+                                                            "border-red-400/20   bg-red-500/5   text-red-100"
+            }`}>
+              {premarketIntel.execution_notes}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="cockpit-card bg-[#121826] border-[#1F2937]">

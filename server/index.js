@@ -183,6 +183,7 @@ const { startSessionAggregationScheduler } = require('./engines/sessionAggregati
 const { startPremarketIntelligenceScheduler } = require('./engines/premarketIntelligenceEngine');
 const { startFallbackDataScheduler } = require('./engines/fallbackDataEngine');
 const { startExecutionScheduler } = require('./engines/executionEngine');
+const { startExecutionRefinementScheduler } = require('./engines/executionRefinementEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -8605,7 +8606,13 @@ app.get('/api/premarket/watchlist', async (req, res) => {
         pw.execution_valid,
         pw.execution_type,
         pw.position_size_shares,
-        pw.position_size_value
+        pw.position_size_value,
+        -- Phase 12 refinement columns
+        pw.entry_confirmed,
+        pw.breakout_strength,
+        pw.session_phase,
+        pw.execution_rating,
+        pw.execution_notes
       FROM premarket_watchlist pw
       LEFT JOIN market_quotes mq
         ON pw.symbol = mq.symbol
@@ -11993,6 +12000,8 @@ async function bootstrapBackgroundServices() {
     setTimeout(() => startFallbackDataScheduler(15 * 60 * 1000), 3 * 60 * 1000);
     // Execution engine: entry/stop/target + risk/reward, runs every 10 min (after intelligence engine)
     setTimeout(() => startExecutionScheduler(10 * 60 * 1000), 7 * 60 * 1000);
+    // Execution refinement: confirmation, session timing, breakout validation, runs every 10 min
+    setTimeout(() => startExecutionRefinementScheduler(10 * 60 * 1000), 9 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {
