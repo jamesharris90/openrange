@@ -25,11 +25,7 @@ export function TickerStrip() {
   const visibleSymbols = symbols.filter((symbol) => quoteMap.has(symbol.toUpperCase()));
 
   if (visibleSymbols.length === 0) {
-    return (
-      <div className="border-t border-slate-800/90 bg-slate-950/60 px-3 py-2 text-xs text-slate-500">
-        No data available
-      </div>
-    );
+    return null;
   }
 
   return (

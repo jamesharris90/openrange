@@ -25,20 +25,24 @@ export async function getMarketQuotes(symbols: string[]): Promise<MarketQuote[]>
 
 export async function getMarketChart(symbol: string, timeframe: "daily" | "5m" | "1m"): Promise<PricePoint[]> {
   if (timeframe === "daily") {
-    const response = await apiGet<{ data?: PricePoint[] }>(`/api/ohlc/daily?symbol=${encodeURIComponent(symbol)}`);
-    debugLog("/api/ohlc/daily", response);
+    // Use backend endpoint directly — /api/ohlc/daily is a Next.js proxy that isn't reachable
+    // from client-side apiGet (which targets localhost:3007). Use the backend route directly.
+    const response = await apiGet<{ data?: PricePoint[] }>(
+      `/api/market/ohlc?symbol=${encodeURIComponent(symbol)}&interval=1d`
+    );
+    debugLog("/api/market/ohlc daily", response);
     const mapped = adaptOHLCPayload(response);
-    debugLog("chart raw", (Array.isArray(response.data) ? response.data : []).slice(0, 5));
     debugLog("chart mapped", mapped.slice(0, 5));
     return mapped;
   }
 
+  // Intraday — backend /api/ohlc/intraday returns {symbol, timestamp, open, high, low, close, volume}
+  // adaptOHLCPayload handles timestamp→time via asTimestamp
   const response = await apiGet<{ data?: PricePoint[] }>(
     `/api/ohlc/intraday?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(timeframe)}`
   );
-  debugLog("/api/intraday", response);
+  debugLog("/api/ohlc/intraday", response);
   const mapped = adaptOHLCPayload(response);
-  debugLog("chart raw", (Array.isArray(response.data) ? response.data : []).slice(0, 5));
   debugLog("chart mapped", mapped.slice(0, 5));
   return mapped;
 }
