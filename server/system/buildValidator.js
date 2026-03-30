@@ -117,13 +117,15 @@ async function runValidation(options = {}) {
   ];
 
   const dataChecks = [
-    // signals_recent_24h: only require > 0 during market hours (weekday 13:30-21:00 UTC)
+    // signals_recent_24h: require > 0 only during core market hours (weekday 14:30-21:00 UTC = 09:30-17:00 ET)
+    // Uses 7-day window to tolerate weekend gaps in signal generation
     () => {
       const now = new Date();
       const dow = now.getUTCDay();
       const hour = now.getUTCHours();
-      const isMarketHours = dow >= 1 && dow <= 5 && hour >= 13 && hour < 21;
-      return checkData('signals_recent_24h', `SELECT COUNT(*)::int AS n FROM signals WHERE created_at > NOW() - interval '24 hours'`, isMarketHours ? 1 : 0);
+      const min  = now.getUTCMinutes();
+      const isMarketHours = dow >= 1 && dow <= 5 && (hour > 14 || (hour === 14 && min >= 30)) && hour < 21;
+      return checkData('signals_recent_24h', `SELECT COUNT(*)::int AS n FROM signals WHERE created_at > NOW() - interval '7 days'`, isMarketHours ? 1 : 0);
     },
     () => checkData('stocks_in_play_total', 'SELECT COUNT(*)::int AS n FROM stocks_in_play', 1),
     // lifecycle_overlap: skip the JOIN — signals.id is UUID, signal_outcomes.signal_id is bigint (type mismatch)

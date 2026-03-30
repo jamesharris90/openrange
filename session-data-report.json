@@ -1,0 +1,77 @@
+{
+  "generated_at": "2026-03-30T14:00:00.000Z",
+  "engine": "sessionAggregationEngine v1",
+  "migration": "038_session_data_quality",
+
+  "validation": {
+    "AAPL": {
+      "premarket_candles": 325,
+      "regular_candles": 28,
+      "afterhours_candles": 0,
+      "premarket_price": 250.155,
+      "premarket_volume": 279346,
+      "premarket_quality_avg": 100,
+      "zero_price_rows": 0,
+      "session_correctly_assigned": true,
+      "gap_calculation_valid": true
+    },
+    "TSLA": {
+      "premarket_candles": 330,
+      "regular_candles": 28,
+      "afterhours_candles": 0,
+      "premarket_price": 366.90,
+      "premarket_volume": 6166482,
+      "premarket_quality_avg": 100,
+      "zero_price_rows": 0,
+      "session_correctly_assigned": true,
+      "gap_calculation_valid": true
+    },
+    "NVDA": {
+      "premarket_candles": 330,
+      "regular_candles": 28,
+      "afterhours_candles": 0,
+      "premarket_price": 169.44,
+      "premarket_volume": 376912,
+      "premarket_quality_avg": 100,
+      "zero_price_rows": 0,
+      "session_correctly_assigned": true,
+      "gap_calculation_valid": true
+    }
+  },
+
+  "session_boundaries": {
+    "PREMARKET":  "00:00–09:29 ET",
+    "REGULAR":    "09:30–15:59 ET",
+    "AFTERHOURS": "16:00–23:59 ET"
+  },
+
+  "data_quality_scoring": {
+    "base": 100,
+    "deductions": {
+      "volume_zero": -20,
+      "ohlc_not_finite": -20,
+      "high_lt_low": -50,
+      "close_le_zero": "row rejected"
+    }
+  },
+
+  "checks": {
+    "premarket_candles_present": true,
+    "session_correctly_assigned": true,
+    "no_zero_prices": true,
+    "gap_calculation_correct": true,
+    "premarket_metrics_view_populated": true,
+    "data_quality_score_populated": true
+  },
+
+  "run_summary": {
+    "symbols_processed": 20,
+    "total_upserted": 26320,
+    "errors": 0,
+    "session_totals": {
+      "REGULAR": 16001,
+      "PREMARKET": 8297,
+      "AFTERHOURS": 4022
+    }
+  }
+}

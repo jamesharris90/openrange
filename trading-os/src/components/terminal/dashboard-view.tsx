@@ -91,7 +91,15 @@ type WatchlistRow = {
   news_count: number;
   earnings_flag: number;
   score: number;
+  stage: string | null;
   updated_at: string;
+  // Phase 4: session-aware premarket fields
+  premarket_price: number | null;
+  premarket_volume: number | null;
+  premarket_gap: number | null;
+  premarket_candles: number | null;
+  premarket_data_quality: number | null;
+  premarket_activity_score: number | null;
 };
 
 type WatchlistResponse = {
@@ -634,49 +642,88 @@ export function DashboardView() {
                 <tr className="border-b border-slate-800 text-[10px] uppercase tracking-wide text-slate-500">
                   <th className="px-3 py-2 text-left">Symbol</th>
                   <th className="px-3 py-2 text-right">Score</th>
-                  <th className="px-3 py-2 text-right">Gap%</th>
+                  <th className="px-3 py-2 text-right">PM Price</th>
+                  <th className="px-3 py-2 text-right">PM Gap%</th>
+                  <th className="px-3 py-2 text-right">PM Volume</th>
                   <th className="px-3 py-2 text-right">RVOL</th>
                   <th className="px-3 py-2 text-right">News</th>
+                  <th className="px-3 py-2 text-center">Quality</th>
                   <th className="px-3 py-2 text-center">Earnings</th>
                 </tr>
               </thead>
               <tbody>
-                {watchlist.map((row) => (
-                  <tr
-                    key={row.symbol}
-                    onClick={() => router.push(`/research/${row.symbol}`)}
-                    className="cursor-pointer border-b border-slate-800/50 transition hover:bg-slate-800/40 last:border-0"
-                  >
-                    <td className="px-3 py-2 font-semibold text-slate-100">{row.symbol}</td>
-                    <td className="px-3 py-2 text-right">
-                      <span className={`font-bold tabular-nums ${row.score >= 70 ? "text-emerald-400" : row.score >= 45 ? "text-amber-400" : "text-slate-400"}`}>
-                        {toNum(row.score).toFixed(1)}
-                      </span>
-                    </td>
-                    <td className={`px-3 py-2 text-right tabular-nums ${toNum(row.gap_percent) > 0 ? "text-emerald-400" : toNum(row.gap_percent) < 0 ? "text-rose-400" : "text-slate-500"}`}>
-                      {row.gap_percent != null ? `${toNum(row.gap_percent) > 0 ? "+" : ""}${toNum(row.gap_percent).toFixed(2)}%` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-slate-300">
-                      {row.relative_volume != null ? `${toNum(row.relative_volume).toFixed(1)}x` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-blue-400">
-                      {row.news_count > 0 ? row.news_count : <span className="text-slate-600">0</span>}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      {row.earnings_flag === 1 ? (
-                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">EPS</span>
-                      ) : (
-                        <span className="text-slate-700">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {watchlist.map((row) => {
+                  const pmGap  = row.premarket_gap  ?? row.gap_percent;
+                  const pmVol  = row.premarket_volume;
+                  const pmQual = row.premarket_data_quality;
+                  const qualCls = pmQual == null
+                    ? "bg-slate-700/60 text-slate-500"
+                    : pmQual >= 80 ? "bg-emerald-500/20 text-emerald-400"
+                    : pmQual >= 50 ? "bg-amber-500/20 text-amber-400"
+                    : "bg-red-500/20 text-red-400";
+                  return (
+                    <tr
+                      key={row.symbol}
+                      onClick={() => router.push(`/research/${row.symbol}`)}
+                      className="cursor-pointer border-b border-slate-800/50 transition hover:bg-slate-800/40 last:border-0"
+                    >
+                      <td className="px-3 py-2">
+                        <div className="font-semibold text-slate-100">{row.symbol}</div>
+                        {row.stage && (
+                          <div className={`text-[9px] font-bold uppercase ${row.stage === 'ACTIVE' ? "text-emerald-500" : row.stage === 'EARLY' ? "text-blue-400" : "text-slate-600"}`}>
+                            {row.stage}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <span className={`font-bold tabular-nums ${row.score >= 70 ? "text-emerald-400" : row.score >= 45 ? "text-amber-400" : "text-slate-400"}`}>
+                          {row.score}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-200">
+                        {row.premarket_price != null ? `$${toNum(row.premarket_price).toFixed(2)}` : <span className="text-slate-600">—</span>}
+                      </td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${toNum(pmGap) > 0 ? "text-emerald-400" : toNum(pmGap) < 0 ? "text-rose-400" : "text-slate-500"}`}>
+                        {pmGap != null ? `${toNum(pmGap) > 0 ? "+" : ""}${toNum(pmGap).toFixed(2)}%` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-400">
+                        {pmVol != null && pmVol > 0
+                          ? pmVol >= 1_000_000 ? `${(pmVol / 1_000_000).toFixed(1)}M`
+                          : pmVol >= 1_000 ? `${(pmVol / 1_000).toFixed(0)}K`
+                          : String(pmVol)
+                          : <span className="text-slate-600">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                        {row.relative_volume != null ? `${toNum(row.relative_volume).toFixed(1)}x` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-blue-400">
+                        {row.news_count > 0 ? row.news_count : <span className="text-slate-600">0</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {pmQual != null ? (
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${qualCls}`}>
+                            {pmQual}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-600">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {row.earnings_flag === 1 ? (
+                          <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">EPS</span>
+                        ) : (
+                          <span className="text-slate-700">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : !watchlistQuery.isLoading ? (
           <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-4 text-xs text-slate-600">
-            No premarket data — engine runs every 10 min
+            Premarket data unavailable — session engine runs every 10 min
           </div>
         ) : null}
       </section>

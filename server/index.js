@@ -179,6 +179,7 @@ const { startDataHealthMonitor } = require('./system/dataHealthMonitor');
 const { startDataScheduler, getIngestionStatus } = require('./system/dataScheduler');
 const { startPremarketWatchlistScheduler } = require('./engines/premarketWatchlistEngine');
 const { startSignalEvaluationScheduler } = require('./engines/signalEvaluationEngine');
+const { startSessionAggregationScheduler } = require('./engines/sessionAggregationEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -8562,12 +8563,35 @@ app.get('/api/premarket/watchlist', async (req, res) => {
         COALESCE(cp.sector, '')             AS sector,
         COALESCE(cp.industry, '')           AS industry,
         COALESCE(cp.description, '')        AS description,
-        latest_news.headline                AS top_news_headline
+        latest_news.headline                AS top_news_headline,
+        -- Phase 4: premarket session data
+        pm.premarket_price,
+        pm.premarket_volume,
+        pm.premarket_candles,
+        pm.premarket_quality_avg           AS premarket_data_quality,
+        pm.afterhours_candles,
+        -- premarket_gap: % move from prior close (use gap_percent as source when pm unavailable)
+        CASE
+          WHEN pm.premarket_price IS NOT NULL AND mq.price > 0
+          THEN ROUND(((pm.premarket_price - COALESCE(mq.price, pw.price))
+               / NULLIF(COALESCE(mq.price, pw.price), 0) * 100)::numeric, 2)
+          ELSE pw.gap_percent
+        END                                AS premarket_gap,
+        -- premarket_activity_score: 0–100 based on premarket volume vs avg
+        CASE
+          WHEN pm.premarket_volume > 0 AND pw.avg_volume_30d > 0
+          THEN LEAST(
+            ROUND((pm.premarket_volume::numeric / pw.avg_volume_30d * 50)::numeric, 0)::int,
+            100
+          )
+          ELSE 0
+        END                                AS premarket_activity_score
       FROM premarket_watchlist pw
       LEFT JOIN market_quotes mq
         ON pw.symbol = mq.symbol
         AND mq.price IS NOT NULL AND mq.price > 0
       LEFT JOIN company_profiles cp ON pw.symbol = cp.symbol
+      LEFT JOIN premarket_metrics pm ON pw.symbol = pm.symbol
       LEFT JOIN LATERAL (
         SELECT headline
         FROM   news_articles
@@ -8637,6 +8661,67 @@ app.get('/api/premarket/watchlist', async (req, res) => {
   } catch (err) {
     logger.error('premarket watchlist error', { error: err.message });
     return res.status(500).json({ success: false, error: err.message, data: [] });
+  }
+});
+
+// GET /api/market/session/:symbol — intraday bars split by session (PREMARKET/REGULAR/AFTERHOURS)
+app.get('/api/market/session/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  if (!symbol) return res.status(400).json({ success: false, error: 'symbol required' });
+
+  const hoursBack = Math.max(1, Math.min(Number(req.query.hours) || 24, 72));
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         "timestamp",
+         open, high, low, close, volume,
+         session,
+         data_quality_score
+       FROM intraday_1m
+       WHERE symbol = $1
+         AND "timestamp" >= NOW() - ($2 || ' hours')::INTERVAL
+         AND close > 0
+       ORDER BY "timestamp" ASC`,
+      [symbol, hoursBack],
+      { label: 'api.market.session', timeoutMs: 10_000 }
+    );
+
+    if (rows.length === 0) {
+      return res.json({
+        success: true,
+        symbol,
+        premarket:  [],
+        regular:    [],
+        afterhours: [],
+        total:      0,
+        message:    'No intraday data — session engine may still be processing',
+      });
+    }
+
+    const premarket  = rows.filter(r => r.session === 'PREMARKET');
+    const regular    = rows.filter(r => r.session === 'REGULAR');
+    const afterhours = rows.filter(r => r.session === 'AFTERHOURS');
+    const unclassified = rows.filter(r => !r.session || r.session === 'regular');
+
+    return res.json({
+      success:    true,
+      symbol,
+      hours_back: hoursBack,
+      premarket,
+      regular,
+      afterhours,
+      unclassified_legacy: unclassified.length,
+      total:      rows.length,
+      quality: {
+        premarket_avg:  premarket.length  ? Math.round(premarket.reduce((s,r)=>s+(r.data_quality_score||0),0)/premarket.length)  : null,
+        regular_avg:    regular.length    ? Math.round(regular.reduce((s,r)=>s+(r.data_quality_score||0),0)/regular.length)    : null,
+        afterhours_avg: afterhours.length ? Math.round(afterhours.reduce((s,r)=>s+(r.data_quality_score||0),0)/afterhours.length) : null,
+      },
+    });
+  } catch (err) {
+    logger.error('session endpoint error', { symbol, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -11880,6 +11965,8 @@ async function bootstrapBackgroundServices() {
     startPremarketWatchlistScheduler(10 * 60 * 1000);
     // Signal evaluation: outcome measurement + performance aggregation, runs every 15 min
     startSignalEvaluationScheduler(15 * 60 * 1000);
+    // Session aggregation: extended-hours OHLCV + session classification, runs every 10 min
+    startSessionAggregationScheduler(10 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {
