@@ -1,344 +1,296 @@
 "use client";
 
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
-import { DataState } from "@/components/system/data-state";
-import { fetchEarnings } from "@/lib/api/earnings";
-import { normalizeDataSource } from "@/lib/data-source";
-import { scoreEarnings } from "@/lib/earnings-score";
-import { percentSafe, toFixedSafe, toNumber } from "@/lib/number";
-import { QUERY_POLICY, queryKeys } from "@/lib/queries/policy";
+// ── types ─────────────────────────────────────────────────────────────────────
 
-function dateKeyToday(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function formatDateLabel(value: string): string {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  }).format(parsed);
-}
-
-function normalizeDate(value: unknown): string {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  const short = raw.slice(0, 10);
-  const parsed = new Date(`${short}T00:00:00`);
-  if (!Number.isNaN(parsed.getTime())) return short;
-
-  const fallback = new Date(raw);
-  if (Number.isNaN(fallback.getTime())) return "";
-
-  const year = fallback.getFullYear();
-  const month = String(fallback.getMonth() + 1).padStart(2, "0");
-  const day = String(fallback.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function sessionTag(value: unknown): "AMC" | "BMO" | "" {
-  const raw = String(value || "").trim().toUpperCase();
-  if (raw === "AMC") return "AMC";
-  if (raw === "BMO") return "BMO";
-  return "";
-}
-
-type QuickFilter = "all" | "high-conviction" | "large-cap" | "high-iv";
-
-type RadarRow = {
+type EarningsRow = {
   symbol: string;
-  source: "fmp" | "polygon" | "none";
-  dateKey: string;
-  session: "AMC" | "BMO" | "";
-  marketCap: number;
-  volume: number;
-  price: number;
-  prevClose: number;
-  iv: number;
-  expectedMove: number;
-  expectedMovePercent: number;
-  score: number;
-  tradeability: string;
-  whyTags: string[];
+  company_name?: string | null;
+  report_date: string;
+  time?: string;
+  eps_estimate?: number | null;
+  eps_actual?: number | null;
+  surprise?: number | null;
+  expected_move_percent?: number | null;
+  market_cap?: string | number | null;
+  sector?: string | null;
+  score?: number | null;
 };
 
-function tradeabilityLabel(expectedMovePct: number, volume: number, iv: number): string {
-  const moveScore = Math.min(Math.max(expectedMovePct / 6, 0), 1);
-  const volumeScore = Math.min(Math.max(volume / 5000000, 0), 1);
-  const ivScore = Math.min(Math.max(iv / 0.4, 0), 1);
-  const score = moveScore * 0.45 + volumeScore * 0.35 + ivScore * 0.2;
+type ApiResponse = {
+  success?: boolean;
+  data?: EarningsRow[];
+  rows?: EarningsRow[];
+  ok?: boolean;
+  items?: EarningsRow[];
+};
 
-  if (score >= 0.67) return "🔥 High";
-  if (score >= 0.4) return "⚠️ Medium";
-  return "❌ Low";
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function addDays(date: Date, n: number) {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d;
 }
 
+function mondayOf(date: Date) {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dow = d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
+  return d;
+}
+
+function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function dayLabel(d: Date) {
+  return `${DAY_LABELS[d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1]} ${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
+function fmtMcap(v: string | number | null | undefined) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (n >= 1e12) return `${(n / 1e12).toFixed(1)}T`;
+  if (n >= 1e9)  return `${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6)  return `${(n / 1e6).toFixed(0)}M`;
+  return "—";
+}
+
+function fmtEps(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  return `${n >= 0 ? "" : ""}${n.toFixed(2)}`;
+}
+
+function fmtSurprise(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(Number(v))) return null;
+  const n = Number(v);
+  return { text: `${n > 0 ? "+" : ""}${n.toFixed(1)}%`, positive: n >= 0 };
+}
+
+function normaliseTime(t: unknown) {
+  const s = String(t || "").toUpperCase();
+  if (s.includes("BMO") || s.includes("PRE") || s.includes("BEFORE")) return "BMO";
+  if (s.includes("AMC") || s.includes("AFTER")) return "AMC";
+  if (s.includes("TNS") || s.includes("TNS")) return "TNS";
+  return "TBD";
+}
+
+const TIME_PILL: Record<string, string> = {
+  BMO: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  AMC: "bg-blue-500/15 text-blue-500 border-blue-500/30",
+  TNS: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
+  TBD: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
+};
+
+// ── component ─────────────────────────────────────────────────────────────────
+
 export function EarningsView() {
-  const today = dateKeyToday();
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const router = useRouter();
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [rows, setRows] = useState<EarningsRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const {
-    data = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.earnings,
-    queryFn: fetchEarnings,
-    ...QUERY_POLICY.slow,
-  });
+  // compute week
+  const baseMonday = useMemo(() => mondayOf(new Date()), []);
+  const monday = useMemo(() => addDays(baseMonday, weekOffset * 7), [baseMonday, weekOffset]);
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
+  const todayIso = useMemo(() => isoDate(new Date()), []);
 
-  const displayData = useMemo<RadarRow[]>(() => {
-    return data
-      .map((row) => {
-      const symbol = String(row.symbol || "").toUpperCase();
-      const date = normalizeDate((row as unknown as { event_date?: unknown; date?: unknown }).event_date || (row as unknown as { event_date?: unknown; date?: unknown }).date);
-      const session = sessionTag((row as unknown as { time?: unknown; session?: unknown }).time ?? (row as unknown as { time?: unknown; session?: unknown }).session);
-      const source = normalizeDataSource((row as unknown as { source?: unknown }).source);
+  // fetch whenever week changes
+  useEffect(() => {
+    const from = isoDate(monday);
+    const to = isoDate(addDays(monday, 6));
+    setLoading(true);
+    setError(null);
+    fetch(`/api/earnings/calendar?from=${from}&to=${to}&limit=600`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: ApiResponse) => {
+        const list = d.data ?? d.rows ?? d.items ?? [];
+        setRows(Array.isArray(list) ? list : []);
+        // default to first day that has events, or today
+        const counts = new Map<string, number>();
+        for (const row of list) {
+          const k = String(row.report_date || "").slice(0, 10);
+          counts.set(k, (counts.get(k) ?? 0) + 1);
+        }
+        const firstWithEvents = weekDays.map(isoDate).find((d) => (counts.get(d) ?? 0) > 0);
+        setSelectedDay((prev) => prev ?? firstWithEvents ?? isoDate(monday));
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [monday, weekOffset]); // eslint-disable-line react-hooks/exhaustive-deps
 
-      if (!symbol || !date) {
-        console.warn("[DATA QUALITY ISSUE]", {
-          symbol,
-          missing: [!symbol ? "symbol" : null, !date ? "date" : null].filter(Boolean),
-        });
-        return null;
-      }
+  // counts per day
+  const countsByDay = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) {
+      const k = String(r.report_date || "").slice(0, 10);
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [rows]);
 
-      const marketCap = toNumber((row as unknown as { market_cap?: unknown; marketCap?: unknown }).market_cap ?? (row as unknown as { market_cap?: unknown; marketCap?: unknown }).marketCap, 0);
-      const volume = toNumber((row as unknown as { volume?: unknown; avgVolume?: unknown; averageVolume?: unknown }).volume ?? (row as unknown as { volume?: unknown; avgVolume?: unknown; averageVolume?: unknown }).avgVolume ?? (row as unknown as { volume?: unknown; avgVolume?: unknown; averageVolume?: unknown }).averageVolume, 0);
-      const price =
-        toNumber((row as unknown as { price?: unknown }).price, 0) ||
-        toNumber((row as unknown as { prevClose?: unknown; prev_close?: unknown }).prevClose ?? (row as unknown as { prevClose?: unknown; prev_close?: unknown }).prev_close, 0);
-      const prevClose = toNumber((row as unknown as { prevClose?: unknown; prev_close?: unknown }).prevClose ?? (row as unknown as { prevClose?: unknown; prev_close?: unknown }).prev_close, 0);
-      const iv = toNumber((row as unknown as { iv?: unknown; implied_volatility?: unknown; impliedVolatility?: unknown }).iv ?? (row as unknown as { iv?: unknown; implied_volatility?: unknown; impliedVolatility?: unknown }).implied_volatility ?? (row as unknown as { iv?: unknown; implied_volatility?: unknown; impliedVolatility?: unknown }).impliedVolatility, 0);
+  // rows for selected day, filtered by search
+  const dayRows = useMemo(() => {
+    if (!selectedDay) return [];
+    const q = search.trim().toUpperCase();
+    return rows
+      .filter((r) => String(r.report_date || "").slice(0, 10) === selectedDay)
+      .filter((r) => !q || String(r.symbol || "").toUpperCase().includes(q) || String(r.sector || "").toUpperCase().includes(q) || String(r.company_name || "").toUpperCase().includes(q))
+      .sort((a, b) => (Number(b.market_cap) || 0) - (Number(a.market_cap) || 0));
+  }, [rows, selectedDay, search]);
 
-      const feedExpectedMove = Math.abs(toNumber(row.expected_move, 0));
-      const expectedMove = feedExpectedMove > 0 ? feedExpectedMove : price > 0 && iv > 0 ? price * iv : 0;
-      const expectedMovePercent = price > 0 ? Number(((expectedMove / price) * 100).toFixed(2)) : 0;
-
-      const score = scoreEarnings({
-        expectedMove,
-        volume,
-        marketCap,
-      });
-
-      const whyTags: string[] = [];
-      if (iv >= 0.35) whyTags.push("High IV expansion");
-      if (marketCap >= 10_000_000_000) whyTags.push("Large cap mover");
-      if (volume >= 1_000_000) whyTags.push("Low liquidity risk");
-
-      return {
-        symbol,
-        source,
-        dateKey: date || today,
-        session,
-        marketCap,
-        volume,
-        price,
-        prevClose,
-        iv,
-        expectedMove,
-        expectedMovePercent,
-        score,
-        tradeability: tradeabilityLabel(expectedMovePercent, volume, iv),
-        whyTags,
-      };
-    })
-      .filter((row): row is RadarRow => Boolean(row));
-  }, [data, today]);
-
-  const countsByDate = useMemo(() => {
-    return displayData.reduce<Record<string, number>>((acc, row) => {
-      const key = row.dateKey;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
-  }, [displayData]);
-
-  const weekDates = useMemo(() => {
-    const uniqueDates = Array.from(new Set(displayData.map((row) => row.dateKey).filter(Boolean))).sort();
-    return uniqueDates.slice(0, 7);
-  }, [displayData]);
-
-  const effectiveSelectedDate = weekDates.includes(selectedDate)
-    ? selectedDate
-    : (weekDates[0] || today);
-
-  const byDate = useMemo(() => {
-    return displayData.filter((entry) => entry.dateKey === effectiveSelectedDate);
-  }, [displayData, effectiveSelectedDate]);
-
-  const filtered = useMemo(() => {
-    return byDate.filter((entry) => {
-      if (quickFilter === "high-conviction") return entry.expectedMovePercent >= 4;
-      if (quickFilter === "large-cap") return entry.marketCap >= 10_000_000_000;
-      if (quickFilter === "high-iv") return entry.iv >= 0.35;
-      return true;
-    });
-  }, [byDate, quickFilter]);
-
-  const ranked = useMemo(() => {
-    return filtered
-      .slice()
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.marketCap !== a.marketCap) return b.marketCap - a.marketCap;
-        if (b.expectedMovePercent !== a.expectedMovePercent) return b.expectedMovePercent - a.expectedMovePercent;
-        return b.volume - a.volume;
-      });
-  }, [filtered]);
-
-  const top = useMemo(() => ranked.slice(0, 5), [ranked]);
+  const selectedDayLabel = selectedDay
+    ? dayLabel(new Date(selectedDay + "T00:00:00Z"))
+    : "";
 
   return (
-    <DataState loading={isLoading} error={error} data={displayData} emptyMessage="No data available">
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-800 bg-panel p-4 shadow-lg">
-        <div className="mb-3 text-xs uppercase tracking-wide text-slate-400">Earnings Calendar</div>
-        <div className="earnings-date-bar flex gap-2 overflow-x-auto pb-1">
-          {weekDates.map((date) => {
-            const isActive = date === effectiveSelectedDate;
-            const count = countsByDate[date] || 0;
+    <div className="flex flex-col h-full bg-[var(--background)]">
 
-            return (
-              <button
-                key={date}
-                type="button"
-                onClick={() => setSelectedDate(date)}
-                className={`min-w-[130px] rounded-lg border px-3 py-2 text-left text-xs transition ${isActive ? "active border-emerald-500/70 bg-emerald-500/10 text-emerald-200" : "border-slate-800 text-slate-300 hover:bg-slate-900"}`}
-              >
-                <div className="font-medium">{formatDateLabel(date)}</div>
-                <span className="mt-1 inline-block text-[11px] text-slate-400">{count} earnings</span>
-              </button>
-            );
-          })}
+      {/* ── Header bar ── */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--panel)] shrink-0">
+        <h1 className="text-sm font-semibold text-[var(--foreground)]">Earnings Calendar</h1>
+        <div className="flex items-center gap-1 ml-auto">
+          <button onClick={() => { setWeekOffset((w) => w - 1); setSelectedDay(null); }}
+            className="px-2.5 py-1 rounded border border-[var(--border)] text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors">←</button>
+          {weekOffset !== 0 && (
+            <button onClick={() => { setWeekOffset(0); setSelectedDay(null); }}
+              className="px-2.5 py-1 rounded border border-[var(--border)] text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors">This Week</button>
+          )}
+          <button onClick={() => { setWeekOffset((w) => w + 1); setSelectedDay(null); }}
+            className="px-2.5 py-1 rounded border border-[var(--border)] text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors">→</button>
         </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filter symbol / company / sector…"
+          className="w-44 rounded border border-[var(--border)] bg-[var(--input)] px-2.5 py-1 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-blue-500"
+        />
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-panel p-4 shadow-lg">
-        <div className="mb-3 flex flex-wrap gap-2 text-xs">
-          {[
-            { key: "all", label: "All" },
-            { key: "high-conviction", label: "High Conviction" },
-            { key: "large-cap", label: "Large Cap" },
-            { key: "high-iv", label: "High IV" },
-          ].map((item) => {
-            const active = quickFilter === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setQuickFilter(item.key as QuickFilter)}
-                className={`rounded border px-3 py-1 ${active ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-200" : "border-slate-800 text-slate-300 hover:bg-slate-900"}`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="top-opportunities grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-          {top.map((entry) => {
-            const priorityClass = entry.score > 8
-              ? "border-emerald-500/60 shadow-emerald-500/15"
-              : entry.score > 5
-                ? "border-amber-400/60"
-                : "border-slate-800";
-
-            return (
-              <div key={entry.symbol} className={`rounded-xl border bg-slate-950/60 p-3 text-xs ${priorityClass}`}>
-                <h3 className="font-mono text-sm text-slate-100">{entry.symbol}</h3>
-                <p className="mt-1 text-slate-300">Expected Move: ±{toFixedSafe(entry.expectedMovePercent, 2)}%</p>
-                <p className="text-slate-300">Score: {toFixedSafe(entry.score, 2)}</p>
-                <p className="text-[11px] text-slate-500">Source: {entry.source}</p>
-                <p className="text-slate-400">{entry.session === "AMC" ? "After Close" : entry.session === "BMO" ? "Before Open" : ""}</p>
-                <Link href={`/research/${entry.symbol}`} className="mt-2 inline-block text-emerald-300 hover:text-emerald-200">
-                  Trade Setup →
-                </Link>
-              </div>
-            );
-          })}
-          {top.length === 0 ? (
-            <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs text-slate-500 md:col-span-2 xl:col-span-5">
-              No earnings for this date
-            </div>
-          ) : null}
-        </div>
+      {/* ── Day tab strip ── */}
+      <div className="flex gap-2 px-4 py-3 border-b border-[var(--border)] bg-[var(--panel)] shrink-0 overflow-x-auto">
+        {weekDays.map((d) => {
+          const k = isoDate(d);
+          const count = countsByDay.get(k) ?? 0;
+          const isToday = k === todayIso;
+          const isSelected = k === selectedDay;
+          return (
+            <button
+              key={k}
+              onClick={() => setSelectedDay(k)}
+              className={[
+                "flex flex-col items-start shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors min-w-[110px]",
+                isSelected
+                  ? "border-blue-500 bg-blue-500/10"
+                  : isToday
+                    ? "border-blue-500/40 bg-blue-500/5 hover:bg-blue-500/10"
+                    : "border-[var(--border)] hover:bg-[var(--muted)]",
+              ].join(" ")}
+            >
+              <span className={`text-xs font-semibold ${isSelected ? "text-blue-500" : isToday ? "text-blue-400" : "text-[var(--foreground)]"}`}>
+                {dayLabel(d)}
+              </span>
+              <span className={`mt-1 flex items-center gap-1 text-[11px] ${count > 0 ? "text-[var(--muted-foreground)]" : "text-[var(--muted-foreground)]/40"}`}>
+                {count > 0 && <span className={`inline-block w-1.5 h-1.5 rounded-full ${isSelected ? "bg-blue-500" : "bg-[var(--muted-foreground)]"}`} />}
+                {count > 0 ? `${count} Earnings` : "—"}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-panel p-4 shadow-lg">
-        <div className="mb-2 flex items-center justify-between text-xs">
-          <div className="uppercase tracking-wide text-slate-400">Selected Date</div>
-          <div className="font-medium text-slate-200">{formatDateLabel(effectiveSelectedDate)}</div>
-        </div>
-
-        {ranked.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4 text-xs text-slate-400">No earnings for this date</div>
-        ) : (
-          <div className="space-y-2">
-            {ranked.map((row) => {
-              const session = row.session;
-              const sessionLabel = session === "AMC" ? "After Market Close" : session === "BMO" ? "Before Market Open" : "";
-              const priorityClass = row.score > 8
-                ? "border-l-4 border-l-emerald-500 shadow-emerald-500/20"
-                : row.score > 5
-                  ? "border-l-4 border-l-amber-400"
-                  : "border-l-4 border-l-slate-700";
-
-              return (
-                <div
-                  key={`${row.symbol}-${row.dateKey}-${row.session}`}
-                  className={`grid rounded-lg border border-slate-800 p-3 text-xs text-slate-300 md:grid-cols-10 ${priorityClass}`}
-                >
-                  <span className="font-mono text-slate-100">{row.symbol}</span>
-                  <span>{session}</span>
-                  <span>{sessionLabel}</span>
-                  <span>MCap {toFixedSafe(row.marketCap, 0)}</span>
-                  <span>Move {percentSafe(row.expectedMovePercent, 2)}</span>
-                  <span>Vol {toFixedSafe(row.volume, 0)}</span>
-                  <span>IV {toFixedSafe(row.iv, 2)}</span>
-                  <span>Score {toFixedSafe(row.score, 2)}</span>
-                  <span>{row.tradeability}</span>
-                  <Link
-                    href={`/research/${row.symbol}`}
-                    className="rounded border border-slate-700 px-2 py-1 text-center text-[11px] text-slate-100 hover:bg-slate-900"
-                  >
-                    View Trade Setup
-                  </Link>
-                  <span className="text-[11px] text-slate-500 md:col-span-10">Source: {row.source}</span>
-                  <span className="md:col-span-10 text-[11px] text-slate-500">
-                    {row.whyTags.length > 0 ? row.whyTags.join(" • ") : "Event-driven setup"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {/* ── Table ── */}
+      <div className="flex-1 overflow-auto">
+        {loading && (
+          <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">Loading…</div>
         )}
-
-        {ranked.length > 0 ? (
-          <div className="mt-3 text-[11px] text-slate-500">
-            Sorted by: Opportunity Score DESC, then Market Cap DESC, Expected Move DESC, Volume DESC
-          </div>
-        ) : null}
-
-        <div className="mt-2 text-[11px] text-slate-500">
-          Session tags: AMC = After Market Close, BMO = Before Market Open
-        </div>
+        {error && (
+          <div className="m-4 rounded-lg border border-[var(--destructive)]/40 bg-[var(--destructive)]/10 px-4 py-3 text-sm text-[var(--destructive)]">{error}</div>
+        )}
+        {!loading && !error && (
+          <>
+            {selectedDay && (
+              <div className="px-4 py-2 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide border-b border-[var(--border)] bg-[var(--panel)]">
+                Earnings on {selectedDayLabel} · {dayRows.length} companies
+              </div>
+            )}
+            <table className="w-full text-sm border-collapse">
+              <thead className="sticky top-0 z-10 bg-[var(--panel)] border-b border-[var(--border)]">
+                <tr>
+                  {["Symbol","Company","Sector","Call Time","EPS Est","Reported EPS","Surprise","Exp Move","Mkt Cap","Score"].map((h) => (
+                    <th key={h} className="px-3 py-2.5 text-left text-[11px] uppercase tracking-wide font-medium text-[var(--muted-foreground)] whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dayRows.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-16 text-center text-sm text-[var(--muted-foreground)]">
+                      {selectedDay ? "No earnings on this day" : "Select a day above"}
+                    </td>
+                  </tr>
+                )}
+                {dayRows.map((row, i) => {
+                  const timeKey = normaliseTime(row.time);
+                  const surprise = fmtSurprise(row.surprise);
+                  const expMove = row.expected_move_percent != null ? `±${Number(row.expected_move_percent).toFixed(1)}%` : "—";
+                  return (
+                    <tr key={`${row.symbol}-${i}`}
+                      onClick={() => router.push(`/research/${row.symbol}`)}
+                      className={`border-b border-[var(--border)] transition-colors cursor-pointer ${i % 2 !== 0 ? "bg-[var(--muted)]/30" : ""} hover:bg-[var(--muted)]`}>
+                      <td className="px-3 py-2.5 font-semibold text-blue-500 text-xs tracking-wide whitespace-nowrap">
+                        {row.symbol}
+                      </td>
+                      <td className="px-3 py-2.5 text-[var(--foreground)] text-xs max-w-[180px] truncate">
+                        {row.company_name || "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-[var(--muted-foreground)] text-xs max-w-[120px] truncate">
+                        {row.sector || "—"}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border ${TIME_PILL[timeKey] ?? TIME_PILL.TBD}`}>
+                          {timeKey}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--foreground)]">
+                        {fmtEps(row.eps_estimate)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--foreground)]">
+                        {fmtEps(row.eps_actual)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
+                        {surprise
+                          ? <span className={surprise.positive ? "text-[var(--bull)]" : "text-[var(--bear)]"}>{surprise.text}</span>
+                          : <span className="text-[var(--muted-foreground)]">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums text-amber-500">
+                        {expMove}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums text-[var(--foreground)]">
+                        {fmtMcap(row.market_cap)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums text-[var(--muted-foreground)]">
+                        {row.score != null ? Number(row.score).toFixed(0) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
     </div>
-    </DataState>
   );
 }

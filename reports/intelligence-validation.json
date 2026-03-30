@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-03-30T06:11:27.759Z",
+  "symbols_processed": 1505,
+  "tradeable": 669,
+  "lifecycle_distribution": {
+    "EXPANSION": 418,
+    "PRE_MOVE": 472,
+    "EXHAUSTION": 11,
+    "DEAD": 604
+  },
+  "avg_confidence": 53,
+  "last_run": "2026-03-30T06:09:51.634Z",
+  "top5_watchlist": [
+    {
+      "symbol": "ELVN",
+      "confidence": 100,
+      "lifecycle_stage": "EXPANSION",
+      "catalyst_summary": "STOCK_NEWS: \"Enliven Theraeutics' (ELVN) Chief Medical Officer Sold 40,000 Shares for $1.2 Million\" (42h ago)",
+      "rvol": "1.5988151784689126",
+      "gap_percent": "-0.46"
+    },
+    {
+      "symbol": "TOP",
+      "confidence": 100,
+      "lifecycle_stage": "EXPANSION",
+      "catalyst_summary": "STOCK_NEWS: \"ROSEN, A TOP-RANKED LAW FIRM, Encourages Super Micro Computer, Inc. Investors to Secure Counsel Befo\" (9h ago)",
+      "rvol": "7.275073925182039",
+      "gap_percent": "-14.7226"
+    },
+    {
+      "symbol": "AKTS",
+      "confidence": 100,
+      "lifecycle_stage": "EXPANSION",
+      "catalyst_summary": "STOCK_NEWS: \"Aktis Oncology (NASDAQ:AKTS) Reaches New 52-Week Low  – Should You Sell?\" (29h ago)",
+      "rvol": "2.3078400443012845",
+      "gap_percent": "-13.79114"
+    },
+    {
+      "symbol": "BUR",
+      "confidence": 100,
+      "lifecycle_stage": "EXPANSION",
+      "catalyst_summary": "STOCK_NEWS: \"Burford Capital (LON:BUR) Hits New 52-Week Low  – Should You Sell?\" (29h ago)",
+      "rvol": "22.005491196881856",
+      "gap_percent": "-3.705"
+    },
+    {
+      "symbol": "LU",
+      "confidence": 100,
+      "lifecycle_stage": "PRE_MOVE",
+      "catalyst_summary": "Earnings event upcoming",
+      "rvol": "0.7580370727426397",
+      "gap_percent": "-0.07"
+    }
+  ],
+  "route_status": {
+    "GET /api/premarket/watchlist": "OK",
+    "GET /api/premarket/intelligence/:symbol": "OK",
+    "GET /api/news/symbol72h/:symbol": "OK",
+    "GET /api/stocks/intraday-sparkline": "OK (NO_DATA expected in PREP/weekend)"
+  }
+}

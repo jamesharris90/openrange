@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-03-30T04:15:00Z",
+  "core_tables_present": ["news_articles","earnings_events","market_metrics","market_quotes","intraday_1m","daily_ohlc","opportunity_stream","trade_setups","company_profiles"],
+  "missing_tables": ["premarket_intelligence"],
+  "stop_condition": "NONE — all core tables exist",
+  "row_counts": {
+    "news_articles": 17998,
+    "news_articles_72h": 5017,
+    "earnings_events": 478,
+    "market_metrics": 7778,
+    "intraday_1m": 984653,
+    "intraday_newest": "2026-03-28T00:00:00.000Z"
+  },
+  "critical_field_notes": {
+    "news_articles.symbols": "ARRAY — use $1 = ANY(symbols) NOT symbol = $1",
+    "news_articles.symbol": "single text, nullable — unreliable for per-symbol lookup",
+    "news_articles.detected_symbols": "ARRAY — secondary fallback",
+    "news_articles.news_score": "always 0 — use priority_score + published_at ordering",
+    "news_articles.published_at": "timestamp without time zone — primary date field",
+    "intraday_1m.timestamp": "reserved word — must quote as \"timestamp\"",
+    "market_metrics.relative_volume": "numeric — primary RVOL field",
+    "market_metrics.gap_percent": "numeric — gap vs previous close",
+    "market_metrics.avg_volume_30d": "numeric — 30-day average volume",
+    "earnings_events.report_date": "primary date field for earnings",
+    "opportunity_stream.confidence": "numeric 0-100",
+    "opportunity_stream.tradeability": "text field"
+  }
+}
