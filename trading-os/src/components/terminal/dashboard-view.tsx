@@ -81,6 +81,25 @@ type PrepSignal = {
   created_at: string;
 };
 
+type WatchlistRow = {
+  symbol: string;
+  price: number | null;
+  change_percent: number | null;
+  gap_percent: number | null;
+  relative_volume: number | null;
+  volume_ratio: number | null;
+  news_count: number;
+  earnings_flag: number;
+  score: number;
+  updated_at: string;
+};
+
+type WatchlistResponse = {
+  success: boolean;
+  count: number;
+  data: WatchlistRow[];
+};
+
 type PrepResponse = {
   ok: boolean;
   market_mode: MarketMode;
@@ -323,10 +342,17 @@ export function DashboardView() {
     ...QUERY_POLICY.slow,
   });
 
+  const watchlistQuery = useQuery({
+    queryKey: ["dashboard", "premarket-watchlist"],
+    queryFn: () => apiGet<WatchlistResponse>("/api/premarket/watchlist?limit=20").catch(() => ({ success: false, count: 0, data: [] })),
+    ...QUERY_POLICY.medium,
+  });
+
   const signals = focusQuery.data?.signals ?? [];
   const regime  = focusQuery.data?.regime  ?? null;
   const meta    = focusQuery.data?.meta;
   const prepData = prepQuery.data;
+  const watchlist = watchlistQuery.data?.data ?? [];
   const indices = overviewQuery.data?.indices ?? {};
   const vixKey = Object.keys(overviewQuery.data?.volatility ?? {}).find((k) => k.toUpperCase().includes("VIX")) ?? "";
   const vix = vixKey ? toNum((overviewQuery.data?.volatility as Record<string, { price?: unknown }>)?.[vixKey]?.price, NaN) : NaN;
@@ -623,6 +649,67 @@ export function DashboardView() {
           </section>
         </div>
       </div>
+
+      {/* ── Premarket Watchlist ── */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Premarket Watchlist</h2>
+          {watchlistQuery.isLoading && <span className="text-[11px] text-slate-600">Loading...</span>}
+          {watchlist.length > 0 && <span className="text-[11px] text-slate-600">{watchlist.length} symbols</span>}
+        </div>
+        {watchlist.length > 0 ? (
+          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-800 text-[10px] uppercase tracking-wide text-slate-500">
+                  <th className="px-3 py-2 text-left">Symbol</th>
+                  <th className="px-3 py-2 text-right">Score</th>
+                  <th className="px-3 py-2 text-right">Gap%</th>
+                  <th className="px-3 py-2 text-right">RVOL</th>
+                  <th className="px-3 py-2 text-right">News</th>
+                  <th className="px-3 py-2 text-center">Earnings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {watchlist.map((row) => (
+                  <tr
+                    key={row.symbol}
+                    onClick={() => router.push(`/research/${row.symbol}`)}
+                    className="cursor-pointer border-b border-slate-800/50 transition hover:bg-slate-800/40 last:border-0"
+                  >
+                    <td className="px-3 py-2 font-semibold text-slate-100">{row.symbol}</td>
+                    <td className="px-3 py-2 text-right">
+                      <span className={`font-bold tabular-nums ${row.score >= 70 ? "text-emerald-400" : row.score >= 45 ? "text-amber-400" : "text-slate-400"}`}>
+                        {toNum(row.score).toFixed(1)}
+                      </span>
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${toNum(row.gap_percent) > 0 ? "text-emerald-400" : toNum(row.gap_percent) < 0 ? "text-rose-400" : "text-slate-500"}`}>
+                      {row.gap_percent != null ? `${toNum(row.gap_percent) > 0 ? "+" : ""}${toNum(row.gap_percent).toFixed(2)}%` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                      {row.relative_volume != null ? `${toNum(row.relative_volume).toFixed(1)}x` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-blue-400">
+                      {row.news_count > 0 ? row.news_count : <span className="text-slate-600">0</span>}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {row.earnings_flag === 1 ? (
+                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">EPS</span>
+                      ) : (
+                        <span className="text-slate-700">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : !watchlistQuery.isLoading ? (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-4 text-xs text-slate-600">
+            No premarket data — engine runs every 10 min
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }

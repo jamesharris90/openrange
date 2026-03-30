@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-03-30T00:00:00.000Z",
+  "engine_running": true,
+  "rows_generated": 50,
+  "top_symbol": "RDGT",
+  "top_score": 100,
+  "avg_score": 4.2,
+  "duration_ms": 1331,
+  "data_sources_used": [
+    "market_metrics",
+    "market_quotes",
+    "news_articles",
+    "earnings_events"
+  ],
+  "score_formula": "abs(gap_percent)*3 + relative_volume*5 + volume_ratio*2 + news_count*2 + earnings_flag*3, normalised 0-100",
+  "table": "premarket_watchlist",
+  "scheduler_interval_min": 10,
+  "api_endpoint": "GET /api/premarket/watchlist",
+  "dashboard_panel": "Premarket Watchlist — Score, Gap%, RVOL, News, Earnings columns, click → /research/:symbol",
+  "errors": []
+}
