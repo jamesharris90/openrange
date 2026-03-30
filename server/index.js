@@ -5370,6 +5370,7 @@ app.get('/api/stocks/:symbol', async (req, res) => {
          FROM news_articles na
          WHERE na.symbol = $1
             OR $1 = ANY(na.symbols)
+            OR $1 = ANY(na.detected_symbols)
          ORDER BY na.published_at DESC NULLS LAST
          LIMIT 10`,
         [symbol]
@@ -6937,12 +6938,15 @@ async function loadScreenerRows(options = {}) {
         END AS catalyst_type,
         m.implied_volatility,
         m.expected_move_percent,
-        m.put_call_ratio
+        m.put_call_ratio,
+        pw.score::int AS score,
+        pw.stage
       FROM universe u
       JOIN latest_quotes q ON q.symbol = u.symbol
       JOIN latest_metrics m ON m.symbol = u.symbol
       LEFT JOIN news_recent nr ON nr.symbol = u.symbol
       LEFT JOIN earnings_recent er ON er.symbol = u.symbol
+      LEFT JOIN premarket_watchlist pw ON pw.symbol = u.symbol
       WHERE q.price IS NOT NULL
         AND q.price > 0
         AND m.volume IS NOT NULL
@@ -6966,6 +6970,7 @@ async function loadScreenerRows(options = {}) {
     market_cap:      'market_cap',
     sector:          'sector',
     catalyst_type:   'catalyst_type',
+    score:           'score',
   };
   const sortCol = SORT_COLS[options.sortBy] || 'change_percent';
   const sortDir = String(options.sortDir || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
@@ -7025,7 +7030,9 @@ async function loadScreenerRows(options = {}) {
        catalyst_type,
        implied_volatility,
        expected_move_percent,
-       put_call_ratio
+       put_call_ratio,
+       score,
+       stage
      FROM screened
      ${whereClause}
      ORDER BY ${sortCol} ${sortDir} NULLS LAST
@@ -7060,6 +7067,9 @@ async function loadScreenerRows(options = {}) {
     if (!sector) return acc;
     if (!['NEWS', 'EARNINGS', 'UNUSUAL_VOLUME', 'UNKNOWN'].includes(catalystType)) return acc;
 
+    const score = Number.isFinite(Number(row.score)) ? Number(row.score) : null;
+    const stage = typeof row.stage === 'string' && row.stage ? row.stage : null;
+
     acc.push({
       symbol,
       price,
@@ -7070,6 +7080,8 @@ async function loadScreenerRows(options = {}) {
       market_cap: marketCap,
       sector,
       catalyst_type: catalystType,
+      score,
+      stage,
     });
     return acc;
   }, []);
@@ -8522,51 +8534,106 @@ app.get('/api/premarket/report-md', async (req, res) => {
 
 // ── Premarket Intelligence Routes (Step 5) ────────────────────────────────────
 
-// GET /api/premarket/watchlist — deterministic scoring from premarket_watchlist table
+// GET /api/premarket/watchlist — single source of truth: score, stage, company context
+// Phase 1 (SSOT), Phase 4 (price>0), Phase 6 (company profiles), Phase 9 (why_moving)
 app.get('/api/premarket/watchlist', async (req, res) => {
   try {
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    const limit  = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    const WATCHLIST_SQL = `
+      SELECT
+        pw.symbol,
+        COALESCE(mq.price, pw.price)        AS price,
+        pw.change_percent,
+        pw.gap_percent,
+        pw.relative_volume,
+        pw.volume_ratio,
+        pw.news_count,
+        pw.earnings_flag,
+        pw.stage,
+        pw.score,
+        pw.rank_percentile,
+        pw.decay_factor,
+        pw.news_age_minutes,
+        pw.last_calculated_at,
+        pw.updated_at,
+        cp.company_name,
+        COALESCE(cp.sector, '')             AS sector,
+        COALESCE(cp.industry, '')           AS industry,
+        COALESCE(cp.description, '')        AS description,
+        latest_news.headline                AS top_news_headline
+      FROM premarket_watchlist pw
+      LEFT JOIN market_quotes mq
+        ON pw.symbol = mq.symbol
+        AND mq.price IS NOT NULL AND mq.price > 0
+      LEFT JOIN company_profiles cp ON pw.symbol = cp.symbol
+      LEFT JOIN LATERAL (
+        SELECT headline
+        FROM   news_articles
+        WHERE  (symbol = pw.symbol OR pw.symbol = ANY(symbols) OR pw.symbol = ANY(detected_symbols))
+          AND  published_at >= NOW() - INTERVAL '72 hours'
+        ORDER BY published_at DESC
+        LIMIT 1
+      ) latest_news ON TRUE
+      WHERE COALESCE(mq.price, pw.price) > 0
+        AND COALESCE(mq.price, pw.price) IS NOT NULL
+      ${symbol ? 'AND pw.symbol = $2' : ''}
+      ORDER BY pw.score DESC
+      LIMIT $1`;
+
+    const params = symbol ? [limit, symbol] : [limit];
 
     let rows = [];
     try {
-      const result = await queryWithTimeout(
-        `SELECT symbol, price, change_percent, gap_percent, relative_volume,
-                volume_ratio, news_count, earnings_flag, score, updated_at
-         FROM premarket_watchlist
-         ORDER BY score DESC
-         LIMIT $1`,
-        [limit],
-        { label: 'api.premarket.watchlist', timeoutMs: 8000 }
+      const result = await queryWithTimeout(WATCHLIST_SQL, params,
+        { label: 'api.premarket.watchlist.v3', timeoutMs: 12000 }
       );
       rows = result.rows;
     } catch (tableErr) {
-      logger.warn('[PREMARKET] watchlist table read failed', { error: tableErr.message });
+      logger.warn('[PREMARKET] watchlist v3 read failed', { error: tableErr.message });
     }
 
     // If empty, trigger an on-demand engine run then re-read
-    if (rows.length === 0) {
+    if (rows.length === 0 && !symbol) {
       console.log('[PREMARKET] watchlist empty — running engine on demand');
       const { runPremarketWatchlistEngine } = require('./engines/premarketWatchlistEngine');
       await runPremarketWatchlistEngine().catch((e) =>
         console.error('[PREMARKET] on-demand run failed:', e.message)
       );
-      const result = await queryWithTimeout(
-        `SELECT symbol, price, change_percent, gap_percent, relative_volume,
-                volume_ratio, news_count, earnings_flag, score, updated_at
-         FROM premarket_watchlist
-         ORDER BY score DESC
-         LIMIT $1`,
-        [limit],
-        { label: 'api.premarket.watchlist.post_run', timeoutMs: 8000 }
+      const result = await queryWithTimeout(WATCHLIST_SQL, params,
+        { label: 'api.premarket.watchlist.v3.post_run', timeoutMs: 12000 }
       ).catch(() => ({ rows: [] }));
       rows = result.rows;
     }
 
-    if (rows.length === 0) {
+    // Phase 9: rule-based why_moving from top headline
+    const enriched = rows.map((row) => {
+      const headline = row.top_news_headline;
+      let why_moving;
+      if (headline) {
+        const dir = Number(row.change_percent) >= 0 ? 'bullish' : 'bearish';
+        why_moving = `${row.symbol} is moving due to recent news: "${headline}" This suggests continued ${dir} pressure.`;
+      } else if (Math.abs(Number(row.gap_percent)) > 2) {
+        why_moving = `Move is technical (${Number(row.gap_percent) > 0 ? '+' : ''}${Number(row.gap_percent).toFixed(1)}% gap, ${Number(row.relative_volume).toFixed(1)}x volume), no confirmed catalyst yet.`;
+      } else {
+        why_moving = `Move is technical (volume + price expansion), no confirmed catalyst yet.`;
+      }
+
+      // Phase 10: confidence = score (integer, locked)
+      return {
+        ...row,
+        score:      Number(row.score),
+        confidence: Number(row.score),
+        why_moving,
+      };
+    });
+
+    if (enriched.length === 0) {
       return res.json({ success: true, data: [], count: 0 });
     }
 
-    return res.json({ success: true, count: rows.length, data: rows });
+    return res.json({ success: true, count: enriched.length, data: enriched });
   } catch (err) {
     logger.error('premarket watchlist error', { error: err.message });
     return res.status(500).json({ success: false, error: err.message, data: [] });

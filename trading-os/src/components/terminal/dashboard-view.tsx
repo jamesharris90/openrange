@@ -162,41 +162,11 @@ function directionChip(direction: string) {
   return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">NEUTRAL</span>;
 }
 
-// ─── Signal quality score (0–100) ─────────────────────────────────────────────
-// Uses only existing top-focus fields: trade_score, regime_alignment, relative_volume, consequence
-
-function computeSignalQuality(signal: TopFocusSignal): number {
-  const regimeScore =
-    signal.regime_alignment === "ALIGNED"    ? 100 :
-    signal.regime_alignment === "PARTIAL"    ? 50  : 0;
-  const rvol = Math.max(0, signal.relative_volume ?? 0);
-  const hasEdge = !String(signal.consequence ?? "").toLowerCase().includes("no edge");
-
-  const q_confidence = (signal.trade_score ?? 0) * 0.40;
-  const q_regime     = regimeScore               * 0.20;
-  const q_rvol       = Math.min(100, rvol / 3 * 100) * 0.20;
-  const q_catalyst   = (hasEdge ? 80 : 20)      * 0.20;
-  return Math.round(q_confidence + q_regime + q_rvol + q_catalyst);
-}
-
-type QualityLevel = "HIGH PROBABILITY" | "MODERATE" | "LOW";
-
-function qualityLevel(score: number): QualityLevel {
-  if (score >= 75) return "HIGH PROBABILITY";
-  if (score >= 55) return "MODERATE";
-  return "LOW";
-}
-
-function buildDirective(signal: TopFocusSignal, level: QualityLevel): string {
-  // Use consequence field if it has meaningful content
+function signalDirective(signal: TopFocusSignal): string {
   const cons = (signal.consequence ?? "").trim();
   if (cons && cons.toLowerCase() !== "no edge" && cons.length > 5) return cons;
-  // Fallback: synthesise from direction + level
   const dir = signal.direction === "LONG" ? "Long" : signal.direction === "SHORT" ? "Short" : "Neutral";
-  const lbl = level === "HIGH PROBABILITY" ? "strongest setup today"
-            : level === "MODERATE"         ? "valid setup, confirm trigger"
-            :                                "low conviction — reduce size";
-  return `${dir} bias — ${lbl}`;
+  return `${dir} bias`;
 }
 
 function ChangeTag({ value }: { value: number }) {
@@ -221,8 +191,8 @@ function OpportunityCard({ signal, tier, onClick }: {
   tier: PlaybookTier;
   onClick: () => void;
 }) {
-  const quality    = computeSignalQuality(signal);
-  const directive  = buildDirective(signal, qualityLevel(quality));
+  const quality    = signal.trade_score ?? 0;
+  const directive  = signalDirective(signal);
   const ts         = TIER_STYLE[tier];
   const pos        = calcPositionSize(signal.entry, signal.stop);
 
@@ -480,11 +450,11 @@ export function DashboardView() {
             const scored = signals.map(sig => ({
               sig,
               tier: getPlaybookTier(
-                computeSignalQuality(sig),
-                sig.confidence ?? sig.trade_score,
+                sig.trade_score ?? 0,
+                sig.confidence ?? sig.trade_score ?? 0,
                 sig.regime_alignment === "ALIGNED",
               ),
-              quality: computeSignalQuality(sig),
+              quality: sig.trade_score ?? 0,
             }));
             const eliteFirst = [...scored].sort(
               (a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.quality - a.quality

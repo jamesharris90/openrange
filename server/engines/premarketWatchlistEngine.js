@@ -151,7 +151,23 @@ SELECT
   f.stage,
   ROUND(f.news_age_minutes::numeric, 0)  AS news_age_minutes,
   f.decay_factor,
-  ROUND(f.raw_score::numeric, 2)         AS score,
+  -- Phase 2: integer score with trust caps
+  -- Allow 100 only if: gap>10, rvol>5, news>=2, stage=ACTIVE, move<60
+  -- Otherwise cap at 90
+  ROUND(
+    LEAST(
+      f.raw_score::numeric,
+      CASE
+        WHEN f.gap_abs > 10
+             AND f.rvol  > 5
+             AND f.news_cnt >= 2
+             AND f.stage = 'ACTIVE'
+             AND ABS(COALESCE(f.change_percent, 0)) < 60
+        THEN 100.0
+        ELSE 90.0
+      END
+    )
+  )::int                                 AS score,
   ROUND(
     RANK() OVER (ORDER BY f.raw_score DESC)::numeric
     / NULLIF(COUNT(*) OVER (), 0),
@@ -168,23 +184,24 @@ const UPSERT_SQL = `
 INSERT INTO premarket_watchlist
   (symbol, price, change_percent, gap_percent, relative_volume, volume_ratio,
    news_count, earnings_flag, stage, news_age_minutes, decay_factor,
-   score, rank_percentile, updated_at)
+   score, rank_percentile, last_calculated_at, updated_at)
 VALUES
-  ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, NOW())
+  ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, NOW(), NOW())
 ON CONFLICT (symbol) DO UPDATE SET
-  price            = EXCLUDED.price,
-  change_percent   = EXCLUDED.change_percent,
-  gap_percent      = EXCLUDED.gap_percent,
-  relative_volume  = EXCLUDED.relative_volume,
-  volume_ratio     = EXCLUDED.volume_ratio,
-  news_count       = EXCLUDED.news_count,
-  earnings_flag    = EXCLUDED.earnings_flag,
-  stage            = EXCLUDED.stage,
-  news_age_minutes = EXCLUDED.news_age_minutes,
-  decay_factor     = EXCLUDED.decay_factor,
-  score            = EXCLUDED.score,
-  rank_percentile  = EXCLUDED.rank_percentile,
-  updated_at       = NOW()
+  price               = EXCLUDED.price,
+  change_percent      = EXCLUDED.change_percent,
+  gap_percent         = EXCLUDED.gap_percent,
+  relative_volume     = EXCLUDED.relative_volume,
+  volume_ratio        = EXCLUDED.volume_ratio,
+  news_count          = EXCLUDED.news_count,
+  earnings_flag       = EXCLUDED.earnings_flag,
+  stage               = EXCLUDED.stage,
+  news_age_minutes    = EXCLUDED.news_age_minutes,
+  decay_factor        = EXCLUDED.decay_factor,
+  score               = EXCLUDED.score,
+  rank_percentile     = EXCLUDED.rank_percentile,
+  last_calculated_at  = EXCLUDED.last_calculated_at,
+  updated_at          = NOW()
 `;
 
 /* ── Signal log insertion (deduped per 30 min per symbol) ─────────────────── */

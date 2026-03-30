@@ -9,13 +9,14 @@ import { apiGet } from "@/lib/api/client";
 import { getTickerEarnings } from "@/lib/api/earnings";
 import { getNewsBySymbol } from "@/lib/api/news";
 import { getResearchOverview } from "@/lib/api/stocks";
-import { getDecision } from "@/lib/decisionEngine";
 import { QUERY_POLICY, queryKeys } from "@/lib/queries/policy";
 import { toNum } from "@/lib/cockpit/rules";
 import { ConfidenceGauge, DecisionBadge, ExpectedMoveBar } from "@/components/terminal/metric-visuals";
 
 type DecisionPayload = {
   symbol?: string;
+  action?: string;
+  urgency?: string;
   why_moving?: { narrative?: string; catalyst?: string; catalyst_type?: string };
   tradeability?: { rvol?: number; range_pct?: number; tradeability_score?: number };
   execution_plan?: { strategy?: string; entry_type?: string; risk_level?: string; setup_candidates?: Array<{ setup?: string }> };
@@ -85,11 +86,8 @@ export function ResearchView({ ticker }: { ticker: string }) {
   const expectedMovePct = toNum(opportunityForTicker?.expected_move_percent, 0);
   const confidence = toNum(opportunityForTicker?.confidence, toNum(decision?.decision_score, 0));
   const levels = Number.isFinite(price) && price > 0 ? keyLevels(price, expectedMovePct) : null;
-  const action = getDecision({
-    confidence,
-    relative_volume: decision?.tradeability?.rvol,
-    market_session: "EARLY",
-  });
+  const actionStr = (decision?.action ?? (confidence >= 70 ? "ENTER" : confidence >= 50 ? "WATCH" : "WAIT")) as import("@/lib/decisionEngine").DecisionAction;
+  const urgencyStr = (decision?.urgency ?? "MEDIUM") as import("@/lib/decisionEngine").DecisionUrgency;
   const rr = levels ? (levels.target - levels.entry) / Math.max(levels.entry - levels.stop, 0.01) : 0;
 
   const similarSetups = useMemo(() => {
@@ -109,7 +107,7 @@ export function ResearchView({ ticker }: { ticker: string }) {
         <section className="cockpit-card bg-[#121826] border-[#1F2937]">
           <div className="text-xs uppercase text-gray-400">What Should I Do?</div>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <DecisionBadge action={action.action} urgency={action.urgency} size="lg" />
+            <DecisionBadge action={actionStr} urgency={urgencyStr} size="lg" />
             {confidence > 0 && <ConfidenceGauge value={confidence} size={86} />}
             {expectedMovePct !== 0 && (
               <div className="min-w-[220px]">
@@ -122,7 +120,7 @@ export function ResearchView({ ticker }: { ticker: string }) {
             <div className="mt-3 text-xs text-gray-500">Loading decision data…</div>
           ) : (
             <div className="mt-3 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3 text-sm text-cyan-100">
-              {action.action}: {action.reason}
+              {actionStr}: {decision?.why_moving?.narrative ?? opportunityForTicker?.why_moving ?? ""}
             </div>
           )}
         </section>

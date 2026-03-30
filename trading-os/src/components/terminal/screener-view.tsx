@@ -217,6 +217,8 @@ type ScreenerRow = {
   market_cap: number;
   sector: string;
   catalyst_type: string;
+  score?: number | null;
+  stage?: string | null;
 };
 
 type ScreenerPayload = {
@@ -236,70 +238,12 @@ type SortDir = "asc" | "desc";
 type ColKey = keyof ScreenerRow;
 type TradeStatus = "READY" | "WATCH" | "IGNORE";
 
-// ── trade signal derivation ───────────────────────────────────────────────────
-// No new API data — all derived from: change_percent, relative_volume, catalyst_type
+// ── stage → trade status (backend-driven) ─────────────────────────────────────
 
-function deriveConfidence(row: ScreenerRow): number {
-  const absChg = Math.abs(row.change_percent ?? 0);
-  const rvol   = Math.max(0, row.relative_volume ?? 0);
-  let score    = 30;
-  score       += Math.min(35, absChg * 5);      // up to +35 from price action
-  score       += Math.min(30, (rvol - 1) * 15); // up to +30 from volume above baseline
-  return Math.max(0, Math.min(100, score));
-}
-
-function deriveTradeClass(row: ScreenerRow): "A" | "B" | "C" {
-  const absChg = Math.abs(row.change_percent ?? 0);
-  const rvol   = row.relative_volume ?? 0;
-  if (rvol > 2 && absChg >= 2)        return "A";
-  if (rvol > 1.5 || absChg >= 2)      return "B";
-  return "C";
-}
-
-function catalystStrength(catalyst_type: string): number {
-  if (catalyst_type === "EARNINGS")       return 80;
-  if (catalyst_type === "NEWS")           return 60;
-  if (catalyst_type === "UNUSUAL_VOLUME") return 70;
-  return 20; // UNKNOWN → "No edge"
-}
-
-function hasEdge(catalyst_type: string): boolean {
-  return catalyst_type !== "UNKNOWN";
-}
-
-function computeTradeStatus(row: ScreenerRow): TradeStatus {
-  const conf   = deriveConfidence(row);
-  const cls    = deriveTradeClass(row);
-  const edge   = hasEdge(row.catalyst_type);
-
-  // READY: high confidence + has edge + class A or B
-  if (conf >= 70 && edge && (cls === "A" || cls === "B")) return "READY";
-
-  // IGNORE: low confidence OR no edge OR class C with weak signal
-  if (conf < 50 || !edge || cls === "C") return "IGNORE";
-
-  // WATCH: everything in between
-  return "WATCH";
-}
-
-function screenerTier(row: ScreenerRow): PlaybookTier {
-  const score = computeQualityScore(row);
-  const conf  = deriveConfidence(row);
-  // No regime data on screener → regimeAligned = false (conservative)
-  return getPlaybookTier(score, conf, false);
-}
-
-function computeQualityScore(row: ScreenerRow): number {
-  const conf    = deriveConfidence(row);
-  const catStr  = catalystStrength(row.catalyst_type);
-  const rvol    = Math.max(0, row.relative_volume ?? 0);
-  // 4 components: confidence 40%, regime 20% (unknown→assume partial=50),
-  //               rvol 20%, catalyst 20%
-  const q_conf    = conf                         * 0.40;
-  const q_regime  = 50                           * 0.20; // no regime data → neutral
-  const q_rvol    = Math.min(100, rvol / 3 * 100) * 0.20;
-  const q_cat     = catStr                        * 0.20;
-  return Math.round(q_conf + q_regime + q_rvol + q_cat);
+function stageToStatus(stage?: string | null): TradeStatus {
+  if (stage === "ACTIVE")  return "READY";
+  if (stage === "EARLY")   return "WATCH";
+  return "IGNORE";
 }
 
 // ── formatters ────────────────────────────────────────────────────────────────
@@ -328,32 +272,6 @@ function fmtRvol(v: number) {
 }
 
 // ── UI components ─────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<TradeStatus, { cls: string; dotCls: string }> = {
-  READY:  { cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dotCls: "bg-emerald-400" },
-  WATCH:  { cls: "bg-amber-500/15   text-amber-400   border-amber-500/30",   dotCls: "bg-amber-400"   },
-  IGNORE: { cls: "bg-slate-700/50   text-slate-500   border-slate-700",       dotCls: "bg-slate-600"   },
-};
-
-function StatusBadge({ status }: { status: TradeStatus }) {
-  const { cls } = STATUS_CONFIG[status];
-  return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border tracking-wide ${cls}`}>
-      {status}
-    </span>
-  );
-}
-
-function QualityBadge({ score }: { score: number }) {
-  const cls = score >= 70 ? "text-emerald-400 border-emerald-500/20 bg-emerald-950/40"
-            : score >= 50 ? "text-amber-400 border-amber-500/20 bg-amber-950/40"
-            :               "text-slate-500 border-slate-700 bg-slate-900/40";
-  return (
-    <span className={`ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${cls}`}>
-      {score}
-    </span>
-  );
-}
 
 function RvolCell({ rvol }: { rvol: number }) {
   const valid  = Number.isFinite(rvol) && rvol > 0;
@@ -515,17 +433,17 @@ export function ScreenerView() {
 
   // Apply tradeable-only filter client-side (post-fetch)
   const filteredRows = tradeableOnly
-    ? rows.filter(r => computeTradeStatus(r) === "READY")
+    ? rows.filter(r => stageToStatus(r.stage) === "READY")
     : rows;
 
   // Apply playbook sort client-side when active
   const visibleRows = playbookSort
     ? [...filteredRows].sort((a, b) => {
-        const ta = TIER_ORDER[screenerTier(a)];
-        const tb = TIER_ORDER[screenerTier(b)];
+        const sa = a.score ?? 0;
+        const sb = b.score ?? 0;
+        const ta = TIER_ORDER[getPlaybookTier(sa, sa, false) as PlaybookTier];
+        const tb = TIER_ORDER[getPlaybookTier(sb, sb, false) as PlaybookTier];
         if (ta !== tb) return ta - tb;
-        const sa = computeQualityScore(a);
-        const sb = computeQualityScore(b);
         if (sa !== sb) return sb - sa;
         return (b.relative_volume ?? 0) - (a.relative_volume ?? 0);
       })
@@ -711,13 +629,13 @@ export function ScreenerView() {
               </tr>
             )}
             {visibleRows.map((row, i) => {
-              const pos     = row.change_percent >= 0;
-              const status  = computeTradeStatus(row);
-              const score   = computeQualityScore(row);
+              const pos    = row.change_percent >= 0;
+              const status = stageToStatus(row.stage);
+              const score  = row.score ?? 0;
               return (
                 <tr
                   key={row.symbol}
-                  onClick={() => router.push(`/stocks/${row.symbol}`)}
+                  onClick={() => router.push(`/research/${row.symbol}`)}
                   className={[
                     "border-b border-[var(--border)] transition-colors cursor-pointer",
                     i % 2 !== 0 ? "bg-[var(--muted)]/30" : "",
@@ -725,17 +643,17 @@ export function ScreenerView() {
                     status === "READY" ? "hover:bg-emerald-950/20" : "",
                   ].join(" ")}
                 >
-                  {/* Playbook tier + action */}
+                  {/* Playbook tier + score */}
                   <td className="px-3 py-2 min-w-[140px]">
                     {(() => {
-                      const t = screenerTier(row);
+                      const t  = getPlaybookTier(score, score, false) as PlaybookTier;
                       const ts = TIER_STYLE[t];
                       return (
                         <div className="flex flex-col gap-0.5">
                           <span className={`inline-block w-fit px-1.5 py-0.5 rounded text-[10px] font-bold border ${ts.badge}`}>
                             {playbookLabel(t)}
                           </span>
-                          <span className="text-[10px] text-[var(--muted-foreground)]">{score}/100</span>
+                          <span className="text-[10px] text-[var(--muted-foreground)]">{score > 0 ? `${score}/100` : "—"}</span>
                         </div>
                       );
                     })()}

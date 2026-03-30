@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-03-30T12:09:00.000Z",
+  "schema_version": "v2",
+  "migrations_applied": ["034_premarket_watchlist_v2", "035_signal_log", "036_signal_performance_daily", "037_premarket_trust"],
+
+  "data_integrity": {
+    "total_watchlist_rows": 50,
+    "zero_price_rows": 0,
+    "null_stage_rows": 0,
+    "null_score_rows": 0,
+    "null_last_calculated_at": 0,
+    "fractional_scores": 0,
+    "above_100_scores": 0,
+    "score_range": { "min": 20, "max": 94, "avg": 33.1 }
+  },
+
+  "stage_distribution": {
+    "ACTIVE": 22,
+    "EARLY": 19,
+    "EXHAUSTED": 1,
+    "NEUTRAL": 8
+  },
+
+  "scoring": {
+    "source": "premarket_watchlist (SSOT)",
+    "formula": "(gap_abs*2 + rvol*3 + vol_ratio*2 + news_cnt*2 + earnings_flag*2) * decay_factor * (0.5 if EXHAUSTED)",
+    "caps": { "gap_abs": 20, "rvol": 10, "vol_ratio": 10, "news_cnt": 5 },
+    "trust_cap": "max=90 default; max=100 if gap>10 AND rvol>5 AND news>=2 AND stage=ACTIVE AND move<60",
+    "output_type": "integer",
+    "frontend_derivation": "REMOVED"
+  },
+
+  "signal_pipeline": {
+    "signals_logged_on_last_run": 40,
+    "dedup_window_minutes": 30,
+    "evaluation_interval_minutes": 15,
+    "aggregation_interval_minutes": 60
+  },
+
+  "ssot_enforcement": {
+    "premarket_watchlist_is_ssot": true,
+    "screener_joins_premarket_watchlist": true,
+    "all_routes_use_price_gt_0": true,
+    "news_query_uses_detected_symbols": true,
+    "confidence_equals_score": true,
+    "routing_enforced": "/research/:symbol"
+  },
+
+  "symbol_tests": {
+    "ARTL": { "score": 35, "stage": "EXHAUSTED", "price": 10.54, "company": "Artelo Biosciences, Inc.", "sector": "Healthcare", "confidence": 35, "last_calculated_at": "2026-03-30T12:09:29" },
+    "BUR":  { "score": 94, "stage": "ACTIVE",    "price": 4.125, "company": null, "sector": null, "confidence": 94, "last_calculated_at": "2026-03-30T12:09:29" },
+    "TOP":  { "score": 76, "stage": "ACTIVE",    "price": 0.7501, "company": null, "sector": null, "confidence": 76, "last_calculated_at": "2026-03-30T12:09:29" }
+  },
+
+  "known_gaps": [
+    "company_profiles missing for BUR, TOP — needs FMP /profile backfill run",
+    "news headline attribution for ARTL showing unrelated Apple headline — detected_symbols matching coverage gap"
+  ]
+}
