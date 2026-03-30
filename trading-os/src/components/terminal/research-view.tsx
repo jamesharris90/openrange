@@ -31,6 +31,37 @@ type Opportunity = {
   confidence?: number;
 };
 
+type PremarketIntel = {
+  premarket_trend?: string | null;
+  premarket_range_percent?: number | null;
+  premarket_gap_confidence?: string | null;
+  premarket_signal_type?: string | null;
+  premarket_valid?: boolean | null;
+  premarket_gap?: number | null;
+  premarket_volume?: number | null;
+  premarket_candles?: number | null;
+  premarket_data_quality?: number | null;
+};
+
+function premarketNarrative(intel: PremarketIntel): string {
+  const { premarket_signal_type, premarket_trend, premarket_gap, premarket_gap_confidence } = intel;
+  const gap = Math.abs(toNum(premarket_gap, 0));
+  const gapDir = (premarket_gap ?? 0) >= 0 ? "up" : "down";
+
+  switch (premarket_signal_type) {
+    case "GAP_AND_GO":
+      return `Stock gapped ${gapDir} ${gap.toFixed(1)}% premarket with strong upward trend and high-confidence volume. Classic gap-and-go setup — look for continuation above premarket high at the open.`;
+    case "GAP_FADE":
+      return `Stock gapped ${gapDir} ${gap.toFixed(1)}% but premarket trend is ${premarket_trend?.toLowerCase() ?? "down"}. Watch for fade back toward VWAP — sellers may dominate early price action.`;
+    case "RANGE_BUILD":
+      return `Tight premarket range with low volatility. Price is consolidating — wait for a clear break above or below range boundaries before committing.`;
+    case "UNDEFINED":
+      return `No clear premarket structure. Data is present but signal is ambiguous — treat as a watch-only until regular session confirms direction.`;
+    default:
+      return `Premarket data is pending analysis. Check back once market opens for updated signal classification.`;
+  }
+}
+
 function logoUrl(symbol: string) {
   return `https://logo.clearbit.com/${symbol.toLowerCase()}.com`;
 }
@@ -77,6 +108,13 @@ export function ResearchView({ ticker }: { ticker: string }) {
     queryFn: () => getNewsBySymbol(ticker, 8),
     ...QUERY_POLICY.medium,
   });
+
+  const premarketQuery = useQuery({
+    queryKey: ["cockpit", "research", ticker, "premarket"],
+    queryFn: () => apiGet<{ data?: PremarketIntel[] }>(`/api/premarket/watchlist?symbol=${encodeURIComponent(ticker)}&limit=1`),
+    ...QUERY_POLICY.medium,
+  });
+  const premarketIntel: PremarketIntel = premarketQuery.data?.data?.[0] ?? {};
 
   const loading = overviewQuery.isLoading || decisionQuery.isLoading || opportunitiesQuery.isLoading || earningsQuery.isLoading || newsQuery.isLoading;
   const opportunityForTicker = (opportunitiesQuery.data?.data || []).find((row) => String(row.symbol || "").toUpperCase() === ticker);
@@ -222,6 +260,62 @@ export function ResearchView({ ticker }: { ticker: string }) {
           )}
         </div>
       </section>
+
+      {/* Premarket Intelligence Panel */}
+      {(premarketIntel.premarket_signal_type || premarketIntel.premarket_trend) && (
+        <section className="cockpit-card bg-[#121826] border-[#1F2937]">
+          <div className="text-xs uppercase text-gray-400 mb-3">Premarket Intelligence</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-3">
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Trend</div>
+              <div className={`text-sm font-semibold mt-1 ${premarketIntel.premarket_trend === "UP" ? "text-green-400" : premarketIntel.premarket_trend === "DOWN" ? "text-red-400" : "text-yellow-400"}`}>
+                {premarketIntel.premarket_trend ?? "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Gap %</div>
+              <div className={`text-sm font-semibold mt-1 ${(premarketIntel.premarket_gap ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {premarketIntel.premarket_gap != null ? `${Number(premarketIntel.premarket_gap) >= 0 ? "+" : ""}${Number(premarketIntel.premarket_gap).toFixed(2)}%` : "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Confidence</div>
+              <div className={`text-sm font-semibold mt-1 ${premarketIntel.premarket_gap_confidence === "HIGH" ? "text-green-400" : premarketIntel.premarket_gap_confidence === "MEDIUM" ? "text-yellow-400" : "text-gray-400"}`}>
+                {premarketIntel.premarket_gap_confidence ?? "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Signal</div>
+              <div className={`text-xs font-semibold mt-1 ${premarketIntel.premarket_signal_type === "GAP_AND_GO" ? "text-green-400" : premarketIntel.premarket_signal_type === "GAP_FADE" ? "text-red-400" : premarketIntel.premarket_signal_type === "RANGE_BUILD" ? "text-yellow-400" : "text-gray-400"}`}>
+                {premarketIntel.premarket_signal_type ?? "—"}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 mb-3">
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Structure %</div>
+              <div className="text-white text-sm font-semibold mt-1">
+                {premarketIntel.premarket_range_percent != null ? `${Number(premarketIntel.premarket_range_percent).toFixed(2)}%` : "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">PM Volume</div>
+              <div className="text-white text-sm font-semibold mt-1">
+                {premarketIntel.premarket_volume != null ? Number(premarketIntel.premarket_volume).toLocaleString() : "—"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#1F2937] bg-[#0B0F14] p-3">
+              <div className="text-gray-400 text-xs">Valid</div>
+              <div className={`text-sm font-semibold mt-1 ${premarketIntel.premarket_valid ? "text-green-400" : "text-red-400"}`}>
+                {premarketIntel.premarket_valid != null ? (premarketIntel.premarket_valid ? "YES" : "NO") : "—"}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/5 p-3 text-xs text-cyan-100">
+            {premarketNarrative(premarketIntel)}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="cockpit-card bg-[#121826] border-[#1F2937]">

@@ -180,6 +180,8 @@ const { startDataScheduler, getIngestionStatus } = require('./system/dataSchedul
 const { startPremarketWatchlistScheduler } = require('./engines/premarketWatchlistEngine');
 const { startSignalEvaluationScheduler } = require('./engines/signalEvaluationEngine');
 const { startSessionAggregationScheduler } = require('./engines/sessionAggregationEngine');
+const { startPremarketIntelligenceScheduler } = require('./engines/premarketIntelligenceEngine');
+const { startFallbackDataScheduler } = require('./engines/fallbackDataEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -8585,7 +8587,13 @@ app.get('/api/premarket/watchlist', async (req, res) => {
             100
           )
           ELSE 0
-        END                                AS premarket_activity_score
+        END                                AS premarket_activity_score,
+        -- Phase 9 intelligence columns
+        pw.premarket_trend,
+        pw.premarket_range_percent,
+        pw.premarket_gap_confidence,
+        pw.premarket_signal_type,
+        pw.premarket_valid
       FROM premarket_watchlist pw
       LEFT JOIN market_quotes mq
         ON pw.symbol = mq.symbol
@@ -11967,6 +11975,10 @@ async function bootstrapBackgroundServices() {
     startSignalEvaluationScheduler(15 * 60 * 1000);
     // Session aggregation: extended-hours OHLCV + session classification, runs every 10 min
     startSessionAggregationScheduler(10 * 60 * 1000);
+    // Premarket intelligence: gap validation + signal classification, runs every 10 min (after session agg)
+    setTimeout(() => startPremarketIntelligenceScheduler(10 * 60 * 1000), 5 * 60 * 1000);
+    // Fallback data: Finnhub fill for symbols missing PM candles, runs every 15 min
+    setTimeout(() => startFallbackDataScheduler(15 * 60 * 1000), 3 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {

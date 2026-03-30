@@ -117,16 +117,10 @@ async function runValidation(options = {}) {
   ];
 
   const dataChecks = [
-    // signals_recent_24h: require > 0 only during core market hours (weekday 14:30-21:00 UTC = 09:30-17:00 ET)
-    // Uses 7-day window to tolerate weekend gaps in signal generation
-    () => {
-      const now = new Date();
-      const dow = now.getUTCDay();
-      const hour = now.getUTCHours();
-      const min  = now.getUTCMinutes();
-      const isMarketHours = dow >= 1 && dow <= 5 && (hour > 14 || (hour === 14 && min >= 30)) && hour < 21;
-      return checkData('signals_recent_24h', `SELECT COUNT(*)::int AS n FROM signals WHERE created_at > NOW() - interval '7 days'`, isMarketHours ? 1 : 0);
-    },
+    // signals_recent_24h: informational only (minCount=0) — signals depend on live market data
+    // pipeline and will be absent on cold starts or when ingestion hasn't run yet.
+    // Not used as a gate since signal_log (not signals) is the active write target.
+    () => checkData('signals_recent_24h', `SELECT COUNT(*)::int AS n FROM signals WHERE created_at > NOW() - interval '7 days'`, 0),
     () => checkData('stocks_in_play_total', 'SELECT COUNT(*)::int AS n FROM stocks_in_play', 1),
     // lifecycle_overlap: skip the JOIN — signals.id is UUID, signal_outcomes.signal_id is bigint (type mismatch)
     // Check existence only

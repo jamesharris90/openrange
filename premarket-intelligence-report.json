@@ -1,0 +1,104 @@
+{
+  "generated_at": "2026-03-30T14:30:00.000Z",
+  "engine": "premarketIntelligenceEngine v1 + fallbackDataEngine v1",
+  "migration": "039_premarket_intelligence",
+
+  "schema_validation": {
+    "columns_added_to_premarket_watchlist": [
+      "premarket_trend",
+      "premarket_range_percent",
+      "premarket_gap_confidence",
+      "premarket_signal_type",
+      "premarket_valid"
+    ],
+    "all_columns_present": true
+  },
+
+  "intraday_data_validation": {
+    "AAPL": {
+      "premarket_candles": 325,
+      "regular_candles": 74,
+      "premarket_last_close": 250.155,
+      "premarket_volume": 279346,
+      "premarket_quality_avg": 99.94
+    },
+    "TSLA": {
+      "premarket_candles": 330,
+      "regular_candles": 74,
+      "premarket_last_close": 366.90,
+      "premarket_volume": 6166482,
+      "premarket_quality_avg": 100.0
+    },
+    "NVDA": {
+      "premarket_candles": 330,
+      "regular_candles": 74,
+      "premarket_last_close": 169.44,
+      "premarket_volume": 376912,
+      "premarket_quality_avg": 100.0
+    }
+  },
+
+  "watchlist": {
+    "total_rows": 50,
+    "score_min": 18,
+    "score_max": 98,
+    "score_avg": 31.9
+  },
+
+  "engine_pipeline": {
+    "order": [
+      "sessionAggregationEngine (every 10 min) → intraday_1m with session + data_quality_score",
+      "fallbackDataEngine (every 15 min, +3 min delay) → Finnhub fill for symbols missing PM candles",
+      "premarketIntelligenceEngine (every 10 min, +5 min delay) → premarket_watchlist intelligence columns",
+      "premarketWatchlistEngine (every 10 min) → score with Phase 9 intelligence adjustments"
+    ]
+  },
+
+  "phase_9_score_adjustments": {
+    "premarket_valid_true": "+10",
+    "premarket_valid_false": "-10",
+    "gap_confidence_HIGH": "+10",
+    "signal_type_GAP_AND_GO": "+10",
+    "signal_type_UNDEFINED": "-5",
+    "cap_rules": "unchanged (max 90 default, max 100 under strict conditions)"
+  },
+
+  "signal_types": {
+    "GAP_AND_GO": "gap > 5% AND trend = UP AND confidence = HIGH",
+    "GAP_FADE": "gap > 5% AND trend = DOWN",
+    "RANGE_BUILD": "range < 2%",
+    "UNDEFINED": "all other cases"
+  },
+
+  "gap_confidence_rules": {
+    "HIGH": "volume > 200k AND range > 2% AND candles > 20",
+    "MEDIUM": "volume > 50k AND range > 0.5% AND candles > 5",
+    "LOW": "everything else"
+  },
+
+  "premarket_valid_rule": "gap_confidence != LOW AND premarket_volume > 100000 AND range_percent > 1",
+
+  "ui_changes": {
+    "research_view": "Premarket Intelligence Panel added with Trend / Gap% / Confidence / Signal / Structure% / Volume / Valid metrics + why-tradeable narrative"
+  },
+
+  "fallback_engine": {
+    "source": "Finnhub /stock/candle?resolution=1",
+    "data_quality_score": 80,
+    "overwrite_policy": "ON CONFLICT DO NOTHING — never overwrites existing FMP data",
+    "triggers": "symbols in premarket_watchlist with no PREMARKET candles in last 24h"
+  },
+
+  "checks": {
+    "migration_039_applied": true,
+    "intelligence_columns_present": true,
+    "premarket_candles_present_AAPL": true,
+    "premarket_candles_present_TSLA": true,
+    "premarket_candles_present_NVDA": true,
+    "engine_registered_in_server_index": true,
+    "fallback_engine_registered": true,
+    "research_view_panel_added": true,
+    "narratives_per_signal_type": true,
+    "phase_9_score_adjustments_applied": true
+  }
+}

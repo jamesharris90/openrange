@@ -124,10 +124,24 @@ WITH
     FROM base b
   ),
 
-  -- final score with exhaustion penalty
+  -- premarket intelligence adjustments from prior engine run
+  intelligence AS (
+    SELECT
+      symbol,
+      premarket_valid,
+      premarket_gap_confidence,
+      premarket_signal_type
+    FROM premarket_watchlist
+    WHERE premarket_trend IS NOT NULL
+  ),
+
+  -- final score with exhaustion penalty + intelligence adjustments
   final AS (
     SELECT
       s.*,
+      i.premarket_valid,
+      i.premarket_gap_confidence,
+      i.premarket_signal_type,
       (
           s.gap_abs         * 2
         + s.rvol            * 3
@@ -135,8 +149,17 @@ WITH
         + s.news_cnt        * 2
         + s.earnings_flag   * 2
       ) * s.decay_factor
-        * CASE WHEN s.stage = 'EXHAUSTED' THEN 0.5 ELSE 1.0 END   AS raw_score
+        * CASE WHEN s.stage = 'EXHAUSTED' THEN 0.5 ELSE 1.0 END
+        -- Phase 9: premarket intelligence score adjustments
+        + CASE WHEN i.premarket_valid = TRUE  THEN 10
+               WHEN i.premarket_valid = FALSE THEN -10
+               ELSE 0 END
+        + CASE WHEN i.premarket_gap_confidence = 'HIGH' THEN 10 ELSE 0 END
+        + CASE WHEN i.premarket_signal_type = 'GAP_AND_GO' THEN 10 ELSE 0 END
+        - CASE WHEN i.premarket_signal_type = 'UNDEFINED'  THEN 5  ELSE 0 END
+                                                                           AS raw_score
     FROM staged s
+    LEFT JOIN intelligence i ON i.symbol = s.symbol
   )
 
 SELECT
@@ -151,12 +174,12 @@ SELECT
   f.stage,
   ROUND(f.news_age_minutes::numeric, 0)  AS news_age_minutes,
   f.decay_factor,
-  -- Phase 2: integer score with trust caps
+  -- Phase 2 + Phase 9: integer score with trust caps
   -- Allow 100 only if: gap>10, rvol>5, news>=2, stage=ACTIVE, move<60
   -- Otherwise cap at 90
   ROUND(
     LEAST(
-      f.raw_score::numeric,
+      GREATEST(f.raw_score::numeric, 0),
       CASE
         WHEN f.gap_abs > 10
              AND f.rvol  > 5
