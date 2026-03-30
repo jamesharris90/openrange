@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-03-30T17:29:26.976Z",
+  "phase": "Production Admin Panel + Briefing Engines + System Email Monitoring",
+  "engines": {
+    "systemScoreEngine": {
+      "file": "server/engines/systemScoreEngine.js",
+      "status": "created",
+      "weights": {
+        "eval_rate": "30%",
+        "data_freshness": "25%",
+        "error_rate": "20%",
+        "signal_consistency": "15%",
+        "engine_uptime": "10%"
+      }
+    },
+    "morningBriefingEngine": {
+      "file": "server/engines/morningBriefingEngine.js",
+      "status": "created",
+      "schedule": "07:00 UK weekdays",
+      "delegates_to": "morningBriefEngine.js"
+    },
+    "premarketBriefingEngine": {
+      "file": "server/engines/premarketBriefingEngine.js",
+      "status": "created",
+      "schedule": "13:00 UK weekdays (08:00 ET)",
+      "audience": "newsletter_subscribers"
+    },
+    "adminHealthEngine": {
+      "file": "server/engines/adminHealthEngine.js",
+      "status": "created",
+      "schedule": "08:00 + 18:00 UK daily",
+      "audience": "admin users"
+    }
+  },
+  "email_templates": {
+    "PremarketBriefTemplate": {
+      "file": "server/email/templates/PremarketBriefTemplate.js",
+      "status": "created",
+      "sections": [
+        "Top Premarket Movers",
+        "High Conviction Setups",
+        "Execution Watchlist",
+        "Risk Warnings"
+      ]
+    },
+    "AdminHealthTemplate": {
+      "file": "server/email/templates/AdminHealthTemplate.js",
+      "status": "created",
+      "sections": [
+        "Score Hero",
+        "Key Metrics",
+        "Data Freshness",
+        "Action Required (if CRITICAL)",
+        "CTA"
+      ]
+    }
+  },
+  "api_endpoints": {
+    "GET /api/system/score": {
+      "status": "added",
+      "description": "Returns computeSystemScore() result (0-100, cached 5min)"
+    },
+    "GET /api/admin/email-stats": {
+      "status": "added",
+      "description": "Email send history stats: sent_24h, success_rate, recent, failures"
+    },
+    "POST /api/admin/briefing/:type/run": {
+      "status": "added",
+      "description": "Manual trigger for morning|premarket|admin-health briefings"
+    }
+  },
+  "schedulers_registered": [
+    "startMorningBriefingScheduler",
+    "startPremarketBriefingScheduler",
+    "startAdminHealthScheduler"
+  ],
+  "admin_panel_upgrades": {
+    "ScoreBar": "System Score top bar (0-100 with color coding, component breakdown)",
+    "EmailPanel": "Email Monitor tab with KPIs, manual triggers, recent sends, failures",
+    "TABS": "Added Email tab between Newsletter and Integrity"
+  },
+  "dedup_strategy": "newsletter_send_history.campaign_key — prevents duplicate sends same day",
+  "email_provider": "Resend (RESEND_API_KEY env var)",
+  "timezone": "Europe/London for all crons"
+}

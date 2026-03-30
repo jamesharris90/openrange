@@ -33,6 +33,9 @@ type EngineRow       = { name: string; status: 'running' | 'stale' | 'unknown'; 
 type EnginesPayload  = { ok?: boolean; engines?: EngineRow[] };
 type LogEntry        = { source?: string; level?: string; message?: string; label?: string; created_at?: string };
 type LogsPayload     = { ok?: boolean; logs?: LogEntry[]; count?: number; filter?: string };
+type ScorePayload    = { ok?: boolean; score?: number; status?: string; components?: Record<string, number>; raw?: Record<string, number>; generated_at?: string };
+type EmailSendRow    = { campaign_type?: string; campaign_key?: string; subject?: string; recipients_count?: number; status?: string; sent_at?: string };
+type EmailStatsPayload = { ok?: boolean; sent_24h?: number; success_24h?: number; failed_24h?: number; sent_7d?: number; success_rate_pct?: number | null; recent?: EmailSendRow[]; failures?: EmailSendRow[] };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,8 +98,198 @@ function logLevelClass(level = ""): string {
   return "text-slate-400";
 }
 
-const TABS = ["Health", "Pipeline", "Signals", "Simulation", "Signal Flow", "Users", "Newsletter", "Integrity", "Engines", "Logs"] as const;
+const TABS = ["Health", "Pipeline", "Signals", "Simulation", "Signal Flow", "Users", "Newsletter", "Email", "Integrity", "Engines", "Logs"] as const;
 type Tab = typeof TABS[number];
+
+// ─── System Score Bar ─────────────────────────────────────────────────────────
+
+function ScoreBar() {
+  const scoreQuery = useQuery({
+    queryKey: ["admin", "system-score"],
+    queryFn: () => apiGet<ScorePayload>("/api/system/score").catch(() => ({} as ScorePayload)),
+    refetchInterval: 60_000,
+  });
+  const d = scoreQuery.data ?? {};
+  const score  = d.score ?? null;
+  const status = d.status ?? "UNKNOWN";
+  const comps  = d.components ?? {};
+
+  const scoreColor = score == null ? "text-slate-500"
+    : score >= 90 ? "text-emerald-400"
+    : score >= 70 ? "text-amber-400"
+    : "text-rose-400";
+  const statusColor = status === "OPERATIONAL" ? "text-emerald-400 bg-emerald-500/10 border-emerald-600/30"
+    : status === "DEGRADED" ? "text-amber-400 bg-amber-500/10 border-amber-600/30"
+    : status === "CRITICAL" ? "text-rose-400 bg-rose-500/10 border-rose-700/30"
+    : "text-slate-400 bg-slate-800 border-slate-700";
+  const barWidth = score != null ? `${score}%` : "0%";
+  const barColor = score == null ? "bg-slate-700"
+    : score >= 90 ? "bg-emerald-500"
+    : score >= 70 ? "bg-amber-500"
+    : "bg-rose-500";
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-[#0d1117] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Big score */}
+        <div className="flex items-baseline gap-2">
+          <span className={`text-4xl font-black tabular-nums leading-none ${scoreColor}`}>
+            {score ?? "—"}
+          </span>
+          <span className="text-xs text-slate-600">/100</span>
+        </div>
+        {/* Status badge */}
+        <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${statusColor}`}>
+          {status}
+        </span>
+        {/* Score bar */}
+        <div className="hidden flex-1 sm:block">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+            <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: barWidth }} />
+          </div>
+          {/* Component breakdown */}
+          {Object.keys(comps).length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-3">
+              {Object.entries(comps).map(([k, v]) => (
+                <span key={k} className="text-[9px] text-slate-600">
+                  {k.replace(/_/g, " ")}: <span className={v >= 80 ? "text-emerald-500" : v >= 50 ? "text-amber-500" : "text-rose-500"}>{v}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* Last updated */}
+        {d.generated_at && (
+          <span className="ml-auto text-[10px] text-slate-700">
+            {new Date(d.generated_at).toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Email Monitor Panel ──────────────────────────────────────────────────────
+
+function EmailPanel() {
+  const qc = useQueryClient();
+  const statsQuery = useQuery({
+    queryKey: ["admin", "email-stats"],
+    queryFn: () => apiGet<EmailStatsPayload>("/api/admin/email-stats").catch(() => ({} as EmailStatsPayload)),
+    refetchInterval: 60_000,
+  });
+  const [runningBrief, setRunningBrief] = useState<string | null>(null);
+
+  const s = statsQuery.data ?? {};
+  const recent   = s.recent   ?? [];
+  const failures = s.failures ?? [];
+
+  async function triggerBrief(type: string) {
+    setRunningBrief(type);
+    try {
+      await apiPost(`/api/admin/briefing/${type}/run`, {});
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["admin", "email-stats"] }), 3000);
+    } finally {
+      setRunningBrief(null);
+    }
+  }
+
+  return (
+    <Card>
+      <SectionHeader icon={Mail} title="Email Monitor" />
+
+      {/* KPI row */}
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { label: "Sent (24h)",      value: s.sent_24h     ?? 0, cls: "text-slate-200" },
+          { label: "Success (24h)",   value: s.success_24h  ?? 0, cls: "text-emerald-400" },
+          { label: "Failed (24h)",    value: s.failed_24h   ?? 0, cls: (s.failed_24h ?? 0) > 0 ? "text-rose-400" : "text-slate-400" },
+          { label: "Success Rate",    value: s.success_rate_pct != null ? `${s.success_rate_pct}%` : "—", cls: (s.success_rate_pct ?? 100) >= 90 ? "text-emerald-400" : "text-amber-400" },
+        ].map(k => (
+          <div key={k.label} className="rounded-lg border border-slate-800/50 px-3 py-2 text-center">
+            <div className={`text-xl font-bold tabular-nums ${k.cls}`}>{k.value}</div>
+            <div className="mt-0.5 text-[10px] text-slate-600">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Manual triggers */}
+      <div className="mb-4">
+        <div className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">Manual Triggers</div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { type: "morning",      label: "Morning Brief (07:00 UK)" },
+            { type: "premarket",    label: "Premarket Brief (13:00 UK)" },
+            { type: "admin-health", label: "Admin Health Email" },
+          ].map(b => (
+            <button
+              key={b.type}
+              onClick={() => triggerBrief(b.type)}
+              disabled={runningBrief !== null}
+              className="flex items-center gap-1.5 rounded border border-slate-700 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+            >
+              <Play className={`size-2.5 ${runningBrief === b.type ? "animate-spin" : ""}`} />
+              {b.label}
+            </button>
+          ))}
+        </div>
+        {runningBrief && (
+          <p className="mt-1.5 text-[10px] text-blue-400">Sending {runningBrief} briefing...</p>
+        )}
+      </div>
+
+      {/* Recent sends */}
+      {recent.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">Recent Sends</div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600">
+                <th className="pb-1 text-left">Type</th>
+                <th className="pb-1 text-left">Key</th>
+                <th className="pb-1 text-right">Recipients</th>
+                <th className="pb-1 text-center">Status</th>
+                <th className="pb-1 text-right">Sent</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {recent.map((r, i) => (
+                <tr key={`${r.campaign_key}-${i}`}>
+                  <td className="py-1 text-slate-500">{r.campaign_type ?? "—"}</td>
+                  <td className="py-1 font-mono text-[10px] text-slate-600">{r.campaign_key?.slice(-20) ?? "—"}</td>
+                  <td className="py-1 text-right tabular-nums text-slate-400">{r.recipients_count ?? "—"}</td>
+                  <td className="py-1 text-center">
+                    {r.status === "sent"
+                      ? <CheckCircle className="mx-auto size-3 text-emerald-400" />
+                      : <XCircle className="mx-auto size-3 text-rose-400" />}
+                  </td>
+                  <td className="py-1 text-right text-slate-600">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Failures */}
+      {failures.length > 0 && (
+        <div className="rounded-lg border border-rose-800/30 bg-rose-950/10 p-3">
+          <div className="mb-2 text-[10px] font-semibold text-rose-400">Failed Sends</div>
+          {failures.map((f, i) => (
+            <div key={i} className="text-[10px] text-rose-300">{f.campaign_key} — {f.status} — {f.sent_at ? new Date(f.sent_at).toLocaleDateString() : "—"}</div>
+          ))}
+        </div>
+      )}
+
+      {statsQuery.isLoading && (
+        <div className="space-y-1.5">{[...Array(4)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
+      )}
+      {!statsQuery.isLoading && recent.length === 0 && failures.length === 0 && (
+        <p className="text-xs text-slate-600">No email history yet — briefing engines will populate newsletter_send_history once running</p>
+      )}
+    </Card>
+  );
+}
 
 // ─── Sub-panels ───────────────────────────────────────────────────────────────
 
@@ -615,6 +808,7 @@ export function AdminView() {
       case "Signal Flow": return <SignalFlowPanel />;
       case "Users":       return <UsersPanel />;
       case "Newsletter":  return <NewsletterPanel />;
+      case "Email":       return <EmailPanel />;
       case "Integrity":   return <IntegrityPanel />;
       case "Engines":     return <EnginesPanel />;
       case "Logs":        return <LogsPanel />;
@@ -635,6 +829,9 @@ export function AdminView() {
           ADMIN
         </span>
       </div>
+
+      {/* System Score Bar */}
+      <ScoreBar />
 
       {/* Top grid: Health + Pipeline */}
       <div className="grid gap-4 lg:grid-cols-2">
