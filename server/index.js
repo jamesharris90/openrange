@@ -184,6 +184,7 @@ const { startPremarketIntelligenceScheduler } = require('./engines/premarketInte
 const { startFallbackDataScheduler } = require('./engines/fallbackDataEngine');
 const { startExecutionScheduler } = require('./engines/executionEngine');
 const { startExecutionRefinementScheduler } = require('./engines/executionRefinementEngine');
+const { startLiveEvaluationScheduler } = require('./engines/liveEvaluationEngine');
 const { initEventLogger, getEventBusHealth } = require('./events/eventLogger');
 const eventBus = require('./events/eventBus');
 const { startSystemAlertEngine } = require('./engines/systemAlertEngine');
@@ -1864,6 +1865,166 @@ app.get('/api/system/activity', async (_req, res) => {
     return res.json({ ok: true, items: rows || [] });
   } catch (error) {
     return res.json({ ok: false, items: [], error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8 — Live simulation endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/simulation/live', async (_req, res) => {
+  try {
+    const [activeTrades, todayPerf, sevenDayPerf, setupPerf] = await Promise.all([
+      // Active trades: signal_log rows not yet evaluated, within the last 2 hours
+      queryWithTimeout(
+        `SELECT id, symbol, setup_type, entry_price, stop_price, target_price,
+                expected_move, execution_rating, timestamp
+         FROM signal_log
+         WHERE evaluated = false
+           AND timestamp > NOW() - INTERVAL '2 hours'
+         ORDER BY timestamp DESC
+         LIMIT 50`,
+        [],
+        { timeoutMs: 8000, label: 'sim.live.active' }
+      ),
+      // Today win rate
+      queryWithTimeout(
+        `SELECT
+           COUNT(*) FILTER (WHERE outcome = 'WIN')                       AS wins,
+           COUNT(*) FILTER (WHERE outcome = 'LOSS')                      AS losses,
+           COUNT(*) FILTER (WHERE outcome = 'NEUTRAL')                   AS neutrals,
+           COUNT(*)                                                       AS total,
+           ROUND(AVG(max_upside_pct)::numeric, 3)                        AS avg_return
+         FROM signal_log
+         WHERE evaluated = true
+           AND timestamp >= CURRENT_DATE`,
+        [],
+        { timeoutMs: 8000, label: 'sim.live.today' }
+      ),
+      // 7-day win rate
+      queryWithTimeout(
+        `SELECT
+           COUNT(*) FILTER (WHERE outcome = 'WIN')                       AS wins,
+           COUNT(*) FILTER (WHERE outcome = 'LOSS')                      AS losses,
+           COUNT(*) FILTER (WHERE outcome = 'NEUTRAL')                   AS neutrals,
+           COUNT(*)                                                       AS total,
+           ROUND(AVG(max_upside_pct)::numeric, 3)                        AS avg_return
+         FROM signal_log
+         WHERE evaluated = true
+           AND timestamp >= NOW() - INTERVAL '7 days'`,
+        [],
+        { timeoutMs: 8000, label: 'sim.live.7d' }
+      ),
+      // Best/worst setup by win rate (min 3 signals)
+      queryWithTimeout(
+        `SELECT
+           COALESCE(setup_type, execution_rating, 'UNKNOWN') AS setup,
+           COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE outcome = 'WIN') AS wins,
+           ROUND((COUNT(*) FILTER (WHERE outcome = 'WIN')::numeric / NULLIF(COUNT(*),0)) * 100, 1) AS win_rate
+         FROM signal_log
+         WHERE evaluated = true
+           AND timestamp >= NOW() - INTERVAL '7 days'
+         GROUP BY setup
+         HAVING COUNT(*) >= 3
+         ORDER BY win_rate DESC`,
+        [],
+        { timeoutMs: 8000, label: 'sim.live.setups' }
+      ),
+    ]);
+
+    const todayRow = todayPerf.rows[0] || {};
+    const sevenRow = sevenDayPerf.rows[0] || {};
+    const setups   = setupPerf.rows || [];
+
+    // Simulated PnL: count × avg_return (rough directional measure)
+    const pnlToday   = Number(todayRow.total || 0) > 0
+      ? Math.round((Number(todayRow.avg_return || 0) * Number(todayRow.total)) * 100) / 100
+      : 0;
+
+    return res.json({
+      ok: true,
+      generated_at: new Date().toISOString(),
+      active_trades: activeTrades.rows,
+      active_count: activeTrades.rows.length,
+      simulated_pnl_today: pnlToday,
+      win_rate_today: Number(todayRow.total) > 0
+        ? Math.round((Number(todayRow.wins) / Number(todayRow.total)) * 1000) / 10
+        : null,
+      win_rate_7d: Number(sevenRow.total) > 0
+        ? Math.round((Number(sevenRow.wins) / Number(sevenRow.total)) * 1000) / 10
+        : null,
+      total_evaluated_today: Number(todayRow.total || 0),
+      total_evaluated_7d: Number(sevenRow.total || 0),
+      avg_return_today: Number(todayRow.avg_return || 0),
+      avg_return_7d: Number(sevenRow.avg_return || 0),
+      best_setup:  setups[0] || null,
+      worst_setup: setups[setups.length - 1] || null,
+      all_setups:  setups,
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9 — Learning system status endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/system/learning-status', async (_req, res) => {
+  try {
+    const [logged, evaluated, errors, stuck] = await Promise.all([
+      queryWithTimeout(
+        `SELECT COUNT(*) AS cnt FROM signal_log WHERE timestamp >= NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 8000, label: 'learn.logged' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS cnt FROM signal_log
+         WHERE evaluated = true AND evaluated_at >= NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 8000, label: 'learn.evaluated' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS cnt FROM signal_log
+         WHERE outcome = 'ERROR' AND evaluated_at >= NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 8000, label: 'learn.errors' }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*) AS cnt FROM signal_log
+         WHERE evaluated = false
+           AND timestamp < NOW() - INTERVAL '1 hour'`,
+        [],
+        { timeoutMs: 8000, label: 'learn.stuck' }
+      ),
+    ]);
+
+    const loggedCount   = Number(logged.rows[0]?.cnt   || 0);
+    const evaluatedCount = Number(evaluated.rows[0]?.cnt || 0);
+    const errorCount    = Number(errors.rows[0]?.cnt   || 0);
+    const stuckCount    = Number(stuck.rows[0]?.cnt    || 0);
+
+    // Evaluation rate: what fraction of signals logged ≥1h ago have been evaluated
+    const eligibleCount = loggedCount; // conservative: denominator = all logged in 24h
+    const evalRate = eligibleCount > 0
+      ? Math.round((evaluatedCount / eligibleCount) * 1000) / 10
+      : 100;
+
+    if (evalRate < 95 && eligibleCount > 0) {
+      console.error(`[CRITICAL] Learning system degraded — evaluation_rate=${evalRate}% (${evaluatedCount}/${eligibleCount})`);
+    }
+
+    return res.json({
+      ok: true,
+      generated_at: new Date().toISOString(),
+      signals_logged_last_24h:    loggedCount,
+      signals_evaluated_last_24h: evaluatedCount,
+      evaluation_rate_pct:        evalRate,
+      error_count_last_24h:       errorCount,
+      stuck_signals:              stuckCount,
+      status: evalRate >= 95 ? 'healthy' : evalRate >= 80 ? 'degraded' : 'critical',
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -12002,6 +12163,8 @@ async function bootstrapBackgroundServices() {
     setTimeout(() => startExecutionScheduler(10 * 60 * 1000), 7 * 60 * 1000);
     // Execution refinement: confirmation, session timing, breakout validation, runs every 10 min
     setTimeout(() => startExecutionRefinementScheduler(10 * 60 * 1000), 9 * 60 * 1000);
+    // Live evaluation: signal outcome measurement + performance aggregation, runs every 5 min
+    setTimeout(() => startLiveEvaluationScheduler(5 * 60 * 1000), 11 * 60 * 1000);
     bootstrapEngines();
     console.log('[BOOT] System ready');
   } catch (err) {

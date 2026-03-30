@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-03-30T16:30:00.000Z",
+  "engine": "liveEvaluationEngine v1",
+  "migrations": ["042_learning_loop"],
+
+  "schema_validation": {
+    "columns_added_to_signal_log": ["setup_type", "evaluated_at"],
+    "index_created": "idx_signal_log_eval_ts ON signal_log(evaluated, timestamp)",
+    "table_created": "signal_performance_summary",
+    "all_schema_objects_present": true
+  },
+
+  "evaluation_run": {
+    "signals_processed_in_backfill": 59,
+    "rounds_required": 3,
+    "batch_size": 20,
+    "evaluation_strategy": "retry_up_to_3x_then_mark_ERROR"
+  },
+
+  "signal_log_final_state": {
+    "total_signals": 423,
+    "evaluated_signals": 423,
+    "stuck_signals": 0,
+    "error_signals": 0,
+    "stuck_rate_pct": 0,
+    "error_rate_pct": 0,
+    "evaluation_rate_pct": 100
+  },
+
+  "outcome_distribution": [
+    { "outcome": "NEUTRAL", "count": 400, "pct": 94.6 },
+    { "outcome": "LOSS",    "count": 12,  "pct": 2.8 },
+    { "outcome": "WIN",     "count": 11,  "pct": 2.6 }
+  ],
+
+  "note_on_neutral_dominance": "NEUTRAL rate is high because the majority of signals were logged before the expected_move column was populated (expected_move=null → R=0 → classifies as NEUTRAL). Signals going forward with populated expected_move will classify correctly.",
+
+  "performance_aggregation": {
+    "rows_written": 2,
+    "table": "signal_performance_summary",
+    "upsert_strategy": "ON CONFLICT (period_label, setup_type, execution_rating, session_phase, signal_type) DO UPDATE",
+    "periods_computed": ["today"],
+    "note": "7d and all periods will populate as signal history grows"
+  },
+
+  "api_endpoints": {
+    "GET /api/simulation/live": {
+      "description": "Active trades, simulated PnL, win rates today/7d, best/worst setup",
+      "status": "implemented"
+    },
+    "GET /api/system/learning-status": {
+      "description": "signals_logged/evaluated_last_24h, evaluation_rate%, errors, stuck_signals",
+      "critical_threshold": "evaluation_rate < 95% logs [CRITICAL]",
+      "status": "implemented"
+    }
+  },
+
+  "dashboard_panel": {
+    "component": "trading-os/src/components/terminal/dashboard-view.tsx",
+    "panel": "System Performance",
+    "displays": ["Win Rate Today", "Win Rate 7d", "Avg Return", "Best Setup Type"],
+    "data_source": "/api/simulation/live",
+    "status": "implemented"
+  },
+
+  "scheduler_registration": {
+    "file": "server/index.js",
+    "boot_delay_ms": 660000,
+    "eval_interval_ms": 300000,
+    "perf_agg_interval_ms": 1800000,
+    "stagger_note": "eval fires at +11min after boot, perf agg at +13min (2min post-eval stagger)"
+  },
+
+  "engine_pipeline_order": [
+    "sessionAggregationEngine (+0 min)",
+    "fallbackDataEngine (+3 min)",
+    "premarketIntelligenceEngine (+5 min)",
+    "executionEngine (+7 min)",
+    "executionRefinementEngine (+9 min)",
+    "liveEvaluationEngine (+11 min)"
+  ],
+
+  "checks": {
+    "migration_042_applied": true,
+    "liveEvaluationEngine_created": true,
+    "scheduler_registered_in_index": true,
+    "all_59_backlog_signals_evaluated": true,
+    "zero_stuck_signals_after_run": true,
+    "zero_error_signals": true,
+    "performance_aggregation_ran": true,
+    "signal_performance_summary_populated": true,
+    "api_simulation_live_implemented": true,
+    "api_system_learning_status_implemented": true,
+    "dashboard_system_performance_panel_added": true,
+    "typescript_no_new_errors": true
+  }
+}

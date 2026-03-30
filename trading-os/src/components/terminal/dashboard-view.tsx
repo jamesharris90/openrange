@@ -108,6 +108,20 @@ type WatchlistResponse = {
   data: WatchlistRow[];
 };
 
+type SimLiveResponse = {
+  ok: boolean;
+  active_count: number;
+  simulated_pnl_today: number;
+  win_rate_today: number | null;
+  win_rate_7d: number | null;
+  total_evaluated_today: number;
+  total_evaluated_7d: number;
+  avg_return_today: number;
+  avg_return_7d: number;
+  best_setup: { setup: string; win_rate: number; total: number } | null;
+  worst_setup: { setup: string; win_rate: number; total: number } | null;
+};
+
 type PrepResponse = {
   ok: boolean;
   market_mode: MarketMode;
@@ -324,6 +338,12 @@ export function DashboardView() {
     queryKey: ["dashboard", "premarket-watchlist"],
     queryFn: () => apiGet<WatchlistResponse>("/api/premarket/watchlist?limit=20").catch(() => ({ success: false, count: 0, data: [] })),
     ...QUERY_POLICY.medium,
+  });
+
+  const simQuery = useQuery({
+    queryKey: ["dashboard", "sim-live"],
+    queryFn: () => apiGet<SimLiveResponse>("/api/simulation/live").catch(() => ({ ok: false } as SimLiveResponse)),
+    ...QUERY_POLICY.slow,
   });
 
   const signals = focusQuery.data?.signals ?? [];
@@ -726,6 +746,61 @@ export function DashboardView() {
             Premarket data unavailable — session engine runs every 10 min
           </div>
         ) : null}
+      </section>
+
+      {/* ── System Performance ── */}
+      <section>
+        <h2 className="mb-2 text-[11px] uppercase tracking-widest text-slate-500">System Performance</h2>
+        {simQuery.data?.ok ? (() => {
+          const sim = simQuery.data!;
+          const wrToday = sim.win_rate_today;
+          const wr7d    = sim.win_rate_7d;
+          const wrClass = (wr: number | null) =>
+            wr == null ? "text-slate-500"
+            : wr >= 60  ? "text-emerald-400"
+            : wr >= 40  ? "text-amber-400"
+            : "text-rose-400";
+          const avgRetClass = (v: number) =>
+            v > 0 ? "text-emerald-400" : v < 0 ? "text-rose-400" : "text-slate-400";
+          return (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">Win Rate Today</div>
+                <div className={`mt-1 text-2xl font-black tabular-nums ${wrClass(wrToday)}`}>
+                  {wrToday != null ? `${wrToday}%` : "—"}
+                </div>
+                <div className="text-[11px] text-slate-600">{sim.total_evaluated_today} signals</div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">Win Rate 7d</div>
+                <div className={`mt-1 text-2xl font-black tabular-nums ${wrClass(wr7d)}`}>
+                  {wr7d != null ? `${wr7d}%` : "—"}
+                </div>
+                <div className="text-[11px] text-slate-600">{sim.total_evaluated_7d} signals</div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">Avg Return</div>
+                <div className={`mt-1 text-2xl font-black tabular-nums ${avgRetClass(sim.avg_return_today)}`}>
+                  {Number.isFinite(sim.avg_return_today) ? `${sim.avg_return_today > 0 ? "+" : ""}${sim.avg_return_today.toFixed(2)}%` : "—"}
+                </div>
+                <div className="text-[11px] text-slate-600">today per signal</div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">Best Setup</div>
+                <div className="mt-1 text-sm font-bold text-slate-100 truncate">
+                  {sim.best_setup?.setup ?? "—"}
+                </div>
+                {sim.best_setup && (
+                  <div className="text-[11px] text-emerald-400">{sim.best_setup.win_rate}% win ({sim.best_setup.total})</div>
+                )}
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-4 text-xs text-slate-600">
+            Performance data unavailable — evaluation engine runs every 5 min
+          </div>
+        )}
       </section>
     </div>
   );
