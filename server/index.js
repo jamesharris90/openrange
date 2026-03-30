@@ -11267,6 +11267,91 @@ app.use(generalLimiter);
 // API-key/JWT auth middleware
 app.use(authMiddleware);
 
+// System Score endpoint (public — no auth required)
+app.get('/api/system/score', async (_req, res) => {
+  try {
+    const { computeSystemScore } = require('./engines/systemScoreEngine');
+    const score = await computeSystemScore();
+    return res.json({ ok: true, ...score });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin — Email send history stats
+app.get('/api/admin/email-stats', requireAdminAction, async (_req, res) => {
+  try {
+    const [summary, recent, failures] = await Promise.all([
+      queryWithTimeout(
+        `SELECT
+           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours') AS sent_24h,
+           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours' AND status = 'sent') AS success_24h,
+           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours' AND status != 'sent') AS failed_24h,
+           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days') AS sent_7d
+         FROM newsletter_send_history`,
+        [],
+        { timeoutMs: 8000, label: 'admin.email_stats.summary', maxRetries: 0 }
+      ).catch(() => ({ rows: [{ sent_24h: 0, success_24h: 0, failed_24h: 0, sent_7d: 0 }] })),
+      queryWithTimeout(
+        `SELECT campaign_type, campaign_key, subject, recipients_count, status, sent_at
+         FROM newsletter_send_history
+         ORDER BY sent_at DESC LIMIT 20`,
+        [],
+        { timeoutMs: 8000, label: 'admin.email_stats.recent', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
+      queryWithTimeout(
+        `SELECT campaign_type, campaign_key, subject, status, sent_at
+         FROM newsletter_send_history
+         WHERE status != 'sent'
+         ORDER BY sent_at DESC LIMIT 10`,
+        [],
+        { timeoutMs: 8000, label: 'admin.email_stats.failures', maxRetries: 0 }
+      ).catch(() => ({ rows: [] })),
+    ]);
+
+    const s = summary.rows[0] || {};
+    const total24h = Number(s.sent_24h || 0);
+    const success24h = Number(s.success_24h || 0);
+    return res.json({
+      ok: true,
+      sent_24h: total24h,
+      success_24h: success24h,
+      failed_24h: Number(s.failed_24h || 0),
+      sent_7d: Number(s.sent_7d || 0),
+      success_rate_pct: total24h > 0 ? Math.round((success24h / total24h) * 1000) / 10 : null,
+      recent: recent.rows || [],
+      failures: failures.rows || [],
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin — Manual trigger for briefing engines
+app.post('/api/admin/briefing/:type/run', requireAdminAction, async (req, res) => {
+  const type = req.params.type;
+  const allowed = ['morning', 'premarket', 'admin-health'];
+  if (!allowed.includes(type)) {
+    return res.status(400).json({ ok: false, error: `Unknown briefing type: ${type}` });
+  }
+  try {
+    let result;
+    if (type === 'morning') {
+      const { runMorningBriefingEngine } = require('./engines/morningBriefingEngine');
+      result = await runMorningBriefingEngine({ force: true });
+    } else if (type === 'premarket') {
+      const { runPremarketBriefingEngine } = require('./engines/premarketBriefingEngine');
+      result = await runPremarketBriefingEngine({ force: true });
+    } else {
+      const { runAdminHealthEngine } = require('./engines/adminHealthEngine');
+      result = await runAdminHealthEngine({ force: true, session: 'manual' });
+    }
+    return res.json({ ok: true, type, ...result });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Alert engine routes
 if (NON_ESSENTIAL_ENGINES_ENABLED) {
   app.use('/api', alertsRoutes);
@@ -11641,91 +11726,6 @@ app.get('/api/admin/logs', requireAdminAction, async (req, res) => {
     return res.json({ ok: true, logs: combined, count: combined.length, filter: safeFilter || 'ALL' });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message, logs: [] });
-  }
-});
-
-// System Score endpoint
-app.get('/api/system/score', async (_req, res) => {
-  try {
-    const { computeSystemScore } = require('./engines/systemScoreEngine');
-    const score = await computeSystemScore();
-    return res.json({ ok: true, ...score });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Admin — Email send history stats
-app.get('/api/admin/email-stats', requireAdminAction, async (_req, res) => {
-  try {
-    const [summary, recent, failures] = await Promise.all([
-      queryWithTimeout(
-        `SELECT
-           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours') AS sent_24h,
-           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours' AND status = 'sent') AS success_24h,
-           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '24 hours' AND status != 'sent') AS failed_24h,
-           COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days') AS sent_7d
-         FROM newsletter_send_history`,
-        [],
-        { timeoutMs: 8000, label: 'admin.email_stats.summary', maxRetries: 0 }
-      ).catch(() => ({ rows: [{ sent_24h: 0, success_24h: 0, failed_24h: 0, sent_7d: 0 }] })),
-      queryWithTimeout(
-        `SELECT campaign_type, campaign_key, subject, recipients_count, status, sent_at
-         FROM newsletter_send_history
-         ORDER BY sent_at DESC LIMIT 20`,
-        [],
-        { timeoutMs: 8000, label: 'admin.email_stats.recent', maxRetries: 0 }
-      ).catch(() => ({ rows: [] })),
-      queryWithTimeout(
-        `SELECT campaign_type, campaign_key, subject, status, sent_at
-         FROM newsletter_send_history
-         WHERE status != 'sent'
-         ORDER BY sent_at DESC LIMIT 10`,
-        [],
-        { timeoutMs: 8000, label: 'admin.email_stats.failures', maxRetries: 0 }
-      ).catch(() => ({ rows: [] })),
-    ]);
-
-    const s = summary.rows[0] || {};
-    const total24h = Number(s.sent_24h || 0);
-    const success24h = Number(s.success_24h || 0);
-    return res.json({
-      ok: true,
-      sent_24h: total24h,
-      success_24h: success24h,
-      failed_24h: Number(s.failed_24h || 0),
-      sent_7d: Number(s.sent_7d || 0),
-      success_rate_pct: total24h > 0 ? Math.round((success24h / total24h) * 1000) / 10 : null,
-      recent: recent.rows || [],
-      failures: failures.rows || [],
-    });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Admin — Manual trigger for briefing engines
-app.post('/api/admin/briefing/:type/run', requireAdminAction, async (req, res) => {
-  const type = req.params.type;
-  const allowed = ['morning', 'premarket', 'admin-health'];
-  if (!allowed.includes(type)) {
-    return res.status(400).json({ ok: false, error: `Unknown briefing type: ${type}` });
-  }
-  try {
-    let result;
-    if (type === 'morning') {
-      const { runMorningBriefingEngine } = require('./engines/morningBriefingEngine');
-      result = await runMorningBriefingEngine({ force: true });
-    } else if (type === 'premarket') {
-      const { runPremarketBriefingEngine } = require('./engines/premarketBriefingEngine');
-      result = await runPremarketBriefingEngine({ force: true });
-    } else {
-      const { runAdminHealthEngine } = require('./engines/adminHealthEngine');
-      result = await runAdminHealthEngine({ force: true, session: 'manual' });
-    }
-    return res.json({ ok: true, type, ...result });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message });
   }
 });
 

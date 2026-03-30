@@ -1,17 +1,22 @@
 "use client";
 
 import {
+  BarChart2,
   Bell,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Flame,
   Gauge,
+  Globe,
   LayoutDashboard,
+  Newspaper,
   Radar,
-  Settings,
+  Scan,
   Shield,
+  TrendingDown,
   TrendingUp,
   Workflow,
-  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,17 +26,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/markets", label: "Markets", icon: TrendingUp },
-  { href: "/heat-map", label: "Heat Map", icon: Workflow },
-  { href: "/stocks-in-play", label: "Stocks In Play", icon: Flame },
-  { href: "/catalyst-scanner", label: "Catalyst Scanner", icon: Radar },
-  { href: "/trading-terminal", label: "Trading Terminal", icon: Gauge },
-  { href: "/research/AAPL", label: "Research", icon: Zap },
-  { href: "/earnings", label: "Earnings Calendar", icon: Calendar },
-  { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/admin", label: "Admin", icon: Shield },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard",         label: "Dashboard",         icon: LayoutDashboard },
+  { href: "/trading-terminal",  label: "Terminal",          icon: Gauge           },
+  { href: "/screener",          label: "Screener",          icon: Radar           },
+  { href: "/stocks-in-play",    label: "Stocks In Play",    icon: Flame           },
+  { href: "/catalyst-scanner",  label: "Catalyst Scanner",  icon: Scan            },
+  { href: "/stocks",            label: "Stocks",            icon: TrendingUp      },
+  { href: "/markets",           label: "Markets",           icon: Globe           },
+  { href: "/news-feed",         label: "News",              icon: Newspaper       },
+  { href: "/earnings",          label: "Earnings",          icon: Calendar        },
+  { href: "/ipos",              label: "IPO Calendar",      icon: TrendingDown    },
+  { href: "/heat-map",          label: "Heatmap",           icon: Workflow        },
+  { href: "/charts",            label: "Charts",            icon: BarChart2       },
+  { href: "/alerts",            label: "Alerts",            icon: Bell            },
+  { href: "/admin",             label: "Admin",             icon: Shield          },
 ];
 
 export function Sidebar() {
@@ -56,42 +64,61 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden border-r border-slate-800 bg-panel/90 p-3 lg:flex lg:flex-col",
-        collapsed ? "w-[78px]" : "w-64"
+        "hidden shrink-0 border-r border-slate-800 bg-[#0d1117] p-3 lg:flex lg:flex-col",
+        collapsed ? "w-[60px]" : "w-56"
       )}
-      aria-label="Primary"
+      aria-label="Primary navigation"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <div className={cn("font-semibold tracking-wide text-slate-100", collapsed && "sr-only")}>
-          OpenRange
-        </div>
+      {/* Brand + collapse */}
+      <div className="mb-5 flex items-center justify-between">
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="flex size-6 items-center justify-center rounded bg-emerald-500/20">
+              <Gauge className="size-3.5 text-emerald-400" />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-slate-100">OpenRange</span>
+          </div>
+        )}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label="Collapse sidebar"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn("ml-auto text-slate-500 hover:text-slate-200", collapsed && "mx-auto")}
         >
-          <span className="text-xs">{collapsed ? ">" : "<"}</span>
+          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
         </Button>
       </div>
-      <nav className="space-y-1" role="navigation" aria-label="Trading sections" onKeyDown={onNavKeyDown} ref={navRef}>
+
+      {/* Nav */}
+      <nav
+        className="flex-1 space-y-0.5"
+        role="navigation"
+        aria-label="Trading sections"
+        onKeyDown={onNavKeyDown}
+        ref={navRef}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
-            (item.href.startsWith("/research") && pathname.startsWith("/research/")) ||
-            (item.href === "/trading-terminal" && pathname.startsWith("/trading-terminal"));
+            (item.href === "/trading-terminal" && (pathname.startsWith("/trading-terminal") || pathname.startsWith("/terminal"))) ||
+            (item.href === "/charts" && pathname.startsWith("/charts")) ||
+            (item.href === "/stocks" && pathname.startsWith("/stocks") && !pathname.startsWith("/stocks-in-play")) ||
+            (item.href === "/research" && pathname.startsWith("/research")) ||
+            (item.href === "/admin" && pathname.startsWith("/admin"));
           return (
             <Link
               key={item.href}
               href={item.href}
               data-nav-item="true"
+              title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-300 outline-none transition",
-                "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
+                "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium outline-none transition",
+                "focus-visible:ring-2 focus-visible:ring-emerald-500/50",
                 isActive
-                  ? "border-slate-700 bg-slate-900 text-slate-100"
-                  : "hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-100"
+                  ? "bg-slate-800 text-slate-100"
+                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
               )}
               aria-current={isActive ? "page" : undefined}
             >
