@@ -385,6 +385,142 @@ async function runMarketContextEngine() {
   }
 }
 
+// ── Per-Symbol Signal Context ─────────────────────────────────────────────────
+//
+// These functions compute intraday microstructure for a single symbol and are
+// used by strategySignalEngine and opportunityEngine to inform stage overrides,
+// entry gating, and narrative generation.
+//
+// Returns: { vwap_relation, volume_trend, structure, time_context }
+// All values degrade to 'UNKNOWN' when candle data is absent.
+
+function _signalVwapRelation(price, vwap, candles) {
+  if (!vwap || vwap <= 0 || !price || price <= 0) return 'UNKNOWN';
+
+  // RECLAIM: previous candle closed below VWAP, current price at/above
+  if (candles.length >= 2) {
+    const prevClose = Number(candles[candles.length - 2]?.close || 0);
+    if (prevClose > 0 && prevClose < vwap && price >= vwap) return 'RECLAIM';
+  }
+
+  if (price >= vwap * 0.999) return 'ABOVE';
+  return 'BELOW';
+}
+
+function _signalVolumeTrend(candles) {
+  if (candles.length < 8) return 'UNKNOWN';
+
+  const last5 = candles.slice(-5);
+  const prev5 = candles.slice(-10, -5);
+  if (prev5.length < 3) return 'UNKNOWN';
+
+  const lastAvg = last5.reduce((s, c) => s + Number(c.volume || 0), 0) / last5.length;
+  const prevAvg = prev5.reduce((s, c) => s + Number(c.volume || 0), 0) / prev5.length;
+  if (prevAvg <= 0) return 'UNKNOWN';
+
+  const ratio = lastAvg / prevAvg;
+  if (ratio >= 1.15) return 'EXPANDING';
+  if (ratio <= 0.85) return 'FADING';
+  return 'NEUTRAL';
+}
+
+function _signalStructure(candles) {
+  if (candles.length < 8) return 'UNKNOWN';
+
+  const recent = candles.slice(-4);
+  const prior  = candles.slice(-8, -4);
+
+  const recentHigh = Math.max(...recent.map(c => Number(c.high || 0)));
+  const recentLow  = Math.min(...recent.map(c => Number(c.low  || Infinity)));
+  const priorHigh  = Math.max(...prior.map(c => Number(c.high || 0)));
+  const priorLow   = Math.min(...prior.map(c => Number(c.low  || Infinity)));
+
+  if (recentHigh <= 0 || priorHigh <= 0) return 'UNKNOWN';
+
+  // Higher highs AND higher lows → trending
+  if (recentHigh > priorHigh && recentLow > priorLow) return 'TRENDING_UP';
+
+  // Lower highs by >0.5% → weakening
+  if (recentHigh < priorHigh * 0.995) return 'WEAKENING';
+
+  return 'CONSOLIDATING';
+}
+
+function computeTimeContext(now = new Date()) {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour:     '2-digit',
+      minute:   '2-digit',
+      hour12:   false,
+    });
+    const parts   = fmt.formatToParts(now);
+    const hours   = parseInt(parts.find(p => p.type === 'hour').value,   10);
+    const minutes = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const total   = hours * 60 + minutes;
+
+    if (total < 9 * 60 + 30) return 'PREMARKET';
+    if (total < 10 * 60)     return 'OPEN';       // first 30 min — high volatility
+    if (total < 15 * 60)     return 'MIDDAY';
+    if (total < 16 * 60)     return 'POWER_HOUR';
+    return 'AFTER_HOURS';
+  } catch {
+    return 'UNKNOWN';
+  }
+}
+
+/**
+ * Compute per-symbol intraday market context.
+ *
+ * @param {string} symbol
+ * @param {{ price: number, vwap: number }} opts
+ * @returns {Promise<{ vwap_relation, volume_trend, structure, time_context }>}
+ */
+async function computeMarketContext(symbol, { price = 0, vwap = 0 } = {}) {
+  const timeCtx = computeTimeContext();
+
+  const scalarVwapRelation =
+    vwap > 0 && price > 0
+      ? (price >= vwap * 0.999 ? 'ABOVE' : 'BELOW')
+      : 'UNKNOWN';
+
+  const fallback = {
+    vwap_relation: scalarVwapRelation,
+    volume_trend:  'UNKNOWN',
+    structure:     'UNKNOWN',
+    time_context:  timeCtx,
+  };
+
+  if (!symbol) return fallback;
+
+  try {
+    const { rows } = await limitQuery(() => queryWithTimeout(
+      `SELECT high, low, close, volume
+       FROM intraday_1m
+       WHERE symbol = $1
+         AND close > 0
+         AND "timestamp" >= NOW() - INTERVAL '3 hours'
+       ORDER BY "timestamp" ASC
+       LIMIT 20`,
+      [symbol],
+      { timeoutMs: 4000, label: `marketCtx.${symbol}`, maxRetries: 0 }
+    ));
+
+    if (!rows || rows.length < 4) return fallback;
+
+    return {
+      vwap_relation: _signalVwapRelation(price, vwap, rows),
+      volume_trend:  _signalVolumeTrend(rows),
+      structure:     _signalStructure(rows),
+      time_context:  timeCtx,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 module.exports = {
   runMarketContextEngine,
+  computeMarketContext,
+  computeTimeContext,
 };

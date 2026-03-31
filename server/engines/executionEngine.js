@@ -516,6 +516,29 @@ function computeLifecycleStage(changePercent, relativeVolume, price, previousClo
   return 'EARLY';
 }
 
+// ── Phase 5: Context-aware stage override ────────────────────────────────────
+//
+// If market context (volume trend + structure) contradicts the raw stage
+// classification, override it to reduce false EXTENDED signals and catch
+// fading EXPANSION moves before they become traps.
+
+function computeLifecycleStageWithContext(changePercent, relativeVolume, price, previousClose, context) {
+  let stage = computeLifecycleStage(changePercent, relativeVolume, price, previousClose);
+  if (!context) return stage;
+
+  const { volume_trend, structure } = context;
+
+  // EXTENDED but volume still expanding and structure still trending → EXPANSION
+  if (stage === 'EXTENDED' && volume_trend === 'EXPANDING' && structure === 'TRENDING_UP')
+    return 'EXPANSION';
+
+  // EXPANSION but volume fading and structure weakening → EXTENDED
+  if (stage === 'EXPANSION' && volume_trend === 'FADING' && structure === 'WEAKENING')
+    return 'EXTENDED';
+
+  return stage;
+}
+
 // Stage-specific entry price
 function _stageEntry(stage, strategy, price, previousHigh, vwap) {
   switch (stage) {
@@ -586,6 +609,43 @@ function _qualityGate({ price, atr, volume, confidence, rr }) {
   return { pass: true, reason: null };
 }
 
+// ── Phase 6: Context entry gate ───────────────────────────────────────────────
+//
+// Only enforced when context is available (UNKNOWN values pass through).
+//
+//   BREAKOUT entries (EARLY / EXPANSION):
+//     - price must be ABOVE or RECLAIM VWAP
+//     - volume must not be FADING
+//
+//   PULLBACK entries (EXTENDED):
+//     - RECLAIM + EXPANDING volume → allow (best pullback setup)
+//     - ABOVE VWAP → allow
+//     - BELOW VWAP → block (no support)
+
+function _contextEntryGate(stage, context) {
+  if (!context) return { pass: true, reason: null };
+
+  const { vwap_relation, volume_trend } = context;
+
+  // Skip enforcement if both dimensions are unknown
+  if (vwap_relation === 'UNKNOWN' && volume_trend === 'UNKNOWN')
+    return { pass: true, reason: null };
+
+  if (stage === 'EARLY' || stage === 'EXPANSION') {
+    if (vwap_relation === 'BELOW')
+      return { pass: false, reason: 'breakout_entry_below_vwap' };
+    if (volume_trend === 'FADING' && vwap_relation !== 'RECLAIM')
+      return { pass: false, reason: 'breakout_entry_volume_fading' };
+  }
+
+  if (stage === 'EXTENDED') {
+    if (vwap_relation === 'BELOW')
+      return { pass: false, reason: 'pullback_entry_below_vwap' };
+  }
+
+  return { pass: true, reason: null };
+}
+
 function _tradeQuality({ price, atr, volume, confidence, rr }) {
   let score = 50;
   const atrPct = price > 0 ? (atr / price) * 100 : 0;
@@ -607,7 +667,51 @@ function _tradeQuality({ price, atr, volume, confidence, rr }) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function _narratives(signal, entry, stop, target, rr, stage) {
+function _contextInsight(context, stage) {
+  if (!context) return null;
+
+  const { vwap_relation, volume_trend, structure } = context;
+  const parts = [];
+
+  // Describe the VWAP + volume combination
+  if (vwap_relation === 'ABOVE' && volume_trend === 'EXPANDING')
+    parts.push('holding above VWAP with expanding volume');
+  else if (vwap_relation === 'RECLAIM')
+    parts.push('just reclaimed VWAP — momentum shifting');
+  else if (vwap_relation === 'BELOW' && volume_trend === 'FADING')
+    parts.push('below VWAP with fading volume');
+  else if (vwap_relation === 'ABOVE')
+    parts.push('above VWAP');
+  else if (vwap_relation === 'BELOW')
+    parts.push('below VWAP');
+
+  // Describe structure
+  if (structure === 'TRENDING_UP')    parts.push('higher highs and higher lows intact');
+  else if (structure === 'WEAKENING') parts.push('lower highs forming');
+
+  if (parts.length === 0) return null;
+
+  let insight = 'Stock is ' + parts.join(' with ') + '.';
+
+  if (structure === 'TRENDING_UP')
+    insight += ' This suggests continuation.';
+  else if (structure === 'WEAKENING')
+    insight += ' Watch for reversal signs.';
+
+  // Stage-specific follow-on action
+  if (stage === 'EARLY' || stage === 'EXPANSION') {
+    if (vwap_relation === 'ABOVE')
+      insight += ' Watch for pullback to VWAP as a safer entry.';
+    else if (vwap_relation === 'RECLAIM')
+      insight += ' Trade as continuation while price holds above VWAP.';
+  } else if (stage === 'EXTENDED') {
+    insight += ' Move is extended — reduced size, tight stop near VWAP.';
+  }
+
+  return insight;
+}
+
+function _narratives(signal, entry, stop, target, rr, stage, context) {
   const { price = 0, atr = 0, volume = 0, relativeVolume = 0,
     changePercent = 0, gapPercent = 0, strategy = null,
     catalyst = null, regime = null } = signal;
@@ -627,7 +731,7 @@ function _narratives(signal, entry, stop, target, rr, stage) {
   if (m.length === 0) m.push('Price action and volume supporting upward move');
   const why_moving = m.join('. ').replace(/\.\./g, '.');
 
-  // WHAT IT MEANS (why_tradeable)
+  // WHAT IT MEANS (why_tradeable) — includes context insight
   const t = [];
   const volM   = (volume / 1_000_000).toFixed(1);
   const atrPct = price > 0 ? ((atr / price) * 100).toFixed(1) : '0';
@@ -643,9 +747,11 @@ function _narratives(signal, entry, stop, target, rr, stage) {
   }
   if (regime === 'BULL')      t.push('Bullish regime aligned with long setup');
   else if (regime === 'BEAR') t.push('Bear regime active — reduce position size');
+  const ctxInsight = _contextInsight(context, stage);
+  if (ctxInsight) t.push(ctxInsight);
   const why_tradeable = t.join('. ');
 
-  // WHAT TO WATCH NEXT (how_to_trade) — with staged trade management rules
+  // WHAT TO WATCH NEXT (how_to_trade) — with staged trade management rules + time note
   let how_to_trade;
   if (stage === 'EXHAUSTION') {
     how_to_trade = 'Setup blocked — exhaustion after extended move. Wait for consolidation before new entry.';
@@ -661,6 +767,10 @@ function _narratives(signal, entry, stop, target, rr, stage) {
       `At $${breakEven.toFixed(2)} move stop to break-even (+1R). ` +
       `At $${partial.toFixed(2)} take partial profits (+1.5R). ` +
       `Above $${trail.toFixed(2)} trail stop to lock gains (+2R).`;
+    if (context?.time_context === 'OPEN')
+      how_to_trade += ' Note: first 30 min — allow price to establish range before entering.';
+    else if (context?.time_context === 'POWER_HOUR')
+      how_to_trade += ' Note: power hour — momentum can accelerate or reverse quickly.';
   }
 
   return { why_moving, why_tradeable, how_to_trade };
@@ -670,12 +780,14 @@ function _narratives(signal, entry, stop, target, rr, stage) {
  * Compute a full signal-level execution plan (pure, synchronous).
  *
  * Classifies the signal into a lifecycle stage (EARLY / EXPANSION / EXTENDED /
- * EXHAUSTION) and adapts entry, stop, target, and narrative accordingly.
+ * EXHAUSTION), applies market context overrides, and adapts entry, stop,
+ * target, and narrative accordingly.
  *
  * @param {object} signal - { price, atr?, volume?, relativeVolume?,
  *   changePercent?, gapPercent?, confidence?, strategy?, previousHigh?,
- *   vwap?, catalyst?, regime?, previousClose? }
- * @returns {object} execution plan including lifecycle_stage, entry_type, exit_type
+ *   vwap?, catalyst?, regime?, previousClose?, marketContext? }
+ * @returns {object} execution plan including lifecycle_stage, entry_type,
+ *   exit_type, vwap_relation, volume_trend, market_structure, time_context
  */
 function computeExecutionPlan(signal) {
   const {
@@ -683,24 +795,34 @@ function computeExecutionPlan(signal) {
     changePercent = 0, gapPercent = 0, confidence = 50,
     strategy = null, previousHigh = 0, vwap = 0,
     catalyst = null, regime = null, previousClose = 0,
+    marketContext = null,
   } = signal;
 
   if (!price || price <= 0) return _emptyExecPlan('no_price');
 
   const effectiveAtr = atr > 0 ? atr : price * 0.02;
-  const stage        = computeLifecycleStage(changePercent, relativeVolume, price, previousClose);
-  const entryType    = _entryType(stage);
-  const exitType     = _exitType(stage);
+
+  // Phase 5: context-aware stage classification
+  const stage     = computeLifecycleStageWithContext(changePercent, relativeVolume, price, previousClose, marketContext);
+  const entryType = _entryType(stage);
+  const exitType  = _exitType(stage);
+
+  // Context fields for DB storage
+  const vwap_relation    = marketContext?.vwap_relation    ?? null;
+  const volume_trend     = marketContext?.volume_trend     ?? null;
+  const market_structure = marketContext?.structure        ?? null;
+  const time_context     = marketContext?.time_context     ?? null;
 
   // EXHAUSTION — block long exposure immediately
   if (stage === 'EXHAUSTION') {
     const enriched = { ...signal, atr: effectiveAtr, relativeVolume, changePercent, gapPercent, catalyst, regime };
-    const { why_moving } = _narratives(enriched, 0, 0, 0, 0, stage);
+    const { why_moving } = _narratives(enriched, 0, 0, 0, 0, stage, marketContext);
     return {
       ..._emptyExecPlan('exhaustion_stage_blocked'),
       lifecycle_stage: stage,
       entry_type:      entryType,
       exit_type:       exitType,
+      vwap_relation, volume_trend, market_structure, time_context,
       why_moving,
       why_tradeable:   'Move showing exhaustion — avoid long exposure. Wait for consolidation.',
       how_to_trade:    'Setup blocked — exhaustion after extended move. Wait for consolidation before new entry.',
@@ -708,14 +830,22 @@ function computeExecutionPlan(signal) {
   }
 
   const entry = _stageEntry(stage, strategy, price, previousHigh, vwap);
-  if (entry <= 0) return { ..._emptyExecPlan('no_entry'), lifecycle_stage: stage, entry_type: entryType, exit_type: exitType };
+  if (entry <= 0) return {
+    ..._emptyExecPlan('no_entry'),
+    lifecycle_stage: stage, entry_type: entryType, exit_type: exitType,
+    vwap_relation, volume_trend, market_structure, time_context,
+  };
 
   const stop         = _stageStop(stage, entry, effectiveAtr, vwap, previousHigh);
   const target       = _stageTarget(stage, entry, effectiveAtr);
   const riskPerShare = Math.abs(entry - stop);
   const rr           = riskPerShare > 0 ? _r3((target - entry) / riskPerShare) : 0;
 
-  const { pass, reason } = _qualityGate({ price, atr: effectiveAtr, volume, confidence, rr });
+  // Phase 6: quality gate + context entry gate (both must pass)
+  const { pass: qualPass, reason: qualReason } = _qualityGate({ price, atr: effectiveAtr, volume, confidence, rr });
+  const { pass: ctxPass,  reason: ctxReason  } = _contextEntryGate(stage, marketContext);
+  const pass   = qualPass && ctxPass;
+  const reason = !qualPass ? qualReason : (!ctxPass ? ctxReason : null);
 
   let positionSize = 0;
   if (pass) {
@@ -725,7 +855,7 @@ function computeExecutionPlan(signal) {
   }
 
   const enriched = { ...signal, atr: effectiveAtr, relativeVolume, changePercent, gapPercent, catalyst, regime };
-  const { why_moving, why_tradeable, how_to_trade } = _narratives(enriched, entry, stop, target, rr, stage);
+  const { why_moving, why_tradeable, how_to_trade } = _narratives(enriched, entry, stop, target, rr, stage, marketContext);
 
   return {
     entry_price:          entry,
@@ -735,10 +865,14 @@ function computeExecutionPlan(signal) {
     risk_reward:          rr,
     trade_quality_score:  _tradeQuality({ price, atr: effectiveAtr, volume, confidence, rr }),
     execution_ready:      pass,
-    rejection_reason:     pass ? null : reason,
+    rejection_reason:     reason,
     lifecycle_stage:      stage,
     entry_type:           entryType,
     exit_type:            exitType,
+    vwap_relation,
+    volume_trend,
+    market_structure,
+    time_context,
     why_moving,
     why_tradeable,
     how_to_trade,
@@ -751,6 +885,7 @@ function _emptyExecPlan(reason) {
     risk_reward: 0, trade_quality_score: 0, execution_ready: false,
     rejection_reason: reason, why_moving: '', why_tradeable: '', how_to_trade: '',
     lifecycle_stage: null, entry_type: null, exit_type: null,
+    vwap_relation: null, volume_trend: null, market_structure: null, time_context: null,
   };
 }
 
@@ -764,4 +899,5 @@ module.exports = {
   stopExecutionScheduler,
   computeExecutionPlan,
   computeLifecycleStage,
+  computeLifecycleStageWithContext,
 };

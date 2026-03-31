@@ -54,11 +54,18 @@ async function runOpportunityEngine() {
       COALESCE(m.previous_high, 0)                  AS previous_high,
       COALESCE(tu.price, m.price, 0)                AS price,
       m.updated_at,
+      pc.previous_close,
       ((COALESCE(tu.change_percent, 0) * 2)
       + (COALESCE(tu.relative_volume, 0) * 5)
       + (COALESCE(m.gap_percent, tu.change_percent, 0) * 3)) AS score
      FROM tradable_universe tu
      LEFT JOIN market_metrics m ON m.symbol = tu.symbol
+     LEFT JOIN LATERAL (
+       SELECT d.close AS previous_close
+       FROM daily_ohlc d
+       WHERE d.symbol = tu.symbol AND d.date < CURRENT_DATE
+       ORDER BY d.date DESC LIMIT 1
+     ) pc ON TRUE
      ORDER BY score DESC NULLS LAST
      LIMIT 50`,
     [],
@@ -104,18 +111,29 @@ async function runOpportunityEngine() {
       currentRegimeTrend = getCurrentRegime()?.trend ?? null;
     } catch { /* regime not loaded */ }
 
+    let marketContext = null;
+    try {
+      const { computeMarketContext } = require('./marketContextEngine');
+      marketContext = await computeMarketContext(row.symbol, {
+        price: Number(row.price || 0),
+        vwap:  Number(row.vwap  || 0),
+      });
+    } catch { /* proceed without context */ }
+
     const execPlan = computeExecutionPlan({
-      price:          Number(row.price         || 0),
-      atr:            Number(row.atr           || 0),
-      volume:         Number(row.volume        || 0),
+      price:          Number(row.price           || 0),
+      atr:            Number(row.atr             || 0),
+      volume:         Number(row.volume          || 0),
       relativeVolume: Number(row.relative_volume || 0),
-      changePercent:  Number(row.change_percent || 0),
-      gapPercent:     Number(row.gap_percent   || 0),
+      changePercent:  Number(row.change_percent  || 0),
+      gapPercent:     Number(row.gap_percent     || 0),
       confidence,
       strategy,
-      previousHigh:   Number(row.previous_high || 0),
-      vwap:           Number(row.vwap          || 0),
+      previousHigh:   Number(row.previous_high  || 0),
+      vwap:           Number(row.vwap            || 0),
+      previousClose:  Number(row.previous_close  || 0),
       regime:         currentRegimeTrend,
+      marketContext,
     });
 
     await queryWithTimeout(
@@ -126,8 +144,9 @@ async function runOpportunityEngine() {
         risk_reward, trade_quality_score, execution_ready,
         why_moving, why_tradeable, how_to_trade,
         lifecycle_stage, entry_type, exit_type,
+        vwap_relation, volume_trend, market_structure, time_context,
         updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,now())
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,now())
       ON CONFLICT (symbol)
       DO UPDATE SET
         score = EXCLUDED.score,
@@ -150,6 +169,10 @@ async function runOpportunityEngine() {
         lifecycle_stage = EXCLUDED.lifecycle_stage,
         entry_type = EXCLUDED.entry_type,
         exit_type = EXCLUDED.exit_type,
+        vwap_relation = EXCLUDED.vwap_relation,
+        volume_trend = EXCLUDED.volume_trend,
+        market_structure = EXCLUDED.market_structure,
+        time_context = EXCLUDED.time_context,
         updated_at = now()`,
       [
         row.symbol, row.score, row.change_percent, row.relative_volume,
@@ -159,6 +182,8 @@ async function runOpportunityEngine() {
         execPlan.trade_quality_score, execPlan.execution_ready,
         execPlan.why_moving, execPlan.why_tradeable, execPlan.how_to_trade,
         execPlan.lifecycle_stage, execPlan.entry_type, execPlan.exit_type,
+        execPlan.vwap_relation, execPlan.volume_trend,
+        execPlan.market_structure, execPlan.time_context,
       ],
       { timeoutMs: 5000, label: 'engines.opportunityEngine.upsert', maxRetries: 0 }
     );

@@ -178,6 +178,15 @@ async function runStrategySignalEngine() {
       currentRegimeTrend = getCurrentRegime()?.trend ?? null;
     } catch { /* regime not loaded */ }
 
+    let marketContext = null;
+    try {
+      const { computeMarketContext } = require('./marketContextEngine');
+      marketContext = await computeMarketContext(row.symbol, {
+        price: price,
+        vwap:  toNumber(row.vwap),
+      });
+    } catch { /* proceed without context */ }
+
     const execPlan = computeExecutionPlan({
       price:          price,
       atr:            toNumber(row.atr),
@@ -189,7 +198,9 @@ async function runStrategySignalEngine() {
       strategy:       strategy,
       previousHigh:   toNumber(row.previous_high),
       vwap:           toNumber(row.vwap),
+      previousClose:  toNumber(row.previous_close),
       regime:         currentRegimeTrend,
+      marketContext,
     });
 
     try {
@@ -200,8 +211,10 @@ async function runStrategySignalEngine() {
             confidence, entry_price, stop_loss, target_price, position_size,
             risk_reward, trade_quality_score, execution_ready,
             why_moving, why_tradeable, how_to_trade,
-            lifecycle_stage, entry_type, exit_type, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,NOW())`,
+            lifecycle_stage, entry_type, exit_type,
+            vwap_relation, volume_trend, market_structure, time_context,
+            updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,NOW())`,
         [
           row.symbol, strategy, className, score, probability,
           changePercent, toNumber(row.gap_percent), relativeVolume, volume,
@@ -211,11 +224,14 @@ async function runStrategySignalEngine() {
           execPlan.trade_quality_score, execPlan.execution_ready,
           execPlan.why_moving, execPlan.why_tradeable, execPlan.how_to_trade,
           execPlan.lifecycle_stage, execPlan.entry_type, execPlan.exit_type,
+          execPlan.vwap_relation, execPlan.volume_trend,
+          execPlan.market_structure, execPlan.time_context,
         ]
       );
       logger.info(
         `[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)}` +
-        ` conf=${confidence} stage=${execPlan.lifecycle_stage} exec=${execPlan.execution_ready}` +
+        ` conf=${confidence} stage=${execPlan.lifecycle_stage} vwap=${execPlan.vwap_relation}` +
+        ` vol=${execPlan.volume_trend} exec=${execPlan.execution_ready}` +
         ` rr=${execPlan.risk_reward} tqs=${execPlan.trade_quality_score}`
       );
       inserted++;
