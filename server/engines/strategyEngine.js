@@ -153,6 +153,8 @@ async function runStrategyEngine() {
       COALESCE(m.gap_percent, 0) AS gap_percent,
       COALESCE(tu.relative_volume, m.relative_volume, 0) AS relative_volume,
       COALESCE(tu.volume, m.volume, 0) AS volume,
+      COALESCE(m.avg_volume_30d, 0) AS avg_volume_30d,
+      m.updated_at,
       pc.previous_close
     FROM tradable_universe tu
     LEFT JOIN market_metrics m ON m.symbol = tu.symbol

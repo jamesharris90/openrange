@@ -1929,11 +1929,20 @@ app.get('/api/system/health', async (_req, res) => {
     orchestratorState = getOrchestratorState();
   } catch (_e) { /* not yet loaded */ }
 
-  // Validation stats (if available)
-  let validationStats = null;
+  // Validation stats: in-memory (fast) + last persisted snapshot
+  let validationStats   = null;
+  let persistedValidation = null;
+  let providerHealth    = null;
   try {
-    const { getValidationStats } = require('./engines/dataValidationEngine');
+    const { getValidationStats, getPersistedValidationStats } = require('./engines/dataValidationEngine');
     validationStats = getValidationStats();
+    persistedValidation = await getPersistedValidationStats(24).catch(() => null);
+  } catch (_e) { /* not yet loaded */ }
+
+  try {
+    const { getValidationReliability } = require('./engines/providerHealthEngine');
+    const fmpReliability = await getValidationReliability('fmp', 24).catch(() => null);
+    if (fmpReliability) providerHealth = { fmp: fmpReliability };
   } catch (_e) { /* not yet loaded */ }
 
   return res.json({
@@ -1962,10 +1971,56 @@ app.get('/api/system/health', async (_req, res) => {
     ohlc_rows: ohlcCount,
     signals_count: Number(payload.signals_count || 0),
     orchestrator: orchestratorState,
-    validation_rejection_rate: validationStats?.rejection_rate ?? null,
-    validation_stats: validationStats,
+    validation_rejection_rate: persistedValidation?.rejection_rate ?? validationStats?.rejection_rate ?? null,
+    validation_metrics: {
+      last_rejection_rate: persistedValidation?.rejection_rate ?? null,
+      last_checked:        persistedValidation?.total_checked  ?? null,
+      last_rejected:       persistedValidation?.total_rejected ?? null,
+      last_snapshot:       persistedValidation?.last_snapshot  ?? null,
+      session:             validationStats,
+    },
+    provider_health: providerHealth,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ── Validation dashboard endpoint ─────────────────────────────────────────────
+app.get('/api/system/validation', async (_req, res) => {
+  try {
+    const {
+      getPersistedValidationStats,
+      getValidationStats,
+    } = require('./engines/dataValidationEngine');
+    const {
+      getValidationReliability,
+      getWorstSymbols,
+      getTopIssues,
+    } = require('./engines/providerHealthEngine');
+
+    const [persisted, sessionStats, fmpReliability, worstSymbols, topIssues] = await Promise.all([
+      getPersistedValidationStats(24).catch(() => null),
+      Promise.resolve(getValidationStats()),
+      getValidationReliability('fmp', 24).catch(() => null),
+      getWorstSymbols(24, 5).catch(() => []),
+      getTopIssues(24, 5).catch(() => []),
+    ]);
+
+    return res.json({
+      rejection_rate_24h:   persisted?.rejection_rate  ?? null,
+      total_checked_24h:    persisted?.total_checked   ?? null,
+      total_rejected_24h:   persisted?.total_rejected  ?? null,
+      last_snapshot:        persisted?.last_snapshot   ?? null,
+      session_stats:        sessionStats,
+      provider_health: {
+        fmp: fmpReliability,
+      },
+      top_issues:           topIssues,
+      worst_symbols:        worstSymbols,
+      computed_at:          new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/system/data-freshness', async (_req, res) => {

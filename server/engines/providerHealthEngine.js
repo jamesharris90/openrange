@@ -109,7 +109,110 @@ function getProviderHealth() {
   };
 }
 
+// ── Validation-log-based reliability scoring ──────────────────────────────────
+
+/**
+ * Computes data reliability score for a provider from data_validation_log.
+ * reliability_score = 1 - (price_mismatches / total_rejections)
+ */
+async function getValidationReliability(provider = 'fmp', hours = 24) {
+  try {
+    const res = await queryWithTimeout(
+      `SELECT
+         COUNT(*)::int                                                   AS total,
+         COUNT(*) FILTER (WHERE issue = 'price_mismatch')::int          AS mismatches,
+         COUNT(*) FILTER (WHERE issue = 'stale_data')::int              AS stale,
+         COUNT(*) FILTER (WHERE issue = 'invalid_price')::int           AS invalid_price,
+         COUNT(*) FILTER (WHERE issue = 'invalid_volume')::int          AS invalid_volume,
+         COUNT(*) FILTER (WHERE issue LIKE 'extreme_%')::int            AS extreme_values,
+         COUNT(*) FILTER (WHERE issue = 'volume_spike_unconfirmed')::int AS volume_spikes,
+         COUNT(DISTINCT symbol)::int                                     AS unique_symbols_rejected,
+         MAX(created_at)                                                 AS last_rejection
+       FROM data_validation_log
+       WHERE created_at > NOW() - ($2 || ' hours')::interval
+         AND provider = $1`,
+      [provider, String(hours)],
+      { timeoutMs: 8000, label: 'provider_health.validation_reliability', maxRetries: 0 }
+    );
+    const row = res.rows?.[0] || {};
+    const total      = Number(row.total      || 0);
+    const mismatches = Number(row.mismatches || 0);
+    const reliabilityScore = total > 0
+      ? Number((1 - (mismatches / total)).toFixed(4))
+      : 1.0;
+    return {
+      provider,
+      reliability_score:       reliabilityScore,
+      mismatches_24h:          mismatches,
+      stale_24h:               Number(row.stale          || 0),
+      invalid_price_24h:       Number(row.invalid_price  || 0),
+      invalid_volume_24h:      Number(row.invalid_volume || 0),
+      extreme_values_24h:      Number(row.extreme_values || 0),
+      volume_spikes_24h:       Number(row.volume_spikes  || 0),
+      total_checked_24h:       total,
+      unique_symbols_rejected: Number(row.unique_symbols_rejected || 0),
+      last_rejection:          row.last_rejection || null,
+    };
+  } catch (err) {
+    logger.warn('[PROVIDER_HEALTH] validation reliability query failed', { error: err.message });
+    return { provider, reliability_score: null, error: err.message };
+  }
+}
+
+/**
+ * Top N most-rejected symbols in the last N hours.
+ */
+async function getWorstSymbols(hours = 24, limit = 5) {
+  try {
+    const res = await queryWithTimeout(
+      `SELECT symbol,
+              COUNT(*)::int             AS rejection_count,
+              array_agg(DISTINCT issue) AS issues
+       FROM data_validation_log
+       WHERE created_at > NOW() - ($1 || ' hours')::interval
+       GROUP BY symbol
+       ORDER BY rejection_count DESC
+       LIMIT $2`,
+      [String(hours), limit],
+      { timeoutMs: 8000, label: 'provider_health.worst_symbols', maxRetries: 0 }
+    );
+    return (res.rows || []).map((r) => ({
+      symbol:          r.symbol,
+      rejection_count: r.rejection_count,
+      issues:          r.issues || [],
+    }));
+  } catch (err) {
+    logger.warn('[PROVIDER_HEALTH] worst symbols query failed', { error: err.message });
+    return [];
+  }
+}
+
+/**
+ * Top N most common validation issues in the last N hours.
+ */
+async function getTopIssues(hours = 24, limit = 5) {
+  try {
+    const res = await queryWithTimeout(
+      `SELECT issue, COUNT(*)::int AS count
+       FROM data_validation_log
+       WHERE created_at > NOW() - ($1 || ' hours')::interval
+       GROUP BY issue
+       ORDER BY count DESC
+       LIMIT $2`,
+      [String(hours), limit],
+      { timeoutMs: 8000, label: 'provider_health.top_issues', maxRetries: 0 }
+    );
+    return (res.rows || []).map((r) => ({ issue: r.issue, count: r.count }));
+  } catch (err) {
+    logger.warn('[PROVIDER_HEALTH] top issues query failed', { error: err.message });
+    return [];
+  }
+}
+
 module.exports = {
   runProviderHealthCheck,
   getProviderHealth,
+  getValidationReliability,
+  getWorstSymbols,
+  getTopIssues,
 };

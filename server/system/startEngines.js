@@ -56,7 +56,7 @@ const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 const { systemGuard } = require('./systemGuard');
 const { runDataRecoveryEngine } = require('../engines/dataRecoveryEngine');
 const { runDataOrchestrator } = require('./dataOrchestrator');
-const { purgeOldValidationLogs } = require('../engines/dataValidationEngine');
+const { purgeOldValidationLogs, flushValidationMetrics } = require('../engines/dataValidationEngine');
 const { logCron } = require('./cronMonitor');
 const { queryWithTimeout } = require('../db/pg');
 
@@ -1298,11 +1298,17 @@ async function startEnginesSequentially() {
     // ── Validation log purge: daily (keeps data_validation_log small) ────────
     if (!global.validationLogPurgeStarted) {
       global.validationLogPurgeStarted = true;
-      // First purge 30s after boot, then every 24 hours
       setTimeout(() => {
         purgeOldValidationLogs().catch(() => {});
         setInterval(() => purgeOldValidationLogs().catch(() => {}), 24 * 60 * 60 * 1000);
       }, 30_000);
+    }
+
+    // ── Validation metrics flush: every 5 minutes ─────────────────────────────
+    if (!global.validationMetricsFlushStarted) {
+      global.validationMetricsFlushStarted = true;
+      console.log('[VALIDATION] metrics flush registered (every 5 min)');
+      setInterval(() => flushValidationMetrics().catch(() => {}), 5 * 60 * 1000);
     }
 
     console.log('[Engine] All engines started successfully');

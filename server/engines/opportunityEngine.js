@@ -46,6 +46,8 @@ async function runOpportunityEngine() {
       tu.relative_volume,
       tu.volume,
       COALESCE(m.gap_percent, tu.change_percent, 0) AS gap_percent,
+      COALESCE(m.avg_volume_30d, 0)                 AS avg_volume_30d,
+      m.updated_at,
       ((COALESCE(tu.change_percent, 0) * 2)
       + (COALESCE(tu.relative_volume, 0) * 5)
       + (COALESCE(m.gap_percent, tu.change_percent, 0) * 3)) AS score
