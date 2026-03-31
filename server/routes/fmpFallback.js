@@ -12,6 +12,7 @@
 
 const express = require('express');
 const axios = require('axios');
+const { queryWithTimeout } = require('../db/pg');
 
 const router = express.Router();
 
@@ -75,6 +76,45 @@ async function fetchFmpQuotes(symbols = []) {
     }));
 }
 
+// ─── Write-through: persist FMP quotes to market_quotes table ────────────────
+
+async function writeQuotesToDb(quotes) {
+  if (!quotes || quotes.length === 0) return;
+  try {
+    const payload = quotes.map((q) => ({
+      symbol: q.symbol,
+      price: String(Number(q.price).toFixed(4)),
+      change_percent: String(Number(q.change_percent).toFixed(4)),
+      volume: String(Math.round(Number(q.volume) || 0)),
+      market_cap: String(Math.round(Number(q.market_cap) || 0)),
+      sector: q.sector || null,
+    }));
+
+    await queryWithTimeout(
+      `INSERT INTO market_quotes (symbol, price, change_percent, volume, market_cap, sector, updated_at)
+       SELECT r.symbol, r.price::numeric, r.change_percent::numeric,
+              r.volume::bigint, r.market_cap::bigint, r.sector, NOW()
+       FROM json_to_recordset($1::json) AS r(
+         symbol text, price text, change_percent text,
+         volume text, market_cap text, sector text
+       )
+       WHERE r.symbol IS NOT NULL AND r.symbol <> ''
+       ON CONFLICT (symbol) DO UPDATE SET
+         price          = EXCLUDED.price,
+         change_percent = EXCLUDED.change_percent,
+         volume         = EXCLUDED.volume,
+         market_cap     = EXCLUDED.market_cap,
+         sector         = COALESCE(EXCLUDED.sector, market_quotes.sector),
+         updated_at     = NOW()`,
+      [JSON.stringify(payload)],
+      { timeoutMs: 8000, label: 'fmp_fallback.write_market_quotes', maxRetries: 0 }
+    );
+  } catch (err) {
+    // Fire-and-forget: log only, never throw
+    console.warn('[FMP_FALLBACK] market_quotes write failed', err.message);
+  }
+}
+
 // ─── /api/fmp/quotes ────────────────────────────────────────────────────────
 // GET /api/fmp/quotes?symbols=AAPL,TSLA,SPY
 router.get('/fmp/quotes', async (req, res) => {
@@ -82,6 +122,8 @@ router.get('/fmp/quotes', async (req, res) => {
   const symbols = raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : [];
   try {
     const data = await fetchFmpQuotes(symbols);
+    // Write to DB in background — keeps market_quotes table fresh
+    writeQuotesToDb(data).catch(() => {});
     return res.json({ success: true, count: data.length, data, source: 'fmp_direct' });
   } catch (err) {
     return res.json({ success: false, count: 0, data: [], error: err.message });
@@ -121,6 +163,8 @@ router.get('/fmp/screener', async (req, res) => {
       source: 'fmp_direct',
     })).filter((r) => r.symbol);
 
+    // Write to DB in background
+    writeQuotesToDb(mapped).catch(() => {});
     return res.json({
       success: true,
       count: mapped.length,

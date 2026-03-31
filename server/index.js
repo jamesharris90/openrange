@@ -2064,7 +2064,7 @@ app.get('/api/simulation/live', async (_req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get('/api/system/learning-status', async (_req, res) => {
   try {
-    const [logged, evaluated, errors, stuck] = await Promise.all([
+    const [logged, evaluated, errors, stuck, soTotal, soRecent, soEvaluated, soLast] = await Promise.all([
       queryWithTimeout(
         `SELECT COUNT(*) AS cnt FROM signal_log WHERE timestamp >= NOW() - INTERVAL '24 hours'`,
         [],
@@ -2089,15 +2089,39 @@ app.get('/api/system/learning-status', async (_req, res) => {
         [],
         { timeoutMs: 8000, label: 'learn.stuck' }
       ),
+      // signal_outcomes stats (new learning pipeline)
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS cnt FROM signal_outcomes`,
+        [],
+        { timeoutMs: 5000, label: 'learn.so_total', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS cnt FROM signal_outcomes WHERE created_at >= NOW() - INTERVAL '24 hours'`,
+        [],
+        { timeoutMs: 5000, label: 'learn.so_recent', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS cnt FROM signal_outcomes WHERE outcome IS NOT NULL`,
+        [],
+        { timeoutMs: 5000, label: 'learn.so_evaluated', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT MAX(created_at) AS ts FROM signal_outcomes`,
+        [],
+        { timeoutMs: 5000, label: 'learn.so_last', maxRetries: 0 }
+      ),
     ]);
 
-    const loggedCount   = Number(logged.rows[0]?.cnt   || 0);
+    const loggedCount    = Number(logged.rows[0]?.cnt    || 0);
     const evaluatedCount = Number(evaluated.rows[0]?.cnt || 0);
-    const errorCount    = Number(errors.rows[0]?.cnt   || 0);
-    const stuckCount    = Number(stuck.rows[0]?.cnt    || 0);
+    const errorCount     = Number(errors.rows[0]?.cnt    || 0);
+    const stuckCount     = Number(stuck.rows[0]?.cnt     || 0);
+    const soTotalCount   = Number(soTotal.rows[0]?.cnt   || 0);
+    const soRecentCount  = Number(soRecent.rows[0]?.cnt  || 0);
+    const soEvalCount    = Number(soEvaluated.rows[0]?.cnt || 0);
+    const soLastTs       = soLast.rows[0]?.ts            || null;
 
-    // Evaluation rate: what fraction of signals logged ≥1h ago have been evaluated
-    const eligibleCount = loggedCount; // conservative: denominator = all logged in 24h
+    const eligibleCount = loggedCount;
     const evalRate = eligibleCount > 0
       ? Math.round((evaluatedCount / eligibleCount) * 1000) / 10
       : 100;
@@ -2105,6 +2129,8 @@ app.get('/api/system/learning-status', async (_req, res) => {
     if (evalRate < 95 && eligibleCount > 0) {
       console.error(`[CRITICAL] Learning system degraded — evaluation_rate=${evalRate}% (${evaluatedCount}/${eligibleCount})`);
     }
+
+    const learningOk = soTotalCount > 0;
 
     return res.json({
       ok: true,
@@ -2114,7 +2140,17 @@ app.get('/api/system/learning-status', async (_req, res) => {
       evaluation_rate_pct:        evalRate,
       error_count_last_24h:       errorCount,
       stuck_signals:              stuckCount,
-      status: evalRate >= 95 ? 'healthy' : evalRate >= 80 ? 'degraded' : 'critical',
+      // New pipeline (signal_outcomes)
+      signal_outcomes: {
+        total:      soTotalCount,
+        last_24h:   soRecentCount,
+        evaluated:  soEvalCount,
+        last_ts:    soLastTs,
+        status:     soTotalCount === 0 ? 'bootstrap' : soRecentCount === 0 ? 'stale' : 'active',
+      },
+      system_blocked:   global.systemBlocked === true,
+      block_reason:     global.systemBlockedReason || null,
+      status: !learningOk ? 'bootstrap' : evalRate >= 95 ? 'healthy' : evalRate >= 80 ? 'degraded' : 'critical',
     });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
@@ -5567,11 +5603,51 @@ async function fetchIntradayFallbackBars(symbol, limit) {
   const canonicalSymbol = mapFromProviderSymbol(normalizeSymbol(symbol));
   const providerSymbol = mapToProviderSymbol(canonicalSymbol);
 
+  // Write-through: persist fetched bars to intraday_1m so DB accumulates data
+  async function persistIntradayBars(bars) {
+    if (!bars || bars.length === 0) return;
+    try {
+      const payload = bars
+        .filter((b) => Number.isFinite(b.time) && Number.isFinite(b.close) && b.close > 0)
+        .map((b) => ({
+          symbol: canonicalSymbol,
+          ts: new Date(b.time).toISOString(),
+          open: String(Number(b.open).toFixed(4)),
+          high: String(Number(b.high).toFixed(4)),
+          low: String(Number(b.low).toFixed(4)),
+          close: String(Number(b.close).toFixed(4)),
+          volume: String(Math.round(Number(b.volume) || 0)),
+        }));
+      if (payload.length === 0) return;
+      await queryWithTimeout(
+        `INSERT INTO intraday_1m (symbol, "timestamp", open, high, low, close, volume)
+         SELECT r.symbol, r.ts::timestamptz, r.open::numeric, r.high::numeric,
+                r.low::numeric, r.close::numeric, r.volume::bigint
+         FROM json_to_recordset($1::json) AS r(
+           symbol text, ts text, open text, high text, low text, close text, volume text
+         )
+         ON CONFLICT (symbol, "timestamp") DO UPDATE SET
+           open   = EXCLUDED.open,
+           high   = EXCLUDED.high,
+           low    = EXCLUDED.low,
+           close  = EXCLUDED.close,
+           volume = EXCLUDED.volume`,
+        [JSON.stringify(payload)],
+        { timeoutMs: 15000, label: 'intraday_fallback.persist', maxRetries: 0 }
+      );
+    } catch (err) {
+      logger.warn('intraday fallback persist failed', { symbol: canonicalSymbol, error: err.message });
+    }
+  }
+
   try {
     const fmpPayload = await fmpFetch('/historical-chart/1min', { symbol: providerSymbol });
     const fmpRows = normalizeFmpIntradayBars(fmpPayload, canonicalSymbol, limit);
     if (fmpRows.length > 0) {
-      return fmpRows.sort((a, b) => a.time - b.time);
+      const sorted = fmpRows.sort((a, b) => a.time - b.time);
+      // Fire-and-forget write to DB
+      persistIntradayBars(sorted).catch(() => {});
+      return sorted;
     }
   } catch (error) {
     logger.warn('intraday fallback FMP failed', { symbol: canonicalSymbol, providerSymbol, error: error.message });
@@ -5593,7 +5669,11 @@ async function fetchIntradayFallbackBars(symbol, limit) {
       && Number.isFinite(row.low)
       && Number.isFinite(row.close));
 
-    return yahooRows.sort((a, b) => a.time - b.time).slice(-Math.max(1, Math.min(Number(limit) || 1000, 5000)));
+    const sorted = yahooRows.sort((a, b) => a.time - b.time).slice(-Math.max(1, Math.min(Number(limit) || 1000, 5000)));
+    if (sorted.length > 0) {
+      persistIntradayBars(sorted).catch(() => {});
+    }
+    return sorted;
   } catch (error) {
     logger.warn('intraday fallback Yahoo failed', { symbol: canonicalSymbol, error: error.message });
     return [];

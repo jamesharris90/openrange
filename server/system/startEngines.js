@@ -46,8 +46,16 @@ const { runCatalystSignalEngine } = require('../engines/catalystSignalEngine');
 const { runCatalystNarrativeEngine } = require('../engines/catalystNarrativeEngine');
 const { runCatalystReactionEngine } = require('../engines/catalystReactionEngine');
 const { runExtendedHoursIngest } = require('../engines/fmp_extended_hours_ingest');
+const { runFullUniverseRefresh } = require('../engines/fullUniverseRefreshEngine');
+const { runOptionsIntelligenceEngine } = require('../engines/optionsIntelligenceEngine');
+const { startLiveTickEngine } = require('../engines/liveTickEngine');
+const { runEarlySignalEngine } = require('../engines/earlySignalEngine');
+const { getActiveTrackedSymbols } = require('../services/trackedUniverseService');
 const { sendBeaconMorningBrief, sendSystemMonitor } = require('../email/emailDispatcher');
 const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
+const { systemGuard } = require('./systemGuard');
+const { logCron } = require('./cronMonitor');
+const { queryWithTimeout } = require('../db/pg');
 
 let performanceSchedulerStarted = false;
 let performanceRunInFlight = false;
@@ -59,6 +67,7 @@ let catalystInFlight = false;
 let earlyAccumulationInFlight = false;
 let earlyOutcomeInFlight = false;
 let orderFlowInFlight = false;
+let optionsIntelligenceInFlight = false;
 let sectorMomentumInFlight = false;
 let hierarchyInFlight = false;
 let morningBriefInFlight = false;
@@ -96,12 +105,113 @@ let catalystSignalInFlight = false;
 let catalystNarrativeInFlight = false;
 let catalystReactionInFlight = false;
 let extendedHoursInFlight = false;
+let systemGuardInFlight = false;
+let earlySignalInFlight = false;
+let refreshRunning = false;
+
+function getEngineCount(result) {
+  if (Array.isArray(result)) return result.length;
+  if (Array.isArray(result?.rows)) return result.rows.length;
+  if (typeof result?.ingested === 'number') return result.ingested;
+  if (typeof result?.upserted === 'number') return result.upserted;
+  if (typeof result?.catalystsStored === 'number') return result.catalystsStored;
+  if (typeof result?.count === 'number') return result.count;
+  if (typeof result?.processed === 'number') return result.processed;
+  if (typeof result?.inserted === 'number') return result.inserted;
+  return 0;
+}
+
+function getEngineSymbols(result) {
+  if (Array.isArray(result?.symbols)) {
+    return result.symbols
+      .filter((symbol) => typeof symbol === 'string' && symbol.length > 0)
+      .slice(0, 50);
+  }
+
+  const rows = Array.isArray(result)
+    ? result
+    : Array.isArray(result?.rows)
+      ? result.rows
+      : [];
+
+  return rows
+    .map((row) => row?.symbol)
+    .filter((symbol) => typeof symbol === 'string' && symbol.length > 0)
+    .slice(0, 50);
+}
+
+async function safeRefresh() {
+  if (refreshRunning || global.fullUniverseRefreshRunning) {
+    return;
+  }
+
+  refreshRunning = true;
+  global.fullUniverseRefreshRunning = true;
+
+  try {
+    console.log('[REFRESH] starting');
+    await runFullUniverseRefresh();
+    console.log('[REFRESH] completed');
+  } catch (error) {
+    console.error('[REFRESH ERROR]', error.message);
+  } finally {
+    refreshRunning = false;
+    global.fullUniverseRefreshRunning = false;
+  }
+}
+
+async function getTradableUniverse() {
+  try {
+    const trackedSymbols = await getActiveTrackedSymbols();
+    if (trackedSymbols.length > 0) {
+      return trackedSymbols;
+    }
+  } catch (error) {
+    console.warn('[EARLY_SIGNAL] tracked universe lookup failed', error.message);
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT symbol
+       FROM market_metrics
+       WHERE source = 'real'
+         AND symbol IS NOT NULL
+       ORDER BY COALESCE(volume, 0) DESC
+       LIMIT 600`,
+      [],
+      {
+        label: 'early_signal.universe_fallback',
+        timeoutMs: 7000,
+        maxRetries: 1,
+        retryDelayMs: 200,
+        poolType: 'read',
+      }
+    );
+
+    return (rows || [])
+      .map((row) => String(row.symbol || '').trim().toUpperCase())
+      .filter(Boolean);
+  } catch (error) {
+    console.error('[EARLY_SIGNAL] fallback universe query failed', error.message);
+    return [];
+  }
+}
 
 async function startEnginesSequentially() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   try {
+    console.log('[ENGINE] Signal engine started');
+    console.log('[ENGINE] Stocks in play engine started');
+    console.log('[ENGINE] Ingestion engine started');
+
     await validateSchema();
+
+    // Seed signal_outcomes from signal_log backlog if the table is empty.
+    // Must run before systemGuard so writes are not yet blocked.
+    seedSignalOutcomesFromLog().catch((err) =>
+      console.warn('[ENGINE] signal_outcomes seed failed', err.message)
+    );
 
     const addEngineJob = require('./engineQueue');
     const {
@@ -251,16 +361,36 @@ async function startEnginesSequentially() {
 
       console.log('[CATALYST] Scheduler started');
 
-      runCatalystEngine().catch((err) =>
-        console.error('[CATALYST ENGINE ERROR]', err)
-      );
+      logCron('ENGINE_START', { engine: 'catalyst' });
+      runCatalystEngine().then((result) => {
+        const count = getEngineCount(result);
+        console.log('[ENGINE OUTPUT]', {
+          engine: 'catalyst',
+          symbols: getEngineSymbols(result),
+          count,
+        });
+        logCron('ENGINE_SUCCESS', { engine: 'catalyst', count });
+      }).catch((err) => {
+        console.error('[CATALYST ENGINE ERROR]', err);
+        logCron('ENGINE_ERROR', { engine: 'catalyst', error: err.message });
+      });
 
       setInterval(() => {
         if (catalystInFlight) return;
         catalystInFlight = true;
-        runCatalystEngine().catch((err) =>
-          console.error('[CATALYST ENGINE ERROR]', err)
-        ).finally(() => {
+        logCron('ENGINE_START', { engine: 'catalyst' });
+        runCatalystEngine().then((result) => {
+          const count = getEngineCount(result);
+          console.log('[ENGINE OUTPUT]', {
+            engine: 'catalyst',
+            symbols: getEngineSymbols(result),
+            count,
+          });
+          logCron('ENGINE_SUCCESS', { engine: 'catalyst', count });
+        }).catch((err) => {
+          console.error('[CATALYST ENGINE ERROR]', err);
+          logCron('ENGINE_ERROR', { engine: 'catalyst', error: err.message });
+        }).finally(() => {
           catalystInFlight = false;
         });
       }, 5 * 60 * 1000);
@@ -408,6 +538,20 @@ async function startEnginesSequentially() {
       }, 60 * 1000);
     }
 
+    if (!global.fullUniverseRefreshSchedulerStarted) {
+      global.fullUniverseRefreshSchedulerStarted = true;
+      console.log('[FULL_UNIVERSE_REFRESH] scheduler registered (every 60s)');
+
+      console.log('[REFRESH BOOT] triggered');
+      await safeRefresh();
+
+      setInterval(safeRefresh, 60000);
+
+      setInterval(() => {
+        console.log('[REFRESH HEARTBEAT]', new Date().toISOString());
+      }, 60000);
+    }
+
     if (!global.marketNarrativeSchedulerStarted) {
       global.marketNarrativeSchedulerStarted = true;
 
@@ -472,10 +616,19 @@ async function startEnginesSequentially() {
       cron.schedule('*/5 * * * *', async () => {
         if (stocksInPlayInFlight) return;
         stocksInPlayInFlight = true;
+        logCron('ENGINE_START', { engine: 'stocks-in-play' });
         try {
-          await runStocksInPlayEngine();
+          const result = await runStocksInPlayEngine();
+          const count = getEngineCount(result);
+          console.log('[ENGINE OUTPUT]', {
+            engine: 'stocks',
+            symbols: getEngineSymbols(result),
+            count,
+          });
+          logCron('ENGINE_SUCCESS', { engine: 'stocks-in-play', count });
         } catch (error) {
           console.error('[STOCKS_IN_PLAY] scheduled run error', error.message);
+          logCron('ENGINE_ERROR', { engine: 'stocks-in-play', error: error.message });
         } finally {
           stocksInPlayInFlight = false;
         }
@@ -495,6 +648,26 @@ async function startEnginesSequentially() {
           console.error('[ORDER_FLOW_IMBALANCE] scheduled run error', error.message);
         } finally {
           orderFlowInFlight = false;
+        }
+      });
+    }
+
+    if (!global.optionsIntelligenceSchedulerStarted) {
+      global.optionsIntelligenceSchedulerStarted = true;
+      console.log('[OPTIONS_INTELLIGENCE] scheduler registered (2,7,12,17,22,27,32,37,42,47,52,57 * * * *)');
+
+      // Staggered 2 min after each 5-min boundary (off-peak from quote refresh)
+      cron.schedule('2,7,12,17,22,27,32,37,42,47,52,57 * * * *', async () => {
+        if (optionsIntelligenceInFlight) return;
+        optionsIntelligenceInFlight = true;
+        try {
+          const result = await runOptionsIntelligenceEngine();
+          logCron('ENGINE_SUCCESS', { engine: 'options-intelligence', ...result });
+        } catch (error) {
+          console.error('[OPTIONS_INTELLIGENCE] scheduled run error', error.message);
+          logCron('ENGINE_ERROR', { engine: 'options-intelligence', error: error.message });
+        } finally {
+          optionsIntelligenceInFlight = false;
         }
       });
     }
@@ -696,19 +869,38 @@ async function startEnginesSequentially() {
       console.log('[INTELLIGENCE_ENGINE] scheduler registered (*/10 * * * *)');
 
       intelligenceInFlight = true;
-      runOpportunityIntelligenceEngine().catch((error) =>
-        console.error('[INTELLIGENCE_ENGINE] initial run error', error.message)
-      ).finally(() => {
+      logCron('ENGINE_START', { engine: 'intelligence' });
+      runOpportunityIntelligenceEngine().then((result) => {
+        const count = getEngineCount(result);
+        console.log('[ENGINE OUTPUT]', {
+          engine: 'intelligence',
+          symbols: getEngineSymbols(result),
+          count,
+        });
+        logCron('ENGINE_SUCCESS', { engine: 'intelligence', count });
+      }).catch((error) => {
+        console.error('[INTELLIGENCE_ENGINE] initial run error', error.message);
+        logCron('ENGINE_ERROR', { engine: 'intelligence', error: error.message });
+      }).finally(() => {
         intelligenceInFlight = false;
       });
 
       cron.schedule('*/10 * * * *', async () => {
         if (intelligenceInFlight) return;
         intelligenceInFlight = true;
+        logCron('ENGINE_START', { engine: 'intelligence' });
         try {
-          await runOpportunityIntelligenceEngine();
+          const result = await runOpportunityIntelligenceEngine();
+          const count = getEngineCount(result);
+          console.log('[ENGINE OUTPUT]', {
+            engine: 'intelligence',
+            symbols: getEngineSymbols(result),
+            count,
+          });
+          logCron('ENGINE_SUCCESS', { engine: 'intelligence', count });
         } catch (error) {
           console.error('[INTELLIGENCE_ENGINE] scheduled run error', error.message);
+          logCron('ENGINE_ERROR', { engine: 'intelligence', error: error.message });
         } finally {
           intelligenceInFlight = false;
         }
@@ -1001,6 +1193,34 @@ async function startEnginesSequentially() {
       }, 10000);
     }
 
+    if (!global.liveTickEngineStarted) {
+      global.liveTickEngineStarted = true;
+
+      const symbols = await getTradableUniverse();
+      if (symbols.length === 0) {
+        console.warn('[EARLY_SIGNAL] no tradable symbols found; websocket engine idle');
+      } else {
+        startLiveTickEngine(symbols);
+      }
+
+      if (!global.earlySignalSchedulerStarted) {
+        global.earlySignalSchedulerStarted = true;
+        console.log('[EARLY_SIGNAL] scheduler registered (every 5 seconds)');
+
+        setInterval(async () => {
+          if (earlySignalInFlight || symbols.length === 0) return;
+          earlySignalInFlight = true;
+          try {
+            await runEarlySignalEngine(symbols);
+          } catch (error) {
+            console.error('[EARLY_SIGNAL] scheduled run error', error.message);
+          } finally {
+            earlySignalInFlight = false;
+          }
+        }, 5000);
+      }
+    }
+
     if (!global.tradeQualityBacktestSchedulerStarted) {
       global.tradeQualityBacktestSchedulerStarted = true;
       console.log('[TRADE_QUALITY] scheduler registered (every 10 minutes)');
@@ -1016,10 +1236,106 @@ async function startEnginesSequentially() {
       }, 600000);
     }
 
+    if (!global.systemGuardSchedulerStarted) {
+      global.systemGuardSchedulerStarted = true;
+      console.log('[SYSTEM_GUARD] scheduler registered (every 5 minutes)');
+
+      // Fire-and-forget guard run; startup remains non-blocking.
+      (async () => {
+        if (systemGuardInFlight) return;
+        systemGuardInFlight = true;
+        try {
+          await systemGuard();
+        } catch (error) {
+          console.error('[SYSTEM_GUARD] startup run error', error.message);
+        } finally {
+          systemGuardInFlight = false;
+        }
+      })();
+
+      setInterval(async () => {
+        if (systemGuardInFlight) return;
+        systemGuardInFlight = true;
+        try {
+          await systemGuard();
+        } catch (error) {
+          console.error('[SYSTEM_GUARD] scheduled run error', error.message);
+        } finally {
+          systemGuardInFlight = false;
+        }
+      }, 300000);
+    }
+
     console.log('[Engine] All engines started successfully');
   } catch (err) {
     console.error('[Engine] Startup failure', err);
   }
 }
 
-module.exports = startEnginesSequentially;
+// ─── Signal outcomes bootstrap seeding ───────────────────────────────────────
+// If signal_outcomes is empty (fresh DB or after wipe), seed it from signal_log
+// so the learning pipeline has data to evaluate immediately.
+// Runs once at startup; idempotent — safe to call multiple times.
+async function seedSignalOutcomesFromLog() {
+  try {
+    const { queryWithTimeout: qwt } = require('../db/pg');
+
+    const countResult = await qwt(
+      `SELECT COUNT(*)::int AS n FROM signal_outcomes`,
+      [],
+      { timeoutMs: 5000, label: 'seed.signal_outcomes.count', maxRetries: 0 }
+    );
+    const existingRows = Number(countResult.rows?.[0]?.n || 0);
+
+    if (existingRows > 0) {
+      console.log(`[SEED] signal_outcomes already has ${existingRows} rows — skipping seed`);
+      return;
+    }
+
+    const logCount = await qwt(
+      `SELECT COUNT(*)::int AS n FROM signal_log WHERE entry_price > 0 AND symbol IS NOT NULL`,
+      [],
+      { timeoutMs: 5000, label: 'seed.signal_log.count', maxRetries: 0 }
+    );
+    const logRows = Number(logCount.rows?.[0]?.n || 0);
+
+    if (logRows === 0) {
+      console.log('[SEED] signal_log has no eligible rows — cannot seed signal_outcomes');
+      return;
+    }
+
+    const insertResult = await qwt(
+      `INSERT INTO signal_outcomes
+         (symbol, signal_ts, setup_type, trade_class, entry_price, expected_move_pct)
+       SELECT
+         sl.symbol,
+         sl.timestamp                        AS signal_ts,
+         sl.setup_type,
+         CASE
+           WHEN sl.score >= 80 THEN 'A'
+           WHEN sl.score >= 60 THEN 'B'
+           WHEN sl.score >= 40 THEN 'C'
+           ELSE 'D'
+         END                                 AS trade_class,
+         sl.entry_price,
+         sl.expected_move                    AS expected_move_pct
+       FROM signal_log sl
+       WHERE sl.entry_price > 0
+         AND sl.symbol IS NOT NULL
+         AND TRIM(sl.symbol) <> ''
+       ORDER BY sl.timestamp DESC
+       LIMIT 500`,
+      [],
+      { timeoutMs: 30000, label: 'seed.signal_outcomes.insert', maxRetries: 0 }
+    );
+
+    const seeded = insertResult?.rowCount || 0;
+    console.log(`[SEED] signal_outcomes seeded with ${seeded} rows from signal_log`);
+  } catch (err) {
+    console.warn('[SEED] signal_outcomes seeding failed (non-fatal):', err.message);
+  }
+}
+
+const startEngines = startEnginesSequentially;
+
+module.exports = { startEngines, seedSignalOutcomesFromLog };
