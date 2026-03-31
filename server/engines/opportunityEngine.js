@@ -71,6 +71,13 @@ async function runOpportunityEngine() {
     }
 
     const strategy = deriveStrategy(row);
+
+    // Skip strategies that the learning engine has auto-disabled
+    try {
+      const { getDisabledStrategies } = require('./learningEngine');
+      if (strategy && getDisabledStrategies().has(strategy)) { skippedValidation++; continue; }
+    } catch { /* learningEngine not yet loaded */ }
+
     const confidenceResult = await computeConfidence({
       setup_type:        strategy,
       validation_issues: validated.issues || [],

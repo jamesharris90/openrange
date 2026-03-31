@@ -128,6 +128,12 @@ async function runStrategySignalEngine() {
     const strategy = determineStrategy(row);
     if (!strategy) { skippedFilter++; continue; }
 
+    // Skip strategies that the learning engine has auto-disabled
+    try {
+      const { getDisabledStrategies } = require('./learningEngine');
+      if (getDisabledStrategies().has(strategy)) { skippedFilter++; continue; }
+    } catch { /* learningEngine not yet loaded */ }
+
     // Data validation — cross-check with FMP before scoring
     const validated = await validateAndEnrich(row, 'strategySignalEngine');
     if (!validated.valid) {

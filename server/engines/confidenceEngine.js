@@ -138,6 +138,20 @@ async function computeConfidence(signal) {
     };
   }
 
+  // ── 1b. Learning engine weight multiplier ────────────────────────────────
+  // Applies the adaptive per-strategy weight computed by learningEngine.
+  // Weight 1.0 = neutral (no data yet); >1 = strong history; <1 = poor history.
+  try {
+    const { getStrategyWeight } = require('./learningEngine');
+    const weight = getStrategyWeight(signal.setup_type);
+    if (weight !== 1.0) {
+      const before = confidence;
+      confidence   = confidence * weight;
+      breakdown.learning_weight     = Number(weight.toFixed(3));
+      breakdown.learning_adjustment = Number((confidence - before).toFixed(2));
+    }
+  } catch { /* learningEngine not yet loaded */ }
+
   // ── 2. Validation quality ─────────────────────────────────────────────────
   const issues = signal.validation_issues || [];
   if (issues.length > 0) {

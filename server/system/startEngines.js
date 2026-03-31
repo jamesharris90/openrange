@@ -1311,6 +1311,21 @@ async function startEnginesSequentially() {
       setInterval(() => flushValidationMetrics().catch(() => {}), 5 * 60 * 1000);
     }
 
+    // ── Learning engine: every 15 minutes ─────────────────────────────────────
+    if (!global.learningEngineStarted) {
+      global.learningEngineStarted = true;
+      console.log('[LEARNING] engine registered (every 15 min)');
+      // Delay first run 30s so signal engines have started before we read outcomes
+      setTimeout(() => {
+        const { runLearningEngine } = require('../engines/learningEngine');
+        runLearningEngine().catch(() => {});
+      }, 30_000);
+      setInterval(() => {
+        const { runLearningEngine } = require('../engines/learningEngine');
+        runLearningEngine().catch(() => {});
+      }, 15 * 60 * 1000);
+    }
+
     console.log('[Engine] All engines started successfully');
   } catch (err) {
     console.error('[Engine] Startup failure', err);

@@ -177,6 +177,12 @@ async function runStrategyEngine() {
     const strategy = determineStrategy(row);
     if (!strategy) continue;
 
+    // Skip strategies that the learning engine has auto-disabled
+    try {
+      const { getDisabledStrategies } = require('./learningEngine');
+      if (getDisabledStrategies().has(strategy)) continue;
+    } catch { /* learningEngine not yet loaded */ }
+
     // Data validation — cross-check with FMP before scoring
     const validated = await validateAndEnrich(row, 'strategyEngine');
     if (!validated.valid) {

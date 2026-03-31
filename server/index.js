@@ -1951,6 +1951,12 @@ app.get('/api/system/health', async (_req, res) => {
     confidenceMetrics = await getConfidenceMetrics().catch(() => null);
   } catch (_e) { /* not yet loaded */ }
 
+  let learningMetrics = null;
+  try {
+    const { getLearningMetrics } = require('./engines/learningEngine');
+    learningMetrics = await getLearningMetrics().catch(() => null);
+  } catch (_e) { /* not yet loaded */ }
+
   return res.json({
     ...core,
     pipeline_status: pipelineStatus,
@@ -1987,6 +1993,7 @@ app.get('/api/system/health', async (_req, res) => {
       session:             validationStats,
     },
     provider_health: providerHealth,
+    learning_metrics: learningMetrics,
     timestamp: new Date().toISOString(),
   });
 });
