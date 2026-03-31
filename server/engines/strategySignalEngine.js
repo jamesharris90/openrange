@@ -3,6 +3,7 @@
 const logger = require('../logger');
 const db = require('../db');
 const { validateAndEnrich } = require('./dataValidationEngine');
+const { computeConfidence } = require('./confidenceEngine');
 
 // ── Hard minimums — anything below these is noise, not signal ────────────────
 const MIN_RELATIVE_VOLUME  = 2.0;
@@ -146,12 +147,19 @@ async function runStrategySignalEngine() {
     // probability: normalise score to 0–100 band (score of 200 → 0.99)
     const probability = Math.min(score / 200, 0.99);
 
+    // Confidence: adaptive score from history, regime, and provider quality
+    const confidenceResult = await computeConfidence({
+      setup_type:        strategy,
+      validation_issues: [], // row passed validation above
+    });
+    const confidence = confidenceResult.value;
+
     try {
       await db.query(
         `INSERT INTO strategy_signals
            (symbol, strategy, class, score, probability,
-            change_percent, gap_percent, relative_volume, volume, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())`,
+            change_percent, gap_percent, relative_volume, volume, confidence, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())`,
         [
           row.symbol,
           strategy,
@@ -162,9 +170,10 @@ async function runStrategySignalEngine() {
           toNumber(row.gap_percent),
           relativeVolume,
           volume,
+          confidence,
         ]
       );
-      logger.info(`[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)}`);
+      logger.info(`[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)} confidence=${confidence}`);
       inserted++;
     } catch (error) {
       logger.warn('Strategy signal insert skipped', { symbol: row.symbol, strategy, error: error.message });

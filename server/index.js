@@ -1945,6 +1945,12 @@ app.get('/api/system/health', async (_req, res) => {
     if (fmpReliability) providerHealth = { fmp: fmpReliability };
   } catch (_e) { /* not yet loaded */ }
 
+  let confidenceMetrics = null;
+  try {
+    const { getConfidenceMetrics } = require('./engines/confidenceEngine');
+    confidenceMetrics = await getConfidenceMetrics().catch(() => null);
+  } catch (_e) { /* not yet loaded */ }
+
   return res.json({
     ...core,
     pipeline_status: pipelineStatus,
@@ -1971,6 +1977,7 @@ app.get('/api/system/health', async (_req, res) => {
     ohlc_rows: ohlcCount,
     signals_count: Number(payload.signals_count || 0),
     orchestrator: orchestratorState,
+    confidence_metrics: confidenceMetrics,
     validation_rejection_rate: persistedValidation?.rejection_rate ?? validationStats?.rejection_rate ?? null,
     validation_metrics: {
       last_rejection_rate: persistedValidation?.rejection_rate ?? null,

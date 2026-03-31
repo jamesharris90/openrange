@@ -1,6 +1,7 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 const { validateAndEnrich } = require('./dataValidationEngine');
+const { computeConfidence } = require('./confidenceEngine');
 
 async function ensureOpportunityTable() {
   await queryWithTimeout(
@@ -69,6 +70,13 @@ async function runOpportunityEngine() {
       continue;
     }
 
+    const strategy = deriveStrategy(row);
+    const confidenceResult = await computeConfidence({
+      setup_type:        strategy,
+      validation_issues: validated.issues || [],
+    });
+    const confidence = confidenceResult.value;
+
     await queryWithTimeout(
       `INSERT INTO opportunities_v2 (
         symbol,
@@ -78,8 +86,9 @@ async function runOpportunityEngine() {
         gap_percent,
         strategy,
         volume,
+        confidence,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
       ON CONFLICT (symbol)
       DO UPDATE SET
         score = EXCLUDED.score,
@@ -88,6 +97,7 @@ async function runOpportunityEngine() {
         gap_percent = EXCLUDED.gap_percent,
         strategy = EXCLUDED.strategy,
         volume = EXCLUDED.volume,
+        confidence = EXCLUDED.confidence,
         updated_at = now()`,
       [
         row.symbol,
@@ -95,8 +105,9 @@ async function runOpportunityEngine() {
         row.change_percent,
         row.relative_volume,
         row.gap_percent,
-        deriveStrategy(row),
+        strategy,
         row.volume,
+        confidence,
       ],
       { timeoutMs: 5000, label: 'engines.opportunityEngine.upsert', maxRetries: 0 }
     );

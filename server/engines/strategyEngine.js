@@ -1,6 +1,7 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 const { validateAndEnrich } = require('./dataValidationEngine');
+const { computeConfidence } = require('./confidenceEngine');
 
 function toNumber(value) {
   const number = Number(value);
@@ -192,6 +193,12 @@ async function runStrategyEngine() {
 
     if (!className) continue;
 
+    const confidenceResult = await computeConfidence({
+      setup_type:        strategy,
+      validation_issues: [],
+    });
+    const confidence = confidenceResult.value;
+
       await queryWithTimeout(
       `INSERT INTO strategy_signals (
         symbol,
@@ -203,8 +210,9 @@ async function runStrategyEngine() {
         gap_percent,
         relative_volume,
         volume,
+        confidence,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
       ON CONFLICT (symbol)
       DO UPDATE SET
         strategy = EXCLUDED.strategy,
@@ -215,6 +223,7 @@ async function runStrategyEngine() {
         gap_percent = EXCLUDED.gap_percent,
         relative_volume = EXCLUDED.relative_volume,
         volume = EXCLUDED.volume,
+        confidence = EXCLUDED.confidence,
         updated_at = now()`,
       [
         row.symbol,
@@ -226,6 +235,7 @@ async function runStrategyEngine() {
         gapPercent,
         relativeVolume,
         volume,
+        confidence,
       ],
       { timeoutMs: 5000, label: 'engines.strategy.upsert', maxRetries: 0 }
     );
