@@ -230,12 +230,12 @@ ON CONFLICT (symbol) DO UPDATE SET
 /* ── Signal log insertion (deduped per 30 min per symbol) ─────────────────── */
 
 const SIGNAL_LOG_SQL = `
-INSERT INTO signal_log (symbol, score, stage, entry_price, expected_move)
-SELECT $1, $2, $3, $4, $5
+INSERT INTO signal_log (symbol, score, stage, entry_price, expected_move, setup_type)
+SELECT $1, $2, $3, $4, $5, $6
 WHERE NOT EXISTS (
   SELECT 1 FROM signal_log
   WHERE symbol = $1
-    AND timestamp > NOW() - INTERVAL '30 minutes'
+    AND timestamp > NOW() - INTERVAL '2 hours'
 )
 `;
 
@@ -317,7 +317,8 @@ async function runPremarketWatchlistEngine() {
     try {
       const result = await queryWithTimeout(
         SIGNAL_LOG_SQL,
-        [row.symbol, row.score, row.stage, entryPrice, expectedMove],
+        [row.symbol, row.score, row.stage, entryPrice, expectedMove,
+         row.premarket_signal_type || row.stage],
         { timeoutMs: 5000, label: `premarket_v2.signal_log.${row.symbol}`, maxRetries: 0, poolType: 'write' }
       );
       if (result.rowCount > 0) signalsLogged++;

@@ -150,24 +150,23 @@ async function buildPlan(row) {
 
   switch (premarket_signal_type) {
     case 'GAP_AND_GO':
-      entryPrice     = pmHigh;
-      stopPrice      = pmLow;
-      targetPrice    = entryPrice + (atr * 1.5);
-      executionType  = 'BREAKOUT';
+      entryPrice    = pmHigh;
+      stopPrice     = entryPrice - atr;
+      targetPrice   = entryPrice + (atr * 2);
+      executionType = 'BREAKOUT';
       break;
 
     case 'GAP_FADE':
-      entryPrice     = pmLow;
-      stopPrice      = pmHigh;
-      targetPrice    = entryPrice - (atr * 1.5);
-      executionType  = 'FADE';
+      entryPrice    = pmLow;
+      stopPrice     = entryPrice + atr;
+      targetPrice   = entryPrice - (atr * 2);
+      executionType = 'FADE';
       break;
 
     case 'RANGE_BUILD': {
-      const midpoint = (pmHigh + pmLow) / 2;
       entryPrice    = pmHigh;
-      stopPrice     = midpoint;
-      targetPrice   = entryPrice + atr;
+      stopPrice     = entryPrice - atr;
+      targetPrice   = entryPrice + (atr * 2);
       executionType = 'RANGE';
       break;
     }
@@ -283,14 +282,15 @@ async function logSignal(plan) {
   await queryWithTimeout(
     `INSERT INTO signal_log
        (symbol, score, stage, entry_price, expected_move,
-        stop_price, target_price, risk_reward_ratio)
-     SELECT $1, pw.score, pw.stage, $2, $3, $4, $5, $6
+        stop_price, target_price, risk_reward_ratio, setup_type)
+     SELECT $1, pw.score, pw.stage, $2, $3, $4, $5, $6,
+            COALESCE(pw.premarket_signal_type, 'GAP_AND_GO')
      FROM premarket_watchlist pw
      WHERE pw.symbol = $1
        AND NOT EXISTS (
          SELECT 1 FROM signal_log sl
          WHERE sl.symbol = $1
-           AND sl.timestamp > NOW() - INTERVAL '30 minutes'
+           AND sl.timestamp > NOW() - INTERVAL '2 hours'
        )`,
     [
       plan.symbol,
