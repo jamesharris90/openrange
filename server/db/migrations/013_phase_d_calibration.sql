@@ -12,9 +12,11 @@ ALTER TABLE signal_registry
 --    Reads signal_outcomes (joined to signal_registry for strategy label).
 DROP VIEW IF EXISTS strategy_edge_rank;
 
+-- signal_outcomes carries setup_type directly; the original join on
+-- signal_registry was broken (signal_outcomes.signal_id bigint ≠ signal_registry.id uuid).
 CREATE OR REPLACE VIEW strategy_edge_rank AS
 SELECT
-  sr.strategy,
+  so.setup_type                                                        AS strategy,
   COUNT(so.id)                                                         AS signals,
   ROUND(AVG(so.pnl_pct), 4)                                           AS avg_return,
   ROUND(AVG(CASE WHEN so.pnl_pct > 0 THEN so.pnl_pct  END), 4)       AS avg_upside,
@@ -31,10 +33,10 @@ SELECT
     ) / 2,
     4
   )                                                                    AS edge_score
-FROM signal_registry sr
-JOIN signal_outcomes so ON so.signal_id = sr.id
+FROM signal_outcomes so
 WHERE so.pnl_pct IS NOT NULL
-GROUP BY sr.strategy
+  AND so.setup_type IS NOT NULL
+GROUP BY so.setup_type
 ORDER BY edge_score DESC;
 
 -- 3. Index to speed up source-based lookups (e.g. watchdog, platformHealth)
