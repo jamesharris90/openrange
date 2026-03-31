@@ -8233,40 +8233,64 @@ app.get('/api/intelligence/top-opportunity', async (_req, res) => {
     if (!row) return res.json({ success: true, data: [] });
 
     const price = Number(row.price || 0);
-    const atr = Number(row.atr || 0);
-    const expectedMove = atr > 0 ? atr * 2 : Math.max(price * 0.03, 0);
-    const expectedMovePercent = price > 0 ? (expectedMove / price) * 100 : 0;
-    const breakout = price > 0 ? price * 1.01 : 0;
-    const stopLoss = breakout > 0 ? breakout - (1.5 * atr || breakout * 0.015) : 0;
-    const takeProfit = breakout > 0 ? breakout + (2 * atr || breakout * 0.03) : 0;
-    const hasCatalyst = Boolean(String(row.headline || '').trim());
-    const rvol = Number(row.relative_volume || 0);
+    const atr   = Number(row.atr   || 0);
+    const rvol  = Number(row.relative_volume || 0);
     let confidence = Number(row.base_confidence || 0);
-    if (!hasCatalyst && rvol < 1.2) confidence *= 0.6;
+    if (!String(row.headline || '').trim() && rvol < 1.2) confidence *= 0.6;
     confidence = Math.min(92, Math.max(0, confidence));
+
+    // Compute full execution plan via execution engine
+    const { computeExecutionPlan } = require('./engines/executionEngine');
+    const execPlan = computeExecutionPlan({
+      price,
+      atr,
+      volume:         Number(row.float_size || 0) * 1_000_000, // approximate from float
+      relativeVolume: rvol,
+      changePercent:  Number(row.price_change_percent || 0),
+      gapPercent:     Number(row.price_change_percent || 0),
+      confidence,
+      strategy:       row.strategy || null,
+      catalyst:       row.headline  || null,
+    });
+
+    const expectedMove        = atr > 0 ? atr * 2 : Math.max(price * 0.03, 0);
+    const expectedMovePercent = price > 0 ? (expectedMove / price) * 100 : 0;
 
     return res.json({
       success: true,
       data: [{
-        symbol: row.symbol,
-        confidence: Number(confidence.toFixed(1)),
-        catalyst: row.headline || 'No catalyst headline available.',
-        strategy: row.strategy,
-        expected_move: Number(expectedMove.toFixed(2)),
+        symbol:                row.symbol,
+        confidence:            Number(confidence.toFixed(1)),
+        catalyst:              row.headline || 'No catalyst headline available.',
+        strategy:              row.strategy,
+        expected_move:         Number(expectedMove.toFixed(2)),
         expected_move_percent: Number(expectedMovePercent.toFixed(2)),
-        rvol: Number(rvol.toFixed(2)),
-        atr: Number(atr.toFixed(2)),
-        sector: row.sector || 'Unknown',
-        sector_strength: Number(row.sector_strength || 0),
-        news_source: row.news_source || 'Market feed',
-        float_size: Number(row.float_size || 0),
+        rvol:                  Number(rvol.toFixed(2)),
+        atr:                   Number(atr.toFixed(2)),
+        sector:                row.sector || 'Unknown',
+        sector_strength:       Number(row.sector_strength || 0),
+        news_source:           row.news_source || 'Market feed',
+        float_size:            Number(row.float_size || 0),
         price,
-        previous_day_move: Number(row.price_change_percent || 0),
-        entry: Number(breakout.toFixed(2)),
-        stop_loss: Number(stopLoss.toFixed(2)),
-        take_profit: Number(takeProfit.toFixed(2)),
-        updated_at: row.updated_at || null,
-        trade_plan: `Entry ${breakout > 0 ? `$${breakout.toFixed(2)}` : 'on breakout'}, stop ${stopLoss > 0 ? `$${stopLoss.toFixed(2)}` : 'below structure'}, target ${takeProfit > 0 ? `$${takeProfit.toFixed(2)}` : '2R'}.`,
+        previous_day_move:     Number(row.price_change_percent || 0),
+        // Flat fields (backward-compat)
+        entry:                 execPlan.entry_price,
+        stop_loss:             execPlan.stop_loss,
+        take_profit:           execPlan.target_price,
+        // Structured execution plan (for UI card)
+        execution_plan: {
+          entry:    execPlan.entry_price,
+          stop:     execPlan.stop_loss,
+          target:   execPlan.target_price,
+        },
+        position_size:         execPlan.position_size,
+        risk_reward:           execPlan.risk_reward,
+        trade_quality_score:   execPlan.trade_quality_score,
+        execution_ready:       execPlan.execution_ready,
+        why_moving:            execPlan.why_moving,
+        why_tradeable:         execPlan.why_tradeable,
+        how_to_trade:          execPlan.how_to_trade,
+        updated_at:            row.updated_at || null,
       }],
     });
   } catch (error) {

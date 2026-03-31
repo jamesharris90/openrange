@@ -1083,14 +1083,41 @@ router.get('/api/intelligence/priority', async (_req, res) => {
         strength: enriched.catalyst_strength,
       });
 
+      // Build structured execution_plan if not already an object
+      let execPlan = enriched?.execution_plan;
+      if (!execPlan || typeof execPlan !== 'object' || !execPlan.entry) {
+        try {
+          const { computeExecutionPlan } = require('../engines/executionEngine');
+          const ep = computeExecutionPlan({
+            price:          Number(enriched?.current_price ?? enriched?.price ?? r?.price ?? 0),
+            atr:            Number(enriched?.atr ?? 0),
+            volume:         Number(enriched?.volume ?? r?.volume ?? 0),
+            relativeVolume: Number(enriched?.relative_volume ?? 0),
+            changePercent:  Number(enriched?.change_percent ?? r?.change_percent ?? 0),
+            gapPercent:     Number(enriched?.gap_percent ?? 0),
+            confidence:     confidence,
+            strategy:       enriched?.strategy ?? r?.strategy ?? r?.setup_type ?? null,
+            catalyst:       enriched?.catalyst ?? r?.headline ?? r?.catalyst ?? null,
+          });
+          execPlan = { entry: ep.entry_price, stop: ep.stop_loss, target: ep.target_price };
+          // Carry full plan fields onto the result
+          enriched._execFull = ep;
+        } catch { execPlan = narrative.execution_plan; }
+      }
+
       return {
         ...enriched,
-        priority_score: Math.round(priorityScore),
-        adjusted_confidence: Number(adjustedConfidence.toFixed(4)),
-        strategy_multiplier: Number(strategyFactor.toFixed(4)),
-        why_moving: enriched?.why_moving || narrative.why_moving,
-        why_tradeable: enriched?.why_tradeable || narrative.why_tradeable,
-        execution_plan: enriched?.execution_plan || narrative.execution_plan,
+        priority_score:        Math.round(priorityScore),
+        adjusted_confidence:   Number(adjustedConfidence.toFixed(4)),
+        strategy_multiplier:   Number(strategyFactor.toFixed(4)),
+        why_moving:            enriched?.why_moving    || enriched?._execFull?.why_moving    || narrative.why_moving,
+        why_tradeable:         enriched?.why_tradeable || enriched?._execFull?.why_tradeable || narrative.why_tradeable,
+        how_to_trade:          enriched?.how_to_trade  || enriched?._execFull?.how_to_trade  || null,
+        execution_plan:        execPlan,
+        trade_quality_score:   enriched?.trade_quality_score ?? enriched?._execFull?.trade_quality_score ?? null,
+        position_size:         enriched?.position_size       ?? enriched?._execFull?.position_size       ?? null,
+        risk_reward:           enriched?.risk_reward         ?? enriched?._execFull?.risk_reward         ?? null,
+        execution_ready:       enriched?.execution_ready     ?? enriched?._execFull?.execution_ready     ?? null,
       };
     });
 

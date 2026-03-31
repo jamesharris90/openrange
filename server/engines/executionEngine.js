@@ -446,8 +446,189 @@ function stopExecutionScheduler() {
   }
 }
 
+// ── Signal-level execution plan (pure, synchronous) ──────────────────────────
+//
+// Used by strategySignalEngine, opportunityEngine, and the
+// /api/intelligence/top-opportunity endpoint to attach a complete trade plan
+// to every real-time signal.  No DB access — all inputs come from the caller.
+//
+//   computeExecutionPlan(signal) → {
+//     entry_price, stop_loss, target_price,
+//     position_size, risk_reward, trade_quality_score,
+//     execution_ready, rejection_reason,
+//     why_moving, why_tradeable, how_to_trade
+//   }
+
+const MIN_RR         = 2.0;
+const MIN_CONFIDENCE = 50;
+const MIN_VOLUME     = 500_000;
+const MIN_ATR_PCT    = 0.01; // ATR must be ≥ 1% of price
+
+function _entry(strategy, price, previousHigh, vwap) {
+  if (!price || price <= 0) return 0;
+  const p = price;
+  switch (strategy) {
+    case 'Gap & Go':              return _r4(p * 1.005);
+    case 'ORB Breakout':          return previousHigh > 0 && previousHigh >= p * 0.9 ? _r4(previousHigh + 0.05) : _r4(p * 1.01);
+    case 'Day 2 Continuation':    return previousHigh > 0 && previousHigh >= p * 0.9 ? _r4(previousHigh + 0.05) : _r4(p * 1.005);
+    case 'Short Squeeze':         return _r4(p * 1.002);
+    case 'VWAP Reclaim':
+    case 'VWAP':                  return vwap > 0 && vwap >= p * 0.9 ? _r4(vwap * 1.001) : _r4(p * 1.002);
+    default:                      return _r4(p * 1.005);
+  }
+}
+
+function _entryLabel(strategy) {
+  switch (strategy) {
+    case 'Gap & Go':              return 'gap continuation above open';
+    case 'ORB Breakout':          return 'break above opening range high';
+    case 'Day 2 Continuation':    return 'break above prior day high';
+    case 'Short Squeeze':         return 'momentum squeeze continuation';
+    case 'VWAP Reclaim':
+    case 'VWAP':                  return 'VWAP reclaim and hold';
+    default:                      return 'momentum continuation setup';
+  }
+}
+
+function _qualityGate({ price, atr, volume, confidence, rr }) {
+  if (confidence < MIN_CONFIDENCE)               return { pass: false, reason: 'confidence_below_50' };
+  if (price > 0 && (atr / price) < MIN_ATR_PCT)  return { pass: false, reason: 'atr_too_small' };
+  if (volume < MIN_VOLUME)                        return { pass: false, reason: 'volume_below_500k' };
+  if (rr < MIN_RR)                                return { pass: false, reason: 'rr_below_2' };
+  return { pass: true, reason: null };
+}
+
+function _tradeQuality({ price, atr, volume, confidence, rr }) {
+  let score = 50;
+  const atrPct = price > 0 ? (atr / price) * 100 : 0;
+  if (atrPct >= 3)      score += 15;
+  else if (atrPct >= 2) score += 10;
+  else if (atrPct >= 1) score += 5;
+  else                  score -= 15;
+
+  if (volume >= 10_000_000)     score += 15;
+  else if (volume >= 5_000_000) score += 10;
+  else if (volume >= 1_000_000) score += 5;
+  else                          score -= 10;
+
+  if (confidence >= 75)      score += 15;
+  else if (confidence >= 60) score += 8;
+  else if (confidence < 50)  score -= 15;
+
+  if (rr >= 3.0) score += 10; else if (rr >= 2.5) score += 5; else if (rr < 2.0) score -= 20;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function _narratives(signal, entry, stop, target, rr) {
+  const { price = 0, atr = 0, volume = 0, relativeVolume = 0,
+    changePercent = 0, gapPercent = 0, strategy = null,
+    catalyst = null, regime = null } = signal;
+
+  // WHY MOVING
+  const m = [];
+  if (gapPercent > 10)       m.push(`Gapped up ${gapPercent.toFixed(1)}% from previous close`);
+  else if (gapPercent > 5)   m.push(`Pre-market gap of ${gapPercent.toFixed(1)}%`);
+  else if (gapPercent > 2)   m.push(`Small gap of ${gapPercent.toFixed(1)}% from previous close`);
+  if (changePercent > 15)    m.push(`Up ${changePercent.toFixed(1)}% intraday — strong momentum`);
+  else if (changePercent > 8) m.push(`${changePercent.toFixed(1)}% price move with trend intact`);
+  else if (changePercent > 3) m.push(`${changePercent.toFixed(1)}% gain building structure`);
+  if (relativeVolume > 8)    m.push(`Extraordinary volume — ${relativeVolume.toFixed(1)}× average`);
+  else if (relativeVolume > 4) m.push(`High-conviction volume — ${relativeVolume.toFixed(1)}× average`);
+  else if (relativeVolume > 2) m.push(`Elevated volume — ${relativeVolume.toFixed(1)}× average`);
+  if (catalyst && String(catalyst).trim()) m.push(String(catalyst).trim());
+  if (m.length === 0) m.push('Price action and volume supporting upward move');
+  const why_moving = m.join('. ').replace(/\.\./g, '.');
+
+  // WHY TRADEABLE
+  const t = [];
+  const volM   = (volume / 1_000_000).toFixed(1);
+  const atrPct = price > 0 ? ((atr / price) * 100).toFixed(1) : '0';
+  t.push(`${volM}M shares traded — sufficient liquidity for clean entry`);
+  t.push(`ATR $${atr.toFixed(2)} (${atrPct}% of price) provides clear stop and target structure`);
+  if (strategy) t.push(`${strategy} setup — well-defined entry trigger and thesis`);
+  if (regime === 'BULL')      t.push('Bullish market regime aligned with long setup direction');
+  else if (regime === 'BEAR') t.push('Note: bear regime — reduced position size recommended');
+  const why_tradeable = t.join('. ');
+
+  // HOW TO TRADE
+  const how_to_trade =
+    `Enter at $${entry.toFixed(2)} (${_entryLabel(strategy)}). ` +
+    `Stop at $${stop.toFixed(2)} (1× ATR below entry). ` +
+    `Target $${target.toFixed(2)} (2× ATR from entry, ${rr.toFixed(1)}:1 R:R). ` +
+    `Max risk £${MAX_RISK_GBP} per trade.`;
+
+  return { why_moving, why_tradeable, how_to_trade };
+}
+
+/**
+ * Compute a full signal-level execution plan (pure, synchronous).
+ *
+ * @param {object} signal - { price, atr?, volume?, relativeVolume?,
+ *   changePercent?, gapPercent?, confidence?, strategy?, previousHigh?,
+ *   vwap?, catalyst?, regime? }
+ * @returns {object} execution plan
+ */
+function computeExecutionPlan(signal) {
+  const {
+    price = 0, atr = 0, volume = 0, relativeVolume = 0,
+    changePercent = 0, gapPercent = 0, confidence = 50,
+    strategy = null, previousHigh = 0, vwap = 0,
+    catalyst = null, regime = null,
+  } = signal;
+
+  if (!price || price <= 0) return _emptyExecPlan('no_price');
+
+  const effectiveAtr = atr > 0 ? atr : price * 0.02;
+  const entry        = _entry(strategy, price, previousHigh, vwap);
+  if (entry <= 0)    return _emptyExecPlan('no_entry');
+
+  const risk         = entry - effectiveAtr;
+  const target       = entry + 2 * effectiveAtr;
+  const riskPerShare = entry - risk;
+  const rr           = riskPerShare > 0 ? _r3((target - entry) / riskPerShare) : 0;
+
+  const { pass, reason } = _qualityGate({ price, atr: effectiveAtr, volume, confidence, rr });
+
+  let positionSize = 0;
+  if (pass) {
+    const raw = MAX_RISK_GBP / riskPerShare;
+    const mult = confidence > 75 ? 1.2 : confidence < 60 ? 0.5 : 1.0;
+    positionSize = _r2(raw * mult);
+  }
+
+  const enriched = { ...signal, atr: effectiveAtr, relativeVolume, changePercent, gapPercent, catalyst, regime };
+  const { why_moving, why_tradeable, how_to_trade } = _narratives(enriched, entry, risk, target, rr);
+
+  return {
+    entry_price:          entry,
+    stop_loss:            _r4(risk),
+    target_price:         _r4(target),
+    position_size:        positionSize,
+    risk_reward:          rr,
+    trade_quality_score:  _tradeQuality({ price, atr: effectiveAtr, volume, confidence, rr }),
+    execution_ready:      pass,
+    rejection_reason:     pass ? null : reason,
+    why_moving,
+    why_tradeable,
+    how_to_trade,
+  };
+}
+
+function _emptyExecPlan(reason) {
+  return {
+    entry_price: 0, stop_loss: 0, target_price: 0, position_size: 0,
+    risk_reward: 0, trade_quality_score: 0, execution_ready: false,
+    rejection_reason: reason, why_moving: '', why_tradeable: '', how_to_trade: '',
+  };
+}
+
+function _r4(n) { return Math.round(n * 10000) / 10000; }
+function _r3(n) { return Math.round(n * 1000)  / 1000;  }
+function _r2(n) { return Math.round(n * 100)   / 100;   }
+
 module.exports = {
   runExecutionEngine,
   startExecutionScheduler,
   stopExecutionScheduler,
+  computeExecutionPlan,
 };

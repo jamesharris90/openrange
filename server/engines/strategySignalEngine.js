@@ -4,6 +4,7 @@ const logger = require('../logger');
 const db = require('../db');
 const { validateAndEnrich } = require('./dataValidationEngine');
 const { computeConfidence } = require('./confidenceEngine');
+const { computeExecutionPlan } = require('./executionEngine');
 
 // ── Hard minimums — anything below these is noise, not signal ────────────────
 const MIN_RELATIVE_VOLUME  = 2.0;
@@ -93,6 +94,9 @@ async function runStrategySignalEngine() {
        COALESCE(tu.relative_volume, m.relative_volume, 0) AS relative_volume,
        COALESCE(tu.volume, m.volume, 0)                   AS volume,
        COALESCE(m.avg_volume_30d, 0)                      AS avg_volume_30d,
+       COALESCE(m.atr, 0)                                 AS atr,
+       COALESCE(m.vwap, 0)                                AS vwap,
+       COALESCE(m.previous_high, 0)                       AS previous_high,
        m.updated_at,
        pc.previous_close
      FROM tradable_universe tu
@@ -167,26 +171,51 @@ async function runStrategySignalEngine() {
     });
     const confidence = confidenceResult.value;
 
+    // Execution plan: entry, stop, target, sizing, narratives
+    let currentRegimeTrend = null;
+    try {
+      const { getCurrentRegime } = require('../services/marketRegimeEngine');
+      currentRegimeTrend = getCurrentRegime()?.trend ?? null;
+    } catch { /* regime not loaded */ }
+
+    const execPlan = computeExecutionPlan({
+      price:          price,
+      atr:            toNumber(row.atr),
+      volume:         volume,
+      relativeVolume: relativeVolume,
+      changePercent:  changePercent,
+      gapPercent:     toNumber(row.gap_percent),
+      confidence:     confidence,
+      strategy:       strategy,
+      previousHigh:   toNumber(row.previous_high),
+      vwap:           toNumber(row.vwap),
+      regime:         currentRegimeTrend,
+    });
+
     try {
       await db.query(
         `INSERT INTO strategy_signals
            (symbol, strategy, class, score, probability,
-            change_percent, gap_percent, relative_volume, volume, confidence, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())`,
+            change_percent, gap_percent, relative_volume, volume,
+            confidence, entry_price, stop_loss, target_price, position_size,
+            risk_reward, trade_quality_score, execution_ready,
+            why_moving, why_tradeable, how_to_trade, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW())`,
         [
-          row.symbol,
-          strategy,
-          className,
-          score,
-          probability,
-          changePercent,
-          toNumber(row.gap_percent),
-          relativeVolume,
-          volume,
+          row.symbol, strategy, className, score, probability,
+          changePercent, toNumber(row.gap_percent), relativeVolume, volume,
           confidence,
+          execPlan.entry_price, execPlan.stop_loss, execPlan.target_price,
+          execPlan.position_size, execPlan.risk_reward,
+          execPlan.trade_quality_score, execPlan.execution_ready,
+          execPlan.why_moving, execPlan.why_tradeable, execPlan.how_to_trade,
         ]
       );
-      logger.info(`[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)} confidence=${confidence}`);
+      logger.info(
+        `[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)}` +
+        ` conf=${confidence} exec=${execPlan.execution_ready} rr=${execPlan.risk_reward}` +
+        ` tqs=${execPlan.trade_quality_score}`
+      );
       inserted++;
     } catch (error) {
       logger.warn('Strategy signal insert skipped', { symbol: row.symbol, strategy, error: error.message });
