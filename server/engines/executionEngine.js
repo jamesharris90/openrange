@@ -312,6 +312,11 @@ async function logSignal(plan) {
 // ── Main run ─────────────────────────────────────────────────────────────────
 
 async function runExecutionEngine() {
+  if (global.systemBlocked) {
+    console.warn(`${ENGINE_LABEL} [BLOCKED] skipped — pipeline unhealthy`, { reason: global.systemBlockedReason });
+    return { processed: 0, skipped: 0, blocked: true };
+  }
+
   const t0 = Date.now();
   console.log(`${ENGINE_LABEL} starting`);
 

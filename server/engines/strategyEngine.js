@@ -134,6 +134,11 @@ async function ensureTradeSetupsTable() {
 }
 
 async function runStrategyEngine() {
+  if (global.systemBlocked) {
+    console.warn('[BLOCKED] strategyEngine skipped — pipeline unhealthy', { reason: global.systemBlockedReason });
+    return { inserted: 0, blocked: true };
+  }
+
   const startedAt = Date.now();
   try {
     await ensureStrategySignalsTable();

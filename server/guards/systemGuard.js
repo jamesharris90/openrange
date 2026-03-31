@@ -1,5 +1,66 @@
 const { queryWithTimeout } = require('../db/pg');
 
+// ── Pipeline health thresholds ───────────────────────────────────────────────
+const MIN_QUOTES_ROWS   = 100;   // market_quotes must have at least 100 symbols
+const MIN_INTRADAY_ROWS = 1000;  // intraday_1m needs meaningful candle history
+const MIN_DAILY_ROWS    = 1000;  // daily_ohlc needs meaningful history
+
+async function checkDataPipelineHealth() {
+  let quotes = 0, intraday = 0, daily = 0;
+
+  try {
+    // Use pg_class approximate counts for large tables (intraday_1m, daily_ohlc
+    // can have millions of rows — COUNT(*) times out under pool pressure).
+    const [qRes, iRes, dRes] = await Promise.all([
+      queryWithTimeout(
+        `SELECT COUNT(*)::int AS count FROM market_quotes`,
+        [], { timeoutMs: 5000, label: 'pipeline_guard.quotes', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT GREATEST(reltuples::int, 0) AS count FROM pg_class WHERE relname = 'intraday_1m'`,
+        [], { timeoutMs: 3000, label: 'pipeline_guard.intraday', maxRetries: 0 }
+      ),
+      queryWithTimeout(
+        `SELECT GREATEST(reltuples::int, 0) AS count FROM pg_class WHERE relname = 'daily_ohlc'`,
+        [], { timeoutMs: 3000, label: 'pipeline_guard.daily', maxRetries: 0 }
+      ),
+    ]);
+    quotes   = Number(qRes.rows?.[0]?.count  || 0);
+    intraday = Number(iRes.rows?.[0]?.count  || 0);
+    daily    = Number(dRes.rows?.[0]?.count  || 0);
+  } catch (err) {
+    console.warn('[PIPELINE_GUARD] count queries failed:', err.message);
+    // Can't verify — do not block on transient DB errors
+    return true;
+  }
+
+  const healthy =
+    quotes   >= MIN_QUOTES_ROWS &&
+    intraday >= MIN_INTRADAY_ROWS &&
+    daily    >= MIN_DAILY_ROWS;
+
+  if (!healthy) {
+    global.systemBlocked       = true;
+    global.systemBlockedReason = 'data_pipeline_empty';
+    global.systemBlockedAt     = global.systemBlockedAt || new Date().toISOString();
+    global.pipelineHealth      = { quotes, intraday, daily, blockedAt: global.systemBlockedAt };
+    console.error('[PIPELINE_GUARD] CRITICAL: data pipeline below threshold — writes blocked', {
+      quotes, intraday, daily,
+      min_quotes: MIN_QUOTES_ROWS, min_intraday: MIN_INTRADAY_ROWS, min_daily: MIN_DAILY_ROWS,
+    });
+  } else {
+    global.pipelineHealth = { quotes, intraday, daily, blockedAt: null };
+    if (global.systemBlockedReason === 'data_pipeline_empty') {
+      global.systemBlocked       = false;
+      global.systemBlockedReason = null;
+      global.systemBlockedAt     = null;
+      console.log('[PIPELINE_GUARD] pipeline restored — block cleared', { quotes, intraday, daily });
+    }
+  }
+
+  return healthy;
+}
+
 function isActiveSession() {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
@@ -207,6 +268,14 @@ async function systemGuard() {
 
   try {
     console.log('[SYSTEM_GUARD] run started', { blocked: global.systemBlocked, reason: global.systemBlockedReason || null });
+
+    // Pipeline health is checked first — if empty, no point running other checks
+    const pipelineHealthy = await checkDataPipelineHealth();
+    if (!pipelineHealthy) {
+      console.warn('[SYSTEM_GUARD] pipeline unhealthy — skipping further checks this cycle');
+      return;
+    }
+
     const lifecycleOverlap = await checkLifecycleOverlap();
     const decision = await checkDecisionNullRate();
     const signals = await checkSignalsFlow();
@@ -236,4 +305,4 @@ async function systemGuard() {
   }
 }
 
-module.exports = { systemGuard };
+module.exports = { systemGuard, checkDataPipelineHealth };

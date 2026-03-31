@@ -54,6 +54,7 @@ const { getActiveTrackedSymbols } = require('../services/trackedUniverseService'
 const { sendBeaconMorningBrief, sendSystemMonitor } = require('../email/emailDispatcher');
 const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 const { systemGuard } = require('./systemGuard');
+const { runDataRecoveryEngine } = require('../engines/dataRecoveryEngine');
 const { logCron } = require('./cronMonitor');
 const { queryWithTimeout } = require('../db/pg');
 
@@ -1264,6 +1265,19 @@ async function startEnginesSequentially() {
           systemGuardInFlight = false;
         }
       }, 300000);
+    }
+
+    // ── Data recovery engine: every 2 minutes, only runs when systemBlocked ──
+    if (!global.dataRecoverySchedulerStarted) {
+      global.dataRecoverySchedulerStarted = true;
+      console.log('[RECOVERY] scheduler registered (every 2 minutes)');
+      setInterval(async () => {
+        try {
+          await runDataRecoveryEngine();
+        } catch (err) {
+          console.error('[RECOVERY] scheduler error:', err.message);
+        }
+      }, 120_000);
     }
 
     console.log('[Engine] All engines started successfully');

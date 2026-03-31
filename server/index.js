@@ -1856,13 +1856,16 @@ app.get('/api/system/health', async (_req, res) => {
     'api.system.health.normalized',
     { rows: [{}] }
   );
+  // Use pg_class reltuples for fast approximate counts on large tables —
+  // avoids sequential scans that time out on million-row tables.
   const quotesResult = await safeQuery(
     `SELECT COUNT(*)::int AS count FROM market_quotes`,
     'api.system.health.quotes_count',
     { rows: [{ count: 0 }] }
   );
   const ohlcResult = await safeQuery(
-    `SELECT COUNT(*)::int AS count FROM daily_ohlc`,
+    `SELECT GREATEST(reltuples::int, 0) AS count
+     FROM pg_class WHERE relname = 'daily_ohlc'`,
     'api.system.health.ohlc_count',
     { rows: [{ count: 0 }] }
   );
@@ -1889,6 +1892,21 @@ app.get('/api/system/health', async (_req, res) => {
   const quotesCount = Number(quotesResult.rows?.[0]?.count || 0);
   const ohlcCount = Number(ohlcResult.rows?.[0]?.count || 0);
 
+  const intradayResult = await safeQuery(
+    `SELECT GREATEST(reltuples::int, 0) AS count
+     FROM pg_class WHERE relname = 'intraday_1m'`,
+    'api.system.health.intraday_count',
+    { rows: [{ count: 0 }] }
+  );
+  const intradayCount = Number(intradayResult.rows?.[0]?.count || 0);
+
+  // Pipeline status: reflects checkDataPipelineHealth thresholds
+  const pipelineEmpty =
+    quotesCount  < 100 ||
+    intradayCount < 1000 ||
+    ohlcCount    < 1000;
+  const pipelineStatus = pipelineEmpty ? 'EMPTY' : 'HEALTHY';
+
   const core = {
     backend: 'reachable',
     db: dbConnected ? 'connected' : 'error',
@@ -1900,6 +1918,11 @@ app.get('/api/system/health', async (_req, res) => {
 
   return res.json({
     ...core,
+    pipeline_status: pipelineStatus,
+    systemBlocked: Boolean(global.systemBlocked),
+    systemBlockedReason: global.systemBlockedReason || null,
+    systemBlockedAt: global.systemBlockedAt || null,
+    pipelineHealth: global.pipelineHealth || { quotes: quotesCount, intraday: intradayCount, daily: ohlcCount, blockedAt: null },
     db_status: dbConnected ? 'live' : 'error',
     api_status,
     signals_status,
@@ -1914,8 +1937,10 @@ app.get('/api/system/health', async (_req, res) => {
     trade_setups_rows: Number(payload.trade_setups_rows || 0),
     news_articles_rows: Number(payload.news_articles_rows || 0),
     quotes_rows: quotesCount,
+    intraday_rows: intradayCount,
     ohlc_rows: ohlcCount,
     signals_count: Number(payload.signals_count || 0),
+    timestamp: new Date().toISOString(),
   });
 });
 

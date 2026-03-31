@@ -242,6 +242,11 @@ WHERE NOT EXISTS (
 /* ── Engine run ──────────────────────────────────────────────────────────── */
 
 async function runPremarketWatchlistEngine() {
+  if (global.systemBlocked) {
+    console.warn(`${ENGINE_LABEL} [BLOCKED] skipped — pipeline unhealthy`, { reason: global.systemBlockedReason });
+    return { processed: 0, blocked: true };
+  }
+
   const t0 = Date.now();
   console.log(`${ENGINE_LABEL} starting`);
 

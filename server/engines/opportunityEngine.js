@@ -30,6 +30,11 @@ function deriveStrategy(row) {
 }
 
 async function runOpportunityEngine() {
+  if (global.systemBlocked) {
+    console.warn('[BLOCKED] opportunityEngine skipped — pipeline unhealthy', { reason: global.systemBlockedReason });
+    return { inserted: 0, blocked: true };
+  }
+
   const startedAt = Date.now();
   await ensureOpportunityTable();
 

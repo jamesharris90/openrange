@@ -77,6 +77,11 @@ async function hasRecentDuplicate(symbol, strategy) {
 }
 
 async function runStrategySignalEngine() {
+  if (global.systemBlocked) {
+    logger.warn('[BLOCKED] strategySignalEngine skipped — pipeline unhealthy', { reason: global.systemBlockedReason });
+    return { universeSymbols: 0, inserted: 0, skippedFilter: 0, skippedScore: 0, skippedDuplicate: 0, blocked: true };
+  }
+
   const startedAt = Date.now();
   logger.info('[SIGNAL ENGINE] scanning market metrics...');
 
