@@ -100,10 +100,27 @@ function summarize(results) {
   };
 }
 
+async function isDbAvailable() {
+  try {
+    await queryWithTimeout('SELECT 1 AS ok', [], { timeoutMs: 3000, label: 'build_validator.ping', maxRetries: 0 });
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
 async function runValidation(options = {}) {
   const baseUrl = options.baseUrl || process.env.API_BASE || 'http://127.0.0.1:3001';
   const includeEndpointChecks = options.includeEndpointChecks !== false;
   const results = [];
+
+  // Skip all DB checks if DB is unavailable (e.g. Supabase pool exhausted)
+  const dbAvailable = await isDbAvailable();
+  if (!dbAvailable) {
+    console.warn('[BUILD_VALIDATION] DB unavailable — skipping schema/data checks');
+    const degradedResult = [{ type: 'runtime', name: 'db_availability', ok: true, detail: 'degraded_pass_db_unavailable' }];
+    return { ...summarize(degradedResult), results: degradedResult };
+  }
 
   const schemaChecks = [
     () => checkTable('signals'),

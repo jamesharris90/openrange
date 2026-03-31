@@ -60,6 +60,62 @@ type PremarketIntel = {
   execution_notes?: string | null;
 };
 
+// ─── Frontend fallback generators ─────────────────────────────────────────────
+
+function generateResearchWhy(
+  overview: Record<string, unknown> | undefined,
+  decision: DecisionPayload | undefined,
+  opportunity: Opportunity | undefined,
+  price: number,
+): string {
+  // Try backend fields first
+  const narrative = decision?.why_moving?.narrative;
+  if (narrative && String(narrative).trim().length > 8) return String(narrative);
+  const catalyst = decision?.why_moving?.catalyst;
+  if (catalyst && String(catalyst).trim().length > 8) return String(catalyst);
+  const oppWhy = opportunity?.why_moving;
+  if (oppWhy && String(oppWhy).trim().length > 8) return String(oppWhy);
+
+  // Generate from available data
+  const chgRaw = (overview as { change_percent?: unknown } | undefined)?.change_percent;
+  const chg = Number.isFinite(Number(chgRaw)) ? Number(chgRaw) : 0;
+  const dir = chg > 0 ? "up" : chg < 0 ? "down" : "flat";
+
+  if (Math.abs(chg) > 5)
+    return `Strong ${dir} move of ${Math.abs(chg).toFixed(1)}% — significant directional pressure. Check news and catalyst scanner for the driver.`;
+  if (Math.abs(chg) > 2)
+    return `Moderate ${dir} movement of ${Math.abs(chg).toFixed(1)}%. Watching for catalyst confirmation before trading.`;
+  if (Number.isFinite(price) && price > 0)
+    return `Price at $${price.toFixed(2)} — no catalyst signal yet. Will update when the engine scores this ticker.`;
+  return `No catalyst data available yet. The engine evaluates signals every 10 minutes during market hours.`;
+}
+
+function generateResearchHow(
+  decision: DecisionPayload | undefined,
+  opportunity: Opportunity | undefined,
+  actionStr: string,
+): string {
+  const strat = String(decision?.execution_plan?.strategy || opportunity?.strategy || "").toLowerCase();
+  const entryType = String(decision?.execution_plan?.entry_type || "").toLowerCase();
+  const setupCandidates = decision?.execution_plan?.setup_candidates ?? [];
+
+  if (setupCandidates.length > 0) {
+    const setups = setupCandidates.slice(0, 2).map(s => s.setup).filter(Boolean).join(" or ");
+    return `Look for a ${setups} setup. ${entryType ? `Entry type: ${entryType}. ` : ""}Risk per trade: £10 max.`;
+  }
+  if (strat.includes("gap"))
+    return `Gap setup — wait for first 15-minute consolidation, enter break of premarket high, stop below premarket low.`;
+  if (strat.includes("breakout"))
+    return `Breakout — wait for volume confirmation above the key level before entering. Stop below breakout base.`;
+  if (actionStr === "ENTER")
+    return `Signal is live — enter at current price with stop below the nearest support. Size for £10 max risk.`;
+  if (actionStr === "WATCH")
+    return `Not yet triggering — watch for confirmation before entering. Set an alert at the key breakout level.`;
+  if (actionStr === "AVOID")
+    return `Setup doesn't meet criteria right now — wait for a cleaner pattern or check Stocks In Play for better setups.`;
+  return `Wait for first 15-minute range to establish, then trade the break with volume confirmation.`;
+}
+
 function premarketNarrative(intel: PremarketIntel): string {
   const { premarket_signal_type, premarket_trend, premarket_gap, premarket_gap_confidence } = intel;
   const gap = Math.abs(toNum(premarket_gap, 0));
@@ -174,32 +230,44 @@ export function ResearchView({ ticker }: { ticker: string }) {
   }, [opportunitiesQuery.data, decision?.execution_plan?.strategy, ticker]);
 
   const riskScore = toNum(decision?.tradeability?.tradeability_score, 0);
+  const overviewRaw = overviewQuery.data as Record<string, unknown> | undefined;
+  const whyText = generateResearchWhy(overviewRaw, decision, opportunityForTicker, price);
+  const howText = generateResearchHow(decision, opportunityForTicker, actionStr);
 
   return (
     <div className="space-y-4 bg-[#0B0F14]">
-      {/* Decision summary — only shown when data is available */}
-      {(decision || opportunityForTicker) && (
-        <section className="cockpit-card bg-[#121826] border-[#1F2937]">
-          <div className="text-xs uppercase text-gray-400">What Should I Do?</div>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <DecisionBadge action={actionStr} urgency={urgencyStr} size="lg" />
-            {confidence > 0 && <ConfidenceGauge value={confidence} size={86} />}
-            {expectedMovePct !== 0 && (
-              <div className="min-w-[220px]">
-                <div className="text-[11px] text-gray-400 uppercase">Expected Move</div>
-                <ExpectedMoveBar expectedMovePercent={expectedMovePct} changePercent={0} />
-              </div>
-            )}
-          </div>
-          {loading ? (
-            <div className="mt-3 text-xs text-gray-500">Loading decision data…</div>
-          ) : (
-            <div className="mt-3 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3 text-sm text-cyan-100">
-              {actionStr}: {decision?.why_moving?.narrative ?? opportunityForTicker?.why_moving ?? ""}
+      {/* Decision summary — always shown */}
+      <section className="cockpit-card bg-[#121826] border-[#1F2937]">
+        <div className="text-xs uppercase text-gray-400 mb-1">What Should I Do?</div>
+        <div className="text-[11px] text-gray-600 mb-3">{ticker}</div>
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <DecisionBadge action={actionStr} urgency={urgencyStr} size="lg" />
+          {confidence > 0 && <ConfidenceGauge value={confidence} size={86} />}
+          {expectedMovePct !== 0 && (
+            <div className="min-w-[220px]">
+              <div className="text-[11px] text-gray-400 uppercase">Expected Move</div>
+              <ExpectedMoveBar expectedMovePercent={expectedMovePct} changePercent={0} />
             </div>
           )}
-        </section>
-      )}
+        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <div className="h-10 animate-pulse rounded-xl bg-slate-800/60" />
+            <div className="h-10 animate-pulse rounded-xl bg-slate-800/40" />
+          </div>
+        ) : (
+          <>
+            <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3 text-sm text-cyan-100 mb-2">
+              <span className="text-[10px] uppercase tracking-widest text-cyan-500 block mb-1">Why</span>
+              {whyText}
+            </div>
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/30 p-3 text-sm text-slate-300">
+              <span className="text-[10px] uppercase tracking-widest text-slate-500 block mb-1">How to trade</span>
+              {howText}
+            </div>
+          </>
+        )}
+      </section>
 
       <section className="cockpit-card bg-[#121826] border-[#1F2937]">
         <div className="flex items-center gap-2">
@@ -252,22 +320,38 @@ export function ResearchView({ ticker }: { ticker: string }) {
         <div className="space-y-3">
           <div className="cockpit-card bg-[#121826] border-[#1F2937]">
             <div className="text-xs uppercase text-gray-400">Why Moving</div>
-            <div className="text-white text-sm mt-2">
-              {decision?.why_moving?.narrative || opportunityForTicker?.why_moving || <span className="text-gray-500">No catalyst data available</span>}
-            </div>
+            <div className="text-slate-300 text-sm mt-2">{whyText}</div>
+            {decision?.why_moving?.catalyst_type && (
+              <span className="mt-2 inline-block rounded bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400">
+                {decision.why_moving.catalyst_type}
+              </span>
+            )}
           </div>
 
-          {decision && (
-            <div className="cockpit-card bg-[#121826] border-[#1F2937]">
-              <div className="text-xs uppercase text-gray-400">Trade Plan</div>
-              <div className="text-white text-sm mt-2">Strategy: {String(decision.execution_plan?.strategy || "—")}</div>
-              {levels && (
-                <div className="text-gray-300 text-xs mt-1">
-                  Entry ${levels.entry.toFixed(2)} · Stop ${levels.stop.toFixed(2)} · Target ${levels.target.toFixed(2)} · R:R {rr.toFixed(2)}:1
+          <div className="cockpit-card bg-[#121826] border-[#1F2937]">
+            <div className="text-xs uppercase text-gray-400">Trade Plan</div>
+            {decision?.execution_plan?.strategy && (
+              <div className="text-slate-400 text-[11px] mt-1 mb-1 uppercase tracking-wide">{decision.execution_plan.strategy}</div>
+            )}
+            <div className="text-slate-300 text-sm mt-1">{howText}</div>
+            {levels && (
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[11px] text-center">
+                <div className="rounded-lg bg-slate-800/60 py-1.5">
+                  <div className="text-slate-500">Entry</div>
+                  <div className="text-slate-200 font-medium">${levels.entry.toFixed(2)}</div>
                 </div>
-              )}
-            </div>
-          )}
+                <div className="rounded-lg bg-rose-950/40 py-1.5">
+                  <div className="text-slate-500">Stop</div>
+                  <div className="text-rose-400 font-medium">${levels.stop.toFixed(2)}</div>
+                </div>
+                <div className="rounded-lg bg-emerald-950/40 py-1.5">
+                  <div className="text-slate-500">Target</div>
+                  <div className="text-emerald-400 font-medium">${levels.target.toFixed(2)}</div>
+                </div>
+              </div>
+            )}
+            {rr > 0 && <div className="mt-1 text-[10px] text-slate-600">R:R {rr.toFixed(2)}:1</div>}
+          </div>
 
           {confidence > 0 && (
             <div className="cockpit-card bg-[#121826] border-[#1F2937]">

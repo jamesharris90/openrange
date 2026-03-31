@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Minus, TrendingUp } from "lucide-react";
 
@@ -506,6 +507,16 @@ export function DashboardView() {
                     />
                   ))}
                 </div>
+                {eliteFirst.length > display.length && (
+                  <div className="mt-3 text-right">
+                    <Link
+                      href="/stocks-in-play"
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 transition"
+                    >
+                      +{eliteFirst.length - display.length} more setups in Stocks In Play →
+                    </Link>
+                  </div>
+                )}
               </>
             );
           })()
@@ -563,9 +574,15 @@ export function DashboardView() {
               <p className="text-sm text-slate-500 mb-1">
                 {modeInfo.mode === "PREP"
                   ? "PREP MODE — building watchlist for next open"
-                  : "No signals available — market inactive"}
+                  : "No signals scored yet"}
               </p>
-              <p className="text-[11px] text-slate-600">{modeInfo.reason}</p>
+              <p className="text-[11px] text-slate-600 mb-4">{modeInfo.reason}</p>
+              <Link
+                href="/stocks-in-play"
+                className="inline-block rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-xs text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition"
+              >
+                Browse all opportunities →
+              </Link>
             </div>
           )}
         </section>
