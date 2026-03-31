@@ -1876,7 +1876,10 @@ app.get('/api/system/health', async (_req, res) => {
   const newsTimestamp = payload.latest_news_update || null;
 
   const signals_status = freshnessStatus(setupTimestamp, 24 * 60 * 60 * 1000);
-  const news_status = freshnessStatus(newsTimestamp, 24 * 60 * 60 * 1000);
+  // news_status: OK if updated in last 10 minutes, otherwise STALE
+  const news_status = newsTimestamp && (Date.now() - new Date(newsTimestamp).getTime()) < 10 * 60 * 1000
+    ? 'OK'
+    : 'STALE';
   const market_status = freshnessStatus(marketTimestamp, 30 * 60 * 1000);
 
   const eventErrors = await safeQuery(
@@ -1907,6 +1910,9 @@ app.get('/api/system/health', async (_req, res) => {
     ohlcCount    < 1000;
   const pipelineStatus = pipelineEmpty ? 'EMPTY' : 'HEALTHY';
 
+  // Per-table status fields for frontend/ops visibility
+  const daily_status = ohlcCount > 1000 ? 'OK' : 'BROKEN';
+
   const core = {
     backend: 'reachable',
     db: dbConnected ? 'connected' : 'error',
@@ -1916,9 +1922,18 @@ app.get('/api/system/health', async (_req, res) => {
 
   const api_status = market_status === 'live' && signals_status === 'live' ? 'live' : 'degraded';
 
+  // Orchestrator state (if available)
+  let orchestratorState = null;
+  try {
+    const { getOrchestratorState } = require('./system/dataOrchestrator');
+    orchestratorState = getOrchestratorState();
+  } catch (_e) { /* not yet loaded */ }
+
   return res.json({
     ...core,
     pipeline_status: pipelineStatus,
+    daily_status,
+    news_status,
     systemBlocked: Boolean(global.systemBlocked),
     systemBlockedReason: global.systemBlockedReason || null,
     systemBlockedAt: global.systemBlockedAt || null,
@@ -1926,7 +1941,6 @@ app.get('/api/system/health', async (_req, res) => {
     db_status: dbConnected ? 'live' : 'error',
     api_status,
     signals_status,
-    news_status,
     last_updates: {
       market: marketTimestamp,
       setups: setupTimestamp,
@@ -1940,6 +1954,7 @@ app.get('/api/system/health', async (_req, res) => {
     intraday_rows: intradayCount,
     ohlc_rows: ohlcCount,
     signals_count: Number(payload.signals_count || 0),
+    orchestrator: orchestratorState,
     timestamp: new Date().toISOString(),
   });
 });

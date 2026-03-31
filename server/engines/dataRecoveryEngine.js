@@ -17,8 +17,10 @@ let recoveryInFlight = false;
 let recoveryAttempts = 0;
 
 async function runDataRecoveryEngine() {
-  // Only run when pipeline is actually blocked due to empty data
-  if (!global.systemBlocked || global.systemBlockedReason !== 'data_pipeline_empty') {
+  // Only run when pipeline is actually blocked due to empty or missing data
+  const blockReason = global.systemBlockedReason;
+  if (!global.systemBlocked ||
+      (blockReason !== 'data_pipeline_empty' && blockReason !== 'daily_data_missing')) {
     return;
   }
 
@@ -57,8 +59,8 @@ async function runDataRecoveryEngine() {
 
     // 3. Trigger market metrics refresh (fills market_quotes freshness)
     try {
-      const { runFmpMarketIngestion } = require('./fmpMarketIngestion');
-      await runFmpMarketIngestion();
+      const { ingestMarketQuotesRefresh } = require('./fmpMarketIngestion');
+      await ingestMarketQuotesRefresh();
       console.log('[RECOVERY] market metrics ingestion triggered');
     } catch (err) {
       console.warn('[RECOVERY] market metrics ingestion failed (non-critical):', err.message);

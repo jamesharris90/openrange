@@ -40,17 +40,21 @@ async function checkDataPipelineHealth() {
     daily    >= MIN_DAILY_ROWS;
 
   if (!healthy) {
+    // Distinguish daily_ohlc=0 as its own reason so recovery can target it specifically
+    const reason = daily === 0 ? 'daily_data_missing' : 'data_pipeline_empty';
     global.systemBlocked       = true;
-    global.systemBlockedReason = 'data_pipeline_empty';
+    global.systemBlockedReason = reason;
     global.systemBlockedAt     = global.systemBlockedAt || new Date().toISOString();
     global.pipelineHealth      = { quotes, intraday, daily, blockedAt: global.systemBlockedAt };
     console.error('[PIPELINE_GUARD] CRITICAL: data pipeline below threshold — writes blocked', {
       quotes, intraday, daily,
       min_quotes: MIN_QUOTES_ROWS, min_intraday: MIN_INTRADAY_ROWS, min_daily: MIN_DAILY_ROWS,
+      reason,
     });
   } else {
     global.pipelineHealth = { quotes, intraday, daily, blockedAt: null };
-    if (global.systemBlockedReason === 'data_pipeline_empty') {
+    const prevReason = global.systemBlockedReason;
+    if (prevReason === 'data_pipeline_empty' || prevReason === 'daily_data_missing') {
       global.systemBlocked       = false;
       global.systemBlockedReason = null;
       global.systemBlockedAt     = null;

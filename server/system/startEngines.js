@@ -55,6 +55,7 @@ const { sendBeaconMorningBrief, sendSystemMonitor } = require('../email/emailDis
 const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 const { systemGuard } = require('./systemGuard');
 const { runDataRecoveryEngine } = require('../engines/dataRecoveryEngine');
+const { runDataOrchestrator } = require('./dataOrchestrator');
 const { logCron } = require('./cronMonitor');
 const { queryWithTimeout } = require('../db/pg');
 
@@ -1278,6 +1279,19 @@ async function startEnginesSequentially() {
           console.error('[RECOVERY] scheduler error:', err.message);
         }
       }, 120_000);
+    }
+
+    // ── Central data orchestrator: every 60s ─────────────────────────────────
+    if (!global.dataOrchestratorStarted) {
+      global.dataOrchestratorStarted = true;
+      console.log('[ORCHESTRATOR] scheduler registered (every 60s)');
+      setInterval(async () => {
+        try {
+          await runDataOrchestrator();
+        } catch (err) {
+          console.error('[ORCHESTRATOR] scheduler error:', err.message);
+        }
+      }, 60_000);
     }
 
     console.log('[Engine] All engines started successfully');
