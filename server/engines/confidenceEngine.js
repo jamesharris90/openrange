@@ -152,6 +152,24 @@ async function computeConfidence(signal) {
     }
   } catch { /* learningEngine not yet loaded */ }
 
+  // ── 1c. Confidence accuracy calibration (Phase 5 feedback loop) ──────────
+  // If the engine has historically been overconfident (high-confidence
+  // signals losing more than expected), apply a downward calibration.
+  // accuracy < 1.0 → overconfident → penalise by up to -15 pts
+  // accuracy > 1.0 → underconfident → boost by up to +10 pts
+  try {
+    const { getConfidenceAccuracy } = require('./learningEngine');
+    const accuracy = getConfidenceAccuracy(signal.setup_type);
+    if (accuracy !== null && Math.abs(accuracy - 1.0) > 0.05) {
+      // Scale: ±1 accuracy unit maps to ±25 pts, clamped to [-15, +10]
+      const raw   = (accuracy - 1.0) * 25;
+      const adj   = Math.max(-15, Math.min(10, raw));
+      confidence += adj;
+      breakdown.calibration_adjustment = Number(adj.toFixed(2));
+      breakdown.confidence_accuracy    = Number(accuracy.toFixed(3));
+    }
+  } catch { /* learningEngine not yet loaded */ }
+
   // ── 2. Validation quality ─────────────────────────────────────────────────
   const issues = signal.validation_issues || [];
   if (issues.length > 0) {

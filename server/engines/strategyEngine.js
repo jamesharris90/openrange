@@ -177,11 +177,18 @@ async function runStrategyEngine() {
     const strategy = determineStrategy(row);
     if (!strategy) continue;
 
-    // Skip strategies that the learning engine has auto-disabled
+    // Skip disabled strategies + regime-specific filtering (Phase 2/3)
     try {
-      const { getDisabledStrategies } = require('./learningEngine');
+      const { getDisabledStrategies, getRegimeWinRate } = require('./learningEngine');
       if (getDisabledStrategies().has(strategy)) continue;
-    } catch { /* learningEngine not yet loaded */ }
+
+      const { getCurrentRegime } = require('../services/marketRegimeEngine');
+      const regime = getCurrentRegime();
+      if (regime?.trend) {
+        const regimeWr = getRegimeWinRate(strategy, regime.trend);
+        if (regimeWr !== null && regimeWr < 0.30) continue;
+      }
+    } catch { /* learningEngine or regimeEngine not yet loaded */ }
 
     // Data validation — cross-check with FMP before scoring
     const validated = await validateAndEnrich(row, 'strategyEngine');

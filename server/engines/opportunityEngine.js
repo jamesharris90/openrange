@@ -72,11 +72,20 @@ async function runOpportunityEngine() {
 
     const strategy = deriveStrategy(row);
 
-    // Skip strategies that the learning engine has auto-disabled
+    // Skip disabled strategies + regime-specific filtering (Phase 2/3)
     try {
-      const { getDisabledStrategies } = require('./learningEngine');
+      const { getDisabledStrategies, getRegimeWinRate } = require('./learningEngine');
       if (strategy && getDisabledStrategies().has(strategy)) { skippedValidation++; continue; }
-    } catch { /* learningEngine not yet loaded */ }
+
+      if (strategy) {
+        const { getCurrentRegime } = require('../services/marketRegimeEngine');
+        const regime = getCurrentRegime();
+        if (regime?.trend) {
+          const regimeWr = getRegimeWinRate(strategy, regime.trend);
+          if (regimeWr !== null && regimeWr < 0.30) { skippedValidation++; continue; }
+        }
+      }
+    } catch { /* learningEngine or regimeEngine not yet loaded */ }
 
     const confidenceResult = await computeConfidence({
       setup_type:        strategy,
