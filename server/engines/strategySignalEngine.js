@@ -2,6 +2,7 @@
 
 const logger = require('../logger');
 const db = require('../db');
+const { validateAndEnrich } = require('./dataValidationEngine');
 
 // ── Hard minimums — anything below these is noise, not signal ────────────────
 const MIN_RELATIVE_VOLUME  = 2.0;
@@ -17,17 +18,14 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// Cap inputs so a 10,000% short-squeeze can't blow up the score
-function cap(value, max) {
-  return Math.min(Math.abs(value), max);
-}
-
 // Phase 3 scoring formula
 // score = (rvol * 5) + (|chg| * 3) + (volume > 5M ? 5 : 0)
-// A: > 120  B: > 80  — everything else is discarded
+// RVOL cap removed — validation engine rejects invalid extreme values;
+// confirmed high-RVOL passes through as real momentum.
+// |chg| capped at 50 to prevent score explosion from unvalidated extreme moves.
 function scoreSignal(relativeVolume, changePercent, volume) {
-  const rvol = cap(relativeVolume, 30);
-  const chg  = cap(changePercent,  50);
+  const rvol = relativeVolume; // no artificial cap — data validation handles this
+  const chg  = Math.min(Math.abs(changePercent), 50);
   const volBonus = volume > 5_000_000 ? 5 : 0;
   return (rvol * 5) + (chg * 3) + volBonus;
 }
@@ -126,6 +124,14 @@ async function runStrategySignalEngine() {
 
     const strategy = determineStrategy(row);
     if (!strategy) { skippedFilter++; continue; }
+
+    // Data validation — cross-check with FMP before scoring
+    const validated = await validateAndEnrich(row, 'strategySignalEngine');
+    if (!validated.valid) {
+      logger.warn(`[DATA REJECTED] ${row.symbol} reason=${validated.issues.join(',')}`);
+      skippedFilter++;
+      continue;
+    }
 
     // Phase 3 — quality score
     const score     = scoreSignal(relativeVolume, changePercent, volume);

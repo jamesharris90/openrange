@@ -1,5 +1,6 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { validateAndEnrich } = require('./dataValidationEngine');
 
 async function ensureOpportunityTable() {
   await queryWithTimeout(
@@ -56,7 +57,16 @@ async function runOpportunityEngine() {
     { timeoutMs: 10000, label: 'engines.opportunityEngine.select', maxRetries: 0 }
   );
 
+  let skippedValidation = 0;
   for (const row of rows) {
+    // Data validation — reject bad data before writing to opportunities
+    const validated = await validateAndEnrich(row, 'opportunityEngine');
+    if (!validated.valid) {
+      logger.warn(`[DATA REJECTED] ${row.symbol} reason=${validated.issues.join(',')}`);
+      skippedValidation++;
+      continue;
+    }
+
     await queryWithTimeout(
       `INSERT INTO opportunities_v2 (
         symbol,
@@ -91,8 +101,8 @@ async function runOpportunityEngine() {
   }
 
   const runtimeMs = Date.now() - startedAt;
-  logger.info('Opportunity engine complete', { opportunities: rows.length, runtimeMs });
-  return { opportunities: rows.length, runtimeMs };
+  logger.info('Opportunity engine complete', { opportunities: rows.length - skippedValidation, skippedValidation, runtimeMs });
+  return { opportunities: rows.length - skippedValidation, skippedValidation, runtimeMs };
 }
 
 module.exports = {

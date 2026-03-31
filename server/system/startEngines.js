@@ -56,6 +56,7 @@ const { sendStocksInPlayAlert } = require('../email/stocksInPlayAlert');
 const { systemGuard } = require('./systemGuard');
 const { runDataRecoveryEngine } = require('../engines/dataRecoveryEngine');
 const { runDataOrchestrator } = require('./dataOrchestrator');
+const { purgeOldValidationLogs } = require('../engines/dataValidationEngine');
 const { logCron } = require('./cronMonitor');
 const { queryWithTimeout } = require('../db/pg');
 
@@ -1292,6 +1293,16 @@ async function startEnginesSequentially() {
           console.error('[ORCHESTRATOR] scheduler error:', err.message);
         }
       }, 60_000);
+    }
+
+    // ── Validation log purge: daily (keeps data_validation_log small) ────────
+    if (!global.validationLogPurgeStarted) {
+      global.validationLogPurgeStarted = true;
+      // First purge 30s after boot, then every 24 hours
+      setTimeout(() => {
+        purgeOldValidationLogs().catch(() => {});
+        setInterval(() => purgeOldValidationLogs().catch(() => {}), 24 * 60 * 60 * 1000);
+      }, 30_000);
     }
 
     console.log('[Engine] All engines started successfully');

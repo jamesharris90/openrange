@@ -1929,6 +1929,13 @@ app.get('/api/system/health', async (_req, res) => {
     orchestratorState = getOrchestratorState();
   } catch (_e) { /* not yet loaded */ }
 
+  // Validation stats (if available)
+  let validationStats = null;
+  try {
+    const { getValidationStats } = require('./engines/dataValidationEngine');
+    validationStats = getValidationStats();
+  } catch (_e) { /* not yet loaded */ }
+
   return res.json({
     ...core,
     pipeline_status: pipelineStatus,
@@ -1955,6 +1962,8 @@ app.get('/api/system/health', async (_req, res) => {
     ohlc_rows: ohlcCount,
     signals_count: Number(payload.signals_count || 0),
     orchestrator: orchestratorState,
+    validation_rejection_rate: validationStats?.rejection_rate ?? null,
+    validation_stats: validationStats,
     timestamp: new Date().toISOString(),
   });
 });

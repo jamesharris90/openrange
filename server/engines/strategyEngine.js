@@ -1,5 +1,6 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { validateAndEnrich } = require('./dataValidationEngine');
 
 function toNumber(value) {
   const number = Number(value);
@@ -172,6 +173,13 @@ async function runStrategyEngine() {
     for (const row of rows) {
     const strategy = determineStrategy(row);
     if (!strategy) continue;
+
+    // Data validation — cross-check with FMP before scoring
+    const validated = await validateAndEnrich(row, 'strategyEngine');
+    if (!validated.valid) {
+      logger.warn(`[DATA REJECTED] ${row.symbol} reason=${validated.issues.join(',')}`);
+      continue;
+    }
 
     const changePercent = toNumber(row.change_percent);
     const gapPercent = toNumber(row.gap_percent);
