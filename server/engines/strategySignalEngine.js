@@ -199,8 +199,9 @@ async function runStrategySignalEngine() {
             change_percent, gap_percent, relative_volume, volume,
             confidence, entry_price, stop_loss, target_price, position_size,
             risk_reward, trade_quality_score, execution_ready,
-            why_moving, why_tradeable, how_to_trade, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW())`,
+            why_moving, why_tradeable, how_to_trade,
+            lifecycle_stage, entry_type, exit_type, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,NOW())`,
         [
           row.symbol, strategy, className, score, probability,
           changePercent, toNumber(row.gap_percent), relativeVolume, volume,
@@ -209,12 +210,13 @@ async function runStrategySignalEngine() {
           execPlan.position_size, execPlan.risk_reward,
           execPlan.trade_quality_score, execPlan.execution_ready,
           execPlan.why_moving, execPlan.why_tradeable, execPlan.how_to_trade,
+          execPlan.lifecycle_stage, execPlan.entry_type, execPlan.exit_type,
         ]
       );
       logger.info(
         `[SIGNAL CREATED] ${row.symbol} ${strategy} class=${className} score=${score.toFixed(1)}` +
-        ` conf=${confidence} exec=${execPlan.execution_ready} rr=${execPlan.risk_reward}` +
-        ` tqs=${execPlan.trade_quality_score}`
+        ` conf=${confidence} stage=${execPlan.lifecycle_stage} exec=${execPlan.execution_ready}` +
+        ` rr=${execPlan.risk_reward} tqs=${execPlan.trade_quality_score}`
       );
       inserted++;
     } catch (error) {

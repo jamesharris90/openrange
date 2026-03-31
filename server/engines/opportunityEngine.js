@@ -125,8 +125,9 @@ async function runOpportunityEngine() {
         entry_price, stop_loss, target_price, position_size,
         risk_reward, trade_quality_score, execution_ready,
         why_moving, why_tradeable, how_to_trade,
+        lifecycle_stage, entry_type, exit_type,
         updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,now())
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,now())
       ON CONFLICT (symbol)
       DO UPDATE SET
         score = EXCLUDED.score,
@@ -146,6 +147,9 @@ async function runOpportunityEngine() {
         why_moving = EXCLUDED.why_moving,
         why_tradeable = EXCLUDED.why_tradeable,
         how_to_trade = EXCLUDED.how_to_trade,
+        lifecycle_stage = EXCLUDED.lifecycle_stage,
+        entry_type = EXCLUDED.entry_type,
+        exit_type = EXCLUDED.exit_type,
         updated_at = now()`,
       [
         row.symbol, row.score, row.change_percent, row.relative_volume,
@@ -154,6 +158,7 @@ async function runOpportunityEngine() {
         execPlan.position_size, execPlan.risk_reward,
         execPlan.trade_quality_score, execPlan.execution_ready,
         execPlan.why_moving, execPlan.why_tradeable, execPlan.how_to_trade,
+        execPlan.lifecycle_stage, execPlan.entry_type, execPlan.exit_type,
       ],
       { timeoutMs: 5000, label: 'engines.opportunityEngine.upsert', maxRetries: 0 }
     );

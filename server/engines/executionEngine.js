@@ -478,7 +478,9 @@ function _entry(strategy, price, previousHigh, vwap) {
   }
 }
 
-function _entryLabel(strategy) {
+function _entryLabel(strategy, stage) {
+  if (stage === 'EARLY')    return 'early-stage aggressive entry near current price';
+  if (stage === 'EXTENDED') return 'pullback entry — wait for minor retracement';
   switch (strategy) {
     case 'Gap & Go':              return 'gap continuation above open';
     case 'ORB Breakout':          return 'break above opening range high';
@@ -487,6 +489,92 @@ function _entryLabel(strategy) {
     case 'VWAP Reclaim':
     case 'VWAP':                  return 'VWAP reclaim and hold';
     default:                      return 'momentum continuation setup';
+  }
+}
+
+// ── Trade Lifecycle Stage ─────────────────────────────────────────────────────
+//
+// Classifies where a signal sits in its move so entry/stop/target can be
+// adapted to the remaining risk:reward available.
+//
+//   EARLY      — move not yet confirmed (low chg%, low rvol)
+//   EXPANSION  — momentum confirmed with volume (chg 5-20%, rvol ≥ 2)
+//   EXTENDED   — very large move, upside limited (chg > 20%)
+//   EXHAUSTION — price falling after spike (reversal / avoid long)
+
+function computeLifecycleStage(changePercent, relativeVolume, price, previousClose) {
+  // Exhaustion: price falling after a spike
+  if (previousClose > 0 && price < previousClose && changePercent < -3)
+    return 'EXHAUSTION';
+  // Extended: move already very large regardless of direction
+  if (Math.abs(changePercent) > 20)
+    return 'EXTENDED';
+  // Expansion: meaningful move with volume confirmation
+  if (Math.abs(changePercent) >= 5 && relativeVolume >= 2)
+    return 'EXPANSION';
+  // Early: move not yet confirmed
+  return 'EARLY';
+}
+
+// Stage-specific entry price
+function _stageEntry(stage, strategy, price, previousHigh, vwap) {
+  switch (stage) {
+    case 'EARLY':     return _r4(price * 1.002);                              // near current — aggressive
+    case 'EXPANSION': return _entry(strategy, price, previousHigh, vwap);    // strategy confirmation
+    case 'EXTENDED':  return _r4(price * 0.995);                              // wait for micro-pullback
+    case 'EXHAUSTION':return 0;                                               // blocked
+    default:          return _entry(strategy, price, previousHigh, vwap);
+  }
+}
+
+// Stage-specific stop loss
+function _stageStop(stage, entry, effectiveAtr, vwap, previousHigh) {
+  switch (stage) {
+    case 'EARLY':
+      return _r4(entry - effectiveAtr);                                       // 1×ATR
+    case 'EXPANSION': {
+      // Use VWAP or previous high as natural stop if available
+      const vwapStop = vwap > 0 && vwap < entry ? _r4(vwap * 0.998) : 0;
+      const phStop   = previousHigh > 0 && previousHigh < entry ? _r4(previousHigh - 0.05) : 0;
+      return vwapStop || phStop || _r4(entry - effectiveAtr);
+    }
+    case 'EXTENDED':
+      return _r4(entry - effectiveAtr * 0.5);                                // 0.5×ATR — tighter
+    case 'EXHAUSTION':
+      return 0;
+    default:
+      return _r4(entry - effectiveAtr);
+  }
+}
+
+// Stage-specific target price
+function _stageTarget(stage, entry, effectiveAtr) {
+  switch (stage) {
+    case 'EARLY':     return _r4(entry + effectiveAtr * 3);  // 3×ATR — full upside
+    case 'EXPANSION': return _r4(entry + effectiveAtr * 2);  // 2×ATR — standard
+    case 'EXTENDED':  return _r4(entry + effectiveAtr * 1);  // 1×ATR — limited remaining move
+    case 'EXHAUSTION':return 0;
+    default:          return _r4(entry + effectiveAtr * 2);
+  }
+}
+
+function _entryType(stage) {
+  switch (stage) {
+    case 'EARLY':     return 'AGGRESSIVE';
+    case 'EXPANSION': return 'CONFIRMATION';
+    case 'EXTENDED':  return 'PULLBACK';
+    case 'EXHAUSTION':return 'BLOCKED';
+    default:          return 'CONFIRMATION';
+  }
+}
+
+function _exitType(stage) {
+  switch (stage) {
+    case 'EARLY':     return 'ATR_3X';
+    case 'EXPANSION': return 'ATR_2X';
+    case 'EXTENDED':  return 'ATR_1X';
+    case 'EXHAUSTION':return 'BLOCKED';
+    default:          return 'ATR_2X';
   }
 }
 
@@ -519,43 +607,61 @@ function _tradeQuality({ price, atr, volume, confidence, rr }) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function _narratives(signal, entry, stop, target, rr) {
+function _narratives(signal, entry, stop, target, rr, stage) {
   const { price = 0, atr = 0, volume = 0, relativeVolume = 0,
     changePercent = 0, gapPercent = 0, strategy = null,
     catalyst = null, regime = null } = signal;
 
-  // WHY MOVING
+  // WHAT HAPPENED (why_moving)
   const m = [];
-  if (gapPercent > 10)       m.push(`Gapped up ${gapPercent.toFixed(1)}% from previous close`);
-  else if (gapPercent > 5)   m.push(`Pre-market gap of ${gapPercent.toFixed(1)}%`);
-  else if (gapPercent > 2)   m.push(`Small gap of ${gapPercent.toFixed(1)}% from previous close`);
-  if (changePercent > 15)    m.push(`Up ${changePercent.toFixed(1)}% intraday — strong momentum`);
+  if (gapPercent > 10)        m.push(`Gapped up ${gapPercent.toFixed(1)}% from previous close`);
+  else if (gapPercent > 5)    m.push(`Pre-market gap of ${gapPercent.toFixed(1)}%`);
+  else if (gapPercent > 2)    m.push(`Small gap of ${gapPercent.toFixed(1)}% from previous close`);
+  if (changePercent > 15)     m.push(`Up ${changePercent.toFixed(1)}% intraday — strong momentum`);
   else if (changePercent > 8) m.push(`${changePercent.toFixed(1)}% price move with trend intact`);
   else if (changePercent > 3) m.push(`${changePercent.toFixed(1)}% gain building structure`);
-  if (relativeVolume > 8)    m.push(`Extraordinary volume — ${relativeVolume.toFixed(1)}× average`);
+  if (relativeVolume > 8)     m.push(`Extraordinary volume — ${relativeVolume.toFixed(1)}× average`);
   else if (relativeVolume > 4) m.push(`High-conviction volume — ${relativeVolume.toFixed(1)}× average`);
   else if (relativeVolume > 2) m.push(`Elevated volume — ${relativeVolume.toFixed(1)}× average`);
   if (catalyst && String(catalyst).trim()) m.push(String(catalyst).trim());
   if (m.length === 0) m.push('Price action and volume supporting upward move');
   const why_moving = m.join('. ').replace(/\.\./g, '.');
 
-  // WHY TRADEABLE
+  // WHAT IT MEANS (why_tradeable)
   const t = [];
   const volM   = (volume / 1_000_000).toFixed(1);
   const atrPct = price > 0 ? ((atr / price) * 100).toFixed(1) : '0';
-  t.push(`${volM}M shares traded — sufficient liquidity for clean entry`);
-  t.push(`ATR $${atr.toFixed(2)} (${atrPct}% of price) provides clear stop and target structure`);
-  if (strategy) t.push(`${strategy} setup — well-defined entry trigger and thesis`);
-  if (regime === 'BULL')      t.push('Bullish market regime aligned with long setup direction');
-  else if (regime === 'BEAR') t.push('Note: bear regime — reduced position size recommended');
+  t.push(`${volM}M shares — sufficient liquidity for clean entry`);
+  t.push(`ATR $${atr.toFixed(2)} (${atrPct}% of price) defines clear risk boundaries`);
+  if (strategy) t.push(`${strategy} setup confirmed`);
+  switch (stage) {
+    case 'EARLY':     t.push('Move in early stage — maximum R:R potential, risk of false start'); break;
+    case 'EXPANSION': t.push('Move in expansion phase — momentum confirmed with volume'); break;
+    case 'EXTENDED':  t.push('Move is extended — reduced upside remaining, tighter stop required'); break;
+    case 'EXHAUSTION':t.push('Move showing exhaustion — avoid long exposure'); break;
+    default: break;
+  }
+  if (regime === 'BULL')      t.push('Bullish regime aligned with long setup');
+  else if (regime === 'BEAR') t.push('Bear regime active — reduce position size');
   const why_tradeable = t.join('. ');
 
-  // HOW TO TRADE
-  const how_to_trade =
-    `Enter at $${entry.toFixed(2)} (${_entryLabel(strategy)}). ` +
-    `Stop at $${stop.toFixed(2)} (1× ATR below entry). ` +
-    `Target $${target.toFixed(2)} (2× ATR from entry, ${rr.toFixed(1)}:1 R:R). ` +
-    `Max risk £${MAX_RISK_GBP} per trade.`;
+  // WHAT TO WATCH NEXT (how_to_trade) — with staged trade management rules
+  let how_to_trade;
+  if (stage === 'EXHAUSTION') {
+    how_to_trade = 'Setup blocked — exhaustion after extended move. Wait for consolidation before new entry.';
+  } else {
+    const riskPerShare = Math.abs(entry - stop);
+    const breakEven    = _r4(entry + riskPerShare);        // +1R  → move stop to break-even
+    const partial      = _r4(entry + riskPerShare * 1.5);  // +1.5R → take partial profits
+    const trail        = _r4(entry + riskPerShare * 2);    // +2R  → trail stop to lock gains
+    how_to_trade =
+      `Enter at $${entry.toFixed(2)} (${_entryLabel(strategy, stage)}). ` +
+      `Stop at $${stop.toFixed(2)} — max risk £${MAX_RISK_GBP}. ` +
+      `Target $${target.toFixed(2)} (${rr.toFixed(1)}:1 R:R). ` +
+      `At $${breakEven.toFixed(2)} move stop to break-even (+1R). ` +
+      `At $${partial.toFixed(2)} take partial profits (+1.5R). ` +
+      `Above $${trail.toFixed(2)} trail stop to lock gains (+2R).`;
+  }
 
   return { why_moving, why_tradeable, how_to_trade };
 }
@@ -563,51 +669,76 @@ function _narratives(signal, entry, stop, target, rr) {
 /**
  * Compute a full signal-level execution plan (pure, synchronous).
  *
+ * Classifies the signal into a lifecycle stage (EARLY / EXPANSION / EXTENDED /
+ * EXHAUSTION) and adapts entry, stop, target, and narrative accordingly.
+ *
  * @param {object} signal - { price, atr?, volume?, relativeVolume?,
  *   changePercent?, gapPercent?, confidence?, strategy?, previousHigh?,
- *   vwap?, catalyst?, regime? }
- * @returns {object} execution plan
+ *   vwap?, catalyst?, regime?, previousClose? }
+ * @returns {object} execution plan including lifecycle_stage, entry_type, exit_type
  */
 function computeExecutionPlan(signal) {
   const {
     price = 0, atr = 0, volume = 0, relativeVolume = 0,
     changePercent = 0, gapPercent = 0, confidence = 50,
     strategy = null, previousHigh = 0, vwap = 0,
-    catalyst = null, regime = null,
+    catalyst = null, regime = null, previousClose = 0,
   } = signal;
 
   if (!price || price <= 0) return _emptyExecPlan('no_price');
 
   const effectiveAtr = atr > 0 ? atr : price * 0.02;
-  const entry        = _entry(strategy, price, previousHigh, vwap);
-  if (entry <= 0)    return _emptyExecPlan('no_entry');
+  const stage        = computeLifecycleStage(changePercent, relativeVolume, price, previousClose);
+  const entryType    = _entryType(stage);
+  const exitType     = _exitType(stage);
 
-  const risk         = entry - effectiveAtr;
-  const target       = entry + 2 * effectiveAtr;
-  const riskPerShare = entry - risk;
+  // EXHAUSTION — block long exposure immediately
+  if (stage === 'EXHAUSTION') {
+    const enriched = { ...signal, atr: effectiveAtr, relativeVolume, changePercent, gapPercent, catalyst, regime };
+    const { why_moving } = _narratives(enriched, 0, 0, 0, 0, stage);
+    return {
+      ..._emptyExecPlan('exhaustion_stage_blocked'),
+      lifecycle_stage: stage,
+      entry_type:      entryType,
+      exit_type:       exitType,
+      why_moving,
+      why_tradeable:   'Move showing exhaustion — avoid long exposure. Wait for consolidation.',
+      how_to_trade:    'Setup blocked — exhaustion after extended move. Wait for consolidation before new entry.',
+    };
+  }
+
+  const entry = _stageEntry(stage, strategy, price, previousHigh, vwap);
+  if (entry <= 0) return { ..._emptyExecPlan('no_entry'), lifecycle_stage: stage, entry_type: entryType, exit_type: exitType };
+
+  const stop         = _stageStop(stage, entry, effectiveAtr, vwap, previousHigh);
+  const target       = _stageTarget(stage, entry, effectiveAtr);
+  const riskPerShare = Math.abs(entry - stop);
   const rr           = riskPerShare > 0 ? _r3((target - entry) / riskPerShare) : 0;
 
   const { pass, reason } = _qualityGate({ price, atr: effectiveAtr, volume, confidence, rr });
 
   let positionSize = 0;
   if (pass) {
-    const raw = MAX_RISK_GBP / riskPerShare;
+    const raw  = riskPerShare > 0 ? MAX_RISK_GBP / riskPerShare : 0;
     const mult = confidence > 75 ? 1.2 : confidence < 60 ? 0.5 : 1.0;
     positionSize = _r2(raw * mult);
   }
 
   const enriched = { ...signal, atr: effectiveAtr, relativeVolume, changePercent, gapPercent, catalyst, regime };
-  const { why_moving, why_tradeable, how_to_trade } = _narratives(enriched, entry, risk, target, rr);
+  const { why_moving, why_tradeable, how_to_trade } = _narratives(enriched, entry, stop, target, rr, stage);
 
   return {
     entry_price:          entry,
-    stop_loss:            _r4(risk),
-    target_price:         _r4(target),
+    stop_loss:            stop,
+    target_price:         target,
     position_size:        positionSize,
     risk_reward:          rr,
     trade_quality_score:  _tradeQuality({ price, atr: effectiveAtr, volume, confidence, rr }),
     execution_ready:      pass,
     rejection_reason:     pass ? null : reason,
+    lifecycle_stage:      stage,
+    entry_type:           entryType,
+    exit_type:            exitType,
     why_moving,
     why_tradeable,
     how_to_trade,
@@ -619,6 +750,7 @@ function _emptyExecPlan(reason) {
     entry_price: 0, stop_loss: 0, target_price: 0, position_size: 0,
     risk_reward: 0, trade_quality_score: 0, execution_ready: false,
     rejection_reason: reason, why_moving: '', why_tradeable: '', how_to_trade: '',
+    lifecycle_stage: null, entry_type: null, exit_type: null,
   };
 }
 
@@ -631,4 +763,5 @@ module.exports = {
   startExecutionScheduler,
   stopExecutionScheduler,
   computeExecutionPlan,
+  computeLifecycleStage,
 };
