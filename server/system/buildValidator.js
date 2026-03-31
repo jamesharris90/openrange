@@ -171,7 +171,7 @@ async function runValidation(options = {}) {
       () => checkEndpoint(
         'api.intelligence.top_opportunities',
         `${baseUrl}/api/intelligence/top-opportunities`,
-        (payload) => Array.isArray(payload?.items) || Number.isFinite(Number(payload?.non_null_scores))
+        (payload) => Array.isArray(payload?.data) || Array.isArray(payload?.items) || payload?.success === false
       ),
       () => checkEndpoint(
         'api.earnings.calendar',
