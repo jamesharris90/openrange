@@ -17,9 +17,34 @@ function normalizeScreenerRow(row) {
     gap_percent: toNumber(row.gap_percent),
     latest_news_at: row.latest_news_at || null,
     earnings_date: row.earnings_date || null,
+    catalyst_type: row.catalyst_type || 'UNKNOWN',
     sector: row.sector || null,
     updated_at: row.updated_at || null,
   };
+}
+
+function resolveCatalystType(row) {
+  const now = Date.now();
+  const latestNewsTime = Date.parse(row.latest_news_at || '');
+  if (!Number.isNaN(latestNewsTime) && now - latestNewsTime < 24 * 60 * 60 * 1000) {
+    return 'NEWS';
+  }
+
+  if (row.earnings_date) {
+    const earningsTime = Date.parse(`${row.earnings_date}T00:00:00Z`);
+    if (!Number.isNaN(earningsTime)) {
+      const daysDiff = Math.abs(Math.round((earningsTime - now) / 86400000));
+      if (daysDiff <= 3) {
+        return 'EARNINGS';
+      }
+    }
+  }
+
+  if ((row.rvol ?? 0) > 2 && Math.abs(row.change_percent ?? 0) > 5) {
+    return 'TECHNICAL';
+  }
+
+  return 'UNKNOWN';
 }
 
 function normalizeSymbol(value) {
@@ -311,6 +336,9 @@ async function getScreenerRows() {
       const rightRvol = right.rvol ?? -1;
       const leftRvol = left.rvol ?? -1;
       if (rightRvol !== leftRvol) return rightRvol - leftRvol;
+      const rightAbsChange = Math.abs(right.change_percent ?? 0);
+      const leftAbsChange = Math.abs(left.change_percent ?? 0);
+      if (rightAbsChange !== leftAbsChange) return rightAbsChange - leftAbsChange;
       if ((right.volume ?? 0) !== (left.volume ?? 0)) return (right.volume ?? 0) - (left.volume ?? 0);
       return String(left.symbol).localeCompare(String(right.symbol));
     })
@@ -332,6 +360,11 @@ async function getScreenerRows() {
       ...row,
       latest_news_at: latestNewsBySymbol.get(row.symbol) || null,
       earnings_date: earningsBySymbol.get(row.symbol) || null,
+      catalyst_type: resolveCatalystType({
+        ...row,
+        latest_news_at: latestNewsBySymbol.get(row.symbol) || null,
+        earnings_date: earningsBySymbol.get(row.symbol) || null,
+      }),
     };
   });
 

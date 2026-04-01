@@ -15,6 +15,7 @@ type ScreenerRow = {
   gap_percent: number | null;
   latest_news_at?: string | null;
   earnings_date?: string | null;
+  catalyst_type: "NEWS" | "EARNINGS" | "TECHNICAL" | "UNKNOWN";
   sector: string | null;
   updated_at: string | null;
 };
@@ -34,8 +35,8 @@ function sortRows(rows: ScreenerRow[]) {
     const rightRvol = right.rvol ?? -1;
     if (rightRvol !== leftRvol) return rightRvol - leftRvol;
 
-    const leftChange = left.change_percent ?? -Infinity;
-    const rightChange = right.change_percent ?? -Infinity;
+    const leftChange = Math.abs(left.change_percent ?? 0);
+    const rightChange = Math.abs(right.change_percent ?? 0);
     if (rightChange !== leftChange) return rightChange - leftChange;
 
     return String(left.symbol ?? "").localeCompare(String(right.symbol ?? ""));
@@ -97,6 +98,19 @@ function formatGap(value: number | null) {
   return `${sign}${value.toFixed(2)}%`;
 }
 
+function formatCatalyst(type: ScreenerRow["catalyst_type"]) {
+  switch (type) {
+    case "NEWS":
+      return { icon: "🟢", label: "News" };
+    case "EARNINGS":
+      return { icon: "🟣", label: "Earnings" };
+    case "TECHNICAL":
+      return { icon: "🟡", label: "Technical" };
+    default:
+      return { icon: "⚪", label: "—" };
+  }
+}
+
 function getNewsFreshness(publishedAt: string | null | undefined) {
   if (!publishedAt) {
     return { dot: "", label: "—" };
@@ -146,6 +160,7 @@ function SkeletonTable() {
               "Volume",
               "RVOL",
               "Gap %",
+              "Catalyst",
               "News",
               "Earnings",
               "Sector",
@@ -157,7 +172,7 @@ function SkeletonTable() {
         <tbody>
           {SKELETON_ROWS.map((row) => (
             <tr key={row} className="animate-pulse border-t border-slate-900">
-              {Array.from({ length: 9 }, (_, cell) => (
+              {Array.from({ length: 10 }, (_, cell) => (
                 <td key={cell} className="px-4 py-3">
                   <div className="h-4 rounded bg-slate-800/80" />
                 </td>
@@ -251,7 +266,7 @@ export default function ScreenerV2Page() {
                   {row.symbol || "—"}
                 </Link>
               </div>
-              <p className="mt-1 text-sm text-slate-400">{`${formatPercent(row.change_percent)}, ${formatRvol(row.rvol)}`}</p>
+              <p className="mt-1 text-sm text-slate-400">{`${formatCatalyst(row.catalyst_type).label}, ${formatRvol(row.rvol)} RVOL`}</p>
             </div>
           ))}
         </div>
@@ -275,6 +290,7 @@ export default function ScreenerV2Page() {
                 <th className="px-4 py-3 font-medium">Volume</th>
                 <th className="px-4 py-3 font-medium">RVOL</th>
                 <th className="px-4 py-3 font-medium">Gap %</th>
+                <th className="px-4 py-3 font-medium">Catalyst</th>
                 <th className="px-4 py-3 font-medium">News</th>
                 <th className="px-4 py-3 font-medium">Earnings</th>
                 <th className="px-4 py-3 font-medium">Sector</th>
@@ -284,6 +300,7 @@ export default function ScreenerV2Page() {
               {data.map((row) => {
                 const news = getNewsFreshness(row.latest_news_at);
                 const earningsLabel = getEarningsLabel(row.earnings_date);
+                const catalyst = formatCatalyst(row.catalyst_type);
 
                 return (
                   <tr key={row.symbol} className="border-t border-slate-900/80 transition hover:bg-slate-900/60">
@@ -309,6 +326,10 @@ export default function ScreenerV2Page() {
                     <td className="px-4 py-3 text-slate-300">{formatVolume(row.volume)}</td>
                     <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}>{formatRvol(row.rvol)}</td>
                     <td className="px-4 py-3 text-slate-300">{formatGap(row.gap_percent)}</td>
+                    <td className="px-4 py-3 text-slate-300">
+                      <span className="mr-2">{catalyst.icon}</span>
+                      <span>{catalyst.label}</span>
+                    </td>
                     <td className="px-4 py-3 text-slate-300" title={news.label}>
                       {news.dot ? <span className="mr-2">{news.dot}</span> : null}
                       <span>{news.label}</span>
