@@ -1,13 +1,29 @@
-const sharedPool = require('./pool');
+const sharedQuery = require('./pool');
 const { AsyncLocalStorage } = require('async_hooks');
 
-const poolRead = sharedPool;
-const poolWrite = sharedPool;
+function createPoolFacade() {
+  return {
+    query: sharedQuery,
+    end: sharedQuery.end,
+    connect: sharedQuery.connect,
+    get totalCount() {
+      return sharedQuery.getStats().totalCount;
+    },
+    get idleCount() {
+      return sharedQuery.getStats().idleCount;
+    },
+    get waitingCount() {
+      return sharedQuery.getStats().waitingCount;
+    },
+  };
+}
+
+const poolRead = Object.freeze(createPoolFacade());
+const poolWrite = Object.freeze(createPoolFacade());
 
 const dbContext = new AsyncLocalStorage();
 
-console.log(`DB pool configured: shared(max=${process.env.PGPOOL_MAX || 5}) idle=30s timeout=5s`);
-console.log('DB pool initialised');
+console.log(`DB pool configured: shared(max=${sharedQuery.getStats().maxConnections}) idle=30s timeout=2s`);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -30,7 +46,27 @@ function resolvePoolType(explicitPoolType) {
   return 'read';
 }
 
+function isWriteBlockedBySystemGuard(sql) {
+  if (global.systemBlocked !== true) return false;
+
+  const source = String(sql || '');
+  const normalized = source.toLowerCase().replace(/\s+/g, ' ');
+  const isWrite = /^\s*(insert|update|delete|alter|create|drop)\b/i.test(source);
+  if (!isWrite) return false;
+
+  const touchesGuardedTables = /\b(signals|signal_outcomes|trade_outcomes)\b/.test(normalized);
+  return touchesGuardedTables;
+}
+
 async function runQuery(sql, params = [], label = 'db.query', poolType = 'read') {
+  if (isWriteBlockedBySystemGuard(sql)) {
+    const reason = global.systemBlockedReason || 'unknown';
+    const error = new Error('WRITE BLOCKED BY SYSTEM GUARD');
+    error.code = 'SYSTEM_GUARD_WRITE_BLOCKED';
+    console.error('WRITE BLOCKED BY SYSTEM GUARD', { label, reason });
+    throw error;
+  }
+
   const pool = getPoolByType(poolType);
   return pool.query(sql, params).catch((err) => {
     console.error('DB query failed:', err.message, `(${label})`);
@@ -97,10 +133,21 @@ function runWithDbPool(poolType, fn) {
 // Backward compatibility: keep `pool` as read pool for API queries.
 const pool = poolRead;
 
+function getPoolStats() {
+  return sharedQuery.getStats();
+}
+
+async function resetPool() {
+  return sharedQuery.reset();
+}
+
 module.exports = {
   pool,
   poolRead,
   poolWrite,
+  query: sharedQuery,
   queryWithTimeout,
   runWithDbPool,
+  getPoolStats,
+  resetPool,
 };

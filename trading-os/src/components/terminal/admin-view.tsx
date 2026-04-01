@@ -14,7 +14,28 @@ import { QUERY_POLICY } from "@/lib/queries/policy";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type HealthPayload   = { status?: string; scheduler_status?: string; uptime_seconds?: number; error?: string };
+type HealthPayload   = {
+  status?: string;
+  scheduler_status?: string;
+  uptime_seconds?: number;
+  error?: string;
+  stocks_in_play_rows?: number;
+  opportunities_v2_rows?: number;
+  last_engine_run_at?: string | null;
+  db_connection_count?: number;
+  data_status?: string;
+};
+type DbConnectionsPayload = {
+  ok?: boolean;
+  connection_count?: number;
+  active_connections?: number;
+  idle_connections?: number;
+  waiting_count?: number;
+  max_connections?: number;
+  pooled?: boolean;
+  host?: string | null;
+  port?: number | string | null;
+};
 type LearningPayload = { ok?: boolean; evaluation_rate_pct?: number; stuck_signals?: number; error_count_last_24h?: number; status?: string; signals_logged_last_24h?: number; signals_evaluated_last_24h?: number };
 type PipelineTable   = { table: string; row_count: number; last_updated: string | null; age_minutes: number | null; status: 'green' | 'amber' | 'red' | 'unknown'; error?: string };
 type PipelinePayload = { ok?: boolean; tables?: PipelineTable[] };
@@ -51,6 +72,8 @@ function StatusBadge({ status }: { status: string }) {
     return <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">AMBER</span>;
   if (status === 'critical' || status === 'down' || status === 'error' || status === 'red')
     return <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">RED</span>;
+  if (status === 'no_data')
+    return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">NO DATA</span>;
   return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">UNKNOWN</span>;
 }
 
@@ -294,27 +317,87 @@ function EmailPanel() {
 // ─── Sub-panels ───────────────────────────────────────────────────────────────
 
 function HealthPanel() {
+  const qc = useQueryClient();
   const healthQuery    = useQuery({ queryKey: ["admin", "health"], queryFn: () => apiGet<HealthPayload>("/api/system/health").catch(() => ({} as HealthPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });
+  const dbQuery        = useQuery({ queryKey: ["admin", "db-connections"], queryFn: () => apiGet<DbConnectionsPayload>("/api/admin/db/connections").catch(() => ({} as DbConnectionsPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });
   const learningQuery  = useQuery({ queryKey: ["admin", "learning"], queryFn: () => apiGet<LearningPayload>("/api/system/learning-status").catch(() => ({} as LearningPayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });
+  const resetDbMut = useMutation({
+    mutationFn: () => apiPost("/api/admin/db/reset", {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "health"] });
+      qc.invalidateQueries({ queryKey: ["admin", "db-connections"] });
+      qc.invalidateQueries({ queryKey: ["admin", "engines"] });
+    },
+  });
+  const rebuildMut = useMutation({
+    mutationFn: () => apiPost("/api/admin/rebuild-all", {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "health"] });
+      qc.invalidateQueries({ queryKey: ["admin", "db-connections"] });
+      qc.invalidateQueries({ queryKey: ["admin", "engines"] });
+      qc.invalidateQueries({ queryKey: ["admin", "pipeline"] });
+    },
+  });
 
   const h = healthQuery.data ?? {};
+  const db = dbQuery.data ?? {};
   const l = learningQuery.data ?? {};
-  const overallStatus = l.status === 'critical' ? 'red' : h.status === 'ok' ? 'green' : h.status === 'degraded' ? 'amber' : 'unknown';
+  const overallStatus = h.data_status === 'NO_DATA'
+    ? 'no_data'
+    : l.status === 'critical'
+      ? 'red'
+      : h.status === 'ok'
+        ? 'green'
+        : h.status === 'degraded'
+          ? 'amber'
+          : 'unknown';
 
   return (
     <Card>
-      <SectionHeader icon={Shield} title="System Health" badge={<StatusBadge status={overallStatus === 'green' ? 'ok' : overallStatus === 'red' ? 'error' : overallStatus} />} />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <SectionHeader icon={Shield} title="System Health" badge={<StatusBadge status={overallStatus === 'green' ? 'ok' : overallStatus === 'red' ? 'error' : overallStatus} />} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => resetDbMut.mutate()}
+            disabled={resetDbMut.isPending}
+            className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+          >
+            <RefreshCw className={`size-3 ${resetDbMut.isPending ? 'animate-spin' : ''}`} />
+            Reset DB Pool
+          </button>
+          <button
+            onClick={() => rebuildMut.mutate()}
+            disabled={rebuildMut.isPending}
+            className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+          >
+            <Play className={`size-3 ${rebuildMut.isPending ? 'animate-spin' : ''}`} />
+            Rebuild All
+          </button>
+        </div>
+      </div>
       <div className="space-y-1.5">
-        <StatRow label="System Status"    value={<StatusBadge status={h.status ?? 'unknown'} />} />
+        <StatRow label="System Status"    value={<StatusBadge status={h.data_status === 'NO_DATA' ? 'no_data' : h.status ?? 'unknown'} />} />
         <StatRow label="Scheduler"        value={h.scheduler_status ?? "—"} valueClass={h.scheduler_status === 'running' ? 'text-emerald-400' : 'text-slate-400'} />
         <StatRow label="Uptime"           value={h.uptime_seconds != null ? `${Math.floor(h.uptime_seconds / 3600)}h ${Math.floor((h.uptime_seconds % 3600) / 60)}m` : "—"} />
+        <StatRow label="Last Engine Run"  value={h.last_engine_run_at ? new Date(h.last_engine_run_at).toLocaleString() : '—'} valueClass="text-slate-300" />
+        <StatRow label="stocks_in_play Rows" value={(h.stocks_in_play_rows ?? 0).toLocaleString()} valueClass={(h.stocks_in_play_rows ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400'} />
+        <StatRow label="opportunities_v2 Rows" value={(h.opportunities_v2_rows ?? 0).toLocaleString()} valueClass={(h.opportunities_v2_rows ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400'} />
+        <StatRow label="DB Connections"   value={db.connection_count ?? h.db_connection_count ?? 0} valueClass={(db.connection_count ?? h.db_connection_count ?? 0) > 0 ? 'text-slate-300' : 'text-slate-500'} />
         <div className="mt-2 mb-1 border-t border-slate-800/50" />
+        <StatRow label="DB Pool"          value={db.pooled ? `PgBouncer ${db.host ?? '—'}:${db.port ?? '—'}` : '—'} valueClass={db.pooled ? 'text-emerald-400' : 'text-amber-400'} />
+        <StatRow label="DB Active / Idle" value={`${db.active_connections ?? 0} / ${db.idle_connections ?? 0}`} />
+        <StatRow label="DB Waiting"       value={db.waiting_count ?? 0} valueClass={(db.waiting_count ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'} />
         <StatRow label="Evaluation Rate"  value={l.evaluation_rate_pct != null ? `${l.evaluation_rate_pct}%` : "—"} valueClass={l.evaluation_rate_pct != null && l.evaluation_rate_pct >= 95 ? 'text-emerald-400' : l.evaluation_rate_pct != null && l.evaluation_rate_pct >= 80 ? 'text-amber-400' : 'text-rose-400'} />
         <StatRow label="Stuck Signals"    value={l.stuck_signals ?? 0}    valueClass={(l.stuck_signals ?? 0) > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'} />
         <StatRow label="Errors (24h)"     value={l.error_count_last_24h ?? 0} valueClass={(l.error_count_last_24h ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'} />
         <StatRow label="Signals Logged"   value={l.signals_logged_last_24h ?? 0} />
         <StatRow label="Signals Evaluated" value={l.signals_evaluated_last_24h ?? 0} />
       </div>
+      {h.data_status === 'NO_DATA' && (
+        <div className="mt-3 rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-300">
+          Engine truth tables are empty. The API is in fail-fast mode until rebuild completes.
+        </div>
+      )}
       {(l.stuck_signals ?? 0) > 0 && (
         <div className="mt-3 rounded-lg border border-rose-800/40 bg-rose-950/20 px-3 py-2 text-xs text-rose-300">
           <AlertTriangle className="mr-1.5 inline size-3" />
@@ -690,7 +773,7 @@ function EnginesPanel() {
   async function runEngine(name: string) {
     setRunning(name);
     try {
-      await apiPost(`/api/admin/engines/${name}/run`, {});
+      await apiPost(`/api/admin/engine/run?name=${encodeURIComponent(name)}`, {});
       setTimeout(() => qc.invalidateQueries({ queryKey: ["admin", "engines"] }), 5000);
     } finally {
       setRunning(null);

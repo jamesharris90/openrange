@@ -35,45 +35,54 @@ function deriveStrategy(row) {
 async function runOpportunityEngine() {
   if (global.systemBlocked) {
     console.warn('[BLOCKED] opportunityEngine skipped — pipeline unhealthy', { reason: global.systemBlockedReason });
-    return { inserted: 0, blocked: true };
+    return {
+      success: false,
+      rows_processed: 0,
+      error: global.systemBlockedReason || 'SYSTEM_BLOCKED',
+      inserted: 0,
+      count: 0,
+      blocked: true,
+    };
   }
 
   const startedAt = Date.now();
-  await ensureOpportunityTable();
+  try {
+    await ensureOpportunityTable();
 
-  const { rows } = await queryWithTimeout(
-    `SELECT
-      tu.symbol,
-      tu.change_percent,
-      tu.relative_volume,
-      tu.volume,
-      COALESCE(m.gap_percent, tu.change_percent, 0) AS gap_percent,
-      COALESCE(m.avg_volume_30d, 0)                 AS avg_volume_30d,
-      COALESCE(m.atr, 0)                            AS atr,
-      COALESCE(m.vwap, 0)                           AS vwap,
-      COALESCE(m.previous_high, 0)                  AS previous_high,
-      COALESCE(tu.price, m.price, 0)                AS price,
-      m.updated_at,
-      pc.previous_close,
-      ((COALESCE(tu.change_percent, 0) * 2)
-      + (COALESCE(tu.relative_volume, 0) * 5)
-      + (COALESCE(m.gap_percent, tu.change_percent, 0) * 3)) AS score
-     FROM tradable_universe tu
-     LEFT JOIN market_metrics m ON m.symbol = tu.symbol
-     LEFT JOIN LATERAL (
-       SELECT d.close AS previous_close
-       FROM daily_ohlc d
-       WHERE d.symbol = tu.symbol AND d.date < CURRENT_DATE
-       ORDER BY d.date DESC LIMIT 1
-     ) pc ON TRUE
-     ORDER BY score DESC NULLS LAST
-     LIMIT 50`,
-    [],
-    { timeoutMs: 10000, label: 'engines.opportunityEngine.select', maxRetries: 0 }
-  );
+    const { rows } = await queryWithTimeout(
+      `SELECT
+        tu.symbol,
+        tu.change_percent,
+        tu.relative_volume,
+        tu.volume,
+        COALESCE(m.gap_percent, tu.change_percent, 0) AS gap_percent,
+        COALESCE(m.avg_volume_30d, 0)                 AS avg_volume_30d,
+        COALESCE(m.atr, 0)                            AS atr,
+        COALESCE(m.vwap, 0)                           AS vwap,
+        COALESCE(m.previous_high, 0)                  AS previous_high,
+        COALESCE(tu.price, m.price, 0)                AS price,
+        m.updated_at,
+        pc.previous_close,
+        ((COALESCE(tu.change_percent, 0) * 2)
+        + (COALESCE(tu.relative_volume, 0) * 5)
+        + (COALESCE(m.gap_percent, tu.change_percent, 0) * 3)) AS score
+       FROM tradable_universe tu
+       LEFT JOIN market_metrics m ON m.symbol = tu.symbol
+       LEFT JOIN LATERAL (
+         SELECT d.close AS previous_close
+         FROM daily_ohlc d
+         WHERE d.symbol = tu.symbol AND d.date < CURRENT_DATE
+         ORDER BY d.date DESC LIMIT 1
+       ) pc ON TRUE
+       ORDER BY score DESC NULLS LAST
+       LIMIT 50`,
+      [],
+      { timeoutMs: 10000, label: 'engines.opportunityEngine.select', maxRetries: 0 }
+    );
 
-  let skippedValidation = 0;
-  for (const row of rows) {
+    let skippedValidation = 0;
+    let upserted = 0;
+    for (const row of rows) {
     // Data validation — reject bad data before writing to opportunities
     const validated = await validateAndEnrich(row, 'opportunityEngine');
     if (!validated.valid) {
@@ -136,7 +145,7 @@ async function runOpportunityEngine() {
       marketContext,
     });
 
-    await queryWithTimeout(
+      await queryWithTimeout(
       `INSERT INTO opportunities_v2 (
         symbol, score, change_percent, relative_volume, gap_percent,
         strategy, volume, confidence,
@@ -186,12 +195,34 @@ async function runOpportunityEngine() {
         execPlan.market_structure, execPlan.time_context,
       ],
       { timeoutMs: 5000, label: 'engines.opportunityEngine.upsert', maxRetries: 0 }
-    );
-  }
+      );
+      upserted += 1;
+    }
 
-  const runtimeMs = Date.now() - startedAt;
-  logger.info('Opportunity engine complete', { opportunities: rows.length - skippedValidation, skippedValidation, runtimeMs });
-  return { opportunities: rows.length - skippedValidation, skippedValidation, runtimeMs };
+    const runtimeMs = Date.now() - startedAt;
+    logger.info('Opportunity engine complete', { opportunities: upserted, skippedValidation, runtimeMs });
+    return {
+      success: true,
+      rows_processed: upserted,
+      error: null,
+      inserted: upserted,
+      count: upserted,
+      opportunities: upserted,
+      skippedValidation,
+      runtimeMs,
+    };
+  } catch (error) {
+    logger.error('Opportunity engine failed', { error: error.message });
+    return {
+      success: false,
+      rows_processed: 0,
+      error: error.message,
+      inserted: 0,
+      count: 0,
+      opportunities: 0,
+      runtimeMs: Date.now() - startedAt,
+    };
+  }
 }
 
 module.exports = {

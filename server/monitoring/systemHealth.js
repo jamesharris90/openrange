@@ -1,4 +1,4 @@
-const { queryWithTimeout, pool } = require('../db/pg');
+const { queryWithTimeout, getPoolStats } = require('../db/pg');
 const { getAlertSchedulerStatus } = require('../alerts/alert_scheduler');
 const { getEngineSchedulerStatus } = require('../engines/scheduler');
 const { getConfigLoadStatus } = require('../config/intelligenceConfig');
@@ -97,11 +97,7 @@ async function getSystemHealth() {
 
   const scheduler = getAlertSchedulerStatus();
   const engineScheduler = getEngineSchedulerStatus();
-  const poolStats = {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount,
-  };
+  const poolStats = getPoolStats();
   const configStatus = getConfigLoadStatus();
 
   return {

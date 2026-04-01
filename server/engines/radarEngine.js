@@ -73,10 +73,26 @@ async function runRadarEngine() {
       radar[cls].push(row);
     }
 
-    return radar;
+    return {
+      success: true,
+      rows_processed: ranked.length,
+      error: null,
+      count: ranked.length,
+      A: radar.A,
+      B: radar.B,
+      C: radar.C,
+    };
   } catch (error) {
     logger.error('[ENGINE ERROR] radar run failed', { error: error.message });
-    return { A: [], B: [], C: [], error: error.message };
+    return {
+      success: false,
+      rows_processed: 0,
+      error: error.message,
+      count: 0,
+      A: [],
+      B: [],
+      C: [],
+    };
   }
 }
 

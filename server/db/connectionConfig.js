@@ -16,14 +16,25 @@ function resolveDatabaseUrl() {
   }
 
   const host = String(parsed.hostname || '').toLowerCase();
+  const isSupabasePooler = host.includes('pooler.supabase.com');
   if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
     const error = new Error(`Refusing local database host (${host}). Use Supabase remote Postgres only.`);
     error.code = 'DB_URL_LOCALHOST_FORBIDDEN';
     throw error;
   }
 
-  process.env.DATABASE_URL = dbUrl;
-  return { dbUrl, host };
+  if (isSupabasePooler && parsed.port !== '6543') {
+    parsed.port = '6543';
+  }
+
+  const normalizedDbUrl = parsed.toString();
+  process.env.DATABASE_URL = normalizedDbUrl;
+  return {
+    dbUrl: normalizedDbUrl,
+    host,
+    port: Number(parsed.port || 5432),
+    pooled: isSupabasePooler,
+  };
 }
 
 module.exports = {

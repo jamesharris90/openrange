@@ -88,7 +88,8 @@ const { runEnvCheck } = require('./utils/envCheck');
 const { getCachedValue, setCachedValue } = require('./utils/responseCache');
 const { successResponse, errorResponse } = require('./utils/apiResponse');
 const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('./utils/symbolMap');
-const { queryWithTimeout } = require('./db/pg');
+const { queryWithTimeout, getPoolStats, resetPool } = require('./db/pg');
+const { getCanonicalTruthSnapshot, getDbConnectionSnapshot, isEnginesNotPopulated, noDataResponse } = require('./system/adminTruth');
 const runMigrations = require('./db/runMigrations');
 const { runSchemaGuard } = require('./system/schemaGuard');
 const { runDbSchemaGuard } = require('./db/schemaGuard');
@@ -1874,6 +1875,16 @@ app.get('/api/system/health', async (_req, res) => {
     { rows: [{ count: 0 }] }
   );
   const intradayCount = Number(intradayResult.rows?.[0]?.count || 0);
+  const canonicalTruth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => ({
+    stocks_in_play_rows: 0,
+    opportunities_v2_rows: 0,
+    last_engine_run_at: null,
+    data_status: 'NO_DATA',
+    engines_populated: false,
+  }));
+  const dbConnections = await getDbConnectionSnapshot(queryWithTimeout).catch(() => ({
+    connection_count: Number(getPoolStats().totalCount || 0),
+  }));
 
   // Pipeline status: reflects checkDataPipelineHealth thresholds
   const pipelineEmpty =
@@ -1931,6 +1942,9 @@ app.get('/api/system/health', async (_req, res) => {
 
   return res.json({
     ...core,
+    status: pipelineStatus === 'HEALTHY' ? 'ok' : 'degraded',
+    scheduler_status: global.systemBlocked ? 'blocked' : 'running',
+    uptime_seconds: Math.floor(process.uptime()),
     pipeline_status: pipelineStatus,
     daily_status,
     news_status,
@@ -1953,6 +1967,11 @@ app.get('/api/system/health', async (_req, res) => {
     quotes_rows: quotesCount,
     intraday_rows: intradayCount,
     ohlc_rows: ohlcCount,
+    stocks_in_play_rows: canonicalTruth.stocks_in_play_rows,
+    opportunities_v2_rows: canonicalTruth.opportunities_v2_rows,
+    last_engine_run_at: canonicalTruth.last_engine_run_at,
+    data_status: canonicalTruth.data_status,
+    db_connection_count: dbConnections.connection_count,
     signals_count: Number(payload.signals_count || 0),
     orchestrator: orchestratorState,
     confidence_metrics: confidenceMetrics,
@@ -2571,6 +2590,11 @@ function buildHow() {
 
 app.get('/api/stocks-in-play', async (req, res) => {
   try {
+    const canonicalTruth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => null);
+    if (canonicalTruth && isEnginesNotPopulated(canonicalTruth)) {
+      return res.json(noDataResponse());
+    }
+
     if (lastFastResponse && Array.isArray(lastFastResponse.data) && lastFastResponse.data.length > 0) {
       return res.json(lastFastResponse);
     }
@@ -10537,6 +10561,11 @@ app.get('/api/intelligence/inbox', applyDebugBypassMeta, intelligenceNewsHandler
 
 app.get('/api/intelligence/opportunities', applyDebugBypassMeta, async (req, res) => {
   try {
+    const canonicalTruth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => null);
+    if (canonicalTruth && isEnginesNotPopulated(canonicalTruth)) {
+      return res.json(noDataResponse());
+    }
+
     const rows = await generateDynamicOpportunities({
       limit: req.query.limit,
       minCount: req.query.min_count,
@@ -11939,16 +11968,46 @@ app.get('/api/admin/data-integrity', requireAdminAction, async (req, res) => {
   return res.json({ ok: true, checks, issues, issue_count: issues.length, generated_at: new Date().toISOString() });
 });
 
+function getAdminEngineLoader(name) {
+  const normalizedName = String(name || '').trim();
+  const loaders = {
+    stocksInPlay: () => require('./engines/stocksInPlayEngine').runStocksInPlayEngine,
+    opportunity: () => require('./engines/opportunityEngine').runOpportunityEngine,
+    radar: () => require('./engines/radarEngine'),
+    stocksInPlayEngine: () => require('./engines/stocksInPlayEngine').runStocksInPlayEngine,
+    opportunityEngine: () => require('./engines/opportunityEngine').runOpportunityEngine,
+    radarEngine: () => require('./engines/radarEngine'),
+  };
+
+  return loaders[normalizedName] || null;
+}
+
+app.get('/api/admin/db/connections', requireAdminAction, async (_req, res) => {
+  const snapshot = await getDbConnectionSnapshot(queryWithTimeout);
+  return res.json({ ok: true, ...snapshot, generated_at: new Date().toISOString() });
+});
+
+app.post('/api/admin/db/reset', requireAdminAction, async (_req, res) => {
+  const poolState = await resetPool();
+  const snapshot = await getDbConnectionSnapshot(queryWithTimeout).catch(() => ({
+    connection_count: Number(poolState.totalCount || 0),
+  }));
+
+  return res.json({
+    ok: true,
+    reset: true,
+    pool: poolState,
+    ...snapshot,
+    generated_at: new Date().toISOString(),
+  });
+});
+
 // Phase 10 — Engine status list
-app.get('/api/admin/engines', requireAdminAction, async (req, res) => {
-  // Infer last run time from table update timestamps where possible
+app.get('/api/admin/engines', requireAdminAction, async (_req, res) => {
   const engines = await Promise.all([
-    { name: 'sessionAggregationEngine', table: 'intraday_1m', tsCol: 'timestamp' },
-    { name: 'premarketWatchlistEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
-    { name: 'premarketIntelligenceEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
-    { name: 'executionEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
-    { name: 'executionRefinementEngine', table: 'premarket_watchlist', tsCol: 'updated_at' },
-    { name: 'liveEvaluationEngine', table: 'signal_log', tsCol: 'evaluated_at' },
+    { name: 'stocksInPlay', table: 'stocks_in_play', tsCol: 'updated_at' },
+    { name: 'opportunity', table: 'opportunities_v2', tsCol: 'updated_at' },
+    { name: 'radar', table: 'strategy_signals', tsCol: 'updated_at' },
   ].map(async (eng) => {
     try {
       const { rows } = await queryWithTimeout(
@@ -11957,10 +12016,10 @@ app.get('/api/admin/engines', requireAdminAction, async (req, res) => {
         { timeoutMs: 5000, label: `admin.engine.${eng.name}`, maxRetries: 0 }
       );
       const lastRun = rows[0]?.last_run ? new Date(rows[0].last_run) : null;
-      const ageMin  = lastRun ? Math.floor((Date.now() - lastRun.getTime()) / 60000) : null;
+      const ageMin = lastRun ? Math.floor((Date.now() - lastRun.getTime()) / 60000) : null;
       return {
         name: eng.name,
-        status:   ageMin !== null && ageMin < 30 ? 'running' : ageMin !== null && ageMin < 120 ? 'stale' : 'unknown',
+        status: ageMin !== null && ageMin < 30 ? 'running' : ageMin !== null && ageMin < 120 ? 'stale' : 'unknown',
         last_run: lastRun?.toISOString() ?? null,
         age_minutes: ageMin,
       };
@@ -11975,23 +12034,50 @@ app.get('/api/admin/engines', requireAdminAction, async (req, res) => {
 // Phase 10 — Run engine now
 app.post('/api/admin/engines/:name/run', requireAdminAction, async (req, res) => {
   const { name } = req.params;
-  const engineMap = {
-    sessionAggregationEngine:     () => require('./engines/sessionAggregationEngine').runSessionAggregation,
-    premarketWatchlistEngine:     () => require('./engines/premarketWatchlistEngine').runPremarketWatchlistEngine,
-    premarketIntelligenceEngine:  () => require('./engines/premarketIntelligenceEngine').runPremarketIntelligenceEngine,
-    executionEngine:              () => require('./engines/executionEngine').runExecutionEngine,
-    executionRefinementEngine:    () => require('./engines/executionRefinementEngine').runExecutionRefinementEngine,
-    liveEvaluationEngine:         () => require('./engines/liveEvaluationEngine').runLiveEvaluationEngine,
-  };
-  const loader = engineMap[name];
+  const loader = getAdminEngineLoader(name);
   if (!loader) return res.status(400).json({ ok: false, error: `Unknown engine: ${name}` });
   try {
-    const fn = loader();
-    setImmediate(() => fn().catch(err => console.error(`[ADMIN] engine run ${name} failed:`, err.message)));
-    return res.json({ ok: true, message: `${name} triggered`, triggered_at: new Date().toISOString() });
+    const result = await loader()();
+    return res.json({ ok: result?.success !== false, engine: name, result, triggered_at: new Date().toISOString() });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+app.post('/api/admin/engine/run', requireAdminAction, async (req, res) => {
+  const name = String(req.query.name || req.body?.name || '').trim();
+  const loader = getAdminEngineLoader(name);
+  if (!loader) {
+    return res.status(400).json({ ok: false, error: `Unknown engine: ${name || 'missing'}` });
+  }
+
+  try {
+    const result = await loader()();
+    return res.json({ ok: result?.success !== false, engine: name, result, triggered_at: new Date().toISOString() });
+  } catch (error) {
+    return res.status(500).json({ ok: false, engine: name, error: error.message });
+  }
+});
+
+app.post('/api/admin/rebuild-all', requireAdminAction, async (_req, res) => {
+  const runStocksInPlay = getAdminEngineLoader('stocksInPlay')();
+  const runOpportunity = getAdminEngineLoader('opportunity')();
+
+  const stocksInPlay = await runStocksInPlay();
+  const opportunity = stocksInPlay?.success === false
+    ? { success: false, rows_processed: 0, error: 'stocksInPlay failed; opportunity rebuild skipped' }
+    : await runOpportunity();
+  const truth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => null);
+
+  return res.json({
+    ok: stocksInPlay?.success !== false && opportunity?.success !== false,
+    runs: {
+      stocksInPlay,
+      opportunity,
+    },
+    truth,
+    rebuilt_at: new Date().toISOString(),
+  });
 });
 
 // Phase 11 — Log viewer

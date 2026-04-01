@@ -363,7 +363,14 @@ async function upsertTradeSignalsBatch(scoredRows) {
 async function runStocksInPlayEngine() {
   if (global.systemBlocked) {
     console.warn('[BLOCKED] stocksInPlayEngine skipped — pipeline unhealthy', { reason: global.systemBlockedReason });
-    return { inserted: 0, blocked: true };
+    return {
+      success: false,
+      rows_processed: 0,
+      error: global.systemBlockedReason || 'SYSTEM_BLOCKED',
+      inserted: 0,
+      count: 0,
+      blocked: true,
+    };
   }
 
   const startedAt = Date.now();
@@ -437,70 +444,26 @@ async function runStocksInPlayEngine() {
     const scoredRows = scoredRowsMaybe.filter(Boolean);
 
     if (!scoredRows.length) {
-      logger.warn('[STOCKS_IN_PLAY] no candidates passed liquidity quality filter');
-      console.log('[FORCED SIGNAL GENERATION]');
-
-      const forcedSignals = [
-        {
-          symbol: 'SPY',
-          strategy: 'FORCED_BREAKOUT',
-          score: 70,
-          price: 500,
-          gap_percent: 0.5,
-          rvol: 2,
-          atr_percent: 1.5,
-          confidence: '70',
-          score_breakdown: { forced: true },
-          float_rotation: 0,
-          liquidity_surge: 0,
-          catalyst_score: 0,
-          sector_score: 0,
-          confirmation_score: 0,
-          narrative: 'Market index trending upward',
-          catalyst_type: 'FORCED_FALLBACK',
-          sector: 'INDEX',
-          signal_explanation: 'Market index trending upward',
-          rationale: 'Breakout above premarket high',
-          catalyst_impact_8h: 0,
-        },
-      ];
-
-      await Promise.all(forcedSignals.map((row) => recordSignal({
-        symbol: row.symbol,
-        setup_type: row.strategy,
-        entry_price: toNumber(row.price, 0),
-        rvol: toNumber(row.rvol, 0),
-        strategy: row.strategy,
-        source_engine: 'stocksInPlayEngine',
-        score: row.score,
-      }).catch(() => null)));
-
-      const inserted = await upsertTradeSignalsBatch(forcedSignals);
-      const stocksInserted = await upsertStocksInPlay(forcedSignals);
-
-      await routeSignalsBatch(forcedSignals.map((row) => ({
-        symbol: row.symbol,
-        strategy: row.strategy,
-        score: row.score,
-        confidence: row.confidence,
-        score_breakdown: row.score_breakdown,
-        narrative: row.narrative,
-        catalyst_type: row.catalyst_type,
-        sector: row.sector,
-        float_rotation: row.float_rotation,
-        liquidity_surge: row.liquidity_surge,
-      })));
-
       const runtimeMs = Date.now() - startedAt;
-      logger.info('[STOCKS_IN_PLAY] forced run complete', {
+      logger.warn('[STOCKS_IN_PLAY] no candidates passed liquidity quality filter');
+      logger.info('[STOCKS_IN_PLAY] run complete', {
         selected: rows.length,
-        upserted: inserted,
-        stocks_in_play_inserted: stocksInserted,
+        upserted: 0,
+        stocks_in_play_inserted: 0,
         boosted: 0,
         runtime_ms: runtimeMs,
       });
-
-      return { selected: rows.length, upserted: inserted, boosted: 0, runtimeMs, forced: true };
+      return {
+        success: true,
+        rows_processed: 0,
+        error: null,
+        selected: rows.length,
+        upserted: 0,
+        inserted: 0,
+        count: 0,
+        boosted: 0,
+        runtimeMs,
+      };
     }
 
     const boosted = scoredRows.filter((r) => r.catalyst_impact_8h > 0).length;
@@ -540,11 +503,32 @@ async function runStocksInPlayEngine() {
       runtime_ms: runtimeMs,
     });
     logger.info('[STOCKS_IN_PLAY_RUNTIME_MS]', { runtime_ms: runtimeMs });
-    return { selected: rows.length, upserted: inserted, boosted, runtimeMs };
+    return {
+      success: true,
+      rows_processed: stocksInserted,
+      error: null,
+      selected: rows.length,
+      upserted: inserted,
+      inserted: stocksInserted,
+      count: stocksInserted,
+      boosted,
+      runtimeMs,
+      symbols: scoredRows.map((row) => row.symbol),
+    };
   } catch (error) {
     const runtimeMs = Date.now() - startedAt;
     logger.error('[ENGINE ERROR] [STOCKS_IN_PLAY] run failed', { error: error.message, runtime_ms: runtimeMs });
-    return { selected: 0, upserted: 0, boosted: 0, runtimeMs, error: error.message };
+    return {
+      success: false,
+      rows_processed: 0,
+      error: error.message,
+      selected: 0,
+      upserted: 0,
+      inserted: 0,
+      count: 0,
+      boosted: 0,
+      runtimeMs,
+    };
   }
 }
 
