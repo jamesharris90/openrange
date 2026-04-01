@@ -201,6 +201,13 @@ async function getTradableUniverse() {
 }
 
 async function startEnginesSequentially() {
+  console.log('⚠️ ENGINE SCHEDULER DISABLED — MANUAL MODE ACTIVE');
+  return {
+    success: true,
+    manual_mode: true,
+    scheduled: false,
+  };
+
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   try {

@@ -86,6 +86,7 @@ const logger = require('./logger');
 const { withRetry } = require('./utils/retry');
 const { runEnvCheck } = require('./utils/envCheck');
 const { getCachedValue, setCachedValue } = require('./utils/responseCache');
+const { getCache: getMemoryCache, setCache: setMemoryCache } = require('./cache/memoryCache');
 const { successResponse, errorResponse } = require('./utils/apiResponse');
 const { normalizeSymbol, mapToProviderSymbol, mapFromProviderSymbol } = require('./utils/symbolMap');
 const { queryWithTimeout, getPoolStats, resetPool } = require('./db/pg');
@@ -100,6 +101,9 @@ const { runFeatureBootstrap } = require('./system/featureBootstrap');
 const { startOrchestrator } = require('./orchestrator/engineOrchestrator');
 
 const { getMarketMode, getModeWindow } = require('./utils/marketMode');
+
+const SYSTEM_MODE = 'MANUAL';
+const MANUAL_MODE = SYSTEM_MODE === 'MANUAL';
 
 // New layered architecture pieces
 const loggingMiddleware = require('./middleware/logging');
@@ -488,6 +492,7 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
+    system_mode: SYSTEM_MODE,
     backendLock: 'localhost:3007',
     port: 3007,
     env: process.env.NODE_ENV || 'development',
@@ -513,15 +518,13 @@ app.get('/api/admin/page-health', async (_req, res) => {
     }
   }
 
-  const [screener, news, earnings, topOpps, sip, fmpQuotes, health] = await Promise.all([
-    probe('/api/screener?tab=gainers&limit=10'),
-    probe('/api/news/latest?limit=5', (d) => (d?.items?.length ?? 0) > 0),
-    probe('/api/earnings/calendar?from=2026-03-30&to=2026-04-03'),
-    probe('/api/intelligence/top-opportunities?limit=5'),
-    probe('/api/stocks-in-play?limit=5'),
-    probe('/api/fmp/quotes?symbols=SPY,QQQ'),
-    probe('/api/health', (d) => d?.status === 'ok'),
-  ]);
+  const screener = await probe('/api/screener?tab=gainers&limit=10');
+  const news = await probe('/api/news/latest?limit=5', (d) => (d?.items?.length ?? 0) > 0);
+  const earnings = await probe('/api/earnings/calendar?from=2026-03-30&to=2026-04-03');
+  const topOpps = await probe('/api/intelligence/top-opportunities?limit=5');
+  const sip = await probe('/api/stocks-in-play?limit=5');
+  const fmpQuotes = await probe('/api/fmp/quotes?symbols=SPY,QQQ');
+  const health = await probe('/api/health', (d) => d?.status === 'ok');
 
   const pages = {
     screener: screener,
@@ -1217,7 +1220,7 @@ app.use('/api', (req, _res, next) => {
 
   app.get('/api/news/latest', async (req, res) => {
     const rawLimit = Number.parseInt(String(req.query.limit || ''), 10);
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : 100;
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : 50;
 
     // Optional filters
     const symbol   = String(req.query.symbol   || '').trim().toUpperCase() || null;
@@ -1227,6 +1230,11 @@ app.use('/api', (req, _res, next) => {
 
     const params = [];
     const where  = [];
+    const cacheKey = `news:${limit}:${symbol || ''}:${type || ''}:${sector || ''}:${catalyst || ''}`;
+    const cached = getMemoryCache(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
 
     if (symbol) {
       params.push(symbol);
@@ -1278,7 +1286,9 @@ app.use('/api', (req, _res, next) => {
     }
 
     if (dbRows && dbRows.length > 0) {
-      return res.json({ ok: true, items: dbRows });
+      const payload = { ok: true, items: dbRows };
+      setMemoryCache(cacheKey, payload, 60000);
+      return res.json(payload);
     }
 
     // FMP fallback when DB unavailable or empty
@@ -1307,10 +1317,14 @@ app.use('/api', (req, _res, next) => {
         news_score: null,
         catalyst_type: 'NEWS',
       }));
-      return res.json({ ok: true, items: fmpItems, source: 'fmp_direct' });
+      const payload = { ok: true, items: fmpItems, source: 'fmp_direct' };
+      setMemoryCache(cacheKey, payload, 60000);
+      return res.json(payload);
     } catch (fmpErr) {
       logger.error('news latest FMP fallback failed', { error: fmpErr.message });
-      return res.json({ ok: true, items: [] });
+      const payload = { ok: true, items: [] };
+      setMemoryCache(cacheKey, payload, 60000);
+      return res.json(payload);
     }
   });
 
@@ -1943,7 +1957,8 @@ app.get('/api/system/health', async (_req, res) => {
   return res.json({
     ...core,
     status: pipelineStatus === 'HEALTHY' ? 'ok' : 'degraded',
-    scheduler_status: global.systemBlocked ? 'blocked' : 'running',
+    scheduler_status: MANUAL_MODE ? 'manual' : (global.systemBlocked ? 'blocked' : 'running'),
+    system_mode: SYSTEM_MODE,
     uptime_seconds: Math.floor(process.uptime()),
     pipeline_status: pipelineStatus,
     daily_status,
@@ -7581,6 +7596,11 @@ async function getScreenerCoverageReadiness() {
 app.get('/api/screener', async (req, res) => {
   const reqStart   = Date.now();
   const marketCtx  = getMarketMode();
+  const screenerCacheKey = `screener:${JSON.stringify(req.query || {})}`;
+  const cached = getMemoryCache(screenerCacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
   // In PREP/RECENT, lower the required coverage so market-closed periods still show data
   const requiredCoverage = marketCtx.mode === 'LIVE' ? 0.7 : marketCtx.mode === 'RECENT' ? 0.3 : 0.1;
 
@@ -7608,10 +7628,8 @@ app.get('/api/screener', async (req, res) => {
         const key = process.env.FMP_API_KEY;
         let fmpRows = [];
         try {
-          const [gainers, actives] = await Promise.all([
-            axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${key}`, { timeout: 7000 }).then(r => r.data || []).catch(() => []),
-            axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${key}`, { timeout: 7000 }).then(r => r.data || []).catch(() => []),
-          ]);
+          const gainers = await axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${key}`, { timeout: 7000 }).then(r => r.data || []).catch(() => []);
+          const actives = await axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${key}`, { timeout: 7000 }).then(r => r.data || []).catch(() => []);
           const seen = new Set();
           const all = [...gainers, ...actives].filter(r => { const s = String(r.symbol||'').toUpperCase(); if(!s||seen.has(s)) return false; seen.add(s); return true; });
           fmpRows = all.slice(0, 100).map((r, i) => ({
@@ -7631,7 +7649,7 @@ app.get('/api/screener', async (req, res) => {
           console.error('[SCREENER] FMP fallback also failed:', fmpErr.message);
         }
 
-        return res.json({
+        const payload = {
           success: fmpRows.length > 0,
           count: fmpRows.length,
           rows: fmpRows,
@@ -7640,7 +7658,9 @@ app.get('/api/screener', async (req, res) => {
           market_reason: marketCtx.reason,
           status: fmpRows.length > 0 ? 'FMP_DIRECT' : 'NO_DATA',
           source: 'fmp_direct',
-        });
+        };
+        setMemoryCache(screenerCacheKey, payload, 60000);
+        return res.json(payload);
       } catch (fbErr) {
         console.error('[SCREENER] fallback handler error:', fbErr.message);
         return res.json({ success: false, rows: [], data: [], count: 0, status: 'READINESS_CHECK_FAILED', detail: fbErr.message, market_mode: marketCtx.mode });
@@ -7651,7 +7671,7 @@ app.get('/api/screener', async (req, res) => {
     const { rows, totalCount, page, pageSize } = await loadScreenerRows(req.query || {});
     console.log(`[SCREENER] loaded ${rows.length}/${totalCount} rows in ${Date.now() - reqStart}ms`);
     logResponseShape('/api/screener', rows, ['symbol', 'price', 'change_percent', 'volume', 'avg_volume_30d', 'relative_volume', 'market_cap', 'sector', 'catalyst_type']);
-    res.json({
+    const payload = {
       success: true,
       count: totalCount,
       page,
@@ -7660,7 +7680,9 @@ app.get('/api/screener', async (req, res) => {
       data: rows,
       market_mode: marketCtx.mode,
       market_reason: marketCtx.reason,
-    });
+    };
+    setMemoryCache(screenerCacheKey, payload, 60000);
+    res.json(payload);
   } catch (error) {
     console.error('[SCREENER] unhandled error after', Date.now() - reqStart, 'ms:', error.message);
     console.error('[SCREENER] stack:', error.stack);
@@ -12004,11 +12026,12 @@ app.post('/api/admin/db/reset', requireAdminAction, async (_req, res) => {
 
 // Phase 10 — Engine status list
 app.get('/api/admin/engines', requireAdminAction, async (_req, res) => {
-  const engines = await Promise.all([
+  const engines = [];
+  for (const eng of [
     { name: 'stocksInPlay', table: 'stocks_in_play', tsCol: 'updated_at' },
     { name: 'opportunity', table: 'opportunities_v2', tsCol: 'updated_at' },
     { name: 'radar', table: 'strategy_signals', tsCol: 'updated_at' },
-  ].map(async (eng) => {
+  ]) {
     try {
       const { rows } = await queryWithTimeout(
         `SELECT MAX("${eng.tsCol}") AS last_run FROM ${eng.table}`,
@@ -12017,16 +12040,16 @@ app.get('/api/admin/engines', requireAdminAction, async (_req, res) => {
       );
       const lastRun = rows[0]?.last_run ? new Date(rows[0].last_run) : null;
       const ageMin = lastRun ? Math.floor((Date.now() - lastRun.getTime()) / 60000) : null;
-      return {
+      engines.push({
         name: eng.name,
         status: ageMin !== null && ageMin < 30 ? 'running' : ageMin !== null && ageMin < 120 ? 'stale' : 'unknown',
         last_run: lastRun?.toISOString() ?? null,
         age_minutes: ageMin,
-      };
+      });
     } catch {
-      return { name: eng.name, status: 'unknown', last_run: null, age_minutes: null };
+      engines.push({ name: eng.name, status: 'unknown', last_run: null, age_minutes: null });
     }
-  }));
+  }
 
   return res.json({ ok: true, engines, generated_at: new Date().toISOString() });
 });
@@ -12062,22 +12085,35 @@ app.post('/api/admin/engine/run', requireAdminAction, async (req, res) => {
 app.post('/api/admin/rebuild-all', requireAdminAction, async (_req, res) => {
   const runStocksInPlay = getAdminEngineLoader('stocksInPlay')();
   const runOpportunity = getAdminEngineLoader('opportunity')();
+  const steps = [];
 
-  const stocksInPlay = await runStocksInPlay();
-  const opportunity = stocksInPlay?.success === false
-    ? { success: false, rows_processed: 0, error: 'stocksInPlay failed; opportunity rebuild skipped' }
-    : await runOpportunity();
-  const truth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => null);
+  try {
+    const stocksInPlay = await runStocksInPlay();
+    steps.push({ step: 'stocksInPlay', success: stocksInPlay?.success !== false, rows: Number(stocksInPlay?.rows_processed || 0), error: stocksInPlay?.error || null });
 
-  return res.json({
-    ok: stocksInPlay?.success !== false && opportunity?.success !== false,
-    runs: {
-      stocksInPlay,
-      opportunity,
-    },
-    truth,
-    rebuilt_at: new Date().toISOString(),
-  });
+    let opportunity;
+    if (stocksInPlay?.success === false) {
+      opportunity = { success: false, rows_processed: 0, error: 'stocksInPlay failed; opportunity rebuild skipped' };
+    } else {
+      opportunity = await runOpportunity();
+    }
+    steps.push({ step: 'opportunity', success: opportunity?.success !== false, rows: Number(opportunity?.rows_processed || 0), error: opportunity?.error || null });
+
+    const truth = await getCanonicalTruthSnapshot(queryWithTimeout).catch(() => null);
+    return res.json({
+      success: steps.every((step) => step.success),
+      steps,
+      truth,
+      rebuilt_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    steps.push({ step: 'rebuild-all', success: false, rows: 0, error: error.message });
+    return res.status(500).json({
+      success: false,
+      steps,
+      rebuilt_at: new Date().toISOString(),
+    });
+  }
 });
 
 // Phase 11 — Log viewer
@@ -12088,28 +12124,26 @@ app.get('/api/admin/logs', requireAdminAction, async (req, res) => {
 
   try {
     // Pull from system_logs if it exists, fall back to signal_log errors
-    const [sysLogs, evalErrors] = await Promise.all([
-      queryWithTimeout(
-        `SELECT 'SYSTEM' AS source, level, message, engine AS label, created_at
-         FROM system_logs
-         ${safeFilter ? `WHERE level = '${safeFilter}' OR engine ILIKE '%${safeFilter}%'` : ''}
-         ORDER BY created_at DESC LIMIT 60`,
-        [],
-        { timeoutMs: 8000, label: 'admin.logs.system', maxRetries: 0 }
-      ).catch(() => ({ rows: [] })),
-      queryWithTimeout(
-        `SELECT 'EVAL' AS source, 'ERROR' AS level,
-                CONCAT('[EVAL_ERROR] signal ', id::text, ' (', symbol, ') outcome=', COALESCE(outcome,'?')) AS message,
-                'liveEvaluationEngine' AS label,
-                COALESCE(evaluated_at, timestamp) AS created_at
-         FROM signal_log
-         WHERE outcome = 'ERROR'
-           ${safeFilter && safeFilter !== 'EVAL' && safeFilter !== 'ERROR' ? 'AND FALSE' : ''}
-         ORDER BY created_at DESC LIMIT 40`,
-        [],
-        { timeoutMs: 8000, label: 'admin.logs.eval_errors', maxRetries: 0 }
-      ).catch(() => ({ rows: [] })),
-    ]);
+    const sysLogs = await queryWithTimeout(
+      `SELECT 'SYSTEM' AS source, level, message, engine AS label, created_at
+       FROM system_logs
+       ${safeFilter ? `WHERE level = '${safeFilter}' OR engine ILIKE '%${safeFilter}%'` : ''}
+       ORDER BY created_at DESC LIMIT 60`,
+      [],
+      { timeoutMs: 8000, label: 'admin.logs.system', maxRetries: 0 }
+    ).catch(() => ({ rows: [] }));
+    const evalErrors = await queryWithTimeout(
+      `SELECT 'EVAL' AS source, 'ERROR' AS level,
+              CONCAT('[EVAL_ERROR] signal ', id::text, ' (', symbol, ') outcome=', COALESCE(outcome,'?')) AS message,
+              'liveEvaluationEngine' AS label,
+              COALESCE(evaluated_at, timestamp) AS created_at
+       FROM signal_log
+       WHERE outcome = 'ERROR'
+         ${safeFilter && safeFilter !== 'EVAL' && safeFilter !== 'ERROR' ? 'AND FALSE' : ''}
+       ORDER BY created_at DESC LIMIT 40`,
+      [],
+      { timeoutMs: 8000, label: 'admin.logs.eval_errors', maxRetries: 0 }
+    ).catch(() => ({ rows: [] }));
 
     const combined = [...sysLogs.rows, ...evalErrors.rows]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -12708,6 +12742,11 @@ function ensureFullUniverseRefreshScheduler() {
 async function bootstrapEngines() {
   console.log('[SYSTEM] Bootstrapping engines...');
 
+  if (MANUAL_MODE) {
+    console.log('⚠️ ENGINE SCHEDULER DISABLED — MANUAL MODE ACTIVE');
+    return;
+  }
+
   if (SAFE_MODE) {
     console.log('[SYSTEM] SAFE_MODE active - engine bootstrap skipped');
     return;
@@ -12960,6 +12999,11 @@ async function bootstrapEngines() {
 
 async function bootstrapBackgroundServices() {
   try {
+    if (MANUAL_MODE) {
+      console.log('⚠️ ENGINE SCHEDULER DISABLED — MANUAL MODE ACTIVE');
+      return;
+    }
+
     console.log('[BOOT] Starting background services');
     // Start ingestion scheduler and health monitor immediately — these register
     // cron jobs and don't block on DB migrations. Must start before bootstrapEngines()
@@ -13002,6 +13046,7 @@ async function bootstrapBackgroundServices() {
 }
 
 function shouldBootstrapBackgroundServices() {
+  if (MANUAL_MODE) return false;
   if (SAFE_MODE) return false;
   if (process.env.ENABLE_BACKGROUND_SERVICES === 'true') return true;
   if (process.env.ENABLE_BACKGROUND_SERVICES === 'false') return false;
@@ -13010,6 +13055,7 @@ function shouldBootstrapBackgroundServices() {
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log('🟢 SYSTEM RUNNING IN MANUAL LOW-LOAD MODE');
   console.log('[BOOT] HTTP server is live');
   logger.info(`OpenRange server listening on port ${PORT}`);
 
@@ -13019,36 +13065,40 @@ const server = app.listen(PORT, () => {
     }
   });
 
-  setImmediate(() => {
-    initDatabase()
-      .then(async () => {
-        // [PIPELINE] Log freshness of key data tables on startup
-        try {
-          const { rows: freshRows } = await queryWithTimeout(
-            `SELECT
-               (SELECT COUNT(*)::int FROM market_metrics WHERE COALESCE(updated_at, last_updated) >= NOW() - INTERVAL '15 minutes') AS metrics_fresh,
-               (SELECT COUNT(*)::int FROM market_metrics) AS metrics_total,
-               (SELECT COUNT(*)::int FROM intraday_1m WHERE "timestamp" >= NOW() - INTERVAL '2 hours') AS intraday_fresh,
-               (SELECT COUNT(*)::int FROM intraday_1m) AS intraday_total,
-               (SELECT MAX(COALESCE(updated_at, last_updated)) FROM market_quotes) AS quotes_last_updated,
-               (SELECT COUNT(*)::int FROM market_quotes WHERE price > 0) AS quotes_with_price`,
-            [],
-            { label: 'boot.pipeline.freshness', timeoutMs: 8000, maxRetries: 0, poolType: 'read' }
-          );
-          const r = freshRows?.[0] || {};
-          console.log('[PIPELINE] startup freshness check:',
-            `metrics ${r.metrics_fresh}/${r.metrics_total} fresh,`,
-            `intraday ${r.intraday_fresh}/${r.intraday_total} recent,`,
-            `quotes last_updated=${r.quotes_last_updated || 'null'} (${r.quotes_with_price} with price)`
-          );
-        } catch (freshnessErr) {
-          console.warn('[PIPELINE] freshness check failed at boot:', freshnessErr.message);
-        }
-      })
-      .catch((error) => {
-        logger.error('[SYSTEM] initDatabase failed', { error: error.message });
-      });
-  });
+  if (MANUAL_MODE) {
+    console.log('[BOOT] initDatabase skipped (manual mode)');
+  } else {
+    setImmediate(() => {
+      initDatabase()
+        .then(async () => {
+          // [PIPELINE] Log freshness of key data tables on startup
+          try {
+            const { rows: freshRows } = await queryWithTimeout(
+              `SELECT
+                 (SELECT COUNT(*)::int FROM market_metrics WHERE COALESCE(updated_at, last_updated) >= NOW() - INTERVAL '15 minutes') AS metrics_fresh,
+                 (SELECT COUNT(*)::int FROM market_metrics) AS metrics_total,
+                 (SELECT COUNT(*)::int FROM intraday_1m WHERE "timestamp" >= NOW() - INTERVAL '2 hours') AS intraday_fresh,
+                 (SELECT COUNT(*)::int FROM intraday_1m) AS intraday_total,
+                 (SELECT MAX(COALESCE(updated_at, last_updated)) FROM market_quotes) AS quotes_last_updated,
+                 (SELECT COUNT(*)::int FROM market_quotes WHERE price > 0) AS quotes_with_price`,
+              [],
+              { label: 'boot.pipeline.freshness', timeoutMs: 8000, maxRetries: 0, poolType: 'read' }
+            );
+            const r = freshRows?.[0] || {};
+            console.log('[PIPELINE] startup freshness check:',
+              `metrics ${r.metrics_fresh}/${r.metrics_total} fresh,`,
+              `intraday ${r.intraday_fresh}/${r.intraday_total} recent,`,
+              `quotes last_updated=${r.quotes_last_updated || 'null'} (${r.quotes_with_price} with price)`
+            );
+          } catch (freshnessErr) {
+            console.warn('[PIPELINE] freshness check failed at boot:', freshnessErr.message);
+          }
+        })
+        .catch((error) => {
+          logger.error('[SYSTEM] initDatabase failed', { error: error.message });
+        });
+    });
+  }
 
   if (shouldBootstrapBackgroundServices()) {
     setImmediate(() => {
@@ -13059,12 +13109,16 @@ const server = app.listen(PORT, () => {
   }
 });
 
-(async () => {
-  try {
-    console.log('[ENGINE BOOT] starting engines...');
-    await startEngines();
-    console.log('[ENGINE BOOT] engines started');
-  } catch (e) {
-    console.error('[ENGINE BOOT ERROR]', e.message);
-  }
-})();
+if (!MANUAL_MODE) {
+  (async () => {
+    try {
+      console.log('[ENGINE BOOT] starting engines...');
+      await startEngines();
+      console.log('[ENGINE BOOT] engines started');
+    } catch (e) {
+      console.error('[ENGINE BOOT ERROR]', e.message);
+    }
+  })();
+} else {
+  console.log('⚠️ ENGINE SCHEDULER DISABLED — MANUAL MODE ACTIVE');
+}
