@@ -1,5 +1,10 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { isLegacySystemDisabled, getRuntimeMode } = require('../system/runtimeMode');
+
+const SCHEMA_RETRY_COOLDOWN_MS = 10 * 60 * 1000;
+let catalystSchemaReady = false;
+let catalystSchemaLastFailureAt = 0;
 
 const TICKER_REGEX = /\b[A-Z]{2,5}\b/g;
 const FALSE_POSITIVE_TOKENS = new Set([
@@ -86,7 +91,16 @@ function extractTickers(headline, validSymbolsSet) {
 }
 
 async function ensureNewsCatalystsTable() {
-  await queryWithTimeout(
+  if (catalystSchemaReady) {
+    return true;
+  }
+
+  if (catalystSchemaLastFailureAt && (Date.now() - catalystSchemaLastFailureAt) < SCHEMA_RETRY_COOLDOWN_MS) {
+    return false;
+  }
+
+  try {
+    await queryWithTimeout(
     `CREATE TABLE IF NOT EXISTS news_catalysts (
       id BIGSERIAL PRIMARY KEY,
       symbol TEXT NOT NULL,
@@ -101,42 +115,55 @@ async function ensureNewsCatalystsTable() {
       UNIQUE(symbol, catalyst_type, headline, published_at)
     )`,
     [],
-    { timeoutMs: 7000, label: 'engines.catalyst.ensure_table', maxRetries: 0 }
-  );
+    { timeoutMs: 2500, label: 'engines.catalyst.ensure_table', maxRetries: 0 }
+    );
+    catalystSchemaReady = true;
+    catalystSchemaLastFailureAt = 0;
+    return true;
+  } catch (error) {
+    catalystSchemaLastFailureAt = Date.now();
+    logger.warn('[CATALYST_ENGINE] ensure table timed out; running in read-only mode', { error: error.message });
+    return false;
+  }
 }
 
 async function getValidSymbolsSet() {
-  const { rows } = await queryWithTimeout(
-    `SELECT DISTINCT UPPER(symbol) AS symbol
-     FROM market_quotes
-     WHERE symbol ~ '^[A-Z]{2,5}$'`,
-    [],
-    { timeoutMs: 7000, label: 'engines.catalyst.market_quotes_symbols', maxRetries: 0 }
-  );
-  return new Set(rows.map((row) => row.symbol).filter(Boolean));
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT DISTINCT UPPER(symbol) AS symbol
+       FROM market_quotes
+       WHERE symbol ~ '^[A-Z]{2,5}$'`,
+      [],
+      { timeoutMs: 4000, label: 'engines.catalyst.market_quotes_symbols', maxRetries: 0 }
+    );
+    return new Set(rows.map((row) => row.symbol).filter(Boolean));
+  } catch (error) {
+    logger.warn('[CATALYST_ENGINE] symbol universe query timed out; using empty fallback', { error: error.message });
+    return new Set();
+  }
 }
 
 async function getCandidateHeadlines() {
-  const { rows } = await queryWithTimeout(
-    `SELECT id, headline, source, published_at, NULL::text AS symbol, 'news_articles'::text AS source_table
-     FROM news_articles
-     WHERE published_at >= NOW() - interval '72 hours'
-       AND headline IS NOT NULL
-       AND LENGTH(TRIM(headline)) > 0
-
-     UNION ALL
-
-     SELECT id, headline, source, published_at, UPPER(symbol) AS symbol, 'intel_news'::text AS source_table
-     FROM intel_news
-     WHERE published_at >= NOW() - interval '72 hours'
-       AND headline IS NOT NULL
-       AND LENGTH(TRIM(headline)) > 0
-
-     ORDER BY published_at DESC`,
-    [],
-    { timeoutMs: 10000, label: 'engines.catalyst.news_articles_recent', maxRetries: 0 }
-  );
-  return rows;
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT
+         source_id,
+         headline,
+         source,
+         published_at,
+         symbol,
+         source_table
+       FROM latest_news_cache
+       ORDER BY published_at DESC
+       LIMIT 50`,
+      [],
+      { timeoutMs: 2500, label: 'engines.catalyst.latest_news_cache', maxRetries: 0 }
+    );
+    return rows;
+  } catch (error) {
+    logger.warn('[CATALYST_ENGINE] cached headline query unavailable; using empty fallback', { error: error.message });
+    return [];
+  }
 }
 
 function buildCatalystRows(newsRows, validSymbolsSet) {
@@ -176,55 +203,76 @@ async function upsertCatalysts(catalystRows) {
   let upserted = 0;
 
   for (const row of catalystRows) {
-    const result = await queryWithTimeout(
-      `INSERT INTO news_catalysts (
-         symbol,
-         catalyst_type,
-         headline,
-         source,
-         sentiment,
-         impact_score,
-         published_at,
-         updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-       ON CONFLICT (symbol, catalyst_type, headline, published_at)
-       DO UPDATE SET
-         source = EXCLUDED.source,
-         sentiment = EXCLUDED.sentiment,
-         impact_score = EXCLUDED.impact_score,
-         updated_at = NOW()`,
-      [
-        row.symbol,
-        row.catalyst_type,
-        row.headline,
-        row.source,
-        row.sentiment,
-        row.impact_score,
-        row.published_at,
-      ],
-      { timeoutMs: 7000, label: 'engines.catalyst.upsert', maxRetries: 0 }
-    );
-    upserted += result.rowCount || 0;
+    try {
+      const result = await queryWithTimeout(
+        `INSERT INTO news_catalysts (
+           symbol,
+           catalyst_type,
+           headline,
+           source,
+           sentiment,
+           impact_score,
+           published_at,
+           updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (symbol, catalyst_type, headline, published_at)
+         DO UPDATE SET
+           source = EXCLUDED.source,
+           sentiment = EXCLUDED.sentiment,
+           impact_score = EXCLUDED.impact_score,
+           updated_at = NOW()`,
+        [
+          row.symbol,
+          row.catalyst_type,
+          row.headline,
+          row.source,
+          row.sentiment,
+          row.impact_score,
+          row.published_at,
+        ],
+        { timeoutMs: 5000, label: 'engines.catalyst.upsert', maxRetries: 0 }
+      );
+      upserted += result.rowCount || 0;
+    } catch (error) {
+      logger.warn('[CATALYST_ENGINE] upsert skipped for row', {
+        symbol: row.symbol,
+        error: error.message,
+      });
+    }
   }
 
   return upserted;
 }
 
 async function runCatalystEngine() {
-  await ensureNewsCatalystsTable();
+  if (isLegacySystemDisabled()) {
+    const result = {
+      success: true,
+      rows_processed: 0,
+      error: null,
+      skipped: true,
+      mode: getRuntimeMode(),
+    };
+    logger.info('[CATALYST_ENGINE] skipped in v2/manual mode', result);
+    return result;
+  }
 
-  const [validSymbolsSet, newsRows] = await Promise.all([
-    getValidSymbolsSet(),
-    getCandidateHeadlines(),
-  ]);
+  const schemaReady = await ensureNewsCatalystsTable();
+
+  const validSymbolsSet = await getValidSymbolsSet();
+  const newsRows = await getCandidateHeadlines();
 
   const { catalystRows, tickersDetected } = buildCatalystRows(newsRows, validSymbolsSet);
-  const upserted = await upsertCatalysts(catalystRows);
+  const upserted = schemaReady ? await upsertCatalysts(catalystRows) : 0;
 
   const result = {
+    success: true,
+    rows_processed: upserted,
+    error: null,
     headlinesParsed: newsRows.length,
     tickersDetected,
     catalystsStored: upserted,
+    skippedWrites: !schemaReady,
   };
 
   logger.info('[CATALYST_ENGINE] run complete', result);

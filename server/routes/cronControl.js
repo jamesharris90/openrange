@@ -5,6 +5,7 @@ const { runCatalystEngine } = require('../engines/catalystEngine');
 const { runEarningsEngine } = require('../engines/earningsEngine');
 const { runOpportunityIntelligenceEngine } = require('../engines/opportunityIntelligenceEngine');
 const { logCron } = require('../system/cronMonitor');
+const { isLegacySystemDisabled, getRuntimeMode } = require('../system/runtimeMode');
 
 const router = express.Router();
 
@@ -68,6 +69,15 @@ async function runWithTrace(engine, runner) {
 }
 
 router.post('/run-all', async (_req, res) => {
+  if (isLegacySystemDisabled()) {
+    return res.status(503).json({
+      success: false,
+      error: 'LEGACY_SYSTEM_DISABLED',
+      mode: getRuntimeMode(),
+      runs: [],
+    });
+  }
+
   const runs = [];
   runs.push(await runWithTrace('stocks-in-play', runStocksInPlayEngine));
   runs.push(await runWithTrace('catalyst', runCatalystEngine));

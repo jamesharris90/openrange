@@ -23,7 +23,7 @@ const poolWrite = Object.freeze(createPoolFacade());
 
 const dbContext = new AsyncLocalStorage();
 
-console.log(`DB pool configured: shared(max=${sharedQuery.getStats().maxConnections}) idle=30s timeout=2s`);
+console.log(`DB pool configured: shared(max=${sharedQuery.getStats().maxConnections}) idle=5s timeout=2s`);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

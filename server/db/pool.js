@@ -60,6 +60,7 @@ function createLimiter(maxConcurrent) {
 const maxConnections = Math.max(1, Math.min(Number(process.env.DB_POOL_MAX || 1), 10));
 const connectionTimeoutMs = 2000;
 const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
+const idleTimeoutMs = Math.max(1000, Number(process.env.PG_IDLE_TIMEOUT_MS || 5000));
 const shouldUseSsl = process.env.PGSSL_DISABLE !== 'true';
 
 function maskDbUrl(rawUrl) {
@@ -94,9 +95,10 @@ function createRawPool(state) {
     connectionString: resolved.dbUrl,
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
     max: maxConnections,
-    idleTimeoutMillis: 30000,
+    idleTimeoutMillis: idleTimeoutMs,
     connectionTimeoutMillis: connectionTimeoutMs,
     statement_timeout: Number.isFinite(statementTimeoutMs) && statementTimeoutMs > 0 ? statementTimeoutMs : 10000,
+    application_name: process.env.PG_APP_NAME || 'openrange-v2-manual',
   });
 
   state.rawPool = rawPool;
@@ -117,7 +119,7 @@ function createRawPool(state) {
   });
 
   if (!isTestRuntime) {
-    console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled})`);
+    console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled}, idle=${idleTimeoutMs}ms)`);
   }
 
   return rawPool;

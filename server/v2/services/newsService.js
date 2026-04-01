@@ -1,17 +1,21 @@
-const fs = require('fs');
-const path = require('path');
-const { queryWithTimeout } = require('../../db/pg');
-
-const newsSql = fs.readFileSync(path.join(__dirname, '..', 'queries', 'news.sql'), 'utf8');
+const { supabaseAdmin } = require('../../services/supabaseClient');
 
 async function getNewsRows() {
-  const result = await queryWithTimeout(newsSql, [], {
-    timeoutMs: 4000,
-    label: 'v2.news',
-    maxRetries: 0,
-  });
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client unavailable');
+  }
 
-  return (result.rows || []).map((row) => ({
+  const { data, error } = await supabaseAdmin
+    .from('latest_news_cache')
+    .select('symbol, headline, source, published_at')
+    .order('published_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message || 'Failed to load latest news cache');
+  }
+
+  return (data || []).map((row) => ({
     symbol: row.symbol || null,
     headline: row.headline || null,
     source: row.source || null,
