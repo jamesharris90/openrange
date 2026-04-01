@@ -28,7 +28,8 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard",         label: "Dashboard",         icon: LayoutDashboard },
   { href: "/trading-terminal",  label: "Terminal",          icon: Gauge           },
-  { href: "/screener",          label: "Screener",          icon: Radar           },
+  { href: "/screener-v2",       label: "Screener",          icon: Radar           },
+  { href: "/screener",          label: "Legacy Screener (Do Not Use)", icon: Radar },
   { href: "/stocks-in-play",    label: "Stocks In Play",    icon: Flame           },
   { href: "/catalyst-scanner",  label: "Catalyst Scanner",  icon: Scan            },
   { href: "/stocks",            label: "Stocks",            icon: TrendingUp      },

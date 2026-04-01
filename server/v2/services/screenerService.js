@@ -15,9 +15,32 @@ function normalizeScreenerRow(row) {
     volume: toNumber(row.volume),
     rvol: toNumber(row.rvol),
     gap_percent: toNumber(row.gap_percent),
+    latest_news_at: row.latest_news_at || null,
+    earnings_date: row.earnings_date || null,
     sector: row.sector || null,
     updated_at: row.updated_at || null,
   };
+}
+
+function normalizeSymbol(value) {
+  return typeof value === 'string' && value.trim() ? value.trim().toUpperCase() : null;
+}
+
+function resolveLatestTimestamp(currentValue, nextValue) {
+  if (!nextValue) return currentValue || null;
+  if (!currentValue) return nextValue;
+
+  const currentTime = Date.parse(currentValue);
+  const nextTime = Date.parse(nextValue);
+  if (Number.isNaN(nextTime)) return currentValue;
+  if (Number.isNaN(currentTime)) return nextValue;
+  return nextTime > currentTime ? nextValue : currentValue;
+}
+
+function resolveEarliestDate(currentValue, nextValue) {
+  if (!nextValue) return currentValue || null;
+  if (!currentValue) return nextValue;
+  return nextValue < currentValue ? nextValue : currentValue;
 }
 
 function dedupeBySymbol(rows) {
@@ -62,6 +85,8 @@ async function fetchStableFallbackQuote() {
       volume: toNumber(quote.volume),
       rvol: null,
       gap_percent: null,
+      latest_news_at: null,
+      earnings_date: null,
       sector: quote.sector || null,
       updated_at: quote.updatedAt || quote.timestamp || null,
     },
@@ -132,23 +157,93 @@ async function getScreenerRows() {
     throw new Error(universeResult.error.message || 'Failed to load ticker universe');
   }
 
+  const newsCutoff = new Date(Date.now() - (72 * 60 * 60 * 1000)).toISOString();
+
+  const newsArticlesResult = await supabaseAdmin
+    .from('news_articles')
+    .select('symbol, headline, published_at')
+    .in('symbol', symbols)
+    .gte('published_at', newsCutoff)
+    .not('headline', 'is', null)
+    .order('published_at', { ascending: false })
+    .limit(500);
+
+  if (newsArticlesResult.error) {
+    throw new Error(newsArticlesResult.error.message || 'Failed to load screener news_articles');
+  }
+
+  const intelNewsResult = await supabaseAdmin
+    .from('intel_news')
+    .select('symbol, headline, source, published_at')
+    .in('symbol', symbols)
+    .gte('published_at', newsCutoff)
+    .not('headline', 'is', null)
+    .neq('source', 'earnings_events')
+    .order('published_at', { ascending: false })
+    .limit(500);
+
+  if (intelNewsResult.error) {
+    throw new Error(intelNewsResult.error.message || 'Failed to load screener intel_news');
+  }
+
+  const todayDate = new Date().toISOString().slice(0, 10);
+
+  const earningsResult = await supabaseAdmin
+    .from('earnings_events')
+    .select('symbol, earnings_date, report_date')
+    .in('symbol', symbols)
+    .gte('report_date', todayDate)
+    .order('report_date', { ascending: true })
+    .limit(300);
+
+  if (earningsResult.error) {
+    throw new Error(earningsResult.error.message || 'Failed to load screener earnings_events');
+  }
+
   const metricsBySymbol = new Map((metricsResult.data || []).map((row) => [row.symbol, row]));
   const sipBySymbol = new Map((sipResult.data || []).map((row) => [row.symbol, row]));
   const sectorBySymbol = new Map((universeResult.data || []).map((row) => [row.symbol, row]));
+  const latestNewsBySymbol = new Map();
+  const earningsBySymbol = new Map();
+
+  for (const row of newsArticlesResult.data || []) {
+    const symbol = normalizeSymbol(row.symbol);
+    const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
+    if (!symbol || !headline || !row.published_at) continue;
+    latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), row.published_at));
+  }
+
+  for (const row of intelNewsResult.data || []) {
+    const symbol = normalizeSymbol(row.symbol);
+    const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
+    if (!symbol || !headline || !row.published_at) continue;
+    if (/\bearnings event\b/i.test(headline)) continue;
+    latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), row.published_at));
+  }
+
+  for (const row of earningsResult.data || []) {
+    const symbol = normalizeSymbol(row.symbol);
+    const earningsDate = row.earnings_date || row.report_date || null;
+    if (!symbol || !earningsDate) continue;
+    earningsBySymbol.set(symbol, resolveEarliestDate(earningsBySymbol.get(symbol), earningsDate));
+  }
 
   const rows = quoteRows
     .map((quote) => {
       const metrics = metricsBySymbol.get(quote.symbol) || {};
       const stocksInPlay = sipBySymbol.get(quote.symbol) || {};
       const universe = sectorBySymbol.get(quote.symbol) || {};
+      const symbol = normalizeSymbol(quote.symbol);
 
       return normalizeScreenerRow({
-        symbol: quote.symbol,
+        symbol,
         price: quote.price ?? metrics.price ?? null,
         change_percent: quote.change_percent ?? metrics.change_percent ?? null,
         volume: quote.volume ?? metrics.volume ?? null,
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
         gap_percent: stocksInPlay.gap_percent ?? metrics.gap_percent ?? null,
+        latest_news_at: symbol ? latestNewsBySymbol.get(symbol) || null : null,
+        earnings_date: symbol ? earningsBySymbol.get(symbol) || null : null,
         sector: quote.sector ?? universe.sector ?? null,
         updated_at: quote.updated_at ?? metrics.updated_at ?? metrics.last_updated ?? stocksInPlay.detected_at ?? null,
       });
