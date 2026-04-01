@@ -32,11 +32,11 @@ async function fetchRadarData() {
 
   const [market_summary, stocks_in_play, momentum_leaders, news_catalysts, a_plus_setups] =
     await Promise.all([
-      safeQuery('radar.market_summary', 'SELECT * FROM radar_market_summary'),
-      safeQuery('radar.stocks_in_play', 'SELECT * FROM radar_stocks_in_play'),
-      safeQuery('radar.momentum', 'SELECT * FROM radar_momentum'),
-      safeQuery('radar.news', 'SELECT * FROM radar_news'),
-      safeQuery('radar.a_setups', 'SELECT * FROM radar_a_setups'),
+      safeQuery('radar.market_summary', 'SELECT * FROM radar_market_summary LIMIT 50'),
+      safeQuery('radar.stocks_in_play', 'SELECT * FROM radar_stocks_in_play LIMIT 200'),
+      safeQuery('radar.momentum', 'SELECT * FROM radar_momentum LIMIT 100'),
+      safeQuery('radar.news', 'SELECT * FROM radar_news LIMIT 100'),
+      safeQuery('radar.a_setups', 'SELECT * FROM radar_a_setups LIMIT 100'),
     ]);
 
   const totalRows =

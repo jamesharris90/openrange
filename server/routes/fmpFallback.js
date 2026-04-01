@@ -291,7 +291,6 @@ router.get('/fmp/movers', async (req, res) => {
       volume: Number(r.volume) || 0,
       relative_volume: r.avgVolume > 0 ? Number(r.volume) / Number(r.avgVolume) : 1,
       confidence: Math.max(30, 90 - i * 3),
-      expected_move_percent: Math.abs(Number(r.changesPercentage || r.changePercentage)) || 0,
       why_moving: `${r.name || r.symbol} ${Number(r.changesPercentage) > 0 ? 'up' : 'down'} ${Math.abs(Number(r.changesPercentage || 0)).toFixed(1)}% on elevated volume`,
       how_to_trade: 'Monitor for continuation past premarket range. Wait for open-range break confirmation.',
       why: `${r.name || r.symbol} ${Number(r.changesPercentage) > 0 ? 'up' : 'down'} ${Math.abs(Number(r.changesPercentage || 0)).toFixed(1)}% on elevated volume`,

@@ -993,29 +993,9 @@ app.use('/api', (req, _res, next) => {
   });
 
   app.get('/api/earnings', async (req, res) => {
-    const buildForcedEarningsFallback = () => {
-      const raw = {
-        symbol: 'AAPL',
-        strategy: 'EARNINGS_VOLATILITY',
-        why_moving: 'Scheduled earnings catalyst fallback',
-        how_to_trade: 'Enter on breakout, stop below support, target next resistance',
-        confidence: 65,
-        score: 65,
-        expected_move_percent: 3.5,
-        trade_class: 'TRADEABLE',
-        report_date: new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString().slice(0, 10),
-      };
-      const built = buildFinalTradeObject(raw, 'earnings_fallback');
-      return built
-        ? [{ ...built, event_date: raw.report_date, time_group: 'UNKNOWN', week_group: raw.report_date, score: 65 }]
-        : [];
-    };
-
     try {
       if (!supabaseClient) {
-        const fallbackRows = buildForcedEarningsFallback();
-        console.log('[EARNINGS FALLBACK USED]');
-        return res.json({ success: true, count: fallbackRows.length, data: fallbackRows, fallback_used: true });
+        return res.json({ success: true, count: 0, data: [] });
       }
 
       const symbol = mapFromProviderSymbol(normalizeSymbol(req.query.symbol));
@@ -1047,7 +1027,7 @@ app.use('/api', (req, _res, next) => {
             how_to_trade: 'Use defined risk around earnings volatility and wait for confirmed direction after release.',
             confidence: score,
             score,
-            expected_move_percent: Number(row.expected_move_percent || 3.5),
+            expected_move_percent: Number(row.expected_move_percent) || null,
             trade_class: score >= 60 ? 'TRADEABLE' : 'WATCHLIST',
             report_date: reportDate,
             time_group: timeGroup,
@@ -1070,20 +1050,12 @@ app.use('/api', (req, _res, next) => {
         }).filter(Boolean)
         : [];
 
-      if (rows.length === 0) {
-        const fallbackRows = buildForcedEarningsFallback();
-        console.log('[EARNINGS FALLBACK USED]');
-        return res.json({ success: true, count: fallbackRows.length, data: fallbackRows, fallback_used: true });
-      }
-
       console.log('EARNINGS rows:', rows.length);
 
       return res.json({ success: true, count: rows.length, data: rows });
     } catch (err) {
       console.error('EARNINGS ERROR:', err);
-      const fallbackRows = buildForcedEarningsFallback();
-      console.log('[EARNINGS FALLBACK USED]');
-      return res.json({ success: true, count: fallbackRows.length, data: fallbackRows, fallback_used: true, degraded: true });
+      return res.json({ success: true, count: 0, data: [], error: err.message });
     }
   });
 
@@ -2566,13 +2538,20 @@ function getBias(row) {
 
 function getExpectedMove(row) {
   const atr = Number(row?.atr) || 0;
-  const price = Number(row?.price) || 1;
-  if (!atr) {
-    const seededExpectedMove = Number(row?.expected_move ?? row?.expected_move_percent);
-    if (Number.isFinite(seededExpectedMove)) return Math.abs(seededExpectedMove);
-    return Math.abs(Number(row?.change_percent) || 0);
+  const price = Number(row?.price) || 0;
+  if (atr && price) {
+    const atrPercent = (atr / price) * 100;
+    return Math.min(atrPercent * 2, 10);
   }
-  return (atr / price) * 100;
+  const atrPercent = Number(row?.atr_percent);
+  if (Number.isFinite(atrPercent) && atrPercent > 0) {
+    return Math.min(atrPercent * 2, 10);
+  }
+  const seededExpectedMove = Number(row?.expected_move ?? row?.expected_move_percent);
+  if (Number.isFinite(seededExpectedMove) && seededExpectedMove > 0) {
+    return Math.min(Math.abs(seededExpectedMove), 10);
+  }
+  return null;
 }
 
 function buildWhy(row) {
@@ -2588,32 +2567,6 @@ function buildHow() {
     risk: 'Below structure or VWAP',
     target: 'Next key level / continuation move',
   };
-}
-
-function generateFallbackRows() {
-  return [
-    {
-      symbol: 'SPY',
-      price: 500,
-      change_percent: 6.1,
-      relative_volume: 2.2,
-      gap_percent: 3.5,
-    },
-    {
-      symbol: 'QQQ',
-      price: 420,
-      change_percent: -5.6,
-      relative_volume: 2.4,
-      gap_percent: -2.2,
-    },
-    {
-      symbol: 'NVDA',
-      price: 900,
-      change_percent: 7.4,
-      relative_volume: 3.6,
-      gap_percent: 4.8,
-    },
-  ];
 }
 
 app.get('/api/stocks-in-play', async (req, res) => {
@@ -2687,7 +2640,7 @@ app.get('/api/stocks-in-play', async (req, res) => {
           source: 'fmp_direct',
         }));
       } catch (_fmpErr) {
-        rows = generateFallbackRows();
+        rows = [];
       }
     }
 
@@ -2724,10 +2677,6 @@ app.get('/api/stocks-in-play', async (req, res) => {
     }));
     const validRows = normalizedRows.filter((row) => isValidStocksInPlayRow(row, mode));
     console.log('RAW COUNT:', normalizedRows.length);
-
-    if (!rows || rows.length === 0) {
-      rows = generateFallbackRows();
-    }
 
     const scoringSourceRows = normalizedRows.length ? normalizedRows : rows;
 
@@ -2773,31 +2722,10 @@ app.get('/api/stocks-in-play', async (req, res) => {
     processed = processed.filter((row) => row.confidence >= 60);
 
     if (!processed.length) {
-      console.warn('NO PROCESSED ROWS - USING TOP 3 HIGHEST SCORE ROWS');
+      console.warn('NO PROCESSED ROWS - USING TOP SCORED ROWS');
       processed = [...scoredRows]
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);
-
-      if (!processed.length || Number(processed[0]?.score || 0) <= 80) {
-        const boostedFallbackRows = generateFallbackRows().map((row) => {
-          let score = scoreSignal(row);
-          if ((Number(row?.relative_volume) || 0) > 2) score += 20;
-          if (Math.abs(Number(row?.change_percent) || 0) > 5) score += 20;
-          return {
-            ...row,
-            score,
-            confidence: getConfidence(score),
-            priority: getPriority(score),
-            bias: getBias(row),
-            expected_move: getExpectedMove(row),
-            why: buildWhy(row),
-            how: buildHow(row),
-          };
-        });
-        processed = boostedFallbackRows
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
-      }
     }
 
     console.log('PROCESSED COUNT:', processed.length);
@@ -2935,7 +2863,6 @@ app.get('/api/stocks-in-play', async (req, res) => {
         why: `${r.name || r.symbol} up ${Math.abs(Number(r.changesPercentage||0)).toFixed(1)}% on elevated volume`,
         how: 'Monitor open-range break for continuation.',
         confidence: 65,
-        expected_move_percent: Math.abs(Number(r.changesPercentage||0)),
       })).filter((r) => r.symbol);
       if (_fmpRows.length > 0) {
         return res.json({ success: true, source: 'fmp_direct', mode: rawMode || 'live', count: _fmpRows.length, data: _fmpRows });
@@ -2944,34 +2871,12 @@ app.get('/api/stocks-in-play', async (req, res) => {
       // ignore
     }
 
-    const fallbackRows = generateFallbackRows();
-    const processedFallbackRows = fallbackRows.map((r) => {
-      let score = scoreSignal(r);
-      if ((Number(r?.relative_volume) || 0) > 2) score += 20;
-      if (Math.abs(Number(r?.change_percent) || 0) > 5) score += 20;
-      return {
-        ...r,
-        score,
-        confidence: getConfidence(score),
-        priority: getPriority(score),
-        bias: getBias(r),
-        expected_move: getExpectedMove(r),
-        why: buildWhy(r),
-        how: buildHow(r),
-      };
-    });
-
-    console.log('RAW COUNT:', fallbackRows.length);
-    console.log('PROCESSED COUNT:', processedFallbackRows.length);
-    console.log('TOP 3 SCORES:', processedFallbackRows.slice(0, 3).map((r) => r.score));
-    console.log('FINAL OUTPUT COUNT:', processedFallbackRows.length);
-
     return res.json({
       success: true,
-      source: 'fallback_raw',
+      source: 'empty',
       mode,
-      count: processedFallbackRows.length,
-      data: processedFallbackRows,
+      count: 0,
+      data: [],
     });
   }
 });
@@ -4106,32 +4011,6 @@ app.get('/api/setups/types', async (req, res) => {
 });
 
 app.get('/api/catalysts', async (req, res) => {
-  const buildForcedCatalystFallback = () => {
-    const raw = {
-      symbol: 'SPY',
-      catalyst_type: 'FORCED_FALLBACK',
-      headline: 'Fallback catalyst generated to keep pipeline active',
-      strategy: 'CATALYST_FORCED_FALLBACK',
-      why_moving: 'Fallback catalyst generated to keep pipeline active',
-      how_to_trade: 'Enter on breakout, stop below support, target next resistance',
-      confidence: 60,
-      expected_move_percent: 1.5,
-      trade_class: 'TRADEABLE',
-      strength_score: 0.5,
-      event_time: new Date().toISOString(),
-    };
-    const built = buildFinalTradeObject(raw, 'catalysts_fallback');
-    return built
-      ? [{
-        ...built,
-        catalyst_type: 'FORCED_FALLBACK',
-        headline: raw.headline,
-        strength: 0.5,
-        timestamp: raw.event_time,
-      }]
-      : [];
-  };
-
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
     const { rows } = await queryWithTimeout(
@@ -4188,18 +4067,10 @@ app.get('/api/catalysts', async (req, res) => {
       })
       .filter(Boolean);
 
-    if (normalized.length === 0) {
-      console.log('[CATALYST FALLBACK USED]');
-      const fallback = buildForcedCatalystFallback();
-      return res.json({ success: true, data: fallback, count: fallback.length, fallback_used: true });
-    }
-
     res.json({ success: true, data: normalized, count: normalized.length });
   } catch (err) {
     logger.error('catalysts endpoint db error', { error: err.message });
-    console.log('[CATALYST FALLBACK USED]');
-    const fallback = buildForcedCatalystFallback();
-    res.json({ success: true, data: fallback, count: fallback.length, fallback_used: true, degraded: true });
+    res.json({ success: true, data: [], count: 0, error: err.message });
   }
 });
 
@@ -10299,7 +10170,7 @@ async function fetchTradeabilityRawRows() {
          ls.signal_ts,
          COALESCE(lm.price, dp.daily_close, 0) AS last_price,
          COALESCE(lm.change_percent, 0) AS pct_move,
-         COALESCE(lm.relative_volume, 0) AS rvol,
+         COALESCE(lm.relative_volume, sip.rvol, 0) AS rvol,
          COALESCE(lm.volume, 0) AS volume,
          COALESCE(lm.vwap, 0) AS vwap,
          COALESCE(lm.atr, dp.atr14_proxy, 0) AS atr_value,
@@ -10317,13 +10188,16 @@ async function fetchTradeabilityRawRows() {
          ln.news_relevance,
          lc.catalyst_type AS trade_catalyst_type,
          lc.catalyst_headline,
-         lc.latest_catalyst_at
+         lc.latest_catalyst_at,
+         COALESCE(tu.sector, 'Unknown') AS sector
        FROM latest_signals ls
        LEFT JOIN latest_metrics lm ON lm.symbol = ls.symbol
        LEFT JOIN daily_proxy dp ON dp.symbol = ls.symbol
        LEFT JOIN intraday_shape ish ON ish.symbol = ls.symbol
        LEFT JOIN latest_news ln ON ln.symbol = ls.symbol
        LEFT JOIN latest_catalyst lc ON lc.symbol = ls.symbol
+       LEFT JOIN stocks_in_play sip ON UPPER(sip.symbol) = ls.symbol
+       LEFT JOIN ticker_universe tu ON UPPER(tu.symbol) = ls.symbol
      )
      SELECT
        j.*,
@@ -10910,7 +10784,7 @@ app.get('/api/intelligence/why-moving', applyDebugBypassMeta, async (req, res) =
              CASE WHEN COALESCE(dm.open, 0) > 0 THEN ((dm.close - dm.open) / NULLIF(dm.open, 0)) * 100 ELSE 0 END,
              0
            ) AS pct_move,
-           COALESCE(lm.relative_volume, 0) AS rvol,
+           COALESCE(lm.relative_volume, sip2.rvol, 0) AS rvol,
            COALESCE(lm.atr, dm.atr14_proxy, 0) AS atr_value,
            COALESCE(dm.close, 0) AS daily_close,
            lm.metrics_ts,
@@ -10935,12 +10809,15 @@ app.get('/api/intelligence/why-moving', applyDebugBypassMeta, async (req, res) =
            nr.news_hits_24h,
            cr.catalyst_type AS trade_catalyst_type,
            cr.catalyst_headline,
-           cr.latest_catalyst_at
+           cr.latest_catalyst_at,
+           COALESCE(tu2.sector, 'Unknown') AS sector
          FROM universe u
          LEFT JOIN latest_metrics lm ON lm.symbol = u.symbol
          LEFT JOIN daily_move dm ON dm.symbol = u.symbol
          LEFT JOIN intraday_behavior ib ON ib.symbol = u.symbol
          LEFT JOIN catalyst_recent cr ON cr.symbol = u.symbol
+         LEFT JOIN stocks_in_play sip2 ON UPPER(sip2.symbol) = u.symbol
+         LEFT JOIN ticker_universe tu2 ON UPPER(tu2.symbol) = u.symbol
          LEFT JOIN LATERAL (
            SELECT
              COUNT(*) FILTER (WHERE n.published_at >= NOW() - INTERVAL '24 hours') AS news_hits_24h,
@@ -11587,6 +11464,10 @@ async function proxyAliasGet(req, res, targetPath) {
     Object.entries(req.headers || {}).forEach(([key, value]) => {
       if (typeof value === 'string') headers[key] = value;
     });
+    // Inject API key for internal proxy calls if not already present
+    if (!headers['x-api-key'] && PROXY_API_KEY) {
+      headers['x-api-key'] = PROXY_API_KEY;
+    }
 
     const response = await fetch(targetUrl, {
       method: 'GET',

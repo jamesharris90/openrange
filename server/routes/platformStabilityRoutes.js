@@ -94,6 +94,60 @@ async function safeRows(sql, params, label) {
   }
 }
 
+async function safeFetch(fn, label) {
+  try {
+    return await fn();
+  } catch (e) {
+    console.error('[EXTERNAL FAIL]', label, e?.message || String(e));
+    return null;
+  }
+}
+
+function uniqueSymbols(rows = []) {
+  return [...new Set((rows || []).map((row) => String(row?.symbol || '').toUpperCase()).filter(Boolean))];
+}
+
+function collectNullFields(rows = [], fields = []) {
+  const nullFields = [];
+  for (const field of fields) {
+    const nullCount = (rows || []).filter((row) => row?.[field] == null).length;
+    if (nullCount > 0) {
+      nullFields.push(`${field}:${nullCount}`);
+    }
+  }
+  return nullFields;
+}
+
+function logSourceInput(route, rows = [], fields = []) {
+  console.log('[DATA SOURCE INPUT]', {
+    route,
+    symbols: uniqueSymbols(rows).slice(0, 25),
+    rows_returned: Array.isArray(rows) ? rows.length : 0,
+    null_fields: collectNullFields(rows, fields),
+  });
+}
+
+function warnLowCompleteness(route, rows = []) {
+  const total = Array.isArray(rows) ? rows.length : 0;
+  const completeness = total === 0
+    ? 1
+    : rows.filter((r) => r?.symbol && r?.change_percent !== null && r?.relative_volume !== null).length / total;
+  if (completeness < 0.5) {
+    console.warn('[LOW DATA COMPLETENESS]', route);
+  }
+}
+
+function safeFallbackResponse(route) {
+  return {
+    success: true,
+    data: [],
+    count: 0,
+    status: 'empty',
+    error: null,
+    route,
+  };
+}
+
 router.get('/api/radar', async (_req, res) => {
   try {
     const signals = await safeRows(
@@ -189,23 +243,41 @@ router.get('/api/signals', async (req, res) => {
     }
     params.push(limit);
 
-    const { rows } = await queryWithTimeout(
+    const result = await safeFetch(() => queryWithTimeout(
       `SELECT id, symbol, signal_type, score, confidence, catalyst_ids, created_at
+            , COALESCE(m.change_percent, 0)::numeric AS change_percent
+            , COALESCE(m.relative_volume, 0)::numeric AS relative_volume
        FROM signals
+       LEFT JOIN ${MARKET_METRICS_TABLE} m ON m.symbol = signals.symbol
        ${whereClause}
        ORDER BY created_at DESC
        LIMIT $${params.length}`,
       params,
       { label: 'stability.strict.signals', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
-    );
+    ), 'api.signals.query');
 
-    return res.json({ success: true, data: rows });
+    if (!result) {
+      return res.status(200).json(safeFallbackResponse('/api/signals'));
+    }
+
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    logSourceInput('/api/signals', rows, ['symbol', 'change_percent', 'relative_volume']);
+    warnLowCompleteness('/api/signals', rows);
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      count: rows.length,
+      status: 'ok',
+      error: null,
+    });
   } catch (error) {
-    return res.status(500).json(failure(error.message || 'Failed to load signals'));
+    console.error('[ENDPOINT FAIL]', '/api/signals', error?.message || String(error));
+    return res.status(200).json(safeFallbackResponse('/api/signals'));
   }
 });
 
-router.get('/api/news', async (_req, res) => {
+router.get('/api/stability/news', async (_req, res) => {
   const rows = await safeRows(
     `SELECT symbol, headline, source, created_at AS timestamp, url
      FROM news_articles
@@ -220,30 +292,113 @@ router.get('/api/news', async (_req, res) => {
 
 router.get('/api/catalysts', async (req, res) => {
   try {
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 1000));
-    const { rows } = await queryWithTimeout(
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 300));
+    const result = await safeFetch(() => queryWithTimeout(
       `SELECT
-         event_uuid AS id,
          symbol,
-         catalyst_type,
+         symbols,
          headline,
-         source_table,
-         source_id,
-         event_time,
-         strength_score,
-         sentiment_score,
-         created_at
-       FROM catalyst_events
-       WHERE source_table IN ('news_articles', 'earnings_calendar', 'ipo_calendar', 'stock_splits')
-       ORDER BY COALESCE(event_time, published_at, created_at) DESC
+         sentiment,
+         published_at,
+         source,
+         COALESCE(m.change_percent, 0)::numeric AS change_percent,
+         COALESCE(m.relative_volume, 0)::numeric AS relative_volume
+       FROM news_articles
+       LEFT JOIN ${MARKET_METRICS_TABLE} m ON m.symbol = news_articles.symbol
+       ORDER BY published_at DESC NULLS LAST
        LIMIT $1`,
       [limit],
-      { label: 'stability.strict.catalysts', timeoutMs: 2400, maxRetries: 1, retryDelayMs: 120 }
-    );
+      { label: 'stability.strict.catalysts', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 120 }
+    ), 'api.catalysts.query');
 
-    return res.json({ success: true, data: rows });
+    if (!result) {
+      return res.status(200).json(safeFallbackResponse('/api/catalysts'));
+    }
+
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+
+    let results = (rows || [])
+      .filter((n) => n.symbol || (Array.isArray(n.symbols) && n.symbols.length > 0))
+      .map((n) => ({
+        symbol: n.symbol || n.symbols?.[0] || 'UNKNOWN',
+        headline: n.headline,
+        sentiment: n.sentiment,
+        published_at: n.published_at,
+        source: n.source,
+      }));
+
+    if (results.length === 0) {
+      results = (rows || [])
+        .filter((n) => String(n.headline || '').trim().length > 0)
+        .slice(0, limit)
+        .map((n) => ({
+          symbol: 'UNKNOWN',
+          headline: n.headline,
+          sentiment: n.sentiment,
+          published_at: n.published_at,
+          source: n.source,
+        }));
+    }
+
+    if (results.length === 0) {
+      return res.status(200).json(safeFallbackResponse('/api/catalysts'));
+    }
+
+    logSourceInput('/api/catalysts', results, ['symbol', 'change_percent', 'relative_volume']);
+    warnLowCompleteness('/api/catalysts', results);
+
+    console.log('CATALYSTS:', results.length);
+    return res.status(200).json({
+      success: true,
+      data: results,
+      count: results.length,
+      status: 'ok',
+      error: null,
+    });
   } catch (error) {
-    return res.status(500).json(failure(error.message || 'Failed to load catalysts'));
+    console.error('[ENDPOINT FAIL]', '/api/catalysts', error?.message || String(error));
+    return res.status(200).json(safeFallbackResponse('/api/catalysts'));
+  }
+});
+
+router.get('/api/macro', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 200));
+    const result = await safeFetch(() => queryWithTimeout(
+      `SELECT
+         id,
+         theme,
+         summary,
+         confidence,
+         NULL::text AS symbol,
+         NULL::numeric AS change_percent,
+         NULL::numeric AS relative_volume,
+         created_at
+       FROM macro_narratives
+       ORDER BY created_at DESC NULLS LAST
+       LIMIT $1`,
+      [limit],
+      { label: 'stability.strict.macro', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 120 }
+    ), 'api.macro.query');
+
+    if (!result) {
+      return res.status(200).json(safeFallbackResponse('/api/macro'));
+    }
+
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    logSourceInput('/api/macro', rows, ['symbol', 'change_percent', 'relative_volume']);
+    warnLowCompleteness('/api/macro', rows);
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      count: rows.length,
+      status: 'ok',
+      error: null,
+    });
+  } catch (error) {
+    console.error('[ENDPOINT FAIL]', '/api/macro', error?.message || String(error));
+    return res.status(200).json(safeFallbackResponse('/api/macro'));
   }
 });
 

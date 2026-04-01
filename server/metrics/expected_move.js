@@ -2,8 +2,8 @@ const { pool } = require('../db/pg');
 
 function expectedMoveFromAtr(atr) {
   const value = Number(atr);
-  if (!Number.isFinite(value)) return null;
-  return value * 1.5;
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.min(value * 2, 10);
 }
 
 async function getExpectedMoveRows(limit = 100) {
@@ -13,10 +13,10 @@ async function getExpectedMoveRows(limit = 100) {
     `SELECT symbol,
             price,
             atr,
-            (atr * 1.5)::numeric AS expected_move,
+            LEAST((atr / NULLIF(price, 0)) * 100 * 2, 10) AS expected_move,
             last_updated
      FROM market_metrics
-     WHERE atr IS NOT NULL
+     WHERE atr IS NOT NULL AND atr > 0
      ORDER BY atr DESC
      LIMIT $1`,
     [boundedLimit]
