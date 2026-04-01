@@ -119,9 +119,16 @@ async function upsertStocksInPlay(scoredRows) {
   for (const row of scoredRows) {
     const result = await queryWithTimeout(
       `INSERT INTO stocks_in_play (symbol, gap_percent, rvol, catalyst, score, detected_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (symbol)
+       DO UPDATE SET
+         gap_percent = EXCLUDED.gap_percent,
+         rvol = EXCLUDED.rvol,
+         catalyst = EXCLUDED.catalyst,
+         score = EXCLUDED.score,
+         detected_at = NOW()`,
       [row.symbol, row.gap_percent, row.rvol, row.signal_explanation || row.rationale || null, row.score],
-      { timeoutMs: 2500, label: 'engines.stocks_in_play.insert_stocks_in_play', maxRetries: 0 }
+      { timeoutMs: 2500, label: 'engines.stocks_in_play.upsert_stocks_in_play', maxRetries: 0 }
     );
     inserted += result.rowCount || 0;
   }
