@@ -57,7 +57,7 @@ function createLimiter(maxConcurrent) {
   });
 }
 
-const maxConnections = 10;
+const maxConnections = Math.max(1, Math.min(Number(process.env.DB_POOL_MAX || 1), 10));
 const connectionTimeoutMs = 2000;
 const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
 const shouldUseSsl = process.env.PGSSL_DISABLE !== 'true';
@@ -72,8 +72,8 @@ function maskDbUrl(rawUrl) {
   }
 }
 
-const DB_CONCURRENCY_LIMIT = Number(process.env.DB_CONCURRENCY_LIMIT || 5);
-const dbQueryLimit = createLimiter(Number.isFinite(DB_CONCURRENCY_LIMIT) && DB_CONCURRENCY_LIMIT > 0 ? DB_CONCURRENCY_LIMIT : 5);
+const DB_CONCURRENCY_LIMIT = Number(process.env.DB_CONCURRENCY_LIMIT || 1);
+const dbQueryLimit = createLimiter(Number.isFinite(DB_CONCURRENCY_LIMIT) && DB_CONCURRENCY_LIMIT > 0 ? DB_CONCURRENCY_LIMIT : 1);
 let currentOpsCount = 0;
 
 function createSingletonState() {
@@ -118,9 +118,6 @@ function createRawPool(state) {
 
   if (!isTestRuntime) {
     console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled})`);
-    rawPool.query('SELECT NOW() AS now').catch((err) => {
-      console.error('[DB] Initial connectivity check failed:', err.message);
-    });
   }
 
   return rawPool;
@@ -196,7 +193,5 @@ Object.defineProperties(query, {
   idleCount: { get: () => query.getStats().idleCount },
   waitingCount: { get: () => query.getStats().waitingCount },
 });
-
-ensureState();
 
 module.exports = query;
