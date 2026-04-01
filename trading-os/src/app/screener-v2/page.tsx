@@ -28,6 +28,43 @@ type ScreenerResponse = {
 
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, index) => index);
 
+function sortRows(rows: ScreenerRow[]) {
+  return [...rows].sort((left, right) => {
+    const leftRvol = left.rvol ?? -1;
+    const rightRvol = right.rvol ?? -1;
+    if (rightRvol !== leftRvol) return rightRvol - leftRvol;
+
+    const leftChange = left.change_percent ?? -Infinity;
+    const rightChange = right.change_percent ?? -Infinity;
+    if (rightChange !== leftChange) return rightChange - leftChange;
+
+    return String(left.symbol ?? "").localeCompare(String(right.symbol ?? ""));
+  });
+}
+
+function resolveUpdatedTimestamp(rows: ScreenerRow[]) {
+  let latestTimestamp = 0;
+
+  for (const row of rows) {
+    const parsed = Date.parse(row.updated_at ?? "");
+    if (!Number.isNaN(parsed) && parsed > latestTimestamp) {
+      latestTimestamp = parsed;
+    }
+  }
+
+  return latestTimestamp > 0 ? latestTimestamp : Date.now();
+}
+
+function formatUpdatedTime(timestamp: number | null) {
+  if (!timestamp) return "--:--:--";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(timestamp));
+}
+
 function formatPrice(value: number | null) {
   if (value === null) return "—";
   return `$${value.toFixed(2)}`;
@@ -49,6 +86,8 @@ function formatVolume(value: number | null) {
 
 function formatRvol(value: number | null) {
   if (value === null) return "—";
+  if (value > 50) return ">50x";
+  if (value > 100) return `${(value / 100).toFixed(1)}x`;
   return `${value.toFixed(2)}x`;
 }
 
@@ -60,18 +99,20 @@ function formatGap(value: number | null) {
 
 function getNewsFreshness(publishedAt: string | null | undefined) {
   if (!publishedAt) {
-    return { dot: "🔴", label: "No recent news" };
+    return { dot: "", label: "—" };
   }
 
   const publishedTime = Date.parse(publishedAt);
   if (Number.isNaN(publishedTime)) {
-    return { dot: "🔴", label: "Stale news timestamp" };
+    return { dot: "", label: "—" };
   }
 
   const minutes = Math.max(0, Math.floor((Date.now() - publishedTime) / 60000));
-  if (minutes < 5) return { dot: "🟢", label: `${minutes}m ago` };
-  if (minutes < 60) return { dot: "🟡", label: `${minutes}m ago` };
-  return { dot: "🔴", label: `${Math.floor(minutes / 60)}h ago` };
+  if (minutes < 5) return { dot: "🟢", label: `${Math.max(1, minutes)}m` };
+  if (minutes < 60) return { dot: "🟡", label: `${minutes}m` };
+  if (minutes < 1440) return { dot: "🟡", label: `${Math.floor(minutes / 60)}h` };
+  if (minutes < 10080) return { dot: "⚪", label: `${Math.floor(minutes / 1440)}d` };
+  return { dot: "⚪", label: `${Math.floor(minutes / 1440)}d` };
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
@@ -88,7 +129,8 @@ function getEarningsLabel(earningsDate: string | null | undefined) {
   if (dayDiff < 0) return "—";
   if (dayDiff === 0) return "Today";
   if (dayDiff === 1) return "Tomorrow";
-  return `${dayDiff}d`;
+  if (dayDiff < 7) return `${dayDiff}d`;
+  return "—";
 }
 
 function SkeletonTable() {
@@ -132,6 +174,7 @@ export default function ScreenerV2Page() {
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,13 +192,16 @@ export default function ScreenerV2Page() {
 
         const payload = (await response.json()) as ScreenerResponse;
         if (!cancelled) {
-          setData(Array.isArray(payload.data) ? payload.data : []);
+          const nextRows = sortRows(Array.isArray(payload.data) ? payload.data : []);
+          setData(nextRows);
+          setUpdatedAt(resolveUpdatedTimestamp(nextRows));
           setError(null);
         }
       } catch (nextError) {
         if (!cancelled) {
           setError(nextError instanceof Error ? nextError.message : "Failed to load screener");
           setData([]);
+          setUpdatedAt(null);
         }
       } finally {
         if (!cancelled && showLoading) {
@@ -175,6 +221,8 @@ export default function ScreenerV2Page() {
     };
   }, []);
 
+  const topMovers = data.slice(0, 3);
+
   return (
     <section className="space-y-5 text-slate-100">
       <header className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(2,6,23,0.96))] p-6 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
@@ -184,13 +232,30 @@ export default function ScreenerV2Page() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Screener V2</h1>
           </div>
           <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
-            One endpoint · 60s refresh
+            {`${data.length} stocks • Updated ${formatUpdatedTime(updatedAt)}`}
           </div>
         </div>
         <p className="max-w-3xl text-sm text-slate-400">
           Clean view over the trusted v2 screener feed. No derived scoring, no extra fetches, no legacy components.
         </p>
       </header>
+
+      {!loading && data.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-3">
+          {topMovers.map((row) => (
+            <div key={row.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-4 text-sm shadow-[0_0_0_1px_rgba(15,23,42,0.3)]">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Top mover</p>
+              <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
+                <span>🔥</span>
+                <Link href={`/research-v2/${encodeURIComponent(row.symbol || "")}`} className="underline-offset-4 hover:text-emerald-300 hover:underline">
+                  {row.symbol || "—"}
+                </Link>
+              </div>
+              <p className="mt-1 text-sm text-slate-400">{`${formatPercent(row.change_percent)}, ${formatRvol(row.rvol)}`}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? (
         <SkeletonTable />
@@ -245,7 +310,7 @@ export default function ScreenerV2Page() {
                     <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}>{formatRvol(row.rvol)}</td>
                     <td className="px-4 py-3 text-slate-300">{formatGap(row.gap_percent)}</td>
                     <td className="px-4 py-3 text-slate-300" title={news.label}>
-                      <span className="mr-2">{news.dot}</span>
+                      {news.dot ? <span className="mr-2">{news.dot}</span> : null}
                       <span>{news.label}</span>
                     </td>
                     <td className="px-4 py-3 text-slate-300">{earningsLabel}</td>

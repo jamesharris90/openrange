@@ -56,6 +56,131 @@ function dedupeBySymbol(rows) {
   return deduped;
 }
 
+async function fetchLatestNewsBySymbol(symbols) {
+  const latestNewsBySymbol = new Map();
+  const pageSize = 1000;
+
+  if (!symbols.length) {
+    return latestNewsBySymbol;
+  }
+
+  const sources = [
+    {
+      table: 'news_articles',
+      select: 'symbol, headline, published_at',
+      errorMessage: 'Failed to load screener news_articles',
+    },
+    {
+      table: 'intel_news',
+      select: 'symbol, headline, source, published_at',
+      errorMessage: 'Failed to load screener intel_news',
+      excludeEarningsSource: true,
+    },
+  ];
+
+  for (const source of sources) {
+    const latestByTable = new Map();
+    let offset = 0;
+
+    while (latestByTable.size < symbols.length) {
+      let query = supabaseAdmin
+        .from(source.table)
+        .select(source.select)
+        .in('symbol', symbols)
+        .not('published_at', 'is', null)
+        .not('headline', 'is', null)
+        .order('published_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+
+      if (source.excludeEarningsSource) {
+        query = query.neq('source', 'earnings_events');
+      }
+
+      const result = await query;
+      if (result.error) {
+        throw new Error(result.error.message || source.errorMessage);
+      }
+
+      const batch = Array.isArray(result.data) ? result.data : [];
+      if (batch.length === 0) {
+        break;
+      }
+
+      for (const row of batch) {
+        const symbol = normalizeSymbol(row.symbol);
+        const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
+        if (!symbol || latestByTable.has(symbol) || !row.published_at || !headline) {
+          continue;
+        }
+
+        if (/\bearnings event\b/i.test(headline)) {
+          continue;
+        }
+
+        latestByTable.set(symbol, row.published_at);
+      }
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+
+    for (const [symbol, publishedAt] of latestByTable) {
+      latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), publishedAt));
+    }
+  }
+
+  return latestNewsBySymbol;
+}
+
+async function fetchEarliestEarningsBySymbol(symbols) {
+  const earningsBySymbol = new Map();
+  const pageSize = 1000;
+  let offset = 0;
+
+  if (!symbols.length) {
+    return earningsBySymbol;
+  }
+
+  while (earningsBySymbol.size < symbols.length) {
+    const result = await supabaseAdmin
+      .from('earnings_events')
+      .select('symbol, earnings_date')
+      .in('symbol', symbols)
+      .not('earnings_date', 'is', null)
+      .order('earnings_date', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load screener earnings_events');
+    }
+
+    const batch = Array.isArray(result.data) ? result.data : [];
+    if (batch.length === 0) {
+      break;
+    }
+
+    for (const row of batch) {
+      const symbol = normalizeSymbol(row.symbol);
+      if (!symbol || earningsBySymbol.has(symbol) || !row.earnings_date) {
+        continue;
+      }
+
+      earningsBySymbol.set(symbol, row.earnings_date);
+    }
+
+    if (batch.length < pageSize) {
+      break;
+    }
+
+    offset += pageSize;
+  }
+
+  return earningsBySymbol;
+}
+
 async function fetchStableFallbackQuote() {
   if (!process.env.FMP_API_KEY) {
     return [];
@@ -157,78 +282,11 @@ async function getScreenerRows() {
     throw new Error(universeResult.error.message || 'Failed to load ticker universe');
   }
 
-  const newsCutoff = new Date(Date.now() - (72 * 60 * 60 * 1000)).toISOString();
-
-  const newsArticlesResult = await supabaseAdmin
-    .from('news_articles')
-    .select('symbol, headline, published_at')
-    .in('symbol', symbols)
-    .gte('published_at', newsCutoff)
-    .not('headline', 'is', null)
-    .order('published_at', { ascending: false })
-    .limit(500);
-
-  if (newsArticlesResult.error) {
-    throw new Error(newsArticlesResult.error.message || 'Failed to load screener news_articles');
-  }
-
-  const intelNewsResult = await supabaseAdmin
-    .from('intel_news')
-    .select('symbol, headline, source, published_at')
-    .in('symbol', symbols)
-    .gte('published_at', newsCutoff)
-    .not('headline', 'is', null)
-    .neq('source', 'earnings_events')
-    .order('published_at', { ascending: false })
-    .limit(500);
-
-  if (intelNewsResult.error) {
-    throw new Error(intelNewsResult.error.message || 'Failed to load screener intel_news');
-  }
-
-  const todayDate = new Date().toISOString().slice(0, 10);
-
-  const earningsResult = await supabaseAdmin
-    .from('earnings_events')
-    .select('symbol, earnings_date, report_date')
-    .in('symbol', symbols)
-    .gte('report_date', todayDate)
-    .order('report_date', { ascending: true })
-    .limit(300);
-
-  if (earningsResult.error) {
-    throw new Error(earningsResult.error.message || 'Failed to load screener earnings_events');
-  }
-
   const metricsBySymbol = new Map((metricsResult.data || []).map((row) => [row.symbol, row]));
   const sipBySymbol = new Map((sipResult.data || []).map((row) => [row.symbol, row]));
   const sectorBySymbol = new Map((universeResult.data || []).map((row) => [row.symbol, row]));
-  const latestNewsBySymbol = new Map();
-  const earningsBySymbol = new Map();
 
-  for (const row of newsArticlesResult.data || []) {
-    const symbol = normalizeSymbol(row.symbol);
-    const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
-    if (!symbol || !headline || !row.published_at) continue;
-    latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), row.published_at));
-  }
-
-  for (const row of intelNewsResult.data || []) {
-    const symbol = normalizeSymbol(row.symbol);
-    const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
-    if (!symbol || !headline || !row.published_at) continue;
-    if (/\bearnings event\b/i.test(headline)) continue;
-    latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), row.published_at));
-  }
-
-  for (const row of earningsResult.data || []) {
-    const symbol = normalizeSymbol(row.symbol);
-    const earningsDate = row.earnings_date || row.report_date || null;
-    if (!symbol || !earningsDate) continue;
-    earningsBySymbol.set(symbol, resolveEarliestDate(earningsBySymbol.get(symbol), earningsDate));
-  }
-
-  const rows = quoteRows
+  const coreRows = quoteRows
     .map((quote) => {
       const metrics = metricsBySymbol.get(quote.symbol) || {};
       const stocksInPlay = sipBySymbol.get(quote.symbol) || {};
@@ -242,8 +300,8 @@ async function getScreenerRows() {
         volume: quote.volume ?? metrics.volume ?? null,
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
         gap_percent: stocksInPlay.gap_percent ?? metrics.gap_percent ?? null,
-        latest_news_at: symbol ? latestNewsBySymbol.get(symbol) || null : null,
-        earnings_date: symbol ? earningsBySymbol.get(symbol) || null : null,
+        latest_news_at: null,
+        earnings_date: null,
         sector: quote.sector ?? universe.sector ?? null,
         updated_at: quote.updated_at ?? metrics.updated_at ?? metrics.last_updated ?? stocksInPlay.detected_at ?? null,
       });
@@ -257,6 +315,25 @@ async function getScreenerRows() {
       return String(left.symbol).localeCompare(String(right.symbol));
     })
     .slice(0, 100);
+
+  const latestNewsBySymbol = await fetchLatestNewsBySymbol(
+    coreRows.map((row) => row.symbol).filter(Boolean)
+  );
+  const earningsBySymbol = await fetchEarliestEarningsBySymbol(
+    coreRows.map((row) => row.symbol).filter(Boolean)
+  );
+
+  const rows = coreRows.map((row) => {
+    if (!row.symbol) {
+      return row;
+    }
+
+    return {
+      ...row,
+      latest_news_at: latestNewsBySymbol.get(row.symbol) || null,
+      earnings_date: earningsBySymbol.get(row.symbol) || null,
+    };
+  });
 
   if (rows.length > 0) {
     return {
