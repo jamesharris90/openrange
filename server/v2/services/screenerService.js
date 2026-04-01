@@ -16,7 +16,9 @@ function normalizeScreenerRow(row) {
     rvol: toNumber(row.rvol),
     gap_percent: toNumber(row.gap_percent),
     latest_news_at: row.latest_news_at || null,
+    news_source: row.news_source || 'none',
     earnings_date: row.earnings_date || null,
+    earnings_source: row.earnings_source || 'none',
     catalyst_type: row.catalyst_type || 'UNKNOWN',
     sector: row.sector || null,
     updated_at: row.updated_at || null,
@@ -89,41 +91,37 @@ async function fetchLatestNewsBySymbol(symbols) {
     return latestNewsBySymbol;
   }
 
-  const sources = [
+  const newsPasses = [
     {
-      table: 'news_articles',
-      select: 'symbol, headline, published_at',
-      errorMessage: 'Failed to load screener news_articles',
+      sourceLabel: 'fmp',
+      applySourceType: true,
     },
     {
-      table: 'intel_news',
-      select: 'symbol, headline, source, published_at',
-      errorMessage: 'Failed to load screener intel_news',
-      excludeEarningsSource: true,
+      sourceLabel: 'database',
+      applySourceType: false,
     },
   ];
 
-  for (const source of sources) {
-    const latestByTable = new Map();
+  for (const pass of newsPasses) {
     let offset = 0;
 
-    while (latestByTable.size < symbols.length) {
+    while (latestNewsBySymbol.size < symbols.length) {
       let query = supabaseAdmin
-        .from(source.table)
-        .select(source.select)
+        .from('news_articles')
+        .select('symbol, headline, published_at, source_type')
         .in('symbol', symbols)
         .not('published_at', 'is', null)
         .not('headline', 'is', null)
         .order('published_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
 
-      if (source.excludeEarningsSource) {
-        query = query.neq('source', 'earnings_events');
+      if (pass.applySourceType) {
+        query = query.eq('source_type', 'FMP');
       }
 
       const result = await query;
       if (result.error) {
-        throw new Error(result.error.message || source.errorMessage);
+        throw new Error(result.error.message || 'Failed to load screener news_articles');
       }
 
       const batch = Array.isArray(result.data) ? result.data : [];
@@ -134,15 +132,14 @@ async function fetchLatestNewsBySymbol(symbols) {
       for (const row of batch) {
         const symbol = normalizeSymbol(row.symbol);
         const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
-        if (!symbol || latestByTable.has(symbol) || !row.published_at || !headline) {
+        if (!symbol || latestNewsBySymbol.has(symbol) || !row.published_at || !headline) {
           continue;
         }
 
-        if (/\bearnings event\b/i.test(headline)) {
-          continue;
-        }
-
-        latestByTable.set(symbol, row.published_at);
+        latestNewsBySymbol.set(symbol, {
+          latest_news_at: row.published_at,
+          news_source: pass.sourceLabel,
+        });
       }
 
       if (batch.length < pageSize) {
@@ -151,56 +148,77 @@ async function fetchLatestNewsBySymbol(symbols) {
 
       offset += pageSize;
     }
-
-    for (const [symbol, publishedAt] of latestByTable) {
-      latestNewsBySymbol.set(symbol, resolveLatestTimestamp(latestNewsBySymbol.get(symbol), publishedAt));
-    }
   }
 
   return latestNewsBySymbol;
 }
 
-async function fetchEarliestEarningsBySymbol(symbols) {
+async function fetchEarningsBySymbol(symbols) {
   const earningsBySymbol = new Map();
   const pageSize = 1000;
-  let offset = 0;
 
   if (!symbols.length) {
     return earningsBySymbol;
   }
 
-  while (earningsBySymbol.size < symbols.length) {
-    const result = await supabaseAdmin
-      .from('earnings_events')
-      .select('symbol, earnings_date')
-      .in('symbol', symbols)
-      .not('earnings_date', 'is', null)
-      .order('earnings_date', { ascending: true })
-      .range(offset, offset + pageSize - 1);
+  const earningsPasses = [
+    {
+      sourceLabel: 'fmp',
+      ascending: true,
+      filterFuture: true,
+    },
+    {
+      sourceLabel: 'database',
+      ascending: false,
+      filterFuture: false,
+    },
+  ];
 
-    if (result.error) {
-      throw new Error(result.error.message || 'Failed to load screener earnings_events');
-    }
+  for (const pass of earningsPasses) {
+    let offset = 0;
+    let queryDate = new Date().toISOString().slice(0, 10);
 
-    const batch = Array.isArray(result.data) ? result.data : [];
-    if (batch.length === 0) {
-      break;
-    }
+    while (earningsBySymbol.size < symbols.length) {
+      let query = supabaseAdmin
+        .from('earnings_events')
+        .select('symbol, earnings_date')
+        .in('symbol', symbols)
+        .not('earnings_date', 'is', null)
+        .order('earnings_date', { ascending: pass.ascending })
+        .range(offset, offset + pageSize - 1);
 
-    for (const row of batch) {
-      const symbol = normalizeSymbol(row.symbol);
-      if (!symbol || earningsBySymbol.has(symbol) || !row.earnings_date) {
-        continue;
+      if (pass.filterFuture) {
+        query = query.gte('earnings_date', queryDate);
       }
 
-      earningsBySymbol.set(symbol, row.earnings_date);
-    }
+      const result = await query;
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load screener earnings_events');
+      }
 
-    if (batch.length < pageSize) {
-      break;
-    }
+      const batch = Array.isArray(result.data) ? result.data : [];
+      if (batch.length === 0) {
+        break;
+      }
 
-    offset += pageSize;
+      for (const row of batch) {
+        const symbol = normalizeSymbol(row.symbol);
+        if (!symbol || earningsBySymbol.has(symbol) || !row.earnings_date) {
+          continue;
+        }
+
+        earningsBySymbol.set(symbol, {
+          earnings_date: row.earnings_date,
+          earnings_source: pass.sourceLabel,
+        });
+      }
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
   }
 
   return earningsBySymbol;
@@ -236,7 +254,9 @@ async function fetchStableFallbackQuote() {
       rvol: null,
       gap_percent: null,
       latest_news_at: null,
+      news_source: 'none',
       earnings_date: null,
+      earnings_source: 'none',
       sector: quote.sector || null,
       updated_at: quote.updatedAt || quote.timestamp || null,
     },
@@ -326,7 +346,9 @@ async function getScreenerRows() {
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
         gap_percent: stocksInPlay.gap_percent ?? metrics.gap_percent ?? null,
         latest_news_at: null,
+        news_source: 'none',
         earnings_date: null,
+        earnings_source: 'none',
         sector: quote.sector ?? universe.sector ?? null,
         updated_at: quote.updated_at ?? metrics.updated_at ?? metrics.last_updated ?? stocksInPlay.detected_at ?? null,
       });
@@ -347,7 +369,7 @@ async function getScreenerRows() {
   const latestNewsBySymbol = await fetchLatestNewsBySymbol(
     coreRows.map((row) => row.symbol).filter(Boolean)
   );
-  const earningsBySymbol = await fetchEarliestEarningsBySymbol(
+  const earningsBySymbol = await fetchEarningsBySymbol(
     coreRows.map((row) => row.symbol).filter(Boolean)
   );
 
@@ -358,14 +380,30 @@ async function getScreenerRows() {
 
     return {
       ...row,
-      latest_news_at: latestNewsBySymbol.get(row.symbol) || null,
-      earnings_date: earningsBySymbol.get(row.symbol) || null,
+      latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
+      news_source: latestNewsBySymbol.get(row.symbol)?.news_source || 'none',
+      earnings_date: earningsBySymbol.get(row.symbol)?.earnings_date || null,
+      earnings_source: earningsBySymbol.get(row.symbol)?.earnings_source || 'none',
       catalyst_type: resolveCatalystType({
         ...row,
-        latest_news_at: latestNewsBySymbol.get(row.symbol) || null,
-        earnings_date: earningsBySymbol.get(row.symbol) || null,
+        latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
+        earnings_date: earningsBySymbol.get(row.symbol)?.earnings_date || null,
       }),
     };
+  });
+
+  const newsSourceCounts = rows.reduce((accumulator, row) => {
+    accumulator[row.news_source] = (accumulator[row.news_source] || 0) + 1;
+    return accumulator;
+  }, {});
+  const earningsSourceCounts = rows.reduce((accumulator, row) => {
+    accumulator[row.earnings_source] = (accumulator[row.earnings_source] || 0) + 1;
+    return accumulator;
+  }, {});
+
+  console.log('[SCREENER_V2] fallback sources', {
+    news: newsSourceCounts,
+    earnings: earningsSourceCounts,
   });
 
   if (rows.length > 0) {

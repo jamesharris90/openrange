@@ -14,7 +14,9 @@ type ScreenerRow = {
   rvol: number | null;
   gap_percent: number | null;
   latest_news_at?: string | null;
+  news_source: "fmp" | "database" | "none";
   earnings_date?: string | null;
+  earnings_source: "fmp" | "database" | "none";
   catalyst_type: "NEWS" | "EARNINGS" | "TECHNICAL" | "UNKNOWN";
   sector: string | null;
   updated_at: string | null;
@@ -113,20 +115,19 @@ function formatCatalyst(type: ScreenerRow["catalyst_type"]) {
 
 function getNewsFreshness(publishedAt: string | null | undefined) {
   if (!publishedAt) {
-    return { dot: "", label: "—" };
+    return { tone: "text-slate-400", label: "—" };
   }
 
   const publishedTime = Date.parse(publishedAt);
   if (Number.isNaN(publishedTime)) {
-    return { dot: "", label: "—" };
+    return { tone: "text-slate-400", label: "—" };
   }
 
   const minutes = Math.max(0, Math.floor((Date.now() - publishedTime) / 60000));
-  if (minutes < 5) return { dot: "🟢", label: `${Math.max(1, minutes)}m` };
-  if (minutes < 60) return { dot: "🟡", label: `${minutes}m` };
-  if (minutes < 1440) return { dot: "🟡", label: `${Math.floor(minutes / 60)}h` };
-  if (minutes < 10080) return { dot: "⚪", label: `${Math.floor(minutes / 1440)}d` };
-  return { dot: "⚪", label: `${Math.floor(minutes / 1440)}d` };
+  if (minutes < 60) return { tone: "text-emerald-400", label: `${Math.max(1, minutes)}m` };
+  if (minutes < 1440) return { tone: "text-emerald-400", label: `${Math.floor(minutes / 60)}h` };
+  if (minutes < 10080) return { tone: "text-amber-300", label: `${Math.floor(minutes / 1440)}d` };
+  return { tone: "text-slate-400", label: `${Math.floor(minutes / 1440)}d` };
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
@@ -140,11 +141,9 @@ function getEarningsLabel(earningsDate: string | null | undefined) {
   const targetDay = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate());
   const dayDiff = Math.round((targetDay - today) / 86400000);
 
-  if (dayDiff < 0) return "—";
   if (dayDiff === 0) return "Today";
-  if (dayDiff === 1) return "Tomorrow";
-  if (dayDiff < 7) return `${dayDiff}d`;
-  return "—";
+  if (dayDiff > 0) return `In ${dayDiff}d`;
+  return `${Math.abs(dayDiff)}d ago`;
 }
 
 function SkeletonTable() {
@@ -330,11 +329,18 @@ export default function ScreenerV2Page() {
                       <span className="mr-2">{catalyst.icon}</span>
                       <span>{catalyst.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300" title={news.label}>
-                      {news.dot ? <span className="mr-2">{news.dot}</span> : null}
+                    <td className={cn("px-4 py-3", news.tone)} title={news.label}>
                       <span>{news.label}</span>
+                      {row.latest_news_at && row.news_source === "database" ? (
+                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{earningsLabel}</td>
+                    <td className="px-4 py-3 text-slate-300">
+                      <span>{earningsLabel}</span>
+                      {row.earnings_date && row.earnings_source === "database" ? (
+                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 text-slate-400">{row.sector || "—"}</td>
                   </tr>
                 );
