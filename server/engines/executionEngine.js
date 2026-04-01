@@ -717,60 +717,103 @@ function _narratives(signal, entry, stop, target, rr, stage, context) {
     catalyst = null, regime = null } = signal;
 
   // WHAT HAPPENED (why_moving)
+  // Rules: must be specific — no generic fallback text
   const m = [];
-  if (gapPercent > 10)        m.push(`Gapped up ${gapPercent.toFixed(1)}% from previous close`);
-  else if (gapPercent > 5)    m.push(`Pre-market gap of ${gapPercent.toFixed(1)}%`);
-  else if (gapPercent > 2)    m.push(`Small gap of ${gapPercent.toFixed(1)}% from previous close`);
-  if (changePercent > 15)     m.push(`Up ${changePercent.toFixed(1)}% intraday — strong momentum`);
-  else if (changePercent > 8) m.push(`${changePercent.toFixed(1)}% price move with trend intact`);
-  else if (changePercent > 3) m.push(`${changePercent.toFixed(1)}% gain building structure`);
-  if (relativeVolume > 8)     m.push(`Extraordinary volume — ${relativeVolume.toFixed(1)}× average`);
-  else if (relativeVolume > 4) m.push(`High-conviction volume — ${relativeVolume.toFixed(1)}× average`);
-  else if (relativeVolume > 2) m.push(`Elevated volume — ${relativeVolume.toFixed(1)}× average`);
-  if (catalyst && String(catalyst).trim()) m.push(String(catalyst).trim());
-  if (m.length === 0) m.push('Price action and volume supporting upward move');
+
+  // Gap
+  if (gapPercent > 10)      m.push(`Gapped up ${gapPercent.toFixed(1)}% from previous close`);
+  else if (gapPercent > 5)  m.push(`Pre-market gap of ${gapPercent.toFixed(1)}%`);
+  else if (gapPercent > 2)  m.push(`Opening gap of ${gapPercent.toFixed(1)}% from prior close`);
+  else if (gapPercent < -5) m.push(`Gapped down ${Math.abs(gapPercent).toFixed(1)}% from previous close`);
+
+  // Price change
+  if (changePercent > 20)      m.push(`Up ${changePercent.toFixed(1)}% — extended move`);
+  else if (changePercent > 10) m.push(`Up ${changePercent.toFixed(1)}% intraday with sustained momentum`);
+  else if (changePercent > 5)  m.push(`Up ${changePercent.toFixed(1)}% — move in progress`);
+  else if (changePercent > 2)  m.push(`${changePercent.toFixed(1)}% gain building structure`);
+  else if (changePercent < -5) m.push(`Down ${Math.abs(changePercent).toFixed(1)}% — selling pressure`);
+
+  // Volume
+  if (relativeVolume > 8)       m.push(`Extraordinary volume at ${relativeVolume.toFixed(1)}× the 30-day average`);
+  else if (relativeVolume > 4)  m.push(`High-conviction volume at ${relativeVolume.toFixed(1)}× average`);
+  else if (relativeVolume > 2)  m.push(`Elevated volume at ${relativeVolume.toFixed(1)}× average`);
+  else if (relativeVolume > 0)  m.push(`Volume at ${relativeVolume.toFixed(1)}× average — below threshold`);
+
+  // Catalyst — MUST explicitly state presence or absence
+  if (catalyst && String(catalyst).trim()) {
+    m.push(`Catalyst: ${String(catalyst).trim()}`);
+  } else {
+    m.push('No confirmed catalyst — technical move only');
+  }
+
   const why_moving = m.join('. ').replace(/\.\./g, '.');
 
   // WHAT IT MEANS (why_tradeable) — includes context insight
   const t = [];
   const volM   = (volume / 1_000_000).toFixed(1);
   const atrPct = price > 0 ? ((atr / price) * 100).toFixed(1) : '0';
-  t.push(`${volM}M shares — sufficient liquidity for clean entry`);
-  t.push(`ATR $${atr.toFixed(2)} (${atrPct}% of price) defines clear risk boundaries`);
-  if (strategy) t.push(`${strategy} setup confirmed`);
+  // Liquidity + volatility assessment — specific values only
+  const volDesc = Number(volume) >= 1_000_000
+    ? `${volM}M shares traded — liquid`
+    : Number(volume) >= 500_000
+      ? `${volM}M shares traded — minimum liquidity`
+      : `${volM}M shares traded — below liquidity threshold`;
+  t.push(volDesc);
+
+  const atrDesc = Number(atrPct) >= 2
+    ? `ATR $${atr.toFixed(2)} (${atrPct}% of price) — sufficient volatility for meaningful stops`
+    : Number(atrPct) >= 1
+      ? `ATR $${atr.toFixed(2)} (${atrPct}% of price) — borderline volatility`
+      : `ATR $${atr.toFixed(2)} (${atrPct}% of price) — low volatility, tight risk structure`;
+  t.push(atrDesc);
+
+  if (strategy) t.push(`${strategy} pattern detected`);
+
+  // Stage-specific interpretation
   switch (stage) {
-    case 'EARLY':     t.push('Move in early stage — maximum R:R potential, risk of false start'); break;
-    case 'EXPANSION': t.push('Move in expansion phase — momentum confirmed with volume'); break;
-    case 'EXTENDED':  t.push('Move is extended — reduced upside remaining, tighter stop required'); break;
-    case 'EXHAUSTION':t.push('Move showing exhaustion — avoid long exposure'); break;
+    case 'EARLY':     t.push('Early stage — move unconfirmed, aggressive entry only with strict stop'); break;
+    case 'EXPANSION': t.push('Expansion phase — momentum confirmed by volume and price structure'); break;
+    case 'EXTENDED':  t.push('Extended move — upside limited, only pullback entries, reduced size'); break;
+    case 'EXHAUSTION':t.push('Exhaustion detected — avoid new long exposure entirely'); break;
     default: break;
   }
-  if (regime === 'BULL')      t.push('Bullish regime aligned with long setup');
-  else if (regime === 'BEAR') t.push('Bear regime active — reduce position size');
+
+  // No catalyst = explicit lower-conviction label
+  if (!catalyst || !String(catalyst).trim()) {
+    t.push('Technical setup only — no confirmed catalyst (lower conviction)');
+  }
+
+  if (regime === 'BULL')      t.push('Bullish market regime supports long setups');
+  else if (regime === 'BEAR') t.push('Bear regime — reduce position size, tighten stops');
+
   const ctxInsight = _contextInsight(context, stage);
   if (ctxInsight) t.push(ctxInsight);
   const why_tradeable = t.join('. ');
 
-  // WHAT TO WATCH NEXT (how_to_trade) — with staged trade management rules + time note
+  // WHAT TO WATCH NEXT — explicit plan OR explicit avoid
   let how_to_trade;
   if (stage === 'EXHAUSTION') {
-    how_to_trade = 'Setup blocked — exhaustion after extended move. Wait for consolidation before new entry.';
+    how_to_trade = 'Avoid — exhaustion after extended move. No valid entry. Wait for multi-candle consolidation before reassessing.';
+  } else if (entry <= 0 || stop <= 0) {
+    how_to_trade = 'Avoid — insufficient price structure to define entry and stop levels.';
   } else {
     const riskPerShare = Math.abs(entry - stop);
-    const breakEven    = _r4(entry + riskPerShare);        // +1R  → move stop to break-even
-    const partial      = _r4(entry + riskPerShare * 1.5);  // +1.5R → take partial profits
-    const trail        = _r4(entry + riskPerShare * 2);    // +2R  → trail stop to lock gains
+    const breakEven    = _r4(entry + riskPerShare);
+    const partial      = _r4(entry + riskPerShare * 1.5);
+    const trail        = _r4(entry + riskPerShare * 2);
     how_to_trade =
       `Enter at $${entry.toFixed(2)} (${_entryLabel(strategy, stage)}). ` +
       `Stop at $${stop.toFixed(2)} — max risk £${MAX_RISK_GBP}. ` +
       `Target $${target.toFixed(2)} (${rr.toFixed(1)}:1 R:R). ` +
-      `At $${breakEven.toFixed(2)} move stop to break-even (+1R). ` +
-      `At $${partial.toFixed(2)} take partial profits (+1.5R). ` +
-      `Above $${trail.toFixed(2)} trail stop to lock gains (+2R).`;
+      `Move stop to break-even at $${breakEven.toFixed(2)} (+1R). ` +
+      `Take partial profits at $${partial.toFixed(2)} (+1.5R). ` +
+      `Trail stop above $${trail.toFixed(2)} to lock gains (+2R).`;
     if (context?.time_context === 'OPEN')
-      how_to_trade += ' Note: first 30 min — allow price to establish range before entering.';
+      how_to_trade += ' Caution: first 30 min — allow price to establish range before entering.';
     else if (context?.time_context === 'POWER_HOUR')
-      how_to_trade += ' Note: power hour — momentum can accelerate or reverse quickly.';
+      how_to_trade += ' Power hour — momentum can accelerate or reverse sharply.';
+    else if (context?.time_context === 'AFTER_HOURS' || context?.time_context === 'CLOSED')
+      how_to_trade += ' Market closed — this is a pre-positioning plan, not a live entry.';
   }
 
   return { why_moving, why_tradeable, how_to_trade };

@@ -251,8 +251,48 @@ async function getConfidenceMetrics() {
   }
 }
 
+// ── Confidence caps (stability layer) ────────────────────────────────────────
+//
+// Enforces hard upper limits based on evidence quality.
+// Called by the snapshot engine AFTER computeConfidence() so every persisted
+// confidence value is bounded by what the data can actually support.
+//
+//   No catalyst      → cap at 50
+//   No expected move → cap at 60
+//   Volume < 500k    → cap at 55
+//   Completeness<0.7 → cap at 50
+
+/**
+ * @param {object} signal
+ * @param {number}      signal.confidence        raw confidence value
+ * @param {string|null} signal.catalyst_type     null → no confirmed catalyst
+ * @param {number}      signal.expected_move     0 → no meaningful plan
+ * @param {number}      signal.volume
+ * @param {number}      signal.data_completeness 0.0–1.0
+ * @returns {number}
+ */
+function applyConfidenceCaps(signal) {
+  const {
+    confidence        = 50,
+    catalyst_type     = null,
+    expected_move     = 0,
+    volume            = 0,
+    data_completeness = 1.0,
+  } = signal;
+
+  let cap = 100;
+
+  if (!catalyst_type)                        cap = Math.min(cap, 50);
+  if (!expected_move || expected_move <= 0)  cap = Math.min(cap, 60);
+  if (Number(volume) < 500_000)              cap = Math.min(cap, 55);
+  if (Number(data_completeness) < 0.7)       cap = Math.min(cap, 50);
+
+  return Math.max(0, Math.min(cap, Math.round(Number(confidence))));
+}
+
 module.exports = {
   computeConfidence,
+  applyConfidenceCaps,
   getStrategyStats,
   getConfidenceMetrics,
 };

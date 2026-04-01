@@ -989,6 +989,28 @@ router.get('/api/intelligence/top5', async (_req, res) => {
 });
 
 router.get('/api/intelligence/priority', async (_req, res) => {
+  // Phase 6: After-hours freeze
+  const { isMarketOpen, getSessionLabel } = require('../utils/marketHours');
+  if (!isMarketOpen()) {
+    try {
+      const { queryWithTimeout: qt } = require('../db/pg');
+      const { rows: snapRows } = await qt(
+        `SELECT * FROM signal_snapshots ORDER BY created_at DESC LIMIT 10`,
+        [],
+        { timeoutMs: 5000, label: 'priority.snapshot_frozen' }
+      );
+      if (snapRows.length > 0) {
+        return res.json({
+          market_open: false,
+          session: getSessionLabel(),
+          market_message: 'Market closed — showing last evaluated opportunities.',
+          snapshot_at: snapRows[0].created_at,
+          results: snapRows,
+        });
+      }
+    } catch { /* fall through */ }
+  }
+
   try {
     let data = [];
 

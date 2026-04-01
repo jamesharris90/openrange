@@ -1326,6 +1326,24 @@ async function startEnginesSequentially() {
       }, 15 * 60 * 1000);
     }
 
+    // ── Snapshot engine: every 5 minutes (market hours only) ──────────────────
+    // Reads strategy_signals + opportunities_v2, applies confidence caps +
+    // data completeness scoring, writes ONE consistent batch to signal_snapshots.
+    // Skips automatically when market is closed.
+    if (!global.snapshotEngineStarted) {
+      global.snapshotEngineStarted = true;
+      console.log('[SNAPSHOT] engine registered (every 5 min, market hours only)');
+      // First run 60s after startup so signal engines have produced fresh data
+      setTimeout(() => {
+        const { runSnapshotEngine } = require('../engines/snapshotEngine');
+        runSnapshotEngine().catch(err => console.warn('[SNAPSHOT] startup run failed:', err.message));
+      }, 60_000);
+      setInterval(() => {
+        const { runSnapshotEngine } = require('../engines/snapshotEngine');
+        runSnapshotEngine().catch(err => console.warn('[SNAPSHOT] scheduled run failed:', err.message));
+      }, 5 * 60 * 1000);
+    }
+
     console.log('[Engine] All engines started successfully');
   } catch (err) {
     console.error('[Engine] Startup failure', err);

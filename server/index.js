@@ -8129,6 +8129,26 @@ app.get('/api/intelligence/market-narrative', async (req, res) => {
 });
 
 app.get('/api/intelligence/top-opportunity', async (_req, res) => {
+  // Phase 6: After-hours freeze — serve last snapshot instead of live recalculation
+  const { isMarketOpen, getSessionLabel } = require('./utils/marketHours');
+  if (!isMarketOpen()) {
+    try {
+      const { rows: snapRows } = await queryWithTimeout(
+        `SELECT * FROM signal_snapshots ORDER BY created_at DESC LIMIT 3`,
+        [],
+        { timeoutMs: 5000, label: 'top-opp.snapshot_frozen' }
+      );
+      if (snapRows.length > 0) {
+        return res.json({
+          market_open: false,
+          session: getSessionLabel(),
+          market_message: 'Market closed — showing last evaluated opportunities.',
+          snapshot_at: snapRows[0].created_at,
+          results: snapRows,
+        });
+      }
+    } catch { /* fall through to live path if snapshot read fails */ }
+  }
   try {
     const { rows } = await queryWithTimeout(
       `WITH gap_leaders AS (
@@ -12172,9 +12192,11 @@ app.post('/api/gpt/analyse-cockpit', requireFeature('trading_cockpit'), async (r
 const tradesRoutes = require('./routes/trades');
 const dailyReviewsRoutes = require('./routes/dailyReviews');
 const demoRoutes = require('./routes/demo');
+const snapshotRoutes = require('./routes/snapshots');
 app.use(tradesRoutes);
 app.use(dailyReviewsRoutes);
 app.use(demoRoutes);
+app.use(snapshotRoutes);
 
 // Usage metrics (after auth so user is available)
 app.use(usageMiddleware);
