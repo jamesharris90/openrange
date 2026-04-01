@@ -179,11 +179,15 @@ async function computeConfidence(signal) {
   }
 
   // ── 3. Provider reliability ───────────────────────────────────────────────
+  // Additive penalty capped at -15pts. A multiplicative formula collapses all
+  // confidence to 31 when providerScore is ~0.62, making exec_ready impossible
+  // even for high-quality signals. A bounded subtraction lets strategy edge
+  // still push above the MIN_CONFIDENCE threshold.
   const providerScore = await getProviderScore();
   if (providerScore < 1.0) {
-    const before = confidence;
-    confidence   = confidence * providerScore;
-    breakdown.provider_adjustment = Number((confidence - before).toFixed(2));
+    const penalty = Math.min(15, Math.round((1 - providerScore) * 30));
+    confidence -= penalty;
+    breakdown.provider_adjustment = -penalty;
   }
   breakdown.provider_reliability = Number(providerScore.toFixed(4));
 
