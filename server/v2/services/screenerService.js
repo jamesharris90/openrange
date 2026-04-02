@@ -29,7 +29,7 @@ function normalizeScreenerRow(row) {
     news_source: row.news_source || 'none',
     earnings_date: row.earnings_date || null,
     earnings_source: row.earnings_source || 'none',
-    catalyst_type: row.catalyst_type || 'UNKNOWN',
+    catalyst_type: row.catalyst_type || 'NONE',
     sector: row.sector || null,
     updated_at: row.updated_at || null,
   };
@@ -37,18 +37,26 @@ function normalizeScreenerRow(row) {
 
 function resolveCatalystType(row) {
   const now = Date.now();
-  const latestNewsTime = Date.parse(row.latest_news_at || '');
-  if (!Number.isNaN(latestNewsTime) && now - latestNewsTime < 24 * 60 * 60 * 1000) {
-    return 'NEWS';
-  }
 
   if (row.earnings_date) {
     const earningsTime = Date.parse(`${row.earnings_date}T00:00:00Z`);
     if (!Number.isNaN(earningsTime)) {
       const daysDiff = Math.abs(Math.round((earningsTime - now) / 86400000));
-      if (daysDiff <= 3) {
+      if (daysDiff <= 5) {
         return 'EARNINGS';
       }
+    }
+  }
+
+  const latestNewsTime = Date.parse(row.latest_news_at || '');
+  if (!Number.isNaN(latestNewsTime)) {
+    const ageMs = now - latestNewsTime;
+    if (ageMs <= 72 * 60 * 60 * 1000) {
+      return 'NEWS';
+    }
+
+    if (ageMs <= 7 * 24 * 60 * 60 * 1000) {
+      return 'RECENT_NEWS';
     }
   }
 
@@ -56,7 +64,7 @@ function resolveCatalystType(row) {
     return 'TECHNICAL';
   }
 
-  return 'UNKNOWN';
+  return 'NONE';
 }
 
 function normalizeSymbol(value) {

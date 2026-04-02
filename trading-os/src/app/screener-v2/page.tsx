@@ -17,7 +17,7 @@ type ScreenerRow = {
   news_source: "fmp" | "database" | "none";
   earnings_date?: string | null;
   earnings_source: "fmp" | "database" | "yahoo" | "none";
-  catalyst_type: "NEWS" | "EARNINGS" | "TECHNICAL" | "UNKNOWN";
+  catalyst_type: "NEWS" | "RECENT_NEWS" | "EARNINGS" | "TECHNICAL" | "NONE";
   sector: string | null;
   updated_at: string | null;
 };
@@ -104,12 +104,14 @@ function formatCatalyst(type: ScreenerRow["catalyst_type"]) {
   switch (type) {
     case "NEWS":
       return { icon: "🟢", label: "News" };
+    case "RECENT_NEWS":
+      return { icon: "🟠", label: "Recent News" };
     case "EARNINGS":
       return { icon: "🟣", label: "Earnings" };
     case "TECHNICAL":
       return { icon: "🟡", label: "Technical" };
     default:
-      return { icon: "⚪", label: "—" };
+      return { icon: "⚪", label: "No clear catalyst" };
   }
 }
 
@@ -131,10 +133,10 @@ function getNewsFreshness(publishedAt: string | null | undefined) {
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
-  if (!earningsDate) return "—";
+  if (!earningsDate) return "No data";
 
   const target = new Date(`${earningsDate}T00:00:00Z`);
-  if (Number.isNaN(target.getTime())) return "—";
+  if (Number.isNaN(target.getTime())) return "No data";
 
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -339,6 +341,9 @@ export default function ScreenerV2Page() {
                       <span>{earningsLabel}</span>
                       {row.earnings_date && row.earnings_source === "database" ? (
                         <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
+                      ) : null}
+                      {row.earnings_date && row.earnings_source === "yahoo" ? (
+                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">Yahoo</span>
                       ) : null}
                     </td>
                     <td className="px-4 py-3 text-slate-400">{row.sector || "—"}</td>
