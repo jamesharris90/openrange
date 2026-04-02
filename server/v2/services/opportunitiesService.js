@@ -282,7 +282,7 @@ function buildValidationReport(rows, removedWeakSetups) {
 }
 
 async function getOpportunitiesPayload() {
-  const { rows } = await getScreenerRows();
+  const { rows, macroContext } = await getScreenerRows();
   const candidates = (rows || []).filter((row) => row?.symbol);
 
   const enriched = [];
@@ -375,6 +375,7 @@ async function getOpportunitiesPayload() {
   return {
     rows: deduped,
     report: buildValidationReport(deduped, removedWeakSetups),
+    macroContext,
   };
 }
 

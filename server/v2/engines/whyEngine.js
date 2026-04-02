@@ -40,6 +40,20 @@ const SECTOR_LABELS = {
   Utilities: 'Utility',
 };
 
+const NORMALIZED_SECTOR_LABELS = {
+  'basic materials': 'materials',
+  'communication services': 'communication services',
+  'consumer cyclical': 'consumer cyclical',
+  'consumer defensive': 'consumer defensive',
+  energy: 'energy',
+  'financial services': 'financials',
+  healthcare: 'healthcare',
+  industrials: 'industrials',
+  'real estate': 'real estate',
+  technology: 'technology',
+  utilities: 'utilities',
+};
+
 function normalizeHeadline(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -183,6 +197,52 @@ function getSectorLabel(sector) {
   return SECTOR_LABELS[sector] || sector;
 }
 
+function normalizeSectorName(sector) {
+  const normalized = String(sector || '').trim().toLowerCase();
+  if (!normalized) {
+    return 'other';
+  }
+
+  return NORMALIZED_SECTOR_LABELS[normalized] || normalized;
+}
+
+function getMacroAlignmentText(row, macroContext) {
+  if (!macroContext || !Array.isArray(macroContext.drivers) || macroContext.drivers.length === 0) {
+    return null;
+  }
+
+  const direction = getDirection(row?.change_percent);
+  const sector = normalizeSectorName(row?.sector);
+  const dominantSectors = Array.isArray(macroContext.dominant_sectors) ? macroContext.dominant_sectors : [];
+  const weakSectors = Array.isArray(macroContext.weak_sectors) ? macroContext.weak_sectors : [];
+  const regime = String(macroContext.regime || '').toLowerCase();
+  const drivers = macroContext.drivers.map((driver) => String(driver).toLowerCase());
+  const sectorDriver = drivers.find((driver) => driver.includes(sector));
+
+  if (direction === 'up' && dominantSectors.includes(sector)) {
+    return sectorDriver
+      ? `Aligned with broader ${sectorDriver}`
+      : 'Aligned with broader risk-on tape';
+  }
+
+  if (direction === 'down' && weakSectors.includes(sector)) {
+    return sectorDriver
+      ? `Aligned with broader ${sectorDriver}`
+      : 'Aligned with broader risk-off tape';
+  }
+
+  return null;
+}
+
+function withMacroAlignment(baseWhy, row, macroContext) {
+  const alignment = getMacroAlignmentText(row, macroContext);
+  if (!alignment) {
+    return baseWhy;
+  }
+
+  return `${baseWhy}. ${alignment}`;
+}
+
 function getLinkedSymbols(row, rows) {
   if (!row?.symbol || !row?.sector) return [];
 
@@ -285,6 +345,7 @@ async function buildWhy(symbol, row, context = {}) {
   const recentNewsBySymbol = context.recentNewsBySymbol || new Map();
   const dbEarningsBySymbol = context.dbEarningsBySymbol || new Map();
   const rows = Array.isArray(context.rows) ? context.rows : [];
+  const macroContext = context.macroContext || null;
   const sectorLabel = getSectorLabel(row?.sector);
   const verb = getMoveVerb(row?.change_percent);
   const recentNews = recentNewsBySymbol.get(symbol) || [];
@@ -302,7 +363,7 @@ async function buildWhy(symbol, row, context = {}) {
     if (dayDiff !== null && Math.abs(dayDiff) <= 5) {
       const timing = dayDiff >= 0 ? 'earnings setup' : 'earnings reaction';
       return {
-        why: buildWhyText(symbol, verb, timing),
+        why: withMacroAlignment(buildWhyText(symbol, verb, timing), row, macroContext),
         driver_type: 'EARNINGS',
         confidence,
         linked_symbols: linkedSymbols,
@@ -318,7 +379,7 @@ async function buildWhy(symbol, row, context = {}) {
     themeStrength.alignedRows.length >= 5
   ) {
     return {
-      why: buildWhyText(`${themeStrength.strongestTheme.keyword.label} stocks`, verb, themeStrength.strongestTheme.keyword.context),
+      why: withMacroAlignment(buildWhyText(`${themeStrength.strongestTheme.keyword.label} stocks`, verb, themeStrength.strongestTheme.keyword.context), row, macroContext),
       driver_type: 'MACRO',
       confidence,
       linked_symbols: linkedSymbols,
@@ -327,7 +388,7 @@ async function buildWhy(symbol, row, context = {}) {
 
   if (row?.sector && themeStrength.strongestTheme && themeStrength.strongestTheme.count >= 3) {
     return {
-      why: buildWhyText(`${sectorLabel} stocks`, verb, themeStrength.strongestTheme.keyword.context),
+      why: withMacroAlignment(buildWhyText(`${sectorLabel} stocks`, verb, themeStrength.strongestTheme.keyword.context), row, macroContext),
       driver_type: 'SECTOR',
       confidence,
       linked_symbols: linkedSymbols,
@@ -336,7 +397,7 @@ async function buildWhy(symbol, row, context = {}) {
 
   if (latestNews && primaryKeyword) {
     return {
-      why: buildWhyText(symbol, verb, primaryKeyword.context),
+      why: withMacroAlignment(buildWhyText(symbol, verb, primaryKeyword.context), row, macroContext),
       driver_type: 'NEWS',
       confidence,
       linked_symbols: linkedSymbols,
@@ -345,7 +406,7 @@ async function buildWhy(symbol, row, context = {}) {
 
   if ((row?.rvol ?? 0) > 2 && getDirection(row?.change_percent) === 'up') {
     return {
-      why: buildWhyText(symbol, verb, 'heavy volume breakout'),
+      why: withMacroAlignment(buildWhyText(symbol, verb, 'heavy volume breakout'), row, macroContext),
       driver_type: 'TECHNICAL',
       confidence,
       linked_symbols: linkedSymbols,
@@ -354,7 +415,7 @@ async function buildWhy(symbol, row, context = {}) {
 
   if ((row?.rvol ?? 0) > 2 && getDirection(row?.change_percent) === 'down') {
     return {
-      why: buildWhyText(symbol, verb, 'heavy volume selloff'),
+      why: withMacroAlignment(buildWhyText(symbol, verb, 'heavy volume selloff'), row, macroContext),
       driver_type: 'TECHNICAL',
       confidence,
       linked_symbols: linkedSymbols,
@@ -363,7 +424,7 @@ async function buildWhy(symbol, row, context = {}) {
 
   if (linkedSymbols.length >= 2 && row?.sector) {
     return {
-      why: buildWhyText(`${sectorLabel} stocks`, verb, 'peer momentum'),
+      why: withMacroAlignment(buildWhyText(`${sectorLabel} stocks`, verb, 'peer momentum'), row, macroContext),
       driver_type: 'TECHNICAL',
       confidence,
       linked_symbols: linkedSymbols,
@@ -371,9 +432,13 @@ async function buildWhy(symbol, row, context = {}) {
   }
 
   return {
-    why: row?.sector
-      ? buildWhyText(`${sectorLabel} stocks`, verb, 'sector rotation')
-      : buildWhyText(symbol, verb, 'order-flow imbalance'),
+    why: withMacroAlignment(
+      row?.sector
+        ? buildWhyText(`${sectorLabel} stocks`, verb, 'sector rotation')
+        : buildWhyText(symbol, verb, 'order-flow imbalance'),
+      row,
+      macroContext
+    ),
     driver_type: 'TECHNICAL',
     confidence,
     linked_symbols: linkedSymbols,

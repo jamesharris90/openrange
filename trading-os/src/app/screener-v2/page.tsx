@@ -30,7 +30,15 @@ type ScreenerResponse = {
   success: boolean;
   count: number;
   fallbackUsed: boolean;
+  macro_context?: MacroContext;
   data: ScreenerRow[];
+};
+
+type MacroContext = {
+  regime: "risk_on" | "risk_off" | "mixed";
+  drivers: string[];
+  dominant_sectors: string[];
+  weak_sectors: string[];
 };
 
 type OpportunityRow = {
@@ -55,6 +63,7 @@ type OpportunitiesResponse = {
   success: boolean;
   count: number;
   data: OpportunityRow[];
+  macro_context?: MacroContext;
   report?: {
     valid: boolean;
     avg_confidence: number;
@@ -233,6 +242,27 @@ function formatConfidence(value: number) {
   };
 }
 
+function formatRegime(regime: MacroContext["regime"]) {
+  if (regime === "risk_on") {
+    return {
+      label: "Risk On",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    };
+  }
+
+  if (regime === "risk_off") {
+    return {
+      label: "Risk Off",
+      className: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+    };
+  }
+
+  return {
+    label: "Mixed",
+    className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  };
+}
+
 function SkeletonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.4)]">
@@ -275,6 +305,7 @@ function SkeletonTable() {
 export default function ScreenerV2Page() {
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
+  const [macroContext, setMacroContext] = useState<MacroContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
@@ -306,6 +337,7 @@ export default function ScreenerV2Page() {
           const nextRows = sortRows(Array.isArray(payload.data) ? payload.data : []);
           setData(nextRows);
           setOpportunities(Array.isArray(opportunitiesPayload.data) ? opportunitiesPayload.data.slice(0, 3) : []);
+          setMacroContext(payload.macro_context ?? opportunitiesPayload.macro_context ?? null);
           setUpdatedAt(resolveUpdatedTimestamp(nextRows));
           setError(null);
         }
@@ -314,6 +346,7 @@ export default function ScreenerV2Page() {
           setError(nextError instanceof Error ? nextError.message : "Failed to load screener");
           setData([]);
           setOpportunities([]);
+          setMacroContext(null);
           setUpdatedAt(null);
         }
       } finally {
@@ -350,6 +383,39 @@ export default function ScreenerV2Page() {
           Clean view over the trusted v2 screener feed. No derived scoring, no extra fetches, no legacy components.
         </p>
       </header>
+
+      {macroContext ? (
+        <div className="rounded-2xl border border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(2,6,23,0.92))] p-5 shadow-[0_12px_30px_rgba(2,6,23,0.35)]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-sky-300/80">Market Context Today</p>
+              <h2 className="mt-2 text-lg font-semibold text-white">Macro driver layer for the tape</h2>
+            </div>
+            <span className={cn("inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.16em]", formatRegime(macroContext.regime).className)}>
+              {formatRegime(macroContext.regime).label}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
+            <div className="space-y-2">
+              {macroContext.drivers.slice(0, 3).map((driver) => (
+                <p key={driver} className="text-sm leading-6 text-slate-200">
+                  {driver}
+                </p>
+              ))}
+            </div>
+            <div className="space-y-3 text-sm text-slate-300">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Leading</p>
+                <p className="mt-1">{macroContext.dominant_sectors.join(", ")}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Weak</p>
+                <p className="mt-1">{macroContext.weak_sectors.join(", ")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {!loading && opportunities.length > 0 ? (
         <div className="grid gap-3 md:grid-cols-3">

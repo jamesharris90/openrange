@@ -2,6 +2,7 @@ const axios = require('axios');
 const { supabaseAdmin } = require('../../services/supabaseClient');
 const { fmpFetch } = require('../../services/fmpClient');
 const { buildWhy } = require('../engines/whyEngine');
+const { buildMacroContext } = require('../engines/macroEngine');
 
 const earningsLookupCache = new Map();
 const EARNINGS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -507,6 +508,12 @@ async function getScreenerRows() {
     return {
       rows: fallbackRows,
       fallbackUsed: fallbackRows.length > 0,
+      macroContext: await buildMacroContext({ topMovers: fallbackRows, recentNewsBySymbol: new Map() }).catch(() => ({
+        regime: 'mixed',
+        drivers: ['SPY 0.0% while QQQ 0.0% in a split tape'],
+        dominant_sectors: ['technology'],
+        weak_sectors: ['utilities'],
+      })),
     };
   }
 
@@ -610,6 +617,16 @@ async function getScreenerRows() {
     };
   });
 
+  const macroContext = await buildMacroContext({
+    topMovers: enrichedRows,
+    recentNewsBySymbol,
+  }).catch(() => ({
+    regime: 'mixed',
+    drivers: ['SPY 0.0% while QQQ 0.0% in a split tape'],
+    dominant_sectors: ['technology'],
+    weak_sectors: ['utilities'],
+  }));
+
   const rows = [];
   for (const row of enrichedRows) {
     if (!row.symbol) {
@@ -621,6 +638,7 @@ async function getScreenerRows() {
       recentNewsBySymbol,
       dbEarningsBySymbol,
       rows: enrichedRows,
+      macroContext,
     });
 
     rows.push({
@@ -663,6 +681,7 @@ async function getScreenerRows() {
     return {
       rows,
       fallbackUsed: false,
+      macroContext,
     };
   }
 
@@ -670,6 +689,12 @@ async function getScreenerRows() {
   return {
     rows: fallbackRows,
     fallbackUsed: fallbackRows.length > 0,
+    macroContext: await buildMacroContext({ topMovers: fallbackRows, recentNewsBySymbol: new Map() }).catch(() => ({
+      regime: 'mixed',
+      drivers: ['SPY 0.0% while QQQ 0.0% in a split tape'],
+      dominant_sectors: ['technology'],
+      weak_sectors: ['utilities'],
+    })),
   };
 }
 

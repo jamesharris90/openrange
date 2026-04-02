@@ -12,11 +12,12 @@ router.get('/', async (_req, res) => {
       return res.json(cached);
     }
 
-    const { rows, report } = await getOpportunitiesPayload();
+    const { rows, report, macroContext } = await getOpportunitiesPayload();
     const payload = {
       success: true,
       count: rows.length,
       data: rows,
+      macro_context: macroContext,
       report,
     };
 

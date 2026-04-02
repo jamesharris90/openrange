@@ -11,11 +11,12 @@ router.get('/', async (_req, res) => {
       return res.json(cached);
     }
 
-    const { rows, fallbackUsed } = await getScreenerRows();
+    const { rows, fallbackUsed, macroContext } = await getScreenerRows();
     const payload = {
       success: true,
       count: rows.length,
       fallbackUsed,
+      macro_context: macroContext,
       data: rows,
     };
 
