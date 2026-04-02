@@ -33,6 +33,23 @@ type ScreenerResponse = {
   data: ScreenerRow[];
 };
 
+type OpportunityRow = {
+  symbol: string;
+  score: number;
+  why: string;
+  bias: "continuation" | "reversal" | "chop";
+  risk: "low" | "medium" | "high";
+  watch: string;
+  confidence: number;
+  tradeable: boolean;
+};
+
+type OpportunitiesResponse = {
+  success: boolean;
+  count: number;
+  data: OpportunityRow[];
+};
+
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, index) => index);
 
 function sortRows(rows: ScreenerRow[]) {
@@ -244,6 +261,7 @@ function SkeletonTable() {
 
 export default function ScreenerV2Page() {
   const [data, setData] = useState<ScreenerRow[]>([]);
+  const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
@@ -257,15 +275,24 @@ export default function ScreenerV2Page() {
       }
 
       try {
-        const response = await apiFetch("/api/v2/screener", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Request failed (${response.status})`);
+        const [screenerResponse, opportunitiesResponse] = await Promise.all([
+          apiFetch("/api/v2/screener", { cache: "no-store" }),
+          apiFetch("/api/v2/opportunities", { cache: "no-store" }),
+        ]);
+
+        if (!screenerResponse.ok) {
+          throw new Error(`Request failed (${screenerResponse.status})`);
         }
 
-        const payload = (await response.json()) as ScreenerResponse;
+        const payload = (await screenerResponse.json()) as ScreenerResponse;
+        const opportunitiesPayload = opportunitiesResponse.ok
+          ? ((await opportunitiesResponse.json()) as OpportunitiesResponse)
+          : { success: false, count: 0, data: [] };
+
         if (!cancelled) {
           const nextRows = sortRows(Array.isArray(payload.data) ? payload.data : []);
           setData(nextRows);
+          setOpportunities(Array.isArray(opportunitiesPayload.data) ? opportunitiesPayload.data.slice(0, 3) : []);
           setUpdatedAt(resolveUpdatedTimestamp(nextRows));
           setError(null);
         }
@@ -273,6 +300,7 @@ export default function ScreenerV2Page() {
         if (!cancelled) {
           setError(nextError instanceof Error ? nextError.message : "Failed to load screener");
           setData([]);
+          setOpportunities([]);
           setUpdatedAt(null);
         }
       } finally {
@@ -293,8 +321,6 @@ export default function ScreenerV2Page() {
     };
   }, []);
 
-  const topMovers = data.slice(0, 3);
-
   return (
     <section className="space-y-5 text-slate-100">
       <header className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(2,6,23,0.96))] p-6 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
@@ -312,20 +338,34 @@ export default function ScreenerV2Page() {
         </p>
       </header>
 
-      {!loading && data.length > 0 ? (
+      {!loading && opportunities.length > 0 ? (
         <div className="grid gap-3 md:grid-cols-3">
-          {topMovers.map((row) => (
-            <div key={row.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-4 text-sm shadow-[0_0_0_1px_rgba(15,23,42,0.3)]">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Top mover</p>
-              <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
-                <span>🔥</span>
-                <Link href={`/research-v2/${encodeURIComponent(row.symbol || "")}`} className="underline-offset-4 hover:text-emerald-300 hover:underline">
-                  {row.symbol || "—"}
-                </Link>
+          {opportunities.map((row) => {
+            const confidence = formatConfidence(row.confidence);
+            return (
+              <div key={row.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-4 text-sm shadow-[0_0_0_1px_rgba(15,23,42,0.3)]">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Top 3 Focus Today</p>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <Link href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="text-base font-semibold text-white underline-offset-4 hover:text-emerald-300 hover:underline">
+                    {row.symbol}
+                  </Link>
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                    {row.score.toFixed(0)}
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-1 text-sm text-slate-300">{row.why}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
+                  <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-sky-200">
+                    {row.bias}
+                  </span>
+                  <span className={cn("rounded-full border px-2.5 py-1", confidence.className)}>
+                    {confidence.label}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-slate-400">{row.watch}</p>
               </div>
-              <p className="mt-1 text-sm text-slate-400">{`${formatCatalyst(row.catalyst_type).label}, ${formatRvol(row.rvol)} RVOL`}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
