@@ -23,6 +23,7 @@ type ScreenerRow = {
   why: string;
   driver_type: "MACRO" | "SECTOR" | "NEWS" | "EARNINGS" | "TECHNICAL";
   confidence: number;
+  linked_symbols: string[];
 };
 
 type ScreenerResponse = {
@@ -179,6 +180,27 @@ function formatDriverType(type: ScreenerRow["driver_type"]) {
         className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
       };
   }
+}
+
+function formatConfidence(value: number) {
+  if (value >= 0.8) {
+    return {
+      label: "HIGH",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    };
+  }
+
+  if (value >= 0.4) {
+    return {
+      label: "MED",
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    };
+  }
+
+  return {
+    label: "LOW",
+    className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+  };
 }
 
 function SkeletonTable() {
@@ -338,6 +360,7 @@ export default function ScreenerV2Page() {
                 const earningsLabel = getEarningsLabel(row.earnings_date);
                 const catalyst = formatCatalyst(row.catalyst_type);
                 const driver = formatDriverType(row.driver_type);
+                const confidence = formatConfidence(row.confidence);
 
                 return (
                   <tr key={row.symbol} className="border-t border-slate-900/80 transition hover:bg-slate-900/60">
@@ -369,10 +392,20 @@ export default function ScreenerV2Page() {
                     </td>
                     <td className="px-4 py-3 text-slate-300">
                       <div className="space-y-1.5">
-                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", driver.className)}>
-                          {driver.label}
-                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", driver.className)}>
+                            {driver.label}
+                          </span>
+                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", confidence.className)}>
+                            {confidence.label}
+                          </span>
+                        </div>
                         <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{row.why}</p>
+                        {row.linked_symbols.length > 0 ? (
+                          <p className="max-w-[18rem] text-[11px] leading-5 text-slate-400">
+                            {`Also moving: ${row.linked_symbols.join(", ")}`}
+                          </p>
+                        ) : null}
                       </div>
                     </td>
                     <td className={cn("px-4 py-3", news.tone)} title={news.label}>

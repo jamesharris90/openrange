@@ -36,6 +36,7 @@ function normalizeScreenerRow(row) {
     why: row.why || 'Price moving without a clear external catalyst',
     driver_type: row.driver_type || 'TECHNICAL',
     confidence: toNumber(row.confidence) ?? 0.4,
+    linked_symbols: Array.isArray(row.linked_symbols) ? row.linked_symbols.filter(Boolean) : [],
   };
 }
 
@@ -469,6 +470,7 @@ async function fetchStableFallbackQuote() {
       why: 'Price moving without a clear external catalyst',
       driver_type: 'TECHNICAL',
       confidence: 0.4,
+      linked_symbols: [],
     },
   ].filter((row) => row.symbol && row.price !== null && row.volume !== null);
 }
@@ -626,6 +628,7 @@ async function getScreenerRows() {
       why: why.why,
       driver_type: why.driver_type,
       confidence: why.confidence,
+      linked_symbols: why.linked_symbols || [],
     });
   }
 
