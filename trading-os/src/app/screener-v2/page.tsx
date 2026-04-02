@@ -39,6 +39,8 @@ type OpportunityRow = {
   why: string;
   bias: "continuation" | "reversal" | "chop";
   risk: "low" | "medium" | "high";
+  confidence_reason: string;
+  setup_type: "momentum continuation" | "mean reversion" | "breakout" | "fade" | "chop / avoid";
   watch: string;
   confidence: number;
   tradeable: boolean;
@@ -353,15 +355,14 @@ export default function ScreenerV2Page() {
                     {row.score.toFixed(0)}
                   </span>
                 </div>
-                <p className="mt-3 line-clamp-1 text-sm text-slate-300">{row.why}</p>
+                <p className="mt-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">{row.setup_type}</p>
+                <p className="mt-2 line-clamp-2 text-sm text-slate-300">{row.why}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
-                  <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-sky-200">
-                    {row.bias}
-                  </span>
                   <span className={cn("rounded-full border px-2.5 py-1", confidence.className)}>
                     {confidence.label}
                   </span>
                 </div>
+                <p className="mt-2 text-xs leading-5 text-slate-400">{row.confidence_reason}</p>
                 <p className="mt-3 text-xs leading-5 text-slate-400">{row.watch}</p>
               </div>
             );

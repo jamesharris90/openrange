@@ -62,6 +62,32 @@ function scoreOpportunity(row) {
   return Number(clamp(score, 0, 100).toFixed(2));
 }
 
+function buildOpportunityWhy(symbol, narrative, row) {
+  const rvolValue = toNumber(row?.rvol, 0);
+  const hasFreshNews = getNewsRecencyScore(row?.latest_news_at) >= 0.65;
+  const driverType = String(row?.driver_type || '').toUpperCase();
+  const setupType = String(narrative.setup_type || '').trim();
+
+  let reason = 'low-conviction tape';
+  if (setupType === 'breakout') {
+    reason = hasFreshNews
+      ? 'high RVOL news-driven continuation'
+      : 'high RVOL directional expansion';
+  } else if (setupType === 'momentum continuation') {
+    reason = driverType === 'EARNINGS'
+      ? 'earnings-backed continuation flow'
+      : 'trend continuation with flow support';
+  } else if (setupType === 'fade') {
+    reason = 'extended move with fade risk';
+  } else if (setupType === 'mean reversion') {
+    reason = 'stretched move near reversion territory';
+  } else if (rvolValue >= 2) {
+    reason = 'active tape without clean confirmation';
+  }
+
+  return `${symbol} — ${setupType} + ${reason}`;
+}
+
 async function getOpportunityRows() {
   const { rows } = await getScreenerRows();
   const candidates = (rows || []).filter((row) => row?.symbol)
@@ -78,9 +104,11 @@ async function getOpportunityRows() {
     enriched.push({
       symbol: row.symbol,
       score: scoreOpportunity(row),
-      why: row.why,
+      why: buildOpportunityWhy(row.symbol, narrative, row),
       bias: narrative.bias,
       risk: narrative.risk,
+      confidence_reason: narrative.confidence_reason,
+      setup_type: narrative.setup_type,
       watch: narrative.watch,
       confidence: Number(toNumber(row.confidence, 0).toFixed(2)),
       tradeable: narrative.tradeable,

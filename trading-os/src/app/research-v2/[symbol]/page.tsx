@@ -32,6 +32,8 @@ type Narrative = {
   strength: "strong" | "weak";
   tradeable: boolean;
   bias: "continuation" | "reversal" | "chop";
+  setup_type: "momentum continuation" | "mean reversion" | "breakout" | "fade" | "chop / avoid";
+  confidence_reason: string;
   watch: string;
   risk: "low" | "medium" | "high";
   generated_at: string;
@@ -287,6 +289,7 @@ export default function ResearchV2SymbolPage({ params }: Props) {
                   <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.strength))}>
                     {narrative.strength}
                   </p>
+                  <p className="mt-2 text-xs leading-5 text-slate-400">{narrative.confidence_reason}</p>
                 </div>
                 <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Risk</p>
@@ -294,6 +297,10 @@ export default function ResearchV2SymbolPage({ params }: Props) {
                     {narrative.risk === "medium" ? "MED" : narrative.risk.toUpperCase()}
                   </p>
                 </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Setup Type</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">{narrative.setup_type}</p>
               </div>
               <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">What To Watch</p>

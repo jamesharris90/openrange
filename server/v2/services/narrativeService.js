@@ -46,6 +46,21 @@ function normalizeTradeable(value) {
   return null;
 }
 
+function normalizeSetupType(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'momentum continuation') return 'momentum continuation';
+  if (normalized === 'mean reversion') return 'mean reversion';
+  if (normalized === 'breakout') return 'breakout';
+  if (normalized === 'fade') return 'fade';
+  if (normalized === 'chop / avoid') return 'chop / avoid';
+  return null;
+}
+
+function hasActionableTrigger(text) {
+  const normalized = String(text || '').toLowerCase();
+  return /(vwap reclaim|break of high|break above|hold of support|hold above|failure of level|failure of vwap|break below|intraday high|intraday low|opening range)/.test(normalized);
+}
+
 function parseJsonResponse(content) {
   const text = String(content || '').trim();
   if (!text) return null;
@@ -119,6 +134,70 @@ function buildGeneratedAt() {
   return new Date().toISOString();
 }
 
+function getMoveDirection(changePercent) {
+  return toNumber(changePercent, 0) >= 0 ? 'up' : 'down';
+}
+
+function getSetupType({ bias, tradeable, rvol, change_percent: changePercent }) {
+  const absChange = Math.abs(toNumber(changePercent, 0));
+  const rvolValue = toNumber(rvol, 0);
+
+  if (!tradeable || bias === 'chop') {
+    return 'chop / avoid';
+  }
+
+  if (bias === 'reversal') {
+    return absChange >= 5 ? 'fade' : 'mean reversion';
+  }
+
+  if (bias === 'continuation' && (rvolValue >= 3 || absChange >= 6)) {
+    return 'breakout';
+  }
+
+  return 'momentum continuation';
+}
+
+function getConfidenceReason({ confidence, latest_news_at: latestNewsAt, rvol, change_percent: changePercent }) {
+  const confidenceValue = clamp(toNumber(confidence, 0), 0, 1);
+  const rvolValue = toNumber(rvol, 0);
+  const absChange = Math.abs(toNumber(changePercent, 0));
+  const freshNews = Boolean(latestNewsAt) && (Date.now() - Date.parse(latestNewsAt)) <= 24 * 60 * 60 * 1000;
+
+  if (confidenceValue >= 0.8) {
+    return freshNews
+      ? 'High RVOL with fresh news catalyst and strong continuation behaviour'
+      : 'High RVOL with a clean directional move and strong intraday participation';
+  }
+
+  if (confidenceValue >= 0.4) {
+    return freshNews || rvolValue >= 2 || absChange >= 4
+      ? 'Partial confirmation from flow, price expansion, or catalyst timing'
+      : 'Some confirmation is present, but the move still lacks full alignment';
+  }
+
+  return 'Weak move or no clear catalyst confirmation behind the tape';
+}
+
+function getActionableWatch({ bias, tradeable, change_percent: changePercent }) {
+  const direction = getMoveDirection(changePercent);
+
+  if (!tradeable || bias === 'chop') {
+    return direction === 'up'
+      ? 'Watch for failure of level at VWAP or rejection at the intraday high.'
+      : 'Watch for failure of level at VWAP or break below the intraday low.';
+  }
+
+  if (bias === 'reversal') {
+    return direction === 'up'
+      ? 'Watch for hold of support at VWAP and failure of level at the intraday high.'
+      : 'Watch for VWAP reclaim and hold of support above the intraday low.';
+  }
+
+  return direction === 'up'
+    ? 'Watch for VWAP reclaim and break of high above the intraday high.'
+    : 'Watch for failure of VWAP reclaim and break below the intraday low.';
+}
+
 function buildFallbackNarrative(symbol, screenerRow = {}) {
   const payload = getPromptPayload(symbol, screenerRow);
   const absChange = Math.abs(payload.change_percent);
@@ -135,12 +214,23 @@ function buildFallbackNarrative(symbol, screenerRow = {}) {
       : 'medium';
 
   const driver = payload.why;
-  const peerText = payload.linked_symbols.length
-    ? payload.linked_symbols.join(', ')
-    : `${payload.sector} peers`;
-  const watch = tradeable
-    ? `Watch for confirmation versus ${peerText} and acceptance after the first pullback.`
-    : `Watch for failure to hold the initial move before considering any entry.`;
+  const setup_type = getSetupType({
+    bias,
+    tradeable,
+    rvol: screenerRow?.rvol,
+    change_percent: payload.change_percent,
+  });
+  const confidence_reason = getConfidenceReason({
+    confidence: payload.confidence,
+    latest_news_at: screenerRow?.latest_news_at,
+    rvol: screenerRow?.rvol,
+    change_percent: payload.change_percent,
+  });
+  const watch = getActionableWatch({
+    bias,
+    tradeable,
+    change_percent: payload.change_percent,
+  });
 
   const summary = [
     `${payload.why}.`,
@@ -155,6 +245,8 @@ function buildFallbackNarrative(symbol, screenerRow = {}) {
     strength,
     tradeable,
     bias,
+    setup_type,
+    confidence_reason,
     watch,
     risk,
     generated_at: buildGeneratedAt(),
@@ -172,9 +264,22 @@ function hasCompleteNarrativeShape(parsed) {
   const strength = normalizeStrength(parsed.strength);
   const tradeable = normalizeTradeable(parsed.tradeable);
   const bias = normalizeBias(parsed.bias);
+  const setupType = normalizeSetupType(parsed.setup_type);
+  const confidenceReason = String(parsed.confidence_reason || '').trim();
   const risk = normalizeRisk(parsed.risk);
 
-  return Boolean(summary && driver && watch && strength && tradeable !== null && bias && risk);
+  return Boolean(
+    summary
+    && driver
+    && watch
+    && hasActionableTrigger(watch)
+    && strength
+    && tradeable !== null
+    && bias
+    && setupType
+    && confidenceReason
+    && risk
+  );
 }
 
 function normalizeNarrativeResponse(parsed, fallback) {
@@ -191,6 +296,8 @@ function normalizeNarrativeResponse(parsed, fallback) {
     strength: normalizeStrength(parsed.strength),
     tradeable: normalizeTradeable(parsed.tradeable),
     bias: normalizeBias(parsed.bias),
+    setup_type: normalizeSetupType(parsed.setup_type),
+    confidence_reason: String(parsed.confidence_reason || '').trim(),
     watch,
     risk: normalizeRisk(parsed.risk),
     generated_at: buildGeneratedAt(),
@@ -230,13 +337,15 @@ async function buildNarrative(symbol, screenerRow) {
             '4. What is the most likely outcome? (continuation, fade, chop)',
             '5. What specific signal should a trader watch next?',
             'Be concise. No fluff. No generic statements.',
-            'Return only valid JSON with keys: summary, driver, strength, tradeable, bias, watch, risk.',
+            'Return only valid JSON with keys: summary, driver, strength, tradeable, bias, setup_type, confidence_reason, watch, risk.',
             'summary must be a concise decision-grade summary.',
             'driver must be specific and concrete.',
             'strength must be "strong" or "weak".',
             'tradeable must be a boolean true or false.',
             'bias must be "continuation", "reversal", or "chop".',
-            'watch must be one actionable sentence.',
+            'setup_type must be one of: momentum continuation, mean reversion, breakout, fade, chop / avoid.',
+            'confidence_reason must explain why confidence is high, medium, or low.',
+            'watch must be one actionable sentence with a specific trigger such as VWAP reclaim, break of high, hold of support, or failure of level.',
             'risk must be "low", "medium", or "high".',
           ].join(' '),
         },
