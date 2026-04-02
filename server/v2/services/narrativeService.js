@@ -17,18 +17,33 @@ function normalizeBias(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'continuation') return 'continuation';
   if (normalized === 'reversal') return 'reversal';
-  return 'unclear';
+  if (normalized === 'chop') return 'chop';
+  return null;
 }
 
 function normalizeStrength(value) {
-  return String(value || '').trim().toLowerCase() === 'strong' ? 'strong' : 'weak';
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'strong') return 'strong';
+  if (normalized === 'weak') return 'weak';
+  return null;
 }
 
 function normalizeRisk(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'low') return 'low';
   if (normalized === 'high') return 'high';
-  return 'medium';
+  if (normalized === 'medium') return 'medium';
+  return null;
+}
+
+function normalizeTradeable(value) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return null;
 }
 
 function parseJsonResponse(content) {
@@ -100,17 +115,18 @@ function setCachedNarrative(key, value) {
   });
 }
 
+function buildGeneratedAt() {
+  return new Date().toISOString();
+}
+
 function buildFallbackNarrative(symbol, screenerRow = {}) {
   const payload = getPromptPayload(symbol, screenerRow);
   const absChange = Math.abs(payload.change_percent);
-  const linkedText = payload.linked_symbols.length
-    ? ` Related names: ${payload.linked_symbols.join(', ')}.`
-    : '';
-
   const strength = payload.confidence >= 0.7 || absChange >= 8 ? 'strong' : 'weak';
+  const tradeable = payload.confidence >= 0.55 && absChange >= 3;
   const bias = payload.driver_type === 'TECHNICAL'
-    ? (payload.confidence >= 0.65 ? 'continuation' : 'unclear')
-    : (payload.confidence >= 0.55 ? 'continuation' : 'unclear');
+    ? (payload.confidence >= 0.65 ? 'continuation' : 'chop')
+    : (payload.confidence >= 0.55 ? 'continuation' : 'chop');
 
   const risk = payload.confidence >= 0.8
     ? 'low'
@@ -118,34 +134,66 @@ function buildFallbackNarrative(symbol, screenerRow = {}) {
       ? 'high'
       : 'medium';
 
+  const driver = payload.why;
+  const peerText = payload.linked_symbols.length
+    ? payload.linked_symbols.join(', ')
+    : `${payload.sector} peers`;
+  const watch = tradeable
+    ? `Watch for confirmation versus ${peerText} and acceptance after the first pullback.`
+    : `Watch for failure to hold the initial move before considering any entry.`;
+
   const summary = [
     `${payload.why}.`,
-    `Move quality looks ${strength} with ${payload.confidence.toFixed(2)} confidence.`,
-    bias === 'continuation'
-      ? 'Favor continuation only if the stock holds trend and sector alignment.'
-      : 'Treat this as less reliable and watch for a failed move before chasing.',
-    `Watch ${payload.sector} peers and price acceptance after the initial move.${linkedText}`,
+    strength === 'strong' ? 'The move has enough confirmation to matter intraday.' : 'The move lacks enough confirmation to trust yet.',
+    tradeable ? 'It is tradeable only with clean follow-through.' : 'It is not tradeable yet without better confirmation.',
+    `Most likely outcome is ${bias}. ${watch}`,
   ].join(' ');
 
   return {
     summary,
+    driver,
     strength,
+    tradeable,
     bias,
+    watch,
     risk,
+    generated_at: buildGeneratedAt(),
   };
 }
 
-function normalizeNarrativeResponse(parsed, fallback) {
+function hasCompleteNarrativeShape(parsed) {
   if (!parsed || typeof parsed !== 'object') {
+    return false;
+  }
+
+  const summary = String(parsed.summary || '').trim();
+  const driver = String(parsed.driver || '').trim();
+  const watch = String(parsed.watch || '').trim();
+  const strength = normalizeStrength(parsed.strength);
+  const tradeable = normalizeTradeable(parsed.tradeable);
+  const bias = normalizeBias(parsed.bias);
+  const risk = normalizeRisk(parsed.risk);
+
+  return Boolean(summary && driver && watch && strength && tradeable !== null && bias && risk);
+}
+
+function normalizeNarrativeResponse(parsed, fallback) {
+  if (!hasCompleteNarrativeShape(parsed)) {
     return fallback;
   }
 
   const summary = String(parsed.summary || '').trim();
+  const driver = String(parsed.driver || '').trim();
+  const watch = String(parsed.watch || '').trim();
   return {
-    summary: summary || fallback.summary,
-    strength: normalizeStrength(parsed.strength || fallback.strength),
-    bias: normalizeBias(parsed.bias || fallback.bias),
-    risk: normalizeRisk(parsed.risk || fallback.risk),
+    summary,
+    driver,
+    strength: normalizeStrength(parsed.strength),
+    tradeable: normalizeTradeable(parsed.tradeable),
+    bias: normalizeBias(parsed.bias),
+    watch,
+    risk: normalizeRisk(parsed.risk),
+    generated_at: buildGeneratedAt(),
   };
 }
 
@@ -174,16 +222,21 @@ async function buildNarrative(symbol, screenerRow) {
         {
           role: 'system',
           content: [
-            'You are a professional trader.',
-            'Explain clearly:',
-            '1. Why this stock is moving',
-            '2. Whether the move is strong or weak',
-            '3. Whether it is likely continuation or fade',
-            '4. What to watch next',
-            'Keep it concise and actionable.',
-            'Return only valid JSON with keys: summary, strength, bias, risk.',
+            'You are an experienced intraday trader.',
+            'Given this stock data, answer:',
+            '1. What is actually driving this move? (be specific)',
+            '2. Is this move strong or weak?',
+            '3. Is this tradeable or not?',
+            '4. What is the most likely outcome? (continuation, fade, chop)',
+            '5. What specific signal should a trader watch next?',
+            'Be concise. No fluff. No generic statements.',
+            'Return only valid JSON with keys: summary, driver, strength, tradeable, bias, watch, risk.',
+            'summary must be a concise decision-grade summary.',
+            'driver must be specific and concrete.',
             'strength must be "strong" or "weak".',
-            'bias must be "continuation", "reversal", or "unclear".',
+            'tradeable must be a boolean true or false.',
+            'bias must be "continuation", "reversal", or "chop".',
+            'watch must be one actionable sentence.',
             'risk must be "low", "medium", or "high".',
           ].join(' '),
         },

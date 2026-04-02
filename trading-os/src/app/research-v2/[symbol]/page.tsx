@@ -28,9 +28,13 @@ type ScreenerRow = {
 
 type Narrative = {
   summary: string;
+  driver: string;
   strength: "strong" | "weak";
-  bias: "continuation" | "reversal" | "unclear";
+  tradeable: boolean;
+  bias: "continuation" | "reversal" | "chop";
+  watch: string;
   risk: "low" | "medium" | "high";
+  generated_at: string;
 };
 
 type ResearchResponse = {
@@ -110,14 +114,30 @@ function narrativeBadgeTone(value: string) {
     case "strong":
     case "continuation":
     case "low":
+    case "yes":
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
     case "weak":
     case "reversal":
     case "high":
+    case "no":
       return "border-rose-500/30 bg-rose-500/10 text-rose-200";
     default:
       return "border-amber-500/30 bg-amber-500/10 text-amber-200";
   }
+}
+
+function formatGeneratedAt(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return "Unknown";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(parsed));
 }
 
 export default function ResearchV2SymbolPage({ params }: Props) {
@@ -214,7 +234,7 @@ export default function ResearchV2SymbolPage({ params }: Props) {
         <div className="mt-8 space-y-4">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Deterministic WHY</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">WHY</p>
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.18em]">
                 {driver ? (
                   <span className={cn("rounded-full border px-2.5 py-1", driver.className)}>{driver.label}</span>
@@ -243,22 +263,41 @@ export default function ResearchV2SymbolPage({ params }: Props) {
 
             <div className="rounded-2xl border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_45%),rgba(2,6,23,0.82)] p-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-300/80">GPT Narrative</p>
-                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
-                  5m cache
-                </span>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-300/80">AI Trade View</p>
+                  <p className="mt-1 text-xs text-slate-400">Cached for 5 minutes. Generated {formatGeneratedAt(narrative.generated_at)}</p>
+                </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-200">{narrative.summary}</p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium uppercase tracking-[0.18em]">
-                <span className={cn("rounded-full border px-2.5 py-1", narrativeBadgeTone(narrative.strength))}>
-                  {narrative.strength}
-                </span>
-                <span className={cn("rounded-full border px-2.5 py-1", narrativeBadgeTone(narrative.bias))}>
-                  {narrative.bias}
-                </span>
-                <span className={cn("rounded-full border px-2.5 py-1", narrativeBadgeTone(narrative.risk))}>
-                  risk {narrative.risk}
-                </span>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Bias</p>
+                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.bias))}>
+                    {narrative.bias}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Tradeable</p>
+                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.tradeable ? "yes" : "no"))}>
+                    {narrative.tradeable ? "YES" : "NO"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Strength</p>
+                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.strength))}>
+                    {narrative.strength}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Risk</p>
+                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.risk))}>
+                    {narrative.risk === "medium" ? "MED" : narrative.risk.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">What To Watch</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">{narrative.watch}</p>
               </div>
             </div>
           </div>
