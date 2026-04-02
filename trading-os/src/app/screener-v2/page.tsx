@@ -20,6 +20,9 @@ type ScreenerRow = {
   catalyst_type: "NEWS" | "RECENT_NEWS" | "EARNINGS" | "TECHNICAL" | "NONE";
   sector: string | null;
   updated_at: string | null;
+  why: string;
+  driver_type: "MACRO" | "SECTOR" | "NEWS" | "EARNINGS" | "TECHNICAL";
+  confidence: number;
 };
 
 type ScreenerResponse = {
@@ -148,6 +151,36 @@ function getEarningsLabel(earningsDate: string | null | undefined) {
   return `${Math.abs(dayDiff)}d ago`;
 }
 
+function formatDriverType(type: ScreenerRow["driver_type"]) {
+  switch (type) {
+    case "MACRO":
+      return {
+        label: "Macro",
+        className: "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200",
+      };
+    case "SECTOR":
+      return {
+        label: "Sector",
+        className: "border-sky-500/30 bg-sky-500/10 text-sky-200",
+      };
+    case "NEWS":
+      return {
+        label: "News",
+        className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      };
+    case "EARNINGS":
+      return {
+        label: "Earnings",
+        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    default:
+      return {
+        label: "Technical",
+        className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+      };
+  }
+}
+
 function SkeletonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.4)]">
@@ -162,6 +195,7 @@ function SkeletonTable() {
               "RVOL",
               "Gap %",
               "Catalyst",
+              "Why",
               "News",
               "Earnings",
               "Sector",
@@ -173,7 +207,7 @@ function SkeletonTable() {
         <tbody>
           {SKELETON_ROWS.map((row) => (
             <tr key={row} className="animate-pulse border-t border-slate-900">
-              {Array.from({ length: 10 }, (_, cell) => (
+              {Array.from({ length: 11 }, (_, cell) => (
                 <td key={cell} className="px-4 py-3">
                   <div className="h-4 rounded bg-slate-800/80" />
                 </td>
@@ -292,6 +326,7 @@ export default function ScreenerV2Page() {
                 <th className="px-4 py-3 font-medium">RVOL</th>
                 <th className="px-4 py-3 font-medium">Gap %</th>
                 <th className="px-4 py-3 font-medium">Catalyst</th>
+                <th className="px-4 py-3 font-medium">Why</th>
                 <th className="px-4 py-3 font-medium">News</th>
                 <th className="px-4 py-3 font-medium">Earnings</th>
                 <th className="px-4 py-3 font-medium">Sector</th>
@@ -302,6 +337,7 @@ export default function ScreenerV2Page() {
                 const news = getNewsFreshness(row.latest_news_at);
                 const earningsLabel = getEarningsLabel(row.earnings_date);
                 const catalyst = formatCatalyst(row.catalyst_type);
+                const driver = formatDriverType(row.driver_type);
 
                 return (
                   <tr key={row.symbol} className="border-t border-slate-900/80 transition hover:bg-slate-900/60">
@@ -330,6 +366,14 @@ export default function ScreenerV2Page() {
                     <td className="px-4 py-3 text-slate-300">
                       <span className="mr-2">{catalyst.icon}</span>
                       <span>{catalyst.label}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300">
+                      <div className="space-y-1.5">
+                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", driver.className)}>
+                          {driver.label}
+                        </span>
+                        <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{row.why}</p>
+                      </div>
                     </td>
                     <td className={cn("px-4 py-3", news.tone)} title={news.label}>
                       <span>{news.label}</span>

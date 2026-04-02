@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { supabaseAdmin } = require('../../services/supabaseClient');
 const { fmpFetch } = require('../../services/fmpClient');
+const { buildWhy } = require('../engines/whyEngine');
 
 const earningsLookupCache = new Map();
 const EARNINGS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -32,6 +33,9 @@ function normalizeScreenerRow(row) {
     catalyst_type: row.catalyst_type || 'NONE',
     sector: row.sector || null,
     updated_at: row.updated_at || null,
+    why: row.why || 'Price moving without a clear external catalyst',
+    driver_type: row.driver_type || 'TECHNICAL',
+    confidence: toNumber(row.confidence) ?? 0.4,
   };
 }
 
@@ -86,6 +90,20 @@ function resolveEarliestDate(currentValue, nextValue) {
   if (!nextValue) return currentValue || null;
   if (!currentValue) return nextValue;
   return nextValue < currentValue ? nextValue : currentValue;
+}
+
+function resolveClosestDate(currentValue, nextValue) {
+  if (!nextValue) return currentValue || null;
+  if (!currentValue) return nextValue;
+
+  const currentTime = Date.parse(`${currentValue}T00:00:00Z`);
+  const nextTime = Date.parse(`${nextValue}T00:00:00Z`);
+  if (Number.isNaN(currentTime)) return nextValue;
+  if (Number.isNaN(nextTime)) return currentValue;
+
+  const currentDiff = Math.abs(currentTime - Date.now());
+  const nextDiff = Math.abs(nextTime - Date.now());
+  return nextDiff < currentDiff ? nextValue : currentValue;
 }
 
 function dedupeBySymbol(rows) {
@@ -264,6 +282,99 @@ async function fetchLatestNewsBySymbol(symbols) {
   return latestNewsBySymbol;
 }
 
+async function fetchRecentNewsContext(symbols) {
+  const recentNewsBySymbol = new Map();
+  const pageSize = 1000;
+
+  if (!symbols.length) {
+    return recentNewsBySymbol;
+  }
+
+  const cutoffIso = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+  let offset = 0;
+
+  while (true) {
+    const result = await supabaseAdmin
+      .from('news_articles')
+      .select('symbol, headline, published_at')
+      .in('symbol', symbols)
+      .gte('published_at', cutoffIso)
+      .not('published_at', 'is', null)
+      .not('headline', 'is', null)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load recent screener news context');
+    }
+
+    const batch = Array.isArray(result.data) ? result.data : [];
+    if (batch.length === 0) {
+      break;
+    }
+
+    for (const item of batch) {
+      const symbol = normalizeSymbol(item.symbol);
+      const headline = typeof item.headline === 'string' ? item.headline.trim() : '';
+      if (!symbol || !headline || !item.published_at) {
+        continue;
+      }
+
+      const currentItems = recentNewsBySymbol.get(symbol) || [];
+      if (currentItems.length >= 3) {
+        continue;
+      }
+
+      currentItems.push({
+        headline,
+        published_at: item.published_at,
+      });
+      recentNewsBySymbol.set(symbol, currentItems);
+    }
+
+    if (batch.length < pageSize) {
+      break;
+    }
+
+    offset += pageSize;
+  }
+
+  return recentNewsBySymbol;
+}
+
+async function fetchDbEarningsContext(symbols) {
+  const earningsBySymbol = new Map();
+
+  if (!symbols.length) {
+    return earningsBySymbol;
+  }
+
+  const result = await supabaseAdmin
+    .from('earnings_events')
+    .select('symbol, earnings_date')
+    .in('symbol', symbols)
+    .not('earnings_date', 'is', null)
+    .order('earnings_date', { ascending: true });
+
+  if (result.error) {
+    throw new Error(result.error.message || 'Failed to load screener earnings context');
+  }
+
+  for (const item of result.data || []) {
+    const symbol = normalizeSymbol(item.symbol);
+    if (!symbol || !item.earnings_date) {
+      continue;
+    }
+
+    earningsBySymbol.set(
+      symbol,
+      resolveClosestDate(earningsBySymbol.get(symbol) || null, item.earnings_date)
+    );
+  }
+
+  return earningsBySymbol;
+}
+
 async function fetchEarningsBySymbol(symbols) {
   const earningsBySymbol = new Map();
   let yahooLookups = 0;
@@ -352,8 +463,12 @@ async function fetchStableFallbackQuote() {
       news_source: 'none',
       earnings_date: null,
       earnings_source: 'none',
+      catalyst_type: 'TECHNICAL',
       sector: quote.sector || null,
       updated_at: quote.updatedAt || quote.timestamp || null,
+      why: 'Price moving without a clear external catalyst',
+      driver_type: 'TECHNICAL',
+      confidence: 0.4,
     },
   ].filter((row) => row.symbol && row.price !== null && row.volume !== null);
 }
@@ -464,11 +579,17 @@ async function getScreenerRows() {
   const latestNewsBySymbol = await fetchLatestNewsBySymbol(
     coreRows.map((row) => row.symbol).filter(Boolean)
   );
+  const recentNewsBySymbol = await fetchRecentNewsContext(
+    coreRows.map((row) => row.symbol).filter(Boolean)
+  );
   const earningsBySymbol = await fetchEarningsBySymbol(
     coreRows.map((row) => row.symbol).filter(Boolean)
   );
+  const dbEarningsBySymbol = await fetchDbEarningsContext(
+    coreRows.map((row) => row.symbol).filter(Boolean)
+  );
 
-  const rows = coreRows.map((row) => {
+  const enrichedRows = coreRows.map((row) => {
     if (!row.symbol) {
       return row;
     }
@@ -487,6 +608,27 @@ async function getScreenerRows() {
     };
   });
 
+  const rows = [];
+  for (const row of enrichedRows) {
+    if (!row.symbol) {
+      rows.push(row);
+      continue;
+    }
+
+    const why = await buildWhy(row.symbol, row, {
+      recentNewsBySymbol,
+      dbEarningsBySymbol,
+      rows: enrichedRows,
+    });
+
+    rows.push({
+      ...row,
+      why: why.why,
+      driver_type: why.driver_type,
+      confidence: why.confidence,
+    });
+  }
+
   const newsSourceCounts = rows.reduce((accumulator, row) => {
     accumulator[row.news_source] = (accumulator[row.news_source] || 0) + 1;
     return accumulator;
@@ -495,11 +637,16 @@ async function getScreenerRows() {
     accumulator[row.earnings_source] = (accumulator[row.earnings_source] || 0) + 1;
     return accumulator;
   }, {});
+  const driverTypeCounts = rows.reduce((accumulator, row) => {
+    accumulator[row.driver_type] = (accumulator[row.driver_type] || 0) + 1;
+    return accumulator;
+  }, {});
 
   console.log('[SCREENER_V2] fallback sources', {
     news: newsSourceCounts,
     earnings: earningsSourceCounts,
     earnings_sources_summary: earningsSourceCounts,
+    driver_types: driverTypeCounts,
   });
 
   if ((newsSourceCounts.none || 0) > 20) {
