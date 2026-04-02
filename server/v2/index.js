@@ -3,6 +3,7 @@ const cors = require('cors');
 const cron = require('node-cron');
 
 const screenerRoute = require('./routes/screener');
+const researchRoute = require('./routes/research');
 const newsRoute = require('./routes/news');
 const earningsRoute = require('./routes/earnings');
 const { runYahooNewsIngest } = require('./ingestion/yahooNewsIngest');
@@ -57,6 +58,7 @@ function createV2App() {
   ensureNewsBackfillScheduler();
 
   app.use('/api/v2/screener', screenerRoute);
+  app.use('/api/v2/research', researchRoute);
   app.use('/api/v2/news', newsRoute);
   app.use('/api/v2/earnings', earningsRoute);
 
