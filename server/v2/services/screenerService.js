@@ -1,5 +1,15 @@
 const axios = require('axios');
 const { supabaseAdmin } = require('../../services/supabaseClient');
+const { fmpFetch } = require('../../services/fmpClient');
+
+const earningsLookupCache = new Map();
+const EARNINGS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const EARNINGS_NONE_CACHE_TTL_MS = 30 * 60 * 1000;
+const MAX_YAHOO_LOOKUPS_PER_REQUEST = 20;
+const yahooClient = axios.create({
+  timeout: 1000,
+  validateStatus: () => true,
+});
 
 function toNumber(value) {
   if (value === null || value === undefined) return null;
@@ -83,6 +93,99 @@ function dedupeBySymbol(rows) {
   return deduped;
 }
 
+function getCachedEarningsLookup(symbol) {
+  const cached = earningsLookupCache.get(symbol);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiry <= Date.now()) {
+    earningsLookupCache.delete(symbol);
+    return null;
+  }
+
+  return cached.value;
+}
+
+function setCachedEarningsLookup(symbol, value) {
+  const ttlMs = value.earnings_source === 'none' ? EARNINGS_NONE_CACHE_TTL_MS : EARNINGS_CACHE_TTL_MS;
+  earningsLookupCache.set(symbol, {
+    value,
+    expiry: Date.now() + ttlMs,
+  });
+}
+
+async function fetchFmpEarnings(symbol) {
+  try {
+    const payload = await fmpFetch('/earnings', { symbol });
+    const rows = Array.isArray(payload) ? payload : payload ? [payload] : [];
+    const firstRow = rows.find((row) => row?.date || row?.earningsDate || row?.reportedDate);
+    const earningsDate = firstRow?.date || firstRow?.earningsDate || firstRow?.reportedDate || null;
+
+    if (earningsDate) {
+      return {
+        earnings_date: String(earningsDate).slice(0, 10),
+        earnings_source: 'fmp',
+      };
+    }
+  } catch (_error) {
+  }
+
+  return null;
+}
+
+async function fetchDatabaseEarnings(symbol) {
+  const result = await supabaseAdmin
+    .from('earnings_events')
+    .select('earnings_date')
+    .eq('symbol', symbol)
+    .not('earnings_date', 'is', null)
+    .order('earnings_date', { ascending: false })
+    .limit(1);
+
+  if (result.error) {
+    throw new Error(result.error.message || 'Failed to load screener earnings_events');
+  }
+
+  const earningsDate = result.data?.[0]?.earnings_date || null;
+  if (!earningsDate) {
+    return null;
+  }
+
+  return {
+    earnings_date: earningsDate,
+    earnings_source: 'database',
+  };
+}
+
+async function fetchYahooEarnings(symbol) {
+  try {
+    const response = await yahooClient.get(
+      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}`,
+      {
+        params: { modules: 'calendarEvents' },
+      }
+    );
+
+    if (response.status < 200 || response.status >= 300) {
+      return null;
+    }
+
+    const rawDate = response.data?.quoteSummary?.result?.[0]?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
+    if (!rawDate) {
+      return null;
+    }
+
+    const isoDate = new Date(Number(rawDate) * 1000).toISOString().slice(0, 10);
+    return {
+      earnings_date: isoDate,
+      earnings_source: 'yahoo',
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
 async function fetchLatestNewsBySymbol(symbols) {
   const latestNewsBySymbol = new Map();
   const pageSize = 1000;
@@ -155,70 +258,54 @@ async function fetchLatestNewsBySymbol(symbols) {
 
 async function fetchEarningsBySymbol(symbols) {
   const earningsBySymbol = new Map();
-  const pageSize = 1000;
+  let yahooLookups = 0;
 
   if (!symbols.length) {
     return earningsBySymbol;
   }
 
-  const earningsPasses = [
-    {
-      sourceLabel: 'fmp',
-      ascending: true,
-      filterFuture: true,
-    },
-    {
-      sourceLabel: 'database',
-      ascending: false,
-      filterFuture: false,
-    },
-  ];
-
-  for (const pass of earningsPasses) {
-    let offset = 0;
-    let queryDate = new Date().toISOString().slice(0, 10);
-
-    while (earningsBySymbol.size < symbols.length) {
-      let query = supabaseAdmin
-        .from('earnings_events')
-        .select('symbol, earnings_date')
-        .in('symbol', symbols)
-        .not('earnings_date', 'is', null)
-        .order('earnings_date', { ascending: pass.ascending })
-        .range(offset, offset + pageSize - 1);
-
-      if (pass.filterFuture) {
-        query = query.gte('earnings_date', queryDate);
-      }
-
-      const result = await query;
-      if (result.error) {
-        throw new Error(result.error.message || 'Failed to load screener earnings_events');
-      }
-
-      const batch = Array.isArray(result.data) ? result.data : [];
-      if (batch.length === 0) {
-        break;
-      }
-
-      for (const row of batch) {
-        const symbol = normalizeSymbol(row.symbol);
-        if (!symbol || earningsBySymbol.has(symbol) || !row.earnings_date) {
-          continue;
-        }
-
-        earningsBySymbol.set(symbol, {
-          earnings_date: row.earnings_date,
-          earnings_source: pass.sourceLabel,
-        });
-      }
-
-      if (batch.length < pageSize) {
-        break;
-      }
-
-      offset += pageSize;
+  for (const rawSymbol of symbols) {
+    const symbol = normalizeSymbol(rawSymbol);
+    if (!symbol) {
+      continue;
     }
+
+    const cached = getCachedEarningsLookup(symbol);
+    if (cached) {
+      earningsBySymbol.set(symbol, cached);
+      continue;
+    }
+
+    const fmpResult = await fetchFmpEarnings(symbol);
+    if (fmpResult) {
+      setCachedEarningsLookup(symbol, fmpResult);
+      earningsBySymbol.set(symbol, fmpResult);
+      continue;
+    }
+
+    const databaseResult = await fetchDatabaseEarnings(symbol);
+    if (databaseResult) {
+      setCachedEarningsLookup(symbol, databaseResult);
+      earningsBySymbol.set(symbol, databaseResult);
+      continue;
+    }
+
+    if (yahooLookups < MAX_YAHOO_LOOKUPS_PER_REQUEST) {
+      yahooLookups += 1;
+      const yahooResult = await fetchYahooEarnings(symbol);
+      if (yahooResult) {
+        setCachedEarningsLookup(symbol, yahooResult);
+        earningsBySymbol.set(symbol, yahooResult);
+        continue;
+      }
+    }
+
+    const noneResult = {
+      earnings_date: null,
+      earnings_source: 'none',
+    };
+    setCachedEarningsLookup(symbol, noneResult);
+    earningsBySymbol.set(symbol, noneResult);
   }
 
   return earningsBySymbol;
@@ -404,7 +491,15 @@ async function getScreenerRows() {
   console.log('[SCREENER_V2] fallback sources', {
     news: newsSourceCounts,
     earnings: earningsSourceCounts,
+    earnings_sources_summary: earningsSourceCounts,
   });
+
+  if ((newsSourceCounts.none || 0) > 20) {
+    console.warn('[SCREENER_V2] news none rows exceed threshold', {
+      none: newsSourceCounts.none,
+      news_sources_summary: newsSourceCounts,
+    });
+  }
 
   if (rows.length > 0) {
     return {

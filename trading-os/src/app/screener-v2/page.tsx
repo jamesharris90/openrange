@@ -16,7 +16,7 @@ type ScreenerRow = {
   latest_news_at?: string | null;
   news_source: "fmp" | "database" | "none";
   earnings_date?: string | null;
-  earnings_source: "fmp" | "database" | "none";
+  earnings_source: "fmp" | "database" | "yahoo" | "none";
   catalyst_type: "NEWS" | "EARNINGS" | "TECHNICAL" | "UNKNOWN";
   sector: string | null;
   updated_at: string | null;
