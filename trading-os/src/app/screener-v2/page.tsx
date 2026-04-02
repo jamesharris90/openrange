@@ -44,12 +44,23 @@ type OpportunityRow = {
   watch: string;
   confidence: number;
   tradeable: boolean;
+  entry_type: "breakout" | "pullback" | "reversal";
+  entry_trigger: string;
+  invalidation: string;
+  timeframe: "intraday" | "swing";
+  structure: "range" | "trend" | "extension";
 };
 
 type OpportunitiesResponse = {
   success: boolean;
   count: number;
   data: OpportunityRow[];
+  report?: {
+    valid: boolean;
+    avg_confidence: number;
+    removed_weak_setups: number;
+    execution_ready: boolean;
+  };
 };
 
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, index) => index);
@@ -356,14 +367,33 @@ export default function ScreenerV2Page() {
                   </span>
                 </div>
                 <p className="mt-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">{row.setup_type}</p>
-                <p className="mt-2 line-clamp-2 text-sm text-slate-300">{row.why}</p>
+                <p className="mt-2 text-sm leading-5 text-slate-300">{row.why}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
                   <span className={cn("rounded-full border px-2.5 py-1", confidence.className)}>
                     {confidence.label}
                   </span>
+                  <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-300">
+                    {row.timeframe}
+                  </span>
+                  <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-300">
+                    {row.structure}
+                  </span>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-slate-400">{row.confidence_reason}</p>
-                <p className="mt-3 text-xs leading-5 text-slate-400">{row.watch}</p>
+                <div className="mt-3 space-y-2 text-xs leading-5 text-slate-300">
+                  <p>
+                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Entry</span>
+                    {row.entry_trigger}
+                  </p>
+                  <p>
+                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Fail</span>
+                    {row.invalidation}
+                  </p>
+                  <p>
+                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Type</span>
+                    {row.entry_type}
+                  </p>
+                </div>
               </div>
             );
           })}

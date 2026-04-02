@@ -1,7 +1,7 @@
 const express = require('express');
 
 const { getCache, setCache } = require('../cache/memoryCache');
-const { getOpportunityRows } = require('../services/opportunitiesService');
+const { getOpportunitiesPayload } = require('../services/opportunitiesService');
 
 const router = express.Router();
 
@@ -12,11 +12,12 @@ router.get('/', async (_req, res) => {
       return res.json(cached);
     }
 
-    const rows = await getOpportunityRows();
+    const { rows, report } = await getOpportunitiesPayload();
     const payload = {
       success: true,
       count: rows.length,
       data: rows,
+      report,
     };
 
     setCache('opportunities-v2', payload, 60000);
