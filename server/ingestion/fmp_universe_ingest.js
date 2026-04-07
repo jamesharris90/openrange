@@ -61,11 +61,12 @@ async function fetchUniversePayload() {
   try {
     return await fmpFetch('/stock/list');
   } catch (err) {
-    if (err?.status !== 403) throw err;
+    if (![403, 404].includes(Number(err?.status))) throw err;
 
     logger.warn('universe ingestion legacy endpoint blocked, trying FMP stock screener fallback', {
       endpoint: '/stock/list',
       fallback: 'services/fmpService.fetchStockList()',
+      status: err?.status,
     });
 
     try {

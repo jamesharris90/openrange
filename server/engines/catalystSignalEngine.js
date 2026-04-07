@@ -1,5 +1,6 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
+const { logSignalsForBacktest } = require('../services/backtestLogger');
 const {
   SIGNAL_THRESHOLDS,
   SIGNAL_SCORING_WEIGHTS,
@@ -189,6 +190,7 @@ async function runCatalystSignalEngine() {
     let inserted = 0;
     let duplicateSignalSkipped = 0;
     let signalsAttempted = 0;
+    const insertedSignals = [];
     const attemptedBySymbol = new Map();
 
     for (const row of rowsToInsert) {
@@ -236,8 +238,11 @@ async function runCatalystSignalEngine() {
       };
 
       await insertSignal(payload);
+      insertedSignals.push(payload);
       inserted += 1;
     }
+
+    const backtestLogging = await logSignalsForBacktest(insertedSignals);
 
     const result = {
       scanned: rows.length,
@@ -248,6 +253,7 @@ async function runCatalystSignalEngine() {
       signals_attempted: signalsAttempted,
       signals_inserted: inserted,
       duplicate_signal_skipped: duplicateSignalSkipped,
+      backtest_logged: Number(backtestLogging?.inserted || 0),
       thresholds: SIGNAL_THRESHOLDS,
     };
     logger.info('[CATALYST_SIGNAL] completed', result);

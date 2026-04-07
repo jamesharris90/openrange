@@ -1,0 +1,174 @@
+{
+  "base_url": "http://127.0.0.1:3007",
+  "checked_at": "2026-04-07T13:38:01.322Z",
+  "all_ok": true,
+  "results": [
+    {
+      "endpoint": "/api/health",
+      "url": "http://127.0.0.1:3007/api/health",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 246,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "status",
+          "env",
+          "allowedOrigins",
+          "data_integrity_engine",
+          "integrity",
+          "data_health",
+          "telemetry",
+          "scheduler_flags",
+          "schedulers",
+          "checked_at"
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/screener?limit=5",
+      "url": "http://127.0.0.1:3007/api/screener?limit=5",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 227,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "data",
+          "meta",
+          "count",
+          "total",
+          "success",
+          "fallbackUsed",
+          "macro_context",
+          "snapshot_at"
+        ],
+        "data_length": 6372,
+        "data_sample_keys": [
+          "tqi",
+          "why",
+          "rvol",
+          "price",
+          "state",
+          "trend",
+          "sector",
+          "symbol",
+          "volume",
+          "exchange",
+          "has_news",
+          "momentum"
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/intelligence/decision/AAPL",
+      "url": "http://127.0.0.1:3007/api/intelligence/decision/AAPL",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 9681,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "ok",
+          "status",
+          "source",
+          "data",
+          "decision"
+        ],
+        "data_length": 1,
+        "data_sample_keys": [
+          "symbol",
+          "tradeable",
+          "confidence",
+          "setup",
+          "bias",
+          "driver",
+          "earnings_edge",
+          "risk_flags",
+          "status",
+          "action",
+          "why",
+          "how"
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/intelligence/top-opportunities?limit=5",
+      "url": "http://127.0.0.1:3007/api/intelligence/top-opportunities?limit=5",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 205,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "success",
+          "source",
+          "mode",
+          "count",
+          "data"
+        ],
+        "data_length": 10,
+        "data_sample_keys": [
+          "symbol",
+          "why",
+          "how",
+          "confidence",
+          "expected_move",
+          "expected_move_percent",
+          "price",
+          "change_percent",
+          "volume",
+          "source",
+          "trade_class",
+          "strategy"
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/market/overview",
+      "url": "http://127.0.0.1:3007/api/market/overview",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 249,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "status",
+          "data"
+        ]
+      }
+    },
+    {
+      "endpoint": "/api/earnings",
+      "url": "http://127.0.0.1:3007/api/earnings",
+      "ok": true,
+      "status": 200,
+      "runtime_ms": 690,
+      "summary": {
+        "kind": "object",
+        "top_level_keys": [
+          "success",
+          "status",
+          "source",
+          "count",
+          "data"
+        ],
+        "data_length": 100,
+        "data_sample_keys": [
+          "symbol",
+          "company_name",
+          "sector",
+          "report_date",
+          "report_time",
+          "eps_estimate",
+          "eps_actual",
+          "surprise_percent",
+          "expected_move_percent",
+          "actual_move_percent",
+          "pre_move_percent",
+          "post_move_percent"
+        ]
+      }
+    }
+  ]
+}

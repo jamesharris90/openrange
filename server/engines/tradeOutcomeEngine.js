@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '../../logs/trade-outcomes.json');
+let strategyPerformanceWritable = null;
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -34,6 +35,26 @@ async function ensureTradeOutcomeTables() {
       throw new Error(`Missing required table: ${table}`);
     }
   }
+}
+
+async function canWriteStrategyPerformance() {
+  if (strategyPerformanceWritable !== null) {
+    return strategyPerformanceWritable;
+  }
+
+  const { rows } = await queryWithTimeout(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.views
+       WHERE table_schema = 'public'
+         AND table_name = 'strategy_performance'
+     ) AS is_view`,
+    [],
+    { timeoutMs: 3000, label: 'engines.trade_outcome.strategy_performance_relation', maxRetries: 0 }
+  ).catch(() => ({ rows: [] }));
+
+  strategyPerformanceWritable = !Boolean(rows?.[0]?.is_view);
+  return strategyPerformanceWritable;
 }
 
 async function recordSignal(signal = {}) {
@@ -136,6 +157,17 @@ function classifyOutcome({ isLong, takeProfit, stopLoss, bars }) {
 async function evaluateSignals() {
   await ensureTradeOutcomeTables();
 
+  const validateOutcomeWrite = ({ symbol, pnlPct }) => {
+    if (!symbol || String(symbol).trim() === '' || pnlPct === undefined) {
+      console.error('INVALID OUTCOME WRITE BLOCKED', {
+        writer: 'tradeOutcomeEngine.evaluateSignals',
+        symbol,
+        pnl_pct: pnlPct,
+      });
+      throw new Error('INVALID OUTCOME WRITE BLOCKED');
+    }
+  };
+
   const { rows: opportunities } = await queryWithTimeout(
     `SELECT
        o.id AS opportunity_id,
@@ -145,6 +177,7 @@ async function evaluateSignals() {
        o.take_profit,
        o.expected_move_percent,
        o.created_at,
+       s.id AS signal_id,
        s.signal_type,
        COALESCE(ct.catalyst_type, 'unknown') AS catalyst_type,
        COALESCE(mq.sector, 'Unknown') AS sector
@@ -192,9 +225,9 @@ async function evaluateSignals() {
     const { rows: bars } = await queryWithTimeout(
       `SELECT
          timestamp AS ts,
-         COALESCE(high, close, price) AS high,
-         COALESCE(low, close, price) AS low,
-         COALESCE(close, price) AS close
+         COALESCE(high, close) AS high,
+         COALESCE(low, close) AS low,
+         close AS close
        FROM intraday_1m
        WHERE symbol = $1
          AND timestamp >= $2
@@ -218,17 +251,26 @@ async function evaluateSignals() {
     });
 
     const actualMaxMovePercent = ((toNumber(result.maxMovePrice, entry) - entry) / entry) * 100;
+    const finalClose = toNumber(bars[bars.length - 1]?.close, entry);
+    const pnlPct = ((finalClose - entry) / entry) * 100;
+    const maxDrawdownPct = ((toNumber(result.minMovePrice, entry) - entry) / entry) * 100;
     const timeToTargetMinutes = result.tpHitAt ? minutesBetween(createdAt, result.tpHitAt) : null;
+
+    validateOutcomeWrite({ symbol, pnlPct });
 
     // Append-only snapshots; no upserts to preserve historical truth.
     await queryWithTimeout(
       `INSERT INTO trade_outcomes (
+        signal_id,
          symbol,
          opportunity_id,
          entry_price,
          stop_loss,
          take_profit,
          expected_move_percent,
+        max_move,
+        max_drawdown_pct,
+        pnl_pct,
          actual_max_move_percent,
          outcome,
          time_to_target_minutes,
@@ -237,14 +279,18 @@ async function evaluateSignals() {
          created_at,
          evaluated_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())`,
       [
+        opp.signal_id,
         symbol,
         opp.opportunity_id,
         entry,
         stopLoss,
         takeProfit,
         toNumber(opp.expected_move_percent, 0),
+        actualMaxMovePercent,
+        maxDrawdownPct,
+        pnlPct,
         actualMaxMovePercent,
         result.outcome,
         timeToTargetMinutes,
@@ -265,7 +311,11 @@ async function evaluateSignals() {
   }
 
   if (missingPriceData > 0) {
-    throw new Error(`Missing price data for ${missingPriceData} opportunities`);
+    logger.warn('[TRADE_OUTCOME] missing price data for opportunities', {
+      missingPriceData,
+      pending: opportunities?.length || 0,
+      evaluated,
+    });
   }
 
   logger.info('[TRADE_OUTCOME] evaluation cycle complete', {
@@ -283,6 +333,14 @@ async function evaluateSignals() {
 
 async function updateStrategyStats() {
   await ensureTradeOutcomeTables();
+
+  if (!(await canWriteStrategyPerformance())) {
+    logger.warn('[TRADE_OUTCOME] strategy_performance is read-only; skipping writeback');
+    return {
+      skipped: true,
+      reason: 'read_only_view',
+    };
+  }
 
   const { rows } = await queryWithTimeout(
     `WITH latest_per_opportunity AS (
@@ -359,11 +417,13 @@ async function updateStrategyStats() {
       sample_size: 0,
       weighted_win: 0,
       weighted_return: 0,
+      weighted_drawdown: 0,
     };
     const sampleSize = Number(row.sample_size || 0);
     existing.sample_size += sampleSize;
     existing.weighted_win += Number(row.win_rate || 0) * sampleSize;
     existing.weighted_return += Number(row.avg_return || 0) * sampleSize;
+    existing.weighted_drawdown += Number(row.avg_drawdown || 0) * sampleSize;
     bySignalType.set(key, existing);
   }
 
@@ -371,17 +431,18 @@ async function updateStrategyStats() {
     const sampleSize = Number(agg.sample_size || 0);
     const winRate = sampleSize > 0 ? Number(agg.weighted_win / sampleSize) : 0.5;
     const avgReturn = sampleSize > 0 ? Number(agg.weighted_return / sampleSize) : 0;
+    const avgDrawdown = sampleSize > 0 ? Number(agg.weighted_drawdown / sampleSize) : 0;
 
     await queryWithTimeout(
-      `INSERT INTO strategy_performance (signal_type, win_rate, avg_return, sample_size, updated_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       ON CONFLICT (signal_type)
+      `INSERT INTO strategy_performance (strategy, trades, win_rate, avg_return, volatility)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (strategy)
        DO UPDATE SET
+         trades = EXCLUDED.trades,
          win_rate = EXCLUDED.win_rate,
          avg_return = EXCLUDED.avg_return,
-         sample_size = EXCLUDED.sample_size,
-         updated_at = NOW()`,
-      [signalType, winRate, avgReturn, sampleSize],
+         volatility = EXCLUDED.volatility`,
+      [signalType, sampleSize, winRate, avgReturn, avgDrawdown],
       { timeoutMs: 7000, label: 'engines.trade_outcome.upsert_strategy_performance', maxRetries: 0 }
     );
   }
@@ -400,14 +461,14 @@ async function getStrategyStats(setupType) {
 
   const { rows } = await queryWithTimeout(
     `SELECT
-       signal_type,
-       sample_size,
+       strategy AS signal_type,
+       trades AS sample_size,
        win_rate,
        avg_return AS avg_move,
-       0::numeric AS avg_drawdown,
-       updated_at AS last_updated
+       volatility AS avg_drawdown,
+       NULL::timestamptz AS last_updated
      FROM strategy_performance
-     WHERE signal_type = $1
+     WHERE strategy = $1
      LIMIT 1`,
     [input],
     { timeoutMs: 4000, label: 'engines.trade_outcome.get_strategy_stats', maxRetries: 0 }

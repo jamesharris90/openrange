@@ -16,6 +16,7 @@ const { runBaselineEngine } = require('../engines/baselineEngine');
 const { runNewsEnrichmentEngine } = require('../services/newsEnrichmentEngine');
 const { runSignalEvaluation, refreshPerformanceCache } = require('../services/signalEvaluationEngine');
 const { runRegimeCapture } = require('../services/marketRegimeEngine');
+const { runCatalystBackfill } = require('../engines/catalystBackfillEngine');
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
 
@@ -89,6 +90,7 @@ function startIngestionScheduler() {
   cron.schedule('*/5 * * * *',   safeRun('narrative_engine',       runNarrativeEngine));
   cron.schedule('*/5 * * * *',   safeRun('regime_capture',         runRegimeCapture));
   cron.schedule('*/10 * * * *',  safeRun('news_enrichment',        runNewsEnrichmentEngine));
+  cron.schedule('*/15 * * * *',  safeRun('catalyst_backfill',      () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })));
   cron.schedule('*/10 * * * *',  safeRun('signal_evaluation',      runSignalEvaluation));
   cron.schedule('*/15 * * * *',  safeRun('signal_bridge',          bridgeStrategySignals));
   cron.schedule('*/30 * * * *',  safeRun('baseline_cache',         runBaselineEngine));
@@ -112,6 +114,7 @@ function startIngestionScheduler() {
       narrativeEngine:        '*/5 * * * *',
       regimeCapture:          '*/5 * * * *',
       newsEnrichment:         '*/10 * * * *',
+      catalystBackfill:       '*/15 * * * *',
       signalEvaluation:       '*/10 * * * *',
       baselineCache:          '*/30 * * * *',
       perfCacheRefresh:       '*/30 * * * *',
@@ -121,6 +124,7 @@ function startIngestionScheduler() {
   // Startup runs — fire immediately to fill gaps from any prior downtime
   safeRun('earnings_events_startup',      runEarningsIngestion)();
   safeRun('earnings_actuals_startup',     runEarningsActuals)();
+  safeRun('intraday_1m_startup',          runIntradayIngestion)();
   safeRun('stock_news_startup',           runStockNewsIngestion)();
   safeRun('ipo_calendar_startup',         () => refreshIpoCalendar(4))();
   safeRun('analyst_enrichment_startup',   runAnalystEnrichmentIngestion)();
@@ -128,6 +132,8 @@ function startIngestionScheduler() {
   safeRun('ticker_universe_startup',      runUniverseIngestion)();
   safeRun('baseline_cache_startup',       runBaselineEngine)();
   safeRun('news_enrichment_startup',      runNewsEnrichmentEngine)();
+  safeRun('catalyst_backfill_startup',    () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 }))();
+  safeRun('signal_evaluation_startup',    runSignalEvaluation)();
   safeRun('perf_cache_startup',           refreshPerformanceCache)();
   safeRun('regime_capture_startup',       runRegimeCapture)();
 }
