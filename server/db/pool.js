@@ -6,6 +6,34 @@ const RawClient = pg.Client;
 const SINGLETON_KEY = Symbol.for('openrange.db.pool.singleton');
 const isTestRuntime = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
 
+function isPoolerSaturationError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes('max client connections reached')
+    || message.includes('too many clients')
+    || message.includes('remaining connection slots are reserved')
+  );
+}
+
+function buildDirectSupabaseUrl(dbUrl) {
+  try {
+    const parsed = new URL(dbUrl);
+    const username = String(parsed.username || '');
+    const usernameParts = username.split('.');
+    const projectRef = usernameParts[1];
+    if (!projectRef) {
+      return null;
+    }
+
+    parsed.hostname = `db.${projectRef}.supabase.co`;
+    parsed.port = '5432';
+    parsed.username = usernameParts[0] || 'postgres';
+    return parsed.toString();
+  } catch (_error) {
+    return null;
+  }
+}
+
 function installPgRuntimeGuard() {
   if (pg.__openrangePoolGuardInstalled) return;
 
@@ -57,10 +85,10 @@ function createLimiter(maxConcurrent) {
   });
 }
 
-const maxConnections = Math.max(1, Math.min(Number(process.env.DB_POOL_MAX || 1), 10));
-const connectionTimeoutMs = 2000;
+const maxConnections = 10;
+const connectionTimeoutMs = Number(process.env.PG_CONNECTION_TIMEOUT_MS || 10000);
 const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
-const idleTimeoutMs = Math.max(1000, Number(process.env.PG_IDLE_TIMEOUT_MS || 5000));
+const idleTimeoutMs = 30000;
 const shouldUseSsl = process.env.PGSSL_DISABLE !== 'true';
 
 function maskDbUrl(rawUrl) {
@@ -73,39 +101,56 @@ function maskDbUrl(rawUrl) {
   }
 }
 
-const DB_CONCURRENCY_LIMIT = Number(process.env.DB_CONCURRENCY_LIMIT || 1);
-const dbQueryLimit = createLimiter(Number.isFinite(DB_CONCURRENCY_LIMIT) && DB_CONCURRENCY_LIMIT > 0 ? DB_CONCURRENCY_LIMIT : 1);
+const DB_CONCURRENCY_LIMIT = Math.max(
+  1,
+  Math.min(Number(process.env.DB_CONCURRENCY_LIMIT || maxConnections) || maxConnections, maxConnections)
+);
+const dbQueryLimit = createLimiter(DB_CONCURRENCY_LIMIT);
 let currentOpsCount = 0;
 
 function createSingletonState() {
   return {
     rawPool: null,
     dbUrl: null,
+    primaryDbUrl: null,
+    directDbUrl: null,
     host: null,
     port: null,
     pooled: false,
+    usingDirectFallback: false,
+    failoverInProgress: null,
     maxConnections,
     allowDirectClient: false,
   };
 }
 
-function createRawPool(state) {
+function createRawPool(state, options = {}) {
+  const { directFallback = false } = options;
   const resolved = resolveDatabaseUrl();
+  const primaryDbUrl = process.env.DATABASE_URL || resolved.dbUrl;
+  const directDbUrl = buildDirectSupabaseUrl(primaryDbUrl);
+  const targetDbUrl = directFallback && directDbUrl ? directDbUrl : primaryDbUrl;
+  const targetHost = new URL(targetDbUrl).hostname;
+  const targetPort = Number(new URL(targetDbUrl).port || (directFallback ? 5432 : resolved.port || 5432));
   const rawPool = new RawPool({
-    connectionString: resolved.dbUrl,
+    connectionString: targetDbUrl,
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
+    family: directFallback ? 4 : undefined,
     max: maxConnections,
     idleTimeoutMillis: idleTimeoutMs,
     connectionTimeoutMillis: connectionTimeoutMs,
     statement_timeout: Number.isFinite(statementTimeoutMs) && statementTimeoutMs > 0 ? statementTimeoutMs : 10000,
-    application_name: process.env.PG_APP_NAME || 'openrange-v2-manual',
+    application_name: process.env.PG_APP_NAME || (directFallback ? 'openrange-v2-direct-fallback' : 'openrange-v2-manual'),
   });
 
   state.rawPool = rawPool;
-  state.dbUrl = resolved.dbUrl;
-  state.host = resolved.host;
-  state.port = resolved.port;
-  state.pooled = Boolean(resolved.pooled);
+  state.primaryDbUrl = primaryDbUrl;
+  state.directDbUrl = directDbUrl;
+  state.dbUrl = targetDbUrl;
+  state.host = targetHost;
+  state.port = targetPort;
+  state.pooled = directFallback ? false : Boolean(resolved.pooled);
+  state.usingDirectFallback = Boolean(directFallback && directDbUrl);
 
   rawPool.on('connect', () => {
     if (!isTestRuntime) {
@@ -119,10 +164,36 @@ function createRawPool(state) {
   });
 
   if (!isTestRuntime) {
-    console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled}, idle=${idleTimeoutMs}ms)`);
+    console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled}, idle=${idleTimeoutMs}ms, directFallback=${state.usingDirectFallback})`);
   }
 
   return rawPool;
+}
+
+async function enableDirectFallback(state) {
+  if (state.usingDirectFallback || !state.directDbUrl) {
+    return;
+  }
+
+  if (!state.failoverInProgress) {
+    state.failoverInProgress = (async () => {
+      const previousPool = state.rawPool;
+      state.rawPool = null;
+      try {
+        if (!isTestRuntime) {
+          console.warn('[DB] Pooler saturated, switching to direct Supabase connection');
+        }
+        if (previousPool) {
+          await previousPool.end().catch(() => {});
+        }
+        createRawPool(state, { directFallback: true });
+      } finally {
+        state.failoverInProgress = null;
+      }
+    })();
+  }
+
+  await state.failoverInProgress;
 }
 
 function ensureState() {
@@ -146,6 +217,12 @@ async function query(...args) {
     }
     try {
       return await state.rawPool.query(...args);
+    } catch (error) {
+      if (isPoolerSaturationError(error) && state.pooled && state.directDbUrl && !state.usingDirectFallback) {
+        await enableDirectFallback(state);
+        return state.rawPool.query(...args);
+      }
+      throw error;
     } finally {
       currentOpsCount = Math.max(0, currentOpsCount - 1);
       if (!isTestRuntime) {
