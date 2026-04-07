@@ -130,10 +130,15 @@ function createRawPool(state, options = {}) {
   const primaryDbUrl = process.env.DATABASE_URL || resolved.dbUrl;
   const directDbUrl = buildDirectSupabaseUrl(primaryDbUrl);
   const targetDbUrl = directFallback && directDbUrl ? directDbUrl : primaryDbUrl;
-  const targetHost = new URL(targetDbUrl).hostname;
-  const targetPort = Number(new URL(targetDbUrl).port || (directFallback ? 5432 : resolved.port || 5432));
+  const parsedTargetDbUrl = new URL(targetDbUrl);
+  const targetHost = parsedTargetDbUrl.hostname;
+  const targetPort = Number(parsedTargetDbUrl.port || (directFallback ? 5432 : resolved.port || 5432));
   const rawPool = new RawPool({
-    connectionString: targetDbUrl,
+    host: targetHost,
+    port: targetPort,
+    user: decodeURIComponent(parsedTargetDbUrl.username || ''),
+    password: decodeURIComponent(parsedTargetDbUrl.password || ''),
+    database: decodeURIComponent(String(parsedTargetDbUrl.pathname || '').replace(/^\//, '') || 'postgres'),
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
     family: directFallback ? 4 : undefined,
     max: maxConnections,
