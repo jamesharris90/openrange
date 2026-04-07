@@ -15,6 +15,18 @@ function isPoolerSaturationError(error) {
   );
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldPreferPoolerRetries() {
+  return Boolean(
+    process.env.RAILWAY_ENVIRONMENT
+    || process.env.RAILWAY_PROJECT_ID
+    || process.env.RAILWAY_SERVICE_ID
+  );
+}
+
 function buildDirectSupabaseUrl(dbUrl) {
   try {
     const parsed = new URL(dbUrl);
@@ -223,7 +235,20 @@ async function query(...args) {
     try {
       return await state.rawPool.query(...args);
     } catch (error) {
-      if (isPoolerSaturationError(error) && state.pooled && state.directDbUrl && !state.usingDirectFallback) {
+      if (isPoolerSaturationError(error) && state.pooled && shouldPreferPoolerRetries()) {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          await sleep(500 * (attempt + 1));
+          try {
+            return await state.rawPool.query(...args);
+          } catch (retryError) {
+            if (!isPoolerSaturationError(retryError)) {
+              throw retryError;
+            }
+          }
+        }
+      }
+
+      if (isPoolerSaturationError(error) && state.pooled && state.directDbUrl && !state.usingDirectFallback && !shouldPreferPoolerRetries()) {
         await enableDirectFallback(state);
         return state.rawPool.query(...args);
       }
