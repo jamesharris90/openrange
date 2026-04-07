@@ -12,6 +12,7 @@ const systemRoute = require('./routes/system');
 const validationRoute = require('./routes/validation');
 const adminRoute = require('./routes/admin');
 const devRoute = require('./routes/dev');
+const dashboardRoute = require('../routes/dashboard');
 const newsletterRoute = require('../routes/newsletter');
 const marketRoute = require('../routes/market');
 const chartV5Route = require('../routes/chartV2.ts');
@@ -37,6 +38,13 @@ let newsBackfillSchedulerStarted = false;
 let screenerSnapshotSchedulerStarted = false;
 let intelligencePipelineSchedulerStarted = false;
 let snapshotRunning = false;
+const isRailwayRuntime = Boolean(
+  process.env.RAILWAY_PROJECT_ID
+  || process.env.RAILWAY_ENVIRONMENT_ID
+  || process.env.RAILWAY_SERVICE_ID
+);
+const screenerSnapshotStartupDelayMs = Number(process.env.SCREENER_SNAPSHOT_STARTUP_DELAY_MS || (isRailwayRuntime ? 120000 : 0));
+let screenerSnapshotReadyAt = 0;
 
 function envFlag(name, defaultValue = true) {
   const raw = process.env[name];
@@ -55,9 +63,12 @@ function envFlag(name, defaultValue = true) {
 }
 
 function resolveSchedulerFlags() {
-  const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', true) && !envFlag('SAFE_MODE', false);
-  const nonEssentialEnginesEnabled = backgroundServicesEnabled && envFlag('ENABLE_NON_ESSENTIAL_ENGINES', true);
-  const screenerSnapshotEnabled = backgroundServicesEnabled && envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', true);
+  const backgroundServicesDefault = isRailwayRuntime ? false : true;
+  const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !envFlag('SAFE_MODE', false);
+  const nonEssentialDefault = isRailwayRuntime ? false : true;
+  const screenerSnapshotDefault = isRailwayRuntime ? false : true;
+  const nonEssentialEnginesEnabled = backgroundServicesEnabled && envFlag('ENABLE_NON_ESSENTIAL_ENGINES', nonEssentialDefault);
+  const screenerSnapshotEnabled = backgroundServicesEnabled && envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', screenerSnapshotDefault);
 
   return {
     backgroundServicesEnabled,
@@ -152,8 +163,22 @@ function ensureScreenerSnapshotScheduler() {
   }
 
   screenerSnapshotSchedulerStarted = true;
-  void runSnapshot('startup');
+  screenerSnapshotReadyAt = Date.now() + screenerSnapshotStartupDelayMs;
+  if (screenerSnapshotStartupDelayMs > 0) {
+    console.log('[SCREENER_SNAPSHOT] startup run delayed', { delayMs: screenerSnapshotStartupDelayMs });
+    setTimeout(() => {
+      void runSnapshot('startup');
+    }, screenerSnapshotStartupDelayMs);
+  } else {
+    void runSnapshot('startup');
+  }
   cron.schedule('* * * * *', () => {
+    if (screenerSnapshotReadyAt > Date.now()) {
+      console.log('[SCREENER_SNAPSHOT] interval run skipped during startup warmup', {
+        readyInMs: screenerSnapshotReadyAt - Date.now(),
+      });
+      return;
+    }
     void runSnapshot('interval');
   });
 
@@ -251,6 +276,7 @@ function createV2App() {
   app.use('/api/system', systemRoute);
   app.use('/api/validation', validationRoute);
   app.use('/api/admin', adminRoute);
+  app.use('/api/dashboard', dashboardRoute);
   app.use('/', newsletterRoute);
   app.use('/api/dev', devRoute);
 

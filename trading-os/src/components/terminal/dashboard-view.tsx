@@ -1,824 +1,794 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Minus, TrendingUp } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 
-import { apiGet } from "@/lib/api/client";
-import { QUERY_POLICY } from "@/lib/queries/policy";
-import { toFixedSafe, percentSafe } from "@/lib/number";
-import {
-  getPlaybookTier, playbookLabel, calcPositionSize,
-  TIER_STYLE, TIER_ORDER, type PlaybookTier,
-} from "@/lib/playbook";
-import { getCachedMarketMode, type MarketMode } from "@/lib/marketMode";
+import { apiGet, apiPost } from "@/lib/api/client";
+import { cn } from "@/lib/utils";
+import { useMarketClock } from "@/utils/marketSession";
+import { classifyConditions, type Condition } from "@/utils/conditionClassifier";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-type TopFocusSignal = {
-  rank: number;
+type IndexRow = {
   symbol: string;
-  trade_score: number;
-  regime_alignment: string;
-  confidence: number;
+  label: string;
   price: number;
-  change_percent: number;
-  relative_volume: number;
-  why: string | null;
-  consequence: string | null;
-  plan: string | null;
-  performance_note: string | null;
-  regime_context: string | null;
-  direction: "LONG" | "SHORT" | "NEUTRAL" | "UNKNOWN";
-  entry: number | null;
-  stop: number | null;
-  target: number | null;
-  updated_at: string;
+  changesPercentage: number;
 };
 
-type TopFocusResponse = {
-  focus_mode: boolean;
-  regime: {
-    trend: string;
-    volatility: string;
-    liquidity: string;
-    session: string;
-  } | null;
-  signals: TopFocusSignal[];
-  meta: {
-    total_evaluated: number;
-    total_passed: number;
-    total_filtered: number;
-  };
-};
-
-type OverviewPayload = {
-  indices?: Record<string, { symbol?: string; price?: number | string | null; change_percent?: number | string | null }>;
-  volatility?: { VIX?: { price?: number | string | null } };
-  breadth?: { advancers?: number; decliners?: number };
-};
-
-type EarningsItem = {
-  symbol?: string;
-  event_date?: string;
-  report_date?: string;
-  time?: string;
-  report_time?: string;
-  eps_estimate?: number | null;
-  expected_move?: number | null;
-};
-
-type PrepSignal = {
+type StockRow = {
   symbol: string;
-  why: string | null;
-  how_to_trade: string | null;
-  consequence: string | null;
-  confidence: number;
-  expected_move: number | null;
-  trade_score: number | null;
-  trade_class: string | null;
-  event_type: string | null;
-  created_at: string;
+  name: string;
+  price: number;
+  changesPercentage: number;
+  volume: number;
 };
 
-type WatchlistRow = {
+type EarningsRow = {
   symbol: string;
-  price: number | null;
-  change_percent: number | null;
-  gap_percent: number | null;
-  relative_volume: number | null;
-  volume_ratio: number | null;
-  news_count: number;
-  earnings_flag: number;
-  score: number;
-  stage: string | null;
-  updated_at: string;
-  // Phase 4: session-aware premarket fields
-  premarket_price: number | null;
-  premarket_volume: number | null;
-  premarket_gap: number | null;
-  premarket_candles: number | null;
-  premarket_data_quality: number | null;
-  premarket_activity_score: number | null;
+  time: string;
+  epsEstimated: number | null;
+  revenueEstimated: number | null;
 };
 
-type WatchlistResponse = {
-  success: boolean;
-  count: number;
-  data: WatchlistRow[];
+type NewsRow = {
+  symbol: string;
+  title: string;
+  url: string;
+  site: string;
+  publishedDate: string;
 };
 
-type SimLiveResponse = {
-  ok: boolean;
-  active_count: number;
-  simulated_pnl_today: number;
-  win_rate_today: number | null;
-  win_rate_7d: number | null;
-  total_evaluated_today: number;
-  total_evaluated_7d: number;
-  avg_return_today: number;
-  avg_return_7d: number;
-  best_setup: { setup: string; win_rate: number; total: number } | null;
-  worst_setup: { setup: string; win_rate: number; total: number } | null;
+type SectorRow = {
+  sector: string;
+  changesPercentage: number;
 };
 
-type PrepResponse = {
-  ok: boolean;
-  market_mode: MarketMode;
-  market_reason: string;
-  data_window: string;
-  last_session: string;
-  top_signals: PrepSignal[];
-  carryover: PrepSignal[];
-  earnings: Array<{ symbol: string; report_date: string; report_time: string; eps_estimate: number }>;
-  news_clusters: Array<{ id: number; headline: string; symbol: string; source: string; published_at: string; priority_score: number; catalyst_type: string }>;
-  meta: { signals_count: number; carryover_count: number; earnings_count: number; news_count: number };
+type Snapshot = {
+  gainers: StockRow[];
+  losers: StockRow[];
+  active: StockRow[];
+  indices: IndexRow[];
+  sectors: SectorRow[];
+  earnings: EarningsRow[];
+  news: NewsRow[];
+  fear: { value: number; valueClassification: string } | null;
+  timestamp: string;
 };
 
-function modeBadgeClass(mode: MarketMode) {
-  if (mode === "LIVE")   return "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
-  if (mode === "RECENT") return "text-amber-400 border-amber-500/40 bg-amber-500/10";
-  return "text-slate-400 border-slate-600 bg-slate-800/40";
+type BriefingSection = {
+  title: string;
+  bullets: string[];
+};
+
+type Briefing = {
+  sections: BriefingSection[];
+  fallback?: boolean;
+  message?: string;
+  generatedAt?: string;
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtPct(n: number, digits = 2): string {
+  const v = Number(n) || 0;
+  return `${v >= 0 ? "+" : ""}${v.toFixed(digits)}%`;
 }
 
-function modePulse(mode: MarketMode) {
-  if (mode === "LIVE") return <span className="mr-1.5 inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />;
-  return null;
+function fmtVol(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function toNum(value: unknown, fallback = 0): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+function fmtPrice(n: number): string {
+  return `$${Number(n).toFixed(2)}`;
 }
 
-function regimeBannerClass(trend: string) {
-  if (trend === "BULL") return "border-emerald-500/25 bg-emerald-950/40";
-  if (trend === "BEAR") return "border-rose-500/25 bg-rose-950/40";
-  return "border-yellow-500/25 bg-yellow-950/30";
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const diff = Date.now() - Date.parse(iso);
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
 }
 
-function regimeTrendClass(trend: string) {
-  if (trend === "BULL") return "text-emerald-400";
-  if (trend === "BEAR") return "text-rose-400";
-  return "text-yellow-400";
+function pctColor(v: number, inverted = false): string {
+  const positive = inverted ? v < 0 : v > 0;
+  const negative = inverted ? v > 0 : v < 0;
+  if (positive) return "text-emerald-400";
+  if (negative) return "text-rose-400";
+  return "text-slate-400";
 }
 
-function regimeBadgeClass(trend: string) {
-  if (trend === "BULL") return "text-emerald-400 border-emerald-500/30 bg-emerald-500/10";
-  if (trend === "BEAR") return "text-rose-400 border-rose-500/30 bg-rose-500/10";
-  return "text-yellow-400 border-yellow-500/30 bg-yellow-500/10";
+function isEarningsBMO(time: string): boolean {
+  const t = (time || "").toLowerCase();
+  return t.includes("bmo") || t.includes("pre") || t.includes("before");
 }
 
-function alignmentDot(alignment: string) {
-  if (alignment === "ALIGNED")    return "bg-emerald-400";
-  if (alignment === "PARTIAL")    return "bg-yellow-400";
-  if (alignment === "MISALIGNED") return "bg-rose-400";
-  return "bg-slate-500";
+function isEarningsAMC(time: string): boolean {
+  const t = (time || "").toLowerCase();
+  return t.includes("amc") || t.includes("after") || t.includes("post");
 }
 
-function directionChip(direction: string) {
-  if (direction === "LONG")  return <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">LONG</span>;
-  if (direction === "SHORT") return <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">SHORT</span>;
-  return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">NEUTRAL</span>;
-}
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 
-function signalDirective(signal: TopFocusSignal): string {
-  const cons = (signal.consequence ?? "").trim();
-  if (cons && cons.toLowerCase() !== "no edge" && cons.length > 5) return cons;
-  const dir = signal.direction === "LONG" ? "Long" : signal.direction === "SHORT" ? "Short" : "Neutral";
-  return `${dir} bias`;
-}
-
-function ChangeTag({ value }: { value: number }) {
-  if (!Number.isFinite(value)) return null;
-  if (value > 0) return (
-    <span className="flex items-center gap-0.5 text-emerald-400 text-xs font-medium">
-      <ArrowUp className="size-3" />{percentSafe(value, 2)}
-    </span>
+function Pulse({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse rounded bg-slate-800/60",
+        className
+      )}
+    />
   );
-  if (value < 0) return (
-    <span className="flex items-center gap-0.5 text-rose-400 text-xs font-medium">
-      <ArrowDown className="size-3" />{percentSafe(Math.abs(value), 2)}
-    </span>
-  );
-  return <span className="flex items-center gap-0.5 text-slate-400 text-xs"><Minus className="size-3" />0.00%</span>;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="rounded-lg border border-border bg-panel p-4 space-y-2">
+      <Pulse className="h-3 w-24" />
+      <Pulse className="h-6 w-32" />
+      <Pulse className="h-3 w-16" />
+    </div>
+  );
+}
 
-function OpportunityCard({ signal, tier, onClick }: {
-  signal: TopFocusSignal;
-  tier: PlaybookTier;
-  onClick: () => void;
+// ── Phase dot colour ──────────────────────────────────────────────────────────
+
+function phaseDotColor(phase: string): string {
+  switch (phase) {
+    case "opening":
+    case "morning":
+    case "afternoon":
+    case "powerhour":
+      return "bg-emerald-400";
+    case "premarket":
+    case "afterhours":
+      return "bg-amber-400";
+    case "midday":
+      return "bg-blue-400";
+    case "weekend":
+    case "closed":
+    case "overnight":
+      return "bg-slate-500";
+    default:
+      return "bg-slate-500";
+  }
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+      {label}
+    </p>
+  );
+}
+
+function StockTable({
+  rows,
+  label,
+  showVolume = true,
+}: {
+  rows: StockRow[];
+  label: string;
+  showVolume?: boolean;
 }) {
-  const quality    = signal.trade_score ?? 0;
-  const directive  = signalDirective(signal);
-  const ts         = TIER_STYLE[tier];
-  const pos        = calcPositionSize(signal.entry, signal.stop);
+  if (!rows.length) {
+    return (
+      <div>
+        <SectionHeader label={label} />
+        <p className="text-xs text-slate-600">No data available</p>
+      </div>
+    );
+  }
 
   return (
-    <article
-      onClick={onClick}
-      className={`cursor-pointer rounded-xl border bg-slate-900/50 p-4 transition hover:bg-slate-900 ${ts.border}`}
-    >
-      {/* Playbook tier — top row, dominant */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-slate-400 text-[11px]">#{signal.rank}</span>
-          <span className="font-bold text-slate-100 text-sm">{signal.symbol}</span>
-          {directionChip(signal.direction)}
-        </div>
-        <div className="text-right shrink-0">
-          <div className={`text-3xl font-black tabular-nums ${ts.text}`}>{tier}</div>
-          <div className={`text-[9px] uppercase tracking-widest font-semibold mt-0.5 ${ts.text} opacity-60`}>
-            {quality}/100
-          </div>
-        </div>
+    <div>
+      <SectionHeader label={label} />
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-slate-600 border-b border-border">
+              <th className="text-left py-1.5 pr-3 font-medium">#</th>
+              <th className="text-left py-1.5 pr-3 font-medium">Ticker</th>
+              <th className="text-right py-1.5 pr-3 font-medium">Price</th>
+              <th className="text-right py-1.5 pr-3 font-medium">Chg%</th>
+              {showVolume && <th className="text-right py-1.5 font-medium">Volume</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr
+                key={row.symbol}
+                className="border-b border-border/40 last:border-0 hover:bg-slate-800/20 transition-colors"
+              >
+                <td className="py-1.5 pr-3 text-slate-600">{i + 1}</td>
+                <td className="py-1.5 pr-3">
+                  <span className="font-semibold text-slate-200 font-mono text-[11px]">
+                    {row.symbol}
+                  </span>
+                  {row.name && (
+                    <span className="ml-2 text-slate-600 hidden sm:inline truncate max-w-[100px]">
+                      {row.name.slice(0, 20)}
+                    </span>
+                  )}
+                </td>
+                <td className="py-1.5 pr-3 text-right font-mono text-slate-300">
+                  {fmtPrice(row.price)}
+                </td>
+                <td className={cn("py-1.5 pr-3 text-right font-mono font-semibold", pctColor(row.changesPercentage))}>
+                  {fmtPct(row.changesPercentage)}
+                </td>
+                {showVolume && (
+                  <td className="py-1.5 text-right text-slate-500 font-mono">
+                    {fmtVol(row.volume)}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {/* Playbook action */}
-      <div className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider mb-2 ${ts.badge}`}>
-        {playbookLabel(tier)}
-      </div>
-
-      {/* Directive */}
-      <div className="text-xs text-slate-300 leading-snug mb-3 line-clamp-2">{directive}</div>
-
-      {/* Stats row */}
-      <div className="flex items-center gap-3 mb-2">
-        <ChangeTag value={signal.change_percent} />
-        {signal.relative_volume > 0 && (
-          <span className="text-[11px] text-slate-500">{toFixedSafe(signal.relative_volume, 1)}x vol</span>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className={`size-1.5 rounded-full shrink-0 ${alignmentDot(signal.regime_alignment)}`} />
-          <span className="text-[10px] text-slate-500">{signal.regime_alignment}</span>
-        </div>
-      </div>
-
-      {/* Execution levels */}
-      {(signal.entry || signal.stop || signal.target) && (
-        <div className="grid grid-cols-3 gap-1 text-center text-[11px] mb-2">
-          <div className="rounded bg-slate-800/60 py-1">
-            <div className="text-slate-500">Entry</div>
-            <div className="text-slate-200">{signal.entry ? `$${toFixedSafe(signal.entry, 2)}` : "—"}</div>
-          </div>
-          <div className="rounded bg-slate-800/60 py-1">
-            <div className="text-slate-500">Stop</div>
-            <div className="text-rose-300">{signal.stop ? `$${toFixedSafe(signal.stop, 2)}` : "—"}</div>
-          </div>
-          <div className="rounded bg-slate-800/60 py-1">
-            <div className="text-slate-500">Target</div>
-            <div className="text-emerald-300">{signal.target ? `$${toFixedSafe(signal.target, 2)}` : "—"}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Position size */}
-      {pos && (
-        <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1.5 text-[10px] text-slate-500 flex items-center justify-between">
-          <span>£10 risk · {pos.shares} shares</span>
-          <span className="font-mono">${pos.positionValue.toLocaleString()} exposure</span>
-        </div>
-      )}
-
-      {signal.performance_note && (
-        <div className="mt-1.5 text-[10px] text-slate-600">{signal.performance_note}</div>
-      )}
-    </article>
+    </div>
   );
 }
 
-// ─── Main dashboard ───────────────────────────────────────────────────────────
-
-export function DashboardView() {
-  const router   = useRouter();
-  const modeInfo = getCachedMarketMode();
-
-  const focusQuery = useQuery({
-    queryKey: ["dashboard", "top-focus"],
-    queryFn: () => apiGet<TopFocusResponse>("/api/intelligence/top-focus?limit=3"),
-    ...QUERY_POLICY.fast,
-  });
-
-  // PREP fallback — always fetched so RECENT/PREP mode shows data instantly
-  const prepQuery = useQuery({
-    queryKey: ["dashboard", "prep"],
-    queryFn: () => apiGet<PrepResponse>("/api/intelligence/prep"),
-    ...QUERY_POLICY.medium,
-    enabled: modeInfo.mode !== "LIVE",
-  });
-
-  const overviewQuery = useQuery({
-    queryKey: ["dashboard", "overview"],
-    queryFn: () => apiGet<OverviewPayload>("/api/market/overview").catch(() => ({} as OverviewPayload)),
-    ...QUERY_POLICY.fast,
-  });
-
-  const newsQuery = useQuery({
-    queryKey: ["dashboard", "news"],
-    queryFn: () => apiGet<{ data?: Array<{ symbol?: string; headline?: string; source?: string; created_at?: string }> }>("/api/catalysts?limit=10").catch(() => ({ data: [] })),
-    ...QUERY_POLICY.medium,
-  });
-
-  const earningsQuery = useQuery({
-    queryKey: ["dashboard", "earnings-today"],
-    queryFn: () => {
-      const today = new Date().toISOString().slice(0, 10);
-      return apiGet<{ data?: EarningsItem[] } | EarningsItem[]>(
-        `/api/earnings/calendar?from=${today}&to=${today}`
-      ).catch(() => ({ data: [] }));
-    },
-    ...QUERY_POLICY.slow,
-  });
-
-  const watchlistQuery = useQuery({
-    queryKey: ["dashboard", "premarket-watchlist"],
-    queryFn: () => apiGet<WatchlistResponse>("/api/premarket/watchlist?limit=20").catch(() => ({ success: false, count: 0, data: [] })),
-    ...QUERY_POLICY.medium,
-  });
-
-  const simQuery = useQuery({
-    queryKey: ["dashboard", "sim-live"],
-    queryFn: () => apiGet<SimLiveResponse>("/api/simulation/live").catch(() => ({ ok: false } as SimLiveResponse)),
-    ...QUERY_POLICY.slow,
-  });
-
-  const signals = focusQuery.data?.signals ?? [];
-  const regime  = focusQuery.data?.regime  ?? null;
-  const meta    = focusQuery.data?.meta;
-  const prepData = prepQuery.data;
-  const watchlist = watchlistQuery.data?.data ?? [];
-  const indices = overviewQuery.data?.indices ?? {};
-  const vixKey = Object.keys(overviewQuery.data?.volatility ?? {}).find((k) => k.toUpperCase().includes("VIX")) ?? "";
-  const vix = vixKey ? toNum((overviewQuery.data?.volatility as Record<string, { price?: unknown }>)?.[vixKey]?.price, NaN) : NaN;
-  const news = Array.isArray(newsQuery.data?.data) ? newsQuery.data.data : [];
-  const earningsRaw = Array.isArray(earningsQuery.data) ? earningsQuery.data : (earningsQuery.data as { data?: EarningsItem[] })?.data ?? [];
+function SectorBar({ sector, value }: { sector: string; value: number }) {
+  const abs = Math.abs(value);
+  const maxPct = 3; // saturate at ±3%
+  const width = Math.min((abs / maxPct) * 100, 100);
+  const isPos = value >= 0;
 
   return (
-    <div className="space-y-5">
+    <div className="flex items-center gap-2 py-1">
+      <span className="text-xs text-slate-400 w-36 shrink-0 truncate capitalize">
+        {sector.toLowerCase()}
+      </span>
+      <div className="flex-1 relative h-4 rounded-sm overflow-hidden bg-slate-800/40">
+        <div
+          className={cn(
+            "absolute top-0 h-full rounded-sm transition-all",
+            isPos ? "left-0 bg-emerald-500/30" : "right-0 bg-rose-500/30"
+          )}
+          style={{ width: `${width}%` }}
+        />
+        <div className="absolute inset-0 flex items-center justify-end pr-2">
+          <span className={cn("text-[10px] font-mono font-semibold", pctColor(value))}>
+            {fmtPct(value)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-      {/* ── Market Mode + Regime Banner ── */}
-      <section className={`rounded-xl border px-5 py-4 ${regime ? regimeBannerClass(regime.trend) : "border-slate-800 bg-slate-900/40"}`}>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* MODE badge — always visible */}
-            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-widest ${modeBadgeClass(modeInfo.mode)}`}>
-              {modePulse(modeInfo.mode)}{modeInfo.mode}
-            </span>
-            <span className="text-[11px] text-slate-500">{modeInfo.reason}</span>
-            {regime && (
-              <>
-                <div className="h-3 w-px bg-slate-700" />
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="size-4 text-slate-500" />
-                  <span className="text-xs uppercase tracking-widest text-slate-500">Regime</span>
-                </div>
-                <span className={`text-xl font-black tracking-tight ${regimeTrendClass(regime.trend)}`}>
-                  {regime.trend}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${regimeBadgeClass(regime.trend)}`}>
-                    {regime.volatility} VOL
-                  </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400">
-                    {regime.liquidity} LIQ
-                  </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400">
-                    {regime.session}
-                  </span>
-                </div>
-              </>
+function EarningsGroup({
+  label,
+  items,
+}: {
+  label: string;
+  items: EarningsRow[];
+}) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">
+        {label}
+      </p>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {items.map((e) => (
+          <div
+            key={e.symbol}
+            className="rounded border border-border bg-slate-800/30 px-2 py-1 text-[11px]"
+          >
+            <span className="font-mono font-semibold text-slate-200">{e.symbol}</span>
+            {e.epsEstimated !== null && (
+              <span className="ml-1.5 text-slate-500">EPS est {e.epsEstimated.toFixed(2)}</span>
             )}
           </div>
-          {meta && (
-            <span className="text-[11px] text-slate-500">
-              {meta.total_passed} signals · {meta.total_filtered} filtered
-            </span>
-          )}
-        </div>
-      </section>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* ── Market Overview Row ── */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Object.entries(indices).slice(0, 3).map(([ticker, row]) => {
-          const price = toNum((row as { price?: unknown })?.price, NaN);
-          const cp = toNum((row as { change_percent?: unknown })?.change_percent, NaN);
-          return (
-            <div key={ticker} className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2.5">
-              <div className="text-[11px] uppercase text-slate-500">{ticker}</div>
-              <div className="mt-0.5 font-semibold text-slate-100">
-                {Number.isFinite(price) ? `$${toFixedSafe(price, 2)}` : "—"}
-              </div>
-              <ChangeTag value={cp} />
+function DeclinersRow({ losers }: { losers: StockRow[] }) {
+  if (!losers.length) return null;
+  return (
+    <div>
+      <SectionHeader label="Notable Decliners" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        {losers.slice(0, 8).map((row) => (
+          <div
+            key={row.symbol}
+            className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-center"
+          >
+            <div className="font-mono font-bold text-slate-200 text-sm">{row.symbol}</div>
+            <div className="font-mono font-semibold text-rose-400 text-base mt-0.5">
+              {fmtPct(row.changesPercentage)}
             </div>
-          );
-        })}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2.5">
-          <div className="text-[11px] uppercase text-slate-500">VIX</div>
-          <div className="mt-0.5 font-semibold text-slate-100">
-            {Number.isFinite(vix) ? toFixedSafe(vix, 2) : "—"}
+            <div className="text-[10px] text-slate-500 mt-0.5">{fmtVol(row.volume)} vol</div>
+            <div className="text-[10px] text-slate-400 font-mono">{fmtPrice(row.price)}</div>
           </div>
-          {overviewQuery.data?.breadth && (
-            <div className="mt-0.5 text-[11px] text-slate-500">
-              {overviewQuery.data.breadth.advancers}A / {overviewQuery.data.breadth.decliners}D
-            </div>
-          )}
-        </div>
-      </section>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* ── KPI Row ── */}
-      <section className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">High Conviction</div>
-          <div className="mt-1 text-2xl font-black text-emerald-400 tabular-nums">
-            {signals.filter(s => s.trade_score >= 70).length}
-          </div>
-          <div className="text-[11px] text-slate-600">setups ≥ 70 score</div>
-        </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">News (24h)</div>
-          <div className="mt-1 text-2xl font-black text-blue-400 tabular-nums">
-            {news.length}
-          </div>
-          <div className="text-[11px] text-slate-600">catalyst articles</div>
-        </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">Earnings Today</div>
-          <div className="mt-1 text-2xl font-black text-amber-400 tabular-nums">
-            {earningsRaw.length}
-          </div>
-          <div className="text-[11px] text-slate-600">reports scheduled</div>
-        </div>
-      </section>
+function NewsCard({ item }: { item: NewsRow }) {
+  const symbol = (item.symbol || "").trim();
+  const title = (item.title || "").trim();
+  const url = (item.url || "").trim();
+  const site = (item.site || "").trim();
+  const ago = timeAgo(item.publishedDate);
 
-      {/* ── Main content grid ── */}
-      <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
+  const content = (
+    <div className="rounded-lg border border-border bg-panel/60 p-3 h-full hover:bg-slate-800/40 transition-colors group">
+      <div className="flex items-start gap-2 mb-1.5">
+        {symbol && (
+          <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-300">
+            {symbol}
+          </span>
+        )}
+        {site && (
+          <span className="text-[10px] text-slate-600 shrink-0">{site}</span>
+        )}
+        <span className="ml-auto text-[10px] text-slate-600 shrink-0">{ago}</span>
+      </div>
+      <p className="text-xs text-slate-300 leading-snug line-clamp-3 group-hover:text-slate-200 transition-colors">
+        {title || "No title"}
+      </p>
+      {url && (
+        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-600 group-hover:text-blue-400 transition-colors">
+          <ExternalLink className="size-3" />
+          <span>Read more</span>
+        </div>
+      )}
+    </div>
+  );
 
-        {/* Left: Top Opportunities */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {modeInfo.mode === "LIVE" ? "Best Setups Today" : modeInfo.mode === "RECENT" ? "Recent Setups" : "Prep Watchlist"}
-            </h2>
-            <div className="flex items-center gap-2">
-              {(focusQuery.isLoading || prepQuery.isLoading) && (
-                <span className="text-[11px] text-slate-600">Loading...</span>
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+        {content}
+      </a>
+    );
+  }
+  return content;
+}
+
+// ── AI Briefing Section ───────────────────────────────────────────────────────
+
+const SECTION_ORDER = [
+  "LAST TRADING SESSION",
+  "LATEST NEWS",
+  "WEEKLY TRENDS",
+  "RISK ASSESSMENT",
+  "CONDITIONS & SETUPS",
+  "SUMMARY",
+];
+
+function BriefingCard({
+  briefing,
+  isLoading,
+}: {
+  briefing: Briefing | undefined;
+  isLoading: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Sort sections in canonical order
+  const sections = useMemo(() => {
+    if (!briefing?.sections) return [];
+    const ordered: BriefingSection[] = [];
+    for (const title of SECTION_ORDER) {
+      const found = briefing.sections.find(
+        (s) => s.title.toUpperCase() === title.toUpperCase()
+      );
+      if (found) ordered.push(found);
+    }
+    // Add any remaining sections not in the canonical order
+    for (const s of briefing.sections) {
+      if (!ordered.find((o) => o.title === s.title)) ordered.push(s);
+    }
+    return ordered;
+  }, [briefing?.sections]);
+
+  const summarySection = sections.find(
+    (s) => s.title.toUpperCase().includes("SUMMARY")
+  );
+  const previewBullet = summarySection?.bullets?.[0] || null;
+  const ago = briefing?.generatedAt ? timeAgo(briefing.generatedAt) : null;
+
+  return (
+    <div className="rounded-lg border border-border bg-panel shadow-sm">
+      {/* Card header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-200">AI analysis</span>
+          <span className="text-indigo-400 text-sm">✦</span>
+        </div>
+        {ago && <span className="text-xs text-slate-600">{ago}</span>}
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Loading state */}
+        {isLoading && !briefing && (
+          <div className="space-y-3">
+            <Pulse className="h-3 w-full" />
+            <Pulse className="h-3 w-5/6" />
+            <Pulse className="h-3 w-4/5" />
+          </div>
+        )}
+
+        {/* Fallback */}
+        {!isLoading && briefing?.fallback && (
+          <p className="text-sm text-slate-500 italic">
+            {briefing.message || "AI narrative unavailable. All market data is live below."}
+          </p>
+        )}
+
+        {/* Summary preview (always visible) */}
+        {!isLoading && !briefing?.fallback && previewBullet && (
+          <p className="text-sm text-slate-300 leading-relaxed">{previewBullet}</p>
+        )}
+
+        {/* Expand toggle */}
+        {!briefing?.fallback && sections.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              {expanded ? (
+                <>
+                  <ChevronUp className="size-3.5" />
+                  Collapse briefing
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="size-3.5" />
+                  Expand full briefing
+                </>
               )}
-              {prepData?.data_window && modeInfo.mode !== "LIVE" && (
-                <span className="text-[10px] text-slate-600">{prepData.data_window} window</span>
-              )}
-            </div>
-          </div>
+            </button>
 
-          {/* Live signals — always try first */}
-          {signals.length > 0 ? (() => {
-            const scored = signals.map(sig => ({
-              sig,
-              tier: getPlaybookTier(
-                sig.trade_score ?? 0,
-                sig.confidence ?? sig.trade_score ?? 0,
-                sig.regime_alignment === "ALIGNED",
-              ),
-              quality: sig.trade_score ?? 0,
-            }));
-            const eliteFirst = [...scored].sort(
-              (a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.quality - a.quality
-            );
-            const elite = eliteFirst.filter(x => x.tier === "A+" || x.tier === "A");
-            const display = elite.length > 0 ? elite.slice(0, 3) : eliteFirst.slice(0, 1);
-            return (
-              <>
-                {elite.length === 0 && (
-                  <p className="mb-2 text-[11px] text-slate-600">
-                    No A+/A setups right now — showing best available
-                  </p>
-                )}
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {display.map(({ sig, tier }) => (
-                    <OpportunityCard
-                      key={sig.symbol}
-                      signal={sig}
-                      tier={tier}
-                      onClick={() => router.push(`/research/${sig.symbol}`)}
-                    />
-                  ))}
-                </div>
-                {eliteFirst.length > display.length && (
-                  <div className="mt-3 text-right">
-                    <Link
-                      href="/stocks-in-play"
-                      className="text-[11px] text-emerald-400 hover:text-emerald-300 transition"
-                    >
-                      +{eliteFirst.length - display.length} more setups in Stocks In Play →
-                    </Link>
-                  </div>
-                )}
-              </>
-            );
-          })()
-
-          /* PREP/RECENT fallback — show signals from wider window */
-          : !focusQuery.isLoading && prepData?.top_signals && prepData.top_signals.length > 0 ? (
-            <>
-              <p className="mb-2 text-[11px] text-slate-500">
-                {modeInfo.mode === "LIVE"
-                  ? "No LIVE signals — showing recent data"
-                  : `No LIVE signals — showing ${modeInfo.mode} opportunities (${prepData.data_window})`}
-              </p>
-              <div className="space-y-2">
-                {prepData.top_signals.slice(0, 5).map((sig) => (
-                  <div
-                    key={sig.symbol}
-                    onClick={() => router.push(`/research/${sig.symbol}`)}
-                    className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 hover:bg-slate-900 transition flex items-start justify-between gap-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-slate-100 text-sm">{sig.symbol}</span>
-                        {sig.trade_class && (
-                          <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300">{sig.trade_class}</span>
-                        )}
-                        {sig.event_type && (
-                          <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[10px] text-blue-400">{sig.event_type}</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-400 line-clamp-2">{sig.why ?? "Signal candidate"}</p>
-                      {sig.consequence && (
-                        <p className="mt-0.5 text-[11px] text-slate-600 line-clamp-1">{sig.consequence}</p>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-lg font-black tabular-nums text-slate-200">{sig.confidence ?? "—"}</div>
-                      <div className="text-[10px] text-slate-600">conf</div>
+            {expanded && (
+              <div className="space-y-5 pt-2">
+                {sections.map((section, i) => (
+                  <div key={section.title}>
+                    {i > 0 && (
+                      <div className="border-t border-border/40 mb-4" />
+                    )}
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                      {section.title}
+                    </p>
+                    <div className="rounded-lg border border-border/40 bg-slate-900/40 p-3 space-y-2.5">
+                      {(section.bullets || []).map((bullet, j) => (
+                        <div key={j} className="flex gap-2.5">
+                          <span className="mt-0.5 shrink-0 text-indigo-400 text-sm leading-none">✦</span>
+                          <p className="text-xs text-slate-400 leading-relaxed">{bullet}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            )}
+          </>
+        )}
 
-          /* Loading skeletons */
-          ) : focusQuery.isLoading ? (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-44 animate-pulse rounded-xl border border-slate-800 bg-slate-900/30" />
-              ))}
-            </div>
+        {/* Disclaimer */}
+        <p className="text-[10px] text-slate-700 pt-1 border-t border-border/30 mt-3">
+          AI analysis is generated automatically and does not constitute financial advice.
+          Data sourced from FMP. Do your own research.
+        </p>
+      </div>
+    </div>
+  );
+}
 
-          /* Genuine empty — no data at all */
-          ) : (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 text-center">
-              <p className="text-sm text-slate-500 mb-1">
-                {modeInfo.mode === "PREP"
-                  ? "PREP MODE — building watchlist for next open"
-                  : "No signals scored yet"}
-              </p>
-              <p className="text-[11px] text-slate-600 mb-4">{modeInfo.reason}</p>
-              <Link
-                href="/stocks-in-play"
-                className="inline-block rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-xs text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition"
-              >
-                Browse all opportunities →
-              </Link>
-            </div>
-          )}
-        </section>
+// ── Condition Tags ────────────────────────────────────────────────────────────
 
-        {/* Right: News + Earnings */}
-        <div className="space-y-4">
+function ConditionTag({ condition }: { condition: Condition }) {
+  return (
+    <div
+      title={condition.description}
+      className="rounded border px-2 py-1 text-[11px] font-semibold cursor-default group relative"
+      style={{
+        borderColor: `${condition.color}40`,
+        backgroundColor: `${condition.color}15`,
+        color: condition.color,
+      }}
+    >
+      {condition.label}
+      <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-50 hidden group-hover:block w-56 rounded-lg border border-border bg-slate-900 p-2.5 shadow-xl">
+        <p className="text-[10px] text-slate-300 leading-relaxed">{condition.description}</p>
+      </div>
+    </div>
+  );
+}
 
-          {/* News highlights */}
-          <section>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              News Highlights
-            </h2>
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {news.slice(0, 8).map((item, i) => (
-                <div
-                  key={`${String(item.symbol)}-${i}`}
-                  className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {item.symbol && (
-                      <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
-                        {item.symbol}
-                      </span>
-                    )}
-                    {item.created_at && (
-                      <span className="text-[10px] text-slate-600">
-                        {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-400 line-clamp-2">
-                    {item.headline}
-                  </div>
-                </div>
-              ))}
-              {news.length === 0 && !newsQuery.isLoading && (
-                <div className="rounded-lg border border-slate-800 px-3 py-3 text-xs text-slate-600">
-                  No news in last 24h
-                </div>
-              )}
-            </div>
-          </section>
+// ── Index Card ────────────────────────────────────────────────────────────────
 
-          {/* Earnings today / upcoming */}
-          <section>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {earningsRaw.length > 0 ? "Earnings Today" : "Earnings Upcoming"}
-            </h2>
-            {(() => {
-              const displayEarnings = earningsRaw.length > 0
-                ? earningsRaw
-                : (prepData?.earnings ?? []).map(e => ({
-                    symbol: e.symbol,
-                    report_date: e.report_date,
-                    time: e.report_time,
-                    eps_estimate: e.eps_estimate,
-                  } as EarningsItem));
-              return displayEarnings.length > 0 ? (
-                <div className="space-y-1">
-                  {displayEarnings.slice(0, 6).map((row, i) => (
-                    <div key={`${String(row.symbol)}-${i}`} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-xs">
-                      <span className="font-semibold text-slate-200">{row.symbol}</span>
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <span>{row.time ?? row.report_time ?? "—"}</span>
-                        {row.report_date && <span className="text-slate-600">{new Date(row.report_date).toLocaleDateString([], { month: "short", day: "numeric" })}</span>}
-                        {row.expected_move != null && (
-                          <span className="text-yellow-400">±{toFixedSafe(row.expected_move, 1)}%</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-slate-800 px-3 py-3 text-xs text-slate-600">
-                  No earnings in next 3 days
-                </div>
-              );
-            })()}
-          </section>
+function IndexCard({ row }: { row: IndexRow }) {
+  const isVIX = row.symbol === "VIX";
+  const changeColor = pctColor(row.changesPercentage, isVIX);
+
+  return (
+    <div className="rounded-lg border border-border bg-panel p-3 flex flex-col gap-0.5">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        {row.label}
+      </p>
+      <p className="text-lg font-bold font-mono text-slate-100">
+        {row.price > 0 ? fmtPrice(row.price) : "—"}
+      </p>
+      <p className={cn("text-xs font-mono font-semibold", changeColor)}>
+        {row.price > 0 ? fmtPct(row.changesPercentage) : "—"}
+      </p>
+    </div>
+  );
+}
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
+
+export function DashboardView() {
+  const session = useMarketClock();
+
+  // ── Snapshot ────────────────────────────────────────────────────────────────
+  const snapshotQuery = useQuery<Snapshot>({
+    queryKey: ["dashboard", "snapshot"],
+    queryFn: () => apiGet<Snapshot>("/api/dashboard/snapshot"),
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  const snapshot = snapshotQuery.data;
+  const isLoading = snapshotQuery.isLoading;
+
+  // ── Conditions (client-side, derived from snapshot) ─────────────────────────
+  const conditions = useMemo(() => {
+    if (!snapshot) return [] as Condition[];
+    return classifyConditions(snapshot, session);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot, session.phase, session.orbWindow, session.ukWindow]);
+
+  // ── AI Briefing ─────────────────────────────────────────────────────────────
+  const briefingQuery = useQuery<Briefing>({
+    queryKey: ["dashboard", "briefing", session.phase],
+    queryFn: async () => {
+      return apiPost<Briefing>("/api/dashboard/briefing", {
+        session,
+        snapshot,
+        conditions: conditions.map((c) => c.label),
+      });
+    },
+    enabled: !!snapshot,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
+    retry: 1,
+  });
+
+  const briefing = briefingQuery.data;
+
+  // ── Earnings grouping ───────────────────────────────────────────────────────
+  const earnings = snapshot?.earnings ?? [];
+  const earningsBMO = earnings.filter((e) => isEarningsBMO(e.time));
+  const earningsAMC = earnings.filter((e) => isEarningsAMC(e.time));
+  const earningsTBC = earnings.filter(
+    (e) => !isEarningsBMO(e.time) && !isEarningsAMC(e.time)
+  );
+
+  // ── Manual refresh ──────────────────────────────────────────────────────────
+  function handleRefresh() {
+    snapshotQuery.refetch();
+    briefingQuery.refetch();
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  const dotColor = phaseDotColor(session.phase);
+
+  return (
+    <div className="space-y-4 max-w-[1400px] mx-auto">
+
+      {/* ── Session header ───────────────────────────────────────────────────── */}
+      <div className="rounded-lg border border-border bg-panel p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Left: phase + date */}
+          <div className="flex items-center gap-2.5">
+            <span className={cn("size-2 rounded-full shrink-0 animate-pulse", dotColor)} />
+            <span className="text-sm font-semibold text-slate-200">{session.label}</span>
+            <span className="text-xs text-slate-500">{session.date}</span>
+          </div>
+
+          {/* Right: times */}
+          <div className="flex items-center gap-4 text-xs text-slate-400 font-mono">
+            <span>ET {session.et}</span>
+            <span className="text-slate-600">·</span>
+            <span>UK {session.uk}</span>
+            {session.orbWindow && (
+              <span className="rounded bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-amber-400 font-sans font-semibold text-[10px]">
+                ⚡ ORB LIVE
+              </span>
+            )}
+            {session.ukWindow && (
+              <span className="rounded bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 text-blue-400 font-sans font-semibold text-[10px]">
+                🇬🇧 UK WINDOW
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Countdown strip */}
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+          <div className="text-xs text-slate-500">
+            <span className="font-semibold text-slate-400">NEXT →</span>{" "}
+            {session.nextEvent}{" "}
+            <span className="font-mono font-semibold text-slate-300">{session.countdown}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {snapshot && (
+              <span className="text-[10px] text-slate-600">
+                Updated {timeAgo(snapshot.timestamp)}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={snapshotQuery.isFetching}
+              className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors disabled:opacity-40"
+            >
+              <RefreshCw className={cn("size-3", snapshotQuery.isFetching && "animate-spin")} />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Premarket Watchlist ── */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Premarket Watchlist</h2>
-          {watchlistQuery.isLoading && <span className="text-[11px] text-slate-600">Loading...</span>}
-          {watchlist.length > 0 && <span className="text-[11px] text-slate-600">{watchlist.length} symbols</span>}
+      {/* ── Condition tags ───────────────────────────────────────────────────── */}
+      {conditions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {conditions.map((c) => (
+            <ConditionTag key={c.label} condition={c} />
+          ))}
         </div>
-        {watchlist.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-[10px] uppercase tracking-wide text-slate-500">
-                  <th className="px-3 py-2 text-left">Symbol</th>
-                  <th className="px-3 py-2 text-right">Score</th>
-                  <th className="px-3 py-2 text-right">PM Price</th>
-                  <th className="px-3 py-2 text-right">PM Gap%</th>
-                  <th className="px-3 py-2 text-right">PM Volume</th>
-                  <th className="px-3 py-2 text-right">RVOL</th>
-                  <th className="px-3 py-2 text-right">News</th>
-                  <th className="px-3 py-2 text-center">Quality</th>
-                  <th className="px-3 py-2 text-center">Earnings</th>
-                </tr>
-              </thead>
-              <tbody>
-                {watchlist.map((row) => {
-                  const pmGap  = row.premarket_gap  ?? row.gap_percent;
-                  const pmVol  = row.premarket_volume;
-                  const pmQual = row.premarket_data_quality;
-                  const qualCls = pmQual == null
-                    ? "bg-slate-700/60 text-slate-500"
-                    : pmQual >= 80 ? "bg-emerald-500/20 text-emerald-400"
-                    : pmQual >= 50 ? "bg-amber-500/20 text-amber-400"
-                    : "bg-red-500/20 text-red-400";
-                  return (
-                    <tr
-                      key={row.symbol}
-                      onClick={() => router.push(`/research/${row.symbol}`)}
-                      className="cursor-pointer border-b border-slate-800/50 transition hover:bg-slate-800/40 last:border-0"
-                    >
-                      <td className="px-3 py-2">
-                        <div className="font-semibold text-slate-100">{row.symbol}</div>
-                        {row.stage && (
-                          <div className={`text-[9px] font-bold uppercase ${row.stage === 'ACTIVE' ? "text-emerald-500" : row.stage === 'EARLY' ? "text-blue-400" : "text-slate-600"}`}>
-                            {row.stage}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <span className={`font-bold tabular-nums ${row.score >= 70 ? "text-emerald-400" : row.score >= 45 ? "text-amber-400" : "text-slate-400"}`}>
-                          {row.score}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-200">
-                        {row.premarket_price != null ? `$${toNum(row.premarket_price).toFixed(2)}` : <span className="text-slate-600">—</span>}
-                      </td>
-                      <td className={`px-3 py-2 text-right tabular-nums ${toNum(pmGap) > 0 ? "text-emerald-400" : toNum(pmGap) < 0 ? "text-rose-400" : "text-slate-500"}`}>
-                        {pmGap != null ? `${toNum(pmGap) > 0 ? "+" : ""}${toNum(pmGap).toFixed(2)}%` : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-400">
-                        {pmVol != null && pmVol > 0
-                          ? pmVol >= 1_000_000 ? `${(pmVol / 1_000_000).toFixed(1)}M`
-                          : pmVol >= 1_000 ? `${(pmVol / 1_000).toFixed(0)}K`
-                          : String(pmVol)
-                          : <span className="text-slate-600">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">
-                        {row.relative_volume != null ? `${toNum(row.relative_volume).toFixed(1)}x` : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-blue-400">
-                        {row.news_count > 0 ? row.news_count : <span className="text-slate-600">0</span>}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {pmQual != null ? (
-                          <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${qualCls}`}>
-                            {pmQual}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-600">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {row.earnings_flag === 1 ? (
-                          <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">EPS</span>
-                        ) : (
-                          <span className="text-slate-700">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : !watchlistQuery.isLoading ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-4 text-xs text-slate-600">
-            Premarket data unavailable — session engine runs every 10 min
-          </div>
-        ) : null}
-      </section>
+      )}
 
-      {/* ── System Performance ── */}
-      <section>
-        <h2 className="mb-2 text-[11px] uppercase tracking-widest text-slate-500">System Performance</h2>
-        {simQuery.data?.ok ? (() => {
-          const sim = simQuery.data!;
-          const wrToday = sim.win_rate_today;
-          const wr7d    = sim.win_rate_7d;
-          const wrClass = (wr: number | null) =>
-            wr == null ? "text-slate-500"
-            : wr >= 60  ? "text-emerald-400"
-            : wr >= 40  ? "text-amber-400"
-            : "text-rose-400";
-          const avgRetClass = (v: number) =>
-            v > 0 ? "text-emerald-400" : v < 0 ? "text-rose-400" : "text-slate-400";
-          return (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500">Win Rate Today</div>
-                <div className={`mt-1 text-2xl font-black tabular-nums ${wrClass(wrToday)}`}>
-                  {wrToday != null ? `${wrToday}%` : "—"}
-                </div>
-                <div className="text-[11px] text-slate-600">{sim.total_evaluated_today} signals</div>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500">Win Rate 7d</div>
-                <div className={`mt-1 text-2xl font-black tabular-nums ${wrClass(wr7d)}`}>
-                  {wr7d != null ? `${wr7d}%` : "—"}
-                </div>
-                <div className="text-[11px] text-slate-600">{sim.total_evaluated_7d} signals</div>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500">Avg Return</div>
-                <div className={`mt-1 text-2xl font-black tabular-nums ${avgRetClass(sim.avg_return_today)}`}>
-                  {Number.isFinite(sim.avg_return_today) ? `${sim.avg_return_today > 0 ? "+" : ""}${sim.avg_return_today.toFixed(2)}%` : "—"}
-                </div>
-                <div className="text-[11px] text-slate-600">today per signal</div>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500">Best Setup</div>
-                <div className="mt-1 text-sm font-bold text-slate-100 truncate">
-                  {sim.best_setup?.setup ?? "—"}
-                </div>
-                {sim.best_setup && (
-                  <div className="text-[11px] text-emerald-400">{sim.best_setup.win_rate}% win ({sim.best_setup.total})</div>
-                )}
-              </div>
-            </div>
-          );
-        })() : (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-4 text-xs text-slate-600">
-            Performance data unavailable — evaluation engine runs every 5 min
+      {/* ── Indices ─────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+          : (snapshot?.indices ?? []).map((row) => (
+              <IndexCard key={row.symbol} row={row} />
+            ))}
+      </div>
+
+      {/* ── AI Analyst Briefing ──────────────────────────────────────────────── */}
+      <BriefingCard
+        briefing={briefing}
+        isLoading={briefingQuery.isLoading || (snapshotQuery.isLoading && !briefing)}
+      />
+
+      {/* ── Main data grid ───────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Left column */}
+        <div className="space-y-4">
+          {/* Most Active */}
+          <div className="rounded-lg border border-border bg-panel p-4">
+            {isLoading ? (
+              <>
+                <Pulse className="h-3 w-24 mb-3" />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Pulse key={i} className="h-8 w-full mb-1" />
+                ))}
+              </>
+            ) : (
+              <StockTable rows={snapshot?.active ?? []} label="Volume Leaders — Most Active" />
+            )}
           </div>
+
+          {/* Sector heat map */}
+          <div className="rounded-lg border border-border bg-panel p-4">
+            <SectionHeader label="Sector Heat Map" />
+            {isLoading ? (
+              <div className="space-y-1">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Pulse key={i} className="h-6 w-full" />
+                ))}
+              </div>
+            ) : (snapshot?.sectors ?? []).length > 0 ? (
+              <div>
+                {(snapshot?.sectors ?? []).slice(0, 11).map((s) => (
+                  <SectorBar
+                    key={s.sector}
+                    sector={s.sector}
+                    value={s.changesPercentage}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600">Sector data unavailable</p>
+            )}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Top Gainers */}
+          <div className="rounded-lg border border-border bg-panel p-4">
+            {isLoading ? (
+              <>
+                <Pulse className="h-3 w-24 mb-3" />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Pulse key={i} className="h-8 w-full mb-1" />
+                ))}
+              </>
+            ) : (
+              <StockTable rows={snapshot?.gainers ?? []} label="Top Gainers — % Change" />
+            )}
+          </div>
+
+          {/* Earnings today */}
+          <div className="rounded-lg border border-border bg-panel p-4">
+            <SectionHeader label={`Earnings Today${earnings.length ? ` (${earnings.length})` : ""}`} />
+            {isLoading ? (
+              <Pulse className="h-20 w-full" />
+            ) : earnings.length === 0 ? (
+              <p className="text-xs text-slate-600">No earnings scheduled today</p>
+            ) : (
+              <>
+                <EarningsGroup label="Before Open" items={earningsBMO} />
+                <EarningsGroup label="After Close" items={earningsAMC} />
+                <EarningsGroup label="TBC" items={earningsTBC} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Notable Decliners ────────────────────────────────────────────────── */}
+      {!isLoading && (snapshot?.losers ?? []).length > 0 && (
+        <div className="rounded-lg border border-border bg-panel p-4">
+          <DeclinersRow losers={snapshot?.losers ?? []} />
+        </div>
+      )}
+
+      {/* ── Latest Headlines ─────────────────────────────────────────────────── */}
+      <div className="rounded-lg border border-border bg-panel p-4">
+        <SectionHeader label="Latest Headlines" />
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Pulse key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        ) : (snapshot?.news ?? []).length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(snapshot?.news ?? []).slice(0, 12).map((item, i) => (
+              <NewsCard key={`${item.symbol}-${i}`} item={item} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-600">No headlines available</p>
         )}
-      </section>
+      </div>
+
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between py-2 text-[10px] text-slate-700 border-t border-border/30">
+        <span>OPENRANGE TERMINAL · DATA-DRIVEN INTELLIGENCE</span>
+        <span>Auto-refresh 5min · FMP + GPT-4o pipeline</span>
+      </div>
     </div>
   );
 }
