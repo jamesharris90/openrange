@@ -47,22 +47,28 @@ type NewsItem = {
 };
 
 export async function getLatestNews(limit = 50): Promise<NewsItem[]> {
-  const response = await apiGet<{ success?: boolean; data?: NewsItem[] }>(`/api/news?limit=${limit}`);
+  const response = await apiGet<{ success?: boolean; data?: NewsItem[] } | NewsItem[]>(`/api/news?limit=${limit}`);
   debugLog("/api/news", response);
-  if (!response.data) {
-    throw new Error("No data returned from API");
+  if (Array.isArray(response)) {
+    return response;
   }
-  return response.data;
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  throw new Error("No data returned from API");
 }
 
 export async function getNewsBySymbol(symbol: string, limit = 50): Promise<NewsItem[]> {
   const normalized = encodeURIComponent(String(symbol || "").trim().toUpperCase());
   if (!normalized) return [];
-  const response = await apiGet<{ success?: boolean; data?: NewsItem[] }>(`/api/news?symbol=${normalized}&limit=${limit}`);
-  if (!response.data) {
-    throw new Error("No data returned from API");
+  const response = await apiGet<{ success?: boolean; data?: NewsItem[] } | NewsItem[]>(`/api/news?symbol=${normalized}&limit=${limit}`);
+  if (Array.isArray(response)) {
+    return response;
   }
-  return response.data;
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  throw new Error("No data returned from API");
 }
 
 export async function getNewsDetail(id: string): Promise<NewsItem | null> {

@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+import { useTableControls } from "@/hooks/useTableControls";
+
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type EarningsRow = {
@@ -87,6 +89,23 @@ const TIME_PILL: Record<string, string> = {
   TBD: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
 };
 
+type EarningsDayFilter = "Selected Day" | "Today" | "Tomorrow" | "This Week";
+type EarningsTimeFilter = "All" | "BMO" | "AMC";
+
+type EarningsFilters = {
+  search: string;
+  day: EarningsDayFilter;
+  time: EarningsTimeFilter;
+  sector: string;
+};
+
+const DEFAULT_FILTERS: EarningsFilters = {
+  search: "",
+  day: "Selected Day",
+  time: "All",
+  sector: "",
+};
+
 // ── component ─────────────────────────────────────────────────────────────────
 
 export function EarningsView() {
@@ -96,13 +115,21 @@ export function EarningsView() {
   const [rows, setRows] = useState<EarningsRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    filters,
+    setFilters,
+    resetFilters,
+    page,
+    setPage,
+    pageSize,
+  } = useTableControls<EarningsRow, EarningsFilters>(rows, DEFAULT_FILTERS, { pageSize: 25 });
 
   // compute week
   const baseMonday = useMemo(() => mondayOf(new Date()), []);
   const monday = useMemo(() => addDays(baseMonday, weekOffset * 7), [baseMonday, weekOffset]);
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
   const todayIso = useMemo(() => isoDate(new Date()), []);
+  const tomorrowIso = useMemo(() => isoDate(addDays(new Date(), 1)), []);
 
   // fetch whenever week changes
   useEffect(() => {
@@ -139,18 +166,60 @@ export function EarningsView() {
   }, [rows]);
 
   // rows for selected day, filtered by search
-  const dayRows = useMemo(() => {
-    if (!selectedDay) return [];
-    const q = search.trim().toUpperCase();
-    return rows
-      .filter((r) => String(r.report_date || "").slice(0, 10) === selectedDay)
-      .filter((r) => !q || String(r.symbol || "").toUpperCase().includes(q) || String(r.sector || "").toUpperCase().includes(q) || String(r.company_name || "").toUpperCase().includes(q))
-      .sort((a, b) => (Number(b.market_cap) || 0) - (Number(a.market_cap) || 0));
-  }, [rows, selectedDay, search]);
+  const sectorOptions = useMemo(() => {
+    const sectors = new Set<string>();
+    rows.forEach((row) => {
+      const sector = String(row.sector || "").trim();
+      if (sector) {
+        sectors.add(sector);
+      }
+    });
+    return Array.from(sectors).sort();
+  }, [rows]);
 
-  const selectedDayLabel = selectedDay
-    ? dayLabel(new Date(selectedDay + "T00:00:00Z"))
-    : "";
+  const filteredRows = useMemo(() => {
+    const q = filters.search.trim().toUpperCase();
+    const weekSet = new Set(weekDays.map(isoDate));
+
+    return rows
+      .filter((row) => {
+        const reportDate = String(row.report_date || "").slice(0, 10);
+        if (filters.day === "Selected Day") {
+          return selectedDay ? reportDate === selectedDay : false;
+        }
+        if (filters.day === "Today") {
+          return reportDate === todayIso;
+        }
+        if (filters.day === "Tomorrow") {
+          return reportDate === tomorrowIso;
+        }
+        return weekSet.has(reportDate);
+      })
+      .filter((row) => filters.time === "All" || normaliseTime(row.time) === filters.time)
+      .filter((row) => !filters.sector || String(row.sector || "") === filters.sector)
+      .filter((row) => !q || String(row.symbol || "").toUpperCase().includes(q) || String(row.sector || "").toUpperCase().includes(q) || String(row.company_name || "").toUpperCase().includes(q))
+      .sort((a, b) => (Number(b.market_cap) || 0) - (Number(a.market_cap) || 0));
+  }, [filters.day, filters.search, filters.sector, filters.time, rows, selectedDay, todayIso, tomorrowIso, weekDays]);
+
+  const totalCount = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const paginatedRows = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredRows.slice(startIndex, startIndex + pageSize);
+  }, [filteredRows, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, setPage, totalPages]);
+
+  const selectedDayLabel = useMemo(() => {
+    if (filters.day === "Today") return "Today";
+    if (filters.day === "Tomorrow") return "Tomorrow";
+    if (filters.day === "This Week") return "This Week";
+    return selectedDay ? dayLabel(new Date(selectedDay + "T00:00:00Z")) : "";
+  }, [filters.day, selectedDay]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--background)]">
@@ -169,8 +238,8 @@ export function EarningsView() {
             className="px-2.5 py-1 rounded border border-[var(--border)] text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors">→</button>
         </div>
         <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={filters.search}
+          onChange={(e) => setFilters({ search: e.target.value })}
           placeholder="Filter symbol / company / sector…"
           className="w-44 rounded border border-[var(--border)] bg-[var(--input)] px-2.5 py-1 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-blue-500"
         />
@@ -186,7 +255,10 @@ export function EarningsView() {
           return (
             <button
               key={k}
-              onClick={() => setSelectedDay(k)}
+              onClick={() => {
+                setSelectedDay(k);
+                setFilters({ day: "Selected Day" });
+              }}
               className={[
                 "flex flex-col items-start shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors min-w-[110px]",
                 isSelected
@@ -208,6 +280,47 @@ export function EarningsView() {
         })}
       </div>
 
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-4 py-3 shrink-0">
+        <select
+          value={filters.day}
+          onChange={(event) => setFilters({ day: event.target.value as EarningsDayFilter })}
+          className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
+        >
+          <option value="Selected Day">Selected Day</option>
+          <option value="Today">Today</option>
+          <option value="Tomorrow">Tomorrow</option>
+          <option value="This Week">This Week</option>
+        </select>
+        <select
+          value={filters.time}
+          onChange={(event) => setFilters({ time: event.target.value as EarningsTimeFilter })}
+          className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
+        >
+          <option value="All">All Times</option>
+          <option value="BMO">BMO</option>
+          <option value="AMC">AMC</option>
+        </select>
+        <select
+          value={filters.sector}
+          onChange={(event) => setFilters({ sector: event.target.value })}
+          className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
+        >
+          <option value="">All Sectors</option>
+          {sectorOptions.map((sector) => (
+            <option key={sector} value={sector}>{sector}</option>
+          ))}
+        </select>
+        {(filters.search || filters.day !== DEFAULT_FILTERS.day || filters.time !== DEFAULT_FILTERS.time || filters.sector) ? (
+          <button
+            type="button"
+            onClick={() => resetFilters()}
+            className="rounded border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            Clear filters
+          </button>
+        ) : null}
+      </div>
+
       {/* ── Table ── */}
       <div className="flex-1 overflow-auto">
         {loading && (
@@ -220,7 +333,7 @@ export function EarningsView() {
           <>
             {selectedDay && (
               <div className="px-4 py-2 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide border-b border-[var(--border)] bg-[var(--panel)]">
-                Earnings on {selectedDayLabel} · {dayRows.length} companies
+                Earnings on {selectedDayLabel || "Selected Day"} · {totalCount} of {rows.length} companies
               </div>
             )}
             <table className="w-full text-sm border-collapse">
@@ -234,14 +347,14 @@ export function EarningsView() {
                 </tr>
               </thead>
               <tbody>
-                {dayRows.length === 0 && !loading && (
+                {totalCount === 0 && !loading && (
                   <tr>
                     <td colSpan={10} className="px-3 py-16 text-center text-sm text-[var(--muted-foreground)]">
-                      {selectedDay ? "No earnings on this day" : "Select a day above"}
+                      {selectedDay ? "No earnings match the current filters" : "Select a day above"}
                     </td>
                   </tr>
                 )}
-                {dayRows.map((row, i) => {
+                {paginatedRows.map((row, i) => {
                   const timeKey = normaliseTime(row.time);
                   const surprise = fmtSurprise(row.surprise);
                   const expMove = row.expected_move_percent != null ? `±${Number(row.expected_move_percent).toFixed(1)}%` : "—";
@@ -288,6 +401,27 @@ export function EarningsView() {
                 })}
               </tbody>
             </table>
+            {totalCount > 0 ? (
+              <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3 text-xs text-[var(--muted-foreground)]">
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="rounded border border-[var(--border)] px-3 py-1 transition-colors hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <span>{`Page ${page} of ${totalPages}`}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded border border-[var(--border)] px-3 py-1 transition-colors hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
           </>
         )}
       </div>

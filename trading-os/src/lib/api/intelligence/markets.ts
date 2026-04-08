@@ -25,8 +25,7 @@ export async function getMarketQuotes(symbols: string[]): Promise<MarketQuote[]>
 
 export async function getMarketChart(symbol: string, timeframe: "daily" | "5m" | "1m"): Promise<PricePoint[]> {
   if (timeframe === "daily") {
-    // Use backend endpoint directly — /api/ohlc/daily is a Next.js proxy that isn't reachable
-    // from client-side apiGet (which targets localhost:3007). Use the backend route directly.
+    // Daily candles are served through the backend OHLC endpoint behind the unified /api client path.
     const response = await apiGet<{ data?: PricePoint[] }>(
       `/api/market/ohlc?symbol=${encodeURIComponent(symbol)}&interval=1d`
     );

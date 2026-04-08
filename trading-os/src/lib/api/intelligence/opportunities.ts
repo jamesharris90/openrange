@@ -15,7 +15,8 @@ export type StocksFilters = {
 };
 
 function normalizeRows(payload: unknown): Opportunity[] {
-  return adaptOpportunitiesPayload(payload);
+  const rows = adaptOpportunitiesPayload(payload);
+  return Array.isArray(rows) ? rows : [];
 }
 
 function buildQuery(filters: StocksFilters) {
@@ -31,15 +32,25 @@ function buildQuery(filters: StocksFilters) {
 }
 
 export async function getOpportunityStream(): Promise<Opportunity[]> {
-  const response = await apiGet<Record<string, unknown>>("/api/intelligence/opportunities");
-  debugLog("/api/intelligence/opportunities", response);
-  return normalizeRows(response);
+  try {
+    const response = await apiGet<Record<string, unknown>>("/api/intelligence/opportunities");
+    debugLog("/api/intelligence/opportunities", response);
+    return normalizeRows(response);
+  } catch (error) {
+    debugLog("/api/intelligence/opportunities error", error);
+    return [];
+  }
 }
 
 export async function getStocksInPlay(filters: StocksFilters = {}): Promise<Opportunity[]> {
   const query = buildQuery(filters);
   const endpoint = `/api/intelligence/opportunities${query ? `?${query}` : ""}`;
-  const response = await apiGet<Record<string, unknown>>(endpoint);
-  debugLog("/api/intelligence/opportunities", response);
-  return normalizeRows(response);
+  try {
+    const response = await apiGet<Record<string, unknown>>(endpoint);
+    debugLog("/api/intelligence/opportunities", response);
+    return normalizeRows(response);
+  } catch (error) {
+    debugLog("/api/intelligence/opportunities error", { endpoint, error });
+    return [];
+  }
 }

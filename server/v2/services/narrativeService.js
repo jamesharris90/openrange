@@ -4,6 +4,18 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const NARRATIVE_CACHE_TTL_MS = 5 * 60 * 1000;
 const narrativeCache = new Map();
 
+function isMcpPayload(value) {
+  return Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && (
+      Object.prototype.hasOwnProperty.call(value, 'why')
+      || Object.prototype.hasOwnProperty.call(value, 'what')
+      || Object.prototype.hasOwnProperty.call(value, 'trade_score')
+      || Object.prototype.hasOwnProperty.call(value, 'action')
+    );
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -105,8 +117,39 @@ function getPromptPayload(symbol, screenerRow = {}) {
   };
 }
 
+function getMcpPromptPayload(mcp = {}) {
+  const risk = mcp && typeof mcp === 'object' ? (mcp.risk || {}) : {};
+  const expectedMove = mcp && typeof mcp === 'object' ? (mcp.expected_move || {}) : {};
+
+  return {
+    action: String(mcp.action || 'AVOID').toUpperCase(),
+    trade_score: toNumber(mcp.trade_score, 0),
+    confidence: toNumber(mcp.confidence, 0),
+    trade_quality: String(mcp.trade_quality || 'LOW').toUpperCase(),
+    summary: String(mcp.summary || '').trim(),
+    why: String(mcp.why || '').trim(),
+    what: String(mcp.what || '').trim(),
+    where: String(mcp.where || '').trim(),
+    when: String(mcp.when || '').trim(),
+    confidence_reason: String(mcp.confidence_reason || '').trim(),
+    improve: String(mcp.improve || '').trim(),
+    expected_move_percent: toNumber(expectedMove.percent, 0),
+    expected_move_label: String(expectedMove.label || 'LOW').toUpperCase(),
+    risk: {
+      entry: Number.isFinite(Number(risk.entry)) ? Number(risk.entry) : null,
+      invalidation: Number.isFinite(Number(risk.invalidation)) ? Number(risk.invalidation) : null,
+      reward: Number.isFinite(Number(risk.reward)) ? Number(risk.reward) : null,
+      rr: Number.isFinite(Number(risk.rr)) ? Number(risk.rr) : null,
+    },
+  };
+}
+
 function getCacheKey(symbol, screenerRow = {}) {
   return JSON.stringify(getPromptPayload(symbol, screenerRow));
+}
+
+function getMcpCacheKey(mcp = {}) {
+  return JSON.stringify(getMcpPromptPayload(mcp));
 }
 
 function getCachedNarrative(key) {
@@ -132,6 +175,83 @@ function setCachedNarrative(key, value) {
 
 function buildGeneratedAt() {
   return new Date().toISOString();
+}
+
+function buildMcpFallbackNarrative(mcp = {}) {
+  const payload = getMcpPromptPayload(mcp);
+  const expectedMove = payload.expected_move_percent > 0
+    ? ` Expected move is about ${payload.expected_move_percent.toFixed(1)}%.`
+    : '';
+  const riskSentence = payload.risk.entry !== null && payload.risk.invalidation !== null
+    ? ` Entry references ${payload.risk.entry} with invalidation near ${payload.risk.invalidation}.`
+    : '';
+
+  return {
+    summary: payload.summary || 'No clear edge right now.',
+    explanation: [
+      payload.why,
+      payload.what,
+      payload.where,
+      payload.when,
+    ].filter(Boolean).join(' ')
+      + expectedMove
+      + riskSentence,
+    generated_at: buildGeneratedAt(),
+  };
+}
+
+async function buildMcpNarrative(mcp) {
+  const fallback = buildMcpFallbackNarrative(mcp);
+  const cacheKey = getMcpCacheKey(mcp);
+  const cached = getCachedNarrative(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const client = getClient();
+  if (!client) {
+    setCachedNarrative(cacheKey, fallback);
+    return fallback;
+  }
+
+  try {
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are an institutional trading analyst.',
+            'Convert the supplied MCP decision object into a clean, concise human explanation.',
+            'Do not change the trade decision, score, risk, or logic.',
+            'Return only valid JSON with keys: summary, explanation.',
+            'summary must stay aligned to the MCP decision.',
+            'explanation must be 2-4 sentences, concrete, and trader-readable.',
+          ].join(' '),
+        },
+        {
+          role: 'user',
+          content: JSON.stringify(getMcpPromptPayload(mcp)),
+        },
+      ],
+    });
+
+    const content = response?.choices?.[0]?.message?.content || '';
+    const parsed = parseJsonResponse(content);
+    const narrative = {
+      summary: String(parsed?.summary || fallback.summary).trim() || fallback.summary,
+      explanation: String(parsed?.explanation || fallback.explanation).trim() || fallback.explanation,
+      generated_at: buildGeneratedAt(),
+    };
+
+    setCachedNarrative(cacheKey, narrative);
+    return narrative;
+  } catch (_error) {
+    setCachedNarrative(cacheKey, fallback);
+    return fallback;
+  }
 }
 
 function getMoveDirection(changePercent) {
@@ -305,6 +425,10 @@ function normalizeNarrativeResponse(parsed, fallback) {
 }
 
 async function buildNarrative(symbol, screenerRow) {
+  if (isMcpPayload(symbol) && screenerRow === undefined) {
+    return buildMcpNarrative(symbol);
+  }
+
   const fallback = buildFallbackNarrative(symbol, screenerRow);
   const cacheKey = getCacheKey(symbol, screenerRow);
   const cached = getCachedNarrative(cacheKey);

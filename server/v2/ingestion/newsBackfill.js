@@ -4,7 +4,7 @@ const { supabaseAdmin } = require('../../services/supabaseClient');
 
 const TARGET_SYMBOL_LIMIT = 200;
 const RUN_SYMBOL_LIMIT = 50;
-const MAX_ARTICLES_PER_SYMBOL = 5;
+const MAX_ARTICLES_PER_SYMBOL = 10;
 const REQUEST_TIMEOUT_MS = 1500;
 
 const httpClient = axios.create({

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE } from "@/lib/config/apiBase";
+import { API_BASE } from "@/lib/apiBase";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const symbol = (request.nextUrl.searchParams.get("symbol") || "SPY").toUpperCase();
+  const symbol = String(request.nextUrl.searchParams.get("symbol") || "").toUpperCase();
+  if (!symbol) {
+    return NextResponse.json({ status: "error", error: "symbol_required", data: [] }, { status: 400 });
+  }
   const url = `${API_BASE}/api/market/ohlc?symbol=${encodeURIComponent(symbol)}&interval=1d`;
   console.log("PROXY CALL:", url);
 

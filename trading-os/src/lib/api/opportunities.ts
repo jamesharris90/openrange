@@ -1,6 +1,6 @@
 import type { Opportunity } from "@/lib/types";
 
-import { apiPost } from "@/lib/api/client";
+import { apiGet, apiPost } from "@/lib/api/client";
 import { cachedFetch } from "@/lib/cache";
 import { debugLog } from "@/lib/debug";
 
@@ -11,8 +11,7 @@ type OpportunitiesResponse = {
 
 export async function fetchTopOpportunity(): Promise<Opportunity | null> {
   return cachedFetch("opportunities:top:single", async () => {
-    const res = await fetch("/api/intelligence/top-opportunity", { cache: "no-store" });
-    const json = (await res.json()) as OpportunitiesResponse;
+    const json = await apiGet<OpportunitiesResponse>("/api/intelligence/top-opportunity", { cache: "no-store" });
     if (process.env.NODE_ENV === "development") {
       console.log("[TOP OPPORTUNITY]", json);
     }
@@ -31,8 +30,7 @@ export async function fetchTopOpportunity(): Promise<Opportunity | null> {
 
 export async function fetchOpportunities(): Promise<Opportunity[]> {
   return cachedFetch("opportunities:top", async () => {
-    const res = await fetch("/api/intelligence/top-opportunity", { cache: "no-store" });
-    const json = (await res.json()) as OpportunitiesResponse;
+    const json = await apiGet<OpportunitiesResponse>("/api/intelligence/top-opportunity", { cache: "no-store" });
 
     if (json.success !== true) {
       throw new Error("Top opportunity failed");

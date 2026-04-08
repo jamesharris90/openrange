@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
+import { useTableControls } from "@/hooks/useTableControls";
 import { apiFetch } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
@@ -13,17 +16,29 @@ type ScreenerRow = {
   volume: number | null;
   rvol: number | null;
   gap_percent: number | null;
+  trend: "BULLISH" | "BEARISH" | "NEUTRAL";
+  vwap_position: "ABOVE" | "BELOW";
+  momentum: "BULLISH" | "BEARISH";
   latest_news_at?: string | null;
   news_source: "fmp" | "database" | "none";
   earnings_date?: string | null;
   earnings_source: "fmp" | "database" | "yahoo" | "none";
   catalyst_type: "NEWS" | "RECENT_NEWS" | "EARNINGS" | "TECHNICAL" | "NONE";
   sector: string | null;
+  instrument_type: "STOCK" | "ETF" | "ADR" | "REIT" | "FUND" | "OTHER";
   updated_at: string | null;
   why: string;
   driver_type: "MACRO" | "SECTOR" | "NEWS" | "EARNINGS" | "TECHNICAL";
   confidence: number;
   linked_symbols: string[];
+  volume_last_5m: number | null;
+  avg_5m_volume: number | null;
+  rvol_acceleration: number | null;
+  price_range_contraction: number | null;
+  first_seen_timestamp: string | null;
+  time_since_first_seen: number | null;
+  state: "FORMING" | "CONFIRMED" | "EXTENDED" | "DEAD";
+  early_signal: boolean;
 };
 
 type ScreenerResponse = {
@@ -31,7 +46,19 @@ type ScreenerResponse = {
   count: number;
   fallbackUsed: boolean;
   macro_context?: MacroContext;
+  total?: number;
+  meta?: {
+    raw_universe_size?: number;
+    final_scored_size?: number;
+    returned_rows?: number;
+    total_ms?: number;
+  } | null;
+  snapshot_at?: string;
   data: ScreenerRow[];
+};
+
+type WarmingUpResponse = {
+  status: "warming_up";
 };
 
 type MacroContext = {
@@ -45,6 +72,8 @@ type OpportunityRow = {
   symbol: string;
   score: number;
   why: string;
+  state: "FORMING" | "CONFIRMED";
+  early_signal: boolean;
   bias: "continuation" | "reversal" | "chop";
   risk: "low" | "medium" | "high";
   confidence_reason: string;
@@ -63,6 +92,7 @@ type OpportunitiesResponse = {
   success: boolean;
   count: number;
   data: OpportunityRow[];
+  snapshot_at?: string;
   macro_context?: MacroContext;
   report?: {
     valid: boolean;
@@ -72,10 +102,155 @@ type OpportunitiesResponse = {
   };
 };
 
+type MarketState = {
+  is_market_open: boolean;
+  is_premarket: boolean;
+  is_afterhours: boolean;
+  is_weekend: boolean;
+  session: "LIVE" | "PREMARKET" | "AFTERHOURS" | "CLOSED";
+  next_open: string | null;
+  next_open_formatted?: {
+    utc: string | null;
+    et: string | null;
+  };
+  label: string;
+};
+
+type NextSessionEarningsRow = {
+  symbol: string;
+  earnings_date: string;
+  eps_estimate: number | null;
+  expected_move_percent: number | null;
+  price: number | null;
+  sector?: string | null;
+};
+
+type NextSessionCatalystRow = {
+  symbol: string;
+  headline: string | null;
+  published_at: string | null;
+  price: number | null;
+  change_percent: number | null;
+  relative_volume: number | null;
+  volume: number | null;
+  sector?: string | null;
+};
+
+type NextSessionMomentumRow = {
+  symbol: string;
+  price: number | null;
+  change_percent: number | null;
+  relative_volume: number | null;
+  atr_percent: number | null;
+  setup_type: string | null;
+  setup_score: number | null;
+  stream_score: number | null;
+  headline: string | null;
+  sector?: string | null;
+};
+
+type NextSessionPayload = {
+  earnings: NextSessionEarningsRow[];
+  catalysts: NextSessionCatalystRow[];
+  momentum: NextSessionMomentumRow[];
+  generated_at: string;
+  message: string | null;
+  missing_sources?: string[];
+  meta?: {
+    total_ms?: number;
+    cache_ttl_ms?: number;
+  };
+};
+
+type OpportunitiesModeResponse = {
+  success: boolean;
+  mode: "LIVE" | "NEXT_SESSION";
+  market: MarketState;
+  data: OpportunitiesResponse | NextSessionPayload | WarmingUpResponse;
+};
+
+type ScreenerFilters = {
+  minVolume: string;
+  minRvol: string;
+  sector: string;
+  instrumentType: "" | ScreenerRow["instrument_type"];
+  catalyst: "ALL" | "NEWS" | "EARNINGS" | "TECHNICAL";
+};
+
+type ViewMode = "all" | "focus";
+type ScreenMode = "ai" | "manual";
+
+const DEFAULT_FILTERS: ScreenerFilters = {
+  minVolume: "",
+  minRvol: "",
+  sector: "",
+  instrumentType: "",
+  catalyst: "ALL",
+};
+
+const INSTRUMENT_TYPE_LABELS: Record<ScreenerRow["instrument_type"], string> = {
+  STOCK: "Stocks",
+  ETF: "ETFs",
+  ADR: "ADRs",
+  REIT: "REITs",
+  FUND: "Funds / Trusts",
+  OTHER: "Other",
+};
+
+type SortKey = "composite" | "rvol" | "trend" | "momentum" | "gap";
+type SortDirection = "asc" | "desc";
+
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, index) => index);
 
-function sortRows(rows: ScreenerRow[]) {
+function compareNullableNumbers(left: number | null, right: number | null, direction: SortDirection) {
+  const leftValue = left ?? Number.NEGATIVE_INFINITY;
+  const rightValue = right ?? Number.NEGATIVE_INFINITY;
+  return direction === "asc" ? leftValue - rightValue : rightValue - leftValue;
+}
+
+function trendRank(value: ScreenerRow["trend"]) {
+  if (value === "BULLISH") return 2;
+  if (value === "NEUTRAL") return 1;
+  return 0;
+}
+
+function momentumRank(value: ScreenerRow["momentum"]) {
+  return value === "BULLISH" ? 1 : 0;
+}
+
+function sortRows(rows: ScreenerRow[], sortKey: SortKey = "composite", sortDirection: SortDirection = "desc") {
   return [...rows].sort((left, right) => {
+    if (sortKey === "rvol") {
+      const result = compareNullableNumbers(left.rvol, right.rvol, sortDirection);
+      if (result !== 0) return result;
+    }
+
+    if (sortKey === "trend") {
+      const leftRank = trendRank(left.trend);
+      const rightRank = trendRank(right.trend);
+      if (leftRank !== rightRank) {
+        return sortDirection === "asc" ? leftRank - rightRank : rightRank - leftRank;
+      }
+    }
+
+    if (sortKey === "momentum") {
+      const leftRank = momentumRank(left.momentum);
+      const rightRank = momentumRank(right.momentum);
+      if (leftRank !== rightRank) {
+        return sortDirection === "asc" ? leftRank - rightRank : rightRank - leftRank;
+      }
+    }
+
+    if (sortKey === "gap") {
+      const result = compareNullableNumbers(left.gap_percent, right.gap_percent, sortDirection);
+      if (result !== 0) return result;
+    }
+
+    const statePriority = { FORMING: 0, CONFIRMED: 1, EXTENDED: 2, DEAD: 3 } as const;
+    const leftState = statePriority[left.state] ?? 4;
+    const rightState = statePriority[right.state] ?? 4;
+    if (leftState !== rightState) return leftState - rightState;
+
     const leftRvol = left.rvol ?? -1;
     const rightRvol = right.rvol ?? -1;
     if (rightRvol !== leftRvol) return rightRvol - leftRvol;
@@ -98,7 +273,11 @@ function resolveUpdatedTimestamp(rows: ScreenerRow[]) {
     }
   }
 
-  return latestTimestamp > 0 ? latestTimestamp : Date.now();
+  return latestTimestamp > 0 ? latestTimestamp : null;
+}
+
+function isWarmingUpResponse(payload: unknown): payload is WarmingUpResponse {
+  return Boolean(payload && typeof payload === "object" && "status" in payload && payload.status === "warming_up");
 }
 
 function formatUpdatedTime(timestamp: number | null) {
@@ -141,6 +320,91 @@ function formatGap(value: number | null) {
   if (value === null) return "—";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
+}
+
+function getTrendTone(trend: ScreenerRow["trend"]) {
+  if (trend === "BULLISH") return "text-emerald-400";
+  if (trend === "BEARISH") return "text-rose-400";
+  return "text-slate-300";
+}
+
+function getVwapTone(position: ScreenerRow["vwap_position"]) {
+  return position === "ABOVE" ? "text-emerald-400" : "text-rose-400";
+}
+
+function getMomentumTone(momentum: ScreenerRow["momentum"]) {
+  return momentum === "BULLISH" ? "text-emerald-400" : "text-rose-400";
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  activeSortKey,
+  activeSortDirection,
+  onSort,
+}: {
+  label: string;
+  sortKey: Exclude<SortKey, "composite">;
+  activeSortKey: SortKey;
+  activeSortDirection: SortDirection;
+  onSort: (sortKey: Exclude<SortKey, "composite">) => void;
+}) {
+  const active = activeSortKey === sortKey;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(sortKey)}
+      className={cn(
+        "inline-flex items-center gap-2 font-medium transition-colors hover:text-slate-200",
+        active && "text-emerald-300"
+      )}
+    >
+      <span>{label}</span>
+      <span className="text-[10px] tracking-[0.12em] text-slate-500">{active ? (activeSortDirection === "desc" ? "DESC" : "ASC") : "SORT"}</span>
+    </button>
+  );
+}
+
+function cleanReason(value: string | null | undefined) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "No clear reason available.";
+  }
+
+  const sentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+  return sentence.trim();
+}
+
+function formatTimeSinceFirstSeen(value: number | null) {
+  if (value === null) return "—";
+  if (value < 60) return `${value}s`;
+  if (value < 3600) return `${Math.floor(value / 60)}m`;
+  return `${Math.floor(value / 3600)}h`;
+}
+
+function formatState(state: ScreenerRow["state"]) {
+  switch (state) {
+    case "FORMING":
+      return {
+        label: "Forming",
+        className: "border-sky-500/30 bg-sky-500/10 text-sky-200",
+      };
+    case "CONFIRMED":
+      return {
+        label: "Confirmed",
+        className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      };
+    case "EXTENDED":
+      return {
+        label: "Extended",
+        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    default:
+      return {
+        label: "Dead",
+        className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+      };
+  }
 }
 
 function formatCatalyst(type: ScreenerRow["catalyst_type"]) {
@@ -263,6 +527,10 @@ function formatRegime(regime: MacroContext["regime"]) {
   };
 }
 
+function resolveViewModeParam(value: string | null): ViewMode {
+  return String(value || "").toLowerCase() === "focus" ? "focus" : "all";
+}
+
 function SkeletonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.4)]">
@@ -276,6 +544,10 @@ function SkeletonTable() {
               "Volume",
               "RVOL",
               "Gap %",
+              "Trend",
+              "VWAP",
+              "Momentum",
+              "State",
               "Catalyst",
               "Why",
               "News",
@@ -289,7 +561,7 @@ function SkeletonTable() {
         <tbody>
           {SKELETON_ROWS.map((row) => (
             <tr key={row} className="animate-pulse border-t border-slate-900">
-              {Array.from({ length: 11 }, (_, cell) => (
+              {Array.from({ length: 15 }, (_, cell) => (
                 <td key={cell} className="px-4 py-3">
                   <div className="h-4 rounded bg-slate-800/80" />
                 </td>
@@ -302,13 +574,54 @@ function SkeletonTable() {
   );
 }
 
-export default function ScreenerV2Page() {
+function ScreenerV2PageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
   const [macroContext, setMacroContext] = useState<MacroContext | null>(null);
+  const [marketState, setMarketState] = useState<MarketState | null>(null);
+  const [opportunityMode, setOpportunityMode] = useState<"LIVE" | "NEXT_SESSION">("LIVE");
+  const [nextSessionData, setNextSessionData] = useState<NextSessionPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [warmingUp, setWarmingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [universeSize, setUniverseSize] = useState<number>(0);
+  const requestedViewMode = resolveViewModeParam(searchParams.get("view"));
+  const [viewMode, setViewMode] = useState<ViewMode>(requestedViewMode);
+  const [sortKey, setSortKey] = useState<SortKey>("composite");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const screenMode: ScreenMode = "ai";
+  const {
+    filters,
+    setFilters,
+    resetFilters,
+    page,
+    setPage,
+    pageSize,
+  } = useTableControls<ScreenerRow, ScreenerFilters>(data, DEFAULT_FILTERS, { pageSize: 25 });
+
+  const opportunitiesQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    const asOf = searchParams.get("as_of") || searchParams.get("asOf");
+    const sessionOverride = searchParams.get("session_override") || searchParams.get("sessionOverride");
+
+    if (asOf) {
+      params.set("as_of", asOf);
+    }
+
+    if (sessionOverride) {
+      params.set("session_override", sessionOverride);
+    }
+
+    const query = params.toString();
+    return `/api/opportunities/next-session${query ? `?${query}` : ""}`;
+  }, [searchParams]);
+
+  useEffect(() => {
+    setViewMode(requestedViewMode);
+  }, [requestedViewMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -320,34 +633,69 @@ export default function ScreenerV2Page() {
 
       try {
         const [screenerResponse, opportunitiesResponse] = await Promise.all([
-          apiFetch("/api/v2/screener", { cache: "no-store" }),
-          apiFetch("/api/v2/opportunities", { cache: "no-store" }),
+          apiFetch("/api/screener", { cache: "no-store" }),
+          apiFetch(opportunitiesQuery, { cache: "no-store" }),
         ]);
 
         if (!screenerResponse.ok) {
           throw new Error(`Request failed (${screenerResponse.status})`);
         }
 
-        const payload = (await screenerResponse.json()) as ScreenerResponse;
+        const payload = (await screenerResponse.json()) as ScreenerResponse | WarmingUpResponse;
         const opportunitiesPayload = opportunitiesResponse.ok
-          ? ((await opportunitiesResponse.json()) as OpportunitiesResponse)
-          : { success: false, count: 0, data: [] };
+          ? ((await opportunitiesResponse.json()) as OpportunitiesModeResponse | WarmingUpResponse)
+          : { status: "warming_up" };
+
+        console.log("SCREENER RESPONSE:", payload);
 
         if (!cancelled) {
-          const nextRows = sortRows(Array.isArray(payload.data) ? payload.data : []);
+          const screenerWarming = isWarmingUpResponse(payload);
+          const opportunitiesWarming = isWarmingUpResponse(opportunitiesPayload);
+          const nextRows = screenerWarming ? [] : (Array.isArray(payload.data) ? payload.data : []);
+          const snapshotTime = screenerWarming ? null : Date.parse(payload.snapshot_at ?? "");
+          const modePayload = !opportunitiesWarming && "mode" in opportunitiesPayload ? opportunitiesPayload : null;
+          const livePayload = modePayload?.mode === "LIVE" && modePayload.data && "data" in modePayload.data
+            ? (modePayload.data as OpportunitiesResponse)
+            : null;
+          const nextSessionPayload = modePayload?.mode === "NEXT_SESSION"
+            ? (modePayload.data as NextSessionPayload)
+            : null;
+
           setData(nextRows);
-          setOpportunities(Array.isArray(opportunitiesPayload.data) ? opportunitiesPayload.data.slice(0, 3) : []);
-          setMacroContext(payload.macro_context ?? opportunitiesPayload.macro_context ?? null);
-          setUpdatedAt(resolveUpdatedTimestamp(nextRows));
+          setOpportunities(
+            !livePayload || !Array.isArray(livePayload.data)
+              ? []
+              : livePayload.data.slice(0, 3)
+          );
+          setNextSessionData(nextSessionPayload ?? null);
+          setMarketState(modePayload?.market ?? null);
+          setOpportunityMode(modePayload?.mode ?? "LIVE");
+          setMacroContext(
+            screenerWarming
+              ? (livePayload?.macro_context ?? null)
+              : payload.macro_context ?? (livePayload?.macro_context ?? null)
+          );
+          setUpdatedAt(Number.isFinite(snapshotTime) ? snapshotTime : resolveUpdatedTimestamp(nextRows));
+          setWarmingUp(screenerWarming);
+          setUniverseSize(screenerWarming ? 0 : Number(payload.meta?.raw_universe_size || nextRows.length || 0));
           setError(null);
         }
       } catch (nextError) {
+        console.log("SCREENER ERROR:", nextError);
         if (!cancelled) {
           setError(nextError instanceof Error ? nextError.message : "Failed to load screener");
-          setData([]);
-          setOpportunities([]);
-          setMacroContext(null);
-          setUpdatedAt(null);
+
+          if (showLoading) {
+            setData([]);
+            setOpportunities([]);
+            setMacroContext(null);
+            setMarketState(null);
+            setNextSessionData(null);
+            setOpportunityMode("LIVE");
+            setUpdatedAt(null);
+            setWarmingUp(false);
+            setUniverseSize(0);
+          }
         }
       } finally {
         if (!cancelled && showLoading) {
@@ -365,24 +713,252 @@ export default function ScreenerV2Page() {
       cancelled = true;
       window.clearInterval(refreshTimer);
     };
-  }, []);
+  }, [opportunitiesQuery]);
+
+  const nextSessionTotal = (nextSessionData?.earnings.length || 0)
+    + (nextSessionData?.catalysts.length || 0)
+    + (nextSessionData?.momentum.length || 0);
+
+  const reopenLabel = marketState?.next_open_formatted?.et || marketState?.next_open || "Unavailable";
+
+  const sectorOptions = useMemo(() => {
+    const sectors = new Set<string>();
+    data.forEach((row) => {
+      const sector = String(row.sector || "").trim();
+      if (sector) {
+        sectors.add(sector);
+      }
+    });
+    return Array.from(sectors).sort();
+  }, [data]);
+
+  const instrumentTypeOptions = useMemo(() => {
+    const instrumentTypes = new Set<ScreenerRow["instrument_type"]>();
+    data.forEach((row) => {
+      if (row.instrument_type) {
+        instrumentTypes.add(row.instrument_type);
+      }
+    });
+    return Array.from(instrumentTypes).sort();
+  }, [data]);
+
+  const filteredRows = useMemo(() => {
+    const minVolume = Number(filters.minVolume || 0);
+    const minRvol = Number(filters.minRvol || 0);
+
+    return data.filter((row) => {
+      if (screenMode === "ai" && viewMode === "focus") {
+        const isActionableState = row.state === "FORMING" || row.state === "CONFIRMED";
+        const hasRequiredVolume = (row.volume ?? 0) >= 5_000_000;
+        const hasRequiredRvol = (row.rvol ?? 0) >= 2;
+        const hasCatalyst = row.catalyst_type !== "NONE";
+
+        if (!isActionableState || !hasRequiredVolume || !hasRequiredRvol || !hasCatalyst) {
+          return false;
+        }
+      }
+
+      if (Number.isFinite(minVolume) && minVolume > 0 && (row.volume ?? 0) < minVolume) {
+        return false;
+      }
+
+      if (Number.isFinite(minRvol) && minRvol > 0 && (row.rvol ?? 0) < minRvol) {
+        return false;
+      }
+
+      if (filters.sector && String(row.sector || "") !== filters.sector) {
+        return false;
+      }
+
+      if (filters.instrumentType && row.instrument_type !== filters.instrumentType) {
+        return false;
+      }
+
+      if (filters.catalyst === "NEWS") {
+        return row.catalyst_type === "NEWS" || row.catalyst_type === "RECENT_NEWS";
+      }
+
+      if (filters.catalyst === "EARNINGS") {
+        return row.catalyst_type === "EARNINGS";
+      }
+
+      if (filters.catalyst === "TECHNICAL") {
+        return row.catalyst_type === "TECHNICAL";
+      }
+
+      return true;
+    });
+  }, [data, filters.catalyst, filters.instrumentType, filters.minRvol, filters.minVolume, filters.sector, screenMode, viewMode]);
+
+  const sortedRows = useMemo(() => {
+    return sortRows(filteredRows, sortKey, sortDirection);
+  }, [filteredRows, sortDirection, sortKey]);
+
+  const screenerRowsBySymbol = useMemo(() => {
+    return new Map(data.map((row) => [String(row.symbol || "").toUpperCase(), row]));
+  }, [data]);
+
+  const totalCount = sortedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const paginatedRows = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return sortedRows.slice(startIndex, startIndex + pageSize);
+  }, [page, pageSize, sortedRows]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, setPage, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [setPage, sortDirection, sortKey]);
+
+  function handleSort(nextSortKey: Exclude<SortKey, "composite">) {
+    if (sortKey === nextSortKey) {
+      setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+      return;
+    }
+
+    setSortKey(nextSortKey);
+    setSortDirection("desc");
+  }
 
   return (
     <section className="space-y-5 text-slate-100">
       <header className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(2,6,23,0.96))] p-6 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-400/80">Manual Mode</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Screener V2</h1>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-400/80">Trader Workspace</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Opportunities</h1>
           </div>
-          <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
-            {`${data.length} stocks • Updated ${formatUpdatedTime(updatedAt)}`}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900/90 p-1">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  "bg-emerald-400 text-emerald-950"
+                )}
+              >
+                Opportunities
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/screener")}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  "text-slate-300 hover:bg-slate-800 hover:text-white"
+                )}
+              >
+                Scanner
+              </button>
+            </div>
+            <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+              {warmingUp
+                ? "Snapshot pending first live batch"
+                : `Showing ${paginatedRows.length} of ${totalCount.toLocaleString()} filtered rows from ${(universeSize || data.length).toLocaleString()} symbols${viewMode === "focus" ? " (Focus Mode)" : ""} • Updated ${formatUpdatedTime(updatedAt)}`}
+            </div>
           </div>
         </div>
         <p className="max-w-3xl text-sm text-slate-400">
-          Clean view over the trusted v2 screener feed. No derived scoring, no extra fetches, no legacy components.
+          AI opportunities surfaces the current decision layer with focus setups, ranked names, and next-session context.
         </p>
       </header>
+
+      <div className="sticky top-0 z-20 space-y-3 rounded-2xl border border-slate-800 bg-slate-950/85 px-4 py-3 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900/90 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("all")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "all" ? "bg-slate-100 text-slate-950" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              )}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("focus")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "focus" ? "bg-emerald-400 text-emerald-950" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              )}
+            >
+              Focus Mode
+            </button>
+          </div>
+          {viewMode === "focus" ? (
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-200">
+              Tradeable Now
+            </span>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min="0"
+          step="100000"
+          value={filters.minVolume}
+          onChange={(event) => setFilters({ minVolume: event.target.value })}
+          placeholder="Min Volume"
+          className="w-32 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+        />
+        <select
+          value={filters.minRvol}
+          onChange={(event) => setFilters({ minRvol: event.target.value })}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none"
+        >
+          <option value="">All RVOL</option>
+          <option value="1">1x+</option>
+          <option value="2">2x+</option>
+          <option value="5">5x+</option>
+          <option value="10">10x+</option>
+        </select>
+        <select
+          value={filters.sector}
+          onChange={(event) => setFilters({ sector: event.target.value })}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none"
+        >
+          <option value="">All Sectors</option>
+          {sectorOptions.map((sector) => (
+            <option key={sector} value={sector}>{sector}</option>
+          ))}
+        </select>
+        <select
+          value={filters.instrumentType}
+          onChange={(event) => setFilters({ instrumentType: event.target.value as ScreenerFilters["instrumentType"] })}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none"
+        >
+          <option value="">All Instruments</option>
+          {instrumentTypeOptions.map((instrumentType) => (
+            <option key={instrumentType} value={instrumentType}>{INSTRUMENT_TYPE_LABELS[instrumentType]}</option>
+          ))}
+        </select>
+        <select
+          value={filters.catalyst}
+          onChange={(event) => setFilters({ catalyst: event.target.value as ScreenerFilters["catalyst"] })}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none"
+        >
+          <option value="ALL">All Catalysts</option>
+          <option value="NEWS">News</option>
+          <option value="EARNINGS">Earnings</option>
+          <option value="TECHNICAL">Technical</option>
+        </select>
+        {(filters.minVolume || filters.minRvol || filters.sector || filters.instrumentType || filters.catalyst !== DEFAULT_FILTERS.catalyst) ? (
+          <button
+            type="button"
+            onClick={() => resetFilters()}
+            className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-slate-900 hover:text-white"
+          >
+            Clear filters
+          </button>
+        ) : null}
+        </div>
+      </div>
 
       {macroContext ? (
         <div className="rounded-2xl border border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(2,6,23,0.92))] p-5 shadow-[0_12px_30px_rgba(2,6,23,0.35)]">
@@ -417,73 +993,158 @@ export default function ScreenerV2Page() {
         </div>
       ) : null}
 
-      {!loading && opportunities.length > 0 ? (
+      {!loading && opportunityMode === "LIVE" && opportunities.length > 0 ? (
         <div className="grid gap-3 md:grid-cols-3">
           {opportunities.map((row) => {
-            const confidence = formatConfidence(row.confidence);
+            const marketRow = screenerRowsBySymbol.get(String(row.symbol || "").toUpperCase());
+            const catalyst = formatCatalyst(marketRow?.catalyst_type || "NONE");
             return (
               <div key={row.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-4 text-sm shadow-[0_0_0_1px_rgba(15,23,42,0.3)]">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Top 3 Focus Today</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <Link href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="text-base font-semibold text-white underline-offset-4 hover:text-emerald-300 hover:underline">
+                  <Link href={`/research/${encodeURIComponent(row.symbol)}`} className="text-base font-semibold text-white underline-offset-4 hover:text-emerald-300 hover:underline">
                     {row.symbol}
                   </Link>
-                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-                    {row.score.toFixed(0)}
-                  </span>
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">AI</span>
                 </div>
-                <p className="mt-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">{row.setup_type}</p>
-                <p className="mt-2 text-sm leading-5 text-slate-300">{row.why}</p>
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
-                  <span className={cn("rounded-full border px-2.5 py-1", confidence.className)}>
-                    {confidence.label}
-                  </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-300">
-                    {row.timeframe}
-                  </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-300">
-                    {row.structure}
-                  </span>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-800/80 bg-slate-950/45 p-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Move</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-100">{formatPercent(marketRow?.change_percent ?? null)}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800/80 bg-slate-950/45 p-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Volume</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-100">{formatVolume(marketRow?.volume ?? null)}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800/80 bg-slate-950/45 p-3 sm:col-span-2">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Catalyst</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-100">{catalyst.label}</div>
+                  </div>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-slate-400">{row.confidence_reason}</p>
-                <div className="mt-3 space-y-2 text-xs leading-5 text-slate-300">
-                  <p>
-                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Entry</span>
-                    {row.entry_trigger}
-                  </p>
-                  <p>
-                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Fail</span>
-                    {row.invalidation}
-                  </p>
-                  <p>
-                    <span className="mr-2 uppercase tracking-[0.14em] text-slate-500">Type</span>
-                    {row.entry_type}
-                  </p>
-                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{cleanReason(row.why)}</p>
               </div>
             );
           })}
         </div>
       ) : null}
 
+      {!loading && opportunityMode === "NEXT_SESSION" ? (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-sky-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.16),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.94),_rgba(2,6,23,0.94))] p-5 shadow-[0_12px_40px_rgba(2,6,23,0.4)]">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-sky-300/80">Market Closed Banner</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">Market closed - preparing next session</h2>
+            <p className="mt-2 text-sm text-slate-300">Reopens: {reopenLabel}</p>
+          </div>
+
+          {nextSessionTotal === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/70 px-6 py-10 text-center">
+              <p className="text-base font-medium text-slate-200">No qualifying setups identified for next session</p>
+              {nextSessionData?.missing_sources?.length ? (
+                <p className="mt-2 text-sm text-slate-500">Missing sources: {nextSessionData.missing_sources.join(", ")}</p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Upcoming Earnings</p>
+                <div className="mt-3 space-y-3">
+                  {nextSessionData?.earnings.length ? nextSessionData.earnings.map((row) => (
+                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-emerald-500/30 hover:bg-slate-900">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-white">{row.symbol}</span>
+                        <span className="text-xs text-slate-400">{row.earnings_date}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-300">
+                        <span>EPS est {row.eps_estimate != null ? row.eps_estimate.toFixed(2) : "—"}</span>
+                        <span>Move {row.expected_move_percent != null ? `${row.expected_move_percent.toFixed(2)}%` : "—"}</span>
+                      </div>
+                    </Link>
+                  )) : <p className="text-sm text-slate-500">No qualifying setups identified for next session</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Catalyst Watchlist</p>
+                <div className="mt-3 space-y-3">
+                  {nextSessionData?.catalysts.length ? nextSessionData.catalysts.map((row) => (
+                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-sky-500/30 hover:bg-slate-900">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-white">{row.symbol}</span>
+                        <span className="text-xs text-slate-400">{formatRvol(row.relative_volume)}</span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-sm text-slate-300">{row.headline || "Recent catalyst with unusual activity"}</p>
+                    </Link>
+                  )) : <p className="text-sm text-slate-500">No qualifying setups identified for next session</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Momentum Carry</p>
+                <div className="mt-3 space-y-3">
+                  {nextSessionData?.momentum.length ? nextSessionData.momentum.map((row) => (
+                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-fuchsia-500/30 hover:bg-slate-900">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-white">{row.symbol}</span>
+                        <span className="text-xs text-slate-400">{formatPercent(row.change_percent)}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-300">
+                        <span>{formatRvol(row.relative_volume)}</span>
+                        <span>{row.setup_type || "Continuation"}</span>
+                      </div>
+                    </Link>
+                  )) : <p className="text-sm text-slate-500">No qualifying setups identified for next session</p>}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {loading ? (
         <SkeletonTable />
-      ) : data.length === 0 ? (
+      ) : error && data.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/70 px-6 py-12 text-center">
-          <p className="text-base font-medium text-slate-200">No data available — check backend</p>
-          {error ? <p className="mt-2 text-sm text-slate-500">{error}</p> : null}
+          <p className="text-base font-medium text-slate-200">Data unavailable (API error)</p>
+          <p className="mt-2 text-sm text-slate-500">{error}</p>
+        </div>
+      ) : totalCount === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/70 px-6 py-12 text-center">
+          <p className="text-base font-medium text-slate-200">
+            {warmingUp ? "Snapshot not available yet" : "No stocks match the current filters"}
+          </p>
+          {warmingUp ? (
+            <p className="mt-2 text-sm text-slate-500">The background snapshot cycle has not written a complete batch yet.</p>
+          ) : null}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.35)]">
+        <div className="space-y-3">
+          {error ? (
+            <div className="rounded-2xl border border-amber-900/60 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+              Live refresh failed. Showing the most recent opportunities snapshot.
+            </div>
+          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.35)]">
           <table className="min-w-full divide-y divide-slate-800 text-sm">
-            <thead className="bg-slate-950/95 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
+            <thead className="sticky top-0 z-10 bg-slate-950/95 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Symbol</th>
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">% Change</th>
                 <th className="px-4 py-3 font-medium">Volume</th>
-                <th className="px-4 py-3 font-medium">RVOL</th>
-                <th className="px-4 py-3 font-medium">Gap %</th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="RVOL" sortKey="rvol" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Gap %" sortKey="gap" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Trend" sortKey="trend" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">VWAP</th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Momentum" sortKey="momentum" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">State</th>
                 <th className="px-4 py-3 font-medium">Catalyst</th>
                 <th className="px-4 py-3 font-medium">Why</th>
                 <th className="px-4 py-3 font-medium">News</th>
@@ -492,22 +1153,44 @@ export default function ScreenerV2Page() {
               </tr>
             </thead>
             <tbody>
-              {data.map((row) => {
+              {paginatedRows.map((row) => {
                 const news = getNewsFreshness(row.latest_news_at);
                 const earningsLabel = getEarningsLabel(row.earnings_date);
                 const catalyst = formatCatalyst(row.catalyst_type);
                 const driver = formatDriverType(row.driver_type);
                 const confidence = formatConfidence(row.confidence);
+                const state = formatState(row.state);
+                const isFocusRow =
+                  viewMode === "focus" &&
+                  (row.state === "FORMING" || row.state === "CONFIRMED") &&
+                  (row.volume ?? 0) >= 5_000_000 &&
+                  (row.rvol ?? 0) >= 2 &&
+                  row.catalyst_type !== "NONE";
 
                 return (
-                  <tr key={row.symbol} className="border-t border-slate-900/80 transition hover:bg-slate-900/60">
+                  <tr
+                    key={row.symbol}
+                    onClick={() => router.push(`/research/${encodeURIComponent(row.symbol || "")}`)}
+                    className={cn(
+                      "cursor-pointer border-t border-slate-900/80 transition hover:bg-slate-900/60",
+                      isFocusRow && "bg-emerald-500/5 shadow-[inset_3px_0_0_0_rgba(52,211,153,0.8)]"
+                    )}
+                  >
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/research-v2/${encodeURIComponent(row.symbol || "")}`}
-                        className="font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-emerald-300 hover:underline"
-                      >
-                        {row.symbol || "—"}
-                      </Link>
+                      <div className="space-y-1">
+                        <Link
+                          href={`/research/${encodeURIComponent(row.symbol || "")}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-emerald-300 hover:underline"
+                        >
+                          {row.symbol || "—"}
+                        </Link>
+                        {isFocusRow ? (
+                          <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-200">
+                            Tradeable Now
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-200">{formatPrice(row.price)}</td>
                     <td
@@ -523,6 +1206,22 @@ export default function ScreenerV2Page() {
                     <td className="px-4 py-3 text-slate-300">{formatVolume(row.volume)}</td>
                     <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}>{formatRvol(row.rvol)}</td>
                     <td className="px-4 py-3 text-slate-300">{formatGap(row.gap_percent)}</td>
+                    <td className={cn("px-4 py-3 font-semibold", getTrendTone(row.trend))}>{row.trend}</td>
+                    <td className={cn("px-4 py-3 font-semibold", getVwapTone(row.vwap_position))}>{row.vwap_position}</td>
+                    <td className={cn("px-4 py-3 font-semibold", getMomentumTone(row.momentum))}>{row.momentum}</td>
+                    <td className="px-4 py-3 text-slate-300">
+                      <div className="space-y-1.5">
+                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", state.className)}>
+                          {state.label}
+                        </span>
+                        <p className="text-[11px] text-slate-400">
+                          Seen {formatTimeSinceFirstSeen(row.time_since_first_seen)}
+                        </p>
+                        {row.early_signal ? (
+                          <p className="text-[11px] uppercase tracking-[0.16em] text-fuchsia-300">Early signal</p>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-slate-300">
                       <span className="mr-2">{catalyst.icon}</span>
                       <span>{catalyst.label}</span>
@@ -537,12 +1236,7 @@ export default function ScreenerV2Page() {
                             {confidence.label}
                           </span>
                         </div>
-                        <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{row.why}</p>
-                        {row.linked_symbols.length > 0 ? (
-                          <p className="max-w-[18rem] text-[11px] leading-5 text-slate-400">
-                            {`Also moving: ${row.linked_symbols.join(", ")}`}
-                          </p>
-                        ) : null}
+                        <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{cleanReason(row.why)}</p>
                       </div>
                     </td>
                     <td className={cn("px-4 py-3", news.tone)} title={news.label}>
@@ -566,8 +1260,37 @@ export default function ScreenerV2Page() {
               })}
             </tbody>
           </table>
+          <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/95 px-4 py-3 text-xs text-slate-400">
+            <button
+              type="button"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <span>{`Page ${page} of ${totalPages}`}</span>
+            <span>{`Showing ${paginatedRows.length} of ${totalCount.toLocaleString()}${universeSize ? ` from ${universeSize.toLocaleString()}` : ""}`}</span>
+            <button
+              type="button"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
         </div>
       )}
     </section>
+  );
+}
+
+export default function ScreenerV2Page() {
+  return (
+    <Suspense fallback={<SkeletonTable />}>
+      <ScreenerV2PageContent />
+    </Suspense>
   );
 }

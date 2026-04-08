@@ -5,17 +5,36 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "start:railway": "node scripts/railwayStart.js",
+    "start:coverage-worker": "node scripts/runCoverageCompletionCampaign.js --unsafe --loop --skip-health-check --news-batch-size=8 --news-concurrency=2 --max-news-symbols=24 --inter-symbol-delay-ms=0 --inter-batch-delay-ms=0 --cycle-sleep-ms=0 --max-articles-per-symbol=4 --max-news-attempts-per-symbol=1",
+    "start:phase2-worker": "node scripts/runPhase2Worker.js",
     "build": "echo Backend build step",
-    "dev": "nodemon index.js",
+    "dev": "nodemon --ignore logs/** --ignore ../logs/** --ignore tmp/** --ignore server.pid index.js",
+    "dev:stable": "node index.js",
     "deploy": "railway up",
+    "backfill:missing-screener-coverage": "node scripts/backfillMissingScreenerCoverage.js",
+    "backfill:coverage-campaign": "node scripts/runCoverageCompletionCampaign.js",
     "check": "node scripts/checkSystem.js",
     "start-detached": "./scripts/start.sh",
     "stop-detached": "./scripts/stop.sh",
     "check:canonical-schema": "tsc -p tsconfig.canonical.json --noEmit",
     "smoke:canonical-shape": "node scripts/canonicalShapeSmoke.ts",
+    "audit:truth": "node scripts/runTruthAudit.js",
+    "audit:truth:24": "node scripts/runTruthAudit24Tickers.js",
+    "backfill:phase2": "node scripts/runBackfill.js",
+    "backfill:phase2:launch": "node scripts/startPhase2BackfillJob.js",
+    "backtest:historical": "node scripts/runBacktestingEngine.js --historical",
+    "backtest:nightly": "node scripts/runBacktestingEngine.js --nightly",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "logs/**",
+      "tmp/**",
+      "server.pid"
+    ]
   },
   "author": "",
   "license": "MIT",
@@ -49,6 +68,7 @@
     "rss-parser": "^3.13.0",
     "typescript": "^5.6.3",
     "winston": "^3.19.0",
+    "ws": "^8.20.0",
     "xlsx": "^0.18.5",
     "yahoo-finance2": "^3.13.0"
   },

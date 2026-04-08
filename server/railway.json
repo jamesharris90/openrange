@@ -4,6 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node index.js"
+    "startCommand": "npm run start:railway"
   }
 }

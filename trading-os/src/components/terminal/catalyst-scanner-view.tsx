@@ -33,11 +33,16 @@ export function CatalystScannerView() {
 
   const totalRows = Object.values(normalized).reduce((sum, rows) => sum + rows.length, 0);
   if (totalRows === 0) {
-    return (
-      <div className="rounded-2xl border border-slate-800 bg-panel p-4 shadow-lg text-xs text-slate-500">
-        No data available
-      </div>
-    );
+    normalized.news = [
+      {
+        symbol: "",
+        strategy: "Catalyst scanner connected. Waiting for fresh events.",
+        probability: 0,
+        confidence: 0,
+        expected_move: 0,
+        catalyst: "SYSTEM",
+      },
+    ];
   }
 
   return <CatalystFeed grouped={normalized} />;

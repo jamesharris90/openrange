@@ -180,6 +180,8 @@ function StockTable({
   label: string;
   showVolume?: boolean;
 }) {
+  // Auto-hide volume column when all rows have zero volume (endpoint doesn't provide it)
+  const hasVolume = showVolume && rows.some((r) => r.volume > 0);
   if (!rows.length) {
     return (
       <div>
@@ -200,7 +202,7 @@ function StockTable({
               <th className="text-left py-1.5 pr-3 font-medium">Ticker</th>
               <th className="text-right py-1.5 pr-3 font-medium">Price</th>
               <th className="text-right py-1.5 pr-3 font-medium">Chg%</th>
-              {showVolume && <th className="text-right py-1.5 font-medium">Volume</th>}
+              {hasVolume && <th className="text-right py-1.5 font-medium">Volume</th>}
             </tr>
           </thead>
           <tbody>
@@ -226,7 +228,7 @@ function StockTable({
                 <td className={cn("py-1.5 pr-3 text-right font-mono font-semibold", pctColor(row.changesPercentage))}>
                   {fmtPct(row.changesPercentage)}
                 </td>
-                {showVolume && (
+                {hasVolume && (
                   <td className="py-1.5 text-right text-slate-500 font-mono">
                     {fmtVol(row.volume)}
                   </td>
@@ -314,7 +316,9 @@ function DeclinersRow({ losers }: { losers: StockRow[] }) {
             <div className="font-mono font-semibold text-rose-400 text-base mt-0.5">
               {fmtPct(row.changesPercentage)}
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">{fmtVol(row.volume)} vol</div>
+            {row.volume > 0 && (
+              <div className="text-[10px] text-slate-500 mt-0.5">{fmtVol(row.volume)} vol</div>
+            )}
             <div className="text-[10px] text-slate-400 font-mono">{fmtPrice(row.price)}</div>
           </div>
         ))}

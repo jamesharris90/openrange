@@ -1,3 +1,5 @@
+import { apiGet } from "@/lib/api/client";
+
 export type IntegrityIssue = {
   severity: "info" | "warning" | "critical";
   type: string;
@@ -59,13 +61,9 @@ function normalizePayload(response: Partial<IntegrityPayload> | undefined): Inte
 
 export async function getDataIntegrity(): Promise<IntegrityPayload> {
   try {
-    const response = await fetch("/api/system/data-integrity", {
-      method: "GET",
+    const payload = await apiGet<Partial<IntegrityPayload>>("/api/system/data-integrity", {
       cache: "no-store",
-      headers: { "Content-Type": "application/json" },
     });
-
-    const payload = (await response.json().catch(() => ({}))) as Partial<IntegrityPayload>;
     return normalizePayload(payload);
   } catch (error) {
     return normalizePayload({

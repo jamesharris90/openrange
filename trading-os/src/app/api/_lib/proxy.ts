@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE } from "@/lib/config/apiBase";
+import { API_BASE } from "@/lib/apiBase";
 
-function buildHeaders(request: NextRequest, includeJson = false): HeadersInit {
+function buildHeaders(request: NextRequest, includeJson = false): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
@@ -25,22 +25,49 @@ function withQuery(path: string, request: NextRequest): string {
   return query ? `${path}?${query}` : path;
 }
 
-export async function backendGet(request: NextRequest, path: string): Promise<NextResponse> {
+function responseHeaders(response: Response): HeadersInit {
+  const contentType = response.headers.get("content-type");
+  return contentType ? { "content-type": contentType } : {};
+}
+
+export async function backendRequest(
+  request: NextRequest,
+  path: string,
+  method = request.method
+): Promise<NextResponse> {
   const target = `${API_BASE}${withQuery(path, request)}`;
+  const timeoutMs = 20000;
+  const headers = buildHeaders(request);
+  const init: RequestInit = {
+    method,
+    headers,
+    cache: "no-store",
+    signal: AbortSignal.timeout(timeoutMs),
+  };
+
+  if (method !== "GET" && method !== "HEAD") {
+    const body = await request.text();
+    const contentType = request.headers.get("content-type");
+
+    if (contentType) {
+      headers["Content-Type"] = contentType;
+    }
+
+    if (body) {
+      init.body = body;
+    }
+  }
+
   console.log("PROXY CALL:", target);
   try {
-    const response = await fetch(target, {
-      method: "GET",
-      headers: buildHeaders(request),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-    const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+    const response = await fetch(target, init);
+    const payload = await response.text();
     console.log("PROXY STATUS:", response.status);
-    console.log("PROXY SAMPLE:", JSON.stringify(payload).slice(0, 500));
-    return NextResponse.json(payload, { status: response.status });
+    console.log("PROXY SAMPLE:", payload.slice(0, 500));
+    return new NextResponse(payload, {
+      status: response.status,
+      headers: responseHeaders(response),
+    });
   } catch (error) {
     console.error("PROXY STATUS:", 502);
     console.error("PROXY SAMPLE:", JSON.stringify({ success: false, error: "BACKEND_UNREACHABLE" }));
@@ -51,31 +78,10 @@ export async function backendGet(request: NextRequest, path: string): Promise<Ne
   }
 }
 
+export async function backendGet(request: NextRequest, path: string): Promise<NextResponse> {
+  return backendRequest(request, path, "GET");
+}
+
 export async function backendPost(request: NextRequest, path: string): Promise<NextResponse> {
-  const target = `${API_BASE}${path}`;
-  console.log("PROXY CALL:", target);
-  try {
-    const body = await request.json().catch(() => ({}));
-
-    const response = await fetch(target, {
-      method: "POST",
-      headers: buildHeaders(request, true),
-      body: JSON.stringify(body),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-    const payload = contentType.includes("application/json") ? await response.json() : await response.text();
-    console.log("PROXY STATUS:", response.status);
-    console.log("PROXY SAMPLE:", JSON.stringify(payload).slice(0, 500));
-    return NextResponse.json(payload, { status: response.status });
-  } catch (error) {
-    console.error("PROXY STATUS:", 502);
-    console.error("PROXY SAMPLE:", JSON.stringify({ success: false, error: "BACKEND_UNREACHABLE" }));
-    return NextResponse.json(
-      { success: false, error: "BACKEND_UNREACHABLE", detail: error instanceof Error ? error.message : "unknown error" },
-      { status: 502 }
-    );
-  }
+  return backendRequest(request, path, "POST");
 }

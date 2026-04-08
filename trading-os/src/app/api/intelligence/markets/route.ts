@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeMarketQuotes } from "@/lib/api/normalize";
-import { API_BASE } from "@/lib/config/apiBase";
+import { API_BASE } from "@/lib/apiBase";
 
 export const dynamic = "force-dynamic";
 
+async function resolveSymbolsFromOverview(headers: Record<string, string>) {
+  const overviewRes = await fetch(`${API_BASE}/api/market/overview`, {
+    cache: "no-store",
+    headers,
+    signal: AbortSignal.timeout(8000),
+  });
+  const overviewPayload = await overviewRes.json().catch(() => ({}));
+  const indices = overviewPayload?.indices;
+  if (!indices || typeof indices !== "object") {
+    return [] as string[];
+  }
+
+  return Object.keys(indices)
+    .map((item) => String(item || "").trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 25);
+}
+
 export async function GET(request: NextRequest) {
-  const symbolsRaw = request.nextUrl.searchParams.get("symbols") || "SPY,QQQ,IWM";
-  const symbols = Array.from(
+  const symbolsRaw = request.nextUrl.searchParams.get("symbols") || "";
+  const requestedSymbols = Array.from(
     new Set(
       symbolsRaw
         .split(",")
@@ -21,6 +39,14 @@ export async function GET(request: NextRequest) {
   if (key) headers["x-api-key"] = key;
 
   try {
+    const symbols = requestedSymbols.length > 0 ? requestedSymbols : await resolveSymbolsFromOverview(headers);
+    if (symbols.length === 0) {
+      return NextResponse.json(
+        { status: "error", error: "symbols_required", data: [] },
+        { status: 400 }
+      );
+    }
+
     const target = `${API_BASE}/api/market/quotes?symbols=${encodeURIComponent(symbols.join(","))}`;
     console.log("PROXY CALL:", target);
     const res = await fetch(target, {
@@ -49,7 +75,7 @@ export async function GET(request: NextRequest) {
       source: row.source || "polygon",
     }));
 
-    const vixRow = responses.find((item) => item.symbol === "VIX");
+    const vixRow = responses.find((item) => String(item.symbol || "").toUpperCase().includes("VIX"));
     const vix = Number(vixRow?.price);
     const regime = Number.isFinite(vix) ? (vix > 25 ? "Risk-Off" : vix < 17 ? "Risk-On" : "Neutral") : "Neutral";
 

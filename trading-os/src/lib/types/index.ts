@@ -49,6 +49,7 @@ export type Opportunity = {
 export type EarningsRow = {
   symbol: string;
   event_date: string;
+  tradeability?: string | null;
   expected_move?: number | null;
   last_updated_date?: string | null;
   eps_estimate?: number | null;

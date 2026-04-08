@@ -10,7 +10,7 @@ import {
   type IChartApi,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getMarketChart } from "@/lib/api/markets";
 import { toFixedSafe } from "@/lib/number";
@@ -62,13 +62,16 @@ export function ChartEngine({
   timeframe,
   height = 260,
   gammaExposure = 0,
+  syncCrosshairId,
 }: {
   ticker: string;
   timeframe: "daily" | "5m" | "1m";
   height?: number;
   gammaExposure?: number;
+  syncCrosshairId?: string;
 }) {
   const liveQuote = useTickerStore((state) => state.quotes[ticker.toUpperCase()]);
+  const [themeTick, setThemeTick] = useState(0);
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<{
@@ -77,6 +80,7 @@ export function ChartEngine({
     ema9: ReturnType<IChartApi["addSeries"]> | null;
     ema20: ReturnType<IChartApi["addSeries"]> | null;
     ema50: ReturnType<IChartApi["addSeries"]> | null;
+    ema200: ReturnType<IChartApi["addSeries"]> | null;
     volume: ReturnType<IChartApi["addSeries"]> | null;
     gamma: ReturnType<IChartApi["addSeries"]> | null;
   }>({
@@ -85,6 +89,7 @@ export function ChartEngine({
     ema9: null,
     ema20: null,
     ema50: null,
+    ema200: null,
     volume: null,
     gamma: null,
   });
@@ -100,21 +105,33 @@ export function ChartEngine({
   }, [data]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => setThemeTick((value) => value + 1));
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!ref.current) return;
+
+    const styles = getComputedStyle(document.documentElement);
+    const panel = styles.getPropertyValue("--panel").trim() || "#121826";
+    const border = styles.getPropertyValue("--border").trim() || "#1f2937";
+    const muted = styles.getPropertyValue("--muted-foreground").trim() || "#94a3b8";
 
     const chart = createChart(ref.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#121826" },
-        textColor: "#cbd5e1",
+        background: { type: ColorType.Solid, color: panel },
+        textColor: muted,
       },
       grid: {
-        vertLines: { color: "#1e293b" },
-        horzLines: { color: "#1e293b" },
+        vertLines: { color: border },
+        horzLines: { color: border },
       },
       width: ref.current.clientWidth,
       height,
-      rightPriceScale: { borderColor: "#1e293b" },
-      timeScale: { borderColor: "#1e293b", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: border },
+      timeScale: { borderColor: border, timeVisible: true, secondsVisible: false },
       crosshair: {
         vertLine: { color: "#3b82f6", width: 1 },
         horzLine: { color: "#3b82f6", width: 1 },
@@ -133,6 +150,7 @@ export function ChartEngine({
     const ema9Series = chart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 1 });
     const ema20Series = chart.addSeries(LineSeries, { color: "#a855f7", lineWidth: 1 });
     const ema50Series = chart.addSeries(LineSeries, { color: "#22d3ee", lineWidth: 1 });
+    const ema200Series = chart.addSeries(LineSeries, { color: "#e11d48", lineWidth: 1 });
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
@@ -155,6 +173,7 @@ export function ChartEngine({
       ema9: ema9Series,
       ema20: ema20Series,
       ema50: ema50Series,
+      ema200: ema200Series,
       volume: volumeSeries,
       gamma: gammaSeries,
     };
@@ -168,8 +187,47 @@ export function ChartEngine({
 
     resizeObserver.observe(ref.current);
 
+    const crosshairTopic = syncCrosshairId ? `terminal-crosshair-${syncCrosshairId}` : "";
+    const chartAny = chart as unknown as {
+      subscribeCrosshairMove?: (handler: (param: { point?: { x?: number; y?: number }; time?: UTCTimestamp }) => void) => void;
+      unsubscribeCrosshairMove?: (handler: (param: { point?: { x?: number; y?: number }; time?: UTCTimestamp }) => void) => void;
+      setCrosshairPosition?: (price: number, time: UTCTimestamp, series: unknown) => void;
+      clearCrosshairPosition?: () => void;
+    };
+
+    const onCrosshairMove = (param: { point?: { x?: number; y?: number }; time?: UTCTimestamp }) => {
+      if (!crosshairTopic || !param?.time) return;
+      const event = new CustomEvent(crosshairTopic, {
+        detail: {
+          source: ticker,
+          time: param.time,
+          price: 0,
+        },
+      });
+      window.dispatchEvent(event);
+    };
+
+    const onSync = (event: Event) => {
+      const customEvent = event as CustomEvent<{ source: string; time: UTCTimestamp; price: number }>;
+      if (!customEvent.detail || customEvent.detail.source === ticker) return;
+      if (typeof chartAny.setCrosshairPosition === "function" && seriesRef.current.candles) {
+        chartAny.setCrosshairPosition(customEvent.detail.price, customEvent.detail.time, seriesRef.current.candles);
+      }
+    };
+
+    if (crosshairTopic && typeof chartAny.subscribeCrosshairMove === "function") {
+      chartAny.subscribeCrosshairMove(onCrosshairMove);
+      window.addEventListener(crosshairTopic, onSync);
+    }
+
     return () => {
       resizeObserver.disconnect();
+      if (crosshairTopic) {
+        window.removeEventListener(crosshairTopic, onSync);
+      }
+      if (typeof chartAny.unsubscribeCrosshairMove === "function") {
+        chartAny.unsubscribeCrosshairMove(onCrosshairMove);
+      }
       chart.remove();
       chartRef.current = null;
       seriesRef.current = {
@@ -178,11 +236,12 @@ export function ChartEngine({
         ema9: null,
         ema20: null,
         ema50: null,
+        ema200: null,
         volume: null,
         gamma: null,
       };
     };
-  }, [height]);
+  }, [height, syncCrosshairId, ticker, themeTick]);
 
   useEffect(() => {
     if (!chartRef.current || !seriesRef.current.candles) return;
@@ -193,6 +252,7 @@ export function ChartEngine({
     const ema9Series = seriesRef.current.ema9;
     const ema20Series = seriesRef.current.ema20;
     const ema50Series = seriesRef.current.ema50;
+    const ema200Series = seriesRef.current.ema200;
     const volumeSeries = seriesRef.current.volume;
     const gammaSeries = seriesRef.current.gamma;
 
@@ -204,14 +264,12 @@ export function ChartEngine({
       close: Number(point.close),
     }));
 
-    console.log("CHART RAW DATA:", normalized.slice(0, 5));
-    console.log("CHART MAPPED DATA:", candleRows.slice(0, 5));
-
     const closeValues = normalized.map((point) => Number(point.close));
     const vwapValues = vwap(normalized);
     const ema9 = ema(closeValues, 9);
     const ema20 = ema(closeValues, 20);
     const ema50 = ema(closeValues, 50);
+    const ema200 = ema(closeValues, 200);
 
     const lineRows = normalized.map((point, idx) => ({
       time: toUnix(point.time),
@@ -224,6 +282,7 @@ export function ChartEngine({
     ema9Series?.setData(lineRows.map((row) => ({ time: row.time, value: ema9[row.idx] || row.value })));
     ema20Series?.setData(lineRows.map((row) => ({ time: row.time, value: ema20[row.idx] || row.value })));
     ema50Series?.setData(lineRows.map((row) => ({ time: row.time, value: ema50[row.idx] || row.value })));
+    ema200Series?.setData(lineRows.map((row) => ({ time: row.time, value: ema200[row.idx] || row.value })));
     volumeSeries?.setData(
       normalized.map((point) => ({
         time: toUnix(point.time),
@@ -275,8 +334,9 @@ export function ChartEngine({
           })() : null}
         </span>
       </div>
+      <div className="px-2 pb-2 text-[10px] text-slate-500">VWAP | EMA 9/20/50/200 | VOL</div>
       <div ref={ref} className="w-full" />
-      {normalized.length === 0 && <div className="px-2 pb-2 text-xs text-slate-500">No OHLC data available.</div>}
+      {normalized.length === 0 && <div className="px-2 pb-2 text-xs text-slate-500">No data available</div>}
     </div>
   );
 }

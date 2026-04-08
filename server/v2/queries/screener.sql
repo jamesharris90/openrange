@@ -52,5 +52,4 @@ WHERE COALESCE(q.price, m.price) > 0
 ORDER BY
   COALESCE(q.relative_volume, sip.rvol, m.relative_volume) DESC NULLS LAST,
   COALESCE(q.volume, m.volume) DESC,
-  q.symbol ASC
-LIMIT 100;
+  q.symbol ASC;

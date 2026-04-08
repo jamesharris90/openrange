@@ -4,7 +4,6 @@ const cron = require('node-cron');
 
 const screenerRoute = require('./routes/screener');
 const opportunitiesRoute = require('./routes/opportunities');
-const chartRoute = require('./routes/chart');
 const legacyResearchRoute = require('./routes/research');
 const newsRoute = require('./routes/news');
 const earningsV2Route = require('./routes/earnings');
@@ -15,11 +14,11 @@ const devRoute = require('./routes/dev');
 const dashboardRoute = require('../routes/dashboard');
 const newsletterRoute = require('../routes/newsletter');
 const marketRoute = require('../routes/market');
-const chartV5Route = require('../routes/chartV2.ts');
 const legacyEarningsRoute = require('../routes/earnings');
 const intelligenceRoute = require('../routes/intelligence');
 const researchRoute = require('../routes/research');
 const truthAuditRoute = require('../routes/truthAudit');
+const { buildChartPayload } = require('./services/chartService');
 const { buildAndStoreScreenerSnapshot } = require('./services/snapshotService');
 const { runYahooNewsIngest } = require('./ingestion/yahooNewsIngest');
 const { runNewsBackfill } = require('./ingestion/newsBackfill');
@@ -38,6 +37,46 @@ let newsBackfillSchedulerStarted = false;
 let screenerSnapshotSchedulerStarted = false;
 let intelligencePipelineSchedulerStarted = false;
 let snapshotRunning = false;
+
+const chartRoute = express.Router();
+const chartV5Route = express.Router();
+
+chartRoute.get('/:symbol', async (req, res) => {
+  try {
+    const payload = await buildChartPayload(req.params.symbol);
+    return res.json(payload);
+  } catch (error) {
+    const message = error?.message || 'chart_fetch_failed';
+    const status = message === 'symbol_required' ? 400 : message === 'chart_data_unavailable' ? 404 : 502;
+
+    return res.status(status).json({
+      success: false,
+      candles: [],
+      timeframe: null,
+      source: 'unavailable',
+      error: message,
+    });
+  }
+});
+
+chartV5Route.get('/chart', async (req, res) => {
+  try {
+    const payload = await buildChartPayload(req.query.symbol);
+    return res.json(payload);
+  } catch (error) {
+    const message = error?.message || 'chart_fetch_failed';
+    const status = message === 'symbol_required' ? 400 : message === 'chart_data_unavailable' ? 404 : 502;
+
+    return res.status(status).json({
+      success: false,
+      candles: [],
+      timeframe: null,
+      source: 'unavailable',
+      error: message,
+    });
+  }
+});
+
 const isRailwayRuntime = Boolean(
   process.env.RAILWAY_PROJECT_ID
   || process.env.RAILWAY_ENVIRONMENT_ID
@@ -67,10 +106,12 @@ function resolveSchedulerFlags() {
   const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !envFlag('SAFE_MODE', false);
   const nonEssentialDefault = isRailwayRuntime ? false : true;
   const screenerSnapshotDefault = isRailwayRuntime ? false : true;
+  const ingestionSchedulerEnabled = envFlag('ENABLE_INGESTION_SCHEDULER', isRailwayRuntime ? true : backgroundServicesEnabled) && !envFlag('SAFE_MODE', false);
   const nonEssentialEnginesEnabled = backgroundServicesEnabled && envFlag('ENABLE_NON_ESSENTIAL_ENGINES', nonEssentialDefault);
   const screenerSnapshotEnabled = backgroundServicesEnabled && envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', screenerSnapshotDefault);
 
   return {
+    ingestionSchedulerEnabled,
     backgroundServicesEnabled,
     nonEssentialEnginesEnabled,
     screenerSnapshotEnabled,
@@ -204,13 +245,18 @@ function createV2App() {
   console.log('🚫 LEGACY SYSTEM DISABLED — V2 MODE ACTIVE');
   console.log('[SCHEDULERS] runtime flags', schedulerFlags);
 
-  if (schedulerFlags.backgroundServicesEnabled) {
+  if (schedulerFlags.ingestionSchedulerEnabled) {
     startIngestionScheduler();
+  } else {
+    console.log('[SCHEDULERS] ingestion scheduler disabled');
+  }
+
+  if (schedulerFlags.backgroundServicesEnabled) {
     startBacktestScheduler();
     startTradeOutcomeScheduler();
     startDataHealthMonitor();
   } else {
-    console.log('[SCHEDULERS] core ingestion schedulers disabled');
+    console.log('[SCHEDULERS] background services disabled');
   }
 
   if (schedulerFlags.nonEssentialEnginesEnabled) {

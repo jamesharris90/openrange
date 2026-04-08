@@ -1,942 +1,649 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, CheckCircle, XCircle, Clock, RefreshCw,
-  Users, Mail, Database, Activity, Shield, FileText,
-  Zap, TrendingUp, ChevronDown, ChevronUp, Play,
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Database,
+  Mail,
+  Play,
+  RefreshCw,
+  Server,
+  Shield,
+  Sparkles,
+  Users,
+  Wrench,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { apiGet, apiPost } from "@/lib/api/client";
+import { getDataIntegrity, type IntegrityIssue, type IntegrityPayload, type IntegrityTable } from "@/lib/api/dataIntegrity";
 import { QUERY_POLICY } from "@/lib/queries/policy";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type HealthPayload   = {
-  status?: string;
-  scheduler_status?: string;
-  uptime_seconds?: number;
+type ApiEnvelope<T> = {
+  success?: boolean;
+  data?: T;
   error?: string;
-  stocks_in_play_rows?: number;
-  opportunities_v2_rows?: number;
-  last_engine_run_at?: string | null;
-  db_connection_count?: number;
-  data_status?: string;
 };
-type DbConnectionsPayload = {
+
+type AdminDiagnosticsPayload = {
   ok?: boolean;
-  connection_count?: number;
-  active_connections?: number;
-  idle_connections?: number;
-  waiting_count?: number;
-  max_connections?: number;
-  pooled?: boolean;
-  host?: string | null;
-  port?: number | string | null;
+  status?: string;
+  database_health?: {
+    tables?: Record<string, number>;
+  };
+  checked_at?: string;
 };
-type LearningPayload = { ok?: boolean; evaluation_rate_pct?: number; stuck_signals?: number; error_count_last_24h?: number; status?: string; signals_logged_last_24h?: number; signals_evaluated_last_24h?: number };
-type PipelineTable   = { table: string; row_count: number; last_updated: string | null; age_minutes: number | null; status: 'green' | 'amber' | 'red' | 'unknown'; error?: string };
-type PipelinePayload = { ok?: boolean; tables?: PipelineTable[] };
-type SignalPerfPayload = { ok?: boolean; summary?: { total_signals: number; wins: number; win_rate: number | null; avg_return: number | null }; data?: Array<{ date?: string; total_signals?: number; wins?: number; losses?: number; win_rate?: number; avg_return?: number }> };
-type SimSetup        = { setup: string; win_rate: number; total: number };
-type SimLivePayload  = { ok?: boolean; active_count?: number; simulated_pnl_today?: number; win_rate_today?: number | null; win_rate_7d?: number | null; total_evaluated_today?: number; best_setup?: SimSetup | null; worst_setup?: SimSetup | null; all_setups?: SimSetup[]; active_trades?: Array<{ id: number; symbol: string; setup_type?: string; entry_price?: number; execution_rating?: string; timestamp: string }> };
-type SignalFlowPayload = { ok?: boolean; last_5m?: number; last_1h?: number; last_24h?: number; evaluated_24h?: number; unevaluated_24h?: number; stuck_signals?: number };
-type UserRow         = { id: number; username: string; email?: string; is_admin: number; is_active: number; last_login?: string; created_at?: string };
-type UsersPayload    = { ok?: boolean; users?: UserRow[]; count?: number };
-type NewsletterStats = { ok?: boolean; total_subscribers?: number; active_subscribers?: number; emails_received_24h?: number };
-type SubscriberRow   = { email: string; is_active?: boolean; timezone?: string; created_at?: string };
-type SubscribersPayload = { ok?: boolean; subscribers?: SubscriberRow[]; count?: number };
-type IntegrityCheck  = { issue: string; count: number; severity: 'OK' | 'MEDIUM' | 'HIGH' | 'UNKNOWN' };
-type IntegrityPayload = { ok?: boolean; checks?: IntegrityCheck[]; issues?: IntegrityCheck[]; issue_count?: number };
-type EngineRow       = { name: string; status: 'running' | 'stale' | 'unknown'; last_run: string | null; age_minutes: number | null };
-type EnginesPayload  = { ok?: boolean; engines?: EngineRow[] };
-type LogEntry        = { source?: string; level?: string; message?: string; label?: string; created_at?: string };
-type LogsPayload     = { ok?: boolean; logs?: LogEntry[]; count?: number; filter?: string };
-type ScorePayload    = { ok?: boolean; score?: number; status?: string; components?: Record<string, number>; raw?: Record<string, number>; generated_at?: string };
-type EmailSendRow    = { campaign_type?: string; campaign_key?: string; subject?: string; recipients_count?: number; status?: string; sent_at?: string };
-type EmailStatsPayload = { ok?: boolean; sent_24h?: number; success_24h?: number; failed_24h?: number; sent_7d?: number; success_rate_pct?: number | null; recent?: EmailSendRow[]; failures?: EmailSendRow[] };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type AdminSystemPayload = {
+  ok?: boolean;
+  system_status?: string;
+  database_tables?: number;
+  engines_running?: number;
+  providers_online?: number;
+  engine_health?: Record<string, unknown>;
+  system_alerts?: Array<Record<string, unknown>>;
+  checked_at?: string;
+};
 
-function Dot({ color }: { color: 'green' | 'amber' | 'red' | 'unknown' | string }) {
-  const cls = color === 'green' ? 'bg-emerald-400' : color === 'amber' ? 'bg-amber-400' : color === 'red' ? 'bg-rose-400' : 'bg-slate-500';
-  return <span className={`inline-block size-2 rounded-full ${cls}`} />;
+type SystemHealthPayload = {
+  backend?: string;
+  db?: string;
+  quotes?: string;
+  ohlc?: string;
+  error?: string;
+};
+
+type CronStatusPayload = {
+  status?: string;
+  recent_runs?: Array<Record<string, unknown>>;
+  error?: string;
+};
+
+type CoverageSummary = {
+  baseline?: {
+    missingNewsCount?: number | null;
+    missingEarningsCount?: number | null;
+  };
+  current?: {
+    missingNewsCount?: number | null;
+    missingEarningsCount?: number | null;
+  };
+  completion?: {
+    newsPercent?: number | null;
+    earningsPercent?: number | null;
+  };
+};
+
+type CoverageCampaignPayload = {
+  success?: boolean;
+  generatedAt?: string;
+  summary?: CoverageSummary;
+  status?: Record<string, unknown> | null;
+  checkpoint?: Record<string, unknown> | null;
+};
+
+type NewsletterDiagnosticsPayload = {
+  scheduler?: {
+    timezone?: string;
+    nextMorningBriefRun?: string;
+    nextNewsletterRun?: string;
+  };
+  summary?: {
+    subscriberCount?: number;
+    lastMorningBriefRun?: string | null;
+    lastSendCount?: number;
+    lastFailure?: {
+      createdAt?: string | null;
+      reason?: string;
+      detail?: string | null;
+    } | null;
+  };
+  latestRun?: {
+    createdAt?: string | null;
+    selectedTickers?: string[];
+    mcpEnhancementStatus?: string;
+  };
+  sendHistory?: Array<Record<string, unknown>>;
+};
+
+type NewsletterPreviewPayload = {
+  topSignals?: Array<Record<string, unknown>>;
+  marketNarrative?: string;
+  meta?: {
+    subscriberCount?: number;
+    averageOpenRate?: number;
+    averageClickRate?: number;
+  };
+};
+
+type UsersPayload = {
+  ok?: boolean;
+  users?: Array<{
+    id: number;
+    username: string;
+    email?: string;
+    is_admin?: number;
+    is_active?: number;
+  }>;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === 'ok' || status === 'healthy' || status === 'running' || status === 'green')
-    return <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">GREEN</span>;
-  if (status === 'degraded' || status === 'stale' || status === 'amber')
-    return <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">AMBER</span>;
-  if (status === 'critical' || status === 'down' || status === 'error' || status === 'red')
-    return <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">RED</span>;
-  if (status === 'no_data')
-    return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">NO DATA</span>;
-  return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">UNKNOWN</span>;
+function getString(value: unknown, fallback = "—") {
+  return typeof value === "string" && value.trim() ? value : fallback;
 }
 
-function SectionHeader({ icon: Icon, title, badge }: { icon: React.ComponentType<{ className?: string }>; title: string; badge?: React.ReactNode }) {
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <Icon className="size-4 text-slate-500" />
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400">{title}</h2>
-      {badge}
-    </div>
-  );
+function getNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatNumber(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return value.toLocaleString();
+}
+
+function formatPercent(value: number | null | undefined, digits = 1) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return `${value.toFixed(digits)}%`;
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return value;
+  return new Date(parsed).toLocaleString();
+}
+
+function statusTone(status: string) {
+  const normalized = status.toLowerCase();
+  if (["ok", "healthy", "running", "green", "operational"].includes(normalized)) {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  }
+  if (["warning", "degraded", "stale", "amber", "partial"].includes(normalized)) {
+    return "border-amber-500/30 bg-amber-500/10 text-amber-300";
+  }
+  if (["down", "error", "critical", "red", "unreachable"].includes(normalized)) {
+    return "border-rose-500/30 bg-rose-500/10 text-rose-300";
+  }
+  return "border-slate-700 bg-slate-800/70 text-slate-300";
+}
+
+function Dot({ status }: { status: string }) {
+  const normalized = status.toLowerCase();
+  const tone = ["ok", "healthy", "running", "green", "operational"].includes(normalized)
+    ? "bg-emerald-400"
+    : ["warning", "degraded", "stale", "amber", "partial"].includes(normalized)
+      ? "bg-amber-400"
+      : ["down", "error", "critical", "red", "unreachable"].includes(normalized)
+        ? "bg-rose-400"
+        : "bg-slate-500";
+
+  return <span className={`inline-flex size-2 rounded-full ${tone}`} />;
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-slate-800 bg-[#0f1520] p-4 ${className}`}>{children}</div>;
+  return <section className={`rounded-2xl border border-slate-800 bg-[#0f1520] p-5 ${className}`}>{children}</section>;
 }
 
-function StatRow({ label, value, valueClass = "text-slate-200" }: { label: string; value: React.ReactNode; valueClass?: string }) {
+function SectionTitle({ icon: Icon, title, detail }: { icon: React.ComponentType<{ className?: string }>; title: string; detail?: string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-800/50 px-3 py-2 text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className={valueClass}>{value ?? "—"}</span>
-    </div>
-  );
-}
-
-function ageLabel(ageMins: number | null): string {
-  if (ageMins === null) return "—";
-  if (ageMins < 60)   return `${ageMins}m ago`;
-  if (ageMins < 1440) return `${Math.round(ageMins / 60)}h ago`;
-  return `${Math.round(ageMins / 1440)}d ago`;
-}
-
-function wrClass(wr: number | null): string {
-  if (wr === null) return "text-slate-500";
-  if (wr >= 55) return "text-emerald-400";
-  if (wr >= 40) return "text-amber-400";
-  return "text-rose-400";
-}
-
-function logLevelClass(level = ""): string {
-  const l = level.toUpperCase();
-  if (l === "CRITICAL" || l === "ERROR") return "text-rose-400";
-  if (l === "WARN")  return "text-amber-400";
-  return "text-slate-400";
-}
-
-const TABS = ["Health", "Pipeline", "Signals", "Simulation", "Signal Flow", "Users", "Newsletter", "Email", "Integrity", "Engines", "Logs"] as const;
-type Tab = typeof TABS[number];
-
-// ─── System Score Bar ─────────────────────────────────────────────────────────
-
-function ScoreBar() {
-  const scoreQuery = useQuery({
-    queryKey: ["admin", "system-score"],
-    queryFn: () => apiGet<ScorePayload>("/api/system/score").catch(() => ({} as ScorePayload)),
-    refetchInterval: 60_000,
-  });
-  const d = scoreQuery.data ?? {};
-  const score  = d.score ?? null;
-  const status = d.status ?? "UNKNOWN";
-  const comps  = d.components ?? {};
-
-  const scoreColor = score == null ? "text-slate-500"
-    : score >= 90 ? "text-emerald-400"
-    : score >= 70 ? "text-amber-400"
-    : "text-rose-400";
-  const statusColor = status === "OPERATIONAL" ? "text-emerald-400 bg-emerald-500/10 border-emerald-600/30"
-    : status === "DEGRADED" ? "text-amber-400 bg-amber-500/10 border-amber-600/30"
-    : status === "CRITICAL" ? "text-rose-400 bg-rose-500/10 border-rose-700/30"
-    : "text-slate-400 bg-slate-800 border-slate-700";
-  const barWidth = score != null ? `${score}%` : "0%";
-  const barColor = score == null ? "bg-slate-700"
-    : score >= 90 ? "bg-emerald-500"
-    : score >= 70 ? "bg-amber-500"
-    : "bg-rose-500";
-
-  return (
-    <div className="rounded-xl border border-slate-800 bg-[#0d1117] px-4 py-3">
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Big score */}
-        <div className="flex items-baseline gap-2">
-          <span className={`text-4xl font-black tabular-nums leading-none ${scoreColor}`}>
-            {score ?? "—"}
-          </span>
-          <span className="text-xs text-slate-600">/100</span>
-        </div>
-        {/* Status badge */}
-        <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${statusColor}`}>
-          {status}
-        </span>
-        {/* Score bar */}
-        <div className="hidden flex-1 sm:block">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-            <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: barWidth }} />
-          </div>
-          {/* Component breakdown */}
-          {Object.keys(comps).length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-3">
-              {Object.entries(comps).map(([k, v]) => (
-                <span key={k} className="text-[9px] text-slate-600">
-                  {k.replace(/_/g, " ")}: <span className={v >= 80 ? "text-emerald-500" : v >= 50 ? "text-amber-500" : "text-rose-500"}>{v}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        {/* Last updated */}
-        {d.generated_at && (
-          <span className="ml-auto text-[10px] text-slate-700">
-            {new Date(d.generated_at).toLocaleTimeString()}
-          </span>
-        )}
+    <div className="mb-4 flex items-center gap-2">
+      <Icon className="size-4 text-slate-500" />
+      <div>
+        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+        {detail ? <p className="text-[11px] text-slate-500">{detail}</p> : null}
       </div>
     </div>
   );
 }
 
-// ─── Email Monitor Panel ──────────────────────────────────────────────────────
+function StatusPill({ label }: { label: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusTone(label)}`}>
+      <Dot status={label} />
+      {label}
+    </span>
+  );
+}
 
-function EmailPanel() {
-  const qc = useQueryClient();
-  const statsQuery = useQuery({
-    queryKey: ["admin", "email-stats"],
-    queryFn: () => apiGet<EmailStatsPayload>("/api/admin/email-stats").catch(() => ({} as EmailStatsPayload)),
-    refetchInterval: 60_000,
+function TableStatusRow({ title, table, fallbackCount }: { title: string; table: IntegrityTable | null; fallbackCount?: number | null }) {
+  const rowCount = table?.row_count ?? fallbackCount ?? null;
+  const freshness = table?.latest_timestamp ? formatDateTime(table.latest_timestamp) : "—";
+  const lag = table?.lag_minutes != null ? `${table.lag_minutes}m lag` : "No timestamp";
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-slate-100">{title}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{table?.table || "No mapped integrity table"}</p>
+        </div>
+        <StatusPill label={table?.status || (rowCount && rowCount > 0 ? "ok" : "warning")} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <p className="text-slate-500">Rows</p>
+          <p className="mt-1 font-semibold text-slate-200">{formatNumber(rowCount)}</p>
+        </div>
+        <div>
+          <p className="text-slate-500">Freshness</p>
+          <p className="mt-1 font-semibold text-slate-200">{lag}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-slate-500">Last update {freshness}</p>
+    </div>
+  );
+}
+
+function findTable(tables: IntegrityTable[], needles: string[]) {
+  return tables.find((table) => needles.some((needle) => table.table.toLowerCase().includes(needle.toLowerCase()))) || null;
+}
+
+function renderIssue(issue: IntegrityIssue, index: number) {
+  return (
+    <div key={`${issue.key}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-100">{issue.message}</p>
+        <StatusPill label={issue.severity} />
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500">{issue.type} · {issue.key}</p>
+    </div>
+  );
+}
+
+function runtimeEntries(engineHealth: Record<string, unknown> | undefined) {
+  return Object.entries(engineHealth || {}).filter(([, value]) => {
+    const record = asRecord(value);
+    return Boolean(record && ("status" in record || "rows" in record || "last_run" in record || "last_update" in record));
   });
-  const [runningBrief, setRunningBrief] = useState<string | null>(null);
-
-  const s = statsQuery.data ?? {};
-  const recent   = s.recent   ?? [];
-  const failures = s.failures ?? [];
-
-  async function triggerBrief(type: string) {
-    setRunningBrief(type);
-    try {
-      await apiPost(`/api/admin/briefing/${type}/run`, {});
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["admin", "email-stats"] }), 3000);
-    } finally {
-      setRunningBrief(null);
-    }
-  }
-
-  return (
-    <Card>
-      <SectionHeader icon={Mail} title="Email Monitor" />
-
-      {/* KPI row */}
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[
-          { label: "Sent (24h)",      value: s.sent_24h     ?? 0, cls: "text-slate-200" },
-          { label: "Success (24h)",   value: s.success_24h  ?? 0, cls: "text-emerald-400" },
-          { label: "Failed (24h)",    value: s.failed_24h   ?? 0, cls: (s.failed_24h ?? 0) > 0 ? "text-rose-400" : "text-slate-400" },
-          { label: "Success Rate",    value: s.success_rate_pct != null ? `${s.success_rate_pct}%` : "—", cls: (s.success_rate_pct ?? 100) >= 90 ? "text-emerald-400" : "text-amber-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-lg border border-slate-800/50 px-3 py-2 text-center">
-            <div className={`text-xl font-bold tabular-nums ${k.cls}`}>{k.value}</div>
-            <div className="mt-0.5 text-[10px] text-slate-600">{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Manual triggers */}
-      <div className="mb-4">
-        <div className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">Manual Triggers</div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { type: "morning",      label: "Morning Brief (07:00 UK)" },
-            { type: "premarket",    label: "Premarket Brief (13:00 UK)" },
-            { type: "admin-health", label: "Admin Health Email" },
-          ].map(b => (
-            <button
-              key={b.type}
-              onClick={() => triggerBrief(b.type)}
-              disabled={runningBrief !== null}
-              className="flex items-center gap-1.5 rounded border border-slate-700 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-            >
-              <Play className={`size-2.5 ${runningBrief === b.type ? "animate-spin" : ""}`} />
-              {b.label}
-            </button>
-          ))}
-        </div>
-        {runningBrief && (
-          <p className="mt-1.5 text-[10px] text-blue-400">Sending {runningBrief} briefing...</p>
-        )}
-      </div>
-
-      {/* Recent sends */}
-      {recent.length > 0 && (
-        <div className="mb-4">
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">Recent Sends</div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600">
-                <th className="pb-1 text-left">Type</th>
-                <th className="pb-1 text-left">Key</th>
-                <th className="pb-1 text-right">Recipients</th>
-                <th className="pb-1 text-center">Status</th>
-                <th className="pb-1 text-right">Sent</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {recent.map((r, i) => (
-                <tr key={`${r.campaign_key}-${i}`}>
-                  <td className="py-1 text-slate-500">{r.campaign_type ?? "—"}</td>
-                  <td className="py-1 font-mono text-[10px] text-slate-600">{r.campaign_key?.slice(-20) ?? "—"}</td>
-                  <td className="py-1 text-right tabular-nums text-slate-400">{r.recipients_count ?? "—"}</td>
-                  <td className="py-1 text-center">
-                    {r.status === "sent"
-                      ? <CheckCircle className="mx-auto size-3 text-emerald-400" />
-                      : <XCircle className="mx-auto size-3 text-rose-400" />}
-                  </td>
-                  <td className="py-1 text-right text-slate-600">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Failures */}
-      {failures.length > 0 && (
-        <div className="rounded-lg border border-rose-800/30 bg-rose-950/10 p-3">
-          <div className="mb-2 text-[10px] font-semibold text-rose-400">Failed Sends</div>
-          {failures.map((f, i) => (
-            <div key={i} className="text-[10px] text-rose-300">{f.campaign_key} — {f.status} — {f.sent_at ? new Date(f.sent_at).toLocaleDateString() : "—"}</div>
-          ))}
-        </div>
-      )}
-
-      {statsQuery.isLoading && (
-        <div className="space-y-1.5">{[...Array(4)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
-      )}
-      {!statsQuery.isLoading && recent.length === 0 && failures.length === 0 && (
-        <p className="text-xs text-slate-600">No email history yet — briefing engines will populate newsletter_send_history once running</p>
-      )}
-    </Card>
-  );
 }
-
-// ─── Sub-panels ───────────────────────────────────────────────────────────────
-
-function HealthPanel() {
-  const qc = useQueryClient();
-  const healthQuery    = useQuery({ queryKey: ["admin", "health"], queryFn: () => apiGet<HealthPayload>("/api/system/health").catch(() => ({} as HealthPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });
-  const dbQuery        = useQuery({ queryKey: ["admin", "db-connections"], queryFn: () => apiGet<DbConnectionsPayload>("/api/admin/db/connections").catch(() => ({} as DbConnectionsPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });
-  const learningQuery  = useQuery({ queryKey: ["admin", "learning"], queryFn: () => apiGet<LearningPayload>("/api/system/learning-status").catch(() => ({} as LearningPayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });
-  const resetDbMut = useMutation({
-    mutationFn: () => apiPost("/api/admin/db/reset", {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "health"] });
-      qc.invalidateQueries({ queryKey: ["admin", "db-connections"] });
-      qc.invalidateQueries({ queryKey: ["admin", "engines"] });
-    },
-  });
-  const rebuildMut = useMutation({
-    mutationFn: () => apiPost("/api/admin/rebuild-all", {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "health"] });
-      qc.invalidateQueries({ queryKey: ["admin", "db-connections"] });
-      qc.invalidateQueries({ queryKey: ["admin", "engines"] });
-      qc.invalidateQueries({ queryKey: ["admin", "pipeline"] });
-    },
-  });
-
-  const h = healthQuery.data ?? {};
-  const db = dbQuery.data ?? {};
-  const l = learningQuery.data ?? {};
-  const overallStatus = h.data_status === 'NO_DATA'
-    ? 'no_data'
-    : l.status === 'critical'
-      ? 'red'
-      : h.status === 'ok'
-        ? 'green'
-        : h.status === 'degraded'
-          ? 'amber'
-          : 'unknown';
-
-  return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <SectionHeader icon={Shield} title="System Health" badge={<StatusBadge status={overallStatus === 'green' ? 'ok' : overallStatus === 'red' ? 'error' : overallStatus} />} />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => resetDbMut.mutate()}
-            disabled={resetDbMut.isPending}
-            className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-          >
-            <RefreshCw className={`size-3 ${resetDbMut.isPending ? 'animate-spin' : ''}`} />
-            Reset DB Pool
-          </button>
-          <button
-            onClick={() => rebuildMut.mutate()}
-            disabled={rebuildMut.isPending}
-            className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-          >
-            <Play className={`size-3 ${rebuildMut.isPending ? 'animate-spin' : ''}`} />
-            Rebuild All
-          </button>
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <StatRow label="System Status"    value={<StatusBadge status={h.data_status === 'NO_DATA' ? 'no_data' : h.status ?? 'unknown'} />} />
-        <StatRow label="Scheduler"        value={h.scheduler_status ?? "—"} valueClass={h.scheduler_status === 'running' ? 'text-emerald-400' : 'text-slate-400'} />
-        <StatRow label="Uptime"           value={h.uptime_seconds != null ? `${Math.floor(h.uptime_seconds / 3600)}h ${Math.floor((h.uptime_seconds % 3600) / 60)}m` : "—"} />
-        <StatRow label="Last Engine Run"  value={h.last_engine_run_at ? new Date(h.last_engine_run_at).toLocaleString() : '—'} valueClass="text-slate-300" />
-        <StatRow label="stocks_in_play Rows" value={(h.stocks_in_play_rows ?? 0).toLocaleString()} valueClass={(h.stocks_in_play_rows ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400'} />
-        <StatRow label="opportunities_v2 Rows" value={(h.opportunities_v2_rows ?? 0).toLocaleString()} valueClass={(h.opportunities_v2_rows ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400'} />
-        <StatRow label="DB Connections"   value={db.connection_count ?? h.db_connection_count ?? 0} valueClass={(db.connection_count ?? h.db_connection_count ?? 0) > 0 ? 'text-slate-300' : 'text-slate-500'} />
-        <div className="mt-2 mb-1 border-t border-slate-800/50" />
-        <StatRow label="DB Pool"          value={db.pooled ? `PgBouncer ${db.host ?? '—'}:${db.port ?? '—'}` : '—'} valueClass={db.pooled ? 'text-emerald-400' : 'text-amber-400'} />
-        <StatRow label="DB Active / Idle" value={`${db.active_connections ?? 0} / ${db.idle_connections ?? 0}`} />
-        <StatRow label="DB Waiting"       value={db.waiting_count ?? 0} valueClass={(db.waiting_count ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'} />
-        <StatRow label="Evaluation Rate"  value={l.evaluation_rate_pct != null ? `${l.evaluation_rate_pct}%` : "—"} valueClass={l.evaluation_rate_pct != null && l.evaluation_rate_pct >= 95 ? 'text-emerald-400' : l.evaluation_rate_pct != null && l.evaluation_rate_pct >= 80 ? 'text-amber-400' : 'text-rose-400'} />
-        <StatRow label="Stuck Signals"    value={l.stuck_signals ?? 0}    valueClass={(l.stuck_signals ?? 0) > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'} />
-        <StatRow label="Errors (24h)"     value={l.error_count_last_24h ?? 0} valueClass={(l.error_count_last_24h ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'} />
-        <StatRow label="Signals Logged"   value={l.signals_logged_last_24h ?? 0} />
-        <StatRow label="Signals Evaluated" value={l.signals_evaluated_last_24h ?? 0} />
-      </div>
-      {h.data_status === 'NO_DATA' && (
-        <div className="mt-3 rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-300">
-          Engine truth tables are empty. The API is in fail-fast mode until rebuild completes.
-        </div>
-      )}
-      {(l.stuck_signals ?? 0) > 0 && (
-        <div className="mt-3 rounded-lg border border-rose-800/40 bg-rose-950/20 px-3 py-2 text-xs text-rose-300">
-          <AlertTriangle className="mr-1.5 inline size-3" />
-          {l.stuck_signals} signal{l.stuck_signals === 1 ? "" : "s"} stuck unevaluated — evaluation engine may be degraded
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function PipelinePanel() {
-  const qc = useQueryClient();
-  const pipelineQuery = useQuery({ queryKey: ["admin", "pipeline"], queryFn: () => apiGet<PipelinePayload>("/api/admin/pipeline-stats").catch(() => ({} as PipelinePayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });
-  const refreshMut = useMutation({
-    mutationFn: () => apiPost("/api/admin/pipeline-refresh", {}),
-    onSuccess: () => setTimeout(() => qc.invalidateQueries({ queryKey: ["admin", "pipeline"] }), 3000),
-  });
-
-  const tables = pipelineQuery.data?.tables ?? [];
-
-  return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <SectionHeader icon={Database} title="Data Pipeline" />
-        <button
-          onClick={() => refreshMut.mutate()}
-          disabled={refreshMut.isPending}
-          className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-        >
-          <RefreshCw className={`size-3 ${refreshMut.isPending ? 'animate-spin' : ''}`} />
-          Force Refresh
-        </button>
-      </div>
-      {tables.length > 0 ? (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600">
-              <th className="pb-1.5 text-left">Table</th>
-              <th className="pb-1.5 text-right">Rows</th>
-              <th className="pb-1.5 text-right">Last Updated</th>
-              <th className="pb-1.5 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {tables.map(t => (
-              <tr key={t.table}>
-                <td className="py-1.5 font-mono text-slate-300">{t.table}</td>
-                <td className="py-1.5 text-right tabular-nums text-slate-400">{t.row_count.toLocaleString()}</td>
-                <td className="py-1.5 text-right text-slate-500">{ageLabel(t.age_minutes)}</td>
-                <td className="py-1.5 text-center"><Dot color={t.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : pipelineQuery.isLoading ? (
-        <div className="space-y-1.5">{[...Array(5)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
-      ) : (
-        <p className="text-xs text-slate-600">Pipeline stats unavailable — endpoint may require admin key</p>
-      )}
-      {refreshMut.isSuccess && <p className="mt-2 text-[10px] text-emerald-400">Refresh triggered — data will update in ~30s</p>}
-    </Card>
-  );
-}
-
-function SignalsPanel() {
-  const perfQuery = useQuery({ queryKey: ["admin", "signals-perf"], queryFn: () => apiGet<SignalPerfPayload>("/api/signals/performance?days=7").catch(() => ({} as SignalPerfPayload)), ...QUERY_POLICY.slow, refetchInterval: 120_000 });
-  const simQuery  = useQuery({ queryKey: ["admin", "sim-signals"], queryFn: () => apiGet<SimLivePayload>("/api/simulation/live").catch(() => ({} as SimLivePayload)), ...QUERY_POLICY.slow });
-
-  const sum = perfQuery.data?.summary;
-  const rows = perfQuery.data?.data ?? [];
-  const sim = simQuery.data;
-
-  return (
-    <Card>
-      <SectionHeader icon={TrendingUp} title="Signal Performance" />
-      {sum ? (
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Win Rate (7d)",  value: sum.win_rate != null ? `${sum.win_rate}%` : "—",     cls: wrClass(sum.win_rate) },
-            { label: "Win Rate Today", value: sim?.win_rate_today != null ? `${sim.win_rate_today}%` : "—", cls: wrClass(sim?.win_rate_today ?? null) },
-            { label: "Total Signals",  value: sum.total_signals,                                    cls: "text-slate-200" },
-            { label: "Avg Return",     value: sum.avg_return != null ? `${sum.avg_return > 0 ? "+" : ""}${sum.avg_return}%` : "—", cls: (sum.avg_return ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400" },
-          ].map(s => (
-            <div key={s.label} className="rounded-lg border border-slate-800/50 px-3 py-2">
-              <div className="text-[10px] text-slate-600">{s.label}</div>
-              <div className={`mt-0.5 text-lg font-bold tabular-nums ${s.cls}`}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {rows.length > 0 ? (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600">
-              <th className="pb-1.5 text-left">Date</th>
-              <th className="pb-1.5 text-right">Win Rate</th>
-              <th className="pb-1.5 text-right">Signals</th>
-              <th className="pb-1.5 text-right">Avg Return</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {rows.slice(0, 10).map((r, i) => (
-              <tr key={`${r.date}-${i}`}>
-                <td className="py-1 text-slate-400">{r.date?.slice(0, 10) ?? "—"}</td>
-                <td className={`py-1 text-right tabular-nums ${wrClass(r.win_rate ?? null)}`}>{r.win_rate != null ? `${r.win_rate}%` : "—"}</td>
-                <td className="py-1 text-right tabular-nums text-slate-400">{r.total_signals ?? 0}</td>
-                <td className={`py-1 text-right tabular-nums ${(r.avg_return ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{r.avg_return != null ? `${r.avg_return > 0 ? "+" : ""}${r.avg_return}%` : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : !perfQuery.isLoading ? (
-        <p className="text-xs text-slate-600">Signal performance data appears once signal_performance_daily is populated. Evaluation runs every 5 min.</p>
-      ) : (
-        <div className="space-y-1.5">{[...Array(5)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
-      )}
-
-      {/* Setup breakdown from sim */}
-      {(sim?.all_setups?.length ?? 0) > 0 ? (
-        <div className="mt-4">
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">By Setup Type (7d)</div>
-          <table className="w-full text-xs">
-            <thead><tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600"><th className="pb-1 text-left">Setup</th><th className="pb-1 text-right">Win Rate</th><th className="pb-1 text-right">Signals</th></tr></thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {sim!.all_setups!.map((s, i) => (
-                <tr key={`${s.setup}-${i}`}>
-                  <td className="py-1 text-slate-300">{s.setup}</td>
-                  <td className={`py-1 text-right tabular-nums ${wrClass(s.win_rate)}`}>{s.win_rate}%</td>
-                  <td className="py-1 text-right tabular-nums text-slate-500">{s.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
-function SimulationPanel() {
-  const [showTrades, setShowTrades] = useState(false);
-  const simQuery = useQuery({ queryKey: ["admin", "sim-live"], queryFn: () => apiGet<SimLivePayload>("/api/simulation/live").catch(() => ({} as SimLivePayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });
-
-  const sim = simQuery.data ?? {};
-
-  return (
-    <Card>
-      <SectionHeader icon={Activity} title="Live Simulation Monitor" />
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <StatRow label="Active Trades"     value={sim.active_count ?? 0} />
-        <StatRow label="Evaluated Today"   value={sim.total_evaluated_today ?? 0} />
-        <StatRow label="Win Rate Today"    value={sim.win_rate_today != null ? `${sim.win_rate_today}%` : "—"} valueClass={wrClass(sim.win_rate_today ?? null)} />
-        <StatRow label="Win Rate 7d"       value={sim.win_rate_7d != null ? `${sim.win_rate_7d}%` : "—"} valueClass={wrClass(sim.win_rate_7d ?? null)} />
-        <StatRow label="Simulated PnL"     value={sim.simulated_pnl_today != null ? `${sim.simulated_pnl_today > 0 ? "+" : ""}${sim.simulated_pnl_today.toFixed(2)}%` : "—"} valueClass={(sim.simulated_pnl_today ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} />
-        <StatRow label="Best Setup Today"  value={sim.best_setup?.setup ?? "—"} valueClass="text-emerald-400" />
-      </div>
-      {sim.worst_setup && (
-        <StatRow label="Worst Setup Today" value={`${sim.worst_setup.setup} (${sim.worst_setup.win_rate}%)`} valueClass="text-rose-400" />
-      )}
-
-      {(sim.active_count ?? 0) > 0 && (
-        <button onClick={() => setShowTrades(v => !v)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">
-          <span>View Active Trades ({sim.active_count})</span>
-          {showTrades ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-        </button>
-      )}
-      {showTrades && sim.active_trades?.map(t => (
-        <div key={t.id} className="mt-1 flex items-center justify-between rounded-lg border border-slate-800 px-3 py-1.5 text-xs">
-          <span className="font-semibold text-slate-200">{t.symbol}</span>
-          <span className="text-slate-500">{t.execution_rating ?? t.setup_type ?? "—"}</span>
-          <span className="text-slate-600">{t.entry_price != null ? `$${t.entry_price}` : "—"}</span>
-          <span className="text-slate-600">{new Date(t.timestamp).toLocaleTimeString()}</span>
-        </div>
-      ))}
-    </Card>
-  );
-}
-
-function SignalFlowPanel() {
-  const flowQuery = useQuery({ queryKey: ["admin", "signal-flow"], queryFn: () => apiGet<SignalFlowPayload>("/api/admin/signal-flow").catch(() => ({} as SignalFlowPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });
-  const f = flowQuery.data ?? {};
-  const stuck = f.stuck_signals ?? 0;
-
-  return (
-    <Card>
-      <SectionHeader icon={Zap} title="Signal Flow Monitor" />
-      {stuck > 0 && (
-        <div className="mb-3 rounded-lg border border-rose-700/40 bg-rose-950/20 px-3 py-2 text-xs font-semibold text-rose-300">
-          <XCircle className="mr-1.5 inline size-3" />
-          {stuck} stuck signal{stuck === 1 ? "" : "s"} — unevaluated for &gt;1h
-        </div>
-      )}
-      <div className="space-y-1.5">
-        <StatRow label="Signals (last 5m)"   value={f.last_5m ?? 0} />
-        <StatRow label="Signals (last 1h)"   value={f.last_1h ?? 0} />
-        <StatRow label="Signals (24h)"       value={f.last_24h ?? 0} />
-        <div className="mt-2 border-t border-slate-800/50" />
-        <StatRow label="Evaluated (24h)"     value={f.evaluated_24h ?? 0}   valueClass="text-emerald-400" />
-        <StatRow label="Unevaluated (24h)"   value={f.unevaluated_24h ?? 0} valueClass={(f.unevaluated_24h ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'} />
-        <StatRow label="Stuck (&gt;1h)"      value={stuck}                   valueClass={stuck > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'} />
-      </div>
-      {f.last_24h === 0 && !flowQuery.isLoading && (
-        <p className="mt-2 text-[10px] text-slate-600">No signals logged in the last 24h — premarket watchlist and execution engines must run first</p>
-      )}
-    </Card>
-  );
-}
-
-function UsersPanel() {
-  const qc = useQueryClient();
-  const usersQuery = useQuery({ queryKey: ["admin", "users"], queryFn: () => apiGet<UsersPayload>("/api/admin/users").catch(() => ({ ok: false, users: [], count: 0 })), ...QUERY_POLICY.slow });
-
-  const promoteMut  = useMutation({ mutationFn: (id: number) => apiPost(`/api/admin/users/${id}/promote`, {}),  onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }) });
-  const disableMut  = useMutation({ mutationFn: (id: number) => apiPost(`/api/admin/users/${id}/disable`, {}),  onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }) });
-
-  const users = usersQuery.data?.users ?? [];
-
-  return (
-    <Card>
-      <SectionHeader icon={Users} title="User Management" badge={<span className="text-[10px] text-slate-600">{usersQuery.data?.count ?? 0} users</span>} />
-      {users.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[540px] text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600">
-                <th className="pb-1.5 text-left">User</th>
-                <th className="pb-1.5 text-left">Email</th>
-                <th className="pb-1.5 text-center">Role</th>
-                <th className="pb-1.5 text-center">Status</th>
-                <th className="pb-1.5 text-right">Last Active</th>
-                <th className="pb-1.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {users.map(u => (
-                <tr key={u.id}>
-                  <td className="py-1.5 font-medium text-slate-200">{u.username}</td>
-                  <td className="py-1.5 text-slate-500">{u.email ?? "—"}</td>
-                  <td className="py-1.5 text-center">
-                    {u.is_admin ? <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">ADMIN</span>
-                                : <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">USER</span>}
-                  </td>
-                  <td className="py-1.5 text-center">
-                    {u.is_active ? <CheckCircle className="mx-auto size-3.5 text-emerald-400" /> : <XCircle className="mx-auto size-3.5 text-rose-400" />}
-                  </td>
-                  <td className="py-1.5 text-right text-slate-600">{u.last_login ? new Date(u.last_login).toLocaleDateString() : "—"}</td>
-                  <td className="py-1.5 text-right">
-                    <div className="flex justify-end gap-1">
-                      {!u.is_admin && (
-                        <button onClick={() => promoteMut.mutate(u.id)} disabled={promoteMut.isPending}
-                          className="rounded border border-amber-800/50 px-2 py-0.5 text-[10px] text-amber-400 hover:bg-amber-950/30 disabled:opacity-50">
-                          Promote
-                        </button>
-                      )}
-                      {u.is_active ? (
-                        <button onClick={() => disableMut.mutate(u.id)} disabled={disableMut.isPending}
-                          className="rounded border border-rose-800/50 px-2 py-0.5 text-[10px] text-rose-400 hover:bg-rose-950/30 disabled:opacity-50">
-                          Disable
-                        </button>
-                      ) : (
-                        <span className="px-2 py-0.5 text-[10px] text-slate-600">Disabled</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : usersQuery.isLoading ? (
-        <div className="space-y-1.5">{[...Array(4)].map((_, i) => <div key={i} className="h-8 animate-pulse rounded bg-slate-800/50" />)}</div>
-      ) : (
-        <p className="text-xs text-slate-600">No users found — table may not contain data yet</p>
-      )}
-    </Card>
-  );
-}
-
-function NewsletterPanel() {
-  const statsQuery = useQuery({ queryKey: ["admin", "newsletter-stats"], queryFn: () => apiGet<NewsletterStats>("/api/admin/newsletter-stats").catch(() => ({} as NewsletterStats)), ...QUERY_POLICY.slow });
-  const subsQuery  = useQuery({ queryKey: ["admin", "newsletter-subs"], queryFn: () => apiGet<SubscribersPayload>("/api/admin/newsletter-subscribers").catch(() => ({ subscribers: [] })), ...QUERY_POLICY.slow });
-
-  const stats = statsQuery.data ?? {};
-  const subs  = subsQuery.data?.subscribers ?? [];
-
-  return (
-    <Card>
-      <SectionHeader icon={Mail} title="Newsletter + Intel Feed" />
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        {[
-          { label: "Total Subscribers",  value: stats.total_subscribers ?? 0,   cls: "text-slate-200" },
-          { label: "Active Subscribers", value: stats.active_subscribers ?? 0,   cls: "text-emerald-400" },
-          { label: "Emails Recv (24h)",  value: stats.emails_received_24h ?? 0,  cls: "text-slate-400" },
-        ].map(s => (
-          <div key={s.label} className="rounded-lg border border-slate-800/50 px-3 py-2 text-center">
-            <div className={`text-xl font-bold tabular-nums ${s.cls}`}>{s.value}</div>
-            <div className="mt-0.5 text-[10px] text-slate-600">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      {subs.length > 0 ? (
-        <table className="w-full text-xs">
-          <thead><tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600"><th className="pb-1 text-left">Email</th><th className="pb-1 text-center">Active</th><th className="pb-1 text-right">Subscribed</th></tr></thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {subs.map(s => (
-              <tr key={s.email}>
-                <td className="py-1 text-slate-300">{s.email}</td>
-                <td className="py-1 text-center">{s.is_active ? <CheckCircle className="mx-auto size-3 text-emerald-400" /> : <XCircle className="mx-auto size-3 text-slate-600" />}</td>
-                <td className="py-1 text-right text-slate-600">{s.created_at ? new Date(s.created_at).toLocaleDateString() : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : !subsQuery.isLoading ? (
-        <p className="text-xs text-slate-600">No subscribers yet — newsletter_subscribers table is empty</p>
-      ) : (
-        <div className="space-y-1">{[...Array(3)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
-      )}
-    </Card>
-  );
-}
-
-function IntegrityPanel() {
-  const intQuery = useQuery({ queryKey: ["admin", "data-integrity"], queryFn: () => apiGet<IntegrityPayload>("/api/admin/data-integrity").catch(() => ({} as IntegrityPayload)), ...QUERY_POLICY.slow, refetchInterval: 120_000 });
-  const checks = intQuery.data?.checks ?? [];
-  const issues = intQuery.data?.issues ?? [];
-
-  return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <SectionHeader icon={AlertTriangle} title="Data Integrity Checker" />
-        {intQuery.data && (
-          issues.length === 0
-            ? <span className="flex items-center gap-1 text-[10px] text-emerald-400"><CheckCircle className="size-3" /> All clear</span>
-            : <span className="flex items-center gap-1 text-[10px] text-rose-400"><AlertTriangle className="size-3" /> {issues.length} issue{issues.length !== 1 ? "s" : ""}</span>
-        )}
-      </div>
-      {checks.length > 0 ? (
-        <table className="w-full text-xs">
-          <thead><tr className="border-b border-slate-800 text-[10px] uppercase text-slate-600"><th className="pb-1 text-left">Issue</th><th className="pb-1 text-right">Count</th><th className="pb-1 text-center">Severity</th></tr></thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {checks.map(c => (
-              <tr key={c.issue}>
-                <td className="py-1.5 font-mono text-[10px] text-slate-400">{c.issue}</td>
-                <td className="py-1.5 text-right tabular-nums text-slate-300">{c.count}</td>
-                <td className="py-1.5 text-center">
-                  {c.severity === 'OK'      && <span className="text-emerald-400">✓</span>}
-                  {c.severity === 'MEDIUM'  && <span className="rounded bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-400">MED</span>}
-                  {c.severity === 'HIGH'    && <span className="rounded bg-rose-500/15 px-1.5 text-[10px] font-semibold text-rose-400">HIGH</span>}
-                  {c.severity === 'UNKNOWN' && <span className="text-slate-600">—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : intQuery.isLoading ? (
-        <div className="space-y-1.5">{[...Array(5)].map((_, i) => <div key={i} className="h-7 animate-pulse rounded bg-slate-800/50" />)}</div>
-      ) : (
-        <p className="text-xs text-slate-600">Integrity checks unavailable — requires admin access</p>
-      )}
-    </Card>
-  );
-}
-
-function EnginesPanel() {
-  const qc = useQueryClient();
-  const engQuery  = useQuery({ queryKey: ["admin", "engines"], queryFn: () => apiGet<EnginesPayload>("/api/admin/engines").catch(() => ({} as EnginesPayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });
-  const [running, setRunning] = useState<string | null>(null);
-
-  const engines = engQuery.data?.engines ?? [];
-
-  async function runEngine(name: string) {
-    setRunning(name);
-    try {
-      await apiPost(`/api/admin/engine/run?name=${encodeURIComponent(name)}`, {});
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["admin", "engines"] }), 5000);
-    } finally {
-      setRunning(null);
-    }
-  }
-
-  return (
-    <Card>
-      <SectionHeader icon={Zap} title="Engine Control Panel" />
-      {engines.length > 0 ? (
-        <div className="space-y-1.5">
-          {engines.map(e => (
-            <div key={e.name} className="flex items-center justify-between rounded-lg border border-slate-800/50 px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Dot color={e.status === 'running' ? 'green' : e.status === 'stale' ? 'amber' : 'unknown'} />
-                  <span className="font-mono text-[11px] text-slate-300">{e.name}</span>
-                </div>
-                <div className="mt-0.5 text-[10px] text-slate-600">Last run: {ageLabel(e.age_minutes)}</div>
-              </div>
-              <button
-                onClick={() => runEngine(e.name)}
-                disabled={running === e.name}
-                className="ml-3 flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-              >
-                <Play className={`size-2.5 ${running === e.name ? 'animate-spin' : ''}`} />
-                Run
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : engQuery.isLoading ? (
-        <div className="space-y-1.5">{[...Array(6)].map((_, i) => <div key={i} className="h-10 animate-pulse rounded bg-slate-800/50" />)}</div>
-      ) : (
-        <p className="text-xs text-slate-600">Engine status unavailable — requires admin access</p>
-      )}
-    </Card>
-  );
-}
-
-function LogsPanel() {
-  const [filter, setFilter] = useState<"" | "INGEST" | "EVAL" | "ERROR" | "CRITICAL">("");
-  const logsQuery = useQuery({
-    queryKey: ["admin", "logs", filter],
-    queryFn: () => apiGet<LogsPayload>(`/api/admin/logs${filter ? `?filter=${filter}` : ""}`).catch(() => ({} as LogsPayload)),
-    ...QUERY_POLICY.medium,
-    refetchInterval: 30_000,
-  });
-
-  const logs = logsQuery.data?.logs ?? [];
-
-  return (
-    <Card>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <SectionHeader icon={FileText} title="Log Viewer" />
-        <div className="ml-auto flex items-center gap-1.5">
-          {(["", "INGEST", "EVAL", "ERROR", "CRITICAL"] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`rounded px-2 py-0.5 text-[10px] font-semibold transition ${filter === f ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'}`}>
-              {f || "ALL"}
-            </button>
-          ))}
-        </div>
-      </div>
-      {logs.length > 0 ? (
-        <div className="max-h-96 space-y-1 overflow-y-auto">
-          {logs.map((log, i) => (
-            <div key={i} className="rounded border border-slate-800/50 px-2.5 py-1.5 font-mono text-[10px]">
-              <div className="flex items-start gap-2">
-                <span className={`shrink-0 font-bold ${logLevelClass(log.level)}`}>[{log.level ?? "INFO"}]</span>
-                <span className="text-slate-400 break-all">{log.message}</span>
-              </div>
-              <div className="mt-0.5 flex gap-3 text-slate-700">
-                {log.label && <span>{log.label}</span>}
-                {log.created_at && <span>{new Date(log.created_at).toLocaleString()}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : !logsQuery.isLoading ? (
-        <p className="text-xs text-slate-600">No logs matching filter — signal errors will appear here when evaluation fails, or once system_logs table is populated</p>
-      ) : (
-        <div className="space-y-1">{[...Array(5)].map((_, i) => <div key={i} className="h-8 animate-pulse rounded bg-slate-800/50" />)}</div>
-      )}
-    </Card>
-  );
-}
-
-// ─── Main admin view ──────────────────────────────────────────────────────────
 
 export function AdminView() {
   const { isAdmin, initialized } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("Health");
+  const queryClient = useQueryClient();
+
+  const systemHealthQuery = useQuery({
+    queryKey: ["admin-live", "system-health"],
+    queryFn: () => apiGet<SystemHealthPayload>("/api/system/health").catch(() => ({} as SystemHealthPayload)),
+    ...QUERY_POLICY.fast,
+    refetchInterval: 30_000,
+  });
+  const diagnosticsQuery = useQuery({
+    queryKey: ["admin-live", "diagnostics"],
+    queryFn: () => apiGet<AdminDiagnosticsPayload>("/api/admin/diagnostics").catch(() => ({} as AdminDiagnosticsPayload)),
+    ...QUERY_POLICY.medium,
+    refetchInterval: 45_000,
+  });
+  const systemQuery = useQuery({
+    queryKey: ["admin-live", "system"],
+    queryFn: () => apiGet<AdminSystemPayload>("/api/admin/system").catch(() => ({} as AdminSystemPayload)),
+    ...QUERY_POLICY.medium,
+    refetchInterval: 45_000,
+  });
+  const cronQuery = useQuery({
+    queryKey: ["admin-live", "cron"],
+    queryFn: () => apiGet<CronStatusPayload>("/api/system/cron-status").catch(() => ({} as CronStatusPayload)),
+    ...QUERY_POLICY.fast,
+    refetchInterval: 30_000,
+  });
+  const coverageQuery = useQuery({
+    queryKey: ["admin-live", "coverage"],
+    queryFn: () => apiGet<CoverageCampaignPayload>("/api/system/coverage-campaign").catch(() => ({} as CoverageCampaignPayload)),
+    ...QUERY_POLICY.medium,
+    refetchInterval: 30_000,
+  });
+  const integrityQuery = useQuery({
+    queryKey: ["admin-live", "integrity"],
+    queryFn: getDataIntegrity,
+    ...QUERY_POLICY.medium,
+    refetchInterval: 45_000,
+  });
+  const newsletterDiagnosticsQuery = useQuery({
+    queryKey: ["admin-live", "newsletter-diagnostics"],
+    queryFn: () => apiGet<ApiEnvelope<NewsletterDiagnosticsPayload>>("/api/newsletter/diagnostics").catch(() => ({ success: false })),
+    ...QUERY_POLICY.medium,
+    refetchInterval: 60_000,
+  });
+  const newsletterPreviewQuery = useQuery({
+    queryKey: ["admin-live", "newsletter-preview"],
+    queryFn: () => apiGet<ApiEnvelope<NewsletterPreviewPayload>>("/api/newsletter/preview").catch(() => ({ success: false })),
+    ...QUERY_POLICY.medium,
+    refetchInterval: 60_000,
+  });
+  const usersQuery = useQuery({
+    queryKey: ["admin-live", "users"],
+    queryFn: () => apiGet<UsersPayload>("/api/admin/users").catch(() => ({ ok: false, users: [] })),
+    ...QUERY_POLICY.slow,
+  });
+
+  const testNewsletterMutation = useMutation({
+    mutationFn: () => apiPost("/api/admin/email-test", { newsletterType: "beacon_morning" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-live", "newsletter-diagnostics"] });
+    },
+  });
+  const liveNewsletterMutation = useMutation({
+    mutationFn: () => apiPost("/api/newsletter/send", {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-live", "newsletter-diagnostics"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-live", "newsletter-preview"] });
+    },
+  });
 
   if (!initialized) {
-    return <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-800/50" />)}</div>;
+    return <div className="space-y-3">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-2xl bg-slate-800/50" />)}</div>;
   }
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-rose-800/40 bg-rose-950/10 py-16 text-center">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-rose-800/40 bg-rose-950/10 py-16 text-center">
         <Shield className="mb-3 size-10 text-rose-400/50" />
         <p className="text-sm font-semibold text-rose-300">Admin Access Required</p>
-        <p className="mt-1 text-xs text-slate-600">This panel is restricted to admin users only</p>
+        <p className="mt-1 text-xs text-slate-600">This console is restricted to admin users only.</p>
       </div>
     );
   }
 
-  function renderPanel() {
-    switch (activeTab) {
-      case "Health":      return <HealthPanel />;
-      case "Pipeline":    return <PipelinePanel />;
-      case "Signals":     return <SignalsPanel />;
-      case "Simulation":  return <SimulationPanel />;
-      case "Signal Flow": return <SignalFlowPanel />;
-      case "Users":       return <UsersPanel />;
-      case "Newsletter":  return <NewsletterPanel />;
-      case "Email":       return <EmailPanel />;
-      case "Integrity":   return <IntegrityPanel />;
-      case "Engines":     return <EnginesPanel />;
-      case "Logs":        return <LogsPanel />;
-    }
-  }
+  const integrity = integrityQuery.data as IntegrityPayload | undefined;
+  const tables = integrity?.tables || [];
+  const issues = integrity?.issues || [];
+  const diagnosticTables = diagnosticsQuery.data?.database_health?.tables || {};
+  const newsletterDiagnostics = (newsletterDiagnosticsQuery.data as ApiEnvelope<NewsletterDiagnosticsPayload> | undefined)?.data;
+  const newsletterPreview = (newsletterPreviewQuery.data as ApiEnvelope<NewsletterPreviewPayload> | undefined)?.data;
+  const users = usersQuery.data?.users || [];
+  const recentCronRuns = cronQuery.data?.recent_runs || [];
+  const recentAlerts = (systemQuery.data?.system_alerts || []).slice(0, 6);
+  const engineRows = runtimeEntries(systemQuery.data?.engine_health);
+  const activeUsers = users.filter((user) => Number(user.is_active) === 1).length;
+  const adminUsers = users.filter((user) => Number(user.is_admin) === 1).length;
+
+  const coverageSummary = coverageQuery.data?.summary;
+  const coverageStatus = asRecord(coverageQuery.data?.status);
+  const checkpoint = asRecord(coverageQuery.data?.checkpoint);
+  const checkpointSupervisor = asRecord(checkpoint?.supervisor);
+
+  const platformStatus = integrity?.status || systemQuery.data?.system_status || systemHealthQuery.data?.backend || "unknown";
+  const providerCount = systemQuery.data?.providers_online ?? 0;
+  const subscriberCount = newsletterDiagnostics?.summary?.subscriberCount ?? newsletterPreview?.meta?.subscriberCount ?? 0;
 
   return (
-    <div className="space-y-4">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-sm font-semibold text-slate-100">Mission Control</h1>
-          <p className="text-[11px] text-slate-600">System health · Data pipeline · Signal performance · Engine control</p>
+    <div className="space-y-5">
+      <Card className="bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.12),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.10),_transparent_30%),#0f1520]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-sky-300/80">Operations Console</p>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-100">Live admin feed for platform health, coverage, and newsletter delivery</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-400">
+              This view is wired to the live health, integrity, cron, coverage, and newsletter endpoints that still exist in the backend. It is intended to surface broken data paths instead of hiding them behind empty tabs.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/coverage-campaign" className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800">Coverage Campaign</Link>
+            <Link href="/admin/cron-debug" className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800">Cron Debug</Link>
+            <Link href="/admin/data-health" className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800">Data Health</Link>
+          </div>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-950/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-400">
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-          ADMIN
-        </span>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Platform Status</p>
+            <div className="mt-3 flex items-center gap-2">
+              <StatusPill label={platformStatus} />
+            </div>
+            <p className="mt-3 text-xs text-slate-500">Checked {formatDateTime(integrity?.checked_at || systemQuery.data?.checked_at || diagnosticsQuery.data?.checked_at)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Providers Online</p>
+            <p className="mt-3 text-3xl font-semibold text-slate-100">{formatNumber(providerCount)}</p>
+            <p className="mt-2 text-xs text-slate-500">DB {getString(systemHealthQuery.data?.db)} · Quotes {getString(systemHealthQuery.data?.quotes)} · OHLC {getString(systemHealthQuery.data?.ohlc)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Integrity Issues</p>
+            <p className="mt-3 text-3xl font-semibold text-slate-100">{formatNumber(issues.length)}</p>
+            <p className="mt-2 text-xs text-slate-500">{integrity?.parity?.status ? `Frontend parity ${integrity.parity.status}` : "Parity not reported"}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Newsletter Reach</p>
+            <p className="mt-3 text-3xl font-semibold text-slate-100">{formatNumber(subscriberCount)}</p>
+            <p className="mt-2 text-xs text-slate-500">Next run {newsletterDiagnostics?.scheduler?.nextNewsletterRun || "—"}</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionTitle icon={Database} title="Site Data Health" detail="Authoritative table health for OHLC, technicals, news, earnings, and opportunity output." />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <TableStatusRow title="OHLC / Quotes" table={findTable(tables, ["intraday", "ohlc", "market_quotes"])} fallbackCount={getNumber(diagnosticTables.intraday_1m)} />
+          <TableStatusRow title="Technical Data" table={findTable(tables, ["market_metrics", "technical"])} fallbackCount={getNumber(diagnosticTables.trade_setups)} />
+          <TableStatusRow title="News" table={findTable(tables, ["news_articles", "news"])} fallbackCount={getNumber(diagnosticTables.news_articles)} />
+          <TableStatusRow title="Earnings" table={findTable(tables, ["earnings_events", "earnings"])} fallbackCount={getNumber(diagnosticTables.earnings_events)} />
+          <TableStatusRow title="Opportunities" table={findTable(tables, ["opportunity_stream", "trade_signals", "stocks_in_play"])} fallbackCount={getNumber(diagnosticTables.opportunity_stream)} />
+        </div>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <SectionTitle icon={Server} title="System and Engines" detail="Scheduler, engine runtime, providers, and recent alert state." />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="text-xs font-semibold text-slate-100">Health snapshot</p>
+              <div className="mt-3 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between"><span className="text-slate-500">Backend</span><StatusPill label={getString(systemHealthQuery.data?.backend, "unknown")} /></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Database</span><StatusPill label={getString(systemHealthQuery.data?.db, "unknown")} /></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Engines running</span><span>{formatNumber(systemQuery.data?.engines_running ?? null)}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Admin users</span><span>{formatNumber(adminUsers)}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Active users</span><span>{formatNumber(activeUsers)}</span></div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="text-xs font-semibold text-slate-100">Coverage campaign</p>
+              <div className="mt-3 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between"><span className="text-slate-500">Current missing news</span><span>{formatNumber(coverageSummary?.current?.missingNewsCount ?? getNumber(coverageStatus?.missing_news_count))}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Current missing earnings</span><span>{formatNumber(coverageSummary?.current?.missingEarningsCount ?? getNumber(coverageStatus?.missing_earnings_count))}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">News completion</span><span>{formatPercent(coverageSummary?.completion?.newsPercent ?? null)}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">No-progress cycles</span><span>{formatNumber(getNumber(checkpointSupervisor?.no_progress_cycles) ?? getNumber(coverageStatus?.no_progress_cycles))}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">Last heartbeat</span><span>{formatDateTime(coverageQuery.data?.generatedAt || getString(checkpoint?.updated_at, ""))}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="mb-3 text-xs font-semibold text-slate-100">Engine runtime</p>
+            {engineRows.length > 0 ? (
+              <div className="space-y-2">
+                {engineRows.slice(0, 8).map(([name, value]) => {
+                  const record = asRecord(value);
+                  const status = getString(record?.status, "unknown");
+                  return (
+                    <div key={name} className="flex items-center justify-between rounded-lg border border-slate-800/60 px-3 py-2 text-xs">
+                      <div>
+                        <p className="font-medium text-slate-200">{name.replace(/_/g, " ")}</p>
+                        <p className="text-[11px] text-slate-500">Last update {formatDateTime(getString(record?.last_update || record?.last_run, ""))}</p>
+                      </div>
+                      <StatusPill label={status} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">No engine telemetry returned from the backend.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle icon={Clock3} title="Scheduler and Recent Events" detail="Cron activity and latest operational alerts." />
+          <div className="space-y-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-slate-100">Cron status</p>
+                <StatusPill label={getString(cronQuery.data?.status, cronQuery.data?.error ? "error" : "unknown")} />
+              </div>
+              <div className="mt-3 space-y-2">
+                {recentCronRuns.slice(-6).reverse().map((entry, index) => (
+                  <div key={index} className="rounded-lg border border-slate-800/60 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-slate-200">{getString(entry.event, "event")}</span>
+                      <span className="text-slate-500">{formatDateTime(typeof entry.timestamp === "string" ? entry.timestamp : null)}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">{JSON.stringify(entry.payload || {})}</p>
+                  </div>
+                ))}
+                {recentCronRuns.length === 0 ? <p className="text-xs text-slate-500">No recent cron events recorded.</p> : null}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="mb-3 text-xs font-semibold text-slate-100">Recent alerts</p>
+              <div className="space-y-2">
+                {recentAlerts.length > 0 ? recentAlerts.map((alert, index) => (
+                  <div key={index} className="rounded-lg border border-slate-800/60 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-slate-200">{getString(alert.message, "Alert")}</span>
+                      <StatusPill label={getString(alert.severity, "unknown")} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">{getString(alert.source, "system")} · {formatDateTime(typeof alert.created_at === "string" ? alert.created_at : null)}</p>
+                  </div>
+                )) : <p className="text-xs text-slate-500">No recent system alerts returned.</p>}
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* System Score Bar */}
-      <ScoreBar />
+      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <Card>
+          <SectionTitle icon={Mail} title="Newsletter System" detail="Diagnostics, preview, recent send history, and manual recovery controls." />
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Subscribers</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">{formatNumber(subscriberCount)}</p>
+              <p className="mt-1 text-[11px] text-slate-500">Last brief {formatDateTime(newsletterDiagnostics?.summary?.lastMorningBriefRun || null)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Next scheduled run</p>
+              <p className="mt-2 text-sm font-semibold text-slate-100">{newsletterDiagnostics?.scheduler?.nextNewsletterRun || "—"}</p>
+              <p className="mt-1 text-[11px] text-slate-500">Timezone {newsletterDiagnostics?.scheduler?.timezone || "—"}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Preview quality</p>
+              <p className="mt-2 text-sm font-semibold text-slate-100">Open {formatPercent(newsletterPreview?.meta?.averageOpenRate ?? null, 2)}</p>
+              <p className="mt-1 text-[11px] text-slate-500">Click {formatPercent(newsletterPreview?.meta?.averageClickRate ?? null, 2)}</p>
+            </div>
+          </div>
 
-      {/* Top grid: Health + Pipeline */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <HealthPanel />
-        <PipelinePanel />
-      </div>
-
-      {/* Tab nav for detailed panels */}
-      <div className="rounded-xl border border-slate-800 bg-[#0f1520]">
-        <div className="flex overflow-x-auto border-b border-slate-800">
-          {TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`shrink-0 px-3.5 py-2.5 text-[11px] font-medium transition ${activeTab === tab ? 'border-b-2 border-blue-500 text-slate-100' : 'text-slate-500 hover:text-slate-300'}`}>
-              {tab}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => testNewsletterMutation.mutate()}
+              disabled={testNewsletterMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+            >
+              <Play className={`size-3 ${testNewsletterMutation.isPending ? "animate-spin" : ""}`} />
+              Send test morning brief
             </button>
-          ))}
-        </div>
-        <div className="p-4">
-          {renderPanel()}
-        </div>
-      </div>
+            <button
+              onClick={() => liveNewsletterMutation.mutate()}
+              disabled={liveNewsletterMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-700/50 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 transition hover:bg-emerald-500/15 disabled:opacity-50"
+            >
+              <Mail className={`size-3 ${liveNewsletterMutation.isPending ? "animate-spin" : ""}`} />
+              Run live newsletter send
+            </button>
+            <button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["admin-live", "newsletter-diagnostics"] });
+                queryClient.invalidateQueries({ queryKey: ["admin-live", "newsletter-preview"] });
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+            >
+              <RefreshCw className="size-3" />
+              Refresh diagnostics
+            </button>
+          </div>
 
+          {(testNewsletterMutation.isError || liveNewsletterMutation.isError || newsletterDiagnostics?.summary?.lastFailure) ? (
+            <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-100">
+              {newsletterDiagnostics?.summary?.lastFailure
+                ? `${newsletterDiagnostics.summary.lastFailure.reason || "newsletter failure"}${newsletterDiagnostics.summary.lastFailure.detail ? ` · ${newsletterDiagnostics.summary.lastFailure.detail}` : ""}`
+                : "One of the newsletter actions returned an error. Check server logs for the full provider response."}
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.95fr]">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="mb-3 text-xs font-semibold text-slate-100">Preview payload</p>
+              <p className="text-xs text-slate-400">{newsletterPreview?.marketNarrative || "No market narrative returned for preview."}</p>
+              <div className="mt-4 space-y-2">
+                {(newsletterPreview?.topSignals || []).slice(0, 5).map((signal: Record<string, unknown>, index: number) => (
+                  <div key={`${getString(signal.symbol, "symbol")}-${index}`} className="rounded-lg border border-slate-800/60 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-slate-200">{getString(signal.symbol)}</span>
+                      <span className="text-slate-500">{getString(signal.strategy, "strategy")}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">{getString(signal.catalyst, "No catalyst")} · {getString(signal.sector, "Unknown sector")}</p>
+                  </div>
+                ))}
+                {(!newsletterPreview?.topSignals || newsletterPreview.topSignals.length === 0) ? <p className="text-xs text-slate-500">Preview did not return top signals.</p> : null}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <p className="mb-3 text-xs font-semibold text-slate-100">Recent send history</p>
+              <div className="space-y-2">
+                {(newsletterDiagnostics?.sendHistory || []).slice(0, 6).map((row: Record<string, unknown>, index: number) => (
+                  <div key={index} className="rounded-lg border border-slate-800/60 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-slate-200">{getString(row.campaign_type, "newsletter")}</span>
+                      <StatusPill label={getString(row.status, "unknown")} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">{formatDateTime(typeof row.sent_at === "string" ? row.sent_at : null)} · recipients {formatNumber(getNumber(row.recipients_count))}</p>
+                  </div>
+                ))}
+                {(!newsletterDiagnostics?.sendHistory || newsletterDiagnostics.sendHistory.length === 0) ? <p className="text-xs text-slate-500">No newsletter send history returned.</p> : null}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle icon={AlertTriangle} title="Integrity Feed" detail="Problems the admin page should surface instead of silently masking." />
+          <div className="space-y-3">
+            {issues.length > 0 ? issues.slice(0, 8).map(renderIssue) : (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                <CheckCircle2 className="mr-2 inline size-4" />
+                No active integrity issues were returned by the live data-integrity endpoint.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="mb-3 text-xs font-semibold text-slate-100">Latest newsletter selection</p>
+            <div className="flex flex-wrap gap-2">
+              {(newsletterDiagnostics?.latestRun?.selectedTickers || []).map((symbol: string) => (
+                <span key={symbol} className="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] text-slate-200">{symbol}</span>
+              ))}
+              {(!newsletterDiagnostics?.latestRun?.selectedTickers || newsletterDiagnostics.latestRun.selectedTickers.length === 0) ? <span className="text-xs text-slate-500">No selected tickers reported.</span> : null}
+            </div>
+            <p className="mt-3 text-[11px] text-slate-500">Enhancement source {newsletterDiagnostics?.latestRun?.mcpEnhancementStatus || "—"}</p>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="mb-3 text-xs font-semibold text-slate-100">Operator notes</p>
+            <div className="space-y-2 text-xs text-slate-400">
+              <p className="flex items-start gap-2"><Sparkles className="mt-0.5 size-3 text-sky-400" />This page is intentionally wired to live routes only. If a section is empty now, that is a backend data problem, not a fake placeholder state.</p>
+              <p className="flex items-start gap-2"><Wrench className="mt-0.5 size-3 text-amber-400" />Coverage and cron remain linked to their dedicated pages so you can drill into repair loops and scheduler output without leaving admin.</p>
+              <p className="flex items-start gap-2"><Users className="mt-0.5 size-3 text-emerald-400" />User inventory is still live through the existing admin users endpoint: {formatNumber(users.length)} total accounts, {formatNumber(adminUsers)} admins.</p>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

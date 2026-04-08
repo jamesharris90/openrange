@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/config/apiBase";
+import { API_BASE } from "@/lib/apiBase";
 
 export const dynamic = "force-dynamic";
 

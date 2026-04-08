@@ -1,47 +1,39 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
-
-import { AppShell } from "@/components/app-shell";
-import { AuthProvider } from "@/context/AuthContext";
-
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { LayoutShell } from "@/components/layout-shell";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const fontSans = Inter({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
 });
 
-const fontMono = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
+  weight: ["400", "500"],
   variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "OpenRange Trading Terminal",
-  description: "Terminal-grade trading intelligence operating system",
-  openGraph: {
-    title: "OpenRange Trading Terminal",
-    description: "Terminal-grade trading intelligence operating system",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "OpenRange Trading Terminal",
-    description: "Terminal-grade trading intelligence operating system",
-  },
+  title: "OpenRange Terminal",
+  description: "Professional trading intelligence platform",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
+      <body suppressHydrationWarning className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} min-h-screen bg-[var(--background)]`}>
+        <Providers>
+          <LayoutShell>
+            {children}
+          </LayoutShell>
+        </Providers>
       </body>
     </html>
   );

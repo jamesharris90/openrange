@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE } from "@/lib/config/apiBase";
+import { API_BASE } from "@/lib/apiBase";
 import { backendPost } from "@/app/api/_lib/proxy";
 
 export const dynamic = "force-dynamic";

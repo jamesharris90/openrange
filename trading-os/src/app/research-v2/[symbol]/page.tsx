@@ -15,52 +15,109 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
-type ScreenerRow = {
-  symbol: string | null;
-  price: number | null;
-  change_percent: number | null;
-  volume: number | null;
-  rvol: number | null;
-  gap_percent: number | null;
-  latest_news_at?: string | null;
-  news_source: "fmp" | "database" | "none";
-  earnings_date?: string | null;
-  earnings_source: "fmp" | "database" | "yahoo" | "none";
-  catalyst_type: "NEWS" | "RECENT_NEWS" | "EARNINGS" | "TECHNICAL" | "NONE";
-  sector: string | null;
-  updated_at: string | null;
-  why: string;
-  driver_type: "MACRO" | "SECTOR" | "NEWS" | "EARNINGS" | "TECHNICAL";
-  confidence: number;
-  linked_symbols: string[];
-};
-
-type Narrative = {
-  summary: string;
-  driver: string;
-  strength: "strong" | "weak";
-  tradeable: boolean;
-  bias: "continuation" | "reversal" | "chop";
-  setup_type: "momentum continuation" | "mean reversion" | "breakout" | "fade" | "chop / avoid";
-  confidence_reason: string;
-  watch: string;
-  risk: "low" | "medium" | "high";
-  generated_at: string;
-};
-
-type ResearchResponse = {
-  success: boolean;
-  data: {
-    symbol: string;
-    screener: ScreenerRow;
-    narrative: Narrative;
-  };
-};
-
 type Props = {
   params: {
     symbol: string;
   };
+};
+
+type MCPData = {
+  summary?: string;
+  why?: string;
+  what?: string;
+  where?: string;
+  when?: string;
+  confidence?: number;
+  confidence_reason?: string;
+  trade_quality?: string;
+  improve?: string;
+  action?: string;
+  trade_score?: number;
+  expected_move?: {
+    value?: number | null;
+    percent?: number | null;
+    label?: string;
+  };
+  risk?: {
+    entry?: number | null;
+    invalidation?: number | null;
+    reward?: number | null;
+    rr?: number | null;
+  };
+};
+
+type MarketData = {
+  price?: number | null;
+  change_percent?: number | null;
+  volume?: number | null;
+  market_cap?: number | null;
+  relative_volume?: number | null;
+  updated_at?: string | null;
+};
+
+type TechnicalsData = {
+  atr?: number | null;
+  rsi?: number | null;
+  vwap?: number | null;
+  relative_volume?: number | null;
+  avg_volume_30d?: number | null;
+  sma_20?: number | null;
+  sma_50?: number | null;
+  sma_200?: number | null;
+};
+
+type NewsItem = {
+  id?: string | null;
+  title?: string | null;
+  summary?: string | null;
+  source?: string | null;
+  url?: string | null;
+  published_at?: string | null;
+};
+
+type EarningsRecord = {
+  report_date?: string | null;
+  report_time?: string | null;
+  eps_estimate?: number | null;
+  eps_actual?: number | null;
+  revenue_estimate?: number | null;
+  revenue_actual?: number | null;
+};
+
+type CompanyData = {
+  company_name?: string | null;
+  sector?: string | null;
+  industry?: string | null;
+  description?: string | null;
+  exchange?: string | null;
+  country?: string | null;
+  website?: string | null;
+};
+
+type ChartRow = Record<string, unknown>;
+
+type ResearchData = {
+  symbol: string;
+  market?: MarketData;
+  technicals?: TechnicalsData;
+  chart?: {
+    intraday?: ChartRow[];
+    daily?: ChartRow[];
+  };
+  news?: NewsItem[];
+  earnings?: {
+    latest?: EarningsRecord | null;
+    next?: EarningsRecord | null;
+  };
+  company?: CompanyData;
+  mcp?: MCPData;
+  warnings?: string[];
+};
+
+type ResearchResponse = {
+  success?: boolean;
+  data?: ResearchData;
+  error?: string;
 };
 
 type ChartTimeframe = "1m" | "daily";
@@ -87,27 +144,10 @@ function toChartTime(value: unknown): UTCTimestamp | null {
   return Math.floor(parsed / 1000) as UTCTimestamp;
 }
 
-function pickChartRows(payload: unknown) {
-  if (!payload || typeof payload !== "object") {
-    return [] as Array<Record<string, unknown>>;
-  }
-
-  const root = payload as { data?: unknown; candles?: unknown };
-  if (Array.isArray(root.data)) {
-    return root.data as Array<Record<string, unknown>>;
-  }
-
-  if (Array.isArray(root.candles)) {
-    return root.candles as Array<Record<string, unknown>>;
-  }
-
-  return [] as Array<Record<string, unknown>>;
-}
-
-function normalizeChartRows(payload: unknown) {
+function normalizeChartRows(rows: ChartRow[] | undefined) {
   const byTime = new Map<number, ChartPoint>();
 
-  for (const row of pickChartRows(payload)) {
+  for (const row of Array.isArray(rows) ? rows : []) {
     const time = toChartTime(row.time ?? row.timestamp ?? row.date ?? null);
     const close = Number(row.close ?? row.open ?? 0);
     const open = Number(row.open ?? row.close ?? close);
@@ -129,7 +169,7 @@ function normalizeChartRows(payload: unknown) {
     });
   }
 
-  return [...byTime.values()].sort((left, right) => Number(left.time) - Number(right.time));
+  return Array.from(byTime.values()).sort((left, right) => Number(left.time) - Number(right.time));
 }
 
 function computeVWAP(rows: ChartPoint[]) {
@@ -144,85 +184,199 @@ function computeVWAP(rows: ChartPoint[]) {
   });
 }
 
-function buildSyntheticRows(price: number) {
-  const now = Math.floor(Date.now() / 1000);
-  const safePrice = Number.isFinite(price) && price > 0 ? price : 1;
-
-  return [
-    {
-      time: (now - 3600) as UTCTimestamp,
-      open: safePrice,
-      high: safePrice,
-      low: safePrice,
-      close: safePrice,
-      volume: 0,
-    },
-    {
-      time: now as UTCTimestamp,
-      open: safePrice,
-      high: safePrice,
-      low: safePrice,
-      close: safePrice,
-      volume: 0,
-    },
-  ] satisfies ChartPoint[];
-}
-
 function formatChartTimeframe(value: ChartTimeframe) {
   return value === "1m" ? "1m intraday" : "daily";
 }
 
-function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice: number | null }) {
+function formatPercent(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) {
+    return "No data available";
+  }
+
+  const numeric = Number(value);
+  const sign = numeric > 0 ? "+" : "";
+  return `${sign}${numeric.toFixed(2)}%`;
+}
+
+function formatCurrency(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) {
+    return "No data available";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(Number(value));
+}
+
+function formatLargeNumber(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) {
+    return "No data available";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(Number(value));
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) {
+    return "No data available";
+  }
+
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(parsed));
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "No data available";
+  }
+
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(parsed));
+}
+
+function badgeTone(value: string | undefined) {
+  switch (String(value || "").toUpperCase()) {
+    case "BUY":
+    case "HIGH":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    case "WAIT":
+    case "WATCH":
+    case "MEDIUM":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    case "AVOID":
+    case "LOW":
+      return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    default:
+      return "border-slate-500/30 bg-slate-500/10 text-slate-200";
+  }
+}
+
+function splitMultiline(value: string | undefined) {
+  const lines = String(value || "Waiting for better conditions")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.length ? lines : ["Waiting for better conditions"];
+}
+
+function normalizeMcpSummary(value: string | undefined) {
+  const summary = String(value || "").trim();
+  if (summary === "Watch - building setup but no confirmation yet") {
+    return "Setup developing — not confirmed yet";
+  }
+  if (summary === "No trade - lacks catalyst and momentum") {
+    return "No trade — insufficient edge";
+  }
+  if (summary === "Developing setup - wait for confirmation") {
+    return "Developing setup — wait for confirmation";
+  }
+  if (summary === "No edge - avoid until conditions improve") {
+    return "No edge — avoid until conditions improve";
+  }
+  if (summary === "High-quality setup with catalyst and confirmation - tradeable now") {
+    return "High-quality setup with catalyst and confirmation — tradeable now";
+  }
+  return summary || "No trade — insufficient edge";
+}
+
+function formatMetricNumber(value: number | null | undefined, digits = 1) {
+  if (!Number.isFinite(Number(value))) {
+    return "--";
+  }
+
+  return Number(value).toFixed(digits);
+}
+
+function formatRatio(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) {
+    return "--";
+  }
+
+  return `${Number(value).toFixed(1)}R`;
+}
+
+function confidenceBarTone(confidence: number) {
+  if (confidence > 70) {
+    return "bg-emerald-400";
+  }
+  if (confidence >= 40) {
+    return "bg-amber-400";
+  }
+  return "bg-rose-400";
+}
+
+function InfoPanel({
+  title,
+  value,
+  muted,
+}: {
+  title: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{title}</p>
+      <p className={cn("mt-2 text-sm leading-6", muted ? "text-slate-400" : "text-slate-200")}>{value}</p>
+    </div>
+  );
+}
+
+function ResearchChart({
+  symbol,
+  currentPrice,
+  chart,
+}: {
+  symbol: string;
+  currentPrice: number | null;
+  chart?: ResearchData["chart"];
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [rows, setRows] = useState<ChartPoint[]>([]);
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
-  const [status, setStatus] = useState<"loading" | "ready" | "fallback">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
-    let cancelled = false;
+    console.log("CHART DATA:", chart);
 
-    async function loadChart() {
-      setStatus("loading");
+    const intradayRows = normalizeChartRows(chart?.intraday);
+    const dailyRows = normalizeChartRows(chart?.daily);
+    const nextRows = intradayRows.length > 1 ? intradayRows : dailyRows;
+    const nextTimeframe = intradayRows.length > 1 ? "1m" : "daily";
 
-      const requests: Array<{ path: string; timeframe: ChartTimeframe }> = [
-        { path: `/api/ohlc/intraday?symbol=${encodeURIComponent(symbol)}&interval=1m`, timeframe: "1m" },
-        { path: `/api/market/ohlc?symbol=${encodeURIComponent(symbol)}&interval=1d`, timeframe: "daily" },
-      ];
-
-      for (const request of requests) {
-        try {
-          const response = await apiFetch(request.path, { cache: "no-store" });
-          if (!response.ok) {
-            continue;
-          }
-
-          const payload = await response.json();
-          const nextRows = normalizeChartRows(payload);
-          if (nextRows.length > 1) {
-            if (!cancelled) {
-              setRows(nextRows);
-              setTimeframe(request.timeframe);
-              setStatus("ready");
-            }
-            return;
-          }
-        } catch {
-        }
-      }
-
-      if (!cancelled) {
-        setRows(buildSyntheticRows(Number(currentPrice ?? 0)));
-        setTimeframe("daily");
-        setStatus("fallback");
-      }
+    if (nextRows.length > 1) {
+      setRows(nextRows);
+      setTimeframe(nextTimeframe);
+      setStatus("ready");
+    } else {
+      setRows([]);
+      setStatus("error");
     }
-
-    loadChart();
-    return () => {
-      cancelled = true;
-    };
-  }, [symbol, currentPrice]);
+  }, [chart]);
 
   useEffect(() => {
     const host = containerRef.current;
@@ -230,7 +384,7 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
       return;
     }
 
-    const chart = createChart(host, {
+    const chartInstance = createChart(host, {
       width: host.clientWidth,
       height: 340,
       layout: {
@@ -242,8 +396,8 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
         horzLines: { color: "rgba(148,163,184,0.06)" },
       },
       crosshair: {
-        vertLine: { color: "rgba(59,130,246,0.45)", lineWidth: 1 },
-        horzLine: { color: "rgba(59,130,246,0.45)", lineWidth: 1 },
+        vertLine: { color: "rgba(59,130,246,0.45)" },
+        horzLine: { color: "rgba(59,130,246,0.45)" },
       },
       timeScale: {
         borderColor: "rgba(148,163,184,0.12)",
@@ -256,20 +410,20 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
       },
     });
 
-    const priceSeries = chart.addSeries(LineSeries, {
+    const priceSeries = chartInstance.addSeries(LineSeries, {
       color: "#34d399",
       lineWidth: 2,
       priceLineVisible: true,
       lastValueVisible: true,
     });
-    const vwapSeries = chart.addSeries(LineSeries, {
+    const vwapSeries = chartInstance.addSeries(LineSeries, {
       color: "#60a5fa",
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       priceLineVisible: false,
       lastValueVisible: false,
     });
-    const volumeSeries = chart.addSeries(HistogramSeries, {
+    const volumeSeries = chartInstance.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
       priceScaleId: "",
     });
@@ -302,8 +456,8 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
       });
     }
 
-    chart.timeScale().fitContent();
-    chartRef.current = chart;
+    chartInstance.timeScale().fitContent();
+    chartRef.current = chartInstance;
 
     const resizeObserver = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
@@ -314,7 +468,7 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
 
     return () => {
       resizeObserver.disconnect();
-      chart.remove();
+      chartInstance.remove();
       chartRef.current = null;
     };
   }, [rows, currentPrice]);
@@ -327,115 +481,26 @@ function ResearchChart({ symbol, currentPrice }: { symbol: string; currentPrice:
           <p className="mt-2 text-sm text-slate-300">{symbol} · {formatChartTimeframe(timeframe)}</p>
         </div>
         <div className="text-right text-[11px] uppercase tracking-[0.16em] text-slate-500">
-          <p>Price line</p>
+          <p>Unified API</p>
           <p className="mt-1">VWAP · Volume</p>
         </div>
       </div>
       {status === "loading" ? (
         <div className="mt-4 h-[340px] animate-pulse rounded-xl bg-slate-950/70" />
+      ) : status === "error" ? (
+        <div className="mt-4 flex h-[340px] items-center justify-center rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-slate-500">
+          No data available
+        </div>
       ) : (
-        <>
-          <div ref={containerRef} className="mt-4 h-[340px] w-full" />
-          {status === "fallback" ? (
-            <p className="mt-3 text-xs text-slate-500">Live candles were unavailable, so the chart fell back to the current price snapshot.</p>
-          ) : null}
-        </>
+        <div ref={containerRef} className="mt-4 h-[340px] w-full" />
       )}
     </div>
   );
 }
 
-function formatPercent(value: number | null) {
-  if (value === null) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
-}
-
-function formatConfidence(value: number) {
-  if (value >= 0.8) {
-    return {
-      label: "HIGH",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-    };
-  }
-
-  if (value >= 0.4) {
-    return {
-      label: "MED",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-    };
-  }
-
-  return {
-    label: "LOW",
-    className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  };
-}
-
-function formatDriverType(type: ScreenerRow["driver_type"]) {
-  switch (type) {
-    case "MACRO":
-      return {
-        label: "Macro",
-        className: "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200",
-      };
-    case "SECTOR":
-      return {
-        label: "Sector",
-        className: "border-sky-500/30 bg-sky-500/10 text-sky-200",
-      };
-    case "NEWS":
-      return {
-        label: "News",
-        className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-      };
-    case "EARNINGS":
-      return {
-        label: "Earnings",
-        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-      };
-    default:
-      return {
-        label: "Technical",
-        className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-      };
-  }
-}
-
-function narrativeBadgeTone(value: string) {
-  switch (value) {
-    case "strong":
-    case "continuation":
-    case "low":
-    case "yes":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
-    case "weak":
-    case "reversal":
-    case "high":
-    case "no":
-      return "border-rose-500/30 bg-rose-500/10 text-rose-200";
-    default:
-      return "border-amber-500/30 bg-amber-500/10 text-amber-200";
-  }
-}
-
-function formatGeneratedAt(value: string) {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) {
-    return "Unknown";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(parsed));
-}
-
 export default function ResearchV2SymbolPage({ params }: Props) {
   const symbol = params.symbol.toUpperCase();
-  const [data, setData] = useState<ResearchResponse["data"] | null>(null);
+  const [data, setData] = useState<ResearchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -447,11 +512,13 @@ export default function ResearchV2SymbolPage({ params }: Props) {
       setError(null);
 
       try {
-        const response = await apiFetch(`/api/v2/research/${encodeURIComponent(symbol)}`, {
+        const response = await apiFetch(`/api/research/${encodeURIComponent(symbol)}`, {
           cache: "no-store",
         });
 
-        const payload = (await response.json()) as Partial<ResearchResponse> & { error?: string };
+        const payload = (await response.json()) as ResearchResponse;
+        console.log("RESEARCH DATA:", payload?.data);
+
         if (!response.ok || !payload.success || !payload.data) {
           throw new Error(payload.error || `Failed to load research for ${symbol}`);
         }
@@ -477,26 +544,34 @@ export default function ResearchV2SymbolPage({ params }: Props) {
     };
   }, [symbol]);
 
-  const screener = data?.screener;
-  const narrative = data?.narrative;
-  const driver = screener ? formatDriverType(screener.driver_type) : null;
-  const confidence = screener ? formatConfidence(screener.confidence) : null;
+  const mcp = data?.mcp || {};
+  const market = data?.market || {};
+  const technicals = data?.technicals || {};
+  const company = data?.company || {};
+  const earnings = data?.earnings || {};
+  const news = Array.isArray(data?.news) ? data.news.slice(0, 3) : [];
+  const improveLines = splitMultiline(mcp.improve);
+  const confidenceValue = Number.isFinite(Number(mcp.confidence)) ? Number(mcp.confidence) : 0;
+  const tradeScoreValue = Number.isFinite(Number(mcp.trade_score)) ? Number(mcp.trade_score) : 0;
+  const expectedMovePercent = Number.isFinite(Number(mcp.expected_move?.percent)) ? Number(mcp.expected_move?.percent) : null;
+  const rrValue = Number.isFinite(Number(mcp.risk?.rr)) ? Number(mcp.risk?.rr) : null;
+  const normalizedSummary = normalizeMcpSummary(mcp.summary);
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-950/80 p-8 text-slate-100 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-400/80">Research V2</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-400/80">Research</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{symbol}</h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-400">
-            Deterministic screener output first, GPT narrative second. This layer runs only on the research page.
+            Unified research data with MCP-driven trade guidance, chart data, market context, and core company fields.
           </p>
         </div>
         <Link
           href="/screener-v2"
           className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20"
         >
-          Back to Screener V2
+          Back to Opportunities
         </Link>
       </div>
 
@@ -523,82 +598,128 @@ export default function ResearchV2SymbolPage({ params }: Props) {
         </div>
       ) : null}
 
-      {!loading && !error && screener && narrative ? (
+      {!loading && !error && data ? (
         <div className="mt-8 space-y-4">
-          <ResearchChart symbol={symbol} currentPrice={screener.price} />
-
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">WHY</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.18em]">
-                {driver ? (
-                  <span className={cn("rounded-full border px-2.5 py-1", driver.className)}>{driver.label}</span>
-                ) : null}
-                {confidence ? (
-                  <span className={cn("rounded-full border px-2.5 py-1", confidence.className)}>
-                    {confidence.label} Confidence
-                  </span>
-                ) : null}
-                <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
-                  {formatPercent(screener.change_percent)}
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="rounded-2xl border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_45%),rgba(2,6,23,0.82)] p-5">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-300/80">What Should I Do?</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                <div className={cn("rounded-2xl border px-4 py-4", badgeTone(mcp.action))}>
+                  <p className="text-[10px] uppercase tracking-[0.22em] opacity-75">Action</p>
+                  <p className="mt-2 text-2xl font-semibold uppercase tracking-[0.14em]">{mcp.action || "AVOID"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Trade Score</p>
+                  <p className="mt-2 text-3xl font-semibold">{Math.round(tradeScoreValue)}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Expected Move</p>
+                  <p className="mt-2 text-3xl font-semibold">{expectedMovePercent === null ? "--" : `${formatMetricNumber(expectedMovePercent, 1)}%`}</p>
+                  <p className={cn("mt-1 text-xs uppercase tracking-[0.18em]", badgeTone(mcp.expected_move?.label))}>{mcp.expected_move?.label || "LOW"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">R:R</p>
+                  <p className="mt-2 text-3xl font-semibold">{formatRatio(rrValue)}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                <span className={cn("rounded-full border px-2.5 py-1", badgeTone(mcp.trade_quality))}>
+                  {mcp.trade_quality || "LOW"}
                 </span>
                 <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
-                  {screener.sector || "Unknown sector"}
+                  {formatCurrency(market.price ?? null)}
+                </span>
+                <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+                  {formatPercent(market.change_percent ?? null)}
                 </span>
               </div>
-              <p className="mt-4 text-lg font-medium text-slate-100">{screener.why}</p>
-              {screener.linked_symbols.length ? (
-                <p className="mt-3 text-sm text-slate-400">
-                  Also moving: <span className="text-slate-200">{screener.linked_symbols.join(", ")}</span>
-                </p>
-              ) : (
-                <p className="mt-3 text-sm text-slate-500">No linked peer cluster detected in the current screener snapshot.</p>
-              )}
+              <p className="mt-6 text-2xl font-semibold leading-9 text-slate-100">{normalizedSummary}</p>
             </div>
 
-            <div className="rounded-2xl border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_45%),rgba(2,6,23,0.82)] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-300/80">AI Trade View</p>
-                  <p className="mt-1 text-xs text-slate-400">Cached for 5 minutes. Generated {formatGeneratedAt(narrative.generated_at)}</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <InfoPanel title="What" value={mcp.what || "Structure still developing"} />
+              <InfoPanel title="Risk" value={`Entry ${formatCurrency(mcp.risk?.entry ?? null)} · Invalidation ${formatCurrency(mcp.risk?.invalidation ?? null)} · Reward ${formatCurrency(mcp.risk?.reward ?? null)}`} />
+              <InfoPanel title="Where" value={mcp.where || "Key levels still forming"} />
+            </div>
+          </div>
+
+          <ResearchChart symbol={symbol} currentPrice={market.price ?? null} chart={data.chart} />
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="space-y-4">
+              <InfoPanel title="Why" value={mcp.why || "No catalyst identified yet"} />
+              <InfoPanel title="Trade Plan" value={mcp.when || "Waiting for better conditions"} />
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Improve</p>
+                <div className="mt-2 space-y-2 text-sm leading-6 text-slate-200">
+                  {improveLines.map((line) => (
+                    <div key={line}>{line}</div>
+                  ))}
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-6 text-slate-200">{narrative.summary}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Confidence</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">{`${confidenceValue}% — ${mcp.confidence_reason || "Moderate conviction"}`}</p>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                  <div className={cn("h-full rounded-full transition-all", confidenceBarTone(confidenceValue))} style={{ width: `${Math.max(0, Math.min(100, confidenceValue))}%` }} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Market Snapshot</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <InfoPanel title="Price" value={formatCurrency(market.price ?? null)} muted />
+                  <InfoPanel title="Relative Volume" value={Number.isFinite(Number(market.relative_volume ?? technicals.relative_volume)) ? Number(market.relative_volume ?? technicals.relative_volume).toFixed(2) : "No data available"} muted />
+                  <InfoPanel title="Volume" value={formatLargeNumber(market.volume ?? null)} muted />
+                  <InfoPanel title="Market Cap" value={formatLargeNumber(market.market_cap ?? null)} muted />
+                  <InfoPanel title="RSI" value={Number.isFinite(Number(technicals.rsi)) ? Number(technicals.rsi).toFixed(2) : "No data available"} muted />
+                  <InfoPanel title="VWAP" value={formatCurrency(technicals.vwap ?? null)} muted />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Company</p>
+              <p className="mt-3 text-lg font-medium text-slate-100">{company.company_name || symbol}</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Bias</p>
-                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.bias))}>
-                    {narrative.bias}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Tradeable</p>
-                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.tradeable ? "yes" : "no"))}>
-                    {narrative.tradeable ? "YES" : "NO"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Strength</p>
-                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.strength))}>
-                    {narrative.strength}
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-slate-400">{narrative.confidence_reason}</p>
-                </div>
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Risk</p>
-                  <p className={cn("mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em]", narrativeBadgeTone(narrative.risk))}>
-                    {narrative.risk === "medium" ? "MED" : narrative.risk.toUpperCase()}
-                  </p>
-                </div>
+                <InfoPanel title="Sector" value={company.sector || "No data available"} muted />
+                <InfoPanel title="Industry" value={company.industry || "No data available"} muted />
+                <InfoPanel title="Exchange" value={company.exchange || "No data available"} muted />
+                <InfoPanel title="Country" value={company.country || "No data available"} muted />
               </div>
-              <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Setup Type</p>
-                <p className="mt-2 text-sm leading-6 text-slate-200">{narrative.setup_type}</p>
+              <p className="mt-4 text-sm leading-6 text-slate-400">{company.description || "No data available"}</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Earnings</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <InfoPanel title="Next Report" value={formatDate(earnings.next?.report_date)} muted />
+                <InfoPanel title="Report Time" value={earnings.next?.report_time || "No data available"} muted />
+                <InfoPanel title="EPS Estimate" value={Number.isFinite(Number(earnings.next?.eps_estimate)) ? Number(earnings.next?.eps_estimate).toFixed(2) : "No data available"} muted />
+                <InfoPanel title="Revenue Estimate" value={formatLargeNumber(earnings.next?.revenue_estimate ?? null)} muted />
               </div>
-              <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">What To Watch</p>
-                <p className="mt-2 text-sm leading-6 text-slate-200">{narrative.watch}</p>
-              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Latest News</p>
+            <div className="mt-4 space-y-3">
+              {news.length ? news.map((item) => (
+                <div key={item.id || item.url || item.title} className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                  <p className="text-sm font-medium text-slate-100">{item.title || "No data available"}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{item.summary || "No data available"}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span>{item.source || "No data available"}</span>
+                    <span>{formatDateTime(item.published_at)}</span>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-sm text-slate-500">No data available</p>
+              )}
             </div>
           </div>
         </div>

@@ -117,7 +117,7 @@ function generateResearchHow(
 }
 
 function premarketNarrative(intel: PremarketIntel): string {
-  const { premarket_signal_type, premarket_trend, premarket_gap, premarket_gap_confidence } = intel;
+  const { premarket_signal_type, premarket_trend, premarket_gap } = intel;
   const gap = Math.abs(toNum(premarket_gap, 0));
   const gapDir = (premarket_gap ?? 0) >= 0 ? "up" : "down";
 
@@ -370,6 +370,8 @@ export function ResearchView({ ticker }: { ticker: string }) {
                 {similarSetups.map((row) => (
                   <div key={`${row.symbol}-${row.strategy}`} className="rounded-lg border border-[#1F2937] bg-[#0B0F14] p-2 text-xs">
                     <div className="flex items-center gap-2">
+                      {/* external logos are intentionally raw img tags here to preserve the lightweight onError fallback */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={logoUrl(String(row.symbol || ""))} alt={`${row.symbol} logo`} className="h-4 w-4 rounded-full border border-[#1F2937]" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       <span className="text-white">{String(row.symbol || "")}</span>
                     </div>

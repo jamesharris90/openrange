@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 
+import { AuthProvider } from "@/context/AuthContext";
 import { startLiveDataBus, stopLiveDataBus } from "@/lib/live-data";
 
 const queryClient = new QueryClient({
@@ -31,8 +32,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <LiveDataBridge queryClient={queryClient} />
-        {children}
+        <AuthProvider>
+          <LiveDataBridge queryClient={queryClient} />
+          {children}
+        </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </ThemeProvider>

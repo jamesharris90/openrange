@@ -422,7 +422,7 @@ export function ScreenerView() {
     } finally {
       setLoading(false);
     }
-  }, [sortBy, sortDir, priceMin, priceMax, changeMin, rvolMin, mcapMinBil, sector, catalyst]);
+  }, [activeTab, sortBy, sortDir, priceMin, priceMax, changeMin, rvolMin, mcapMinBil, sector, catalyst]);
 
   useEffect(() => { if (mounted) fetchData(page); }, [page, fetchData, mounted]);
 
@@ -584,7 +584,7 @@ export function ScreenerView() {
               {notReady.coverage != null && notReady.coverage > 0 && ` · coverage ${(notReady.coverage * 100).toFixed(0)}%`}
             </>
           ) : (
-            <>⚠ Market data warming up — coverage {((notReady.coverage ?? 0) * 100).toFixed(0)}%</>
+            <>Market data not ready yet — coverage {((notReady.coverage ?? 0) * 100).toFixed(0)}%</>
           )}
         </div>
       )}

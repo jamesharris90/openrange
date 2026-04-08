@@ -47,14 +47,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setToken(storedToken || null);
 
+    let parsedUser: AuthUser | null = null;
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser) as AuthUser);
+        parsedUser = JSON.parse(storedUser) as AuthUser;
       } catch {
-        setUser(null);
+        parsedUser = null;
       }
     }
 
+    // If stored user is missing is_admin, decode it from the JWT payload directly
+    if (storedToken && parsedUser && parsedUser.is_admin == null) {
+      try {
+        const payload = JSON.parse(atob(storedToken.split(".")[1])) as Record<string, unknown>;
+        if (payload.is_admin != null) {
+          parsedUser = { ...parsedUser, is_admin: payload.is_admin as number | boolean };
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
+        }
+      } catch {
+        // ignore decode errors
+      }
+    }
+
+    setUser(parsedUser);
     writeAuthCookie(storedToken || null);
     setInitialized(true);
   }, []);

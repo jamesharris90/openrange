@@ -1,17 +1,43 @@
 const axios = require('axios');
+const { queryWithTimeout } = require('../../db/pg');
 const { supabaseAdmin } = require('../../services/supabaseClient');
 const { fmpFetch } = require('../../services/fmpClient');
+const { computeSummaryDataConfidence } = require('../../services/dataConfidenceService');
 const { buildWhy } = require('../engines/whyEngine');
 const { buildMacroContext } = require('../engines/macroEngine');
+const { getCoverageStatusBySymbols } = require('./coverageEngine');
 
 const earningsLookupCache = new Map();
 const EARNINGS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const EARNINGS_NONE_CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_YAHOO_LOOKUPS_PER_REQUEST = 20;
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const INTRADAY_LOOKBACK_MS = 6 * 60 * 60 * 1000;
+const SIGNAL_BUCKET_WINDOW = 8;
+const UNIVERSE_PAGE_SIZE = 1000;
+const SYMBOL_BATCH_SIZE = 250;
+const INTRADAY_SYMBOL_BATCH_SIZE = 125;
+const DAILY_SYMBOL_BATCH_SIZE = 250;
+const DAILY_TECHNICAL_LOOKBACK_ROWS = 260;
+const SIGNAL_STATES = {
+  FORMING: 'FORMING',
+  CONFIRMED: 'CONFIRMED',
+  EXTENDED: 'EXTENDED',
+  DEAD: 'DEAD',
+};
 const yahooClient = axios.create({
   timeout: 1000,
   validateStatus: () => true,
 });
+
+const INSTRUMENT_TYPES = {
+  STOCK: 'STOCK',
+  ETF: 'ETF',
+  ADR: 'ADR',
+  REIT: 'REIT',
+  FUND: 'FUND',
+  OTHER: 'OTHER',
+};
 
 function toNumber(value) {
   if (value === null || value === undefined) return null;
@@ -32,12 +58,562 @@ function normalizeScreenerRow(row) {
     earnings_date: row.earnings_date || null,
     earnings_source: row.earnings_source || 'none',
     catalyst_type: row.catalyst_type || 'NONE',
+    catalyst_strength: toNumber(row.catalyst_strength) ?? 0,
     sector: row.sector || null,
+    exchange: row.exchange || null,
+    instrument_type: Object.values(INSTRUMENT_TYPES).includes(row.instrument_type) ? row.instrument_type : INSTRUMENT_TYPES.STOCK,
     updated_at: row.updated_at || null,
     why: row.why || 'Price moving without a clear external catalyst',
     driver_type: row.driver_type || 'TECHNICAL',
     confidence: toNumber(row.confidence) ?? 0.4,
     linked_symbols: Array.isArray(row.linked_symbols) ? row.linked_symbols.filter(Boolean) : [],
+    volume_last_5m: toNumber(row.volume_last_5m),
+    avg_5m_volume: toNumber(row.avg_5m_volume),
+    rvol_acceleration: toNumber(row.rvol_acceleration),
+    price_range_contraction: toNumber(row.price_range_contraction),
+    trend: row.trend || 'NEUTRAL',
+    vwap_position: row.vwap_position || 'BELOW',
+    momentum: row.momentum || 'BEARISH',
+    tqi: toNumber(row.tqi) ?? 0,
+    tqi_label: row.tqi_label || 'D',
+    final_score: toNumber(row.final_score) ?? 0,
+    coverage_score: toNumber(row.coverage_score) ?? 0,
+    data_confidence: toNumber(row.data_confidence) ?? 0,
+    data_confidence_label: row.data_confidence_label || 'POOR',
+    freshness_score: toNumber(row.freshness_score) ?? 0,
+    source_quality: toNumber(row.source_quality) ?? 0,
+    has_news: row.has_news !== undefined ? Boolean(row.has_news) : false,
+    has_earnings: row.has_earnings !== undefined ? Boolean(row.has_earnings) : false,
+    has_technicals: row.has_technicals !== undefined ? Boolean(row.has_technicals) : false,
+    tradeable: row.tradeable !== undefined ? Boolean(row.tradeable) : true,
+    first_seen_timestamp: row.first_seen_timestamp || null,
+    time_since_first_seen: toNumber(row.time_since_first_seen),
+    state: row.state || SIGNAL_STATES.DEAD,
+    early_signal: Boolean(row.early_signal),
+  };
+}
+
+function deriveInstrumentType(profile = {}) {
+  const companyName = String(profile.company_name || '').toLowerCase();
+  const industry = String(profile.industry || '').toLowerCase();
+  const sector = String(profile.sector || '').toLowerCase();
+  const combined = `${companyName} ${industry} ${sector}`;
+
+  if (/\b(reit|real estate investment trust)\b/.test(combined)) {
+    return INSTRUMENT_TYPES.REIT;
+  }
+
+  if (/\b(etf|exchange traded fund|exchange-traded fund)\b/.test(combined)) {
+    return INSTRUMENT_TYPES.ETF;
+  }
+
+  if (/\b(adr|ads|american depositary|depositary receipt)\b/.test(combined)) {
+    return INSTRUMENT_TYPES.ADR;
+  }
+
+  if (/\b(closed-end fund|closed end fund|fund|trust|unit|income shares)\b/.test(combined)) {
+    return INSTRUMENT_TYPES.FUND;
+  }
+
+  return INSTRUMENT_TYPES.STOCK;
+}
+
+function toIsoString(value) {
+  if (!value) return null;
+  const parsed = Date.parse(String(value));
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed).toISOString();
+}
+
+function average(values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return 0;
+  }
+
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function chunkArray(items, chunkSize) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+async function fetchAllMarketQuotes() {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const result = await supabaseAdmin
+      .from('market_quotes')
+      .select('symbol, price, change_percent, volume, relative_volume, sector, updated_at')
+      .gt('price', 0)
+      .gt('volume', 0)
+      .order('volume', { ascending: false })
+      .range(offset, offset + UNIVERSE_PAGE_SIZE - 1);
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load market quotes');
+    }
+
+    const batch = Array.isArray(result.data) ? result.data : [];
+    if (batch.length === 0) {
+      break;
+    }
+
+    rows.push(...batch);
+
+    if (batch.length < UNIVERSE_PAGE_SIZE) {
+      break;
+    }
+
+    offset += UNIVERSE_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
+async function fetchBatchedSupabaseRows(symbols, batchSize, loadBatch) {
+  const rows = [];
+
+  for (const symbolBatch of chunkArray(symbols, batchSize)) {
+    const batchRows = await loadBatch(symbolBatch);
+    if (Array.isArray(batchRows) && batchRows.length > 0) {
+      rows.push(...batchRows);
+    }
+  }
+
+  return rows;
+}
+
+async function fetchDailyTechnicalRows(symbols) {
+  const rows = [];
+
+  for (const symbolBatch of chunkArray(symbols, DAILY_SYMBOL_BATCH_SIZE)) {
+    const result = await queryWithTimeout(
+      `WITH target_symbols AS (
+         SELECT UNNEST($1::text[]) AS symbol
+       ),
+       ranked AS (
+         SELECT d.symbol,
+                d.date::text AS date,
+                d.close::numeric AS close,
+                ROW_NUMBER() OVER (PARTITION BY d.symbol ORDER BY d.date DESC) AS rn
+         FROM daily_ohlc d
+         JOIN target_symbols t ON t.symbol = d.symbol
+       )
+       SELECT symbol, date, close
+       FROM ranked
+       WHERE rn <= $2
+       ORDER BY symbol ASC, date ASC`,
+      [symbolBatch, DAILY_TECHNICAL_LOOKBACK_ROWS],
+      {
+        timeoutMs: 20000,
+        label: 'screener.daily_technicals',
+        maxRetries: 0,
+        poolType: 'read',
+      }
+    );
+
+    if (Array.isArray(result?.rows) && result.rows.length > 0) {
+      rows.push(...result.rows);
+    }
+  }
+
+  return rows;
+}
+
+function computeSma(values, period) {
+  if (!Array.isArray(values) || values.length < period) {
+    return null;
+  }
+
+  return average(values.slice(-period));
+}
+
+function computeEmaSeriesFromValues(values, period) {
+  if (!Array.isArray(values) || values.length < period) {
+    return [];
+  }
+
+  const multiplier = 2 / (period + 1);
+  let current = average(values.slice(0, period));
+  if (!Number.isFinite(current)) {
+    return [];
+  }
+
+  const series = [current];
+  for (let index = period; index < values.length; index += 1) {
+    current = (values[index] * multiplier) + (current * (1 - multiplier));
+    series.push(current);
+  }
+
+  return series;
+}
+
+function computeMacdHistogram(values) {
+  if (!Array.isArray(values) || values.length < 35) {
+    return null;
+  }
+
+  const ema12Series = computeEmaSeriesFromValues(values, 12);
+  const ema26Series = computeEmaSeriesFromValues(values, 26);
+  if (ema12Series.length === 0 || ema26Series.length === 0) {
+    return null;
+  }
+
+  const macdValues = [];
+  for (let index = 25; index < values.length; index += 1) {
+    const fastValue = ema12Series[index - 11];
+    const slowValue = ema26Series[index - 25];
+    if (!Number.isFinite(fastValue) || !Number.isFinite(slowValue)) {
+      continue;
+    }
+    macdValues.push(fastValue - slowValue);
+  }
+
+  const signalSeries = computeEmaSeriesFromValues(macdValues, 9);
+  if (macdValues.length === 0 || signalSeries.length === 0) {
+    return null;
+  }
+
+  const latestMacd = macdValues[macdValues.length - 1];
+  const latestSignal = signalSeries[signalSeries.length - 1];
+  if (!Number.isFinite(latestMacd) || !Number.isFinite(latestSignal)) {
+    return null;
+  }
+
+  return latestMacd - latestSignal;
+}
+
+function buildDailyTechnicalsBySymbol(rows = []) {
+  const closesBySymbol = new Map();
+
+  for (const row of rows) {
+    const symbol = normalizeSymbol(row.symbol);
+    const close = toNumber(row.close);
+    if (!symbol || close === null) {
+      continue;
+    }
+
+    const existing = closesBySymbol.get(symbol) || [];
+    existing.push(close);
+    closesBySymbol.set(symbol, existing);
+  }
+
+  const technicalsBySymbol = new Map();
+  for (const [symbol, closes] of closesBySymbol.entries()) {
+    technicalsBySymbol.set(symbol, {
+      sma20: computeSma(closes, 20),
+      sma50: computeSma(closes, 50),
+      sma200: computeSma(closes, 200),
+      macd: {
+        histogram: computeMacdHistogram(closes),
+      },
+    });
+  }
+
+  return technicalsBySymbol;
+}
+
+function resolveTrend(price, technicals) {
+  const sma20 = toNumber(technicals?.sma20);
+  const sma50 = toNumber(technicals?.sma50);
+  const sma200 = toNumber(technicals?.sma200);
+  const currentPrice = toNumber(price);
+
+  if (
+    currentPrice !== null
+    && sma20 !== null
+    && sma50 !== null
+    && sma200 !== null
+    && currentPrice > sma20
+    && sma20 > sma50
+    && sma50 > sma200
+  ) {
+    return 'BULLISH';
+  }
+
+  if (
+    currentPrice !== null
+    && sma20 !== null
+    && sma50 !== null
+    && sma200 !== null
+    && currentPrice < sma20
+    && sma20 < sma50
+    && sma50 < sma200
+  ) {
+    return 'BEARISH';
+  }
+
+  return 'NEUTRAL';
+}
+
+function resolveVwapPosition(price, vwap) {
+  const currentPrice = toNumber(price);
+  const referenceVwap = toNumber(vwap);
+  return currentPrice !== null && referenceVwap !== null && currentPrice > referenceVwap ? 'ABOVE' : 'BELOW';
+}
+
+function resolveMomentum(technicals) {
+  return (toNumber(technicals?.macd?.histogram) ?? 0) > 0 ? 'BULLISH' : 'BEARISH';
+}
+
+function resolveCatalystStrength(row) {
+  switch (row.catalyst_type) {
+    case 'NEWS':
+    case 'EARNINGS':
+      return 3;
+    case 'RECENT_NEWS':
+      return 2;
+    case 'TECHNICAL':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function calculateTQI(row) {
+  let score = 0;
+
+  if ((row.rvol ?? 0) >= 5) score += 30;
+  else if ((row.rvol ?? 0) >= 3) score += 25;
+  else if ((row.rvol ?? 0) >= 2) score += 20;
+  else if ((row.rvol ?? 0) >= 1.5) score += 10;
+
+  if (row.trend === 'BULLISH' || row.trend === 'BEARISH') score += 20;
+  else score += 5;
+
+  if (
+    (row.trend === 'BULLISH' && row.vwap_position === 'ABOVE')
+    || (row.trend === 'BEARISH' && row.vwap_position === 'BELOW')
+  ) score += 15;
+  else score += 5;
+
+  if (
+    (row.trend === 'BULLISH' && row.momentum === 'BULLISH')
+    || (row.trend === 'BEARISH' && row.momentum === 'BEARISH')
+  ) score += 15;
+  else score += 5;
+
+  switch (row.catalyst_strength) {
+    case 3:
+      score += 20;
+      break;
+    case 2:
+      score += 15;
+      break;
+    case 1:
+      score += 8;
+      break;
+    default:
+      score += 0;
+  }
+
+  return score;
+}
+
+function resolveTqiLabel(value) {
+  if (value >= 80) return 'A';
+  if (value >= 65) return 'B';
+  if (value >= 50) return 'C';
+  return 'D';
+}
+
+function bucketTimestamp(timestampMs) {
+  return Math.floor(timestampMs / FIVE_MINUTES_MS) * FIVE_MINUTES_MS;
+}
+
+function getLatestSnapshotRowMap(previousRows = []) {
+  const previousRowMap = new Map();
+
+  for (const row of previousRows) {
+    if (!row?.symbol) continue;
+    previousRowMap.set(row.symbol, row);
+  }
+
+  return previousRowMap;
+}
+
+function buildIntradayMetricsBySymbol(rows = []) {
+  const rowsBySymbol = new Map();
+
+  for (const row of rows) {
+    const symbol = normalizeSymbol(row.symbol);
+    const timestampMs = Date.parse(String(row.timestamp || ''));
+    if (!symbol || Number.isNaN(timestampMs)) {
+      continue;
+    }
+
+    const currentRows = rowsBySymbol.get(symbol) || [];
+    currentRows.push({
+      timestampMs,
+      open: toNumber(row.open),
+      high: toNumber(row.high),
+      low: toNumber(row.low),
+      close: toNumber(row.close),
+      volume: toNumber(row.volume) ?? 0,
+      session: row.session || null,
+    });
+    rowsBySymbol.set(symbol, currentRows);
+  }
+
+  const metricsBySymbol = new Map();
+
+  for (const [symbol, symbolRows] of rowsBySymbol.entries()) {
+    const orderedRows = symbolRows.sort((left, right) => left.timestampMs - right.timestampMs);
+    const latestTimestampMs = orderedRows[orderedRows.length - 1]?.timestampMs;
+    if (!latestTimestampMs) {
+      continue;
+    }
+
+    const recentRows = orderedRows.filter((row) => row.timestampMs >= latestTimestampMs - (SIGNAL_BUCKET_WINDOW * FIVE_MINUTES_MS));
+    const bucketMap = new Map();
+
+    for (const row of recentRows) {
+      const bucketKey = bucketTimestamp(row.timestampMs);
+      const existing = bucketMap.get(bucketKey);
+      if (!existing) {
+        bucketMap.set(bucketKey, {
+          bucketKey,
+          open: row.open,
+          close: row.close,
+          high: row.high,
+          low: row.low,
+          volume: row.volume,
+        });
+        continue;
+      }
+
+      existing.close = row.close ?? existing.close;
+      existing.high = Math.max(existing.high ?? row.high ?? 0, row.high ?? existing.high ?? 0);
+      existing.low = Math.min(existing.low ?? row.low ?? Number.POSITIVE_INFINITY, row.low ?? existing.low ?? Number.POSITIVE_INFINITY);
+      existing.volume += row.volume;
+    }
+
+    const buckets = Array.from(bucketMap.values())
+      .sort((left, right) => left.bucketKey - right.bucketKey)
+      .slice(-SIGNAL_BUCKET_WINDOW);
+
+    const latestBucket = buckets[buckets.length - 1] || null;
+    const previousBuckets = buckets.slice(0, -1);
+    const previousBucket = previousBuckets[previousBuckets.length - 1] || null;
+    const volumeLast5m = latestBucket?.volume ?? null;
+    const avg5mVolume = previousBuckets.length > 0
+      ? average(previousBuckets.map((bucket) => bucket.volume ?? 0))
+      : (volumeLast5m ?? 0);
+    const rvolAcceleration = volumeLast5m !== null
+      ? volumeLast5m / Math.max(previousBucket?.volume ?? avg5mVolume ?? 1, 1)
+      : null;
+
+    const latestClose = latestBucket?.close ?? orderedRows[orderedRows.length - 1]?.close ?? null;
+    const latestRangePct = latestBucket && latestClose
+      ? ((Math.max((latestBucket.high ?? latestClose), latestClose) - Math.min((latestBucket.low ?? latestClose), latestClose)) / Math.max(latestClose, 0.01)) * 100
+      : 0;
+    const averagePreviousRangePct = previousBuckets.length > 0
+      ? average(previousBuckets.map((bucket) => {
+        const close = bucket.close ?? latestClose ?? 0;
+        if (!close) return 0;
+        return ((Math.max(bucket.high ?? close, close) - Math.min(bucket.low ?? close, close)) / Math.max(close, 0.01)) * 100;
+      }))
+      : 0;
+    const priceRangeContraction = averagePreviousRangePct > 0
+      ? clamp(1 - (latestRangePct / averagePreviousRangePct), -1, 1)
+      : 0;
+
+    const premarketHighCandidates = orderedRows
+      .filter((row) => row.session === 'premarket' && row.high !== null)
+      .map((row) => row.high);
+    const premarketHigh = premarketHighCandidates.length > 0 ? Math.max(...premarketHighCandidates) : null;
+
+    const vwapNumerator = orderedRows.reduce((total, row) => {
+      const close = row.close ?? row.open ?? 0;
+      return total + (close * (row.volume ?? 0));
+    }, 0);
+    const vwapDenominator = orderedRows.reduce((total, row) => total + (row.volume ?? 0), 0);
+    const vwap = vwapDenominator > 0 ? vwapNumerator / vwapDenominator : null;
+
+    metricsBySymbol.set(symbol, {
+      volume_last_5m: volumeLast5m,
+      avg_5m_volume: avg5mVolume,
+      rvol_acceleration: rvolAcceleration,
+      price_range_contraction: priceRangeContraction,
+      premarket_high: premarketHigh,
+      vwap,
+    });
+  }
+
+  return metricsBySymbol;
+}
+
+function resolveSignalLifecycle(row, intradayMetrics, previousRow, fallbackFirstSeenTimestamp, snapshotTimestamp) {
+  const snapshotTimestampIso = toIsoString(snapshotTimestamp) || new Date().toISOString();
+  const changePercent = Math.abs(toNumber(row.change_percent) ?? 0);
+  const currentPrice = toNumber(row.price);
+  const rvol = toNumber(row.rvol) ?? 0;
+  const volumeLast5m = toNumber(intradayMetrics?.volume_last_5m);
+  const avg5mVolume = toNumber(intradayMetrics?.avg_5m_volume);
+  const rvolAcceleration = toNumber(intradayMetrics?.rvol_acceleration);
+  const priceRangeContraction = toNumber(intradayMetrics?.price_range_contraction);
+  const vwap = toNumber(intradayMetrics?.vwap);
+  const premarketHigh = toNumber(intradayMetrics?.premarket_high);
+  const previousState = previousRow?.state || null;
+  const previousEarlySignal = Boolean(previousRow?.early_signal);
+
+  const volumeSpikeIncreasing = volumeLast5m !== null
+    && avg5mVolume !== null
+    && volumeLast5m > avg5mVolume * 1.15
+    && (rvolAcceleration ?? 0) >= 1.05;
+  const keyLevelBreak = Boolean(
+    (vwap !== null && currentPrice !== null && currentPrice > vwap * 1.002)
+    || (premarketHigh !== null && currentPrice !== null && currentPrice > premarketHigh * 1.001)
+  );
+  const lateStageExpansion = changePercent > 12
+    && ((rvolAcceleration ?? 1) < 0.9 || (volumeLast5m !== null && avg5mVolume !== null && volumeLast5m < avg5mVolume * 0.85));
+  const momentumFaded = rvol < 1.5
+    || (volumeLast5m !== null && avg5mVolume !== null && volumeLast5m < avg5mVolume * 0.7);
+
+  let state = SIGNAL_STATES.DEAD;
+
+  if (changePercent > 20 || lateStageExpansion) {
+    state = SIGNAL_STATES.EXTENDED;
+  } else if (rvol > 3 && volumeSpikeIncreasing && changePercent < 5) {
+    state = SIGNAL_STATES.FORMING;
+  } else if (rvol > 3 && keyLevelBreak && changePercent < 20) {
+    state = SIGNAL_STATES.CONFIRMED;
+  } else if (previousState === SIGNAL_STATES.CONFIRMED && !momentumFaded && changePercent < 20) {
+    state = SIGNAL_STATES.CONFIRMED;
+  } else if (previousState === SIGNAL_STATES.FORMING && !momentumFaded && changePercent < 8) {
+    state = SIGNAL_STATES.FORMING;
+  }
+
+  const earlySignal = state === SIGNAL_STATES.FORMING || state === SIGNAL_STATES.CONFIRMED;
+  const firstSeenTimestamp = earlySignal
+    ? (previousEarlySignal && previousRow?.first_seen_timestamp
+      ? previousRow.first_seen_timestamp
+      : (toIsoString(fallbackFirstSeenTimestamp) || toIsoString(row.updated_at) || snapshotTimestampIso))
+    : (previousRow?.first_seen_timestamp || toIsoString(fallbackFirstSeenTimestamp) || null);
+
+  const firstSeenTimestampIso = toIsoString(firstSeenTimestamp);
+  const timeSinceFirstSeen = firstSeenTimestampIso
+    ? Math.max(0, Math.round((Date.parse(snapshotTimestampIso) - Date.parse(firstSeenTimestampIso)) / 1000))
+    : null;
+
+  return {
+    volume_last_5m: volumeLast5m,
+    avg_5m_volume: avg5mVolume,
+    rvol_acceleration: rvolAcceleration,
+    price_range_contraction: priceRangeContraction,
+    first_seen_timestamp: firstSeenTimestampIso,
+    time_since_first_seen: timeSinceFirstSeen,
+    state,
+    early_signal: earlySignal,
   };
 }
 
@@ -145,7 +721,13 @@ function setCachedEarningsLookup(symbol, value) {
 
 async function fetchFmpEarnings(symbol) {
   try {
-    const payload = await fmpFetch('/earnings', { symbol });
+    const today = new Date();
+    const to = new Date(today);
+    to.setUTCDate(to.getUTCDate() + 180);
+    const payload = await fmpFetch('/earnings-calendar', {
+      from: today.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    });
     const rows = Array.isArray(payload) ? payload : payload ? [payload] : [];
     const firstRow = rows.find((row) => row?.date || row?.earningsDate || row?.reportedDate);
     const earningsDate = firstRow?.date || firstRow?.earningsDate || firstRow?.reportedDate || null;
@@ -165,17 +747,17 @@ async function fetchFmpEarnings(symbol) {
 async function fetchDatabaseEarnings(symbol) {
   const result = await supabaseAdmin
     .from('earnings_events')
-    .select('earnings_date')
+    .select('report_date')
     .eq('symbol', symbol)
-    .not('earnings_date', 'is', null)
-    .order('earnings_date', { ascending: false })
+    .not('report_date', 'is', null)
+    .order('report_date', { ascending: false })
     .limit(1);
 
   if (result.error) {
     throw new Error(result.error.message || 'Failed to load screener earnings_events');
   }
 
-  const earningsDate = result.data?.[0]?.earnings_date || null;
+  const earningsDate = result.data?.[0]?.report_date || null;
   if (!earningsDate) {
     return null;
   }
@@ -234,50 +816,52 @@ async function fetchLatestNewsBySymbol(symbols) {
   ];
 
   for (const pass of newsPasses) {
-    let offset = 0;
+    for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
+      let offset = 0;
 
-    while (latestNewsBySymbol.size < symbols.length) {
-      let query = supabaseAdmin
-        .from('news_articles')
-        .select('symbol, headline, published_at, source_type')
-        .in('symbol', symbols)
-        .not('published_at', 'is', null)
-        .not('headline', 'is', null)
-        .order('published_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
+      while (latestNewsBySymbol.size < symbols.length) {
+        let query = supabaseAdmin
+          .from('news_articles')
+          .select('symbol, headline, published_at, source_type')
+          .in('symbol', symbolBatch)
+          .not('published_at', 'is', null)
+          .not('headline', 'is', null)
+          .order('published_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
 
-      if (pass.applySourceType) {
-        query = query.eq('source_type', 'FMP');
-      }
-
-      const result = await query;
-      if (result.error) {
-        throw new Error(result.error.message || 'Failed to load screener news_articles');
-      }
-
-      const batch = Array.isArray(result.data) ? result.data : [];
-      if (batch.length === 0) {
-        break;
-      }
-
-      for (const row of batch) {
-        const symbol = normalizeSymbol(row.symbol);
-        const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
-        if (!symbol || latestNewsBySymbol.has(symbol) || !row.published_at || !headline) {
-          continue;
+        if (pass.applySourceType) {
+          query = query.eq('source_type', 'FMP');
         }
 
-        latestNewsBySymbol.set(symbol, {
-          latest_news_at: row.published_at,
-          news_source: pass.sourceLabel,
-        });
-      }
+        const result = await query;
+        if (result.error) {
+          throw new Error(result.error.message || 'Failed to load screener news_articles');
+        }
 
-      if (batch.length < pageSize) {
-        break;
-      }
+        const batch = Array.isArray(result.data) ? result.data : [];
+        if (batch.length === 0) {
+          break;
+        }
 
-      offset += pageSize;
+        for (const row of batch) {
+          const symbol = normalizeSymbol(row.symbol);
+          const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
+          if (!symbol || latestNewsBySymbol.has(symbol) || !row.published_at || !headline) {
+            continue;
+          }
+
+          latestNewsBySymbol.set(symbol, {
+            latest_news_at: row.published_at,
+            news_source: pass.sourceLabel,
+          });
+        }
+
+        if (batch.length < pageSize) {
+          break;
+        }
+
+        offset += pageSize;
+      }
     }
   }
 
@@ -293,52 +877,54 @@ async function fetchRecentNewsContext(symbols) {
   }
 
   const cutoffIso = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
-  let offset = 0;
+  for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
+    let offset = 0;
 
-  while (true) {
-    const result = await supabaseAdmin
-      .from('news_articles')
-      .select('symbol, headline, published_at')
-      .in('symbol', symbols)
-      .gte('published_at', cutoffIso)
-      .not('published_at', 'is', null)
-      .not('headline', 'is', null)
-      .order('published_at', { ascending: false })
-      .range(offset, offset + pageSize - 1);
+    while (true) {
+      const result = await supabaseAdmin
+        .from('news_articles')
+        .select('symbol, headline, published_at')
+        .in('symbol', symbolBatch)
+        .gte('published_at', cutoffIso)
+        .not('published_at', 'is', null)
+        .not('headline', 'is', null)
+        .order('published_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
 
-    if (result.error) {
-      throw new Error(result.error.message || 'Failed to load recent screener news context');
-    }
-
-    const batch = Array.isArray(result.data) ? result.data : [];
-    if (batch.length === 0) {
-      break;
-    }
-
-    for (const item of batch) {
-      const symbol = normalizeSymbol(item.symbol);
-      const headline = typeof item.headline === 'string' ? item.headline.trim() : '';
-      if (!symbol || !headline || !item.published_at) {
-        continue;
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load recent screener news context');
       }
 
-      const currentItems = recentNewsBySymbol.get(symbol) || [];
-      if (currentItems.length >= 3) {
-        continue;
+      const batch = Array.isArray(result.data) ? result.data : [];
+      if (batch.length === 0) {
+        break;
       }
 
-      currentItems.push({
-        headline,
-        published_at: item.published_at,
-      });
-      recentNewsBySymbol.set(symbol, currentItems);
-    }
+      for (const item of batch) {
+        const symbol = normalizeSymbol(item.symbol);
+        const headline = typeof item.headline === 'string' ? item.headline.trim() : '';
+        if (!symbol || !headline || !item.published_at) {
+          continue;
+        }
 
-    if (batch.length < pageSize) {
-      break;
-    }
+        const currentItems = recentNewsBySymbol.get(symbol) || [];
+        if (currentItems.length >= 3) {
+          continue;
+        }
 
-    offset += pageSize;
+        currentItems.push({
+          headline,
+          published_at: item.published_at,
+        });
+        recentNewsBySymbol.set(symbol, currentItems);
+      }
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
   }
 
   return recentNewsBySymbol;
@@ -351,27 +937,29 @@ async function fetchDbEarningsContext(symbols) {
     return earningsBySymbol;
   }
 
-  const result = await supabaseAdmin
-    .from('earnings_events')
-    .select('symbol, earnings_date')
-    .in('symbol', symbols)
-    .not('earnings_date', 'is', null)
-    .order('earnings_date', { ascending: true });
+  for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
+    const result = await supabaseAdmin
+      .from('earnings_events')
+      .select('symbol, earnings_date')
+      .in('symbol', symbolBatch)
+      .not('earnings_date', 'is', null)
+      .order('earnings_date', { ascending: true });
 
-  if (result.error) {
-    throw new Error(result.error.message || 'Failed to load screener earnings context');
-  }
-
-  for (const item of result.data || []) {
-    const symbol = normalizeSymbol(item.symbol);
-    if (!symbol || !item.earnings_date) {
-      continue;
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load screener earnings context');
     }
 
-    earningsBySymbol.set(
-      symbol,
-      resolveClosestDate(earningsBySymbol.get(symbol) || null, item.earnings_date)
-    );
+    for (const item of result.data || []) {
+      const symbol = normalizeSymbol(item.symbol);
+      if (!symbol || !item.earnings_date) {
+        continue;
+      }
+
+      earningsBySymbol.set(
+        symbol,
+        resolveClosestDate(earningsBySymbol.get(symbol) || null, item.earnings_date)
+      );
+    }
   }
 
   return earningsBySymbol;
@@ -385,26 +973,56 @@ async function fetchEarningsBySymbol(symbols) {
     return earningsBySymbol;
   }
 
-  for (const rawSymbol of symbols) {
+  for (const symbol of symbols) {
+    const normalized = normalizeSymbol(symbol);
+    if (!normalized) continue;
+
+    const cached = getCachedEarningsLookup(normalized);
+    if (cached) {
+      earningsBySymbol.set(normalized, cached);
+    }
+  }
+
+  const remainingSymbols = symbols
+    .map((symbol) => normalizeSymbol(symbol))
+    .filter((symbol) => symbol && !earningsBySymbol.has(symbol));
+
+  const databaseRows = await fetchBatchedSupabaseRows(remainingSymbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+    const result = await supabaseAdmin
+      .from('earnings_events')
+      .select('symbol, report_date')
+      .in('symbol', symbolBatch)
+      .not('report_date', 'is', null)
+      .order('report_date', { ascending: false });
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load screener earnings_events');
+    }
+
+    return result.data || [];
+  });
+
+  const databaseBySymbol = new Map();
+  for (const row of databaseRows) {
+    const symbol = normalizeSymbol(row.symbol);
+    const reportDate = row.report_date || null;
+    if (!symbol || !reportDate || databaseBySymbol.has(symbol)) {
+      continue;
+    }
+
+    databaseBySymbol.set(symbol, {
+      earnings_date: String(reportDate).slice(0, 10),
+      earnings_source: 'database',
+    });
+  }
+
+  for (const rawSymbol of remainingSymbols) {
     const symbol = normalizeSymbol(rawSymbol);
     if (!symbol) {
       continue;
     }
 
-    const cached = getCachedEarningsLookup(symbol);
-    if (cached) {
-      earningsBySymbol.set(symbol, cached);
-      continue;
-    }
-
-    const fmpResult = await fetchFmpEarnings(symbol);
-    if (fmpResult) {
-      setCachedEarningsLookup(symbol, fmpResult);
-      earningsBySymbol.set(symbol, fmpResult);
-      continue;
-    }
-
-    const databaseResult = await fetchDatabaseEarnings(symbol);
+    const databaseResult = databaseBySymbol.get(symbol) || null;
     if (databaseResult) {
       setCachedEarningsLookup(symbol, databaseResult);
       earningsBySymbol.set(symbol, databaseResult);
@@ -467,33 +1085,37 @@ async function fetchStableFallbackQuote() {
       earnings_source: 'none',
       catalyst_type: 'TECHNICAL',
       sector: quote.sector || null,
+      exchange: null,
+      instrument_type: INSTRUMENT_TYPES.STOCK,
       updated_at: quote.updatedAt || quote.timestamp || null,
       why: 'Price moving without a clear external catalyst',
       driver_type: 'TECHNICAL',
       confidence: 0.4,
       linked_symbols: [],
+      volume_last_5m: null,
+      avg_5m_volume: null,
+      rvol_acceleration: null,
+      price_range_contraction: null,
+      first_seen_timestamp: null,
+      time_since_first_seen: null,
+      state: SIGNAL_STATES.DEAD,
+      early_signal: false,
     },
   ].filter((row) => row.symbol && row.price !== null && row.volume !== null);
 }
 
-async function getScreenerRows() {
+async function getScreenerRows(options = {}) {
   if (!supabaseAdmin) {
     throw new Error('Supabase admin client unavailable');
   }
 
-  const quotesResult = await supabaseAdmin
-    .from('market_quotes')
-    .select('symbol, price, change_percent, volume, relative_volume, sector, updated_at')
-    .gt('price', 0)
-    .gt('volume', 0)
-    .order('volume', { ascending: false })
-    .limit(300);
+  const startedAt = Date.now();
 
-  if (quotesResult.error) {
-    throw new Error(quotesResult.error.message || 'Failed to load market quotes');
-  }
+  const previousRowMap = getLatestSnapshotRowMap(options.previousRows);
+  const snapshotTimestamp = options.snapshotTimestamp || new Date().toISOString();
 
-  const quoteRows = dedupeBySymbol((quotesResult.data || []).map((row) => ({
+  const rawQuoteUniverse = await fetchAllMarketQuotes();
+  const quoteRows = dedupeBySymbol((rawQuoteUniverse || []).map((row) => ({
     symbol: row.symbol,
     price: row.price,
     change_percent: row.change_percent,
@@ -503,11 +1125,19 @@ async function getScreenerRows() {
     updated_at: row.updated_at,
   })));
 
+  console.log('[SCREENER_V2] Universe size:', quoteRows.length);
+
   if (quoteRows.length === 0) {
     const fallbackRows = await fetchStableFallbackQuote();
     return {
       rows: fallbackRows,
       fallbackUsed: fallbackRows.length > 0,
+      meta: {
+        raw_universe_size: 0,
+        final_scored_size: fallbackRows.length,
+        returned_rows: fallbackRows.length,
+        total_ms: Date.now() - startedAt,
+      },
       macroContext: await buildMacroContext({ topMovers: fallbackRows, recentNewsBySymbol: new Map() }).catch(() => ({
         regime: 'mixed',
         drivers: ['SPY 0.0% while QQQ 0.0% in a split tape'],
@@ -519,47 +1149,105 @@ async function getScreenerRows() {
 
   const symbols = quoteRows.map((row) => row.symbol).filter(Boolean);
 
-  const metricsResult = await supabaseAdmin
-    .from('market_metrics')
-    .select('symbol, price, change_percent, volume, gap_percent, relative_volume, updated_at, last_updated')
-    .in('symbol', symbols);
+  const [metricsRows, sipRows, universeRows, profileRows, dailyTechnicalRows, coverageStatusBySymbol] = await Promise.all([
+    fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+      const result = await supabaseAdmin
+        .from('market_metrics')
+        .select('symbol, price, change_percent, volume, gap_percent, relative_volume, updated_at, last_updated, vwap')
+        .in('symbol', symbolBatch);
 
-  if (metricsResult.error) {
-    throw new Error(metricsResult.error.message || 'Failed to load market metrics');
-  }
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load market metrics');
+      }
 
-  const sipResult = await supabaseAdmin
-    .from('stocks_in_play')
-    .select('symbol, gap_percent, rvol, detected_at')
-    .in('symbol', symbols);
+      return result.data || [];
+    }),
+    fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+      const result = await supabaseAdmin
+        .from('stocks_in_play')
+        .select('symbol, gap_percent, rvol, detected_at')
+        .in('symbol', symbolBatch);
 
-  if (sipResult.error) {
-    throw new Error(sipResult.error.message || 'Failed to load stocks in play');
-  }
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load stocks in play');
+      }
 
-  const universeResult = await supabaseAdmin
-    .from('ticker_universe')
-    .select('symbol, sector')
-    .in('symbol', symbols);
+      return result.data || [];
+    }),
+    fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+      const result = await supabaseAdmin
+        .from('ticker_universe')
+        .select('symbol, sector')
+        .in('symbol', symbolBatch);
 
-  if (universeResult.error) {
-    throw new Error(universeResult.error.message || 'Failed to load ticker universe');
-  }
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load ticker universe');
+      }
 
-  const metricsBySymbol = new Map((metricsResult.data || []).map((row) => [row.symbol, row]));
-  const sipBySymbol = new Map((sipResult.data || []).map((row) => [row.symbol, row]));
-  const sectorBySymbol = new Map((universeResult.data || []).map((row) => [row.symbol, row]));
+      return result.data || [];
+    }),
+    fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+      const result = await supabaseAdmin
+        .from('company_profiles')
+        .select('symbol, company_name, exchange, sector, industry')
+        .in('symbol', symbolBatch);
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load company profiles');
+      }
+
+      return result.data || [];
+    }),
+    fetchDailyTechnicalRows(symbols),
+    getCoverageStatusBySymbols(symbols),
+  ]);
+
+  const intradayCandidateSymbols = quoteRows
+    .filter((row) => (row.relative_volume ?? 0) >= 1.5 || Math.abs(row.change_percent ?? 0) >= 3 || (row.volume ?? 0) >= 1_000_000)
+    .map((row) => row.symbol)
+    .filter(Boolean);
+  const intradayRows = await fetchBatchedSupabaseRows(intradayCandidateSymbols, INTRADAY_SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+    const result = await supabaseAdmin
+      .from('intraday_1m')
+      .select('symbol, timestamp, open, high, low, close, volume, session')
+      .in('symbol', symbolBatch)
+      .gte('timestamp', new Date(Date.now() - INTRADAY_LOOKBACK_MS).toISOString())
+      .order('timestamp', { ascending: true });
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load intraday metrics');
+    }
+
+    return result.data || [];
+  });
+
+  const metricsBySymbol = new Map((metricsRows || []).map((row) => [row.symbol, row]));
+  const sipBySymbol = new Map((sipRows || []).map((row) => [row.symbol, row]));
+  const sectorBySymbol = new Map((universeRows || []).map((row) => [row.symbol, row]));
+  const profileBySymbol = new Map((profileRows || []).map((row) => [row.symbol, row]));
+  const intradayMetricsBySymbol = buildIntradayMetricsBySymbol(intradayRows || []);
+  const dailyTechnicalsBySymbol = buildDailyTechnicalsBySymbol(dailyTechnicalRows || []);
 
   const coreRows = quoteRows
     .map((quote) => {
       const metrics = metricsBySymbol.get(quote.symbol) || {};
       const stocksInPlay = sipBySymbol.get(quote.symbol) || {};
       const universe = sectorBySymbol.get(quote.symbol) || {};
+      const profile = profileBySymbol.get(quote.symbol) || {};
       const symbol = normalizeSymbol(quote.symbol);
+      const intradayMetrics = intradayMetricsBySymbol.get(symbol) || {};
+      const dailyTechnicals = dailyTechnicalsBySymbol.get(symbol) || {};
+      const coverageStatus = coverageStatusBySymbol.get(symbol) || {};
+      const price = quote.price ?? metrics.price ?? null;
+      const vwap = metrics.vwap ?? intradayMetrics.vwap ?? null;
+      const trend = resolveTrend(price, dailyTechnicals);
+      const vwapPosition = resolveVwapPosition(price, vwap);
+      const momentum = resolveMomentum(dailyTechnicals);
+      const coverageScore = toNumber(coverageStatus.coverage_score) ?? 0;
 
       return normalizeScreenerRow({
         symbol,
-        price: quote.price ?? metrics.price ?? null,
+        price,
         change_percent: quote.change_percent ?? metrics.change_percent ?? null,
         volume: quote.volume ?? metrics.volume ?? null,
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
@@ -568,8 +1256,18 @@ async function getScreenerRows() {
         news_source: 'none',
         earnings_date: null,
         earnings_source: 'none',
-        sector: quote.sector ?? universe.sector ?? null,
+        sector: quote.sector ?? universe.sector ?? profile.sector ?? null,
+        exchange: profile.exchange ?? null,
+        instrument_type: deriveInstrumentType(profile),
         updated_at: quote.updated_at ?? metrics.updated_at ?? metrics.last_updated ?? stocksInPlay.detected_at ?? null,
+        trend,
+        vwap_position: vwapPosition,
+        momentum,
+        coverage_score: coverageScore,
+        has_news: Boolean(coverageStatus.has_news),
+        has_earnings: Boolean(coverageStatus.has_earnings),
+        has_technicals: Boolean(coverageStatus.has_technicals),
+        tradeable: coverageScore >= 60,
       });
     })
     .filter((row) => row.symbol && row.price !== null && row.price > 0 && row.volume !== null && row.volume > 0)
@@ -582,28 +1280,22 @@ async function getScreenerRows() {
       if (rightAbsChange !== leftAbsChange) return rightAbsChange - leftAbsChange;
       if ((right.volume ?? 0) !== (left.volume ?? 0)) return (right.volume ?? 0) - (left.volume ?? 0);
       return String(left.symbol).localeCompare(String(right.symbol));
-    })
-    .slice(0, 100);
+    });
 
-  const latestNewsBySymbol = await fetchLatestNewsBySymbol(
-    coreRows.map((row) => row.symbol).filter(Boolean)
-  );
-  const recentNewsBySymbol = await fetchRecentNewsContext(
-    coreRows.map((row) => row.symbol).filter(Boolean)
-  );
-  const earningsBySymbol = await fetchEarningsBySymbol(
-    coreRows.map((row) => row.symbol).filter(Boolean)
-  );
-  const dbEarningsBySymbol = await fetchDbEarningsContext(
-    coreRows.map((row) => row.symbol).filter(Boolean)
-  );
+  const coreSymbols = coreRows.map((row) => row.symbol).filter(Boolean);
+  const [latestNewsBySymbol, recentNewsBySymbol, earningsBySymbol, dbEarningsBySymbol] = await Promise.all([
+    fetchLatestNewsBySymbol(coreSymbols),
+    fetchRecentNewsContext(coreSymbols),
+    fetchEarningsBySymbol(coreSymbols),
+    fetchDbEarningsContext(coreSymbols),
+  ]);
 
   const enrichedRows = coreRows.map((row) => {
     if (!row.symbol) {
       return row;
     }
 
-    return {
+    const enrichedRow = {
       ...row,
       latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
       news_source: latestNewsBySymbol.get(row.symbol)?.news_source || 'none',
@@ -614,6 +1306,11 @@ async function getScreenerRows() {
         latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
         earnings_date: earningsBySymbol.get(row.symbol)?.earnings_date || null,
       }),
+    };
+
+    return {
+      ...enrichedRow,
+      catalyst_strength: resolveCatalystStrength(enrichedRow),
     };
   });
 
@@ -627,11 +1324,9 @@ async function getScreenerRows() {
     weak_sectors: ['utilities'],
   }));
 
-  const rows = [];
-  for (const row of enrichedRows) {
+  const scoredRows = await Promise.all(enrichedRows.map(async (row) => {
     if (!row.symbol) {
-      rows.push(row);
-      continue;
+      return row;
     }
 
     const why = await buildWhy(row.symbol, row, {
@@ -641,14 +1336,67 @@ async function getScreenerRows() {
       macroContext,
     });
 
-    rows.push({
+    const lifecycle = resolveSignalLifecycle(
+      row,
+      intradayMetricsBySymbol.get(row.symbol) || null,
+      previousRowMap.get(row.symbol) || null,
+      sipBySymbol.get(row.symbol)?.detected_at || null,
+      snapshotTimestamp,
+    );
+
+    const nextRow = {
       ...row,
       why: why.why,
       driver_type: why.driver_type,
       confidence: why.confidence,
       linked_symbols: why.linked_symbols || [],
+      ...lifecycle,
+    };
+
+    const tqi = calculateTQI(nextRow);
+    const confidencePayload = computeSummaryDataConfidence({
+      coverage: {
+        coverage_score: toNumber(nextRow.coverage_score) ?? 0,
+        has_news: Boolean(nextRow.has_news),
+        has_earnings: Boolean(nextRow.has_earnings),
+        has_technicals: Boolean(nextRow.has_technicals),
+      },
+      priceUpdatedAt: nextRow.updated_at,
+      dailyUpdatedAt: nextRow.latest_news_at || nextRow.earnings_date,
+      stale: false,
+      sources: [
+        nextRow.updated_at ? 'live' : null,
+        nextRow.news_source,
+        nextRow.earnings_source,
+      ],
     });
-  }
+    const finalScore = Number((tqi * (confidencePayload.data_confidence / 100)).toFixed(2));
+
+    return {
+      ...nextRow,
+      ...confidencePayload,
+      tradeable: (toNumber(nextRow.coverage_score) ?? 0) >= 60 && confidencePayload.data_confidence >= 50,
+      tqi,
+      tqi_label: resolveTqiLabel(tqi),
+      final_score: finalScore,
+    };
+  }));
+
+  const rows = [...scoredRows].sort((left, right) => {
+    const rightVolume = right.volume ?? -1;
+    const leftVolume = left.volume ?? -1;
+    if (rightVolume !== leftVolume) return rightVolume - leftVolume;
+
+    const rightAbsChange = Math.abs(right.change_percent ?? 0);
+    const leftAbsChange = Math.abs(left.change_percent ?? 0);
+    if (rightAbsChange !== leftAbsChange) return rightAbsChange - leftAbsChange;
+
+    const rightRvol = right.rvol ?? -1;
+    const leftRvol = left.rvol ?? -1;
+    if (rightRvol !== leftRvol) return rightRvol - leftRvol;
+
+    return String(left.symbol || '').localeCompare(String(right.symbol || ''));
+  });
 
   const newsSourceCounts = rows.reduce((accumulator, row) => {
     accumulator[row.news_source] = (accumulator[row.news_source] || 0) + 1;
@@ -664,6 +1412,8 @@ async function getScreenerRows() {
   }, {});
 
   console.log('[SCREENER_V2] fallback sources', {
+    raw_universe_size: quoteRows.length,
+    final_scored_size: rows.length,
     news: newsSourceCounts,
     earnings: earningsSourceCounts,
     earnings_sources_summary: earningsSourceCounts,
@@ -681,6 +1431,12 @@ async function getScreenerRows() {
     return {
       rows,
       fallbackUsed: false,
+      meta: {
+        raw_universe_size: quoteRows.length,
+        final_scored_size: rows.length,
+        returned_rows: rows.length,
+        total_ms: Date.now() - startedAt,
+      },
       macroContext,
     };
   }
@@ -689,6 +1445,12 @@ async function getScreenerRows() {
   return {
     rows: fallbackRows,
     fallbackUsed: fallbackRows.length > 0,
+    meta: {
+      raw_universe_size: quoteRows.length,
+      final_scored_size: fallbackRows.length,
+      returned_rows: fallbackRows.length,
+      total_ms: Date.now() - startedAt,
+    },
     macroContext: await buildMacroContext({ topMovers: fallbackRows, recentNewsBySymbol: new Map() }).catch(() => ({
       regime: 'mixed',
       drivers: ['SPY 0.0% while QQQ 0.0% in a split tape'],

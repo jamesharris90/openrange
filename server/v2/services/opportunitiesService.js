@@ -281,14 +281,24 @@ function buildValidationReport(rows, removedWeakSetups) {
   };
 }
 
-async function getOpportunitiesPayload() {
-  const { rows, macroContext } = await getScreenerRows();
-  const candidates = (rows || []).filter((row) => row?.symbol);
+async function buildOpportunitiesPayload(input = {}) {
+  const hasRows = Array.isArray(input.rows);
+  const screenerResult = hasRows ? null : await getScreenerRows();
+  const rows = hasRows ? input.rows : screenerResult.rows;
+  const macroContext = input.macroContext ?? screenerResult?.macroContext ?? null;
+  const candidates = (rows || []).filter(
+    (row) => row?.symbol && (row.state === 'FORMING' || row.state === 'CONFIRMED')
+  );
 
   const enriched = [];
   let removedWeakSetups = 0;
 
   for (const row of candidates) {
+    if (toNumber(row.data_confidence, 0) < 60) {
+      removedWeakSetups += 1;
+      continue;
+    }
+
     const components = {
       rvolStrength: getRvolStrength(row.rvol),
       moveStrength: getMoveStrength(row.change_percent),
@@ -335,13 +345,17 @@ async function getOpportunitiesPayload() {
       symbol: row.symbol,
       score: scoreOpportunity(components, confidence),
       why: buildOpportunityWhy(row, setupType, executionPlan.structure, components),
+      state: row.state,
+      early_signal: Boolean(row.early_signal),
       bias: narrative.bias,
       risk: narrative.risk,
       confidence_reason: buildConfidenceReason(row, components, confidence),
       setup_type: setupType,
       watch: executionPlan.entry_trigger,
       confidence,
-      tradeable: true,
+      tradeable: Boolean(row.tradeable),
+      data_confidence: toNumber(row.data_confidence, 0),
+      final_score: toNumber(row.final_score, 0),
       entry_type: executionPlan.entry_type,
       entry_trigger: executionPlan.entry_trigger,
       invalidation: executionPlan.invalidation,
@@ -379,12 +393,17 @@ async function getOpportunitiesPayload() {
   };
 }
 
+async function getOpportunitiesPayload() {
+  return buildOpportunitiesPayload();
+}
+
 async function getOpportunityRows() {
   const payload = await getOpportunitiesPayload();
   return payload.rows;
 }
 
 module.exports = {
+  buildOpportunitiesPayload,
   getOpportunitiesPayload,
   getOpportunityRows,
 };

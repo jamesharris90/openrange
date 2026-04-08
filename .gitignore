@@ -43,3 +43,12 @@ audit-readable.txt
 # Dev browser extensions
 client/perplexity-ext/
 client/devtools/
+
+# Deployment hygiene
+*.pid
+dist/
+build/
+.cache/
+*.pdf
+__pycache__/
+server/server.pid

@@ -9,15 +9,12 @@ import { useTickerStore } from "@/lib/store/ticker-store";
 
 const baseCommands = [
   { id: "dashboard", label: "Open Dashboard", run: (router: ReturnType<typeof useRouter>) => router.push("/dashboard") },
+  { id: "screener", label: "Open Screener", run: (router: ReturnType<typeof useRouter>) => router.push("/screener") },
+  { id: "opportunities", label: "Open Opportunities", run: (router: ReturnType<typeof useRouter>) => router.push("/screener-v2") },
   { id: "markets", label: "Open Markets", run: (router: ReturnType<typeof useRouter>) => router.push("/markets") },
-  { id: "heatmap", label: "Open Heat Map", run: (router: ReturnType<typeof useRouter>) => router.push("/heat-map") },
-  { id: "stocksInPlay", label: "Open Stocks In Play", run: (router: ReturnType<typeof useRouter>) => router.push("/stocks-in-play") },
-  { id: "catalyst", label: "Open Catalyst Scanner", run: (router: ReturnType<typeof useRouter>) => router.push("/catalyst-scanner") },
-  { id: "terminal", label: "Open Trading Terminal", run: (router: ReturnType<typeof useRouter>) => router.push("/trading-terminal") },
+  { id: "research-home", label: "Open Research", run: (router: ReturnType<typeof useRouter>) => router.push("/research") },
+  { id: "news", label: "Open News", run: (router: ReturnType<typeof useRouter>) => router.push("/news-feed") },
   { id: "earnings", label: "Open Earnings Calendar", run: (router: ReturnType<typeof useRouter>) => router.push("/earnings") },
-  { id: "alerts", label: "Open Alerts", run: (router: ReturnType<typeof useRouter>) => router.push("/alerts") },
-  { id: "admin", label: "Open Admin", run: (router: ReturnType<typeof useRouter>) => router.push("/admin") },
-  { id: "settings", label: "Open Settings", run: (router: ReturnType<typeof useRouter>) => router.push("/settings") },
 ];
 
 export function CommandPalette() {

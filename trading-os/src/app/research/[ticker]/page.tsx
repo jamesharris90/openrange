@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
-import { ResearchView } from "@/components/terminal/research-view";
-import { normalizeMarketQuotes } from "@/lib/api/normalize";
-import { API_BASE } from "@/lib/config/apiBase";
+import ResearchView from "@/components/research/ResearchPage";
+import { SITE_URL } from "@/lib/apiBase";
 import { toFixedSafe } from "@/lib/number";
 
 type Props = {
@@ -15,11 +14,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   let price = "";
 
   try {
-    const response = await fetch(`${API_BASE}/api/intelligence/markets?symbols=${encodeURIComponent(ticker)}`, { cache: "no-store" });
+    const response = await fetch(`${SITE_URL}/api/research/${encodeURIComponent(ticker)}`, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
     if (response.ok) {
-      const payload = (await response.json()) as Record<string, unknown>;
-      const row = normalizeMarketQuotes(payload)[0];
-      if (row && typeof row.price === "number") price = ` $${toFixedSafe(row.price, 2)}`;
+      const payload = (await response.json()) as {
+        data?: {
+          overview?: {
+            price?: number;
+          };
+        };
+      };
+      const marketPrice = payload?.data?.overview?.price;
+      if (typeof marketPrice === "number") {
+        price = ` $${toFixedSafe(marketPrice, 2)}`;
+      }
     }
   } catch {
     // Metadata is best-effort and should not block page rendering.
@@ -27,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = `${ticker} Research | OpenRange`;
   const description = `${ticker} technical chart, financial context, earnings intelligence, AI narrative, and probability forecast.${price}`;
-  const canonical = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001"}/research/${ticker}`;
+  const canonical = `${SITE_URL}/research/${ticker}`;
 
   return {
     title,
@@ -48,5 +60,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function ResearchPage({ params }: Props) {
-  return <ResearchView ticker={params.ticker.toUpperCase()} />;
+  return <ResearchView symbol={params.ticker.toUpperCase()} />;
 }

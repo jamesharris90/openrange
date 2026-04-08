@@ -3,43 +3,53 @@
 @tailwind utilities;
 
 :root {
-	--background: #0b0f19;
-	--foreground: #f2f7ff;
-	--panel: #121826;
-	--muted: #1f2a40;
-	--muted-foreground: #90a2c0;
-	--border: #1e293b;
+	--background: #f3f4f6;
+	--foreground: #0b0f14;
+	--panel: #ffffff;
+	--muted: #e5e7eb;
+	--muted-foreground: #374151;
+	--border: #d1d5db;
 	--ring: #3b82f6;
-	--accent: #3b82f6;
-	--accent-foreground: #eff6ff;
-	--bull: #16c784;
-	--bear: #ea3943;
-	--input: #162033;
-	--primary: #f2f7ff;
-	--primary-foreground: #0b0f19;
-	--secondary: #253449;
-	--secondary-foreground: #dbeafe;
+	--accent: #111827;
+	--accent-foreground: #f9fafb;
+	--bull: #4ade80;
+	--bear: #f87171;
+	--input: #ffffff;
+	--primary: #111827;
+	--primary-foreground: #f9fafb;
+	--secondary: #e5e7eb;
+	--secondary-foreground: #111827;
 	--destructive: #f87171;
+	--screener-filter-bg: #0e1320;
+	--screener-filter-border: #1a2236;
+	--screener-filter-accent: #22d3a0;
+	--screener-filter-text: #c8d0dc;
+	--screener-filter-muted: #5a6478;
 }
 
 .dark {
-	--background: #0b0f19;
-	--foreground: #f2f7ff;
+	--background: #0b0f14;
+	--foreground: #ffffff;
 	--panel: #121826;
-	--muted: #1f2a40;
-	--muted-foreground: #90a2c0;
-	--border: #1e293b;
+	--muted: #111827;
+	--muted-foreground: #9ca3af;
+	--border: #1f2937;
 	--ring: #3b82f6;
-	--accent: #3b82f6;
-	--accent-foreground: #eff6ff;
-	--bull: #16c784;
-	--bear: #ea3943;
-	--input: #162033;
-	--primary: #f2f7ff;
-	--primary-foreground: #0b0f19;
-	--secondary: #253449;
-	--secondary-foreground: #dbeafe;
+	--accent: #f9fafb;
+	--accent-foreground: #111827;
+	--bull: #4ade80;
+	--bear: #f87171;
+	--input: #0f172a;
+	--primary: #f9fafb;
+	--primary-foreground: #111827;
+	--secondary: #1f2937;
+	--secondary-foreground: #f9fafb;
 	--destructive: #f87171;
+	--screener-filter-bg: #0e1320;
+	--screener-filter-border: #1a2236;
+	--screener-filter-accent: #22d3a0;
+	--screener-filter-text: #c8d0dc;
+	--screener-filter-muted: #5a6478;
 }
 
 * {
@@ -52,13 +62,21 @@ body {
 }
 
 body {
-	background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), transparent 40%),
-		radial-gradient(circle at 100% 0%, rgba(22, 199, 132, 0.08), transparent 35%),
-		var(--background);
+	background: var(--background);
 	color: var(--foreground);
 	font-family: var(--font-sans), sans-serif;
 }
 
+.cockpit-card {
+	@apply rounded-2xl shadow-lg border p-4 hover:scale-[1.01] transition;
+	background: var(--panel);
+	border-color: var(--border);
+}
+
 .font-mono {
 	font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sidebar.hidden {
+	display: none;
 }

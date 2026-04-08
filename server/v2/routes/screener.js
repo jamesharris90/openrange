@@ -1,26 +1,15 @@
 const express = require('express');
-const { getCache, setCache } = require('../cache/memoryCache');
-const { getScreenerRows } = require('../services/screenerService');
+const { getLatestScreenerPayload } = require('../services/snapshotService');
 
 const router = express.Router();
 
 router.get('/', async (_req, res) => {
   try {
-    const cached = getCache('screener');
-    if (cached) {
-      return res.json(cached);
+    const payload = await getLatestScreenerPayload();
+    const rawUniverseSize = Number(payload?.meta?.raw_universe_size || 0);
+    if (rawUniverseSize > 0) {
+      console.log('[SCREENER_ROUTE] Universe size:', rawUniverseSize);
     }
-
-    const { rows, fallbackUsed, macroContext } = await getScreenerRows();
-    const payload = {
-      success: true,
-      count: rows.length,
-      fallbackUsed,
-      macro_context: macroContext,
-      data: rows,
-    };
-
-    setCache('screener', payload, 60000);
     return res.json(payload);
   } catch (error) {
     return res.status(500).json({

@@ -1,5 +1,6 @@
 import type { MarketQuote } from "@/lib/types";
 
+import { apiGet } from "@/lib/api/client";
 import { cachedFetch } from "@/lib/cache";
 import { debugLog } from "@/lib/debug";
 import { normalizeSymbolForAPI, normalizeSymbolForUI } from "@/lib/symbol-normalizer";
@@ -14,10 +15,9 @@ export async function fetchMarketQuotes(symbols: string[]): Promise<MarketQuote[
   if (!normalized) return [];
 
   return cachedFetch(`market:quotes:${normalized}`, async () => {
-    const res = await fetch(`/api/market/quotes?symbols=${encodeURIComponent(normalized)}`, {
+    const json = await apiGet<QuotesResponse>(`/api/market/quotes?symbols=${encodeURIComponent(normalized)}`, {
       cache: "no-store",
     });
-    const json = (await res.json()) as QuotesResponse;
     const rows = Array.isArray(json.data) ? json.data : [];
 
     const mapped = rows.map((row) => {

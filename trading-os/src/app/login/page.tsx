@@ -4,10 +4,7 @@ import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3001";
-
-console.log("API BASE:", API_BASE);
+import { apiFetch } from "@/lib/api/client";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -20,12 +17,12 @@ function LoginPageContent() {
 
   const nextPath = useMemo(() => {
     const next = searchParams.get("next");
-    return next && next.startsWith("/") ? next : "/trading-terminal";
+    return next && next.startsWith("/") && next !== "/login" ? next : "/dashboard";
   }, [searchParams]);
 
   useEffect(() => {
     if (!initialized || !isAuthenticated) return;
-    router.replace("/trading-terminal");
+    router.replace("/dashboard");
   }, [initialized, isAuthenticated, router]);
 
   if (initialized && isAuthenticated) {
@@ -38,9 +35,8 @@ function LoginPageContent() {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/users/login`, {
+      const response = await apiFetch("/api/users/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
 

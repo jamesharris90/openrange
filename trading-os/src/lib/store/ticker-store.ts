@@ -25,8 +25,8 @@ type TickerStore = {
 };
 
 export const useTickerStore = create<TickerStore>((set) => ({
-  activeTicker: "AAPL",
-  watchlist: ["AAPL", "NVDA", "MSFT", "SPY"],
+  activeTicker: "",
+  watchlist: [],
   quotes: {},
   signals: [],
   alerts: [],

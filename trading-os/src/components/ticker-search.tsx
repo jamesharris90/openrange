@@ -8,19 +8,18 @@ import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useTickerStore } from "@/lib/store/ticker-store";
 
-const SUGGESTIONS = ["AAPL", "MSFT", "NVDA", "AMD", "TSLA", "SPY", "QQQ", "META", "AMZN", "GOOGL"];
-
 export function TickerSearch() {
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 180);
   const router = useRouter();
   const setTicker = useTickerStore((state) => state.setTicker);
+  const watchlist = useTickerStore((state) => state.watchlist);
 
   const suggestions = useMemo(() => {
     const search = debounced.trim().toUpperCase();
     if (!search) return [];
-    return SUGGESTIONS.filter((symbol) => symbol.startsWith(search)).slice(0, 6);
-  }, [debounced]);
+    return watchlist.filter((symbol) => symbol.startsWith(search)).slice(0, 6);
+  }, [debounced, watchlist]);
 
   const goToTicker = (ticker: string) => {
     setTicker(ticker);

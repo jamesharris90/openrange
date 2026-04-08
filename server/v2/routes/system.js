@@ -6,6 +6,7 @@ const { getSnapshotStatus } = require('../services/snapshotService');
 const { queryWithTimeout } = require('../../db/pg');
 const { getDataHealth } = require('../../system/dataHealthEngine');
 const { getDataIntegrityHealth } = require('../../engines/dataIntegrityEngine');
+const { readCoverageCampaignState } = require('../../services/coverageCampaignStateStore');
 
 const router = express.Router();
 const cronLogPath = path.resolve(__dirname, '../../logs/cron.log');
@@ -247,6 +248,133 @@ router.get('/data-integrity', async (_req, res) => {
       },
     });
   }
+});
+
+// ── Coverage Campaign Monitor ─────────────────────────────────────────────────
+
+const BACKFILL_LOG_DIR = path.resolve(__dirname, '../../logs/backfill');
+const CAMPAIGN_STATUS_PATH = path.join(BACKFILL_LOG_DIR, 'coverage_completion_campaign_status.json');
+const CAMPAIGN_CHECKPOINT_PATH = path.join(BACKFILL_LOG_DIR, 'coverage_completion_campaign_checkpoint.json');
+const CAMPAIGN_HOURLY_PATH = path.join(BACKFILL_LOG_DIR, 'coverage_completion_campaign_hourly.jsonl');
+const CAMPAIGN_STDOUT_PATH = path.join(BACKFILL_LOG_DIR, 'coverage_completion_campaign.stdout.log');
+
+function readJsonFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (_e) {
+    return null;
+  }
+}
+
+function readJsonlFile(filePath, maxLines = 100) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const lines = fs.readFileSync(filePath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .slice(-maxLines);
+    return lines.map((line) => {
+      try { return JSON.parse(line); } catch (_e) { return null; }
+    }).filter(Boolean);
+  } catch (_e) {
+    return [];
+  }
+}
+
+function readStdoutTail(filePath, maxLines = 80) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    return fs.readFileSync(filePath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .slice(-maxLines);
+  } catch (_e) {
+    return [];
+  }
+}
+
+function fileInfo(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { exists: false, updatedAt: null, sizeBytes: 0 };
+    }
+    const stat = fs.statSync(filePath);
+    return { exists: true, updatedAt: stat.mtime.toISOString(), sizeBytes: stat.size };
+  } catch (_e) {
+    return { exists: false, updatedAt: null, sizeBytes: 0 };
+  }
+}
+
+router.get('/coverage-campaign', (_req, res) => {
+  return (async () => {
+    try {
+      const sharedState = await readCoverageCampaignState(['status', 'checkpoint', 'hourly']).catch(() => ({}));
+      const status = sharedState?.status?.payload || readJsonFile(CAMPAIGN_STATUS_PATH);
+      const checkpoint = sharedState?.checkpoint?.payload || readJsonFile(CAMPAIGN_CHECKPOINT_PATH);
+      const hourly = Array.isArray(sharedState?.hourly?.payload)
+        ? sharedState.hourly.payload.slice(-200)
+        : readJsonlFile(CAMPAIGN_HOURLY_PATH, 200);
+      const stdoutTail = readStdoutTail(CAMPAIGN_STDOUT_PATH, 80);
+
+      // Derive summary from first and last hourly entries
+      const baseline = hourly[0] || null;
+      const lastHourly = hourly[hourly.length - 1] || null;
+
+      const baselineNews = baseline?.missing_news_count ?? null;
+      const baselineEarnings = baseline?.missing_earnings_count ?? null;
+      const currentNews = status?.postcheck?.missing_news_count ?? status?.missing_news_count ?? lastHourly?.missing_news_count ?? null;
+      const currentEarnings = status?.postcheck?.missing_earnings_count ?? status?.missing_earnings_count ?? lastHourly?.missing_earnings_count ?? null;
+
+      const newsPercent = (baselineNews !== null && currentNews !== null && baselineNews > 0)
+        ? Number((((baselineNews - currentNews) / baselineNews) * 100).toFixed(1))
+        : null;
+      const earningsPercent = (baselineEarnings !== null && currentEarnings !== null && baselineEarnings > 0)
+        ? Number((((baselineEarnings - currentEarnings) / baselineEarnings) * 100).toFixed(1))
+        : null;
+
+      return res.json({
+        success: true,
+        generatedAt: new Date().toISOString(),
+        status,
+        checkpoint,
+        summary: {
+          baseline: {
+            missingNewsCount: baselineNews,
+            missingEarningsCount: baselineEarnings,
+            generatedAt: baseline?.generated_at ?? null,
+          },
+          current: {
+            missingNewsCount: currentNews,
+            missingEarningsCount: currentEarnings,
+            generatedAt: status?.generated_at ?? lastHourly?.generated_at ?? null,
+          },
+          completion: {
+            newsPercent,
+            earningsPercent,
+          },
+        },
+        hourly,
+        stdoutTail,
+        files: {
+          status: fileInfo(CAMPAIGN_STATUS_PATH),
+          checkpoint: fileInfo(CAMPAIGN_CHECKPOINT_PATH),
+          hourly: fileInfo(CAMPAIGN_HOURLY_PATH),
+          stdout: fileInfo(CAMPAIGN_STDOUT_PATH),
+        },
+        source: {
+          type: sharedState?.status?.payload || sharedState?.checkpoint?.payload || sharedState?.hourly?.payload ? 'database' : 'files',
+          shared: {
+            statusUpdatedAt: sharedState?.status?.updatedAt || null,
+            checkpointUpdatedAt: sharedState?.checkpoint?.updatedAt || null,
+            hourlyUpdatedAt: sharedState?.hourly?.updatedAt || null,
+          },
+        },
+      });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  })();
 });
 
 module.exports = router;

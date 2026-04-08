@@ -3,15 +3,22 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+import { useTableControls } from "@/hooks/useTableControls";
+import { apiFetch } from "@/lib/api/client";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type NewsItem = {
   id?: string;
+  source_id?: string | null;
   symbol?: string | null;
+  symbols?: string[] | null;
   headline?: string | null;
   title?: string | null;
   summary?: string | null;
   source?: string | null;
+  publisher?: string | null;
   provider?: string | null;
   url?: string | null;
   published_at?: string | null;
@@ -21,16 +28,15 @@ type NewsItem = {
   news_score?: number | null;
 };
 
-type ApiResponse = { ok?: boolean; items?: NewsItem[]; data?: NewsItem[] };
+type ApiResponse = { success?: boolean; error?: string; ok?: boolean; items?: NewsItem[]; data?: NewsItem[] };
 
 type NewsTypeTab = "All" | "Market" | "Stocks";
-type FreshnessOpt = "All" | "1h" | "4h" | "24h" | "7d";
-type SentimentOpt = "All" | "Positive" | "Negative" | "Neutral";
+type TimeFilter = "Today" | "24h" | "7d";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string | null | undefined) {
-  if (!iso) return "—";
+  if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (diff < 60_000)    return "just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
@@ -39,7 +45,7 @@ function timeAgo(iso: string | null | undefined) {
 }
 
 function fmtTime(iso: string | null | undefined) {
-  if (!iso) return "";
+  if (!iso) return "Unknown time";
   return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
@@ -48,21 +54,39 @@ function cleanSource(src: string | null | undefined) {
   return src.replace(/^https?:\/\//i, "").split("/")[0].replace(/^www\./i, "").slice(0, 26);
 }
 
-const SENTIMENT_STYLE: Record<string, string> = {
-  positive: "text-[var(--bull)]",
-  negative: "text-[var(--bear)]",
-  neutral:  "text-[var(--muted-foreground)]",
-};
-
 const REFRESH_MS = 60_000;
 
-const FRESHNESS_MS: Record<FreshnessOpt, number> = {
-  All: Infinity,
-  "1h":  3_600_000,
-  "4h":  14_400_000,
-  "24h": 86_400_000,
-  "7d":  604_800_000,
+type NewsFilters = {
+  search: string;
+  symbol: string;
+  time: TimeFilter;
 };
+
+const DEFAULT_FILTERS: NewsFilters = {
+  search: "",
+  symbol: "",
+  time: "24h",
+};
+
+function isWithinTimeFilter(publishedAt: string | null | undefined, time: TimeFilter) {
+  const timestamp = Date.parse(String(publishedAt || ""));
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  if (time === "Today") {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return timestamp >= startOfDay;
+  }
+
+  const ageMs = Date.now() - timestamp;
+  if (time === "24h") {
+    return ageMs <= 86_400_000;
+  }
+
+  return ageMs <= 604_800_000;
+}
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -73,113 +97,138 @@ export function NewsView() {
   const [error,          setError]          = useState<string | null>(null);
   const [lastUpdated,    setLastUpdated]    = useState<Date | null>(null);
 
-  // filters
   const [newsType,       setNewsType]       = useState<NewsTypeTab>("All");
-  const [freshness,      setFreshness]      = useState<FreshnessOpt>("All");
-  const [sentiment,      setSentiment]      = useState<SentimentOpt>("All");
-  const [symbolFilter,   setSymbolFilter]   = useState("");
-  const [sectorFilter,   setSectorFilter]   = useState("All");
-  const [sourceFilter,   setSourceFilter]   = useState("All");
-  const [keywordFilter,  setKeywordFilter]  = useState("");
-  const [keywordInput,   setKeywordInput]   = useState("");
 
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const {
+    filters,
+    setFilters,
+    resetFilters,
+    page,
+    setPage,
+    pageSize,
+  } = useTableControls<NewsItem, NewsFilters>(items, DEFAULT_FILTERS, { pageSize: 25 });
+  const debouncedSearch = useDebouncedValue(filters.search, 150);
 
-  const fetchNews = useCallback(async (sym: string) => {
+  const fetchNews = useCallback(async () => {
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ limit: "300" });
-      if (sym) params.set("symbol", sym.trim().toUpperCase());
-      const res = await fetch(`/api/news/latest?${params}`, {
+      const params = new URLSearchParams({ limit: "50" });
+      const res = await apiFetch(`/api/news?${params.toString()}`, {
         cache: "no-store",
         signal: abortRef.current.signal,
       });
-      const d = (await res.json()) as ApiResponse;
-      const list = d.items ?? d.data ?? (Array.isArray(d) ? (d as NewsItem[]) : []);
-      setItems(list);
+
+      let payload: ApiResponse | NewsItem[] | null = null;
+      try {
+        payload = (await res.json()) as ApiResponse | NewsItem[];
+      } catch (jsonError) {
+        console.error("[NEWS_VIEW] failed to parse /api/news payload", jsonError);
+      }
+
+      if (!res.ok) {
+        const detail = !Array.isArray(payload) && payload?.error ? payload.error : `Request failed (${res.status})`;
+        console.error("[NEWS_VIEW] /api/news failed", { status: res.status, detail, payload });
+        throw new Error("⚠️ News unavailable (API error or timeout)");
+      }
+
+      const list = Array.isArray(payload) ? payload : payload?.items ?? payload?.data ?? [];
+      const normalized = list
+        .map((item, index) => {
+          const primarySymbol = String(item.symbol || item.symbols?.[0] || "").trim().toUpperCase();
+          return {
+            ...item,
+            id: item.id ?? item.source_id ?? `${primarySymbol || "macro"}-${item.published_at || "unknown"}-${index}`,
+            symbol: primarySymbol || null,
+            headline: item.headline ?? item.title ?? null,
+            title: item.title ?? item.headline ?? null,
+            published_at: item.published_at ?? null,
+          };
+        })
+        .sort((left, right) => {
+          const leftTime = left.published_at ? Date.parse(left.published_at) : 0;
+          const rightTime = right.published_at ? Date.parse(right.published_at) : 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 50);
+
+      setItems(normalized);
       setLastUpdated(new Date());
     } catch (e) {
-      if ((e as Error).name !== "AbortError") setError((e as Error).message);
+      if ((e as Error).name !== "AbortError") {
+        console.error("[NEWS_VIEW] load failed", e);
+        setError("⚠️ News unavailable (API error or timeout)");
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchNews(symbolFilter);
-    timerRef.current = setInterval(() => fetchNews(symbolFilter), REFRESH_MS);
+    fetchNews();
+    timerRef.current = setInterval(() => fetchNews(), REFRESH_MS);
     return () => {
       clearInterval(timerRef.current!);
       abortRef.current?.abort();
     };
-  }, [fetchNews, symbolFilter]);
+  }, [fetchNews]);
 
-  // Derive unique sectors and sources from data
-  const availableSectors = useMemo(() => {
-    const s = new Set<string>();
-    items.forEach((i) => { if (i.sector) s.add(i.sector); });
-    return ["All", ...Array.from(s).sort()];
-  }, [items]);
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
+    const normalizedSymbol = filters.symbol.trim().toUpperCase();
 
-  const availableSources = useMemo(() => {
-    const s = new Set<string>();
-    items.forEach((i) => {
-      // Use publisher name for stock news, or provider for general news
-      const pub = i.publisher || i.provider || "";
-      if (pub) s.add(pub);
-    });
-    // Limit to top 15 most useful sources
-    return ["All", ...Array.from(s).sort().slice(0, 15)];
-  }, [items]);
-
-  const now = Date.now();
-  const displayed = useMemo(() => {
     return items.filter((item) => {
-      // News type: Market (no symbol) vs Stocks (has symbol)
       if (newsType === "Market" && item.symbol) return false;
       if (newsType === "Stocks" && !item.symbol) return false;
 
-      // Freshness
-      if (freshness !== "All" && item.published_at) {
-        const diff = now - new Date(item.published_at).getTime();
-        if (diff > FRESHNESS_MS[freshness]) return false;
+      if (!isWithinTimeFilter(item.published_at, filters.time)) {
+        return false;
       }
 
-      // Sentiment
-      if (sentiment !== "All") {
-        const s = (item.sentiment ?? "neutral").toLowerCase();
-        if (s !== sentiment.toLowerCase()) return false;
+      if (normalizedSymbol && String(item.symbol || "").toUpperCase() !== normalizedSymbol) {
+        return false;
       }
 
-      // Sector
-      if (sectorFilter !== "All") {
-        if ((item.sector ?? "") !== sectorFilter) return false;
-      }
-
-      // Source/Publisher
-      if (sourceFilter !== "All") {
-        const pub = item.publisher || item.provider || "";
-        if (pub !== sourceFilter) return false;
-      }
-
-      // Keyword in headline
-      if (keywordFilter) {
-        const kw = keywordFilter.toLowerCase();
-        const headline = (item.headline ?? item.title ?? "").toLowerCase();
-        const summary = (item.summary ?? "").toLowerCase();
-        if (!headline.includes(kw) && !summary.includes(kw)) return false;
+      if (normalizedSearch) {
+        const headline = String(item.headline ?? item.title ?? "").toLowerCase();
+        const symbol = String(item.symbol ?? "").toLowerCase();
+        if (!headline.includes(normalizedSearch) && !symbol.includes(normalizedSearch)) {
+          return false;
+        }
       }
 
       return true;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, newsType, freshness, sentiment, sectorFilter, sourceFilter, keywordFilter, now]);
+  }, [items, newsType, debouncedSearch, filters.symbol, filters.time]);
 
-  // Counts for type tabs
+  const symbolOptions = useMemo(() => {
+    const symbols = new Set<string>();
+    items.forEach((item) => {
+      const symbol = String(item.symbol || "").trim().toUpperCase();
+      if (symbol) {
+        symbols.add(symbol);
+      }
+    });
+    return Array.from(symbols).sort();
+  }, [items]);
+
+  const totalCount = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const paginatedData = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredItems.slice(startIndex, startIndex + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, setPage, totalPages]);
+
   const marketCount = useMemo(() => items.filter((i) => !i.symbol).length, [items]);
   const stockCount  = useMemo(() => items.filter((i) => !!i.symbol).length, [items]);
 
@@ -190,14 +239,14 @@ export function NewsView() {
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--panel)] shrink-0">
         <h1 className="text-sm font-semibold text-[var(--foreground)]">News Feed</h1>
         <span className="text-xs text-[var(--muted-foreground)]">
-          {loading ? "Loading…" : `${displayed.length} of ${items.length} articles`}
+          {loading ? "Loading…" : `${items.length} articles`}
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-[var(--muted-foreground)]">
             {!loading && lastUpdated ? `Updated ${timeAgo(lastUpdated.toISOString())}` : ""}
           </span>
           <button
-            onClick={() => fetchNews(symbolFilter)}
+            onClick={() => fetchNews()}
             disabled={loading}
             className="px-3 py-1 rounded text-xs bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
           >
@@ -232,103 +281,39 @@ export function NewsView() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] bg-[var(--panel)] shrink-0">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-4 py-2.5 shrink-0">
+        <input
+          placeholder="Search symbol or keyword…"
+          value={filters.search}
+          onChange={(event) => setFilters({ search: event.target.value })}
+          className="w-52 rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-blue-500"
+        />
 
-        {/* Freshness chips */}
-        <div className="flex items-center gap-1">
-          {(["All", "1h", "4h", "24h", "7d"] as FreshnessOpt[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFreshness(f)}
-              className={[
-                "px-2 py-0.5 rounded text-[11px] font-medium border transition-colors",
-                freshness === f
-                  ? "bg-blue-500 border-blue-500 text-white"
-                  : "border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
-              ].join(" ")}
-            >
-              {f === "All" ? "All Time" : f}
-            </button>
-          ))}
-        </div>
-
-        <div className="w-px h-4 bg-[var(--border)]" />
-
-        {/* Sentiment */}
         <select
-          value={sentiment}
-          onChange={(e) => setSentiment(e.target.value as SentimentOpt)}
+          value={filters.symbol}
+          onChange={(event) => setFilters({ symbol: event.target.value })}
           className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
         >
-          {(["All", "Positive", "Negative", "Neutral"] as SentimentOpt[]).map((s) => (
-            <option key={s} value={s}>{s === "All" ? "All Sentiment" : s}</option>
+          <option value="">All Symbols</option>
+          {symbolOptions.map((symbol) => (
+            <option key={symbol} value={symbol}>{symbol}</option>
           ))}
         </select>
 
-        {/* Sector */}
-        {availableSectors.length > 1 && (
-          <select
-            value={sectorFilter}
-            onChange={(e) => setSectorFilter(e.target.value)}
-            className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
-          >
-            {availableSectors.map((s) => (
-              <option key={s} value={s}>{s === "All" ? "All Sectors" : s}</option>
-            ))}
-          </select>
-        )}
+        <select
+          value={filters.time}
+          onChange={(event) => setFilters({ time: event.target.value as TimeFilter })}
+          className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
+        >
+          <option value="Today">Today</option>
+          <option value="24h">24h</option>
+          <option value="7d">7d</option>
+        </select>
 
-        {/* Source */}
-        {availableSources.length > 1 && (
-          <select
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-            className="rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] focus:outline-none focus:border-blue-500"
-          >
-            {availableSources.map((s) => (
-              <option key={s} value={s}>{s === "All" ? "All Sources" : s}</option>
-            ))}
-          </select>
-        )}
-
-        <div className="w-px h-4 bg-[var(--border)]" />
-
-        {/* Ticker search */}
-        <input
-          placeholder="Ticker…"
-          defaultValue={symbolFilter}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const val = (e.target as HTMLInputElement).value.trim().toUpperCase();
-              setSymbolFilter(val);
-            }
-          }}
-          className="w-24 rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-blue-500"
-        />
-
-        {/* Keyword search */}
-        <input
-          placeholder="Search headline…"
-          value={keywordInput}
-          onChange={(e) => setKeywordInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") setKeywordFilter(keywordInput.trim());
-            if (e.key === "Escape") { setKeywordFilter(""); setKeywordInput(""); }
-          }}
-          className="w-44 rounded border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-blue-500"
-        />
-
-        {/* Clear button */}
-        {(symbolFilter || keywordFilter || sectorFilter !== "All" || sourceFilter !== "All" || sentiment !== "All" || freshness !== "All" || newsType !== "All") && (
+        {(filters.search || filters.symbol || filters.time !== DEFAULT_FILTERS.time || newsType !== "All") && (
           <button
             onClick={() => {
-              setSymbolFilter("");
-              setKeywordFilter("");
-              setKeywordInput("");
-              setSectorFilter("All");
-              setSourceFilter("All");
-              setSentiment("All");
-              setFreshness("All");
+              resetFilters();
               setNewsType("All");
             }}
             className="px-2 py-1 rounded text-xs border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
@@ -348,25 +333,31 @@ export function NewsView() {
         {loading && items.length === 0 && (
           <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">Loading…</div>
         )}
-        {!loading && displayed.length === 0 && (
+        {!loading && totalCount === 0 && (
           <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">
             No news articles match your filters.
           </div>
         )}
 
-        {displayed.map((item, i) => {
-          const sentKey = (item.sentiment ?? "neutral").toLowerCase();
+        {paginatedData.map((item, i) => {
           const headline = item.headline ?? item.title ?? "—";
           const isStock = !!item.symbol;
           return (
             <div
               key={item.id ?? `${item.symbol}-${i}`}
-              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)] ${i % 2 !== 0 ? "bg-[var(--muted)]/20" : ""}`}
+              onClick={() => {
+                if (item.symbol) {
+                  router.push(`/research/${encodeURIComponent(item.symbol)}`);
+                }
+              }}
+              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)] ${i % 2 !== 0 ? "bg-[var(--muted)]/20" : ""} ${item.symbol ? "cursor-pointer" : ""}`}
             >
               {/* Time */}
               <div className="w-12 shrink-0 pt-0.5">
                 <div className="text-[11px] text-[var(--muted-foreground)] tabular-nums">{fmtTime(item.published_at)}</div>
-                <div className="text-[10px] text-[var(--muted-foreground)]/60">{timeAgo(item.published_at)}</div>
+                {item.published_at ? (
+                  <div className="text-[10px] text-[var(--muted-foreground)]/60">{timeAgo(item.published_at)}</div>
+                ) : null}
               </div>
 
               {/* Content */}
@@ -393,13 +384,14 @@ export function NewsView() {
                     <span className="text-[10px] text-[var(--muted-foreground)]">{item.sector}</span>
                   )}
                   {item.sentiment && item.sentiment !== "neutral" && (
-                    <span className={`text-[10px] font-semibold uppercase ${SENTIMENT_STYLE[sentKey] ?? ""}`}>
+                    <span className="text-[10px] font-semibold uppercase text-[var(--muted-foreground)]">
                       {item.sentiment}
                     </span>
                   )}
                 </div>
                 {item.url ? (
                   <a href={item.url} target="_blank" rel="noopener noreferrer"
+                    onClick={(event) => event.stopPropagation()}
                     className="text-[13px] text-[var(--foreground)] hover:text-blue-500 transition-colors leading-snug block">
                     {headline}
                   </a>
@@ -425,6 +417,28 @@ export function NewsView() {
             </div>
           );
         })}
+
+        {totalCount > 0 ? (
+          <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3 text-xs text-[var(--muted-foreground)]">
+            <button
+              type="button"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="rounded border border-[var(--border)] px-3 py-1 transition-colors hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <span>{`Page ${page} of ${totalPages}`}</span>
+            <button
+              type="button"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+              className="rounded border border-[var(--border)] px-3 py-1 transition-colors hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
