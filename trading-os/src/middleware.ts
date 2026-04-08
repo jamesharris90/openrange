@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/screener", "/screener-v2", "/coverage-campaign"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/screener", "/screener-v2", "/coverage-campaign"]);
 const PUBLIC_ROUTES = ["/research/", "/research-v2/"];
 const ADMIN_PREFIX = "/admin";
 
@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
 
   // Redirect authenticated users away from login → dashboard
-  if (pathname === "/login" && token) {
+  if ((pathname === "/login" || pathname === "/signup") && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

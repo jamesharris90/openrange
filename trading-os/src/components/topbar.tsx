@@ -15,7 +15,7 @@ export function TopBar() {
 
   const handleLogout = () => {
     logout();
-    router.replace("/login");
+    router.replace("/");
   };
 
   const displayName = user?.username || user?.email || "Trader";

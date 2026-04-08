@@ -18,6 +18,7 @@ const legacyEarningsRoute = require('../routes/earnings');
 const intelligenceRoute = require('../routes/intelligence');
 const researchRoute = require('../routes/research');
 const truthAuditRoute = require('../routes/truthAudit');
+const userRoutes = require('../users/routes');
 const { buildChartPayload } = require('./services/chartService');
 const { buildAndStoreScreenerSnapshot } = require('./services/snapshotService');
 const { runYahooNewsIngest } = require('./ingestion/yahooNewsIngest');
@@ -328,6 +329,7 @@ function createV2App() {
   app.use('/api/validation', validationRoute);
   app.use('/api/admin', adminRoute);
   app.use('/api/dashboard', dashboardRoute);
+  app.use('/api/users', userRoutes);
   app.use('/', newsletterRoute);
   app.use('/api/dev', devRoute);
 

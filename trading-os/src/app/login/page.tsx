@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -100,6 +101,13 @@ function LoginPageContent() {
         >
           {submitting ? "Signing in..." : "Sign in"}
         </button>
+
+        <p className="mt-4 text-center text-sm text-slate-400">
+          Need an account? {" "}
+          <Link href={`/signup?next=${encodeURIComponent(nextPath)}`} className="text-emerald-400 hover:text-emerald-300">
+            Sign up
+          </Link>
+        </p>
       </form>
     </main>
   );

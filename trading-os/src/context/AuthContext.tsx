@@ -28,12 +28,14 @@ const USER_STORAGE_KEY = "user";
 function writeAuthCookie(token: string | null) {
   if (typeof document === "undefined") return;
 
+  const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+
   if (token) {
-    document.cookie = `token=${encodeURIComponent(token)}; Path=/; Max-Age=86400; SameSite=Lax`;
+    document.cookie = `token=${encodeURIComponent(token)}; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
     return;
   }
 
-  document.cookie = "token=; Path=/; Max-Age=0; SameSite=Lax";
+  document.cookie = `token=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

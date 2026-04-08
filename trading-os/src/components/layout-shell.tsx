@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { TopBar } from "@/components/topbar";
 
-const PUBLIC_ROUTES = new Set(["/", "/login", "/coverage-campaign"]);
+const PUBLIC_ROUTES = new Set(["/", "/login", "/signup", "/coverage-campaign"]);
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

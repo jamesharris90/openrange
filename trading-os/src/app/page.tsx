@@ -7,8 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function LandingPage() {
   const { isAuthenticated, initialized, isAdmin } = useAuth();
-  const primaryHref = initialized && isAuthenticated ? "/dashboard" : "/login";
-  const primaryLabel = initialized && isAuthenticated ? "Open Dashboard" : "Get Started";
+  const primaryHref = initialized && isAuthenticated ? "/dashboard" : "/signup";
+  const primaryLabel = initialized && isAuthenticated ? "Open Dashboard" : "Create Account";
   const adminCards = [
     {
       href: "/admin",
@@ -54,12 +54,20 @@ export default function LandingPage() {
                 Dashboard
               </Link>
             ) : (
-              <Link
-                href="/login"
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:border-emerald-500/50 hover:text-white"
-              >
-                Sign in
-              </Link>
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:border-emerald-500/50 hover:text-white"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                >
+                  Sign up
+                </Link>
+              </>
             )}
             {initialized && isAuthenticated && isAdmin ? (
               <Link
@@ -94,6 +102,14 @@ export default function LandingPage() {
           >
             {primaryLabel}
           </Link>
+          {!isAuthenticated ? (
+            <Link
+              href="/login"
+              className="rounded-xl border border-slate-700 px-8 py-3 text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              Log in
+            </Link>
+          ) : null}
           {initialized && isAuthenticated && isAdmin ? (
             <Link
               href="/admin"
@@ -102,12 +118,14 @@ export default function LandingPage() {
               Open Admin Control Panel
             </Link>
           ) : null}
-          <a
-            href="#features"
-            className="rounded-xl border border-slate-700 px-8 py-3 text-slate-300 transition hover:border-slate-500 hover:text-white"
-          >
-            Learn more
-          </a>
+          {!isAuthenticated ? (
+            <a
+              href="#features"
+              className="rounded-xl border border-slate-700 px-8 py-3 text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              Learn more
+            </a>
+          ) : null}
         </div>
       </section>
 
