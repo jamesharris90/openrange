@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 
 import { AuthProvider } from "@/context/AuthContext";
+import { LegacyServiceWorkerCleanup } from "@/components/legacy-service-worker-cleanup";
 import { startLiveDataBus, stopLiveDataBus } from "@/lib/live-data";
 
 const queryClient = new QueryClient({
@@ -33,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <LegacyServiceWorkerCleanup />
           <LiveDataBridge queryClient={queryClient} />
           {children}
         </AuthProvider>
