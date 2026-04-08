@@ -4,6 +4,7 @@ const path = require('path');
 const cron = require('node-cron');
 
 require('dotenv').config({ path: path.join(__dirname, '.env'), override: true });
+process.env.PG_POOL_MAX = process.env.PG_POOL_MAX || '1';
 
 const { runHistoricalBackfill, runNightlyIncrementalBacktest } = require('./backtester/engine');
 const { loadStrategyModules } = require('./backtester/strategyLoader');

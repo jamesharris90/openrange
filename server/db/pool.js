@@ -118,6 +118,8 @@ const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
 const idleTimeoutMs = 30000;
 const shouldUseSsl = process.env.PGSSL_DISABLE !== 'true';
 const preferredAddressFamily = Number(process.env.PG_FORCE_FAMILY || (isHostedProductionRuntime ? 4 : 0));
+const poolSaturationRetries = Math.max(1, Number(process.env.PG_POOL_SATURATION_RETRIES || (isHostedProductionRuntime ? 12 : 5)));
+const poolSaturationRetryBaseMs = Math.max(100, Number(process.env.PG_POOL_SATURATION_RETRY_BASE_MS || 500));
 
 function maskDbUrl(rawUrl) {
   try {
@@ -256,8 +258,8 @@ async function query(...args) {
       return await state.rawPool.query(...args);
     } catch (error) {
       if (isPoolerSaturationError(error) && state.pooled) {
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-          await sleep(500 * (attempt + 1));
+        for (let attempt = 0; attempt < poolSaturationRetries; attempt += 1) {
+          await sleep(poolSaturationRetryBaseMs * (attempt + 1));
           try {
             return await state.rawPool.query(...args);
           } catch (retryError) {
