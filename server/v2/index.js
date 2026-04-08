@@ -82,6 +82,7 @@ const isRailwayRuntime = Boolean(
   || process.env.RAILWAY_ENVIRONMENT_ID
   || process.env.RAILWAY_SERVICE_ID
 );
+const railwayServiceRole = String(process.env.OPENRANGE_SERVICE_ROLE || '').trim().toLowerCase();
 const screenerSnapshotStartupDelayMs = Number(process.env.SCREENER_SNAPSHOT_STARTUP_DELAY_MS || (isRailwayRuntime ? 120000 : 0));
 let screenerSnapshotReadyAt = 0;
 
@@ -106,7 +107,11 @@ function resolveSchedulerFlags() {
   const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !envFlag('SAFE_MODE', false);
   const nonEssentialDefault = isRailwayRuntime ? false : true;
   const screenerSnapshotDefault = isRailwayRuntime ? false : true;
-  const ingestionSchedulerEnabled = envFlag('ENABLE_INGESTION_SCHEDULER', isRailwayRuntime ? true : backgroundServicesEnabled) && !envFlag('SAFE_MODE', false);
+  const ingestionSchedulerDefault = isRailwayRuntime ? false : backgroundServicesEnabled;
+  const ingestionSchedulerEnabled = !(
+    isRailwayRuntime
+    && railwayServiceRole === 'backend'
+  ) && envFlag('ENABLE_INGESTION_SCHEDULER', ingestionSchedulerDefault) && !envFlag('SAFE_MODE', false);
   const nonEssentialEnginesEnabled = backgroundServicesEnabled && envFlag('ENABLE_NON_ESSENTIAL_ENGINES', nonEssentialDefault);
   const screenerSnapshotEnabled = backgroundServicesEnabled && envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', screenerSnapshotDefault);
 
