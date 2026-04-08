@@ -5,6 +5,28 @@ const RawPool = pg.Pool;
 const RawClient = pg.Client;
 const SINGLETON_KEY = Symbol.for('openrange.db.pool.singleton');
 const isTestRuntime = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
+const isRailwayRuntime = Boolean(
+  process.env.RAILWAY_PROJECT_ID
+  || process.env.RAILWAY_ENVIRONMENT_ID
+  || process.env.RAILWAY_SERVICE_ID
+  || process.env.RAILWAY_DEPLOYMENT_ID
+  || process.env.RAILWAY_SERVICE_NAME
+  || process.env.RAILWAY_PUBLIC_DOMAIN
+  || process.env.RAILWAY_PRIVATE_DOMAIN
+);
+const isHostedProductionRuntime = isRailwayRuntime || process.env.NODE_ENV === 'production';
+
+function isDirectFallbackEnabled() {
+  if (process.env.PG_DIRECT_FALLBACK === 'true') {
+    return true;
+  }
+
+  if (process.env.PG_DIRECT_FALLBACK === 'false') {
+    return false;
+  }
+
+  return !isHostedProductionRuntime;
+}
 
 function isPoolerSaturationError(error) {
   const message = String(error?.message || '').toLowerCase();
@@ -89,11 +111,13 @@ function createLimiter(maxConcurrent) {
   });
 }
 
-const maxConnections = 10;
+const defaultMaxConnections = isRailwayRuntime ? 3 : 10;
+const maxConnections = Math.max(1, Number(process.env.PG_POOL_MAX || defaultMaxConnections) || defaultMaxConnections);
 const connectionTimeoutMs = Number(process.env.PG_CONNECTION_TIMEOUT_MS || 10000);
 const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
 const idleTimeoutMs = 30000;
 const shouldUseSsl = process.env.PGSSL_DISABLE !== 'true';
+const preferredAddressFamily = Number(process.env.PG_FORCE_FAMILY || (isHostedProductionRuntime ? 4 : 0));
 
 function maskDbUrl(rawUrl) {
   try {
@@ -132,7 +156,8 @@ function createRawPool(state, options = {}) {
   const { directFallback = false } = options;
   const resolved = resolveDatabaseUrl();
   const primaryDbUrl = process.env.DATABASE_URL || resolved.dbUrl;
-  const directDbUrl = buildDirectSupabaseUrl(primaryDbUrl);
+  const directFallbackEnabled = isDirectFallbackEnabled();
+  const directDbUrl = directFallbackEnabled ? buildDirectSupabaseUrl(primaryDbUrl) : null;
   const targetDbUrl = directFallback && directDbUrl ? directDbUrl : primaryDbUrl;
   const parsedTargetDbUrl = new URL(targetDbUrl);
   const targetHost = parsedTargetDbUrl.hostname;
@@ -144,7 +169,7 @@ function createRawPool(state, options = {}) {
     password: decodeURIComponent(parsedTargetDbUrl.password || ''),
     database: decodeURIComponent(String(parsedTargetDbUrl.pathname || '').replace(/^\//, '') || 'postgres'),
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
-    family: directFallback ? 4 : undefined,
+    family: preferredAddressFamily > 0 ? preferredAddressFamily : undefined,
     max: maxConnections,
     idleTimeoutMillis: idleTimeoutMs,
     connectionTimeoutMillis: connectionTimeoutMs,
@@ -174,6 +199,9 @@ function createRawPool(state, options = {}) {
 
   if (!isTestRuntime) {
     console.log(`DB POOL INITIALISED (max=${maxConnections}, pooled=${state.pooled}, idle=${idleTimeoutMs}ms, directFallback=${state.usingDirectFallback})`);
+    if (!directFallbackEnabled) {
+      console.log('[DB] Direct fallback disabled for this runtime');
+    }
   }
 
   return rawPool;
