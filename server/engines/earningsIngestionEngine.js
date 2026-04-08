@@ -839,8 +839,12 @@ async function runEarningsIngestionEngine(options = {}) {
     };
   });
   const insertedHistory = await replaceHistoryRows(successfulHistory);
-  const symbolsWithFullHistory = successfulHistory.filter((entry) => entry.rows.length >= HISTORY_LIMIT).length;
-  const symbolsWithPartialHistory = successfulHistory.filter((entry) => entry.rows.length > 0 && entry.rows.length < HISTORY_LIMIT).length;
+  const fullHistorySymbols = successfulHistory.filter((entry) => entry.rows.length >= HISTORY_LIMIT).map((entry) => entry.symbol);
+  const partialHistorySymbols = successfulHistory.filter((entry) => entry.rows.length > 0 && entry.rows.length < HISTORY_LIMIT).map((entry) => entry.symbol);
+  const noHistorySymbols = successfulHistory.filter((entry) => entry.rows.length === 0).map((entry) => entry.symbol);
+  const belowHistoryThresholdSymbols = successfulHistory.filter((entry) => entry.rows.length < HISTORY_LIMIT).map((entry) => entry.symbol);
+  const symbolsWithFullHistory = fullHistorySymbols.length;
+  const symbolsWithPartialHistory = partialHistorySymbols.length;
   const failedSymbols = [];
 
   const result = {
@@ -856,7 +860,7 @@ async function runEarningsIngestionEngine(options = {}) {
     history_ingested: insertedHistory,
     symbols_with_full_history: symbolsWithFullHistory,
     symbols_with_partial_history: symbolsWithPartialHistory,
-    symbols_with_no_history: successfulHistory.filter((entry) => entry.rows.length === 0).length,
+    symbols_with_no_history: noHistorySymbols.length,
     failed_symbols: failedSymbols,
     dropped_invalid_event_rows: upcoming.stats.dropped_missing_fields,
     dropped_invalid_history_rows: successfulHistory.reduce((sum, entry) => sum + Number(entry.dropped_missing_fields || 0), 0),
@@ -865,6 +869,13 @@ async function runEarningsIngestionEngine(options = {}) {
     to: toDate,
     history_from: historyFromDate,
   };
+
+  if (options.returnSymbolHistoryBreakdown) {
+    result.symbols_with_full_history_list = fullHistorySymbols;
+    result.symbols_with_partial_history_list = partialHistorySymbols;
+    result.symbols_with_no_history_list = noHistorySymbols;
+    result.symbols_below_history_threshold_list = belowHistoryThresholdSymbols;
+  }
 
   logger.info('earnings ingestion engine complete', result);
   return result;

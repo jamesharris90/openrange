@@ -31,6 +31,7 @@ const DEFAULT_MIN_EARNINGS_HISTORY = 8;
 const DEFAULT_IPO_GRACE_DAYS = 730;
 const DEFAULT_UPCOMING_DAYS = 180;
 const DEFAULT_MAX_NEWS_ATTEMPTS_PER_SYMBOL = 2;
+const DEFAULT_UNSUPPORTED_EARNINGS_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SAFE_MODE = !['0', 'false', 'no'].includes(String(process.env.COVERAGE_CAMPAIGN_SAFE_MODE || '').trim().toLowerCase());
 const SAFE_NEWS_BATCH_SIZE = 3;
 const SAFE_INTER_SYMBOL_DELAY_MS = 5000;
@@ -275,6 +276,18 @@ function dedupeSorted(values) {
   return Array.from(new Set((Array.isArray(values) ? values : []).filter(Boolean))).sort();
 }
 
+function getActiveUnsupportedEarningsSymbols(checkpoint, now = Date.now()) {
+  const verifiedAt = checkpoint?.earnings?.unsupported_verified_at
+    ? Date.parse(checkpoint.earnings.unsupported_verified_at)
+    : Number.NaN;
+
+  if (!Number.isFinite(verifiedAt) || (now - verifiedAt) > DEFAULT_UNSUPPORTED_EARNINGS_TTL_MS) {
+    return [];
+  }
+
+  return dedupeSorted(checkpoint?.earnings?.unsupported_symbols || []);
+}
+
 function extractSnapshotSymbols(snapshotData) {
   const screenerData = Array.isArray(snapshotData?.screener?.data) ? snapshotData.screener.data : [];
   return dedupeSorted(
@@ -309,11 +322,13 @@ function createEmptyCheckpoint() {
     earnings: {
       completed: false,
       summary: null,
+      unsupported_symbols: [],
+      unsupported_verified_at: null,
     },
   };
 }
 
-async function loadCoverageState(options) {
+async function loadCoverageState(options, checkpoint = null) {
   const snapshotResult = await queryWithTimeout(
     `SELECT created_at, data
      FROM screener_snapshots
@@ -391,12 +406,16 @@ async function loadCoverageState(options) {
     (recentIposResult.rows || []).map((entry) => String(entry.symbol || '').trim().toUpperCase())
   );
   const recentIpoSet = new Set(recentIpoSymbols);
+  const unsupportedEarningsSymbols = getActiveUnsupportedEarningsSymbols(checkpoint);
+  const unsupportedEarningsSet = new Set(unsupportedEarningsSymbols);
 
   const missingNewsSymbols = screenerSymbols.filter(
     (symbol) => (newsCounts.get(symbol) || 0) < options.minNewsItems
   );
   const missingEarningsSymbols = screenerSymbols.filter(
-    (symbol) => !recentIpoSet.has(symbol) && (earningsCounts.get(symbol) || 0) < options.minEarningsHistory
+    (symbol) => !recentIpoSet.has(symbol)
+      && !unsupportedEarningsSet.has(symbol)
+      && (earningsCounts.get(symbol) || 0) < options.minEarningsHistory
   );
 
   return {
@@ -405,6 +424,7 @@ async function loadCoverageState(options) {
     missingNewsSymbols,
     missingEarningsSymbols,
     recentIpoSymbols,
+    unsupportedEarningsSymbols,
   };
 }
 
@@ -429,6 +449,7 @@ async function persistCheckpoint(checkpoint) {
   checkpoint.news.attempted_symbols = dedupeSorted(checkpoint.news.attempted_symbols);
   checkpoint.news.resolved_symbols = dedupeSorted(checkpoint.news.resolved_symbols);
   checkpoint.news.unresolved_symbols = dedupeSorted(checkpoint.news.unresolved_symbols);
+  checkpoint.earnings.unsupported_symbols = dedupeSorted(checkpoint.earnings.unsupported_symbols);
   writeJson(CHECKPOINT_PATH, checkpoint);
   await writeCoverageCampaignState('checkpoint', checkpoint).catch((error) => {
     console.warn('[COVERAGE_CAMPAIGN_SHARED_STATE] checkpoint write failed', { error: error.message });
@@ -636,6 +657,7 @@ async function runEarningsPhase(state, checkpoint, options, runtime, cycle) {
     minimum_history_reports: options.minEarningsHistory,
     upcoming_days: options.upcomingDays,
     recent_ipo_exemptions: state.recentIpoSymbols.length,
+    unsupported_earnings_symbols: state.unsupportedEarningsSymbols.length,
     engine_summary: null,
   };
 
@@ -656,13 +678,28 @@ async function runEarningsPhase(state, checkpoint, options, runtime, cycle) {
   const engineSummary = await runEarningsIngestionEngine({
     symbols: state.missingEarningsSymbols,
     upcomingDays: options.upcomingDays,
+    returnSymbolHistoryBreakdown: true,
   });
 
+  const unsupportedSymbols = dedupeSorted(engineSummary.symbols_below_history_threshold_list || []);
+  checkpoint.earnings.unsupported_symbols = unsupportedSymbols;
+  checkpoint.earnings.unsupported_verified_at = unsupportedSymbols.length ? new Date().toISOString() : null;
+
+  const persistedEngineSummary = {
+    ...engineSummary,
+    unsupported_earnings_symbols: unsupportedSymbols.length,
+    unsupported_earnings_sample: unsupportedSymbols.slice(0, 20),
+  };
+  delete persistedEngineSummary.symbols_with_full_history_list;
+  delete persistedEngineSummary.symbols_with_partial_history_list;
+  delete persistedEngineSummary.symbols_with_no_history_list;
+  delete persistedEngineSummary.symbols_below_history_threshold_list;
+
   checkpoint.earnings.completed = false;
-  checkpoint.earnings.summary = engineSummary;
+  checkpoint.earnings.summary = persistedEngineSummary;
   await persistCheckpoint(checkpoint);
 
-  summary.engine_summary = engineSummary;
+  summary.engine_summary = persistedEngineSummary;
   return summary;
 }
 
@@ -688,8 +725,10 @@ function createStatusReport(cycle, options, runtime, preState, phases, postState
       missing_news_count: preState.missingNewsSymbols.length,
       missing_earnings_count: preState.missingEarningsSymbols.length,
       recent_ipo_exemptions: preState.recentIpoSymbols.length,
+      unsupported_earnings_count: preState.unsupportedEarningsSymbols.length,
       missing_news_sample: preState.missingNewsSymbols.slice(0, 8),
       missing_earnings_sample: preState.missingEarningsSymbols.slice(0, 8),
+      unsupported_earnings_sample: preState.unsupportedEarningsSymbols.slice(0, 8),
     },
     phases,
     postcheck: {
@@ -698,8 +737,10 @@ function createStatusReport(cycle, options, runtime, preState, phases, postState
       missing_news_count: postState.missingNewsSymbols.length,
       missing_earnings_count: postState.missingEarningsSymbols.length,
       recent_ipo_exemptions: postState.recentIpoSymbols.length,
+      unsupported_earnings_count: postState.unsupportedEarningsSymbols.length,
       missing_news_sample: postState.missingNewsSymbols.slice(0, 8),
       missing_earnings_sample: postState.missingEarningsSymbols.slice(0, 8),
+      unsupported_earnings_sample: postState.unsupportedEarningsSymbols.slice(0, 8),
       news_progress: newsProgress,
       earnings_progress: earningsProgress,
     },
@@ -724,6 +765,7 @@ function createCheckpointStatusSnapshot(cycle, phase, runtime, checkpoint, fallb
     missing_news_count: liveMissingNews,
     missing_earnings_count: baselineMissingEarnings,
     recent_ipo_exemptions: Number.isFinite(fallback.recentIpoExemptions) ? fallback.recentIpoExemptions : null,
+    unsupported_earnings_count: Number.isFinite(fallback.unsupportedEarningsCount) ? fallback.unsupportedEarningsCount : null,
     attempted_news_symbols: attemptedCount,
     resolved_news_symbols: resolvedCount,
     unresolved_news_symbols: unresolvedCount,
@@ -743,7 +785,7 @@ async function maybeWriteProgressReport({ cycle, phase, options, runtime, checkp
 
   let payload;
   try {
-    const state = await loadCoverageState(options);
+    const state = await loadCoverageState(options, checkpoint);
     payload = {
       generated_at: new Date(now).toISOString(),
       cycle,
@@ -753,6 +795,7 @@ async function maybeWriteProgressReport({ cycle, phase, options, runtime, checkp
       missing_news_count: state.missingNewsSymbols.length,
       missing_earnings_count: state.missingEarningsSymbols.length,
       recent_ipo_exemptions: state.recentIpoSymbols.length,
+      unsupported_earnings_count: state.unsupportedEarningsSymbols.length,
       attempted_news_symbols: checkpoint.news.attempted_symbols.length,
       resolved_news_symbols: checkpoint.news.resolved_symbols.length,
       unresolved_news_symbols: checkpoint.news.unresolved_symbols.length,
@@ -791,6 +834,11 @@ async function maybeWriteProgressReport({ cycle, phase, options, runtime, checkp
       } else if (typeof previousPostcheck.recent_ipo_exemptions === 'number') {
         payload.recent_ipo_exemptions = previousPostcheck.recent_ipo_exemptions;
       }
+      if (typeof previousPrecheck.unsupported_earnings_count === 'number') {
+        payload.unsupported_earnings_count = previousPrecheck.unsupported_earnings_count;
+      } else if (typeof previousPostcheck.unsupported_earnings_count === 'number') {
+        payload.unsupported_earnings_count = previousPostcheck.unsupported_earnings_count;
+      }
     } catch (_error) {
       // Best-effort degraded payload only.
     }
@@ -812,7 +860,7 @@ async function maybeWriteProgressReport({ cycle, phase, options, runtime, checkp
 }
 
 async function runCycle(cycle, options, runtime, checkpoint) {
-  const preState = await loadCoverageState(options);
+  const preState = await loadCoverageState(options, checkpoint);
   checkpoint.snapshot_created_at = preState.snapshotCreatedAt;
   await persistCheckpoint(checkpoint);
   await maybeWriteProgressReport({
@@ -829,7 +877,7 @@ async function runCycle(cycle, options, runtime, checkpoint) {
     phases.earnings = await runEarningsPhase(preState, checkpoint, options, runtime, cycle);
   }
 
-  const stateBeforeNews = options.newsOnly ? preState : await loadCoverageState(options);
+  const stateBeforeNews = options.newsOnly ? preState : await loadCoverageState(options, checkpoint);
   if (!options.earningsOnly) {
     phases.news = await runNewsPhase(stateBeforeNews, checkpoint, {
       ...options,
@@ -839,7 +887,7 @@ async function runCycle(cycle, options, runtime, checkpoint) {
     }, runtime, cycle);
   }
 
-  const postState = await loadCoverageState(options);
+  const postState = await loadCoverageState(options, checkpoint);
   const report = createStatusReport(cycle, options, runtime, preState, phases, postState);
   writeJson(STATUS_PATH, report);
   await writeCoverageCampaignState('status', report).catch((error) => {
@@ -923,6 +971,7 @@ async function main() {
         cycle,
         missing_news_count: report.postcheck.missing_news_count,
         missing_earnings_count: report.postcheck.missing_earnings_count,
+        unsupported_earnings_count: report.postcheck.unsupported_earnings_count,
         news_progress: report.postcheck.news_progress,
         earnings_progress: report.postcheck.earnings_progress,
         retry_attempted_news: runtime.retryAttemptedNews,
@@ -934,6 +983,7 @@ async function main() {
         cycle,
         missing_news_count: report.postcheck.missing_news_count,
         missing_earnings_count: report.postcheck.missing_earnings_count,
+        unsupported_earnings_count: report.postcheck.unsupported_earnings_count,
         news_progress: report.postcheck.news_progress,
         earnings_progress: report.postcheck.earnings_progress,
         retry_attempted_news: runtime.retryAttemptedNews,
@@ -969,6 +1019,7 @@ async function main() {
       safe_mode: options.safeMode,
       missing_news_count: report.postcheck.missing_news_count,
       missing_earnings_count: report.postcheck.missing_earnings_count,
+      unsupported_earnings_count: report.postcheck.unsupported_earnings_count,
       news_progress: report.postcheck.news_progress,
       earnings_progress: report.postcheck.earnings_progress,
       retry_attempted_news: runtime.retryAttemptedNews,
