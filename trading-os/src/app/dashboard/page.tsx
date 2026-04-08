@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { DashboardView } from "@/components/terminal/dashboard-view";
 import { createPageMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = createPageMetadata(
   "Dashboard | OpenRange Terminal",
   "Market regime, breadth, sector momentum, opportunity stream, and alert intelligence.",
