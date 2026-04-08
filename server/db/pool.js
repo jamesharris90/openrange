@@ -112,7 +112,11 @@ function createLimiter(maxConcurrent) {
 }
 
 const defaultMaxConnections = isRailwayRuntime ? 3 : 10;
-const maxConnections = Math.max(1, Number(process.env.PG_POOL_MAX || defaultMaxConnections) || defaultMaxConnections);
+const configuredMaxConnections = Math.max(1, Number(process.env.PG_POOL_MAX || defaultMaxConnections) || defaultMaxConnections);
+const hostedPoolCap = Math.max(1, Number(process.env.PG_HOSTED_POOL_CAP || 1) || 1);
+const maxConnections = isHostedProductionRuntime
+  ? Math.min(configuredMaxConnections, hostedPoolCap)
+  : configuredMaxConnections;
 const connectionTimeoutMs = Number(process.env.PG_CONNECTION_TIMEOUT_MS || 10000);
 const statementTimeoutMs = Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000);
 const idleTimeoutMs = 30000;
