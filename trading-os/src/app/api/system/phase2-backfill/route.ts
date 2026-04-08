@@ -2,6 +2,9 @@ import { promises as fs } from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type JsonRecord = Record<string, unknown>;
 
 let serverEnvCache: Record<string, string> | null = null;
@@ -283,7 +286,11 @@ export async function GET() {
   const hasLocalFallback = await pathExists(defaultStatusFile) || checkpointCandidates.length > 0;
 
   if (shared && (Boolean(shared.status && shared.status.pidAlive) || !hasLocalFallback)) {
-    return Response.json(shared);
+    return Response.json(shared, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   }
 
   const status = await readJsonFile(defaultStatusFile);
@@ -326,6 +333,10 @@ export async function GET() {
       status: await readFileStats(defaultStatusFile),
       checkpoint: checkpointPath ? await readFileStats(checkpointPath) : { exists: false, updatedAt: null, sizeBytes: 0 },
       stdout: await readFileStats(stdoutFile),
+    },
+  }, {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
     },
   });
 }
