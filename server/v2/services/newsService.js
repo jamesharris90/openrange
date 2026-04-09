@@ -12,7 +12,33 @@ const GENERIC_THEME_TOKENS = new Set([
 ]);
 
 const EARNINGS_RE = /\b(earnings|eps|guidance)\b/i;
-const MACRO_RE = /\b(fed|cpi|rates|treasury)\b/i;
+const MACRO_RE = /\b(fed|cpi|inflation|rates?|treasury|yield|futures|oil|crude|gold|market|markets|economy|economic|nasdaq|dow|s&p|volatility)\b/i;
+const MARKET_SYMBOLS = new Set(['SPY', 'QQQ', 'IWM', 'DIA', 'VIX', 'TLT', 'GLD', 'USO']);
+const MAX_NEWS_FEED_LIMIT = 5000;
+const MAX_PER_SOURCE_LIMIT = 12000;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function normalizeFeedOptions(limitOrOptions) {
+  if (typeof limitOrOptions === 'object' && limitOrOptions !== null) {
+    const rawLimit = Number(limitOrOptions.limit) || 250;
+    const rawOffset = Number(limitOrOptions.offset) || 0;
+    const rawCutoffHours = Number(limitOrOptions.cutoffHours) || 24;
+    return {
+      limit: clamp(rawLimit, 1, MAX_NEWS_FEED_LIMIT),
+      offset: Math.max(0, rawOffset),
+      cutoffHours: clamp(rawCutoffHours, 6, 24 * 30),
+    };
+  }
+
+  return {
+    limit: clamp(Number(limitOrOptions) || 250, 1, MAX_NEWS_FEED_LIMIT),
+    offset: 0,
+    cutoffHours: 24,
+  };
+}
 
 function normalizeTitle(title) {
   return String(title || '')
@@ -62,16 +88,28 @@ function unionStrings(...values) {
 }
 
 function classifyArticle(symbols, title) {
-  if (!Array.isArray(symbols) || symbols.length === 0) {
+  const normalizedSymbols = Array.isArray(symbols)
+    ? symbols.map((entry) => String(entry || '').trim().toUpperCase()).filter(Boolean)
+    : [];
+
+  if (normalizedSymbols.length === 0) {
+    return 'macro';
+  }
+
+  if (normalizedSymbols.some((symbol) => MARKET_SYMBOLS.has(symbol))) {
+    return 'macro';
+  }
+
+  if (normalizedSymbols.length >= 5) {
+    return 'macro';
+  }
+
+  if (MACRO_RE.test(title)) {
     return 'macro';
   }
 
   if (EARNINGS_RE.test(title)) {
     return 'earnings';
-  }
-
-  if (MACRO_RE.test(title)) {
-    return 'macro';
   }
 
   return 'stock';
@@ -97,6 +135,7 @@ function normalizeSourceRows(rows, sourceTable) {
       title,
       headline: title,
       source: row.source || sourceTable,
+      url: row.url || null,
       published_at: row.published_at || null,
       symbols,
       symbol,
@@ -105,13 +144,33 @@ function normalizeSourceRows(rows, sourceTable) {
   }).filter((row) => row.title);
 }
 
+function buildArticleIdentity(row) {
+  const normalizedTitle = normalizeTitle(row.title);
+  const normalizedSource = String(row.source || '').trim().toLowerCase();
+  const publishedBucket = row.published_at
+    ? new Date(row.published_at).toISOString().slice(0, 16)
+    : 'unknown';
+  const normalizedUrl = String(row.url || '').trim();
+
+  if (normalizedUrl) {
+    return `url:${normalizedUrl}`;
+  }
+
+  if (normalizedTitle) {
+    return `title:${normalizedSource}:${normalizedTitle}:${publishedBucket}`;
+  }
+
+  return `fallback:${row.source_table}:${row.id}`;
+}
+
 function deduplicateArticles(rows) {
-  const deduped = [];
+  const deduped = new Map();
 
   for (const row of rows) {
-    const match = deduped.find((existing) => titleSimilarity(existing.title, row.title) > 0.8);
+    const identity = buildArticleIdentity(row);
+    const match = deduped.get(identity);
     if (!match) {
-      deduped.push({
+      deduped.set(identity, {
         ...row,
         related_articles: [
           {
@@ -120,6 +179,7 @@ function deduplicateArticles(rows) {
             published_at: row.published_at,
             source_table: row.source_table,
             symbols: row.symbols,
+            url: row.url,
           },
         ],
         sources: [row.source],
@@ -135,6 +195,7 @@ function deduplicateArticles(rows) {
       match.headline = row.headline;
       match.published_at = row.published_at;
       match.source = row.source;
+      match.url = row.url;
       match.id = row.id;
       match.source_id = row.source_id;
       match.source_table = row.source_table;
@@ -150,13 +211,20 @@ function deduplicateArticles(rows) {
       published_at: row.published_at,
       source_table: row.source_table,
       symbols: row.symbols,
+      url: row.url,
     });
   }
 
-  return deduped.map((row) => ({
-    ...row,
-    type: classifyArticle(row.symbols, row.title),
-  }));
+  return Array.from(deduped.values()).map((row) => {
+    const type = classifyArticle(row.symbols, row.title);
+    const primarySymbol = type === 'macro' ? null : (row.symbols.length === 1 ? row.symbols[0] : null);
+
+    return {
+      ...row,
+      symbol: primarySymbol,
+      type,
+    };
+  });
 }
 
 function titleCase(label) {
@@ -242,16 +310,16 @@ function buildThemes(articles, maxThemes = 10) {
     .slice(0, maxThemes);
 }
 
-async function getNewsFeed(limit = 50) {
+async function getNewsFeed(limitOrOptions = 250) {
   const startedAt = Date.now();
-  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 50));
-  const perSourceLimit = Math.max(1000, safeLimit * 40);
-  const cutoff = new Date(Date.now() - (72 * 60 * 60 * 1000)).toISOString();
+  const { limit: safeLimit, offset, cutoffHours } = normalizeFeedOptions(limitOrOptions);
+  const perSourceLimit = clamp(Math.max(2000, safeLimit * 6), 2000, MAX_PER_SOURCE_LIMIT);
+  const cutoff = new Date(Date.now() - (cutoffHours * 60 * 60 * 1000)).toISOString();
   const latestAllowed = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
 
   const [newsArticlesResult, newsEventsResult, intelNewsResult] = await Promise.allSettled([
     queryWithTimeout(
-      `SELECT id, symbol, headline AS title, source, published_at
+      `SELECT id, symbol, headline AS title, source, url, published_at
        FROM news_articles
        WHERE published_at >= $1
          AND published_at <= $2
@@ -262,7 +330,7 @@ async function getNewsFeed(limit = 50) {
       { timeoutMs: 8000, label: 'v2.news.news_articles', maxRetries: 0 }
     ),
     queryWithTimeout(
-      `SELECT id, symbol, headline AS title, source, published_at
+      `SELECT id, symbol, headline AS title, source, url, published_at
        FROM news_events
        WHERE published_at >= $1
          AND published_at <= $2
@@ -273,7 +341,7 @@ async function getNewsFeed(limit = 50) {
       { timeoutMs: 8000, label: 'v2.news.news_events', maxRetries: 0 }
     ),
     queryWithTimeout(
-      `SELECT id, symbol, headline AS title, source, published_at
+      `SELECT id, symbol, headline AS title, source, url, published_at
        FROM intel_news
        WHERE published_at >= $1
          AND published_at <= $2
@@ -322,14 +390,17 @@ async function getNewsFeed(limit = 50) {
       const leftTime = left.published_at ? Date.parse(left.published_at) : 0;
       const rightTime = right.published_at ? Date.parse(right.published_at) : 0;
       return rightTime - leftTime;
-    })
-    .slice(0, safeLimit)
+    });
+
+  const pagedArticles = deduplicated
+    .slice(offset, offset + safeLimit)
     .map((article) => ({
       id: article.id,
       source_id: article.source_id,
       title: article.title,
       headline: article.headline,
       source: article.source,
+      url: article.url,
       published_at: article.published_at,
       symbols: article.symbols,
       symbol: article.symbol,
@@ -344,8 +415,11 @@ async function getNewsFeed(limit = 50) {
 
   console.log('[V2_NEWS] intelligence feed complete', {
     durationMs,
+    cutoffHours,
     mergedRows: mergedRows.length,
     rawArticles: deduplicated.length,
+    returnedArticles: pagedArticles.length,
+    offset,
     themes: themes.length,
     sources: {
       news_articles: newsArticlesResult.status === 'fulfilled' ? (newsArticlesResult.value.rows || []).length : 0,
@@ -355,8 +429,11 @@ async function getNewsFeed(limit = 50) {
   });
 
   return {
-    raw_articles: deduplicated,
+    raw_articles: pagedArticles,
     themes,
+    total_count: deduplicated.length,
+    limit: safeLimit,
+    offset,
   };
 }
 

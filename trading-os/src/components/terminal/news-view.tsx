@@ -14,6 +14,7 @@ type NewsItem = {
   source_id?: string | null;
   symbol?: string | null;
   symbols?: string[] | null;
+  type?: string | null;
   headline?: string | null;
   title?: string | null;
   summary?: string | null;
@@ -28,7 +29,7 @@ type NewsItem = {
   news_score?: number | null;
 };
 
-type ApiResponse = { success?: boolean; error?: string; ok?: boolean; items?: NewsItem[]; data?: NewsItem[] };
+type ApiResponse = { success?: boolean; error?: string; ok?: boolean; total_count?: number; items?: NewsItem[]; data?: NewsItem[] };
 
 type NewsTypeTab = "All" | "Market" | "Stocks";
 type TimeFilter = "Today" | "24h" | "7d";
@@ -68,6 +69,16 @@ const DEFAULT_FILTERS: NewsFilters = {
   time: "24h",
 };
 
+function isMarketNewsItem(item: NewsItem) {
+  return item.type === "macro" || (!item.symbol && (!item.symbols || item.symbols.length === 0));
+}
+
+function requestedLimitForTime(time: TimeFilter) {
+  if (time === "Today") return "1000";
+  if (time === "7d") return "5000";
+  return "2000";
+}
+
 function isWithinTimeFilter(publishedAt: string | null | undefined, time: TimeFilter) {
   const timestamp = Date.parse(String(publishedAt || ""));
   if (Number.isNaN(timestamp)) {
@@ -96,6 +107,7 @@ export function NewsView() {
   const [loading,        setLoading]        = useState(false);
   const [error,          setError]          = useState<string | null>(null);
   const [lastUpdated,    setLastUpdated]    = useState<Date | null>(null);
+  const [totalAvailable, setTotalAvailable] = useState<number>(0);
 
   const [newsType,       setNewsType]       = useState<NewsTypeTab>("All");
 
@@ -108,7 +120,7 @@ export function NewsView() {
     page,
     setPage,
     pageSize,
-  } = useTableControls<NewsItem, NewsFilters>(items, DEFAULT_FILTERS, { pageSize: 25 });
+  } = useTableControls<NewsItem, NewsFilters>(items, DEFAULT_FILTERS, { pageSize: 50 });
   const debouncedSearch = useDebouncedValue(filters.search, 150);
 
   const fetchNews = useCallback(async () => {
@@ -117,7 +129,10 @@ export function NewsView() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ limit: "50" });
+      const params = new URLSearchParams({
+        limit: requestedLimitForTime(filters.time),
+        window: filters.time,
+      });
       const res = await apiFetch(`/api/news?${params.toString()}`, {
         cache: "no-store",
         signal: abortRef.current.signal,
@@ -139,11 +154,15 @@ export function NewsView() {
       const list = Array.isArray(payload) ? payload : payload?.items ?? payload?.data ?? [];
       const normalized = list
         .map((item, index) => {
-          const primarySymbol = String(item.symbol || item.symbols?.[0] || "").trim().toUpperCase();
+          const normalizedSymbols = Array.from(new Set((item.symbols ?? [])
+            .map((entry) => String(entry || "").trim().toUpperCase())
+            .filter(Boolean)));
+          const primarySymbol = String(item.symbol || normalizedSymbols[0] || "").trim().toUpperCase();
           return {
             ...item,
             id: item.id ?? item.source_id ?? `${primarySymbol || "macro"}-${item.published_at || "unknown"}-${index}`,
-            symbol: primarySymbol || null,
+            symbol: item.type === "macro" ? null : (primarySymbol || null),
+            symbols: normalizedSymbols,
             headline: item.headline ?? item.title ?? null,
             title: item.title ?? item.headline ?? null,
             published_at: item.published_at ?? null,
@@ -153,10 +172,10 @@ export function NewsView() {
           const leftTime = left.published_at ? Date.parse(left.published_at) : 0;
           const rightTime = right.published_at ? Date.parse(right.published_at) : 0;
           return rightTime - leftTime;
-        })
-        .slice(0, 50);
+        });
 
       setItems(normalized);
+      setTotalAvailable(Array.isArray(payload) ? normalized.length : Number(payload?.total_count) || normalized.length);
       setLastUpdated(new Date());
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
@@ -166,7 +185,7 @@ export function NewsView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.time]);
 
   useEffect(() => {
     fetchNews();
@@ -182,21 +201,29 @@ export function NewsView() {
     const normalizedSymbol = filters.symbol.trim().toUpperCase();
 
     return items.filter((item) => {
-      if (newsType === "Market" && item.symbol) return false;
-      if (newsType === "Stocks" && !item.symbol) return false;
+      const isMarket = isMarketNewsItem(item);
+      if (newsType === "Market" && !isMarket) return false;
+      if (newsType === "Stocks" && isMarket) return false;
 
       if (!isWithinTimeFilter(item.published_at, filters.time)) {
         return false;
       }
 
       if (normalizedSymbol && String(item.symbol || "").toUpperCase() !== normalizedSymbol) {
-        return false;
+        const symbols = Array.from(new Set((item.symbols ?? [])
+          .map((entry) => String(entry || "").trim().toUpperCase())
+          .filter(Boolean)));
+        if (!symbols.includes(normalizedSymbol)) {
+          return false;
+        }
       }
 
       if (normalizedSearch) {
         const headline = String(item.headline ?? item.title ?? "").toLowerCase();
-        const symbol = String(item.symbol ?? "").toLowerCase();
-        if (!headline.includes(normalizedSearch) && !symbol.includes(normalizedSearch)) {
+        const symbolSearchSpace = Array.from(new Set((item.symbols ?? [])
+          .map((entry) => String(entry || "").trim().toLowerCase())
+          .filter(Boolean))).join(" ");
+        if (!headline.includes(normalizedSearch) && !symbolSearchSpace.includes(normalizedSearch)) {
           return false;
         }
       }
@@ -208,10 +235,10 @@ export function NewsView() {
   const symbolOptions = useMemo(() => {
     const symbols = new Set<string>();
     items.forEach((item) => {
-      const symbol = String(item.symbol || "").trim().toUpperCase();
-      if (symbol) {
-        symbols.add(symbol);
-      }
+      (item.symbols ?? []).forEach((entry) => {
+        const symbol = String(entry || "").trim().toUpperCase();
+        if (symbol) symbols.add(symbol);
+      });
     });
     return Array.from(symbols).sort();
   }, [items]);
@@ -229,8 +256,8 @@ export function NewsView() {
     }
   }, [page, setPage, totalPages]);
 
-  const marketCount = useMemo(() => items.filter((i) => !i.symbol).length, [items]);
-  const stockCount  = useMemo(() => items.filter((i) => !!i.symbol).length, [items]);
+  const marketCount = useMemo(() => items.filter((item) => isMarketNewsItem(item)).length, [items]);
+  const stockCount  = useMemo(() => items.filter((item) => !isMarketNewsItem(item)).length, [items]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--background)]">
@@ -239,7 +266,7 @@ export function NewsView() {
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--panel)] shrink-0">
         <h1 className="text-sm font-semibold text-[var(--foreground)]">News Feed</h1>
         <span className="text-xs text-[var(--muted-foreground)]">
-          {loading ? "Loading…" : `${items.length} articles`}
+          {loading ? "Loading…" : `${items.length.toLocaleString()} loaded${totalAvailable > items.length ? ` of ${totalAvailable.toLocaleString()}` : ""}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-[var(--muted-foreground)]">
@@ -341,16 +368,21 @@ export function NewsView() {
 
         {paginatedData.map((item, i) => {
           const headline = item.headline ?? item.title ?? "—";
-          const isStock = !!item.symbol;
+          const isMarket = isMarketNewsItem(item);
+          const displaySymbols = Array.from(new Set((item.symbols ?? [])
+            .map((entry) => String(entry || "").trim().toUpperCase())
+            .filter(Boolean))).slice(0, 3);
+          const remainingSymbols = Math.max(0, ((item.symbols ?? []).filter(Boolean).length) - displaySymbols.length);
+          const isResearchRow = !isMarket && displaySymbols.length === 1;
           return (
             <div
               key={item.id ?? `${item.symbol}-${i}`}
               onClick={() => {
-                if (item.symbol) {
-                  router.push(`/research/${encodeURIComponent(item.symbol)}`);
+                if (isResearchRow) {
+                  router.push(`/research/${encodeURIComponent(displaySymbols[0])}`);
                 }
               }}
-              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)] ${i % 2 !== 0 ? "bg-[var(--muted)]/20" : ""} ${item.symbol ? "cursor-pointer" : ""}`}
+              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)] ${i % 2 !== 0 ? "bg-[var(--muted)]/20" : ""} ${isResearchRow ? "cursor-pointer" : ""}`}
             >
               {/* Time */}
               <div className="w-12 shrink-0 pt-0.5">
@@ -365,21 +397,25 @@ export function NewsView() {
                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
                   {/* Market vs Stock badge */}
                   <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold border tracking-wide ${
-                    isStock
-                      ? "bg-green-500/15 text-green-500 border-green-500/30"
-                      : "bg-slate-500/15 text-slate-400 border-slate-500/30"
+                    isMarket
+                      ? "bg-slate-500/15 text-slate-400 border-slate-500/30"
+                      : "bg-green-500/15 text-green-500 border-green-500/30"
                   }`}>
-                    {isStock ? "STOCK" : "MACRO"}
+                    {isMarket ? "MARKET" : "STOCK"}
                   </span>
 
-                  {item.symbol && (
+                  {displaySymbols.map((symbol) => (
                     <span
+                      key={symbol}
                       className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border bg-blue-500/15 text-blue-500 border-blue-500/30 tracking-wide cursor-pointer hover:bg-blue-500/30 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); router.push(`/research/${item.symbol}`); }}
+                      onClick={(e) => { e.stopPropagation(); router.push(`/research/${symbol}`); }}
                     >
-                      {item.symbol}
+                      {symbol}
                     </span>
-                  )}
+                  ))}
+                  {remainingSymbols > 0 ? (
+                    <span className="text-[10px] text-[var(--muted-foreground)]">+{remainingSymbols}</span>
+                  ) : null}
                   {item.sector && (
                     <span className="text-[10px] text-[var(--muted-foreground)]">{item.sector}</span>
                   )}

@@ -6,6 +6,18 @@ const { normalizeSymbol } = require('../../services/researchCacheService');
 
 const router = express.Router();
 
+function parseWindowToHours(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized || normalized === '24h' || normalized === 'today') return 24;
+  if (normalized === '7d') return 24 * 7;
+  if (normalized === '30d') return 24 * 30;
+  const hoursMatch = normalized.match(/^(\d+)h$/);
+  if (hoursMatch) return Number(hoursMatch[1]);
+  const daysMatch = normalized.match(/^(\d+)d$/);
+  if (daysMatch) return Number(daysMatch[1]) * 24;
+  return 24;
+}
+
 function normalizeNewsRow(row, scope) {
   const headline = String(row?.headline || '').trim();
   if (!headline) {
@@ -117,17 +129,25 @@ router.get('/', async (req, res) => {
       return res.json(payload);
     }
 
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 50));
-    const cacheKey = `news-v2-intelligence:v1:${limit}`;
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 500, 5000));
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const offset = Math.max(0, Number(req.query.offset) || ((page - 1) * limit));
+    const cutoffHours = parseWindowToHours(req.query.window || req.query.time);
+    const cacheKey = `news-v2-intelligence:v2:${limit}:${offset}:${cutoffHours}`;
     const cached = getCache(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
-    const feed = await getNewsFeed(limit);
+    const feed = await getNewsFeed({ limit, offset, cutoffHours });
     const payload = {
       success: true,
       count: Array.isArray(feed.raw_articles) ? feed.raw_articles.length : 0,
+      total_count: Number(feed.total_count) || 0,
+      limit,
+      offset,
+      page,
+      window: req.query.window || req.query.time || '24h',
       data: Array.isArray(feed.raw_articles) ? feed.raw_articles : [],
       raw_articles: Array.isArray(feed.raw_articles) ? feed.raw_articles : [],
       themes: Array.isArray(feed.themes) ? feed.themes : [],
