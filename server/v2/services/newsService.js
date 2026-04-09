@@ -79,7 +79,10 @@ function classifyArticle(symbols, title) {
 
 function normalizeSourceRows(rows, sourceTable) {
   return (rows || []).map((row, index) => {
-    const symbol = typeof row.symbol === 'string' && row.symbol.trim() ? row.symbol.trim().toUpperCase() : null;
+    const symbols = Array.isArray(row.symbols)
+      ? row.symbols.map((entry) => String(entry || '').trim().toUpperCase()).filter(Boolean)
+      : [];
+    const symbol = symbols[0] || (typeof row.symbol === 'string' && row.symbol.trim() ? row.symbol.trim().toUpperCase() : null);
     const title = typeof row.title === 'string' && row.title.trim()
       ? row.title.trim()
       : typeof row.headline === 'string'
@@ -94,7 +97,7 @@ function normalizeSourceRows(rows, sourceTable) {
       headline: title,
       source: row.source || sourceTable,
       published_at: row.published_at || null,
-      symbols: symbol ? [symbol] : [],
+      symbols,
       symbol,
       type: 'unknown',
     };
@@ -241,39 +244,43 @@ function buildThemes(articles, maxThemes = 10) {
 async function getNewsFeed(limit = 50) {
   const startedAt = Date.now();
   const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 50));
-  const perSourceLimit = Math.max(50, safeLimit * 2);
+  const perSourceLimit = Math.max(1000, safeLimit * 40);
   const cutoff = new Date(Date.now() - (72 * 60 * 60 * 1000)).toISOString();
+  const latestAllowed = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
 
   const [newsArticlesResult, newsEventsResult, intelNewsResult] = await Promise.allSettled([
     queryWithTimeout(
       `SELECT id, symbol, headline AS title, source, published_at
        FROM news_articles
        WHERE published_at >= $1
+         AND published_at <= $2
          AND headline IS NOT NULL
        ORDER BY published_at DESC
-       LIMIT $2`,
-      [cutoff, perSourceLimit],
+       LIMIT $3`,
+      [cutoff, latestAllowed, perSourceLimit],
       { timeoutMs: 8000, label: 'v2.news.news_articles', maxRetries: 0 }
     ),
     queryWithTimeout(
       `SELECT id, symbol, headline AS title, source, published_at
        FROM news_events
        WHERE published_at >= $1
+         AND published_at <= $2
          AND headline IS NOT NULL
        ORDER BY published_at DESC
-       LIMIT $2`,
-      [cutoff, perSourceLimit],
+       LIMIT $3`,
+      [cutoff, latestAllowed, perSourceLimit],
       { timeoutMs: 8000, label: 'v2.news.news_events', maxRetries: 0 }
     ),
     queryWithTimeout(
       `SELECT id, symbol, headline AS title, source, published_at
        FROM intel_news
        WHERE published_at >= $1
+         AND published_at <= $2
          AND headline IS NOT NULL
          AND COALESCE(source, '') <> 'earnings_events'
        ORDER BY published_at DESC
-       LIMIT $2`,
-      [cutoff, perSourceLimit],
+       LIMIT $3`,
+      [cutoff, latestAllowed, perSourceLimit],
       { timeoutMs: 8000, label: 'v2.news.intel_news', maxRetries: 0 }
     ),
   ]);
