@@ -163,11 +163,11 @@ function buildArticleIdentity(row) {
   return `fallback:${row.source_table}:${row.id}`;
 }
 
-function deduplicateArticles(rows) {
+function mergeRowsByIdentity(rows, buildIdentity) {
   const deduped = new Map();
 
   for (const row of rows) {
-    const identity = buildArticleIdentity(row);
+    const identity = buildIdentity(row);
     const match = deduped.get(identity);
     if (!match) {
       deduped.set(identity, {
@@ -215,7 +215,13 @@ function deduplicateArticles(rows) {
     });
   }
 
-  return Array.from(deduped.values()).map((row) => {
+  return Array.from(deduped.values());
+}
+
+function deduplicateArticles(rows) {
+  const mergedRows = mergeRowsByIdentity(rows, buildArticleIdentity);
+
+  return mergedRows.map((row) => {
     const type = classifyArticle(row.symbols, row.title);
     const primarySymbol = type === 'macro' ? null : (row.symbols.length === 1 ? row.symbols[0] : null);
 
@@ -223,6 +229,21 @@ function deduplicateArticles(rows) {
       ...row,
       symbol: primarySymbol,
       type,
+    };
+  });
+}
+
+function deduplicateStockRows(rows) {
+  const mergedRows = mergeRowsByIdentity(rows, (row) => `stock:${String(row.symbol || '').trim().toUpperCase()}:${buildArticleIdentity(row)}`);
+
+  return mergedRows.map((row) => {
+    const primarySymbol = row.symbols.length === 1 ? row.symbols[0] : (row.symbol || null);
+
+    return {
+      ...row,
+      symbol: primarySymbol,
+      symbols: primarySymbol ? [primarySymbol] : row.symbols,
+      type: EARNINGS_RE.test(row.title) ? 'earnings' : 'stock',
     };
   });
 }
@@ -385,7 +406,21 @@ async function getNewsFeed(limitOrOptions = 250) {
     return rightTime - leftTime;
   });
 
-  const deduplicated = deduplicateArticles(mergedRows)
+  const marketRows = [];
+  const stockRows = [];
+
+  for (const row of mergedRows) {
+    if (classifyArticle(row.symbols, row.title) === 'macro') {
+      marketRows.push(row);
+    } else {
+      stockRows.push(row);
+    }
+  }
+
+  const deduplicated = [
+    ...deduplicateArticles(marketRows),
+    ...deduplicateStockRows(stockRows),
+  ]
     .sort((left, right) => {
       const leftTime = left.published_at ? Date.parse(left.published_at) : 0;
       const rightTime = right.published_at ? Date.parse(right.published_at) : 0;
@@ -417,6 +452,8 @@ async function getNewsFeed(limitOrOptions = 250) {
     durationMs,
     cutoffHours,
     mergedRows: mergedRows.length,
+    marketRows: marketRows.length,
+    stockRows: stockRows.length,
     rawArticles: deduplicated.length,
     returnedArticles: pagedArticles.length,
     offset,
