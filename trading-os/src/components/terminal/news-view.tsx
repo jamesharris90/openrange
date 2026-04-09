@@ -29,7 +29,15 @@ type NewsItem = {
   news_score?: number | null;
 };
 
-type ApiResponse = { success?: boolean; error?: string; ok?: boolean; total_count?: number; items?: NewsItem[]; data?: NewsItem[] };
+type ApiResponse = {
+  success?: boolean;
+  error?: string;
+  ok?: boolean;
+  total_count?: number;
+  counts?: { all?: number; market?: number; stocks?: number };
+  items?: NewsItem[];
+  data?: NewsItem[];
+};
 
 type NewsTypeTab = "All" | "Market" | "Stocks";
 type TimeFilter = "Today" | "24h" | "7d";
@@ -73,26 +81,6 @@ function isMarketNewsItem(item: NewsItem) {
   return item.type === "macro" || (!item.symbol && (!item.symbols || item.symbols.length === 0));
 }
 
-function isWithinTimeFilter(publishedAt: string | null | undefined, time: TimeFilter) {
-  const timestamp = Date.parse(String(publishedAt || ""));
-  if (Number.isNaN(timestamp)) {
-    return false;
-  }
-
-  if (time === "Today") {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    return timestamp >= startOfDay;
-  }
-
-  const ageMs = Date.now() - timestamp;
-  if (time === "24h") {
-    return ageMs <= 86_400_000;
-  }
-
-  return ageMs <= 604_800_000;
-}
-
 // ── component ─────────────────────────────────────────────────────────────────
 
 export function NewsView() {
@@ -102,6 +90,7 @@ export function NewsView() {
   const [error,          setError]          = useState<string | null>(null);
   const [lastUpdated,    setLastUpdated]    = useState<Date | null>(null);
   const [totalAvailable, setTotalAvailable] = useState<number>(0);
+  const [serverCounts,   setServerCounts]   = useState({ all: 0, market: 0, stocks: 0 });
 
   const [newsType,       setNewsType]       = useState<NewsTypeTab>("All");
 
@@ -116,7 +105,6 @@ export function NewsView() {
     pageSize,
   } = useTableControls<NewsItem, NewsFilters>(items, DEFAULT_FILTERS, { pageSize: 50 });
   const debouncedSearch = useDebouncedValue(filters.search, 150);
-  const hasLocalFilters = newsType !== "All" || debouncedSearch.trim().length > 0 || filters.symbol.trim().length > 0;
 
   const fetchNews = useCallback(async () => {
     abortRef.current?.abort();
@@ -128,7 +116,10 @@ export function NewsView() {
         limit: String(pageSize),
         page: String(page),
         window: filters.time,
+        type: newsType === "All" ? "all" : newsType.toLowerCase(),
       });
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (filters.symbol.trim()) params.set("filterSymbol", filters.symbol.trim().toUpperCase());
       const res = await apiFetch(`/api/news?${params.toString()}`, {
         cache: "no-store",
         signal: abortRef.current.signal,
@@ -172,6 +163,11 @@ export function NewsView() {
 
       setItems(normalized);
       setTotalAvailable(Array.isArray(payload) ? normalized.length : Number(payload?.total_count) || normalized.length);
+      setServerCounts({
+        all: Number(payload && !Array.isArray(payload) ? payload.counts?.all : normalized.length) || 0,
+        market: Number(payload && !Array.isArray(payload) ? payload.counts?.market : 0) || 0,
+        stocks: Number(payload && !Array.isArray(payload) ? payload.counts?.stocks : 0) || 0,
+      });
       setLastUpdated(new Date());
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
@@ -181,7 +177,7 @@ export function NewsView() {
     } finally {
       setLoading(false);
     }
-  }, [filters.time, page, pageSize]);
+  }, [debouncedSearch, filters.symbol, filters.time, newsType, page, pageSize]);
 
   useEffect(() => {
     fetchNews();
@@ -194,43 +190,7 @@ export function NewsView() {
 
   useEffect(() => {
     setPage(1);
-  }, [filters.time, setPage]);
-
-  const filteredItems = useMemo(() => {
-    const normalizedSearch = debouncedSearch.trim().toLowerCase();
-    const normalizedSymbol = filters.symbol.trim().toUpperCase();
-
-    return items.filter((item) => {
-      const isMarket = isMarketNewsItem(item);
-      if (newsType === "Market" && !isMarket) return false;
-      if (newsType === "Stocks" && isMarket) return false;
-
-      if (!isWithinTimeFilter(item.published_at, filters.time)) {
-        return false;
-      }
-
-      if (normalizedSymbol && String(item.symbol || "").toUpperCase() !== normalizedSymbol) {
-        const symbols = Array.from(new Set((item.symbols ?? [])
-          .map((entry) => String(entry || "").trim().toUpperCase())
-          .filter(Boolean)));
-        if (!symbols.includes(normalizedSymbol)) {
-          return false;
-        }
-      }
-
-      if (normalizedSearch) {
-        const headline = String(item.headline ?? item.title ?? "").toLowerCase();
-        const symbolSearchSpace = Array.from(new Set((item.symbols ?? [])
-          .map((entry) => String(entry || "").trim().toLowerCase())
-          .filter(Boolean))).join(" ");
-        if (!headline.includes(normalizedSearch) && !symbolSearchSpace.includes(normalizedSearch)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [items, newsType, debouncedSearch, filters.symbol, filters.time]);
+  }, [debouncedSearch, filters.symbol, filters.time, newsType, setPage]);
 
   const symbolOptions = useMemo(() => {
     const symbols = new Set<string>();
@@ -243,9 +203,9 @@ export function NewsView() {
     return Array.from(symbols).sort();
   }, [items]);
 
-  const totalCount = hasLocalFilters ? filteredItems.length : totalAvailable;
+  const totalCount = totalAvailable;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const paginatedData = useMemo(() => (hasLocalFilters ? filteredItems : items), [filteredItems, hasLocalFilters, items]);
+  const paginatedData = useMemo(() => items, [items]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -253,8 +213,8 @@ export function NewsView() {
     }
   }, [page, setPage, totalPages]);
 
-  const marketCount = useMemo(() => items.filter((item) => isMarketNewsItem(item)).length, [items]);
-  const stockCount  = useMemo(() => items.filter((item) => !isMarketNewsItem(item)).length, [items]);
+  const marketCount = serverCounts.market;
+  const stockCount  = serverCounts.stocks;
 
   return (
     <div className="flex flex-col h-full bg-[var(--background)]">
@@ -263,7 +223,7 @@ export function NewsView() {
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--panel)] shrink-0">
         <h1 className="text-sm font-semibold text-[var(--foreground)]">News Feed</h1>
         <span className="text-xs text-[var(--muted-foreground)]">
-          {loading ? "Loading…" : `${items.length.toLocaleString()} loaded${totalAvailable > items.length ? ` of ${totalAvailable.toLocaleString()}` : ""}`}
+          {loading ? "Loading…" : `${Math.min(items.length, totalAvailable).toLocaleString()} loaded${totalAvailable > items.length ? ` of ${totalAvailable.toLocaleString()}` : ` of ${totalAvailable.toLocaleString()}`}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-[var(--muted-foreground)]">
@@ -282,7 +242,7 @@ export function NewsView() {
       {/* ── Type tabs ── */}
       <div className="flex gap-1 px-4 pt-3 pb-0 bg-[var(--panel)] shrink-0">
         {(["All", "Market", "Stocks"] as NewsTypeTab[]).map((tab) => {
-          const count = tab === "All" ? items.length : tab === "Market" ? marketCount : stockCount;
+          const count = tab === "All" ? serverCounts.all : tab === "Market" ? marketCount : stockCount;
           const active = newsType === tab;
           return (
             <button
@@ -451,7 +411,7 @@ export function NewsView() {
           );
         })}
 
-        {!hasLocalFilters && totalAvailable > 0 ? (
+        {totalAvailable > 0 ? (
           <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3 text-xs text-[var(--muted-foreground)]">
             <button
               type="button"

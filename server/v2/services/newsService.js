@@ -26,10 +26,14 @@ function normalizeFeedOptions(limitOrOptions) {
     const rawLimit = Number(limitOrOptions.limit) || 250;
     const rawOffset = Number(limitOrOptions.offset) || 0;
     const rawCutoffHours = Number(limitOrOptions.cutoffHours) || 24;
+    const rawTypeFilter = String(limitOrOptions.typeFilter || 'all').trim().toLowerCase();
     return {
       limit: clamp(rawLimit, 1, MAX_NEWS_FEED_LIMIT),
       offset: Math.max(0, rawOffset),
       cutoffHours: clamp(rawCutoffHours, 6, 24 * 30),
+      search: String(limitOrOptions.search || '').trim().toLowerCase(),
+      symbol: String(limitOrOptions.symbol || '').trim().toUpperCase(),
+      typeFilter: rawTypeFilter === 'market' || rawTypeFilter === 'stocks' ? rawTypeFilter : 'all',
     };
   }
 
@@ -37,7 +41,41 @@ function normalizeFeedOptions(limitOrOptions) {
     limit: clamp(Number(limitOrOptions) || 250, 1, MAX_NEWS_FEED_LIMIT),
     offset: 0,
     cutoffHours: 24,
+    search: '',
+    symbol: '',
+    typeFilter: 'all',
   };
+}
+
+function matchesSearch(article, search) {
+  if (!search) return true;
+
+  const haystack = [
+    article.title,
+    article.headline,
+    article.source,
+    article.symbol,
+    ...(Array.isArray(article.symbols) ? article.symbols : []),
+  ]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean)
+    .join(' ');
+
+  return haystack.includes(search);
+}
+
+function matchesSymbol(article, symbol) {
+  if (!symbol) return true;
+  const symbols = Array.isArray(article.symbols)
+    ? article.symbols.map((entry) => String(entry || '').trim().toUpperCase()).filter(Boolean)
+    : [];
+  return symbols.includes(symbol) || String(article.symbol || '').trim().toUpperCase() === symbol;
+}
+
+function matchesType(article, typeFilter) {
+  if (typeFilter === 'market') return article.type === 'macro';
+  if (typeFilter === 'stocks') return article.type !== 'macro';
+  return true;
 }
 
 function normalizeTitle(title) {
@@ -333,7 +371,14 @@ function buildThemes(articles, maxThemes = 10) {
 
 async function getNewsFeed(limitOrOptions = 250) {
   const startedAt = Date.now();
-  const { limit: safeLimit, offset, cutoffHours } = normalizeFeedOptions(limitOrOptions);
+  const {
+    limit: safeLimit,
+    offset,
+    cutoffHours,
+    search,
+    symbol,
+    typeFilter,
+  } = normalizeFeedOptions(limitOrOptions);
   const perSourceLimit = clamp(Math.max(2000, safeLimit * 6), 2000, MAX_PER_SOURCE_LIMIT);
   const cutoff = new Date(Date.now() - (cutoffHours * 60 * 60 * 1000)).toISOString();
   const latestAllowed = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
@@ -427,7 +472,16 @@ async function getNewsFeed(limitOrOptions = 250) {
       return rightTime - leftTime;
     });
 
-  const pagedArticles = deduplicated
+  const preTypeFiltered = deduplicated.filter((article) => matchesSearch(article, search) && matchesSymbol(article, symbol));
+  const counts = {
+    all: preTypeFiltered.length,
+    market: preTypeFiltered.filter((article) => article.type === 'macro').length,
+    stocks: preTypeFiltered.filter((article) => article.type !== 'macro').length,
+  };
+
+  const filteredArticles = preTypeFiltered.filter((article) => matchesType(article, typeFilter));
+
+  const pagedArticles = filteredArticles
     .slice(offset, offset + safeLimit)
     .map((article) => ({
       id: article.id,
@@ -455,8 +509,12 @@ async function getNewsFeed(limitOrOptions = 250) {
     marketRows: marketRows.length,
     stockRows: stockRows.length,
     rawArticles: deduplicated.length,
+    filteredArticles: filteredArticles.length,
     returnedArticles: pagedArticles.length,
     offset,
+    typeFilter,
+    search: search ? '[set]' : '',
+    symbol,
     themes: themes.length,
     sources: {
       news_articles: newsArticlesResult.status === 'fulfilled' ? (newsArticlesResult.value.rows || []).length : 0,
@@ -468,7 +526,8 @@ async function getNewsFeed(limitOrOptions = 250) {
   return {
     raw_articles: pagedArticles,
     themes,
-    total_count: deduplicated.length,
+    total_count: filteredArticles.length,
+    counts,
     limit: safeLimit,
     offset,
   };

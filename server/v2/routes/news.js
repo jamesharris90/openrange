@@ -123,9 +123,9 @@ async function buildContextNewsPayload(symbolInput, limitInput) {
 
 router.get('/', async (req, res) => {
   try {
-    const symbol = String(req.query.symbol || req.query.symbols || '').trim();
-    if (symbol) {
-      const payload = await buildContextNewsPayload(symbol, req.query.limit);
+    const directSymbol = String(req.query.symbol || req.query.symbols || '').trim();
+    if (directSymbol) {
+      const payload = await buildContextNewsPayload(directSymbol, req.query.limit);
       return res.json(payload);
     }
 
@@ -133,20 +133,34 @@ router.get('/', async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const offset = Math.max(0, Number(req.query.offset) || ((page - 1) * limit));
     const cutoffHours = parseWindowToHours(req.query.window || req.query.time);
-    const cacheKey = `news-v2-intelligence:v2:${limit}:${offset}:${cutoffHours}`;
+    const filterSymbol = String(req.query.filterSymbol || req.query.filter_symbol || '').trim().toUpperCase();
+    const search = String(req.query.search || req.query.q || '').trim().toLowerCase();
+    const type = String(req.query.type || 'all').trim().toLowerCase();
+    const cacheKey = `news-v2-intelligence:v3:${limit}:${offset}:${cutoffHours}:${type}:${filterSymbol}:${search}`;
     const cached = getCache(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
-    const feed = await getNewsFeed({ limit, offset, cutoffHours });
+    const feed = await getNewsFeed({
+      limit,
+      offset,
+      cutoffHours,
+      search,
+      symbol: filterSymbol,
+      typeFilter: type,
+    });
     const payload = {
       success: true,
       count: Array.isArray(feed.raw_articles) ? feed.raw_articles.length : 0,
       total_count: Number(feed.total_count) || 0,
+      counts: feed.counts || { all: 0, market: 0, stocks: 0 },
       limit,
       offset,
       page,
+      type,
+      filterSymbol,
+      search,
       window: req.query.window || req.query.time || '24h',
       data: Array.isArray(feed.raw_articles) ? feed.raw_articles : [],
       raw_articles: Array.isArray(feed.raw_articles) ? feed.raw_articles : [],
