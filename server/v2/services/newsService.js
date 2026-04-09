@@ -79,10 +79,11 @@ function classifyArticle(symbols, title) {
 
 function normalizeSourceRows(rows, sourceTable) {
   return (rows || []).map((row, index) => {
-    const symbols = Array.isArray(row.symbols)
+    const symbolsFromRow = Array.isArray(row.symbols)
       ? row.symbols.map((entry) => String(entry || '').trim().toUpperCase()).filter(Boolean)
       : [];
-    const symbol = symbols[0] || (typeof row.symbol === 'string' && row.symbol.trim() ? row.symbol.trim().toUpperCase() : null);
+    const symbol = symbolsFromRow[0] || (typeof row.symbol === 'string' && row.symbol.trim() ? row.symbol.trim().toUpperCase() : null);
+    const symbols = symbolsFromRow.length > 0 ? symbolsFromRow : (symbol ? [symbol] : []);
     const title = typeof row.title === 'string' && row.title.trim()
       ? row.title.trim()
       : typeof row.headline === 'string'
