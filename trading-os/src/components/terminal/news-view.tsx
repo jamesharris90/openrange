@@ -73,12 +73,6 @@ function isMarketNewsItem(item: NewsItem) {
   return item.type === "macro" || (!item.symbol && (!item.symbols || item.symbols.length === 0));
 }
 
-function requestedLimitForTime(time: TimeFilter) {
-  if (time === "Today") return "1000";
-  if (time === "7d") return "5000";
-  return "2000";
-}
-
 function isWithinTimeFilter(publishedAt: string | null | undefined, time: TimeFilter) {
   const timestamp = Date.parse(String(publishedAt || ""));
   if (Number.isNaN(timestamp)) {
@@ -122,6 +116,7 @@ export function NewsView() {
     pageSize,
   } = useTableControls<NewsItem, NewsFilters>(items, DEFAULT_FILTERS, { pageSize: 50 });
   const debouncedSearch = useDebouncedValue(filters.search, 150);
+  const hasLocalFilters = newsType !== "All" || debouncedSearch.trim().length > 0 || filters.symbol.trim().length > 0;
 
   const fetchNews = useCallback(async () => {
     abortRef.current?.abort();
@@ -130,7 +125,8 @@ export function NewsView() {
     setError(null);
     try {
       const params = new URLSearchParams({
-        limit: requestedLimitForTime(filters.time),
+        limit: String(pageSize),
+        page: String(page),
         window: filters.time,
       });
       const res = await apiFetch(`/api/news?${params.toString()}`, {
@@ -185,7 +181,7 @@ export function NewsView() {
     } finally {
       setLoading(false);
     }
-  }, [filters.time]);
+  }, [filters.time, page, pageSize]);
 
   useEffect(() => {
     fetchNews();
@@ -195,6 +191,10 @@ export function NewsView() {
       abortRef.current?.abort();
     };
   }, [fetchNews]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters.time, setPage]);
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
@@ -243,12 +243,9 @@ export function NewsView() {
     return Array.from(symbols).sort();
   }, [items]);
 
-  const totalCount = filteredItems.length;
+  const totalCount = hasLocalFilters ? filteredItems.length : totalAvailable;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const paginatedData = useMemo(() => {
-    const startIndex = (page - 1) * pageSize;
-    return filteredItems.slice(startIndex, startIndex + pageSize);
-  }, [filteredItems, page, pageSize]);
+  const paginatedData = useMemo(() => (hasLocalFilters ? filteredItems : items), [filteredItems, hasLocalFilters, items]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -360,7 +357,7 @@ export function NewsView() {
         {loading && items.length === 0 && (
           <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">Loading…</div>
         )}
-        {!loading && totalCount === 0 && (
+        {!loading && paginatedData.length === 0 && (
           <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">
             No news articles match your filters.
           </div>
@@ -454,7 +451,7 @@ export function NewsView() {
           );
         })}
 
-        {totalCount > 0 ? (
+        {!hasLocalFilters && totalAvailable > 0 ? (
           <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3 text-xs text-[var(--muted-foreground)]">
             <button
               type="button"
