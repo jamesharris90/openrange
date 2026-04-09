@@ -16,6 +16,32 @@ const TABLES = [
   'trade_outcomes',
 ];
 
+const EXACT_COUNT_FALLBACKS = ['daily_ohlcv'];
+
+async function loadExactCountFallbacks(currentEstimates) {
+  const fallbackTargets = EXACT_COUNT_FALLBACKS.filter((name) => Number(currentEstimates[name] || 0) === 0);
+  if (fallbackTargets.length === 0) {
+    return {};
+  }
+
+  const counts = {};
+
+  for (const name of fallbackTargets) {
+    try {
+      const result = await queryWithTimeout(
+        `SELECT COUNT(*)::bigint AS row_count FROM ${name}`,
+        [],
+        { timeoutMs: 5000, label: `system.data_health.exact_count.${name}`, maxRetries: 0 }
+      );
+      counts[name] = Number(result.rows?.[0]?.row_count || 0);
+    } catch (_error) {
+      counts[name] = 0;
+    }
+  }
+
+  return counts;
+}
+
 async function loadTableRowEstimates() {
   try {
     const result = await queryWithTimeout(
@@ -37,12 +63,15 @@ async function loadTableRowEstimates() {
       { timeoutMs: 3000, label: 'system.data_health.row_estimates', maxRetries: 0 }
     );
 
-    return Object.fromEntries(
+    const estimates = Object.fromEntries(
       (result.rows || []).map((row) => [
         String(row.name || ''),
         Number(row.row_estimate || 0),
       ])
     );
+
+    const fallbackCounts = await loadExactCountFallbacks(estimates);
+    return { ...estimates, ...fallbackCounts };
   } catch (_error) {
     logger.error('[ENGINE ERROR] data_health table estimates failed');
     return Object.fromEntries(TABLES.map((name) => [name, 0]));

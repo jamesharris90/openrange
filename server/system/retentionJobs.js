@@ -162,16 +162,15 @@ async function runRetentionCleanup() {
 function startRetentionJobs() {
   if (retentionTask) return;
 
-  // Run daily after market close (17:15 America/New_York).
-  retentionTask = cron.schedule('15 17 * * 1-5', () => {
+  retentionTask = cron.schedule('0 22 * * 1-5', () => {
     runRetentionCleanup().catch((error) => {
       logger.error('[RETENTION] scheduled run failed', { error: error.message });
     });
   }, {
-    timezone: 'America/New_York',
+    timezone: 'UTC',
   });
 
-  logger.info('[RETENTION] scheduler started (weekdays 17:15 America/New_York)');
+  logger.info('[RETENTION] scheduler started (weekdays 22:00 UTC)');
 }
 
 module.exports = {

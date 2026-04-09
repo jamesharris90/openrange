@@ -1,5 +1,8 @@
 const express = require('express');
 const { pool, queryWithTimeout } = require('../db/pg');
+const { getResearchTerminalPayload } = require('../services/researchCacheService');
+const { buildEarningsEdge: buildEarningsEdgeEngine } = require('../engines/earningsEdgeEngine');
+const { generateWhyMovingPayload } = require('../engines/whyMovingEngine');
 const authMiddleware = require('../middleware/auth');
 const { getMarketMode, getModeWindow, getModeMinConfidence } = require('../utils/marketMode');
 const { bridgeNewsletterEmailToIntelNews } = require('../services/emailIntelBridge');
@@ -19,13 +22,18 @@ const { getCurrentRegime } = require('../services/marketRegimeEngine');
 const { buildNarrative } = require('../utils/intelligenceNarrative');
 const { enrichOpportunity } = require('../utils/enrichOpportunity');
 const { supabaseClient } = require('../services/supabaseClient');
-const { calculateTradeQualityScore } = require('../services/truthEngine');
+const { calculateTradeQualityScore, buildTruthDecisionForSymbol } = require('../services/truthEngine');
 const { analyzeDecisionFailures } = require('../services/signalDiagnostics');
 const { getSessionContext, applySessionGating, applySessionWeighting } = require('../utils/sessionEngine');
 const { buildFinalTradeObject } = require('../engines/finalTradeBuilder');
 const { validateTrade } = require('../utils/validateTrade');
+const { buildEarningsIntelligence, calculateDrift } = require('../services/earningsIntelligence');
 
 const router = express.Router();
+const whyMovingCache = new Map();
+const WHY_MOVING_CACHE_TTL_MS = 30 * 1000;
+const decisionCache = new Map();
+const DECISION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const INTEL_KEY = process.env.INTEL_INGEST_KEY;
 
@@ -90,6 +98,27 @@ function logResponseShape(endpoint, rows, criticalFields = []) {
     endpoint,
     row_count: list.length,
     missing_fields: Array.from(missingFields),
+  });
+}
+
+function getCachedDecision(symbol) {
+  const cached = decisionCache.get(symbol);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    decisionCache.delete(symbol);
+    return null;
+  }
+
+  return cached.value;
+}
+
+function setCachedDecision(symbol, value) {
+  decisionCache.set(symbol, {
+    value,
+    expiresAt: Date.now() + DECISION_CACHE_TTL_MS,
   });
 }
 
@@ -220,6 +249,20 @@ function withTimeout(promise, timeoutMs, timeoutMessage) {
 
 function getConfidenceBucket(confidenceUnit) {
   return Math.floor(normalizeConfidenceUnit(confidenceUnit) * 10) * 10;
+}
+
+function getFreshCachedValue(cache, key, ttlMs) {
+  const entry = cache.get(key);
+  if (!entry) {
+    return null;
+  }
+
+  if ((Date.now() - entry.timestamp) >= ttlMs) {
+    cache.delete(key);
+    return null;
+  }
+
+  return entry.data;
 }
 
 function evaluateOutcome(row, move) {
@@ -2612,12 +2655,19 @@ router.get('/api/intelligence/decision/:symbol', async (req, res) => {
   }
 
   try {
-    const decision = await buildDecision(symbol);
-    logResponseShape('/api/intelligence/decision/:symbol', [decision], ['symbol', 'why_moving', 'tradeability', 'execution_plan', 'decision_score', 'data_quality']);
+    const cached = getCachedDecision(symbol);
+    const decision = cached || await buildTruthDecisionForSymbol(symbol, {
+      allowRemoteNarrative: false,
+    });
+    if (!cached) {
+      setCachedDecision(symbol, decision);
+    }
+    logResponseShape('/api/intelligence/decision/:symbol', [decision], ['symbol', 'tradeable', 'setup', 'driver', 'risk_flags']);
+    const responseStatus = decision?.degraded ? 'degraded' : 'ok';
     return res.json({
       ok: true,
-      status: 'ok',
-      source: 'intelligence_decision_engine',
+      status: responseStatus,
+      source: decision?.source || 'truth_engine',
       data: [decision],
       decision,
     });
@@ -2626,9 +2676,51 @@ router.get('/api/intelligence/decision/:symbol', async (req, res) => {
     return res.status(500).json({
       ok: false,
       status: 'error',
-      source: 'intelligence_decision_engine',
+      source: 'truth_engine',
       data: [],
       error: error.message || 'Failed to build intelligence decision',
+    });
+  }
+});
+
+router.get('/api/intelligence/why-moving/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').trim().toUpperCase();
+  if (!symbol) {
+    return res.status(400).json({ ok: false, error: 'symbol is required' });
+  }
+
+  try {
+    const cachedWhyMoving = getFreshCachedValue(whyMovingCache, symbol, WHY_MOVING_CACHE_TTL_MS);
+    if (cachedWhyMoving) {
+      return res.json(cachedWhyMoving);
+    }
+
+    const decision = await buildTruthDecisionForSymbol(symbol);
+    const whyMoving = decision.why_moving;
+
+    const response = {
+      ok: true,
+      status: 'ok',
+      source: 'truth_engine',
+      symbol,
+      decision,
+      why_moving: whyMoving,
+      data: whyMoving,
+    };
+
+    whyMovingCache.set(symbol, {
+      data: response,
+      timestamp: Date.now(),
+    });
+
+    return res.json(response);
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      status: 'error',
+      source: 'truth_engine',
+      error: error.message || 'Failed to build why-moving payload',
+      data: null,
     });
   }
 });
