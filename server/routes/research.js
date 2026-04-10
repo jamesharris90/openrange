@@ -1004,7 +1004,6 @@ router.get('/:symbol', async (req, res) => {
   const startedAt = Date.now();
   const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
   const initialCoverageSection = await loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
-  const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
   const { sections: baseSections, payload } = await loadResearchBaseSections(symbol, {
     prioritizePrice: true,
     deferEarnings: true,
@@ -1028,8 +1027,16 @@ router.get('/:symbol', async (req, res) => {
     payload.ownership,
     payload.context,
   ], startedAt);
-  const indicatorsSection = await indicatorsPromise;
   const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
+  const indicatorsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+  const indicatorsSection = indicatorsBudgetMs > 0
+    ? await loadResearchSection(
+        'indicators',
+        () => getIndicators(symbol),
+        emptyIndicators(),
+        Math.min(parallelSectionTimeoutMs, indicatorsBudgetMs),
+      )
+    : { section: 'indicators', ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' };
 
   const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
