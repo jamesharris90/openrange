@@ -731,7 +731,7 @@ async function readPriceFromDb(symbol) {
      LIMIT 1`,
     [symbol],
     {
-      timeoutMs: 1000,
+      timeoutMs: 2500,
       label: 'research_cache.price',
       maxRetries: 0,
     }
@@ -1619,16 +1619,23 @@ async function fetchEarningsFromFmp(symbol, priceData) {
 
 async function getEarnings(symbolInput) {
   const symbol = normalizeSymbol(symbolInput);
-  const priceData = await getPriceData(symbol);
   const cached = await readEarningsFromDb(symbol);
-  const derivedExpectedPercent = priceData?.atr && priceData?.price
-    ? Number(((priceData.atr / priceData.price) * 100).toFixed(2))
-    : null;
+  let derivedExpectedPercent = null;
 
-  const history = normalizeEarningsRows(cached?.history).map((row) => ({
-    ...row,
-    expected_move_percent: row.expected_move_percent ?? derivedExpectedPercent,
-  }));
+  async function ensureDerivedExpectedPercent() {
+    if (derivedExpectedPercent !== null) {
+      return derivedExpectedPercent;
+    }
+
+    const priceData = await getPriceData(symbol).catch(() => null);
+    derivedExpectedPercent = priceData?.atr && priceData?.price
+      ? Number(((priceData.atr / priceData.price) * 100).toFixed(2))
+      : null;
+
+    return derivedExpectedPercent;
+  }
+
+  const history = normalizeEarningsRows(cached?.history);
 
   const next = cached?.next
     ? {
@@ -1638,7 +1645,7 @@ async function getEarnings(symbolInput) {
         eps_estimate: toNumber(cached.next.eps_estimate ?? cached.next.epsEstimated),
         revenue_estimate: toNumber(cached.next.revenue_estimate ?? cached.next.revenueEstimate ?? cached.next.rev_estimate),
         revenue_actual: toNumber(cached.next.revenue_actual ?? cached.next.revenueActual ?? cached.next.rev_actual),
-        expected_move_percent: mergeExpectedMove(cached.next, derivedExpectedPercent),
+        expected_move_percent: toPositiveNumber(cached.next.expected_move_percent ?? cached.next.expectedMove),
         source: toStringValue(cached.next.source) || toStringValue(cached.source) || 'db',
         updated_at: cached.next.updated_at || cached.updated_at || null,
       }
@@ -1660,6 +1667,18 @@ async function getEarnings(symbolInput) {
     };
   }
 
+  const derivedMove = await ensureDerivedExpectedPercent();
+  const normalizedHistory = history.map((row) => ({
+    ...row,
+    expected_move_percent: row.expected_move_percent ?? derivedMove,
+  }));
+  const normalizedNext = next
+    ? {
+        ...next,
+        expected_move_percent: mergeExpectedMove(next, derivedMove),
+      }
+    : null;
+
   const fetchedNextRaw = await fetchNextEventForSymbol(symbol).catch(() => null);
   const fetchedNext = fetchedNextRaw
     ? {
@@ -1669,7 +1688,7 @@ async function getEarnings(symbolInput) {
         eps_estimate: toNumber(fetchedNextRaw.eps_estimate ?? fetchedNextRaw.epsEstimated),
         revenue_estimate: toNumber(fetchedNextRaw.revenue_estimate ?? fetchedNextRaw.revenueEstimate ?? fetchedNextRaw.rev_estimate),
         revenue_actual: toNumber(fetchedNextRaw.revenue_actual ?? fetchedNextRaw.revenueActual ?? fetchedNextRaw.rev_actual),
-        expected_move_percent: mergeExpectedMove(fetchedNextRaw, derivedExpectedPercent),
+        expected_move_percent: mergeExpectedMove(fetchedNextRaw, derivedMove),
         source: toStringValue(fetchedNextRaw.source) || 'fmp',
         updated_at: fetchedNextRaw.updated_at || new Date().toISOString(),
       }
@@ -1679,15 +1698,15 @@ async function getEarnings(symbolInput) {
     await persistEarningsEventRows(symbol, [fetchedNext]);
   }
 
-  const fallbackNext = fetchedNext || next || null;
+  const fallbackNext = fetchedNext || normalizedNext || null;
   const fallbackSource = fetchedNext ? 'fmp' : (next ? 'fallback' : 'none');
   const fallbackStatus = classifyUpcomingStatus(fallbackNext);
 
-  if (history.length > 0 || fallbackNext) {
+  if (normalizedHistory.length > 0 || fallbackNext) {
     return {
       symbol,
       next: fallbackNext,
-      history,
+      history: normalizedHistory,
       updated_at: fallbackNext?.updated_at || cached?.updated_at || null,
       source: fallbackSource,
       status: fallbackStatus,
@@ -1698,7 +1717,7 @@ async function getEarnings(symbolInput) {
   return {
     symbol,
     next: null,
-    history,
+    history: normalizedHistory,
     updated_at: cached?.updated_at || null,
     source: 'none',
     status: 'none',

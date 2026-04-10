@@ -233,16 +233,46 @@ function buildResearchPayloadFromSections(symbol, sections, startedAt) {
   };
 }
 
-async function loadResearchBaseSections(symbol) {
+async function loadResearchBaseSections(symbol, options = {}) {
+  const {
+    deferEarnings = false,
+    prioritizePrice = false,
+  } = options;
   const startedAt = Date.now();
-  const [profile, price, fundamentals, earnings, ownership, context] = await Promise.all([
-    loadResearchSection('profile', () => getCompanyProfile(symbol), { symbol, source: 'empty' }),
-    loadResearchSection('price', () => getPriceData(symbol), { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' }),
-    loadResearchSection('fundamentals', () => getFundamentals(symbol), { symbol, trends: [], updated_at: null, source: 'empty' }),
-    loadResearchSection('earnings', () => getEarnings(symbol), { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' }),
-    loadResearchSection('ownership', () => getOwnership(symbol), { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' }),
-    loadResearchSection('context', () => getMarketContext(), { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null }),
-  ]);
+  const emptyPrice = { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' };
+  const emptyFundamentals = { symbol, trends: [], updated_at: null, source: 'empty' };
+  const emptyEarnings = { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' };
+  const emptyOwnership = { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' };
+  const emptyContext = { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null };
+
+  let price;
+  let profile;
+  let fundamentals;
+  let ownership;
+  let context;
+  let earnings;
+
+  if (prioritizePrice) {
+    price = await loadResearchSection('price', () => getPriceData(symbol), emptyPrice);
+    [profile, fundamentals, ownership, context] = await Promise.all([
+      loadResearchSection('profile', () => getCompanyProfile(symbol), { symbol, source: 'empty' }),
+      loadResearchSection('fundamentals', () => getFundamentals(symbol), emptyFundamentals),
+      loadResearchSection('ownership', () => getOwnership(symbol), emptyOwnership),
+      loadResearchSection('context', () => getMarketContext(), emptyContext),
+    ]);
+    earnings = deferEarnings
+      ? { section: 'earnings', ok: false, timedOut: false, value: emptyEarnings, duration_ms: 0, error: 'deferred' }
+      : await loadResearchSection('earnings', () => getEarnings(symbol), emptyEarnings);
+  } else {
+    [profile, price, fundamentals, earnings, ownership, context] = await Promise.all([
+      loadResearchSection('profile', () => getCompanyProfile(symbol), { symbol, source: 'empty' }),
+      loadResearchSection('price', () => getPriceData(symbol), emptyPrice),
+      loadResearchSection('fundamentals', () => getFundamentals(symbol), emptyFundamentals),
+      loadResearchSection('earnings', () => getEarnings(symbol), emptyEarnings),
+      loadResearchSection('ownership', () => getOwnership(symbol), emptyOwnership),
+      loadResearchSection('context', () => getMarketContext(), emptyContext),
+    ]);
+  }
 
   const sections = { profile, price, fundamentals, earnings, ownership, context };
   return {
@@ -975,7 +1005,29 @@ router.get('/:symbol', async (req, res) => {
   const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
   const initialCoverageSection = await loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
   const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
-  const { sections: baseSections, payload } = await loadResearchBaseSections(symbol);
+  const { sections: baseSections, payload } = await loadResearchBaseSections(symbol, {
+    prioritizePrice: true,
+    deferEarnings: true,
+  });
+  const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+  const earningsSection = earningsBudgetMs > 0
+    ? await loadResearchSection(
+        'earnings',
+        () => getEarnings(symbol),
+        { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' },
+        Math.min(RESEARCH_SECTION_TIMEOUT_MS, earningsBudgetMs),
+      )
+    : { section: 'earnings', ok: false, timedOut: true, value: { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' }, duration_ms: 0, error: 'budget_exhausted' };
+  baseSections.earnings = earningsSection;
+  payload.earnings = earningsSection.value;
+  payload.meta = buildResearchMeta([
+    payload.profile,
+    payload.price,
+    payload.fundamentals,
+    payload.earnings,
+    payload.ownership,
+    payload.context,
+  ], startedAt);
   const indicatorsSection = await indicatorsPromise;
   const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
 
