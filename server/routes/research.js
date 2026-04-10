@@ -367,6 +367,23 @@ async function retryCoverageSection(symbol, section) {
   );
 }
 
+async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
+  const result = await queryWithTimeout(
+    `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count, last_news_at, last_earnings_at, coverage_score, last_checked
+     FROM data_coverage
+     WHERE UPPER(symbol) = UPPER($1)
+     LIMIT 1`,
+    [symbol],
+    {
+      timeoutMs,
+      label: 'research.coverage_direct',
+      maxRetries: 0,
+    }
+  );
+
+  return result.rows?.[0] || null;
+}
+
 function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {
   const coverage = extras.coverage || null;
   const score = extras.score || null;
@@ -1044,7 +1061,29 @@ router.get('/:symbol', async (req, res) => {
       )
     : { section: 'indicators', ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' };
 
-  const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+  let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+  let effectiveCoverageSection = coverageSection;
+  if (coverage.coverage_score === 0) {
+    const directCoverageBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
+    if (directCoverageBudgetMs > 0) {
+      const directCoverageSection = await loadResearchSection(
+        'coverage_direct',
+        () => loadDirectCoverageRow(symbol, Math.min(1500, directCoverageBudgetMs)),
+        null,
+        Math.min(1500, directCoverageBudgetMs),
+      );
+
+      if (directCoverageSection.value) {
+        effectiveCoverageSection = {
+          ...directCoverageSection,
+          section: 'coverage',
+          ok: true,
+          value: new Map([[symbol, directCoverageSection.value]]),
+        };
+        coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
+      }
+    }
+  }
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
   const score = buildScorePayload({ scoreRow: null, coverage, dataConfidence });
   const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
@@ -1096,7 +1135,7 @@ router.get('/:symbol', async (req, res) => {
           duration_ms: section.duration_ms,
         }])),
         indicators: { ok: indicatorsSection.ok, timed_out: indicatorsSection.timedOut, error: indicatorsSection.error, duration_ms: indicatorsSection.duration_ms },
-        coverage: { ok: coverageSection.ok, timed_out: coverageSection.timedOut, error: coverageSection.error, duration_ms: coverageSection.duration_ms },
+        coverage: { ok: effectiveCoverageSection.ok, timed_out: effectiveCoverageSection.timedOut, error: effectiveCoverageSection.error, duration_ms: effectiveCoverageSection.duration_ms },
       },
       total_ms: Date.now() - startedAt,
     },
