@@ -379,23 +379,45 @@ async function getNewsFeed(limitOrOptions = 250) {
     symbol,
     typeFilter,
   } = normalizeFeedOptions(limitOrOptions);
-  const perSourceLimit = clamp(Math.max(2000, safeLimit * 6), 2000, MAX_PER_SOURCE_LIMIT);
+  const perSourceLimit = clamp(Math.max(50, safeLimit * 4), 50, 500);
   const cutoff = new Date(Date.now() - (cutoffHours * 60 * 60 * 1000)).toISOString();
   const latestAllowed = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
 
-  const [newsArticlesResult, newsEventsResult, intelNewsResult] = await Promise.allSettled([
-    queryWithTimeout(
-      `SELECT id, symbol, headline AS title, source, url, published_at
-       FROM news_articles
-       WHERE published_at >= $1
-         AND published_at <= $2
-         AND headline IS NOT NULL
-       ORDER BY published_at DESC
-       LIMIT $3`,
-      [cutoff, latestAllowed, perSourceLimit],
-      { timeoutMs: 8000, label: 'v2.news.news_articles', maxRetries: 0 }
-    ),
-    queryWithTimeout(
+  async function loadSource(table, sql, params, timeoutMs) {
+    try {
+      const value = await queryWithTimeout(sql, params, {
+        timeoutMs,
+        label: `v2.news.${table}`,
+        maxRetries: 0,
+      });
+      return { table, result: { status: 'fulfilled', value } };
+    } catch (error) {
+      return { table, result: { status: 'rejected', reason: error } };
+    }
+  }
+
+  const sourceResults = [];
+  sourceResults.push(await loadSource(
+    'news_articles',
+    `SELECT id, symbol, headline AS title, source, url, published_at
+     FROM news_articles
+     WHERE published_at >= $1
+       AND published_at <= $2
+       AND headline IS NOT NULL
+     ORDER BY published_at DESC
+     LIMIT $3`,
+    [cutoff, latestAllowed, perSourceLimit],
+    4000,
+  ));
+
+  const primaryRows = sourceResults[0].result.status === 'fulfilled'
+    ? (sourceResults[0].result.value.rows || [])
+    : [];
+  const shouldLoadSecondarySources = primaryRows.length < Math.max(safeLimit, 25) || Boolean(symbol) || Boolean(search) || typeFilter !== 'all';
+
+  if (shouldLoadSecondarySources) {
+    sourceResults.push(await loadSource(
+      'news_events',
       `SELECT id, symbol, headline AS title, source, url, published_at
        FROM news_events
        WHERE published_at >= $1
@@ -404,9 +426,10 @@ async function getNewsFeed(limitOrOptions = 250) {
        ORDER BY published_at DESC
        LIMIT $3`,
       [cutoff, latestAllowed, perSourceLimit],
-      { timeoutMs: 8000, label: 'v2.news.news_events', maxRetries: 0 }
-    ),
-    queryWithTimeout(
+      2000,
+    ));
+    sourceResults.push(await loadSource(
+      'intel_news',
       `SELECT id, symbol, headline AS title, source, url, published_at
        FROM intel_news
        WHERE published_at >= $1
@@ -416,15 +439,12 @@ async function getNewsFeed(limitOrOptions = 250) {
        ORDER BY published_at DESC
        LIMIT $3`,
       [cutoff, latestAllowed, perSourceLimit],
-      { timeoutMs: 8000, label: 'v2.news.intel_news', maxRetries: 0 }
-    ),
-  ]);
-
-  const sourceResults = [
-    { table: 'news_articles', result: newsArticlesResult },
-    { table: 'news_events', result: newsEventsResult },
-    { table: 'intel_news', result: intelNewsResult },
-  ];
+      2000,
+    ));
+  } else {
+    sourceResults.push({ table: 'news_events', result: { status: 'fulfilled', value: { rows: [] } } });
+    sourceResults.push({ table: 'intel_news', result: { status: 'fulfilled', value: { rows: [] } } });
+  }
 
   for (const sourceResult of sourceResults) {
     if (sourceResult.result.status === 'rejected') {
@@ -436,9 +456,9 @@ async function getNewsFeed(limitOrOptions = 250) {
   }
 
   const mergedRows = [
-    ...normalizeSourceRows(newsArticlesResult.status === 'fulfilled' ? newsArticlesResult.value.rows || [] : [], 'news_articles'),
-    ...normalizeSourceRows(newsEventsResult.status === 'fulfilled' ? newsEventsResult.value.rows || [] : [], 'news_events'),
-    ...normalizeSourceRows(intelNewsResult.status === 'fulfilled' ? intelNewsResult.value.rows || [] : [], 'intel_news'),
+    ...normalizeSourceRows(sourceResults[0].result.status === 'fulfilled' ? sourceResults[0].result.value.rows || [] : [], 'news_articles'),
+    ...normalizeSourceRows(sourceResults[1].result.status === 'fulfilled' ? sourceResults[1].result.value.rows || [] : [], 'news_events'),
+    ...normalizeSourceRows(sourceResults[2].result.status === 'fulfilled' ? sourceResults[2].result.value.rows || [] : [], 'intel_news'),
   ];
 
   mergedRows.sort((left, right) => {
@@ -513,9 +533,9 @@ async function getNewsFeed(limitOrOptions = 250) {
     symbol,
     themes: themes.length,
     sources: {
-      news_articles: newsArticlesResult.status === 'fulfilled' ? (newsArticlesResult.value.rows || []).length : 0,
-      news_events: newsEventsResult.status === 'fulfilled' ? (newsEventsResult.value.rows || []).length : 0,
-      intel_news: intelNewsResult.status === 'fulfilled' ? (intelNewsResult.value.rows || []).length : 0,
+      news_articles: sourceResults[0].result.status === 'fulfilled' ? (sourceResults[0].result.value.rows || []).length : 0,
+      news_events: sourceResults[1].result.status === 'fulfilled' ? (sourceResults[1].result.value.rows || []).length : 0,
+      intel_news: sourceResults[2].result.status === 'fulfilled' ? (sourceResults[2].result.value.rows || []).length : 0,
     },
   });
 

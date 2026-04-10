@@ -714,30 +714,55 @@ async function getCompanyProfile(symbolInput) {
 }
 
 async function readPriceFromDb(symbol) {
-  const result = await safeQuery(
+  const quoteResult = await safeQuery(
     `SELECT
-       COALESCE(q.symbol, m.symbol) AS symbol,
-       COALESCE(q.price, m.price) AS price,
-       COALESCE(q.change_percent, m.change_percent) AS change_percent,
-       COALESCE(m.atr, NULL) AS atr,
-       GREATEST(
-         COALESCE(EXTRACT(EPOCH FROM q.updated_at)::bigint, 0),
-         COALESCE(EXTRACT(EPOCH FROM m.updated_at)::bigint, 0),
-         COALESCE(EXTRACT(EPOCH FROM m.last_updated)::bigint, 0)
-       ) AS freshness_unix
-     FROM market_quotes q
-     FULL OUTER JOIN market_metrics m ON m.symbol = q.symbol
-     WHERE COALESCE(q.symbol, m.symbol) = $1
+       symbol,
+       price,
+       change_percent,
+       EXTRACT(EPOCH FROM updated_at)::bigint AS freshness_unix
+     FROM market_quotes
+     WHERE symbol = $1
      LIMIT 1`,
     [symbol],
     {
-      timeoutMs: 2500,
-      label: 'research_cache.price',
+      timeoutMs: 1200,
+      label: 'research_cache.price.market_quotes',
+      maxRetries: 0,
+    }
+  );
+  const quoteRow = quoteResult.rows?.[0] || null;
+  if (quoteRow?.price != null) {
+    return {
+      symbol: quoteRow.symbol || symbol,
+      price: quoteRow.price,
+      change_percent: quoteRow.change_percent,
+      atr: null,
+      freshness_unix: quoteRow.freshness_unix,
+    };
+  }
+
+  const metricsResult = await safeQuery(
+    `SELECT
+       symbol,
+       price,
+       change_percent,
+       atr,
+       GREATEST(
+         COALESCE(EXTRACT(EPOCH FROM updated_at)::bigint, 0),
+         COALESCE(EXTRACT(EPOCH FROM last_updated)::bigint, 0)
+       ) AS freshness_unix
+     FROM market_metrics
+     WHERE symbol = $1
+     LIMIT 1`,
+    [symbol],
+    {
+      timeoutMs: 1200,
+      label: 'research_cache.price.market_metrics',
       maxRetries: 0,
     }
   );
 
-  return result.rows?.[0] || null;
+  return metricsResult.rows?.[0] || null;
 }
 
 async function persistPriceCaches(priceRow, profile) {
@@ -837,8 +862,7 @@ async function getPriceData(symbolInput) {
     }
   }
 
-  const profile = await getCompanyProfile(symbol);
-  const fresh = await fetchPriceFromFmp(symbol, profile).catch(() => null);
+  const fresh = await fetchPriceFromFmp(symbol, null).catch(() => null);
   if (fresh) {
     return fresh;
   }

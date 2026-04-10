@@ -1003,30 +1003,36 @@ router.get('/:symbol', async (req, res) => {
 
   const startedAt = Date.now();
   const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
+  const emptyPrice = { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' };
+  const emptyEarnings = { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' };
+  const emptyProfile = { symbol, source: 'empty' };
+  const emptyFundamentals = { symbol, trends: [], updated_at: null, source: 'empty' };
+  const emptyOwnership = { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' };
+  const emptyContext = { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null };
   const initialCoverageSection = await loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
-  const { sections: baseSections, payload } = await loadResearchBaseSections(symbol, {
-    prioritizePrice: true,
-    deferEarnings: true,
-  });
-  const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+  const priceSection = await loadResearchSection('price', () => getPriceData(symbol), emptyPrice, parallelSectionTimeoutMs);
+  const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 750);
   const earningsSection = earningsBudgetMs > 0
     ? await loadResearchSection(
         'earnings',
         () => getEarnings(symbol),
-        { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' },
+        emptyEarnings,
         Math.min(RESEARCH_SECTION_TIMEOUT_MS, earningsBudgetMs),
       )
-    : { section: 'earnings', ok: false, timedOut: true, value: { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' }, duration_ms: 0, error: 'budget_exhausted' };
-  baseSections.earnings = earningsSection;
-  payload.earnings = earningsSection.value;
-  payload.meta = buildResearchMeta([
-    payload.profile,
-    payload.price,
-    payload.fundamentals,
-    payload.earnings,
-    payload.ownership,
-    payload.context,
-  ], startedAt);
+    : { section: 'earnings', ok: false, timedOut: true, value: emptyEarnings, duration_ms: 0, error: 'budget_exhausted' };
+  const profileBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+  const profileSection = profileBudgetMs > 0
+    ? await loadResearchSection('profile', () => getCompanyProfile(symbol), emptyProfile, Math.min(2000, profileBudgetMs))
+    : { section: 'profile', ok: false, timedOut: true, value: emptyProfile, duration_ms: 0, error: 'budget_exhausted' };
+  const baseSections = {
+    profile: profileSection,
+    price: priceSection,
+    fundamentals: { section: 'fundamentals', ok: false, timedOut: true, value: emptyFundamentals, duration_ms: 0, error: 'deferred_for_snapshot' },
+    earnings: earningsSection,
+    ownership: { section: 'ownership', ok: false, timedOut: true, value: emptyOwnership, duration_ms: 0, error: 'deferred_for_snapshot' },
+    context: { section: 'context', ok: false, timedOut: true, value: emptyContext, duration_ms: 0, error: 'deferred_for_snapshot' },
+  };
+  const payload = buildResearchPayloadFromSections(symbol, baseSections, startedAt);
   const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
   const indicatorsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
   const indicatorsSection = indicatorsBudgetMs > 0
