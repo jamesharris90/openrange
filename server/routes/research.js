@@ -902,8 +902,8 @@ router.get('/:symbol/full', async (req, res) => {
   }
 
   const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
-  const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
   const coveragePromise = loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
+  const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
   const scoreRowsPromise = loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), parallelSectionTimeoutMs);
   const scannerSourcesPromise = loadResearchSection('scanner_sources', () => getResearchScannerSources(symbol), null, parallelSectionTimeoutMs);
 
