@@ -4,15 +4,12 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import { Pool } from "pg";
+import sharedQuery = require("../server/db/pool");
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 dotenv.config({ path: path.resolve(process.cwd(), "server/.env") });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL_DISABLE === "true" ? false : { rejectUnauthorized: false },
-});
+const pool = sharedQuery;
 
 function ensureDir(relPath: string) {
   const dir = path.resolve(process.cwd(), relPath);

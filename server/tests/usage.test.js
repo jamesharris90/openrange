@@ -5,6 +5,8 @@ describe('Usage persistence', () => {
 
   test('records and aggregates usage events', async () => {
     const db = require('../db');
+    await db.query('DELETE FROM usage_events WHERE "user" = ANY($1::text[])', [['alice', 'bob']]);
+
     const writeResults = await Promise.all([
       db.recordUsage({ user: 'alice', path: '/api/foo', ts: Date.now() }),
       db.recordUsage({ user: 'bob', path: '/api/foo', ts: Date.now() }),

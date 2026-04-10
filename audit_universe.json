@@ -1,0 +1,643 @@
+{
+  "generated_at": "2026-04-05T05:01:36.686Z",
+  "total_symbols": 50,
+  "groups": [
+    {
+      "key": "micro_cap",
+      "label": "micro cap",
+      "symbol_count": 10,
+      "symbols": [
+        {
+          "symbol": "DMN",
+          "market_cap": 4165816,
+          "seed_price": 0.0017,
+          "seed_volume": 2232288000,
+          "quote_updated_at": "2026-04-01T15:10:25.517Z"
+        },
+        {
+          "symbol": "LNKS",
+          "market_cap": 16393364,
+          "seed_price": 0.0083,
+          "seed_volume": 341077215,
+          "quote_updated_at": "2026-04-01T15:03:38.191Z"
+        },
+        {
+          "symbol": "AIXI",
+          "market_cap": 2454448,
+          "seed_price": 0.1307,
+          "seed_volume": 266964348,
+          "quote_updated_at": "2026-04-01T15:10:14.140Z"
+        },
+        {
+          "symbol": "CYCN",
+          "market_cap": 5290635,
+          "seed_price": 6.15,
+          "seed_volume": 190604992,
+          "quote_updated_at": "2026-04-01T15:10:25.012Z"
+        },
+        {
+          "symbol": "WNW",
+          "market_cap": 5024263,
+          "seed_price": 0.0506,
+          "seed_volume": 145050118,
+          "quote_updated_at": "2026-04-01T14:59:03.419Z"
+        },
+        {
+          "symbol": "UCAR",
+          "market_cap": 6352747,
+          "seed_price": 0.6604,
+          "seed_volume": 107543842,
+          "quote_updated_at": "2026-04-01T14:59:04.828Z"
+        },
+        {
+          "symbol": "HUBC",
+          "market_cap": 2616000,
+          "seed_price": 0.0888,
+          "seed_volume": 102883676,
+          "quote_updated_at": "2026-04-01T15:09:29.371Z"
+        },
+        {
+          "symbol": "RENX",
+          "market_cap": 1164518,
+          "seed_price": 2.02,
+          "seed_volume": 72216315,
+          "quote_updated_at": "2026-04-01T14:58:57.792Z"
+        },
+        {
+          "symbol": "HKIT",
+          "market_cap": 24223084,
+          "seed_price": 0.0358,
+          "seed_volume": 68945541,
+          "quote_updated_at": "2026-04-01T15:09:28.847Z"
+        },
+        {
+          "symbol": "DEFT",
+          "market_cap": 233421217,
+          "seed_price": 0.7123,
+          "seed_volume": 66696681,
+          "quote_updated_at": "2026-04-01T15:10:25.012Z"
+        }
+      ]
+    },
+    {
+      "key": "small_cap",
+      "label": "small cap",
+      "symbol_count": 10,
+      "symbols": [
+        {
+          "symbol": "RZLV",
+          "market_cap": 710769700,
+          "seed_price": 3.11,
+          "seed_volume": 29607873,
+          "quote_updated_at": "2026-04-01T14:56:35.711Z"
+        },
+        {
+          "symbol": "SVC",
+          "market_cap": 391640853,
+          "seed_price": 1.27,
+          "seed_volume": 27198187,
+          "quote_updated_at": "2026-04-01T14:57:28.606Z"
+        },
+        {
+          "symbol": "BYND",
+          "market_cap": 358320443,
+          "seed_price": 0.5944,
+          "seed_volume": 20848774,
+          "quote_updated_at": "2026-04-01T15:10:21.260Z"
+        },
+        {
+          "symbol": "EB",
+          "market_cap": 433631019,
+          "seed_price": 4.51,
+          "seed_volume": 19512320,
+          "quote_updated_at": "2026-04-01T15:10:26.387Z"
+        },
+        {
+          "symbol": "AMC",
+          "market_cap": 624865979,
+          "seed_price": 1.12,
+          "seed_volume": 15257019,
+          "quote_updated_at": "2026-04-01T15:10:14.856Z"
+        },
+        {
+          "symbol": "BBAI",
+          "market_cap": 1373549886,
+          "seed_price": 3.58,
+          "seed_volume": 12626987,
+          "quote_updated_at": "2026-04-01T15:10:17.738Z"
+        },
+        {
+          "symbol": "AXTI",
+          "market_cap": 1750096137,
+          "seed_price": 52.84,
+          "seed_volume": 11559397,
+          "quote_updated_at": "2026-04-01T15:10:17.738Z"
+        },
+        {
+          "symbol": "BITF",
+          "market_cap": 1267000000,
+          "seed_price": 1.98,
+          "seed_volume": 11500897,
+          "quote_updated_at": "2026-04-01T15:10:19.046Z"
+        },
+        {
+          "symbol": "RAPT",
+          "market_cap": 959505170,
+          "seed_price": 58.005,
+          "seed_volume": 10846697,
+          "quote_updated_at": "2026-04-01T14:56:24.497Z"
+        },
+        {
+          "symbol": "KOS",
+          "market_cap": 1214950463,
+          "seed_price": 2.915,
+          "seed_volume": 10203202,
+          "quote_updated_at": "2026-04-01T15:03:35.970Z"
+        }
+      ]
+    },
+    {
+      "key": "mid_cap",
+      "label": "mid cap",
+      "symbol_count": 10,
+      "symbols": [
+        {
+          "symbol": "NGD",
+          "market_cap": 9326542929,
+          "seed_price": 9.08,
+          "seed_volume": 25328759,
+          "quote_updated_at": "2026-04-01T14:55:18.377Z"
+        },
+        {
+          "symbol": "ONDS",
+          "market_cap": 4724907130,
+          "seed_price": 9.6,
+          "seed_volume": 24518628,
+          "quote_updated_at": "2026-04-01T14:55:34.629Z"
+        },
+        {
+          "symbol": "SNAP",
+          "market_cap": 9069671467,
+          "seed_price": 4.63,
+          "seed_volume": 22321118,
+          "quote_updated_at": "2026-04-01T14:55:15.447Z"
+        },
+        {
+          "symbol": "AAL",
+          "market_cap": 8227394980,
+          "seed_price": 10.84,
+          "seed_volume": 17252732,
+          "quote_updated_at": "2026-04-01T15:10:12.756Z"
+        },
+        {
+          "symbol": "APLS",
+          "market_cap": 2538701993,
+          "seed_price": 40.41,
+          "seed_volume": 14505733,
+          "quote_updated_at": "2026-04-01T15:10:15.517Z"
+        },
+        {
+          "symbol": "PLUG",
+          "market_cap": 2844263424,
+          "seed_price": 2.41,
+          "seed_volume": 13790297,
+          "quote_updated_at": "2026-04-01T14:55:49.962Z"
+        },
+        {
+          "symbol": "DNN",
+          "market_cap": 3696837029,
+          "seed_price": 3.66,
+          "seed_volume": 12555571,
+          "quote_updated_at": "2026-04-01T15:10:25.517Z"
+        },
+        {
+          "symbol": "APLD",
+          "market_cap": 8010133829,
+          "seed_price": 24.56,
+          "seed_volume": 12247886,
+          "quote_updated_at": "2026-04-01T15:10:15.517Z"
+        },
+        {
+          "symbol": "BMNR",
+          "market_cap": 3659158356,
+          "seed_price": 19.45,
+          "seed_volume": 12187433,
+          "quote_updated_at": "2026-04-01T15:10:19.046Z"
+        },
+        {
+          "symbol": "RIG",
+          "market_cap": 5753644011,
+          "seed_price": 6.59,
+          "seed_volume": 11797588,
+          "quote_updated_at": "2026-04-01T14:55:23.589Z"
+        }
+      ]
+    },
+    {
+      "key": "large_cap",
+      "label": "large cap",
+      "symbol_count": 10,
+      "symbols": [
+        {
+          "symbol": "NKE",
+          "market_cap": 86659539489,
+          "seed_price": 44.19,
+          "seed_volume": 50783165,
+          "quote_updated_at": "2026-04-01T14:43:45.892Z"
+        },
+        {
+          "symbol": "NIO",
+          "market_cap": 11474067910,
+          "seed_price": 6.295,
+          "seed_volume": 27450794,
+          "quote_updated_at": "2026-04-01T14:54:59.737Z"
+        },
+        {
+          "symbol": "NOK",
+          "market_cap": 44017269800,
+          "seed_price": 8.82,
+          "seed_volume": 25172212,
+          "quote_updated_at": "2026-04-01T14:54:42.745Z"
+        },
+        {
+          "symbol": "BP",
+          "market_cap": 101858094200,
+          "seed_price": 47.12,
+          "seed_volume": 22344067,
+          "quote_updated_at": "2026-04-01T15:10:19.681Z"
+        },
+        {
+          "symbol": "EXAS",
+          "market_cap": 19756908000,
+          "seed_price": 104.91,
+          "seed_volume": 21562141,
+          "quote_updated_at": "2026-04-01T15:10:28.309Z"
+        },
+        {
+          "symbol": "PBR",
+          "market_cap": 108072026104,
+          "seed_price": 20.56,
+          "seed_volume": 21210855,
+          "quote_updated_at": "2026-04-01T14:54:24.866Z"
+        },
+        {
+          "symbol": "SOFI",
+          "market_cap": 23847362000,
+          "seed_price": 15.85,
+          "seed_volume": 21039627,
+          "quote_updated_at": "2026-04-01T14:54:53.924Z"
+        },
+        {
+          "symbol": "MRVL",
+          "market_cap": 68207695194,
+          "seed_price": 107.11,
+          "seed_volume": 20274151,
+          "quote_updated_at": "2026-04-01T14:54:27.167Z"
+        },
+        {
+          "symbol": "VG",
+          "market_cap": 27320913917,
+          "seed_price": 14.64,
+          "seed_volume": 15798021,
+          "quote_updated_at": "2026-04-01T14:54:44.877Z"
+        },
+        {
+          "symbol": "GRAB",
+          "market_cap": 16272900000,
+          "seed_price": 3.62,
+          "seed_volume": 15110586,
+          "quote_updated_at": "2026-04-01T15:09:27.837Z"
+        }
+      ]
+    },
+    {
+      "key": "mega_cap",
+      "label": "mega cap",
+      "symbol_count": 10,
+      "symbols": [
+        {
+          "symbol": "NVDA",
+          "market_cap": 4448787232398,
+          "seed_price": 177.39,
+          "seed_volume": 62146174,
+          "quote_updated_at": "2026-04-01T14:43:47.481Z"
+        },
+        {
+          "symbol": "INTC",
+          "market_cap": 227672100000,
+          "seed_price": 50.38,
+          "seed_volume": 59317353,
+          "quote_updated_at": "2026-04-01T15:03:34.292Z"
+        },
+        {
+          "symbol": "MU",
+          "market_cap": 451070346531,
+          "seed_price": 366.24,
+          "seed_volume": 34649294,
+          "quote_updated_at": "2026-04-01T14:54:20.892Z"
+        },
+        {
+          "symbol": "TSLA",
+          "market_cap": 1523262239585,
+          "seed_price": 360.59,
+          "seed_volume": 22936763,
+          "quote_updated_at": "2026-04-01T14:54:20.320Z"
+        },
+        {
+          "symbol": "AMD",
+          "market_cap": 329456948700,
+          "seed_price": 217.5,
+          "seed_volume": 16132812,
+          "quote_updated_at": "2026-04-01T15:10:14.856Z"
+        },
+        {
+          "symbol": "AMZN",
+          "market_cap": 2327545543033,
+          "seed_price": 209.77,
+          "seed_volume": 13638841,
+          "quote_updated_at": "2026-04-01T15:10:15.517Z"
+        },
+        {
+          "symbol": "PLTR",
+          "market_cap": 351030289300,
+          "seed_price": 148.46,
+          "seed_volume": 12901071,
+          "quote_updated_at": "2026-04-01T14:54:21.231Z"
+        },
+        {
+          "symbol": "GOOGL",
+          "market_cap": 3666963627278,
+          "seed_price": 295.77,
+          "seed_volume": 12554405,
+          "quote_updated_at": "2026-04-01T15:09:27.837Z"
+        },
+        {
+          "symbol": "XOM",
+          "market_cap": 624389503432,
+          "seed_price": 160.67,
+          "seed_volume": 11905317,
+          "quote_updated_at": "2026-04-01T14:54:20.485Z"
+        },
+        {
+          "symbol": "NFLX",
+          "market_cap": 418054320724,
+          "seed_price": 98.66,
+          "seed_volume": 11107408,
+          "quote_updated_at": "2026-04-01T14:54:20.946Z"
+        }
+      ]
+    }
+  ],
+  "flat_symbols": [
+    {
+      "symbol": "DMN",
+      "market_cap_group": "micro_cap",
+      "market_cap": 4165816
+    },
+    {
+      "symbol": "LNKS",
+      "market_cap_group": "micro_cap",
+      "market_cap": 16393364
+    },
+    {
+      "symbol": "AIXI",
+      "market_cap_group": "micro_cap",
+      "market_cap": 2454448
+    },
+    {
+      "symbol": "CYCN",
+      "market_cap_group": "micro_cap",
+      "market_cap": 5290635
+    },
+    {
+      "symbol": "WNW",
+      "market_cap_group": "micro_cap",
+      "market_cap": 5024263
+    },
+    {
+      "symbol": "UCAR",
+      "market_cap_group": "micro_cap",
+      "market_cap": 6352747
+    },
+    {
+      "symbol": "HUBC",
+      "market_cap_group": "micro_cap",
+      "market_cap": 2616000
+    },
+    {
+      "symbol": "RENX",
+      "market_cap_group": "micro_cap",
+      "market_cap": 1164518
+    },
+    {
+      "symbol": "HKIT",
+      "market_cap_group": "micro_cap",
+      "market_cap": 24223084
+    },
+    {
+      "symbol": "DEFT",
+      "market_cap_group": "micro_cap",
+      "market_cap": 233421217
+    },
+    {
+      "symbol": "RZLV",
+      "market_cap_group": "small_cap",
+      "market_cap": 710769700
+    },
+    {
+      "symbol": "SVC",
+      "market_cap_group": "small_cap",
+      "market_cap": 391640853
+    },
+    {
+      "symbol": "BYND",
+      "market_cap_group": "small_cap",
+      "market_cap": 358320443
+    },
+    {
+      "symbol": "EB",
+      "market_cap_group": "small_cap",
+      "market_cap": 433631019
+    },
+    {
+      "symbol": "AMC",
+      "market_cap_group": "small_cap",
+      "market_cap": 624865979
+    },
+    {
+      "symbol": "BBAI",
+      "market_cap_group": "small_cap",
+      "market_cap": 1373549886
+    },
+    {
+      "symbol": "AXTI",
+      "market_cap_group": "small_cap",
+      "market_cap": 1750096137
+    },
+    {
+      "symbol": "BITF",
+      "market_cap_group": "small_cap",
+      "market_cap": 1267000000
+    },
+    {
+      "symbol": "RAPT",
+      "market_cap_group": "small_cap",
+      "market_cap": 959505170
+    },
+    {
+      "symbol": "KOS",
+      "market_cap_group": "small_cap",
+      "market_cap": 1214950463
+    },
+    {
+      "symbol": "NGD",
+      "market_cap_group": "mid_cap",
+      "market_cap": 9326542929
+    },
+    {
+      "symbol": "ONDS",
+      "market_cap_group": "mid_cap",
+      "market_cap": 4724907130
+    },
+    {
+      "symbol": "SNAP",
+      "market_cap_group": "mid_cap",
+      "market_cap": 9069671467
+    },
+    {
+      "symbol": "AAL",
+      "market_cap_group": "mid_cap",
+      "market_cap": 8227394980
+    },
+    {
+      "symbol": "APLS",
+      "market_cap_group": "mid_cap",
+      "market_cap": 2538701993
+    },
+    {
+      "symbol": "PLUG",
+      "market_cap_group": "mid_cap",
+      "market_cap": 2844263424
+    },
+    {
+      "symbol": "DNN",
+      "market_cap_group": "mid_cap",
+      "market_cap": 3696837029
+    },
+    {
+      "symbol": "APLD",
+      "market_cap_group": "mid_cap",
+      "market_cap": 8010133829
+    },
+    {
+      "symbol": "BMNR",
+      "market_cap_group": "mid_cap",
+      "market_cap": 3659158356
+    },
+    {
+      "symbol": "RIG",
+      "market_cap_group": "mid_cap",
+      "market_cap": 5753644011
+    },
+    {
+      "symbol": "NKE",
+      "market_cap_group": "large_cap",
+      "market_cap": 86659539489
+    },
+    {
+      "symbol": "NIO",
+      "market_cap_group": "large_cap",
+      "market_cap": 11474067910
+    },
+    {
+      "symbol": "NOK",
+      "market_cap_group": "large_cap",
+      "market_cap": 44017269800
+    },
+    {
+      "symbol": "BP",
+      "market_cap_group": "large_cap",
+      "market_cap": 101858094200
+    },
+    {
+      "symbol": "EXAS",
+      "market_cap_group": "large_cap",
+      "market_cap": 19756908000
+    },
+    {
+      "symbol": "PBR",
+      "market_cap_group": "large_cap",
+      "market_cap": 108072026104
+    },
+    {
+      "symbol": "SOFI",
+      "market_cap_group": "large_cap",
+      "market_cap": 23847362000
+    },
+    {
+      "symbol": "MRVL",
+      "market_cap_group": "large_cap",
+      "market_cap": 68207695194
+    },
+    {
+      "symbol": "VG",
+      "market_cap_group": "large_cap",
+      "market_cap": 27320913917
+    },
+    {
+      "symbol": "GRAB",
+      "market_cap_group": "large_cap",
+      "market_cap": 16272900000
+    },
+    {
+      "symbol": "NVDA",
+      "market_cap_group": "mega_cap",
+      "market_cap": 4448787232398
+    },
+    {
+      "symbol": "INTC",
+      "market_cap_group": "mega_cap",
+      "market_cap": 227672100000
+    },
+    {
+      "symbol": "MU",
+      "market_cap_group": "mega_cap",
+      "market_cap": 451070346531
+    },
+    {
+      "symbol": "TSLA",
+      "market_cap_group": "mega_cap",
+      "market_cap": 1523262239585
+    },
+    {
+      "symbol": "AMD",
+      "market_cap_group": "mega_cap",
+      "market_cap": 329456948700
+    },
+    {
+      "symbol": "AMZN",
+      "market_cap_group": "mega_cap",
+      "market_cap": 2327545543033
+    },
+    {
+      "symbol": "PLTR",
+      "market_cap_group": "mega_cap",
+      "market_cap": 351030289300
+    },
+    {
+      "symbol": "GOOGL",
+      "market_cap_group": "mega_cap",
+      "market_cap": 3666963627278
+    },
+    {
+      "symbol": "XOM",
+      "market_cap_group": "mega_cap",
+      "market_cap": 624389503432
+    },
+    {
+      "symbol": "NFLX",
+      "market_cap_group": "mega_cap",
+      "market_cap": 418054320724
+    }
+  ]
+}

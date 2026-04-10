@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-03-23T22:03:09.971Z",
+  "phase": "signal_quality_audit",
+  "metrics": {
+    "opportunity_stream_count": 19,
+    "trade_setups_count": 19,
+    "extended_count": 0,
+    "total_count": 19,
+    "extended_ratio": 0,
+    "missing_why_how": 0,
+    "source_mismatched": 0
+  },
+  "checks": {
+    "opportunity_stream_count_gt_5": true,
+    "trade_setups_count_gt_5": true,
+    "no_extended_domination": true,
+    "all_have_why_how": true,
+    "all_trades_source_real": true
+  },
+  "pass": true
+}

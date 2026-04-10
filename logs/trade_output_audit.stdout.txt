@@ -1,0 +1,20 @@
+
+====================
+ENDPOINT: http://localhost:3001/api/stocks-in-play
+STATUS: 200
+COUNT: 0
+SAMPLE: []
+
+====================
+ENDPOINT: http://localhost:3001/api/catalysts
+STATUS: 200
+COUNT: 0
+SAMPLE: []
+
+====================
+ENDPOINT: http://localhost:3001/api/earnings
+STATUS: 500
+COUNT: 0
+SAMPLE: []
+
+Audit saved -> logs/trade_output_audit.json

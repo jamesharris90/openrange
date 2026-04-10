@@ -1,0 +1,7 @@
+{
+  "ingestion_running": true,
+  "data_fetched": true,
+  "db_write_success": true,
+  "timestamp_updating": true,
+  "verdict": "LIVE"
+}

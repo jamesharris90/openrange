@@ -1,7 +1,6 @@
-const pLimitModule = require('p-limit');
-const pLimit = pLimitModule.default || pLimitModule;
+const createConcurrencyLimiter = require('./createConcurrencyLimiter');
 
-const limit = pLimit(2);
+const limit = createConcurrencyLimiter(2);
 
 module.exports = function limitProvider(fn) {
   return limit(() => fn());

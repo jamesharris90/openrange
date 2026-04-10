@@ -1,0 +1,174 @@
+{
+  "generated_at": "2026-03-26T16:21:25.727Z",
+  "tables": {
+    "market_quotes": {
+      "row_count": 6379,
+      "column_count": 13,
+      "duplicate_symbol_groups": 0,
+      "null_field_counts": {
+        "symbol": "0",
+        "price": "0",
+        "change_percent": "34",
+        "volume": "0",
+        "market_cap": "8",
+        "sector": "5511",
+        "updated_at": "0",
+        "short_float": "6379",
+        "float": "6379",
+        "relative_volume": "6379",
+        "premarket_volume": "6379",
+        "previous_close": "464",
+        "last_updated": "0"
+      },
+      "last_updated_distribution": {
+        "lt_60s": "0",
+        "lt_5m": "5915",
+        "lt_24h": "5960",
+        "null_timestamps": "0",
+        "oldest": "2026-03-05T16:11:37.455Z",
+        "newest": "2026-03-26T16:18:24.224Z"
+      }
+    },
+    "market_metrics": {
+      "row_count": 7778,
+      "column_count": 20,
+      "duplicate_symbol_groups": 0,
+      "null_field_counts": {
+        "symbol": "0",
+        "price": "355",
+        "gap_percent": "2852",
+        "relative_volume": "2657",
+        "atr": "2657",
+        "rsi": "2659",
+        "vwap": "7672",
+        "float_rotation": "7778",
+        "last_updated": "0",
+        "change_percent": "20",
+        "avg_volume_30d": "2681",
+        "updated_at": "0",
+        "volume": "0",
+        "previous_high": "7778",
+        "float_shares": "2856",
+        "atr_percent": "2660",
+        "short_float": "7778",
+        "liquidity_surge": "7778",
+        "previous_close": "4306",
+        "source": "4302"
+      },
+      "last_updated_distribution": {
+        "lt_60s": "0",
+        "lt_5m": "5915",
+        "lt_24h": "5915",
+        "null_timestamps": "0",
+        "oldest": "2026-03-04T21:15:45.259Z",
+        "newest": "2026-03-26T16:18:24.283Z"
+      }
+    },
+    "ticker_universe": {
+      "row_count": 5915,
+      "column_count": 8,
+      "duplicate_symbol_groups": 0,
+      "null_field_counts": {
+        "symbol": "0",
+        "company_name": "0",
+        "exchange": "0",
+        "sector": "0",
+        "industry": "3",
+        "market_cap": "0",
+        "is_active": "0",
+        "last_updated": "0"
+      },
+      "last_updated_distribution": {
+        "lt_60s": "0",
+        "lt_5m": "0",
+        "lt_24h": "0",
+        "null_timestamps": "0",
+        "oldest": "2026-03-05T00:20:34.338Z",
+        "newest": "2026-03-05T00:21:25.333Z"
+      }
+    },
+    "news_articles": {
+      "row_count": 18381,
+      "column_count": 25,
+      "duplicate_symbol_groups": 102,
+      "null_field_counts": {
+        "id": "0",
+        "headline": "0",
+        "symbols": "0",
+        "source": "0",
+        "url": "0",
+        "published_at": "0",
+        "summary": "30",
+        "catalyst_type": "17310",
+        "news_score": "49",
+        "score_breakdown": "49",
+        "raw_payload": "0",
+        "created_at": "0",
+        "symbol": "1069",
+        "sector": "18381",
+        "narrative": "18381",
+        "provider": "0",
+        "sentiment": "0",
+        "title": "18332",
+        "body_text": "18332",
+        "publisher": "18332",
+        "site": "18332",
+        "image_url": "18333",
+        "published_date": "18332",
+        "source_url": "18332",
+        "ingested_at": "0"
+      },
+      "last_updated_distribution": null
+    },
+    "earnings_events": {
+      "row_count": 639,
+      "column_count": 29,
+      "duplicate_symbol_groups": 90,
+      "null_field_counts": {
+        "id": "0",
+        "symbol": "0",
+        "report_date": "0",
+        "report_time": "0",
+        "eps_estimate": "195",
+        "eps_actual": "633",
+        "rev_estimate": "329",
+        "rev_actual": "634",
+        "eps_surprise_pct": "639",
+        "rev_surprise_pct": "639",
+        "guidance_direction": "639",
+        "market_cap": "116",
+        "float": "639",
+        "sector": "639",
+        "industry": "639",
+        "created_at": "0",
+        "company": "639",
+        "earnings_date": "639",
+        "revenue_estimate": "639",
+        "updated_at": "0",
+        "time": "639",
+        "expected_move_percent": "119",
+        "avg_volume": "639",
+        "atr": "119",
+        "exchange": "0",
+        "price": "0",
+        "current_volume": "118",
+        "rvol": "237",
+        "score": "0"
+      },
+      "last_updated_distribution": {
+        "lt_60s": "0",
+        "lt_5m": "0",
+        "lt_24h": "0",
+        "null_timestamps": "0",
+        "oldest": "2026-03-24T15:58:00.631Z",
+        "newest": "2026-03-24T15:58:00.642Z"
+      }
+    }
+  },
+  "missing_joins": {
+    "missing_quotes_join": "0",
+    "missing_metrics_join": "0",
+    "missing_news_join": "5784",
+    "missing_earnings_join": "5390"
+  }
+}

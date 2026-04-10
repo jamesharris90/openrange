@@ -1,0 +1,1523 @@
+{
+  "generated_at": "2026-03-23T20:07:12.619Z",
+  "database_host": "aws-1-eu-west-1.pooler.supabase.com:6543",
+  "total_tables": 239,
+  "all_tables": [
+    "auth.audit_log_entries",
+    "auth.custom_oauth_providers",
+    "auth.flow_state",
+    "auth.identities",
+    "auth.instances",
+    "auth.mfa_amr_claims",
+    "auth.mfa_challenges",
+    "auth.mfa_factors",
+    "auth.oauth_authorizations",
+    "auth.oauth_client_states",
+    "auth.oauth_clients",
+    "auth.oauth_consents",
+    "auth.one_time_tokens",
+    "auth.refresh_tokens",
+    "auth.saml_providers",
+    "auth.saml_relay_states",
+    "auth.schema_migrations",
+    "auth.sessions",
+    "auth.sso_domains",
+    "auth.sso_providers",
+    "auth.users",
+    "auth.webauthn_challenges",
+    "auth.webauthn_credentials",
+    "extensions.pg_stat_statements",
+    "extensions.pg_stat_statements_info",
+    "public.activity_log",
+    "public.adaptive_strategy_rank",
+    "public.alert_history",
+    "public.alerts",
+    "public.analyst_enrichment",
+    "public.audit_log",
+    "public.beacon_learning_metrics",
+    "public.beacon_rankings",
+    "public.beacon_weights",
+    "public.broker_executions",
+    "public.calibration_health",
+    "public.catalyst_clusters",
+    "public.catalyst_events",
+    "public.catalyst_intelligence",
+    "public.catalyst_precedent",
+    "public.catalyst_reactions",
+    "public.catalyst_signals",
+    "public.chart_trends",
+    "public.company_profiles",
+    "public.daily_ohlc",
+    "public.daily_reviews",
+    "public.daily_signal_snapshot",
+    "public.data_freshness_dashboard",
+    "public.data_integrity",
+    "public.data_integrity_events",
+    "public.decision_view",
+    "public.decision_view_core",
+    "public.decision_view_elite_source",
+    "public.decision_view_elite_source_1774023870681",
+    "public.decision_view_elite_source_1774023890956",
+    "public.decision_view_elite_source_1774023902519",
+    "public.decision_view_elite_source_1774023923131",
+    "public.decision_view_elite_source_1774023965822",
+    "public.decision_view_elite_source_1774023990206",
+    "public.decision_view_elite_source_1774024015082",
+    "public.decision_view_elite_source_1774024254491",
+    "public.decision_view_elite_source_1774024257600",
+    "public.discovered_symbols",
+    "public.dynamic_watchlist",
+    "public.early_accumulation_signals",
+    "public.early_signal_outcomes",
+    "public.earnings_calendar",
+    "public.earnings_events",
+    "public.earnings_market_reaction",
+    "public.earnings_scores",
+    "public.earnings_transcripts",
+    "public.engine_activity_last_hour",
+    "public.engine_activity_rates",
+    "public.engine_errors",
+    "public.engine_health_dashboard",
+    "public.engine_runtime",
+    "public.engine_status",
+    "public.engine_telemetry",
+    "public.event_log",
+    "public.expected_move_tracking",
+    "public.expected_moves",
+    "public.feature_access_audit",
+    "public.feature_audit",
+    "public.feature_flags",
+    "public.feature_overrides",
+    "public.feature_registry",
+    "public.feature_roles",
+    "public.flow_signals",
+    "public.gap_candidates",
+    "public.ingestion_state",
+    "public.institutional_flow",
+    "public.institutional_flow_candidates",
+    "public.integrity_events",
+    "public.intel_news",
+    "public.intel_raw",
+    "public.intelligence_briefs",
+    "public.intelligence_emails",
+    "public.intraday_1h",
+    "public.intraday_1m",
+    "public.intraday_ohlc",
+    "public.intraday_volume_30m",
+    "public.intraday_volume_spikes",
+    "public.ipo_calendar",
+    "public.liquid_universe",
+    "public.macro_narratives",
+    "public.market_context_snapshot",
+    "public.market_index_snapshot",
+    "public.market_metrics",
+    "public.market_metrics_clean",
+    "public.market_narratives",
+    "public.market_news",
+    "public.market_quotes",
+    "public.market_regime_daily",
+    "public.market_regime_inputs",
+    "public.missed_opportunities",
+    "public.morning_briefings",
+    "public.news_articles",
+    "public.news_catalysts",
+    "public.news_events",
+    "public.newsletter_campaigns",
+    "public.newsletter_send_history",
+    "public.newsletter_sends",
+    "public.newsletter_subscribers",
+    "public.opportunities",
+    "public.opportunities_v2",
+    "public.opportunity_intelligence",
+    "public.opportunity_stream",
+    "public.opportunity_stream_dedup",
+    "public.options_cache",
+    "public.order_flow_signals",
+    "public.plan_features",
+    "public.platform_watchdog",
+    "public.platform_watchdog_status",
+    "public.profiles",
+    "public.provider_health",
+    "public.qualified_signals",
+    "public.radar_a_setups",
+    "public.radar_market_summary",
+    "public.radar_momentum",
+    "public.radar_news",
+    "public.radar_stocks_in_play",
+    "public.radar_top_trades",
+    "public.radar_trade_summary",
+    "public.roles",
+    "public.scheduler_status",
+    "public.schema_migrations",
+    "public.sector_heatmap",
+    "public.sector_momentum",
+    "public.sector_momentum_ranked",
+    "public.sector_momentum_snapshot",
+    "public.sector_momentum_summary",
+    "public.sector_rotation_snapshot",
+    "public.settings",
+    "public.signal_alerts",
+    "public.signal_behaviour",
+    "public.signal_calibrated_scores",
+    "public.signal_calibration_log",
+    "public.signal_calibration_results",
+    "public.signal_capture_analysis",
+    "public.signal_capture_rate_view",
+    "public.signal_catalysts",
+    "public.signal_component_outcomes",
+    "public.signal_engine_metrics",
+    "public.signal_features",
+    "public.signal_grade_distribution",
+    "public.signal_hierarchy",
+    "public.signal_narratives",
+    "public.signal_outcomes",
+    "public.signal_performance",
+    "public.signal_registry",
+    "public.signal_system_metrics",
+    "public.signal_validation_daily",
+    "public.signal_validation_weekly",
+    "public.signal_weight_calibration",
+    "public.signals",
+    "public.signals_today",
+    "public.sparkline_cache",
+    "public.squeeze_signals",
+    "public.stock_splits",
+    "public.stocks_in_play",
+    "public.stocks_in_play_engine",
+    "public.stocks_in_play_filtered",
+    "public.strategy_accuracy",
+    "public.strategy_edge_rank",
+    "public.strategy_learning",
+    "public.strategy_learning_metrics",
+    "public.strategy_outcome_segments",
+    "public.strategy_performance",
+    "public.strategy_performance_dashboard",
+    "public.strategy_performance_summary",
+    "public.strategy_signals",
+    "public.strategy_stats",
+    "public.strategy_trades",
+    "public.strategy_weights",
+    "public.symbol_intraday_cache",
+    "public.symbol_learning_metrics",
+    "public.symbol_performance",
+    "public.symbol_queue",
+    "public.system_alerts",
+    "public.system_events",
+    "public.system_state",
+    "public.ticker_universe",
+    "public.tier_feature_defaults",
+    "public.top_signals_today",
+    "public.tracked_universe",
+    "public.tradable_universe",
+    "public.trade_catalysts",
+    "public.trade_metadata",
+    "public.trade_narratives",
+    "public.trade_opportunities",
+    "public.trade_outcomes",
+    "public.trade_setups",
+    "public.trade_signals",
+    "public.trade_tags",
+    "public.trades",
+    "public.unified_opportunities",
+    "public.usage_events",
+    "public.user_alerts",
+    "public.user_feature_access",
+    "public.user_preferences",
+    "public.user_presets",
+    "public.user_roles",
+    "public.user_signal_feedback",
+    "public.user_watchlists",
+    "public.users",
+    "realtime.messages",
+    "realtime.schema_migrations",
+    "realtime.subscription",
+    "storage.buckets",
+    "storage.buckets_analytics",
+    "storage.buckets_vectors",
+    "storage.migrations",
+    "storage.objects",
+    "storage.s3_multipart_uploads",
+    "storage.s3_multipart_uploads_parts",
+    "storage.vector_indexes",
+    "supabase_migrations.schema_migrations",
+    "vault.decrypted_secrets",
+    "vault.secrets"
+  ],
+  "requested_tables": {
+    "market_metrics": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "atr",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "rsi",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "vwap",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "float_rotation",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "last_updated",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "change_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "avg_volume_30d",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "previous_high",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "float_shares",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "atr_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "short_float",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "liquidity_surge",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        }
+      ]
+    },
+    "market_quotes": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "change_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "market_cap",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "sector",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "short_float",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "float",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "premarket_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        }
+      ]
+    },
+    "intraday_1m": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "timestamp",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "open",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "high",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "low",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "close",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "session",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": "'regular'::text"
+        }
+      ]
+    },
+    "daily_ohlc": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "date",
+          "data_type": "date",
+          "udt_name": "date",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "open",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "high",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "low",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "close",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        }
+      ]
+    },
+    "news_articles": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "id",
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": "NO",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "schema": "public",
+          "column": "headline",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "symbols",
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "source",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "url",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "published_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "summary",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "catalyst_type",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "news_score",
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "score_breakdown",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "raw_payload",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "sector",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "narrative",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "provider",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "sentiment",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "title",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "body_text",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "publisher",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "site",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "image_url",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "published_date",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "source_url",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "ingested_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "NO",
+          "default": "now()"
+        }
+      ]
+    },
+    "earnings_events": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "id",
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": "NO",
+          "default": "nextval('earnings_events_id_seq'::regclass)"
+        },
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "report_date",
+          "data_type": "date",
+          "udt_name": "date",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "report_time",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "eps_estimate",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "eps_actual",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "rev_estimate",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "rev_actual",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "eps_surprise_pct",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "rev_surprise_pct",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "guidance_direction",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "market_cap",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "float",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "sector",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "industry",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "company",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "earnings_date",
+          "data_type": "date",
+          "udt_name": "date",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "revenue_estimate",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "time",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "expected_move_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "avg_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "atr",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "exchange",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "current_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "rvol",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "score",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        }
+      ]
+    },
+    "trade_setups": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "setup",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "grade",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "score",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "atr",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "float_rotation",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "detected_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "setup_type",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "signal_id",
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "entry_price",
+          "data_type": "double precision",
+          "udt_name": "float8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "created_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        }
+      ]
+    },
+    "strategy_signals": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "strategy",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "class",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "score",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "probability",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "change_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "id",
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": "NO",
+          "default": "nextval('strategy_signals_id_seq'::regclass)"
+        },
+        {
+          "schema": "public",
+          "column": "entry_price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "catalyst_count",
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": "YES",
+          "default": "0"
+        },
+        {
+          "schema": "public",
+          "column": "exit_price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "result",
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "timestamp",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        }
+      ]
+    },
+    "tradable_universe": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "price",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "change_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "volume",
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "avg_volume_30d",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        }
+      ]
+    },
+    "opportunity_stream": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "id",
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": "NO",
+          "default": "nextval('opportunity_stream_id_seq'::regclass)"
+        },
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "event_type",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "headline",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "score",
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "source",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "udt_name": "timestamp",
+          "nullable": "YES",
+          "default": "now()"
+        }
+      ]
+    },
+    "chart_trends": {
+      "exists": true,
+      "columns": [
+        {
+          "schema": "public",
+          "column": "symbol",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "trend",
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "support",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "resistance",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "channel",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "breakouts",
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "schema": "public",
+          "column": "computed_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        },
+        {
+          "schema": "public",
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": "YES",
+          "default": "now()"
+        }
+      ]
+    }
+  },
+  "potential_registry_tables": [
+    "public.feature_registry",
+    "public.signal_registry"
+  ]
+}

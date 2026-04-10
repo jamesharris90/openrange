@@ -18,7 +18,6 @@ if (!BASE_URL) {
 const REPORT_PATH = path.resolve(__dirname, '../reports/catalyst_data_source_audit_report.json');
 const STABILITY_RUNS = 5;
 const SKIP_STOCKTWITS = String(process.env.AUDIT_SKIP_STOCKTWITS || '').toLowerCase() === 'true';
-const INCLUDE_FMP_V3_NEWS = String(process.env.AUDIT_INCLUDE_FMP_V3_NEWS || '').toLowerCase() === 'true';
 const SKIP_FMP = String(process.env.AUDIT_SKIP_FMP || '').toLowerCase() === 'true';
 
 const RSS_DEFAULT_FEEDS = [
@@ -115,14 +114,6 @@ async function checkFmp() {
       fields: ['title', 'publishedDate', 'url'],
     },
   ];
-
-  if (INCLUDE_FMP_V3_NEWS) {
-    endpoints.push({
-      name: 'v3_stock_news',
-      url: `https://financialmodelingprep.com/api/v3/stock_news?tickers=AAPL&limit=10&apikey=${apiKey}`,
-      fields: ['title', 'publishedDate', 'url'],
-    });
-  }
 
   const endpointResults = [];
 
@@ -775,7 +766,6 @@ async function main() {
       hasPolygonKey: Boolean(process.env.POLYGON_API_KEY || process.env.MASSIVE_API_KEY || process.env.MASSIVE_SECRET_ACCESS_KEY),
       fmpSkipped: SKIP_FMP,
       stocktwitsSkipped: SKIP_STOCKTWITS,
-      fmpV3NewsIncluded: INCLUDE_FMP_V3_NEWS,
       rssFeedCount: getRssFeedUrls().length,
     },
     providers: {},

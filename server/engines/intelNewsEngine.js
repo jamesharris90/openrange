@@ -36,7 +36,7 @@ async function runIntelNewsEngine() {
     return { ingested: 0, runtimeMs: Date.now() - startedAt, skipped: true };
   }
 
-  const url = `https://financialmodelingprep.com/stable/stock_news?limit=100&apikey=${encodeURIComponent(apiKey)}`;
+  const url = `https://financialmodelingprep.com/stable/news/stock?symbols=AAPL,MSFT,NVDA,SPY,QQQ&limit=100&apikey=${encodeURIComponent(apiKey)}`;
   const response = await axios.get(url, { timeout: 20000 });
   const rows = Array.isArray(response.data) ? response.data : [];
 

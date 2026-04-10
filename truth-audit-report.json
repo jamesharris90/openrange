@@ -1,0 +1,3282 @@
+{
+  "generated_at": "2026-04-05T05:01:39.842Z",
+  "api_base": "http://127.0.0.1:3007",
+  "universe_path": "audit_universe.json",
+  "total_tickers": 50,
+  "per_ticker_breakdown": [
+    {
+      "symbol": "DMN",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "DMN",
+        "ok": true,
+        "status": 200,
+        "price": 0.0017,
+        "change_percent": 0,
+        "volume": 2232288000,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 0,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/DMN/full"
+      },
+      "external": {
+        "symbol": "DMN",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "DMN",
+            "error": "http_404"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "DMN",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "no_news"
+        ]
+      }
+    },
+    {
+      "symbol": "LNKS",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "LNKS",
+        "ok": true,
+        "status": 200,
+        "price": 0.0083,
+        "change_percent": -35.15625,
+        "volume": 341077215,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 2,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/LNKS/full"
+      },
+      "external": {
+        "symbol": "LNKS",
+        "provider_count": 1,
+        "price": 0.0083,
+        "change_percent": -35.16,
+        "volume": 6.67,
+        "earnings_date": null,
+        "news_count": 12,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "LNKS",
+            "price": 0.0083,
+            "change_percent": -35.16,
+            "volume": 6.67,
+            "earnings_date": null,
+            "news_count": 12,
+            "raw_earnings": "-"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "LNKS",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0037,
+        "volume_ratio": 51136014.2429,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "AIXI",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "AIXI",
+        "ok": true,
+        "status": 200,
+        "price": 0.1307,
+        "change_percent": 33.09572,
+        "volume": 266964348,
+        "earnings_next_date": "2026-04-29",
+        "earnings_expected_move": null,
+        "news_count": 2,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AIXI/full"
+      },
+      "external": {
+        "symbol": "AIXI",
+        "provider_count": 1,
+        "price": 0.1307,
+        "change_percent": 33.1,
+        "volume": 33.33,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "AIXI",
+            "price": 0.1307,
+            "change_percent": 33.1,
+            "volume": 33.33,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": "-"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AIXI",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0043,
+        "volume_ratio": 8009731.4131,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 55,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 40,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "CYCN",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "CYCN",
+        "ok": true,
+        "status": 200,
+        "price": 6.15,
+        "change_percent": -3.60502,
+        "volume": 190604992,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 4,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/CYCN/full"
+      },
+      "external": {
+        "symbol": "CYCN",
+        "provider_count": 1,
+        "price": 6.15,
+        "change_percent": -3.61,
+        "volume": 1.93,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "CYCN",
+            "price": 6.15,
+            "change_percent": -3.61,
+            "volume": 1.93,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "CYCN",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.005,
+        "volume_ratio": 98759063.2124,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "WNW",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "WNW",
+        "ok": true,
+        "status": 200,
+        "price": 0.0506,
+        "change_percent": -13.65188,
+        "volume": 145050118,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 1,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/WNW/full"
+      },
+      "external": {
+        "symbol": "WNW",
+        "provider_count": 1,
+        "price": 0.0506,
+        "change_percent": -13.65,
+        "volume": 0.93,
+        "earnings_date": null,
+        "news_count": 53,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "WNW",
+            "price": 0.0506,
+            "change_percent": -13.65,
+            "volume": 0.93,
+            "earnings_date": null,
+            "news_count": 53,
+            "raw_earnings": "-"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "WNW",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0019,
+        "volume_ratio": 155967868.8172,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "UCAR",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "UCAR",
+        "ok": true,
+        "status": 200,
+        "price": 0.6604,
+        "change_percent": 9.51907,
+        "volume": 107543842,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 1,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/UCAR/full"
+      },
+      "external": {
+        "symbol": "UCAR",
+        "provider_count": 1,
+        "price": 0.6604,
+        "change_percent": 9.52,
+        "volume": 1.75,
+        "earnings_date": null,
+        "news_count": 96,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "UCAR",
+            "price": 0.6604,
+            "change_percent": 9.52,
+            "volume": 1.75,
+            "earnings_date": null,
+            "news_count": 96,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "UCAR",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0009,
+        "volume_ratio": 61453624,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "HUBC",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "HUBC",
+        "ok": true,
+        "status": 200,
+        "price": 0.0888,
+        "change_percent": -0.22472,
+        "volume": 102883676,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 1,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/HUBC/full"
+      },
+      "external": {
+        "symbol": "HUBC",
+        "provider_count": 1,
+        "price": 0.0888,
+        "change_percent": -0.22,
+        "volume": 1.91,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "HUBC",
+            "price": 0.0888,
+            "change_percent": -0.22,
+            "volume": 1.91,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": "-"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "HUBC",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0047,
+        "volume_ratio": 53865798.9529,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "RENX",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "RENX",
+        "ok": true,
+        "status": 200,
+        "price": 2.02,
+        "change_percent": -22.60536,
+        "volume": 72216315,
+        "earnings_next_date": "2026-04-07",
+        "earnings_expected_move": null,
+        "news_count": 3,
+        "driver": "EARNINGS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/RENX/full"
+      },
+      "external": {
+        "symbol": "RENX",
+        "provider_count": 1,
+        "price": 2.02,
+        "change_percent": -22.61,
+        "volume": 0.52,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "RENX",
+            "price": 2.02,
+            "change_percent": -22.61,
+            "volume": 0.52,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "RENX",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0046,
+        "volume_ratio": 138877528.8462,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 55,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 40,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "HKIT",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "HKIT",
+        "ok": true,
+        "status": 200,
+        "price": 0.0358,
+        "change_percent": -26.03306,
+        "volume": 68945541,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 2,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/HKIT/full"
+      },
+      "external": {
+        "symbol": "HKIT",
+        "provider_count": 1,
+        "price": 0.0358,
+        "change_percent": -26.03,
+        "volume": 0.91,
+        "earnings_date": null,
+        "news_count": 18,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "HKIT",
+            "price": 0.0358,
+            "change_percent": -26.03,
+            "volume": 0.91,
+            "earnings_date": null,
+            "news_count": 18,
+            "raw_earnings": "-"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "HKIT",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0031,
+        "volume_ratio": 75764330.7692,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "DEFT",
+      "market_cap_group": "micro_cap",
+      "openrange": {
+        "symbol": "DEFT",
+        "ok": true,
+        "status": 200,
+        "price": 0.7123,
+        "change_percent": 3.36671,
+        "volume": 66696681,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 3,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/DEFT/full"
+      },
+      "external": {
+        "symbol": "DEFT",
+        "provider_count": 1,
+        "price": 0.7123,
+        "change_percent": 3.37,
+        "volume": 2.56,
+        "earnings_date": null,
+        "news_count": 95,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "DEFT",
+            "price": 0.7123,
+            "change_percent": 3.37,
+            "volume": 2.56,
+            "earnings_date": null,
+            "news_count": 95,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "DEFT",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0033,
+        "volume_ratio": 26053391.0156,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "RZLV",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "RZLV",
+        "ok": true,
+        "status": 200,
+        "price": 3.11,
+        "change_percent": -0.63898,
+        "volume": 29607873,
+        "earnings_next_date": "2026-10-07",
+        "earnings_expected_move": null,
+        "news_count": 9,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/RZLV/full"
+      },
+      "external": {
+        "symbol": "RZLV",
+        "provider_count": 1,
+        "price": 3.11,
+        "change_percent": -0.64,
+        "volume": 1.09,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "RZLV",
+            "price": 3.11,
+            "change_percent": -0.64,
+            "volume": 1.09,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "RZLV",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.001,
+        "volume_ratio": 27163186.2385,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 60,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 40,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "SVC",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "SVC",
+        "ok": true,
+        "status": 200,
+        "price": 1.27,
+        "change_percent": 7.62712,
+        "volume": 27198187,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 5,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/SVC/full"
+      },
+      "external": {
+        "symbol": "SVC",
+        "provider_count": 1,
+        "price": 1.27,
+        "change_percent": 7.63,
+        "volume": 31.19,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "SVC",
+            "price": 1.27,
+            "change_percent": 7.63,
+            "volume": 31.19,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "SVC",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0029,
+        "volume_ratio": 872016.2552,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "BYND",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "BYND",
+        "ok": true,
+        "status": 200,
+        "price": 0.5944,
+        "change_percent": -4.19084,
+        "volume": 20848774,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 17,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/BYND/full"
+      },
+      "external": {
+        "symbol": "BYND",
+        "provider_count": 1,
+        "price": 0.5944,
+        "change_percent": -4.19,
+        "volume": 1.25,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "BYND",
+            "price": 0.5944,
+            "change_percent": -4.19,
+            "volume": 1.25,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "BYND",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0008,
+        "volume_ratio": 16679019.2,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "EB",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "EB",
+        "ok": true,
+        "status": 200,
+        "price": 4.51,
+        "change_percent": 1.46232,
+        "volume": 19512320,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 0,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/EB/full"
+      },
+      "external": {
+        "symbol": "EB",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "EB",
+            "error": "http_404"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "EB",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "no_news"
+        ]
+      }
+    },
+    {
+      "symbol": "AMC",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "AMC",
+        "ok": true,
+        "status": 200,
+        "price": 1.12,
+        "change_percent": 8.73786,
+        "volume": 15257019,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 6,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AMC/full"
+      },
+      "external": {
+        "symbol": "AMC",
+        "provider_count": 1,
+        "price": 1.12,
+        "change_percent": 8.74,
+        "volume": 1.13,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "AMC",
+            "price": 1.12,
+            "change_percent": 8.74,
+            "volume": 1.13,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AMC",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0021,
+        "volume_ratio": 13501786.7257,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "BBAI",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "BBAI",
+        "ok": true,
+        "status": 200,
+        "price": 3.58,
+        "change_percent": 4.67836,
+        "volume": 12626987,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 4,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/BBAI/full"
+      },
+      "external": {
+        "symbol": "BBAI",
+        "provider_count": 1,
+        "price": 3.58,
+        "change_percent": 4.68,
+        "volume": 0.41,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "BBAI",
+            "price": 3.58,
+            "change_percent": 4.68,
+            "volume": 0.41,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "BBAI",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0016,
+        "volume_ratio": 30797529.2683,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "AXTI",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "AXTI",
+        "ok": true,
+        "status": 200,
+        "price": 52.84,
+        "change_percent": 12.09164,
+        "volume": 11559397,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 5,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AXTI/full"
+      },
+      "external": {
+        "symbol": "AXTI",
+        "provider_count": 1,
+        "price": 52.84,
+        "change_percent": 12.09,
+        "volume": 1.68,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "AXTI",
+            "price": 52.84,
+            "change_percent": 12.09,
+            "volume": 1.68,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AXTI",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0.0016,
+        "volume_ratio": 6880593.4524,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "BITF",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "BITF",
+        "ok": true,
+        "status": 200,
+        "price": 1.98,
+        "change_percent": 0.000001926615,
+        "volume": 11500897,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 8,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/BITF/full"
+      },
+      "external": {
+        "symbol": "BITF",
+        "provider_count": 1,
+        "price": 1.98,
+        "change_percent": 0,
+        "volume": 1.01,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "BITF",
+            "price": 1.98,
+            "change_percent": 0,
+            "volume": 1.01,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "BITF",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0,
+        "change_diff": 0,
+        "volume_ratio": 11387026.7327,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 75,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": []
+      }
+    },
+    {
+      "symbol": "RAPT",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "RAPT",
+        "ok": true,
+        "status": 200,
+        "price": 58.005,
+        "change_percent": 0.000001896388,
+        "volume": 10846697,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 0,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/RAPT/full"
+      },
+      "external": {
+        "symbol": "RAPT",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "RAPT",
+            "error": "http_404"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "RAPT",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "no_news"
+        ]
+      }
+    },
+    {
+      "symbol": "KOS",
+      "market_cap_group": "small_cap",
+      "openrange": {
+        "symbol": "KOS",
+        "ok": true,
+        "status": 200,
+        "price": 2.915,
+        "change_percent": 8.36431,
+        "volume": 10203202,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 3,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/KOS/full"
+      },
+      "external": {
+        "symbol": "KOS",
+        "provider_count": 1,
+        "price": 2.92,
+        "change_percent": 8.55,
+        "volume": 1.33,
+        "earnings_date": null,
+        "news_count": 100,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": true,
+            "symbol": "KOS",
+            "price": 2.92,
+            "change_percent": 8.55,
+            "volume": 1.33,
+            "earnings_date": null,
+            "news_count": 100,
+            "raw_earnings": null
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "KOS",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": 0.1712,
+        "change_diff": 0.1857,
+        "volume_ratio": 7671580.4511,
+        "earnings_match": false,
+        "news_present": true,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 70,
+        "component_scores": {
+          "price_accuracy": 100,
+          "earnings_accuracy": 100,
+          "news_coverage": 100,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "NGD",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "NGD",
+        "ok": true,
+        "status": 200,
+        "price": 9.08,
+        "change_percent": -4.11827,
+        "volume": 25328759,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 1,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NGD/full"
+      },
+      "external": {
+        "symbol": "NGD",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NGD",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NGD",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "ONDS",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "ONDS",
+        "ok": true,
+        "status": 200,
+        "price": 9.6,
+        "change_percent": 8.96708,
+        "volume": 24518628,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 8,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/ONDS/full"
+      },
+      "external": {
+        "symbol": "ONDS",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "ONDS",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "ONDS",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 5,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "SNAP",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "SNAP",
+        "ok": true,
+        "status": 200,
+        "price": 4.63,
+        "change_percent": -5.5102,
+        "volume": 22321118,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 19,
+        "driver": "MACRO_SECTOR",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/SNAP/full"
+      },
+      "external": {
+        "symbol": "SNAP",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "SNAP",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "SNAP",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 5,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "AAL",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "AAL",
+        "ok": true,
+        "status": 200,
+        "price": 10.84,
+        "change_percent": -2.60557,
+        "volume": 17252732,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 15,
+        "driver": "MACRO_SECTOR",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AAL/full"
+      },
+      "external": {
+        "symbol": "AAL",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "AAL",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AAL",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "APLS",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "APLS",
+        "ok": true,
+        "status": 200,
+        "price": 40.41,
+        "change_percent": 0.04951721,
+        "volume": 14505733,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 14,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/APLS/full"
+      },
+      "external": {
+        "symbol": "APLS",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "APLS",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "APLS",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "PLUG",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "PLUG",
+        "ok": true,
+        "status": 200,
+        "price": 2.41,
+        "change_percent": 7.11111,
+        "volume": 13790297,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 25,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/PLUG/full"
+      },
+      "external": {
+        "symbol": "PLUG",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "PLUG",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "PLUG",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 5,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "DNN",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "DNN",
+        "ok": true,
+        "status": 200,
+        "price": 3.66,
+        "change_percent": 0,
+        "volume": 12555571,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 5,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/DNN/full"
+      },
+      "external": {
+        "symbol": "DNN",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "DNN",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "DNN",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "APLD",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "APLD",
+        "ok": true,
+        "status": 200,
+        "price": 24.56,
+        "change_percent": 0.28583,
+        "volume": 12247886,
+        "earnings_next_date": "2026-04-08",
+        "earnings_expected_move": 12.062221687326993,
+        "news_count": 12,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/APLD/full"
+      },
+      "external": {
+        "symbol": "APLD",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "APLD",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "APLD",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "BMNR",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "BMNR",
+        "ok": true,
+        "status": 200,
+        "price": 19.45,
+        "change_percent": -1.21889,
+        "volume": 12187433,
+        "earnings_next_date": "2026-04-14",
+        "earnings_expected_move": null,
+        "news_count": 7,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/BMNR/full"
+      },
+      "external": {
+        "symbol": "BMNR",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "BMNR",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "BMNR",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "RIG",
+      "market_cap_group": "mid_cap",
+      "openrange": {
+        "symbol": "RIG",
+        "ok": true,
+        "status": 200,
+        "price": 6.59,
+        "change_percent": 1.38462,
+        "volume": 11797588,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 11,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/RIG/full"
+      },
+      "external": {
+        "symbol": "RIG",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "RIG",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "RIG",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "NKE",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "NKE",
+        "ok": true,
+        "status": 200,
+        "price": 44.19,
+        "change_percent": -0.98588,
+        "volume": 50783165,
+        "earnings_next_date": "2026-06-25",
+        "earnings_expected_move": null,
+        "news_count": 55,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NKE/full"
+      },
+      "external": {
+        "symbol": "NKE",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NKE",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NKE",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "NIO",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "NIO",
+        "ok": true,
+        "status": 200,
+        "price": 6.295,
+        "change_percent": 1.53226,
+        "volume": 27450794,
+        "earnings_next_date": "2026-06-02",
+        "earnings_expected_move": null,
+        "news_count": 20,
+        "driver": "MACRO_SECTOR",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NIO/full"
+      },
+      "external": {
+        "symbol": "NIO",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NIO",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NIO",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "NOK",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "NOK",
+        "ok": true,
+        "status": 200,
+        "price": 8.82,
+        "change_percent": 6.65054,
+        "volume": 25172212,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 8,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "HIGH",
+        "confidence": 60,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NOK/full"
+      },
+      "external": {
+        "symbol": "NOK",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NOK",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NOK",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "BP",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "BP",
+        "ok": true,
+        "status": 200,
+        "price": 47.12,
+        "change_percent": 2.05761,
+        "volume": 22344067,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 28,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/BP/full"
+      },
+      "external": {
+        "symbol": "BP",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "BP",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "BP",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "EXAS",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "EXAS",
+        "ok": true,
+        "status": 200,
+        "price": 104.91,
+        "change_percent": 0,
+        "volume": 21562141,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 0,
+        "driver": "VOLUME",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/EXAS/full"
+      },
+      "external": {
+        "symbol": "EXAS",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "EXAS",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "EXAS",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "no_news"
+        ]
+      }
+    },
+    {
+      "symbol": "PBR",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "PBR",
+        "ok": true,
+        "status": 200,
+        "price": 20.56,
+        "change_percent": 2.39044,
+        "volume": 21210855,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 14,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/PBR/full"
+      },
+      "external": {
+        "symbol": "PBR",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "PBR",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "PBR",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "SOFI",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "SOFI",
+        "ok": true,
+        "status": 200,
+        "price": 15.85,
+        "change_percent": 1.40755,
+        "volume": 21039627,
+        "earnings_next_date": "2026-04-29",
+        "earnings_expected_move": null,
+        "news_count": 16,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/SOFI/full"
+      },
+      "external": {
+        "symbol": "SOFI",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "SOFI",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "SOFI",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "MRVL",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "MRVL",
+        "ok": true,
+        "status": 200,
+        "price": 107.11,
+        "change_percent": 0.37485,
+        "volume": 20274151,
+        "earnings_next_date": "2026-06-04",
+        "earnings_expected_move": null,
+        "news_count": 45,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 60,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/MRVL/full"
+      },
+      "external": {
+        "symbol": "MRVL",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "MRVL",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "MRVL",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "VG",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "VG",
+        "ok": true,
+        "status": 200,
+        "price": 14.64,
+        "change_percent": -0.27248,
+        "volume": 15798021,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 11,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/VG/full"
+      },
+      "external": {
+        "symbol": "VG",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "VG",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "VG",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "GRAB",
+      "market_cap_group": "large_cap",
+      "openrange": {
+        "symbol": "GRAB",
+        "ok": true,
+        "status": 200,
+        "price": 3.62,
+        "change_percent": -1.3624,
+        "volume": 15110586,
+        "earnings_next_date": "2026-04-29",
+        "earnings_expected_move": null,
+        "news_count": 7,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/GRAB/full"
+      },
+      "external": {
+        "symbol": "GRAB",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "GRAB",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "GRAB",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "NVDA",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "NVDA",
+        "ok": true,
+        "status": 200,
+        "price": 177.39,
+        "change_percent": 0.93314,
+        "volume": 62146174,
+        "earnings_next_date": "2026-05-27",
+        "earnings_expected_move": null,
+        "news_count": 4085,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NVDA/full"
+      },
+      "external": {
+        "symbol": "NVDA",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NVDA",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NVDA",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "INTC",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "INTC",
+        "ok": true,
+        "status": 200,
+        "price": 50.38,
+        "change_percent": 4.89278,
+        "volume": 59317353,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 259,
+        "driver": "TECHNICAL_BREAKOUT",
+        "tradeability": "MEDIUM",
+        "confidence": 60,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/INTC/full"
+      },
+      "external": {
+        "symbol": "INTC",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "INTC",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "INTC",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "MU",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "MU",
+        "ok": true,
+        "status": 200,
+        "price": 366.24,
+        "change_percent": -0.43768,
+        "volume": 34649294,
+        "earnings_next_date": "2026-06-24",
+        "earnings_expected_move": null,
+        "news_count": 73,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 60,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/MU/full"
+      },
+      "external": {
+        "symbol": "MU",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "MU",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "MU",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "TSLA",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "TSLA",
+        "ok": true,
+        "status": 200,
+        "price": 360.59,
+        "change_percent": -5.4215,
+        "volume": 22936763,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 150,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/TSLA/full"
+      },
+      "external": {
+        "symbol": "TSLA",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "TSLA",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "TSLA",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 5,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 25
+        },
+        "issue_flags": [
+          "external_data_unavailable",
+          "low_confidence_but_high_move"
+        ]
+      }
+    },
+    {
+      "symbol": "AMD",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "AMD",
+        "ok": true,
+        "status": 200,
+        "price": 217.5,
+        "change_percent": 3.46796,
+        "volume": 16132812,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 46,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AMD/full"
+      },
+      "external": {
+        "symbol": "AMD",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "AMD",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AMD",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "AMZN",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "AMZN",
+        "ok": true,
+        "status": 200,
+        "price": 209.77,
+        "change_percent": -0.37992,
+        "volume": 13638841,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 134,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/AMZN/full"
+      },
+      "external": {
+        "symbol": "AMZN",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "AMZN",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "AMZN",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "PLTR",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "PLTR",
+        "ok": true,
+        "status": 200,
+        "price": 148.46,
+        "change_percent": 1.3448,
+        "volume": 12901071,
+        "earnings_next_date": "2026-05-04",
+        "earnings_expected_move": null,
+        "news_count": 63,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/PLTR/full"
+      },
+      "external": {
+        "symbol": "PLTR",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "PLTR",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "PLTR",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "GOOGL",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "GOOGL",
+        "ok": true,
+        "status": 200,
+        "price": 295.77,
+        "change_percent": -0.54474,
+        "volume": 12554405,
+        "earnings_next_date": null,
+        "earnings_expected_move": null,
+        "news_count": 102,
+        "driver": "NO_DRIVER",
+        "tradeability": "LOW",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/GOOGL/full"
+      },
+      "external": {
+        "symbol": "GOOGL",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "GOOGL",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "GOOGL",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "XOM",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "XOM",
+        "ok": true,
+        "status": 200,
+        "price": 160.67,
+        "change_percent": -0.06841647,
+        "volume": 11905317,
+        "earnings_next_date": "2026-05-01",
+        "earnings_expected_move": null,
+        "news_count": 39,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/XOM/full"
+      },
+      "external": {
+        "symbol": "XOM",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "XOM",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "XOM",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    },
+    {
+      "symbol": "NFLX",
+      "market_cap_group": "mega_cap",
+      "openrange": {
+        "symbol": "NFLX",
+        "ok": true,
+        "status": 200,
+        "price": 98.66,
+        "change_percent": 3.25484,
+        "volume": 11107408,
+        "earnings_next_date": "2026-07-16",
+        "earnings_expected_move": null,
+        "news_count": 28,
+        "driver": "NEWS",
+        "tradeability": "HIGH",
+        "confidence": 30,
+        "source_endpoint": "http://127.0.0.1:3007/api/research/NFLX/full"
+      },
+      "external": {
+        "symbol": "NFLX",
+        "provider_count": 0,
+        "price": null,
+        "change_percent": null,
+        "volume": null,
+        "earnings_date": null,
+        "news_count": null,
+        "providers": {
+          "finviz": {
+            "provider": "finviz",
+            "available": false,
+            "symbol": "NFLX",
+            "error": "http_429"
+          },
+          "unusual_whales": {
+            "provider": "unusual_whales",
+            "available": false,
+            "symbol": "NFLX",
+            "error": "UNUSUAL_WHALES_NOT_CONFIGURED"
+          }
+        }
+      },
+      "comparison": {
+        "price_diff_percent": null,
+        "change_diff": null,
+        "volume_ratio": null,
+        "earnings_match": false,
+        "news_present": false,
+        "decision_validity": "PENDING_MANUAL_REVIEW",
+        "truth_score": 10,
+        "component_scores": {
+          "price_accuracy": 0,
+          "earnings_accuracy": 0,
+          "news_coverage": 0,
+          "volume_accuracy": 0,
+          "decision_usefulness": 50
+        },
+        "issue_flags": [
+          "external_data_unavailable"
+        ]
+      }
+    }
+  ],
+  "average_score_per_market_cap_group": [
+    {
+      "market_cap_group": "micro_cap",
+      "label": "micro cap",
+      "ticker_count": 10,
+      "average_truth_score": 62.5
+    },
+    {
+      "market_cap_group": "small_cap",
+      "label": "small cap",
+      "ticker_count": 10,
+      "average_truth_score": 58.5
+    },
+    {
+      "market_cap_group": "mid_cap",
+      "label": "mid cap",
+      "ticker_count": 10,
+      "average_truth_score": 8.5
+    },
+    {
+      "market_cap_group": "large_cap",
+      "label": "large cap",
+      "ticker_count": 10,
+      "average_truth_score": 10
+    },
+    {
+      "market_cap_group": "mega_cap",
+      "label": "mega cap",
+      "ticker_count": 10,
+      "average_truth_score": 9.5
+    }
+  ],
+  "worst_10_tickers": [
+    {
+      "symbol": "ONDS",
+      "market_cap_group": "mid_cap",
+      "truth_score": 5,
+      "issue_flags": [
+        "external_data_unavailable",
+        "low_confidence_but_high_move"
+      ]
+    },
+    {
+      "symbol": "SNAP",
+      "market_cap_group": "mid_cap",
+      "truth_score": 5,
+      "issue_flags": [
+        "external_data_unavailable",
+        "low_confidence_but_high_move"
+      ]
+    },
+    {
+      "symbol": "PLUG",
+      "market_cap_group": "mid_cap",
+      "truth_score": 5,
+      "issue_flags": [
+        "external_data_unavailable",
+        "low_confidence_but_high_move"
+      ]
+    },
+    {
+      "symbol": "TSLA",
+      "market_cap_group": "mega_cap",
+      "truth_score": 5,
+      "issue_flags": [
+        "external_data_unavailable",
+        "low_confidence_but_high_move"
+      ]
+    },
+    {
+      "symbol": "DMN",
+      "market_cap_group": "micro_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable",
+        "no_news"
+      ]
+    },
+    {
+      "symbol": "EB",
+      "market_cap_group": "small_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable",
+        "no_news"
+      ]
+    },
+    {
+      "symbol": "RAPT",
+      "market_cap_group": "small_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable",
+        "no_news"
+      ]
+    },
+    {
+      "symbol": "NGD",
+      "market_cap_group": "mid_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable"
+      ]
+    },
+    {
+      "symbol": "AAL",
+      "market_cap_group": "mid_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable"
+      ]
+    },
+    {
+      "symbol": "APLS",
+      "market_cap_group": "mid_cap",
+      "truth_score": 10,
+      "issue_flags": [
+        "external_data_unavailable"
+      ]
+    }
+  ],
+  "missing_data_summary": {
+    "missing_openrange_earnings": 35,
+    "missing_openrange_news": 4,
+    "missing_openrange_price": 0,
+    "missing_openrange_volume": 0,
+    "finviz_unavailable": 33,
+    "unusual_whales_unavailable": 50
+  },
+  "validation": {
+    "average_truth_score": 29.8,
+    "earnings_coverage_percent": 0,
+    "earnings_coverage_compared_tickers": 0,
+    "news_coverage_percent": 100,
+    "news_coverage_compared_tickers": 17,
+    "price_accuracy_percent": 100,
+    "price_accuracy_compared_tickers": 17,
+    "price_accuracy_threshold_percent": 1
+  },
+  "metadata": {
+    "news_lookback_days": 7,
+    "fetch_concurrency": 4,
+    "unusual_whales_configured": false,
+    "duration_ms": 3816
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-03-21T20:34:02.048Z",
+  "earnings_signals_count": 284,
+  "signal_outcomes_created": 284,
+  "trade_outcomes_created": 284,
+  "skipped_missing_price": 0,
+  "skipped_existing_signal_outcome": 0,
+  "skipped_existing_trade_outcome": 0,
+  "trade_outcomes_post_earnings_momentum": 284,
+  "verdict": "pass",
+  "logs": [],
+  "edge_report_verdict": "fail"
+}

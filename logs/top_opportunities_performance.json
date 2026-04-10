@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-03-22T21:16:16.409Z",
+  "runs": [
+    {
+      "run": 1,
+      "status": 200,
+      "response_time_ms": 423,
+      "count": 20,
+      "timeout": false
+    },
+    {
+      "run": 2,
+      "status": 200,
+      "response_time_ms": 373,
+      "count": 20,
+      "timeout": false
+    },
+    {
+      "run": 3,
+      "status": 200,
+      "response_time_ms": 445,
+      "count": 20,
+      "timeout": false
+    }
+  ],
+  "pass": true
+}

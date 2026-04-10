@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-10T06:53:12.116Z",
+  "framework": "Next.js",
+  "frontend_root": "/Users/jamesharris/Server/trading-os",
+  "package_json_exists": true,
+  "src_app_exists": true,
+  "src_pages_exists": false,
+  "scripts": {
+    "clean": "rm -rf .next node_modules/.cache",
+    "dev": "PORT=3000 node start.js || next dev || vite",
+    "reset": "rm -rf .next node_modules package-lock.json && npm install && npm install tailwind-merge",
+    "dev:clean": "npm run reset && npm run dev",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "lint": "next lint"
+  }
+}

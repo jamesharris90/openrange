@@ -12,6 +12,7 @@ const { renderSystemMonitorTemplate } = require('./templates/SystemMonitorTempla
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL || 'OpenRange <intel@openrangetrading.co.uk>';
+const EMAIL_TYPES = newsletterService.EMAIL_TYPES || {};
 
 if (!process.env.RESEND_API_KEY) {
   console.warn('[EMAIL] RESEND_API_KEY missing — email system disabled');
@@ -69,7 +70,12 @@ async function wasCampaignSent(campaignKey) {
 }
 
 async function getAdminRecipients() {
-  const sql = `SELECT email FROM users WHERE is_admin = true AND email IS NOT NULL`;
+  const sql = `
+    SELECT email
+    FROM users
+    WHERE email IS NOT NULL
+      AND COALESCE(is_admin::text, 'false') IN ('1', 'true', 't')
+  `;
   const { rows } = await queryWithTimeout(sql, [], {
     timeoutMs: 5000,
     label: 'email.dispatcher.admin_recipients',
@@ -99,9 +105,38 @@ async function getPreferenceRecipients(preferenceType) {
     .filter(Boolean);
 }
 
+function toNewsletterPreferenceType(preferenceType) {
+  const normalized = String(preferenceType || '').trim().toLowerCase();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (Object.values(EMAIL_TYPES).includes(normalized)) {
+    return normalized;
+  }
+
+  const preferenceMap = {
+    morningbrief: EMAIL_TYPES.MORNING_BEACON_BRIEF,
+    beaconmorningbrief: EMAIL_TYPES.MORNING_BEACON_BRIEF,
+    premarketmovers: EMAIL_TYPES.PREMARKET_MOVERS,
+    breakingalerts: EMAIL_TYPES.HIGH_CONVICTION_ALERTS,
+    earningsintel: EMAIL_TYPES.EVENING_REVIEW,
+    weeklyreview: EMAIL_TYPES.EVENING_REVIEW,
+    systemmonitor: null,
+  };
+
+  return preferenceMap[normalized] ?? null;
+}
+
 async function getNewsletterRecipients(preferenceType) {
+  const newsletterPreferenceType = toNewsletterPreferenceType(preferenceType);
+  if (!newsletterPreferenceType) {
+    return [];
+  }
+
   return newsletterService.resolveSubscribedRecipients({
-    emailType: preferenceType,
+    emailType: newsletterPreferenceType,
     fallbackToLegacy: true,
   }).catch(() => []);
 }
@@ -169,7 +204,7 @@ async function sendPasswordResetEmail({ to, token, expiresAt }) {
   });
 }
 
-async function sendEmail({ subject, html, recipients, campaignKey, campaignType }) {
+async function sendEmail({ subject, html, recipients, campaignKey, campaignType, audience = null }) {
   const safeRecipients = Array.isArray(recipients) && recipients.length > 0
     ? recipients
     : [String(process.env.ADMIN_EMAIL || 'jamesharris4@me.com').trim()];
@@ -193,12 +228,17 @@ async function sendEmail({ subject, html, recipients, campaignKey, campaignType 
     });
 
     await newsletterService.recordNewsletterSendHistory({
+      subject,
       campaignType,
-      campaignName: subject,
       campaignKey,
+      audience,
       status: 'sent',
-      recipients: safeRecipients,
-      responsePayload: response,
+      recipientsCount: safeRecipients.length,
+      providerId: response?.data?.id || null,
+      metadata: {
+        provider: 'resend',
+        responseId: response?.data?.id || null,
+      },
     }).catch(() => undefined);
 
     console.log('[EMAIL SENT]', subject);
@@ -269,7 +309,7 @@ async function sendBeaconMorningBrief({ force = false, forceTo = null, campaignK
 
     const briefPayload = await generateBeaconMorningPayload({ limit: 5 });
     const html = renderBeaconMorningTemplate(briefPayload);
-    const recipients = await resolveRecipients('morningBrief', forceTo);
+    const recipients = await resolveRecipients(EMAIL_TYPES.MORNING_BEACON_BRIEF, forceTo);
 
     const result = await sendEmail({
       subject: 'OpenRange Beacon Morning Brief',
@@ -277,6 +317,7 @@ async function sendBeaconMorningBrief({ force = false, forceTo = null, campaignK
       recipients,
       campaignKey: key,
       campaignType: 'beaconMorningBrief',
+      audience: EMAIL_TYPES.MORNING_BEACON_BRIEF,
     });
 
     logger.info('[EMAIL_DISPATCHER] beacon morning sent', {
@@ -330,13 +371,14 @@ async function sendBreakingAlert({ force = false, forceTo = null, campaignKey = 
       chartUrl: `https://finviz.com/chart.ashx?t=${encodeURIComponent(candidate.symbol)}`,
     });
 
-    const recipients = await resolveRecipients('breakingAlerts', forceTo);
+    const recipients = await resolveRecipients(EMAIL_TYPES.HIGH_CONVICTION_ALERTS, forceTo);
     const result = await sendEmail({
       subject: `OpenRange Breaking Alert: ${candidate.symbol}`,
       html,
       recipients,
       campaignKey: key,
       campaignType: 'breakingAlert',
+      audience: EMAIL_TYPES.HIGH_CONVICTION_ALERTS,
     });
 
     const dispatchResult = { ...result, campaignKey: key, type: 'breakingAlert', symbol: candidate.symbol };
@@ -366,13 +408,14 @@ async function sendEarningsIntelligence({ force = false, forceTo = null, campaig
     ).catch(() => ({ rows: [] }));
 
     const html = renderEarningsTemplate({ items: rows || [] });
-    const recipients = await resolveRecipients('earningsIntel', forceTo);
+    const recipients = await resolveRecipients(EMAIL_TYPES.EVENING_REVIEW, forceTo);
     const result = await sendEmail({
       subject: 'OpenRange Earnings Intelligence',
       html,
       recipients,
       campaignKey: key,
       campaignType: 'earningsIntelligence',
+      audience: EMAIL_TYPES.EVENING_REVIEW,
     });
 
     return { ...result, campaignKey: key, type: 'earningsIntelligence' };
@@ -415,13 +458,14 @@ async function sendWeeklyScorecard({ force = false, forceTo = null, campaignKey 
       averageReturn: avg,
     });
 
-    const recipients = await resolveRecipients('weeklyReview', forceTo);
+    const recipients = await resolveRecipients(EMAIL_TYPES.EVENING_REVIEW, forceTo);
     const result = await sendEmail({
       subject: 'OpenRange Weekly Scorecard',
       html,
       recipients,
       campaignKey: key,
       campaignType: 'weeklyScorecard',
+      audience: EMAIL_TYPES.EVENING_REVIEW,
     });
 
     const dispatchResult = { ...result, campaignKey: key, type: 'weeklyScorecard' };
@@ -472,7 +516,7 @@ async function sendSystemMonitor({ force = false, forceTo = null, campaignKey = 
 
     const monitor = await fetchSystemMonitorData();
     const html = renderSystemMonitorTemplate(monitor);
-    const recipients = await resolveRecipients('systemMonitor', forceTo);
+    const recipients = await resolveRecipients(null, forceTo);
 
     const result = await sendEmail({
       subject: 'OpenRange System Monitor',
@@ -480,6 +524,7 @@ async function sendSystemMonitor({ force = false, forceTo = null, campaignKey = 
       recipients,
       campaignKey: key,
       campaignType: 'systemMonitor',
+      audience: 'admin',
     });
 
     const dispatchResult = { ...result, campaignKey: key, type: 'systemMonitor' };

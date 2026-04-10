@@ -1,0 +1,47 @@
+{
+  "discovered_at": "2026-03-23T00:00:00Z",
+  "ingestion_entrypoints": [
+    {
+      "function": "runIngestionNow",
+      "file": "server/engines/scheduler.js",
+      "role": "main runtime ingestion trigger inside runPipeline/runSchedulerCycle"
+    },
+    {
+      "function": "runIngestion",
+      "file": "server/engines/scheduler.js",
+      "role": "explicit alias used for forced startup ingestion run"
+    }
+  ],
+  "market_data_fetch": {
+    "file": "server/engines/fmpMarketIngestion.js",
+    "functions": [
+      "ingestMarketQuotesBootstrap",
+      "ingestMarketQuotesRefresh",
+      "ingestSymbols",
+      "fetchQuotesBatch"
+    ],
+    "provider": "FMP stable quote/profile/stock-list endpoints"
+  },
+  "db_writes": {
+    "market_quotes": {
+      "file": "server/engines/fmpMarketIngestion.js",
+      "function": "upsertQuoteRows",
+      "query": "INSERT INTO market_quotes ... ON CONFLICT(symbol) DO UPDATE ... updated_at = now()"
+    },
+    "market_metrics_primary": {
+      "file": "server/engines/metricsEngine.js",
+      "function": "runMetricsEngine",
+      "query": "INSERT INTO market_metrics ... ON CONFLICT(symbol) DO UPDATE ... updated_at = now()"
+    },
+    "market_metrics_queue_path": {
+      "file": "server/metrics/calc_market_metrics.js",
+      "function": "upsertMetrics",
+      "query": "INSERT INTO market_metrics ... ON CONFLICT(symbol) DO UPDATE ... updated_at = NOW()",
+      "note": "patched to write updated_at explicitly"
+    }
+  },
+  "diagnosis": {
+    "likely_root_cause": "queue metrics path updated last_updated but not updated_at, causing stale MAX(updated_at) checks",
+    "secondary_risk": "ingestion batches can return zero rows from provider and silently reduce write volume"
+  }
+}

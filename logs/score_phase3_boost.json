@@ -1,0 +1,8 @@
+{
+  "ts": "2026-03-20T15:07:54.202Z",
+  "top5_avg_before": 33.8,
+  "top5_avg_after": 44.6,
+  "boosted_rows_in_top20": 17,
+  "max_boost": 15,
+  "pass": true
+}

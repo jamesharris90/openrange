@@ -1,6 +1,6 @@
 const path = require('path');
 const dotenv = require('dotenv');
-const { Client } = require('pg');
+const pool = require('../server/db/pool');
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 dotenv.config({ path: path.join(process.cwd(), 'server', '.env') });
@@ -20,9 +20,6 @@ const toIsoTimestamp = (value) => {
 };
 
 (async () => {
-  const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-  await client.connect();
-
   try {
     const symbol = 'AAPL';
     const url = `https://financialmodelingprep.com/stable/news/stock-latest?symbols=${encodeURIComponent(symbol)}&limit=25&apikey=${encodeURIComponent(fmpKey)}`;
@@ -46,7 +43,7 @@ const toIsoTimestamp = (value) => {
 
     let touched = 0;
     for (const row of rows) {
-      const result = await client.query(
+      const result = await pool.query(
         `INSERT INTO public.news_events (symbol, published_at, headline, source, url)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (symbol, published_at, headline)
@@ -57,7 +54,7 @@ const toIsoTimestamp = (value) => {
       touched += result.rowCount || 0;
     }
 
-    const countResult = await client.query('SELECT count(*)::int AS count FROM public.news_events');
+    const countResult = await pool.query('SELECT count(*)::int AS count FROM public.news_events');
     const total = Number(countResult.rows?.[0]?.count || 0);
 
     console.log(JSON.stringify({
@@ -68,6 +65,6 @@ const toIsoTimestamp = (value) => {
       firstFiveReady: total >= 5,
     }, null, 2));
   } finally {
-    await client.end();
+    await pool.end();
   }
 })();

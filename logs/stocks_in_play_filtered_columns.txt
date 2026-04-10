@@ -1,0 +1,25 @@
+DB pool configured: shared(max=5) idle=30s timeout=5s
+DB pool initialised
+Active DB Ops: 1
+Active DB Ops: 2
+[DB] Connected to: postgresql://postgres.qyfxbuxuxyvdmwamzdtq:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+DB CONNECTED TO: aws-1-eu-west-1.pooler.supabase.com
+[DB] Connected to: postgresql://postgres.qyfxbuxuxyvdmwamzdtq:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+DB CONNECTED TO: aws-1-eu-west-1.pooler.supabase.com
+Active DB Ops: 1
+Active DB Ops: 0
+id:bigint
+symbol:text
+gap_percent:numeric
+rvol:numeric
+catalyst:text
+score:numeric
+detected_at:timestamp with time zone
+session_phase:text
+volume_acceleration:numeric
+priority_score:numeric
+catalyst_score:numeric
+price:numeric
+relative_volume:numeric
+avg_volume_30d:numeric
+rn:bigint

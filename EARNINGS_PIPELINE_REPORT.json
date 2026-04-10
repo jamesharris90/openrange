@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-04-04T16:40:47.530Z",
+  "status": "completed",
+  "source_policy": {
+    "allowed_endpoints": [
+      "/stable/earnings-calendar",
+      "/stable/earnings-surprises"
+    ],
+    "runtime_behavior": {
+      "earnings_surprises_status": "404 in current FMP environment",
+      "earnings_calendar_symbol_filter": "ignored in current FMP environment",
+      "historical_backfill_strategy": "chunked weekly /stable/earnings-calendar windows"
+    }
+  },
+  "ingestion": {
+    "symbols_requested": 500,
+    "upcoming_window_days": 14,
+    "history_quarters_requested": 8,
+    "events_fetched": 2359,
+    "history_events_fetched": 295603,
+    "events_ingested": 33,
+    "history_ingested": 3289,
+    "symbols_with_full_history": 241,
+    "symbols_with_partial_history": 255,
+    "symbols_with_no_history": 4,
+    "failed_symbols": [],
+    "dropped_invalid_event_rows": 0,
+    "dropped_invalid_history_rows": 7,
+    "duration_ms": 34598,
+    "from": "2026-04-04",
+    "to": "2026-04-18",
+    "history_from": "2023-10-17"
+  },
+  "database_state": {
+    "earnings_events": {
+      "row_count": 324,
+      "null_report_time_count": 0,
+      "missing_report_date_count": 0,
+      "missing_eps_estimate_count": 0,
+      "missing_fields_percent": 0
+    },
+    "earnings_history": {
+      "row_count": 3289,
+      "null_eps_actual_count": 0,
+      "missing_fields_percent": 0
+    }
+  },
+  "symbol_coverage": {
+    "full": 241,
+    "partial": 255,
+    "none": 4,
+    "aapl": {
+      "next_count": 1,
+      "history_count": 8,
+      "next_row": {
+        "report_date": "2026-05-07",
+        "report_time": "TBD",
+        "eps_estimate": 1.95
+      },
+      "latest_history": {
+        "report_date": "2025-07-31",
+        "report_time": "TBD",
+        "eps_actual": 1.57,
+        "eps_estimate": 1.44
+      }
+    }
+  },
+  "endpoint_validation": {
+    "research_aapl_full": {
+      "success": true,
+      "earnings_next_report_time": "TBD",
+      "earnings_history_length": 8,
+      "earnings_edge": {
+        "beatRate": 1,
+        "missRate": 0,
+        "avgMove": 0.13,
+        "consistencyScore": 0.13
+      }
+    },
+    "earnings_history_aapl": {
+      "success": true,
+      "source": "earnings_history",
+      "count": 3
+    }
+  },
+  "ui_validation": {
+    "source_copy_scan": {
+      "server_matches": 0,
+      "frontend_matches": 0
+    },
+    "served_html_scan": {
+      "screener_v2_old_copy_matches": 0,
+      "research_aapl_old_copy_matches": 0
+    }
+  },
+  "notes": [
+    "Future earnings events use 'TBD' when FMP does not provide a report_time; this is truthful non-null output rather than a fabricated session label.",
+    "The public /api/earnings route now reads historical rows from earnings_history instead of reusing earnings_events as a pseudo-history source.",
+    "The research cache read path was fixed to stop referencing non-existent atr/price columns on earnings_history."
+  ]
+}

@@ -208,7 +208,7 @@ export default function InstitutionalScreener() {
   const [appliedStructuredValues, setAppliedStructuredValues] = useState(structuredValues);
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState('strategyScore');
+  const [sortKey, setSortKey] = useState('relativeVolume');
   const [sortDirection, setSortDirection] = useState('desc');
   const [filterRegistry] = useState(SHARED_FILTER_REGISTRY);
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
@@ -625,7 +625,7 @@ export default function InstitutionalScreener() {
     <PageContainer className="space-y-3">
       <PageHeader
         title="OpenRange Institutional Screener"
-        subtitle="Adaptive query builder + structured institutional filters with live engine intelligence."
+        subtitle="Live market screener — no ranking, no filtering. Use filters to refine results."
       />
 
       <Card className="rounded-2xl border border-[var(--border-color)] p-3 shadow-[0_8px_18px_rgba(10,14,20,0.12)]">
@@ -797,18 +797,18 @@ export default function InstitutionalScreener() {
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-lg border border-[var(--border-color)] p-2">
-                  <div className="text-xs text-[var(--text-muted)]">Strategy</div>
+                  <div className="text-xs text-[var(--text-muted)]">Setup</div>
                   <div className="font-semibold">{selectedContext.setupType || '--'}</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Score: {selectedContext.strategyScore ?? '--'}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Sector: {selectedContext.sector || '--'}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-color)] p-2">
                   <div className="text-xs text-[var(--text-muted)]">Catalyst</div>
                   <div className="font-semibold">{selectedContext.catalystType || '--'}</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Score: {selectedContext.catalystScore ?? '--'}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Sentiment: {selectedContext.newsSentiment || '--'}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-color)] p-2">
-                  <div className="text-xs text-[var(--text-muted)]">Expected Move</div>
-                  <div className="font-semibold">{selectedContext.expectedMove ?? '--'}</div>
+                  <div className="text-xs text-[var(--text-muted)]">Relative Volume</div>
+                  <div className="font-semibold">{selectedContext.relativeVolume ?? '--'}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-color)] p-2">
                   <div className="text-xs text-[var(--text-muted)]">Earnings Date</div>

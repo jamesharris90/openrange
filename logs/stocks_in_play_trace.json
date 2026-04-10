@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-03-23T23:01:51.096Z",
+  "active_route": {
+    "method": "GET",
+    "path": "/api/stocks-in-play",
+    "file": "server/index.js",
+    "handler_line": 1956,
+    "mounted_on_port": 3001
+  },
+  "call_path": [
+    {
+      "stage": "route",
+      "location": "server/index.js:1956",
+      "detail": "queries opportunity_stream source=real rows fresh within 15m and joins market_metrics + latest trade_setups"
+    },
+    {
+      "stage": "normalization",
+      "location": "server/index.js:1910-1946",
+      "detail": "normalizeStocksInPlayRow parses trade_setups payload and derives why/how from live pipeline fields"
+    },
+    {
+      "stage": "route_validation",
+      "location": "server/index.js:1948-1953",
+      "detail": "isValidStocksInPlayRow requires symbol+why+how+source=real+fresh updated_at"
+    },
+    {
+      "stage": "real_count_gate",
+      "location": "server/index.js:2009-2021",
+      "detail": "returns source=real only when validRows.length > 0"
+    },
+    {
+      "stage": "fallback_gate",
+      "location": "server/index.js:2023-2029",
+      "detail": "fallback only when real query returns zero valid rows"
+    },
+    {
+      "stage": "error_fallback_gate",
+      "location": "server/index.js:2032-2049",
+      "detail": "fallback only on real query error"
+    }
+  ],
+  "fallback_source_points": [
+    {
+      "location": "server/index.js:2023-2029",
+      "code": "fallback only when real query returns zero valid rows",
+      "impact": "expected empty-pipeline fallback"
+    },
+    {
+      "location": "server/index.js:2032-2049",
+      "code": "fallback on query error",
+      "impact": "operational fallback on DB/query failure"
+    }
+  ]
+}

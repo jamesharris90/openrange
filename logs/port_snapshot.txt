@@ -1,0 +1,11 @@
+COMMAND     PID        USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+rapportd    476 jamesharris   10u  IPv4 0x1d19bc4a9cc3912b      0t0  TCP *:49178 (LISTEN)
+rapportd    476 jamesharris   11u  IPv6 0x8e21f6145e90e58e      0t0  TCP *:49178 (LISTEN)
+ControlCe   621 jamesharris   10u  IPv4 0xf78a53673d8fe19a      0t0  TCP *:7000 (LISTEN)
+ControlCe   621 jamesharris   11u  IPv6 0xd145cb57599d6fa3      0t0  TCP *:7000 (LISTEN)
+ControlCe   621 jamesharris   12u  IPv4 0xf8e94acc0e4d4783      0t0  TCP *:5000 (LISTEN)
+ControlCe   621 jamesharris   13u  IPv6 0x7439a5be08180130      0t0  TCP *:5000 (LISTEN)
+node      36772 jamesharris   21u  IPv6 0xfc1b34a466298b53      0t0  TCP *:3001 (LISTEN)
+Code\x20H 56158 jamesharris   34u  IPv4 0xce6bf3933206cc43      0t0  TCP 127.0.0.1:46833 (LISTEN)
+Code\x20H 56158 jamesharris  116u  IPv4 0x49f48bb29484f95f      0t0  TCP 127.0.0.1:55865 (LISTEN)
+Code\x20H 56406 jamesharris   20u  IPv4 0xfe4f2fd7722b97ff      0t0  TCP 127.0.0.1:4188 (LISTEN)

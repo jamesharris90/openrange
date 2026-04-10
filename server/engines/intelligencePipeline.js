@@ -12,6 +12,14 @@ const { updateTelemetry } = require('../cache/telemetryCache');
 const eventBus = require('../events/eventBus');
 const EVENT_TYPES = require('../events/eventTypes');
 
+const isRailwayRuntime = Boolean(
+  process.env.RAILWAY_PROJECT_ID
+  || process.env.RAILWAY_ENVIRONMENT_ID
+  || process.env.RAILWAY_SERVICE_ID
+);
+const startupDelayMs = Number(process.env.INTELLIGENCE_PIPELINE_STARTUP_DELAY_MS || (isRailwayRuntime ? 180000 : 0));
+let readyAt = 0;
+
 let latestPipelineRun = {
   status: 'idle',
   last_run: null,
@@ -240,7 +248,30 @@ function getIntelligencePipelineHealth() {
 }
 
 function startIntelligencePipelineScheduler() {
+  readyAt = Date.now() + startupDelayMs;
+
+  if (startupDelayMs > 0) {
+    logger.info('[INTELLIGENCE_PIPELINE] startup run delayed', {
+      startup_delay_ms: startupDelayMs,
+    });
+    setTimeout(() => {
+      void runIntelligencePipeline().catch((error) => {
+        logger.warn('[INTELLIGENCE_PIPELINE] startup run failed', { error: error.message });
+      });
+    }, startupDelayMs);
+  } else {
+    void runIntelligencePipeline().catch((error) => {
+      logger.warn('[INTELLIGENCE_PIPELINE] startup run failed', { error: error.message });
+    });
+  }
+
   cron.schedule('*/1 * * * *', async () => {
+    if (readyAt > Date.now()) {
+      logger.info('[INTELLIGENCE_PIPELINE] cron run skipped during startup warmup', {
+        ready_in_ms: readyAt - Date.now(),
+      });
+      return;
+    }
     await runIntelligencePipeline();
   });
   logger.info('[INTELLIGENCE_PIPELINE] scheduler started', { every_seconds: 60 });

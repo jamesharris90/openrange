@@ -1,0 +1,264 @@
+[
+  {
+    "endpoint": "http://localhost:3001/api/stocks-in-play",
+    "status": 200,
+    "ok": true,
+    "count": 1,
+    "sample": [
+      {
+        "symbol": "SPY",
+        "why": "Market index trending upward",
+        "how": "Breakout above premarket high",
+        "source": "fallback",
+        "raw": {
+          "symbol": "SPY",
+          "strategy": "FORCED_BREAKOUT",
+          "why_moving": "Market index trending upward",
+          "how_to_trade": "Breakout above premarket high",
+          "confidence": 70,
+          "trade_confidence": 70,
+          "expected_move_percent": 1.5,
+          "change_percent": 0,
+          "relative_volume": 0,
+          "execution_plan": {
+            "entry": "Confirm FORCED_BREAKOUT with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 1.50% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "Market index trending upward",
+          "strength": 0.7,
+          "updated_at": "2026-03-23T16:46:03.826Z",
+          "source": "fallback",
+          "raw": {
+            "symbol": "SPY",
+            "strategy": "FORCED_BREAKOUT",
+            "why_moving": "Market index trending upward",
+            "how_to_trade": "Breakout above premarket high",
+            "confidence": 70,
+            "expected_move_percent": 1.5,
+            "trade_class": "TRADEABLE",
+            "tradeable": true
+          },
+          "tradeable": true
+        }
+      }
+    ]
+  },
+  {
+    "endpoint": "http://localhost:3001/api/intelligence/top-opportunities",
+    "status": 200,
+    "ok": true,
+    "count": 20,
+    "sample": [
+      {
+        "symbol": "WNW",
+        "why": "WNW remains active with elevated participation",
+        "how": "Enter on breakout, stop below support, target next resistance",
+        "source": "real",
+        "raw": {
+          "symbol": "WNW",
+          "strategy": "momentum_continuation",
+          "final_score": "100.0000000000000000",
+          "relative_volume": 7757.59,
+          "change_percent": 50,
+          "why_moving": "WNW remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 99,
+          "trade_confidence": 99,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "WNW remains active with elevated participation",
+          "strength": 0.99,
+          "updated_at": "2026-03-23T16:46:53.900Z",
+          "source": "real",
+          "raw": {
+            "symbol": "WNW",
+            "strategy": "momentum_continuation",
+            "why_moving": "WNW remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 100,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 7757.594381233572,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 100,
+          "completeness": 100
+        }
+      },
+      {
+        "symbol": "LNSR",
+        "why": "LNSR remains active with elevated participation",
+        "how": "Enter on breakout, stop below support, target next resistance",
+        "source": "real",
+        "raw": {
+          "symbol": "LNSR",
+          "strategy": "momentum_continuation",
+          "final_score": "83.78981058752098086807925000",
+          "relative_volume": 30.45,
+          "change_percent": 50,
+          "why_moving": "LNSR remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 83.79,
+          "trade_confidence": 83.79,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "LNSR remains active with elevated participation",
+          "strength": 0.84,
+          "updated_at": "2026-03-23T16:46:53.900Z",
+          "source": "real",
+          "raw": {
+            "symbol": "LNSR",
+            "strategy": "momentum_continuation",
+            "why_moving": "LNSR remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 83.78981058752098,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 30.453555081063794,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 83.78981058752098,
+          "completeness": 100
+        }
+      },
+      {
+        "symbol": "TAOX",
+        "why": "TAOX remains active with elevated participation",
+        "how": "Enter on breakout, stop below support, target next resistance",
+        "source": "real",
+        "raw": {
+          "symbol": "TAOX",
+          "strategy": "momentum_continuation",
+          "final_score": "42.39796741771978803224832100",
+          "relative_volume": 2.44,
+          "change_percent": 50,
+          "why_moving": "TAOX remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 42.4,
+          "trade_confidence": 42.4,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "TAOX remains active with elevated participation",
+          "strength": 0.42,
+          "updated_at": "2026-03-23T16:46:53.900Z",
+          "source": "real",
+          "raw": {
+            "symbol": "TAOX",
+            "strategy": "momentum_continuation",
+            "why_moving": "TAOX remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 42.39796741771979,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 2.442332636667706,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 42.39796741771979,
+          "completeness": 100
+        }
+      }
+    ]
+  },
+  {
+    "endpoint": "http://localhost:3001/api/catalysts",
+    "status": 200,
+    "ok": true,
+    "count": 1,
+    "sample": [
+      {
+        "symbol": "SPY",
+        "why": "Fallback catalyst generated to keep pipeline active",
+        "how": "Enter on breakout, stop below support, target next resistance",
+        "source": "fallback",
+        "raw": {
+          "symbol": "SPY",
+          "headline": "Fallback catalyst generated to keep pipeline active",
+          "why_moving": "Fallback catalyst generated to keep pipeline active",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "sentiment": "neutral",
+          "published_at": "2026-03-23T16:46:53.918Z",
+          "source": "fallback"
+        }
+      }
+    ]
+  },
+  {
+    "endpoint": "http://localhost:3001/api/earnings",
+    "status": 200,
+    "ok": true,
+    "count": 1,
+    "sample": [
+      {
+        "symbol": "AAPL",
+        "why": "Scheduled earnings catalyst fallback",
+        "how": "Enter on breakout, stop below support, target next resistance",
+        "source": "fallback",
+        "raw": {
+          "symbol": "AAPL",
+          "strategy": "EARNINGS_VOLATILITY",
+          "why_moving": "Scheduled earnings catalyst fallback",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 65,
+          "trade_confidence": 65,
+          "expected_move_percent": 3.5,
+          "change_percent": 0,
+          "relative_volume": 0,
+          "execution_plan": {
+            "entry": "Confirm EARNINGS_VOLATILITY with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 3.50% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "Scheduled earnings catalyst fallback",
+          "strength": 65,
+          "updated_at": "2026-03-23T16:47:00.985Z",
+          "source": "fallback",
+          "raw": {
+            "symbol": "AAPL",
+            "strategy": "EARNINGS_VOLATILITY",
+            "why_moving": "Scheduled earnings catalyst fallback",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 65,
+            "score": 65,
+            "expected_move_percent": 3.5,
+            "trade_class": "TRADEABLE",
+            "report_date": "2026-03-24"
+          },
+          "tradeable": true,
+          "event_date": "2026-03-24",
+          "time_group": "UNKNOWN",
+          "week_group": "2026-03-24",
+          "score": 65
+        }
+      }
+    ]
+  }
+]

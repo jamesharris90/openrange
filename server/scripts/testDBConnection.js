@@ -1,16 +1,11 @@
 const path = require('path');
-const { Pool } = require('pg');
+const pool = require('../db/pool');
 const { resolveDatabaseUrl } = require('../db/connectionConfig');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 async function run() {
-  const { dbUrl, host } = resolveDatabaseUrl();
-  const pool = new Pool({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false },
-    max: 5,
-  });
+  const { host } = resolveDatabaseUrl();
 
   try {
     const result = await pool.query('SELECT NOW() AS now');

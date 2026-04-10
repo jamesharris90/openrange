@@ -1,8 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
-const { Client } = require('pg');
-const { resolveDatabaseUrl } = require('../db/connectionConfig');
+const pool = require('../db/pool');
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
@@ -25,12 +24,7 @@ function pickTimestampColumn(columns) {
 }
 
 async function run() {
-  const { dbUrl } = resolveDatabaseUrl();
-
-  const client = new Client({ connectionString: dbUrl });
-  await client.connect();
-
-  const tablesRes = await client.query(
+  const tablesRes = await pool.query(
     "select table_name from information_schema.tables where table_schema='public' order by table_name"
   );
   const tables = tablesRes.rows.map((r) => r.table_name);
@@ -43,19 +37,19 @@ async function run() {
   };
 
   for (const tableName of tables) {
-    const colsRes = await client.query(
+    const colsRes = await pool.query(
       "select column_name, data_type from information_schema.columns where table_schema='public' and table_name = $1 order by ordinal_position",
       [tableName]
     );
 
     const columns = colsRes.rows;
-    const rowCountRes = await client.query(`select count(*)::bigint as count from public.${tableName}`);
+    const rowCountRes = await pool.query(`select count(*)::bigint as count from public.${tableName}`);
     const rowCount = Number(rowCountRes.rows[0].count);
 
     const tsCol = pickTimestampColumn(columns);
     let latestTimestamp = null;
     if (tsCol) {
-      const latestRes = await client.query(`select max(${tsCol}) as latest from public.${tableName}`);
+      const latestRes = await pool.query(`select max(${tsCol}) as latest from public.${tableName}`);
       latestTimestamp = latestRes.rows[0].latest;
     }
 
@@ -80,7 +74,7 @@ async function run() {
 
   console.log(JSON.stringify({ ok: true, outPath, tableCount: report.table_count }, null, 2));
 
-  await client.end();
+  await pool.end();
 }
 
 run().catch((error) => {

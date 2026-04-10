@@ -218,6 +218,71 @@ function momentumRank(value: ScreenerRow["momentum"]) {
   return value === "BULLISH" ? 1 : 0;
 }
 
+function parseEmbeddedJson(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if ((!trimmed.startsWith("{") && !trimmed.startsWith("[")) || trimmed.length < 2) {
+    return value;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function extractDisplayText(value: unknown, fallback: string | null = null) {
+  const parsed = parseEmbeddedJson(value);
+  if (typeof parsed === "string") {
+    const trimmed = parsed.trim();
+    return trimmed || fallback;
+  }
+
+  if (parsed && typeof parsed === "object") {
+    const candidate = ["setup_type", "setup", "headline", "title", "label", "type"]
+      .map((key) => (parsed as Record<string, unknown>)[key])
+      .find((entry) => typeof entry === "string" && entry.trim());
+    if (typeof candidate === "string") {
+      return candidate.trim();
+    }
+  }
+
+  return fallback;
+}
+
+function normalizeNextSessionRow<T extends Record<string, unknown>>(row: unknown): T | null {
+  const parsed = parseEmbeddedJson(row);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  return parsed as T;
+}
+
+function normalizeNextSessionPayload(payload: NextSessionPayload | null): NextSessionPayload | null {
+  if (!payload) {
+    return null;
+  }
+
+  const normalizeRows = <T extends Record<string, unknown>>(rows: unknown[]) => rows
+    .map((row) => normalizeNextSessionRow<T>(row))
+    .filter((row): row is T => Boolean(row));
+
+  return {
+    ...payload,
+    earnings: normalizeRows<NextSessionEarningsRow>(Array.isArray(payload.earnings) ? payload.earnings : []),
+    catalysts: normalizeRows<NextSessionCatalystRow>(Array.isArray(payload.catalysts) ? payload.catalysts : []),
+    momentum: normalizeRows<NextSessionMomentumRow>(Array.isArray(payload.momentum) ? payload.momentum : []).map((row) => ({
+      ...row,
+      setup_type: extractDisplayText(row.setup_type, "Continuation"),
+      headline: extractDisplayText(row.headline, null),
+    })),
+  };
+}
+
 function sortRows(rows: ScreenerRow[], sortKey: SortKey = "composite", sortDirection: SortDirection = "desc") {
   return [...rows].sort((left, right) => {
     if (sortKey === "rvol") {
@@ -667,7 +732,7 @@ function ScreenerV2PageContent() {
               ? []
               : livePayload.data.slice(0, 3)
           );
-          setNextSessionData(nextSessionPayload ?? null);
+          setNextSessionData(normalizeNextSessionPayload(nextSessionPayload ?? null));
           setMarketState(modePayload?.market ?? null);
           setOpportunityMode(modePayload?.mode ?? "LIVE");
           setMacroContext(

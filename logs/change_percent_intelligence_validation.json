@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-03-22T21:16:15.166Z",
+  "status": 200,
+  "latency_ms": 451,
+  "count": 20,
+  "change_percent_nulls": 0,
+  "pass": true
+}

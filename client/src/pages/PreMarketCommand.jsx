@@ -7,10 +7,12 @@ import MarketRegimePanel from '../components/premarket/MarketRegimePanel';
 import GapLeaders from '../components/premarket/GapLeaders';
 import StrategyLeaderPanels from '../components/premarket/StrategyLeaderPanels';
 import DeepDivePanel from '../components/premarket/DeepDivePanel';
+import DecisionCard from '../components/premarket/DecisionCard';
 import EarningsPanel from '../components/premarket/EarningsPanel';
 import VolumeSurges from '../components/premarket/VolumeSurges';
 import TopOpportunity from '../components/intelligence/TopOpportunity';
 import TradeProbability from '../components/intelligence/TradeProbability';
+import StocksInPlayPanel from '../components/StocksInPlayPanel';
 
 function extractRows(payload, key) {
 	if (Array.isArray(payload?.[key])) return payload[key];
@@ -74,6 +76,8 @@ export default function PreMarketCommand() {
 						<TopOpportunity onSelectTicker={setSelectedTicker} />
 					</div>
 
+					<StocksInPlayPanel />
+
 					<div className="grid gap-3 lg:grid-cols-2">
 						<div className="space-y-3">
 							<GapLeaders rows={gapLeaders} onSelectTicker={setSelectedTicker} />
@@ -81,6 +85,7 @@ export default function PreMarketCommand() {
 
 						<div className="space-y-3">
 							<DeepDivePanel selectedTicker={selectedTicker} />
+							<DecisionCard symbol={selectedTicker} />
 						</div>
 					</div>
 

@@ -1,0 +1,31 @@
+{
+  "started_at": "2026-03-20T16:26:48.677Z",
+  "phases": [
+    {
+      "phase": "PHASE_0",
+      "baseline_summary": {
+        "total_symbols": 15,
+        "valid_count": 12,
+        "false_positive_count": 3,
+        "valid_percent": 80,
+        "false_positive_percent": 20,
+        "avg_final_score_valid": 69.3736,
+        "avg_final_score_invalid": 69.207,
+        "high_rvol_or_gap_count": 10,
+        "passive_no_move_count": 0
+      }
+    },
+    {
+      "phase": "PHASE_1_to_4",
+      "distribution_guard": {
+        "n": 421,
+        "min_final": 0,
+        "max_final": 100,
+        "avg_final": 25.013367317401137,
+        "above_60": 90
+      }
+    }
+  ],
+  "completed_at": "2026-03-20T16:26:53.047Z",
+  "result": "PASS"
+}

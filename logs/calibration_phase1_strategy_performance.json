@@ -1,0 +1,11 @@
+{
+  "ts": "2026-03-20T14:53:12.158Z",
+  "inspected_fields": {
+    "signal_outcomes_strategy": true,
+    "trade_outcomes_strategy": true,
+    "trade_setups_setup_type": true
+  },
+  "strategy_count": 10,
+  "null_win_rate_count": 0,
+  "pass": true
+}

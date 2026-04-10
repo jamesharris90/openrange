@@ -10,7 +10,7 @@ export default function ScreenerStats({ rows = [] }) {
   const resultCount = rows.length;
   const avgRvol = average(rows, 'relativeVolume');
   const avgGap = average(rows, 'gapPercent');
-  const avgScore = average(rows, 'strategyScore');
+  const avgChange = average(rows, 'changePercent');
 
   return (
     <Card className="rounded-xl border border-[var(--border-color)] px-3 py-2 text-sm text-[var(--text-secondary)]">
@@ -18,7 +18,7 @@ export default function ScreenerStats({ rows = [] }) {
         <span>Results: <strong className="text-[var(--text-primary)]">{resultCount}</strong></span>
         <span>Avg RVOL: <strong className="text-[var(--text-primary)]">{avgRvol.toFixed(2)}</strong></span>
         <span>Avg Gap: <strong className="text-[var(--text-primary)]">{avgGap.toFixed(2)}%</strong></span>
-        <span>Avg Score: <strong className="text-[var(--text-primary)]">{avgScore.toFixed(1)}</strong></span>
+        <span>Avg Change: <strong className="text-[var(--text-primary)]">{avgChange.toFixed(2)}%</strong></span>
       </div>
     </Card>
   );

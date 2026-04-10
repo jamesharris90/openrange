@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-04-05T11:15:12.932Z",
+  "ok": true,
+  "symbols": [
+    {
+      "symbol": "AAPL",
+      "ok": true,
+      "snapshot": {
+        "price": 254.2572,
+        "vwap": 254.583152,
+        "ema9": 254.210643,
+        "ema20": 254.172275,
+        "macd": {
+          "macd": 0.029532,
+          "signal": 0.016025,
+          "histogram": 0.013507,
+          "state": "bullish_momentum"
+        }
+      },
+      "issues": []
+    },
+    {
+      "symbol": "TSLA",
+      "ok": true,
+      "snapshot": {
+        "price": 381.7,
+        "vwap": 377.379073,
+        "ema9": 381.371541,
+        "ema20": 380.552905,
+        "macd": {
+          "macd": 0.940167,
+          "signal": 0.854141,
+          "histogram": 0.086026,
+          "state": "bullish_momentum"
+        }
+      },
+      "issues": []
+    },
+    {
+      "symbol": "NVDA",
+      "ok": true,
+      "snapshot": {
+        "price": 176.855,
+        "vwap": 175.966777,
+        "ema9": 176.729399,
+        "ema20": 176.521343,
+        "macd": {
+          "macd": 0.215317,
+          "signal": 0.167783,
+          "histogram": 0.047534,
+          "state": "bullish_momentum"
+        }
+      },
+      "issues": []
+    }
+  ]
+}

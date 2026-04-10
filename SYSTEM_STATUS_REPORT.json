@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-04-04T15:45:00Z",
+  "status": "healthy_with_truthful_empty_opportunities",
+  "public_api_contract": {
+    "same_origin_only": true,
+    "universal_proxy_enabled": true,
+    "frontend_api_v2_references_removed": true,
+    "notes": [
+      "Next now exposes a catch-all /api/[...path] proxy for unmapped public routes.",
+      "Backend now exposes /api/news and legacy /api/earnings routes alongside existing v2 mounts.",
+      "Research UI placeholders now fail transparently instead of implying cache warmup."
+    ]
+  },
+  "endpoint_validation": {
+    "/api/research/AAPL/full": {
+      "status": 200,
+      "first_hit_ms": 627,
+      "warm_hit_ms": 18,
+      "target_met_warm": true,
+      "history_rows": 8,
+      "notes": [
+        "Historical earnings payload is present.",
+        "Response-level cache added at route layer to eliminate repeated enrichment cost."
+      ]
+    },
+    "/api/screener": {
+      "status": 200,
+      "warm_hit_ms": 20,
+      "target_met_warm": true,
+      "row_count": 100
+    },
+    "/api/opportunities": {
+      "status": 200,
+      "warm_hit_ms": 20,
+      "target_met_warm": true,
+      "row_count": 0,
+      "state": "truthful_empty_snapshot"
+    },
+    "/api/v5/chart?symbol=AAPL": {
+      "status": 200,
+      "first_hit_ms": 704,
+      "warm_hit_ms": 59,
+      "target_met_warm": true,
+      "candles": 2000,
+      "fake_fallback_removed": true
+    },
+    "/api/earnings": {
+      "status": 200,
+      "first_hit_ms": 645,
+      "warm_hit_ms": 35,
+      "target_met_warm": true,
+      "row_count": 100,
+      "sample_fields": [
+        "symbol",
+        "company_name",
+        "sector",
+        "report_date",
+        "report_time",
+        "eps_estimate",
+        "eps_actual",
+        "surprise_percent",
+        "expected_move_percent",
+        "actual_move_percent",
+        "pre_move_percent",
+        "post_move_percent"
+      ]
+    },
+    "/api/news?limit=5": {
+      "status": 200,
+      "first_hit_ms": 8096,
+      "warm_hit_ms": 16,
+      "target_met_warm": true,
+      "row_count": 5
+    }
+  },
+  "remaining_truthful_states": {
+    "opportunities": "No opportunities are currently present in the snapshot.",
+    "earnings_next_report_time": "Awaiting earnings release when report time is absent.",
+    "missing_research_metrics": "Displayed as Data unavailable or No historical data, depending on panel."
+  },
+  "root_fixes_completed": [
+    "Missing public /api/v5/chart contract fixed through universal Next proxy.",
+    "Broken /api/earnings public contract replaced with real historical earnings data.",
+    "Legacy fake chart fallback candles removed from V2 chart route.",
+    "Frontend /api/v2/news usage removed in favor of /api/news.",
+    "Research UI no longer claims data is warming when data is actually unavailable."
+  ]
+}

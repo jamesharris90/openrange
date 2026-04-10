@@ -1,0 +1,5078 @@
+{
+  "run_duration_minutes": 30,
+  "interval_seconds": 60,
+  "symbol_track_count": 10,
+  "snapshots_collected": 30,
+  "snapshots": [
+    {
+      "snapshot_index": 1,
+      "timestamp": "2026-03-23T06:40:50.687Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 2,
+      "timestamp": "2026-03-23T06:41:51.618Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 1.2171063283526853,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 3,
+      "timestamp": "2026-03-23T06:42:52.245Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 1.2171063283526853,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 4,
+      "timestamp": "2026-03-23T06:43:52.760Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 5,
+      "timestamp": "2026-03-23T06:44:53.338Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 6,
+      "timestamp": "2026-03-23T06:45:53.926Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 7,
+      "timestamp": "2026-03-23T06:46:57.929Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 8,
+      "timestamp": "2026-03-23T06:47:58.489Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 9,
+      "timestamp": "2026-03-23T06:48:59.014Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 10,
+      "timestamp": "2026-03-23T06:49:59.550Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 11,
+      "timestamp": "2026-03-23T06:51:00.124Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 1.2171063283526853,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 12,
+      "timestamp": "2026-03-23T06:52:00.923Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 13,
+      "timestamp": "2026-03-23T06:53:02.008Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 14,
+      "timestamp": "2026-03-23T06:54:02.564Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 15,
+      "timestamp": "2026-03-23T06:55:03.251Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 16,
+      "timestamp": "2026-03-23T06:56:05.759Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 17,
+      "timestamp": "2026-03-23T06:57:06.453Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 18,
+      "timestamp": "2026-03-23T06:58:09.657Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 1.2171063283526853,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 19,
+      "timestamp": "2026-03-23T06:59:10.890Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 20,
+      "timestamp": "2026-03-23T07:00:11.432Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 21,
+      "timestamp": "2026-03-23T07:01:17.630Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 22,
+      "timestamp": "2026-03-23T07:02:18.581Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 23,
+      "timestamp": "2026-03-23T07:03:19.349Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 24,
+      "timestamp": "2026-03-23T07:04:20.087Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 25,
+      "timestamp": "2026-03-23T07:05:20.850Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 26,
+      "timestamp": "2026-03-23T07:06:21.526Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 27,
+      "timestamp": "2026-03-23T07:07:22.145Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 28,
+      "timestamp": "2026-03-23T07:08:22.704Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 29,
+      "timestamp": "2026-03-23T07:09:23.593Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    },
+    {
+      "snapshot_index": 30,
+      "timestamp": "2026-03-23T07:10:24.129Z",
+      "status": 200,
+      "ok": true,
+      "count": 10,
+      "symbols": [
+        {
+          "rank": 1,
+          "symbol": "WNW",
+          "final_score": 100,
+          "change_percent": 0,
+          "relative_volume": 7757.594381233572,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 2,
+          "symbol": "CHNR",
+          "final_score": 37.03195035515959,
+          "change_percent": 0,
+          "relative_volume": 1038.4193886669577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 3,
+          "symbol": "PMAX",
+          "final_score": 33.73937441013136,
+          "change_percent": 0,
+          "relative_volume": 601.7331883550577,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 4,
+          "symbol": "ACXP",
+          "final_score": 30.458312185930183,
+          "change_percent": 0,
+          "relative_volume": 157.84236798736057,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "news",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 98
+        },
+        {
+          "rank": 5,
+          "symbol": "CYCU",
+          "final_score": 29.995012463020917,
+          "change_percent": 0,
+          "relative_volume": 94.60267251305027,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 6,
+          "symbol": "HUBC",
+          "final_score": 29.955342807073627,
+          "change_percent": 0,
+          "relative_volume": 89.17271831813953,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "technical",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": false,
+          "news_count": 0
+        },
+        {
+          "rank": 7,
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "change_percent": 0,
+          "relative_volume": 30.453555081063794,
+          "strategy": "VWAP RECLAIM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 8,
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "change_percent": 0,
+          "relative_volume": 2.442332636667706,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 9,
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "change_percent": 0,
+          "relative_volume": 2.1465592762640515,
+          "strategy": "INTRADAY TREND",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        },
+        {
+          "rank": 10,
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "change_percent": 0,
+          "relative_volume": 2.111814608494867,
+          "strategy": "POST-EARNINGS MOMENTUM",
+          "catalyst_type": "earnings",
+          "execution_plan": {
+            "entry": "Continuation after pullback",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "earnings_flag": true,
+          "news_count": 0
+        }
+      ]
+    }
+  ]
+}

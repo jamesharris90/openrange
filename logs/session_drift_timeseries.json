@@ -1,0 +1,2948 @@
+{
+  "generated_at": "2026-03-23T08:12:32.229Z",
+  "run_duration_minutes": 30,
+  "interval_seconds": 60,
+  "base_url": "http://localhost:3001",
+  "snapshots": [
+    {
+      "timestamp": "2026-03-23T07:42:44.837Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:42:44.837Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:43:45.262Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:43:45.262Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:44:45.949Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:44:45.949Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:45:46.632Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:45:46.632Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:46:47.148Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:46:47.148Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:47:49.314Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:47:49.314Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:48:49.840Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:48:49.840Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:49:50.421Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:49:50.421Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:50:50.907Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:50:50.907Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:51:51.631Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:51:51.631Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:52:52.186Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:52:52.186Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:53:52.674Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:53:52.674Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:54:53.253Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:54:53.253Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:55:53.878Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:55:53.878Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:56:54.423Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:56:54.423Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:57:55.105Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T07:57:55.105Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T07:58:55.955Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T07:58:55.955Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:00:00.787Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:00:00.787Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:01:03.944Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:01:03.944Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:02:06.713Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:02:06.713Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:03:10.830Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:03:10.830Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:04:12.215Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:04:12.215Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:05:12.909Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:05:12.909Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:06:13.561Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:06:13.561Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:07:14.097Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:07:14.097Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:08:14.675Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:08:14.675Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:09:15.229Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:09:15.229Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:10:15.900Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:10:15.900Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:11:30.480Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 94.60267251305027
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 30.453555081063794
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:11:30.480Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-23T08:12:31.531Z",
+      "status": 200,
+      "session": null,
+      "session_normalized": "UNKNOWN",
+      "rows": [
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "WNW",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 100,
+          "relative_volume": 7757.594381233572
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "CHNR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 37.03195035515959,
+          "relative_volume": 1038.4193886669577
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "PMAX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 33.73937441013136,
+          "relative_volume": 601.7331883550577
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "ACXP",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 30.458312185930183,
+          "relative_volume": 157.84236798736057
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "HUBC",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.955342807073627,
+          "relative_volume": 89.17271831813953
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "LNSR",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 83.78981058752098,
+          "relative_volume": 7.278128442263649
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "TAOX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.39796741771979,
+          "relative_volume": 2.442332636667706
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "EQ",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394608111656574,
+          "relative_volume": 2.1465592762640515
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "TENX",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 42.394342905760695,
+          "relative_volume": 2.111814608494867
+        },
+        {
+          "timestamp": "2026-03-23T08:12:31.531Z",
+          "symbol": "CYCU",
+          "session": null,
+          "mode": null,
+          "tradeable": false,
+          "final_score": 29.995012463020917,
+          "relative_volume": 2.639198423957524
+        }
+      ]
+    }
+  ]
+}

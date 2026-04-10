@@ -1,0 +1,188 @@
+{
+  "ts": "2026-03-20T16:30:57.787Z",
+  "top15": [
+    {
+      "rank": 1,
+      "symbol": "WNW",
+      "final_score": 100,
+      "relative_volume": 7757.594381233572,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 2,
+      "symbol": "CHNR",
+      "final_score": 37.03195035515959,
+      "relative_volume": 1038.4193886669577,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 3,
+      "symbol": "PMAX",
+      "final_score": 33.73937441013136,
+      "relative_volume": 601.7331883550577,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 4,
+      "symbol": "ACXP",
+      "final_score": 30.458312185930183,
+      "relative_volume": 157.84236798736057,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 5,
+      "symbol": "CYCU",
+      "final_score": 29.995012463020917,
+      "relative_volume": 94.60267251305027,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 6,
+      "symbol": "HUBC",
+      "final_score": 29.955342807073627,
+      "relative_volume": 89.17271831813953,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 7,
+      "symbol": "SVCO",
+      "final_score": 29.931680252504524,
+      "relative_volume": 85.9187948583884,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 8,
+      "symbol": "LNZA",
+      "final_score": 29.877384045957566,
+      "relative_volume": 78.45863168525811,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 9,
+      "symbol": "AIRS",
+      "final_score": 29.792927662858187,
+      "relative_volume": 66.95727994197999,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 10,
+      "symbol": "NPAC",
+      "final_score": 29.73531598993521,
+      "relative_volume": 59.08477904034279,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 11,
+      "symbol": "LPBB",
+      "final_score": 29.71218421501214,
+      "relative_volume": 55.91415436300946,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 12,
+      "symbol": "WINV",
+      "final_score": 29.583806001622566,
+      "relative_volume": 38.333333333333336,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 13,
+      "symbol": "TLYS",
+      "final_score": 29.570829943809407,
+      "relative_volume": 36.56698883437158,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 14,
+      "symbol": "ORIS",
+      "final_score": 29.554341623411055,
+      "relative_volume": 34.31009423539471,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    },
+    {
+      "rank": 15,
+      "symbol": "LNSR",
+      "final_score": 29.525900226538567,
+      "relative_volume": 30.453555081063794,
+      "gap_percent": 0,
+      "trend_alignment": true,
+      "quality_score": 45,
+      "sip_score": 0
+    }
+  ],
+  "baseline_top10_metrics": {
+    "count": 10,
+    "avg_relative_volume": 997.1596,
+    "avg_gap_percent": 0.735,
+    "trend_alignment_count": 9,
+    "low_rvol_count": 1,
+    "extreme_gap_count": 0,
+    "clean_gap_count": 1,
+    "valid_percent": 100,
+    "score_spread_rank1_to_rank10": 58.9577,
+    "quality_aware_spread_rank1_to_rank10": 58.9577
+  },
+  "post_top10_metrics": {
+    "count": 10,
+    "avg_relative_volume": 1002.9784,
+    "avg_gap_percent": 0,
+    "trend_alignment_count": 10,
+    "low_rvol_count": 0,
+    "extreme_gap_count": 0,
+    "clean_gap_count": 0,
+    "valid_percent": 100,
+    "score_spread_rank1_to_rank10": 70.2647,
+    "quality_aware_spread_rank1_to_rank10": 70.2647
+  },
+  "checks": {
+    "valid_percent_gte_70": true,
+    "score_spread_improved": true,
+    "avg_rvol_improved": true,
+    "low_rvol_not_increased": true,
+    "extreme_gap_not_dominant": true,
+    "trend_alignment_present": true
+  },
+  "verdict": "PASS"
+}

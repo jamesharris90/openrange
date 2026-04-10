@@ -1,0 +1,22 @@
+{
+  "safe_mode_disabled": true,
+  "engines_started": true,
+  "market_data_updating": false,
+  "signals_generating": false,
+  "stocks_in_play_generating": false,
+  "api_dynamic": false,
+  "verdict": "NOT_RUNNING",
+  "stopped_at_phase": "PHASE_7",
+  "failure_reason": "market_metrics MAX(updated_at) did not increase across required 60s validation window",
+  "evidence": {
+    "engine_discovery": "logs/engine_discovery.json",
+    "boot_log": "logs/engine_boot_fixed.log",
+    "boot_markers_found": [
+      "[ENGINE] Signal engine started",
+      "[ENGINE] Stocks in play engine started",
+      "[ENGINE] Ingestion engine started"
+    ],
+    "market_metrics_max_1": "2026-03-21 13:32:49.865859+00",
+    "market_metrics_max_2": "2026-03-21 13:32:49.865859+00"
+  }
+}

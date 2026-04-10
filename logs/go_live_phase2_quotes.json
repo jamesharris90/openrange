@@ -1,0 +1,187 @@
+{
+  "timestamp": "2026-03-22T19:52:41Z",
+  "endpoint": "/api/market/quotes?symbols=SPY,QQQ,AAPL",
+  "calls": [
+    {
+      "call": 1,
+      "status": 200,
+      "ms": 38,
+      "is_json": true,
+      "root_valid_json": true,
+      "data_array_shape": true,
+      "sample": [
+        {
+          "symbol": "SPY",
+          "price": 648.57,
+          "change_percent": -1.43,
+          "volume": 138283514,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 595245858816,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.382Z",
+          "source": "external_fallback"
+        },
+        {
+          "symbol": "QQQ",
+          "price": 582.06,
+          "change_percent": -1.85,
+          "volume": 91964677,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 228807786496,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.382Z",
+          "source": "external_fallback"
+        }
+      ]
+    },
+    {
+      "call": 2,
+      "status": 200,
+      "ms": 22,
+      "is_json": true,
+      "root_valid_json": true,
+      "data_array_shape": true,
+      "sample": [
+        {
+          "symbol": "SPY",
+          "price": 648.57,
+          "change_percent": -1.43,
+          "volume": 138283514,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 595245858816,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.405Z",
+          "source": "external_fallback"
+        },
+        {
+          "symbol": "QQQ",
+          "price": 582.06,
+          "change_percent": -1.85,
+          "volume": 91964677,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 228807786496,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.405Z",
+          "source": "external_fallback"
+        }
+      ]
+    },
+    {
+      "call": 3,
+      "status": 200,
+      "ms": 21,
+      "is_json": true,
+      "root_valid_json": true,
+      "data_array_shape": true,
+      "sample": [
+        {
+          "symbol": "SPY",
+          "price": 648.57,
+          "change_percent": -1.43,
+          "volume": 138283514,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 595245858816,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.427Z",
+          "source": "external_fallback"
+        },
+        {
+          "symbol": "QQQ",
+          "price": 582.06,
+          "change_percent": -1.85,
+          "volume": 91964677,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 228807786496,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.427Z",
+          "source": "external_fallback"
+        }
+      ]
+    },
+    {
+      "call": 4,
+      "status": 200,
+      "ms": 21,
+      "is_json": true,
+      "root_valid_json": true,
+      "data_array_shape": true,
+      "sample": [
+        {
+          "symbol": "SPY",
+          "price": 648.57,
+          "change_percent": -1.43,
+          "volume": 138283514,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 595245858816,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.449Z",
+          "source": "external_fallback"
+        },
+        {
+          "symbol": "QQQ",
+          "price": 582.06,
+          "change_percent": -1.85,
+          "volume": 91964677,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 228807786496,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.449Z",
+          "source": "external_fallback"
+        }
+      ]
+    },
+    {
+      "call": 5,
+      "status": 200,
+      "ms": 21,
+      "is_json": true,
+      "root_valid_json": true,
+      "data_array_shape": true,
+      "sample": [
+        {
+          "symbol": "SPY",
+          "price": 648.57,
+          "change_percent": -1.43,
+          "volume": 138283514,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 595245858816,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.471Z",
+          "source": "external_fallback"
+        },
+        {
+          "symbol": "QQQ",
+          "price": 582.06,
+          "change_percent": -1.85,
+          "volume": 91964677,
+          "relative_volume": 1,
+          "atr": null,
+          "rsi": null,
+          "market_cap": 228807786496,
+          "sector": null,
+          "updated_at": "2026-03-22T19:52:41.471Z",
+          "source": "external_fallback"
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

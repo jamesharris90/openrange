@@ -11,6 +11,7 @@ const {
   upsertSubscriberPreferences,
   unsubscribeEmail,
 } = require('../services/newsletterService');
+const { getEmailDispatcherStatus } = require('../email/emailDispatcher');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -92,6 +93,10 @@ function nextWeekdayRunLabel(hour, minute) {
   const mm = String(runParts.month).padStart(2, '0');
   const dd = String(runParts.day).padStart(2, '0');
   return `${runParts.year}-${mm}-${dd} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ET`;
+}
+
+function latestNewsletterSend(historyRows) {
+  return (historyRows || []).find((row) => String(row?.campaign_type || '').toLowerCase() === 'newsletter') || null;
 }
 
 router.get('/api/newsletter/preview', async (req, res) => {
@@ -254,6 +259,7 @@ router.get('/api/newsletter/diagnostics', async (req, res) => {
 
   try {
     await ensureNewsletterEngineTables();
+    const dispatcherStatus = getEmailDispatcherStatus();
 
     const [briefRows, historyRows, subscriberRows] = await Promise.all([
       queryWithTimeout(
@@ -286,30 +292,38 @@ router.get('/api/newsletter/diagnostics', async (req, res) => {
       ? latestBrief.email_status
       : {};
     const signals = Array.isArray(latestBrief?.signals) ? latestBrief.signals : [];
+    const latestNewsletterRow = latestNewsletterSend(historyRows.rows || []);
+    const latestNewsletterSentAt = latestNewsletterRow?.sent_at ? Date.parse(latestNewsletterRow.sent_at) : Number.NaN;
 
     const latestSelectedTickers = signals
       .map((row) => String(row?.symbol || '').toUpperCase())
       .filter(Boolean)
       .slice(0, 5);
 
-    const lastFailure = (briefRows.rows || []).find((row) => {
+    const latestBriefFailure = (briefRows.rows || []).find((row) => {
       const status = row?.email_status && typeof row.email_status === 'object' ? row.email_status : {};
       return status.sent === false && status.reason;
     }) || null;
+    const latestBriefFailureAt = latestBriefFailure?.created_at ? Date.parse(latestBriefFailure.created_at) : Number.NaN;
+    const lastFailure = Number.isFinite(latestNewsletterSentAt) && Number.isFinite(latestBriefFailureAt) && latestNewsletterSentAt > latestBriefFailureAt
+      ? null
+      : latestBriefFailure;
+    const nextMorningBriefValue = String(dispatcherStatus?.nextMorningBrief || '');
+    const nextSendValue = String(dispatcherStatus?.nextScheduledSend || nextMorningBriefValue || '');
 
     return res.json(success({
       scheduler: {
-        timezone: 'America/New_York',
-        morningBriefCron: '0 8 * * 1-5',
-        newsletterCron: '15 8 * * 1-5',
+        timezone: dispatcherStatus?.timezone || 'Europe/London',
+        morningBriefCron: dispatcherStatus?.schedules?.beaconMorningBrief || '0 7 * * 1-5',
+        newsletterCron: dispatcherStatus?.schedules?.beaconMorningBrief || '0 7 * * 1-5',
         weekdayOnly: true,
-        nextMorningBriefRun: nextWeekdayRunLabel(8, 0),
-        nextNewsletterRun: nextWeekdayRunLabel(8, 15),
+        nextMorningBriefRun: nextMorningBriefValue || nextWeekdayRunLabel(8, 0),
+        nextNewsletterRun: nextSendValue || nextWeekdayRunLabel(8, 0),
       },
       summary: {
         subscriberCount: subscriberRows.rows?.[0]?.total || 0,
         lastMorningBriefRun: latestBrief?.created_at || null,
-        lastSendCount: Number(latestEmailStatus.recipientsCount || 0),
+        lastSendCount: Number(latestNewsletterRow?.recipients_count || latestEmailStatus.recipientsCount || 0),
         lastFailure: lastFailure
           ? {
               createdAt: lastFailure.created_at || null,

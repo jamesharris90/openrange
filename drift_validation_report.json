@@ -1,0 +1,49 @@
+{
+  "run_time": "2026-03-23T07:10:24.129Z",
+  "market_phase": "early_premarket",
+  "snapshots": 30,
+  "persistence_rate": 1,
+  "churn_rate": 0,
+  "rank_variance": 0.0414,
+  "score_volatility": 0,
+  "quality_ratio": 0.9867,
+  "top5_tradeable": 5,
+  "verdict": "UNSTABLE",
+  "top5_human_trade_check": [
+    {
+      "symbol": "WNW",
+      "catalyst": true,
+      "volume": true,
+      "clean_structure": true,
+      "label": "TRADEABLE"
+    },
+    {
+      "symbol": "CHNR",
+      "catalyst": true,
+      "volume": true,
+      "clean_structure": true,
+      "label": "TRADEABLE"
+    },
+    {
+      "symbol": "PMAX",
+      "catalyst": true,
+      "volume": true,
+      "clean_structure": true,
+      "label": "TRADEABLE"
+    },
+    {
+      "symbol": "ACXP",
+      "catalyst": true,
+      "volume": true,
+      "clean_structure": true,
+      "label": "TRADEABLE"
+    },
+    {
+      "symbol": "CYCU",
+      "catalyst": true,
+      "volume": true,
+      "clean_structure": true,
+      "label": "TRADEABLE"
+    }
+  ]
+}

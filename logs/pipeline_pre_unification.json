@@ -1,0 +1,23 @@
+{
+  "ts": "2026-03-20T13:25:48.249Z",
+  "phase": "PHASE_0",
+  "freeze_ok": true,
+  "counts": {
+    "signals": 777,
+    "strategy_signals": 222,
+    "trade_signals": 160,
+    "signal_registry": 20263,
+    "trade_setups": 414,
+    "signal_outcomes": 495,
+    "trade_outcomes": 134,
+    "stocks_in_play": 23245
+  },
+  "active_migrations": [],
+  "phase_log": [
+    {
+      "ts": "2026-03-20T13:25:46.652Z",
+      "phase": "PHASE_0",
+      "message": "Starting freeze checks and pre-snapshot"
+    }
+  ]
+}

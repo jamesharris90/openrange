@@ -4,6 +4,12 @@ const { evaluateSignals } = require('./backtestEvaluator');
 
 let started = false;
 let inFlight = false;
+const isRailwayRuntime = Boolean(
+  process.env.RAILWAY_PROJECT_ID
+  || process.env.RAILWAY_ENVIRONMENT_ID
+  || process.env.RAILWAY_SERVICE_ID
+);
+const startupDelayMs = Number(process.env.BACKTEST_STARTUP_DELAY_MS || (isRailwayRuntime ? 120000 : 0));
 
 async function runBacktestEvaluationCycle(trigger = 'cron') {
   if (inFlight) {
@@ -50,7 +56,17 @@ function startBacktestScheduler() {
     await runBacktestEvaluationCycle('cron');
   });
 
-  void runBacktestEvaluationCycle('startup');
+  if (startupDelayMs > 0) {
+    logger.info('backtest scheduler startup run delayed', {
+      scope: 'backtest_scheduler',
+      startup_delay_ms: startupDelayMs,
+    });
+    setTimeout(() => {
+      void runBacktestEvaluationCycle('startup');
+    }, startupDelayMs);
+  } else {
+    void runBacktestEvaluationCycle('startup');
+  }
 
   logger.info('backtest scheduler started', {
     scope: 'backtest_scheduler',

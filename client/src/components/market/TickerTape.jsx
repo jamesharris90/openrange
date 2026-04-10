@@ -3,6 +3,8 @@ import { apiJSON } from '../../config/api';
 import { useSymbol } from '../../context/SymbolContext';
 import TickerHoverPanel from './TickerHoverPanel';
 
+const CORE_TERMINAL_SYMBOLS = ['SPY', 'QQQ', 'IWM', 'VIX'];
+
 function fmtPrice(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(2) : '—';
@@ -36,9 +38,14 @@ export default function TickerTape() {
         const tickers = Array.isArray(payload?.data)
           ? payload.data
           : (Array.isArray(payload) ? payload : []);
+        const bySymbol = new Map(tickers.map((row) => [String(row?.symbol || '').toUpperCase(), row]));
+        const ordered = [
+          ...CORE_TERMINAL_SYMBOLS.map((symbol) => bySymbol.get(symbol)).filter(Boolean),
+          ...tickers.filter((row) => !CORE_TERMINAL_SYMBOLS.includes(String(row?.symbol || '').toUpperCase())),
+        ];
         if (cancelled) return;
-        setRows(tickers);
-        setError(tickers.length ? '' : 'Data temporarily unavailable');
+        setRows(ordered);
+        setError(ordered.length ? '' : 'Data temporarily unavailable');
       } catch (_error) {
         if (cancelled) return;
         setRows([]);

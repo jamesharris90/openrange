@@ -1,0 +1,81 @@
+{
+  "timestamp": "2026-03-22T13:33:30.138Z",
+  "api_base": "http://127.0.0.1:3018",
+  "phase_results": {
+    "precheck": {
+      "required_tables": [
+        "news_articles",
+        "signals",
+        "earnings_events",
+        "trade_setups",
+        "market_metrics"
+      ],
+      "missing_tables": []
+    },
+    "phase1_news_pipeline_restore": {
+      "last_inserted_row_timestamp": "2026-03-22T09:06:00.000Z",
+      "ingestion_job_triggered": false,
+      "ingestion_run_stats": null,
+      "has_fmp_api_key": true,
+      "endpoint_probe": {
+        "stable_news": 404,
+        "stable_news_stock_latest": 200,
+        "stable_news_stock": 200
+      },
+      "news_rows_last_6h": 3882
+    },
+    "phase2_news_signal_injection": {
+      "symbols": 99,
+      "updated": 99,
+      "inserted": 0,
+      "total_news_symbols": 99,
+      "covered_news_symbols": 99,
+      "news_symbols_in_signals_percent": 100
+    },
+    "phase3_earnings_flow_fix": {
+      "earnings_ingestion": {
+        "jobName": "fmp_earnings_ingest",
+        "table": "earnings_events",
+        "fetched": 4000,
+        "deduped": 1955,
+        "inserted": 616,
+        "failures": 0,
+        "durationMs": 740,
+        "from": "2026-03-22",
+        "to": "2026-04-05"
+      },
+      "earnings_symbols": 6,
+      "signals_created": 0,
+      "setups_linked": 0,
+      "earnings_symbols_total": 6,
+      "earnings_symbols_in_decision_view": 6,
+      "earnings_coverage_percent": 100
+    },
+    "phase4_large_move_logic_fix": {
+      "change_percent_latest_update": "2026-03-21T13:32:49.865Z",
+      "large_move_symbols_total": 254,
+      "large_move_symbols_in_watchlist": 42,
+      "large_move_in_watchlist_percent": 16.54
+    },
+    "phase5_watchlist_rebuild": {
+      "total_watchlist": 62,
+      "high_volatility_percent": 100,
+      "has_earnings": false,
+      "has_news": false,
+      "has_large_move": false
+    }
+  },
+  "news_rows_last_6h": 3882,
+  "earnings_coverage_percent": 100,
+  "large_move_percent": 16.54,
+  "watchlist_distribution": {
+    "total": 62,
+    "by_reason": {
+      "HIGH_VOLATILITY": 62
+    },
+    "high_volatility_percent": 100
+  },
+  "verdict": "FAIL",
+  "fail_reason": "watchlist distribution gate failed (HIGH_VOLATILITY=100%)",
+  "error": "watchlist distribution gate failed (HIGH_VOLATILITY=100%)"
+}

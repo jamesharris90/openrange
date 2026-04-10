@@ -1,0 +1,3257 @@
+{
+  "timestamp": "2026-03-22T18:54:20.640Z",
+  "schema_health": {
+    "signals": {
+      "exists": true,
+      "row_count": 1189,
+      "columns": [
+        {
+          "column": "id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "signal_type",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "score",
+          "data_type": "double precision",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "confidence",
+          "data_type": "double precision",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "catalyst_ids",
+          "data_type": "ARRAY",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "session_phase",
+          "data_type": "text",
+          "null_pct": 32.7166,
+          "null_count": 389
+        },
+        {
+          "column": "volume_acceleration",
+          "data_type": "numeric",
+          "null_pct": 33.3053,
+          "null_count": 396
+        },
+        {
+          "column": "priority_score",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "session_weight",
+          "data_type": "numeric",
+          "null_pct": 32.7166,
+          "null_count": 389
+        },
+        {
+          "column": "tqi_score",
+          "data_type": "numeric",
+          "null_pct": 8.831,
+          "null_count": 105
+        }
+      ]
+    },
+    "trade_setups": {
+      "exists": true,
+      "row_count": 689,
+      "columns": [
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "setup",
+          "data_type": "text",
+          "null_pct": 15.5298,
+          "null_count": 107
+        },
+        {
+          "column": "grade",
+          "data_type": "text",
+          "null_pct": 68.2148,
+          "null_count": 470
+        },
+        {
+          "column": "score",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "null_pct": 68.2148,
+          "null_count": 470
+        },
+        {
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "null_pct": 51.6691,
+          "null_count": 356
+        },
+        {
+          "column": "atr",
+          "data_type": "numeric",
+          "null_pct": 68.2148,
+          "null_count": 470
+        },
+        {
+          "column": "float_rotation",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 689
+        },
+        {
+          "column": "detected_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "setup_type",
+          "data_type": "text",
+          "null_pct": 30.9144,
+          "null_count": 213
+        },
+        {
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "signal_id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "entry_price",
+          "data_type": "double precision",
+          "null_pct": 80.1161,
+          "null_count": 552
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        }
+      ]
+    },
+    "signal_outcomes": {
+      "exists": true,
+      "row_count": 779,
+      "columns": [
+        {
+          "column": "id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "entry_price",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "exit_price",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "return_percent",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "hold_minutes",
+          "data_type": "integer",
+          "null_pct": 99.8716,
+          "null_count": 778
+        },
+        {
+          "column": "strategy",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "signal_id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "high_1d",
+          "data_type": "numeric",
+          "null_pct": 99.8716,
+          "null_count": 778
+        },
+        {
+          "column": "low_1d",
+          "data_type": "numeric",
+          "null_pct": 99.8716,
+          "null_count": 778
+        },
+        {
+          "column": "move_up_percent",
+          "data_type": "numeric",
+          "null_pct": 99.8716,
+          "null_count": 778
+        },
+        {
+          "column": "move_down_percent",
+          "data_type": "numeric",
+          "null_pct": 36.457,
+          "null_count": 284
+        },
+        {
+          "column": "evaluated_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "max_move_percent",
+          "data_type": "numeric",
+          "null_pct": 84.2105,
+          "null_count": 656
+        },
+        {
+          "column": "time_to_high_minutes",
+          "data_type": "integer",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "breakout_volume",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "pullback_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "move_15m_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "move_1h_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "close_move_percent",
+          "data_type": "numeric",
+          "null_pct": 99.8716,
+          "null_count": 778
+        },
+        {
+          "column": "next_day_move_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "outcome",
+          "data_type": "text",
+          "null_pct": 0.1284,
+          "null_count": 1
+        },
+        {
+          "column": "pnl_pct",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "pnl_5m",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "pnl_15m",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 779
+        },
+        {
+          "column": "pnl_1h",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 779
+        }
+      ]
+    },
+    "trade_outcomes": {
+      "exists": true,
+      "row_count": 789,
+      "columns": [
+        {
+          "column": "legacy_signal_id",
+          "data_type": "bigint",
+          "null_pct": 83.0165,
+          "null_count": 655
+        },
+        {
+          "column": "max_move",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "max_drawdown",
+          "data_type": "numeric",
+          "null_pct": 35.9949,
+          "null_count": 284
+        },
+        {
+          "column": "success",
+          "data_type": "boolean",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "evaluation_time",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "strategy",
+          "data_type": "text",
+          "null_pct": 1.7744,
+          "null_count": 14
+        },
+        {
+          "column": "class",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "probability",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "entry_time",
+          "data_type": "timestamp with time zone",
+          "null_pct": 64.0051,
+          "null_count": 505
+        },
+        {
+          "column": "entry_price",
+          "data_type": "numeric",
+          "null_pct": 1.7744,
+          "null_count": 14
+        },
+        {
+          "column": "exit_time",
+          "data_type": "timestamp with time zone",
+          "null_pct": 64.0051,
+          "null_count": 505
+        },
+        {
+          "column": "exit_price",
+          "data_type": "numeric",
+          "null_pct": 1.7744,
+          "null_count": 14
+        },
+        {
+          "column": "max_runup_pct",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "max_drawdown_pct",
+          "data_type": "numeric",
+          "null_pct": 37.5158,
+          "null_count": 296
+        },
+        {
+          "column": "result_pct",
+          "data_type": "numeric",
+          "null_pct": 64.0051,
+          "null_count": 505
+        },
+        {
+          "column": "pnl_pct",
+          "data_type": "numeric",
+          "null_pct": 1.5209,
+          "null_count": 12
+        },
+        {
+          "column": "outcome",
+          "data_type": "text",
+          "null_pct": 48.7959,
+          "null_count": 385
+        },
+        {
+          "column": "opportunity_id",
+          "data_type": "bigint",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "stop_loss",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "take_profit",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "expected_move_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "actual_max_move_percent",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "time_to_target_minutes",
+          "data_type": "integer",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "evaluated_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "data_quality",
+          "data_type": "text",
+          "null_pct": 16.9835,
+          "null_count": 134
+        },
+        {
+          "column": "calibration_eligible",
+          "data_type": "boolean",
+          "null_pct": 52.9785,
+          "null_count": 418
+        },
+        {
+          "column": "max_move_pct",
+          "data_type": "double precision",
+          "null_pct": 37.5158,
+          "null_count": 296
+        },
+        {
+          "column": "pnl_5m",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "pnl_15m",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "pnl_1h",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 789
+        },
+        {
+          "column": "id",
+          "data_type": "bigint",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "signal_id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "canonical_signal_id",
+          "data_type": "uuid",
+          "null_pct": 83.0165,
+          "null_count": 655
+        }
+      ]
+    },
+    "market_metrics": {
+      "exists": true,
+      "row_count": 5984,
+      "columns": [
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "price",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "null_pct": 18.7834,
+          "null_count": 1124
+        },
+        {
+          "column": "relative_volume",
+          "data_type": "numeric",
+          "null_pct": 14.4218,
+          "null_count": 863
+        },
+        {
+          "column": "atr",
+          "data_type": "numeric",
+          "null_pct": 14.4218,
+          "null_count": 863
+        },
+        {
+          "column": "rsi",
+          "data_type": "numeric",
+          "null_pct": 14.4552,
+          "null_count": 865
+        },
+        {
+          "column": "vwap",
+          "data_type": "numeric",
+          "null_pct": 98.2286,
+          "null_count": 5878
+        },
+        {
+          "column": "float_rotation",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 5984
+        },
+        {
+          "column": "last_updated",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "change_percent",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "avg_volume_30d",
+          "data_type": "numeric",
+          "null_pct": 14.4218,
+          "null_count": 863
+        },
+        {
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "volume",
+          "data_type": "bigint",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "previous_high",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 5984
+        },
+        {
+          "column": "float_shares",
+          "data_type": "numeric",
+          "null_pct": 18.867,
+          "null_count": 1129
+        },
+        {
+          "column": "atr_percent",
+          "data_type": "numeric",
+          "null_pct": 14.4719,
+          "null_count": 866
+        },
+        {
+          "column": "short_float",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 5984
+        },
+        {
+          "column": "liquidity_surge",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 5984
+        }
+      ]
+    },
+    "news_articles": {
+      "exists": true,
+      "row_count": 17618,
+      "columns": [
+        {
+          "column": "id",
+          "data_type": "uuid",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "headline",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbols",
+          "data_type": "ARRAY",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "source",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "url",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "published_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "summary",
+          "data_type": "text",
+          "null_pct": 0.0624,
+          "null_count": 11
+        },
+        {
+          "column": "catalyst_type",
+          "data_type": "text",
+          "null_pct": 98.2518,
+          "null_count": 17310
+        },
+        {
+          "column": "news_score",
+          "data_type": "integer",
+          "null_pct": 0.2781,
+          "null_count": 49
+        },
+        {
+          "column": "score_breakdown",
+          "data_type": "jsonb",
+          "null_pct": 0.2781,
+          "null_count": 49
+        },
+        {
+          "column": "raw_payload",
+          "data_type": "jsonb",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 1.7425,
+          "null_count": 307
+        },
+        {
+          "column": "sector",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 17618
+        },
+        {
+          "column": "narrative",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 17618
+        },
+        {
+          "column": "provider",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "sentiment",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "title",
+          "data_type": "text",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "body_text",
+          "data_type": "text",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "publisher",
+          "data_type": "text",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "site",
+          "data_type": "text",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "image_url",
+          "data_type": "text",
+          "null_pct": 99.7276,
+          "null_count": 17570
+        },
+        {
+          "column": "published_date",
+          "data_type": "timestamp with time zone",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "source_url",
+          "data_type": "text",
+          "null_pct": 99.7219,
+          "null_count": 17569
+        },
+        {
+          "column": "ingested_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        }
+      ]
+    },
+    "earnings_events": {
+      "exists": true,
+      "row_count": 616,
+      "columns": [
+        {
+          "column": "id",
+          "data_type": "integer",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "report_date",
+          "data_type": "date",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "report_time",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "eps_estimate",
+          "data_type": "double precision",
+          "null_pct": 28.2468,
+          "null_count": 174
+        },
+        {
+          "column": "eps_actual",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "rev_estimate",
+          "data_type": "double precision",
+          "null_pct": 49.026,
+          "null_count": 302
+        },
+        {
+          "column": "rev_actual",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "eps_surprise_pct",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "rev_surprise_pct",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "guidance_direction",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "market_cap",
+          "data_type": "double precision",
+          "null_pct": 19.4805,
+          "null_count": 120
+        },
+        {
+          "column": "float",
+          "data_type": "double precision",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "sector",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "industry",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "created_at",
+          "data_type": "timestamp without time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "company",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "earnings_date",
+          "data_type": "date",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "revenue_estimate",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "updated_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "time",
+          "data_type": "text",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "expected_move_percent",
+          "data_type": "numeric",
+          "null_pct": 18.1818,
+          "null_count": 112
+        },
+        {
+          "column": "avg_volume",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 616
+        },
+        {
+          "column": "atr",
+          "data_type": "numeric",
+          "null_pct": 18.1818,
+          "null_count": 112
+        },
+        {
+          "column": "exchange",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "price",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "current_volume",
+          "data_type": "numeric",
+          "null_pct": 19.4805,
+          "null_count": 120
+        },
+        {
+          "column": "rvol",
+          "data_type": "numeric",
+          "null_pct": 37.6623,
+          "null_count": 232
+        },
+        {
+          "column": "score",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        }
+      ]
+    },
+    "stocks_in_play": {
+      "exists": true,
+      "row_count": 23245,
+      "columns": [
+        {
+          "column": "id",
+          "data_type": "bigint",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "symbol",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "gap_percent",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "rvol",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "catalyst",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "score",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "detected_at",
+          "data_type": "timestamp with time zone",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "session_phase",
+          "data_type": "text",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "volume_acceleration",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "priority_score",
+          "data_type": "numeric",
+          "null_pct": 0,
+          "null_count": 0
+        },
+        {
+          "column": "catalyst_score",
+          "data_type": "numeric",
+          "null_pct": 100,
+          "null_count": 23245
+        }
+      ]
+    }
+  },
+  "endpoint_contracts": {
+    "/api/screener": {
+      "request_path": "/api/screener",
+      "status": 200,
+      "sample_rows": [
+        {
+          "symbol": "ACXP",
+          "price": "6.63",
+          "change_percent": "342",
+          "relative_volume": "157.8423679873605655",
+          "volume": "7725963"
+        },
+        {
+          "symbol": "RWAYI",
+          "price": "25.18",
+          "change_percent": "283.257229832572",
+          "relative_volume": "0.05359941680335338091",
+          "volume": "3460"
+        },
+        {
+          "symbol": "GAING",
+          "price": "25.36",
+          "change_percent": "275.147928994083",
+          "relative_volume": "0.09744830034614360531",
+          "volume": "15685"
+        },
+        {
+          "symbol": "ELAB",
+          "price": "3.79",
+          "change_percent": "218.487394957983",
+          "relative_volume": "0.02227223150865495103",
+          "volume": "46379"
+        },
+        {
+          "symbol": "LNZA",
+          "price": "22.54",
+          "change_percent": "163.010501750292",
+          "relative_volume": "15.2981627951840042",
+          "volume": "134812"
+        }
+      ],
+      "fields": [
+        "change_percent",
+        "price",
+        "relative_volume",
+        "symbol",
+        "volume"
+      ],
+      "field_contract": [
+        {
+          "field": "change_percent",
+          "mapped": true,
+          "source": "market_metrics.change_percent",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "price",
+          "mapped": true,
+          "source": "market_metrics.price",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "relative_volume",
+          "mapped": true,
+          "source": "market_metrics.relative_volume",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 14.4218,
+            "non_null_count": 5121
+          }
+        },
+        {
+          "field": "symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "volume",
+          "mapped": true,
+          "source": "market_metrics.volume",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        }
+      ]
+    },
+    "/api/market/quotes": {
+      "request_path": "/api/market/quotes?symbols=SPY,QQQ,MSFT,AAPL,NVDA",
+      "status": 503,
+      "sample_rows": [],
+      "fields": [],
+      "field_contract": []
+    },
+    "/api/market/overview": {
+      "request_path": "/api/market/overview",
+      "status": 200,
+      "sample_rows": [
+        {
+          "indices": {
+            "SPY": {
+              "symbol": "SPY",
+              "price": "682.39",
+              "change_percent": "0",
+              "volume": "0"
+            },
+            "QQQ": {
+              "symbol": "QQQ",
+              "price": null,
+              "change_percent": null,
+              "volume": null
+            },
+            "DIA": {
+              "symbol": "DIA",
+              "price": null,
+              "change_percent": null,
+              "volume": null
+            },
+            "IWM": {
+              "symbol": "IWM",
+              "price": null,
+              "change_percent": null,
+              "volume": null
+            }
+          },
+          "volatility": {
+            "VIX": {
+              "symbol": "VIX",
+              "price": "23.09",
+              "change_percent": "0.72",
+              "volume": "0"
+            }
+          },
+          "breadth": {
+            "advancers": 1429,
+            "decliners": 3286,
+            "up_volume": 3628753910,
+            "down_volume": 6007341900
+          }
+        }
+      ],
+      "fields": [
+        "breadth.advancers",
+        "breadth.decliners",
+        "breadth.down_volume",
+        "breadth.up_volume",
+        "indices.DIA.change_percent",
+        "indices.DIA.price",
+        "indices.DIA.symbol",
+        "indices.DIA.volume",
+        "indices.IWM.change_percent",
+        "indices.IWM.price",
+        "indices.IWM.symbol",
+        "indices.IWM.volume",
+        "indices.QQQ.change_percent",
+        "indices.QQQ.price",
+        "indices.QQQ.symbol",
+        "indices.QQQ.volume",
+        "indices.SPY.change_percent",
+        "indices.SPY.price",
+        "indices.SPY.symbol",
+        "indices.SPY.volume",
+        "volatility.VIX.change_percent",
+        "volatility.VIX.price",
+        "volatility.VIX.symbol",
+        "volatility.VIX.volume"
+      ],
+      "field_contract": [
+        {
+          "field": "breadth.advancers",
+          "mapped": true,
+          "source": null,
+          "computed": "COUNT market_metrics where change_percent > 0",
+          "source_health": null
+        },
+        {
+          "field": "breadth.decliners",
+          "mapped": true,
+          "source": null,
+          "computed": "COUNT market_metrics where change_percent < 0",
+          "source_health": null
+        },
+        {
+          "field": "breadth.down_volume",
+          "mapped": true,
+          "source": null,
+          "computed": "SUM market_metrics.volume where change_percent < 0",
+          "source_health": null
+        },
+        {
+          "field": "breadth.up_volume",
+          "mapped": true,
+          "source": null,
+          "computed": "SUM market_metrics.volume where change_percent > 0",
+          "source_health": null
+        },
+        {
+          "field": "indices.DIA.change_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.change_percent fallback market_quotes.change_percent",
+          "source_health": null
+        },
+        {
+          "field": "indices.DIA.price",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.price fallback market_quotes.price",
+          "source_health": null
+        },
+        {
+          "field": "indices.DIA.symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "indices.DIA.volume",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.volume fallback market_quotes.volume",
+          "source_health": null
+        },
+        {
+          "field": "indices.IWM.change_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.change_percent fallback market_quotes.change_percent",
+          "source_health": null
+        },
+        {
+          "field": "indices.IWM.price",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.price fallback market_quotes.price",
+          "source_health": null
+        },
+        {
+          "field": "indices.IWM.symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "indices.IWM.volume",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.volume fallback market_quotes.volume",
+          "source_health": null
+        },
+        {
+          "field": "indices.QQQ.change_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.change_percent fallback market_quotes.change_percent",
+          "source_health": null
+        },
+        {
+          "field": "indices.QQQ.price",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.price fallback market_quotes.price",
+          "source_health": null
+        },
+        {
+          "field": "indices.QQQ.symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "indices.QQQ.volume",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.volume fallback market_quotes.volume",
+          "source_health": null
+        },
+        {
+          "field": "indices.SPY.change_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.change_percent fallback market_quotes.change_percent",
+          "source_health": null
+        },
+        {
+          "field": "indices.SPY.price",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.price fallback market_quotes.price",
+          "source_health": null
+        },
+        {
+          "field": "indices.SPY.symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "indices.SPY.volume",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.volume fallback market_quotes.volume",
+          "source_health": null
+        },
+        {
+          "field": "volatility.VIX.change_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.change_percent fallback market_quotes.change_percent",
+          "source_health": null
+        },
+        {
+          "field": "volatility.VIX.price",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.price fallback market_quotes.price",
+          "source_health": null
+        },
+        {
+          "field": "volatility.VIX.symbol",
+          "mapped": true,
+          "source": "market_metrics.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 0,
+            "non_null_count": 5984
+          }
+        },
+        {
+          "field": "volatility.VIX.volume",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        }
+      ]
+    },
+    "/api/signals": {
+      "request_path": "/api/signals?limit=5",
+      "status": 200,
+      "sample_rows": [
+        {
+          "id": "73334691-f936-4825-b3c2-f0c1101eb412",
+          "symbol": "STOK",
+          "signal_type": "earnings",
+          "score": 76,
+          "confidence": 0.75,
+          "catalyst_ids": [],
+          "created_at": "2026-03-22T13:18:26.843Z"
+        },
+        {
+          "id": "575acefc-af7e-4b44-af60-e3e437b03648",
+          "symbol": "SCNX",
+          "signal_type": "earnings",
+          "score": 76,
+          "confidence": 0.75,
+          "catalyst_ids": [],
+          "created_at": "2026-03-22T13:18:26.443Z"
+        },
+        {
+          "id": "fa205622-4098-4823-b269-81d636b20278",
+          "symbol": "LINK",
+          "signal_type": "earnings",
+          "score": 76,
+          "confidence": 0.75,
+          "catalyst_ids": [],
+          "created_at": "2026-03-22T13:18:24.526Z"
+        },
+        {
+          "id": "297df0e7-757e-4186-891f-9ae32916bdd2",
+          "symbol": "KBH",
+          "signal_type": "earnings",
+          "score": 76,
+          "confidence": 0.75,
+          "catalyst_ids": [],
+          "created_at": "2026-03-22T13:18:24.018Z"
+        },
+        {
+          "id": "6e1ba5d9-3554-415c-89df-6531d34a8a66",
+          "symbol": "HMR",
+          "signal_type": "earnings",
+          "score": 76,
+          "confidence": 0.75,
+          "catalyst_ids": [],
+          "created_at": "2026-03-22T13:18:23.078Z"
+        }
+      ],
+      "fields": [
+        "catalyst_ids",
+        "confidence",
+        "created_at",
+        "id",
+        "score",
+        "signal_type",
+        "symbol"
+      ],
+      "field_contract": [
+        {
+          "field": "catalyst_ids",
+          "mapped": true,
+          "source": "signals.catalyst_ids",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "confidence",
+          "mapped": true,
+          "source": "signals.confidence",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "created_at",
+          "mapped": true,
+          "source": "signals.created_at",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "id",
+          "mapped": true,
+          "source": "signals.id",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "score",
+          "mapped": true,
+          "source": "signals.score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "signal_type",
+          "mapped": true,
+          "source": "signals.signal_type",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        },
+        {
+          "field": "symbol",
+          "mapped": true,
+          "source": "signals.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 1189,
+            "null_pct": 0,
+            "non_null_count": 1189
+          }
+        }
+      ]
+    },
+    "/api/intelligence/decision/:symbol": {
+      "request_path": "/api/intelligence/decision/STOK",
+      "status": 200,
+      "sample_rows": [
+        {
+          "symbol": "STOK",
+          "why_moving": {
+            "catalyst": null,
+            "catalyst_type": null,
+            "narrative": null,
+            "confidence": null
+          },
+          "tradeability": {
+            "rvol": 1.2908447628405677,
+            "range_pct": 5.35567151881352,
+            "liquidity_score": 0,
+            "tradeability_score": 44,
+            "float": 57117149.984935224
+          },
+          "execution_plan": {
+            "strategy": "POST_EARNINGS_MOMENTUM",
+            "entry_type": "breakout_or_pullback",
+            "risk_level": "medium",
+            "expected_move": null,
+            "win_probability": 0,
+            "historical_win_rate": 0,
+            "avg_pnl_pct": 0,
+            "avg_drawdown_pct": 0,
+            "setup_candidates": [
+              {
+                "setup": "POST_EARNINGS_MOMENTUM",
+                "setup_type": "earnings",
+                "score": "76",
+                "atr": null,
+                "relative_volume": null,
+                "gap_percent": null,
+                "updated_at": "2026-03-22T13:18:26.884Z"
+              }
+            ],
+            "expected_move_alignment": null,
+            "source_signal_id": "73334691-f936-4825-b3c2-f0c1101eb412"
+          },
+          "data_quality": "derived",
+          "decision_score": 36.7
+        }
+      ],
+      "fields": [
+        "data_quality",
+        "decision_score",
+        "execution_plan.avg_drawdown_pct",
+        "execution_plan.avg_pnl_pct",
+        "execution_plan.entry_type",
+        "execution_plan.expected_move",
+        "execution_plan.expected_move_alignment",
+        "execution_plan.historical_win_rate",
+        "execution_plan.risk_level",
+        "execution_plan.setup_candidates",
+        "execution_plan.source_signal_id",
+        "execution_plan.strategy",
+        "execution_plan.win_probability",
+        "symbol",
+        "tradeability.float",
+        "tradeability.liquidity_score",
+        "tradeability.range_pct",
+        "tradeability.rvol",
+        "tradeability.tradeability_score",
+        "why_moving.catalyst",
+        "why_moving.catalyst_type",
+        "why_moving.confidence",
+        "why_moving.narrative"
+      ],
+      "field_contract": [
+        {
+          "field": "data_quality",
+          "mapped": true,
+          "source": null,
+          "computed": "engine quality flag",
+          "source_health": null
+        },
+        {
+          "field": "decision_score",
+          "mapped": true,
+          "source": null,
+          "computed": "weighted score from why/tradeability/execution",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.avg_drawdown_pct",
+          "mapped": true,
+          "source": null,
+          "computed": "AVG trade_outcomes.max_drawdown_pct",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.avg_pnl_pct",
+          "mapped": true,
+          "source": null,
+          "computed": "AVG trade_outcomes pnl_pct",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.entry_type",
+          "mapped": true,
+          "source": null,
+          "computed": "inferred from strategy",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.expected_move",
+          "mapped": true,
+          "source": "trade_outcomes.expected_move_percent",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 789,
+            "null_pct": 100,
+            "non_null_count": 0
+          }
+        },
+        {
+          "field": "execution_plan.expected_move_alignment",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "execution_plan.historical_win_rate",
+          "mapped": true,
+          "source": null,
+          "computed": "AVG trade_outcomes pnl/outcome",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.risk_level",
+          "mapped": true,
+          "source": null,
+          "computed": "inferred from win_probability and tradeability_score",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.setup_candidates",
+          "mapped": true,
+          "source": "trade_setups.setup_type",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 689,
+            "null_pct": 30.9144,
+            "non_null_count": 476
+          }
+        },
+        {
+          "field": "execution_plan.source_signal_id",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "execution_plan.strategy",
+          "mapped": true,
+          "source": "trade_setups.setup_type",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 689,
+            "null_pct": 30.9144,
+            "non_null_count": 476
+          }
+        },
+        {
+          "field": "execution_plan.win_probability",
+          "mapped": true,
+          "source": null,
+          "computed": "AVG signal_outcomes pnl/outcome",
+          "source_health": null
+        },
+        {
+          "field": "symbol",
+          "mapped": true,
+          "source": null,
+          "computed": "normalized request symbol",
+          "source_health": null
+        },
+        {
+          "field": "tradeability.float",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "tradeability.liquidity_score",
+          "mapped": true,
+          "source": null,
+          "computed": "market_metrics.liquidity_surge fallback volume strength and opportunity_stream.score",
+          "source_health": null
+        },
+        {
+          "field": "tradeability.range_pct",
+          "mapped": true,
+          "source": "market_metrics.atr_percent",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 14.4719,
+            "non_null_count": 5118
+          }
+        },
+        {
+          "field": "tradeability.rvol",
+          "mapped": true,
+          "source": "market_metrics.relative_volume",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 14.4218,
+            "non_null_count": 5121
+          }
+        },
+        {
+          "field": "tradeability.tradeability_score",
+          "mapped": true,
+          "source": null,
+          "computed": "weighted composite",
+          "source_health": null
+        },
+        {
+          "field": "why_moving.catalyst",
+          "mapped": true,
+          "source": null,
+          "computed": "trade_catalysts.headline fallback news_articles.headline",
+          "source_health": null
+        },
+        {
+          "field": "why_moving.catalyst_type",
+          "mapped": true,
+          "source": null,
+          "computed": "trade_catalysts.catalyst_type fallback news_articles.catalyst_type",
+          "source_health": null
+        },
+        {
+          "field": "why_moving.confidence",
+          "mapped": true,
+          "source": null,
+          "computed": "derived from sentiment+recency+expected_move",
+          "source_health": null
+        },
+        {
+          "field": "why_moving.narrative",
+          "mapped": true,
+          "source": null,
+          "computed": "derived narrative from catalyst + type",
+          "source_health": null
+        }
+      ]
+    },
+    "/api/intelligence/top-opportunities": {
+      "request_path": "/api/intelligence/top-opportunities?limit=10",
+      "status": 200,
+      "sample_rows": [
+        {
+          "symbol": "WNW",
+          "final_score": 100,
+          "decision_score": 59,
+          "score_primary": 100,
+          "raw_decision_score": 46.1,
+          "boost_score": 10,
+          "tqi_score": 100,
+          "catalyst_type": "technical",
+          "catalyst_strength": 10,
+          "strategy": "VWAP RECLAIM",
+          "relative_volume": 7757.594381233572,
+          "earnings_flag": false,
+          "news_count": 0,
+          "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+          "why_tradeable": "High RVOL (7757.59) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+          "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+          "win_rate": 0,
+          "regime": "low_activity",
+          "session_phase": "premarket_early",
+          "explanation": "High TQI + Regime: low_activity + Session: premarket_early",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "data_quality": "insufficient",
+          "trade_confidence": 100,
+          "completeness": 100,
+          "confidence": 1,
+          "adjusted_confidence": 1,
+          "trade_quality": 100,
+          "learning_weight": 52.3,
+          "priority_score": 100
+        },
+        {
+          "symbol": "LNSR",
+          "final_score": 83.78981058752098,
+          "decision_score": 19.15684,
+          "score_primary": 83.78981058752098,
+          "raw_decision_score": 37.9,
+          "boost_score": 30,
+          "tqi_score": 4.3921,
+          "catalyst_type": "earnings",
+          "catalyst_strength": 40,
+          "strategy": "VWAP RECLAIM",
+          "relative_volume": 30.453555081063794,
+          "earnings_flag": true,
+          "news_count": 0,
+          "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+          "why_tradeable": "High RVOL (30.45) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+          "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+          "win_rate": 0,
+          "regime": "low_activity",
+          "session_phase": "premarket_early",
+          "explanation": "Regime: low_activity + Session: premarket_early",
+          "execution_plan": {
+            "entry": "Reclaim of VWAP with volume",
+            "stop": "Below VWAP",
+            "target": "2R minimum"
+          },
+          "data_quality": "derived",
+          "trade_confidence": 76.8574,
+          "completeness": 100,
+          "confidence": 0.7686,
+          "adjusted_confidence": 0.7686,
+          "trade_quality": 95,
+          "learning_weight": 55.7306,
+          "priority_score": 67.4392
+        },
+        {
+          "symbol": "TAOX",
+          "final_score": 42.39796741771979,
+          "decision_score": 19.0126,
+          "score_primary": 42.39796741771979,
+          "raw_decision_score": 44.5,
+          "boost_score": 30,
+          "tqi_score": 4.0315,
+          "catalyst_type": "earnings",
+          "catalyst_strength": 40,
+          "strategy": "INTRADAY TREND",
+          "relative_volume": 2.442332636667706,
+          "earnings_flag": true,
+          "news_count": 0,
+          "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+          "why_tradeable": "High RVOL (2.44) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+          "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+          "win_rate": 0,
+          "regime": "low_activity",
+          "session_phase": "premarket_early",
+          "explanation": "Regime: low_activity + Session: premarket_early",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "data_quality": "derived",
+          "trade_confidence": 3.4873,
+          "completeness": 100,
+          "confidence": 0.0349,
+          "adjusted_confidence": 0.0349,
+          "trade_quality": 81,
+          "learning_weight": 48.5105,
+          "priority_score": 1.7448
+        },
+        {
+          "symbol": "EQ",
+          "final_score": 42.394608111656574,
+          "decision_score": 19.01108,
+          "score_primary": 42.394608111656574,
+          "raw_decision_score": 37.3,
+          "boost_score": 30,
+          "tqi_score": 4.0277,
+          "catalyst_type": "earnings",
+          "catalyst_strength": 40,
+          "strategy": "INTRADAY TREND",
+          "relative_volume": 2.1465592762640515,
+          "earnings_flag": true,
+          "news_count": 0,
+          "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+          "why_tradeable": "High RVOL (2.15) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+          "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+          "win_rate": 0,
+          "regime": "low_activity",
+          "session_phase": "premarket_early",
+          "explanation": "Regime: low_activity + Session: premarket_early",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "data_quality": "derived",
+          "trade_confidence": 3.4825,
+          "completeness": 100,
+          "confidence": 0.0348,
+          "adjusted_confidence": 0.0348,
+          "trade_quality": 81,
+          "learning_weight": 48.5104,
+          "priority_score": 1.7398
+        },
+        {
+          "symbol": "TENX",
+          "final_score": 42.394342905760695,
+          "decision_score": 19.01096,
+          "score_primary": 42.394342905760695,
+          "raw_decision_score": 43,
+          "boost_score": 30,
+          "tqi_score": 4.0274,
+          "catalyst_type": "earnings",
+          "catalyst_strength": 40,
+          "strategy": "INTRADAY TREND",
+          "relative_volume": 2.111814608494867,
+          "earnings_flag": true,
+          "news_count": 0,
+          "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+          "why_tradeable": "High RVOL (2.11) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+          "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+          "win_rate": 0,
+          "regime": "low_activity",
+          "session_phase": "premarket_early",
+          "explanation": "Regime: low_activity + Session: premarket_early",
+          "execution_plan": {
+            "entry": "Trend continuation",
+            "stop": "Recent support",
+            "target": "2R minimum"
+          },
+          "data_quality": "derived",
+          "trade_confidence": 3.4821,
+          "completeness": 100,
+          "confidence": 0.0348,
+          "adjusted_confidence": 0.0348,
+          "trade_quality": 81,
+          "learning_weight": 48.5104,
+          "priority_score": 1.7398
+        }
+      ],
+      "fields": [
+        "adjusted_confidence",
+        "boost_score",
+        "catalyst_strength",
+        "catalyst_type",
+        "completeness",
+        "confidence",
+        "data_quality",
+        "decision_score",
+        "earnings_flag",
+        "execution_plan.entry",
+        "execution_plan.stop",
+        "execution_plan.target",
+        "explanation",
+        "final_score",
+        "how_to_trade",
+        "learning_weight",
+        "news_count",
+        "priority_score",
+        "raw_decision_score",
+        "regime",
+        "relative_volume",
+        "score_primary",
+        "session_phase",
+        "strategy",
+        "symbol",
+        "tqi_score",
+        "trade_confidence",
+        "trade_quality",
+        "why_moving",
+        "why_tradeable",
+        "win_rate"
+      ],
+      "field_contract": [
+        {
+          "field": "adjusted_confidence",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "boost_score",
+          "mapped": true,
+          "source": "decision_view.boost_score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "catalyst_strength",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "catalyst_type",
+          "mapped": true,
+          "source": null,
+          "computed": "derived catalyst type",
+          "source_health": null
+        },
+        {
+          "field": "completeness",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "confidence",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "data_quality",
+          "mapped": true,
+          "source": null,
+          "computed": "decision engine output",
+          "source_health": null
+        },
+        {
+          "field": "decision_score",
+          "mapped": true,
+          "source": "decision_view.decision_score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "earnings_flag",
+          "mapped": true,
+          "source": null,
+          "computed": "decision_view.earnings_signal or earnings_events proximity",
+          "source_health": null
+        },
+        {
+          "field": "execution_plan.entry",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "execution_plan.stop",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "execution_plan.target",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "explanation",
+          "mapped": true,
+          "source": null,
+          "computed": "derived explanation",
+          "source_health": null
+        },
+        {
+          "field": "final_score",
+          "mapped": true,
+          "source": "decision_view.final_score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "how_to_trade",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "learning_weight",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "news_count",
+          "mapped": true,
+          "source": null,
+          "computed": "context enrichment",
+          "source_health": null
+        },
+        {
+          "field": "priority_score",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "raw_decision_score",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "regime",
+          "mapped": true,
+          "source": null,
+          "computed": "system_state.market_regime",
+          "source_health": null
+        },
+        {
+          "field": "relative_volume",
+          "mapped": true,
+          "source": "decision_view.relative_volume",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "score_primary",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        },
+        {
+          "field": "session_phase",
+          "mapped": true,
+          "source": "decision_view.session_phase",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "strategy",
+          "mapped": true,
+          "source": null,
+          "computed": "derived strategy from detectStrategy / decision",
+          "source_health": null
+        },
+        {
+          "field": "symbol",
+          "mapped": true,
+          "source": "decision_view.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "tqi_score",
+          "mapped": true,
+          "source": "decision_view.tqi_score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "trade_confidence",
+          "mapped": true,
+          "source": null,
+          "computed": "normalized confidence",
+          "source_health": null
+        },
+        {
+          "field": "trade_quality",
+          "mapped": true,
+          "source": null,
+          "computed": "engine quality score",
+          "source_health": null
+        },
+        {
+          "field": "why_moving",
+          "mapped": true,
+          "source": null,
+          "computed": "derived narrative",
+          "source_health": null
+        },
+        {
+          "field": "why_tradeable",
+          "mapped": true,
+          "source": null,
+          "computed": "derived narrative",
+          "source_health": null
+        },
+        {
+          "field": "win_rate",
+          "mapped": false,
+          "source": null,
+          "computed": null
+        }
+      ]
+    },
+    "/api/earnings/calendar": {
+      "request_path": "/api/earnings/calendar?limit=5",
+      "status": 200,
+      "sample_rows": [
+        {
+          "symbol": "AACG",
+          "report_date": "2026-03-24",
+          "time": "BMO",
+          "price": "1.03",
+          "market_cap": "16362816",
+          "volume": "49672",
+          "rvol": "3.4190371740217785",
+          "atr": "0.06283571428571427857",
+          "expected_move": "6.100554785020803",
+          "expected_move_percent": "6.100554785020803",
+          "final_score": null,
+          "score": null,
+          "eps_estimate": null,
+          "eps_actual": null,
+          "revenue_estimate": null,
+          "revenue_actual": null,
+          "surprise": null,
+          "sector": null,
+          "trade_class": "A",
+          "setup": "Momentum Breakout",
+          "trade_confidence": "HIGH",
+          "trade_reason": "High expected move + strong participation + mid/low cap",
+          "execution_plan": "Break of pre-market high OR VWAP reclaim with volume expansion",
+          "bias": "NEUTRAL"
+        },
+        {
+          "symbol": "AAME",
+          "report_date": "2026-03-24",
+          "time": "BMO",
+          "price": "2.698",
+          "market_cap": "55031721",
+          "volume": "4002",
+          "rvol": "0.28047338936882975551",
+          "atr": "0.15214285714285708571",
+          "expected_move": "5.6390977443609",
+          "expected_move_percent": "5.6390977443609",
+          "final_score": null,
+          "score": null,
+          "eps_estimate": null,
+          "eps_actual": null,
+          "revenue_estimate": null,
+          "revenue_actual": null,
+          "surprise": null,
+          "sector": null,
+          "trade_class": "C",
+          "setup": "Low Conviction",
+          "trade_confidence": "LOW",
+          "trade_reason": "Insufficient move or volume",
+          "execution_plan": "Avoid or wait for confirmation",
+          "bias": "NEUTRAL"
+        },
+        {
+          "symbol": "ABSI",
+          "report_date": "2026-03-24",
+          "time": "BMO",
+          "price": "3.08",
+          "market_cap": "463144315",
+          "volume": "3767699",
+          "rvol": "1.2511228518157043",
+          "atr": "0.17857142857142857143",
+          "expected_move": "5.7977736549165115",
+          "expected_move_percent": "5.7977736549165115",
+          "final_score": null,
+          "score": null,
+          "eps_estimate": -0.17778,
+          "eps_actual": null,
+          "revenue_estimate": 1381250,
+          "revenue_actual": null,
+          "surprise": null,
+          "sector": null,
+          "trade_class": "B",
+          "setup": "Continuation / VWAP",
+          "trade_confidence": "MEDIUM",
+          "trade_reason": "Moderate move + acceptable volume",
+          "execution_plan": "VWAP reclaim or pullback continuation",
+          "bias": "NEUTRAL"
+        },
+        {
+          "symbol": "ACHV",
+          "report_date": "2026-03-24",
+          "time": "BMO",
+          "price": "4.56",
+          "market_cap": null,
+          "volume": "0",
+          "rvol": "0.000000000000000000000000",
+          "atr": "0.24571428571428571429",
+          "expected_move": "5.388471177944862",
+          "expected_move_percent": "5.388471177944862",
+          "final_score": null,
+          "score": null,
+          "eps_estimate": -0.288,
+          "eps_actual": null,
+          "revenue_estimate": null,
+          "revenue_actual": null,
+          "surprise": null,
+          "sector": null,
+          "trade_class": "C",
+          "setup": "Low Conviction",
+          "trade_confidence": "LOW",
+          "trade_reason": "Insufficient move or volume",
+          "execution_plan": "Avoid or wait for confirmation",
+          "bias": "NEUTRAL"
+        },
+        {
+          "symbol": "AIR",
+          "report_date": "2026-03-24",
+          "time": "BMO",
+          "price": "105.64",
+          "market_cap": "4180438900",
+          "volume": "419227",
+          "rvol": "1.0564071300200886",
+          "atr": "3.2450000000000000",
+          "expected_move": "3.071753123816736",
+          "expected_move_percent": "3.071753123816736",
+          "final_score": null,
+          "score": null,
+          "eps_estimate": 1.15,
+          "eps_actual": null,
+          "revenue_estimate": 812576330,
+          "revenue_actual": null,
+          "surprise": null,
+          "sector": null,
+          "trade_class": "C",
+          "setup": "Low Conviction",
+          "trade_confidence": "LOW",
+          "trade_reason": "Insufficient move or volume",
+          "execution_plan": "Avoid or wait for confirmation",
+          "bias": "NEUTRAL"
+        }
+      ],
+      "fields": [
+        "atr",
+        "bias",
+        "eps_actual",
+        "eps_estimate",
+        "execution_plan",
+        "expected_move",
+        "expected_move_percent",
+        "final_score",
+        "market_cap",
+        "price",
+        "report_date",
+        "revenue_actual",
+        "revenue_estimate",
+        "rvol",
+        "score",
+        "sector",
+        "setup",
+        "surprise",
+        "symbol",
+        "time",
+        "trade_class",
+        "trade_confidence",
+        "trade_reason",
+        "volume"
+      ],
+      "field_contract": [
+        {
+          "field": "atr",
+          "mapped": true,
+          "source": "market_metrics.atr",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 14.4218,
+            "non_null_count": 5121
+          }
+        },
+        {
+          "field": "bias",
+          "mapped": true,
+          "source": null,
+          "computed": "deriveBias",
+          "source_health": null
+        },
+        {
+          "field": "eps_actual",
+          "mapped": true,
+          "source": "earnings_events.eps_actual",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 100,
+            "non_null_count": 0
+          }
+        },
+        {
+          "field": "eps_estimate",
+          "mapped": true,
+          "source": "earnings_events.eps_estimate",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 28.2468,
+            "non_null_count": 442
+          }
+        },
+        {
+          "field": "execution_plan",
+          "mapped": true,
+          "source": null,
+          "computed": "decision_view.execution_plan fallback buildExecutionPlan",
+          "source_health": null
+        },
+        {
+          "field": "expected_move",
+          "mapped": true,
+          "source": null,
+          "computed": "earnings_events.expected_move_percent fallback atr/price",
+          "source_health": null
+        },
+        {
+          "field": "expected_move_percent",
+          "mapped": true,
+          "source": null,
+          "computed": "same as expected_move",
+          "source_health": null
+        },
+        {
+          "field": "final_score",
+          "mapped": true,
+          "source": "decision_view.final_score",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 421,
+            "null_pct": 0,
+            "non_null_count": 421
+          }
+        },
+        {
+          "field": "market_cap",
+          "mapped": true,
+          "source": "market_quotes.market_cap",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 18.7834,
+            "non_null_count": 4860
+          }
+        },
+        {
+          "field": "price",
+          "mapped": true,
+          "source": null,
+          "computed": "COALESCE market_metrics.price, market_quotes.price, external quote",
+          "source_health": null
+        },
+        {
+          "field": "report_date",
+          "mapped": true,
+          "source": "earnings_events.report_date",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 0,
+            "non_null_count": 616
+          }
+        },
+        {
+          "field": "revenue_actual",
+          "mapped": true,
+          "source": "earnings_events.rev_actual",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 100,
+            "non_null_count": 0
+          }
+        },
+        {
+          "field": "revenue_estimate",
+          "mapped": true,
+          "source": "earnings_events.rev_estimate",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 49.026,
+            "non_null_count": 314
+          }
+        },
+        {
+          "field": "rvol",
+          "mapped": true,
+          "source": "market_metrics.relative_volume",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 5984,
+            "null_pct": 14.4218,
+            "non_null_count": 5121
+          }
+        },
+        {
+          "field": "score",
+          "mapped": true,
+          "source": null,
+          "computed": "final_score fallback earnings_events.score",
+          "source_health": null
+        },
+        {
+          "field": "sector",
+          "mapped": true,
+          "source": "earnings_events.sector",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 100,
+            "non_null_count": 0
+          }
+        },
+        {
+          "field": "setup",
+          "mapped": true,
+          "source": null,
+          "computed": "classifyEarningsTrade setup",
+          "source_health": null
+        },
+        {
+          "field": "surprise",
+          "mapped": true,
+          "source": "earnings_events.eps_surprise_pct",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 100,
+            "non_null_count": 0
+          }
+        },
+        {
+          "field": "symbol",
+          "mapped": true,
+          "source": "earnings_events.symbol",
+          "computed": null,
+          "source_health": {
+            "exists": true,
+            "table_exists": true,
+            "column_exists": true,
+            "row_count": 616,
+            "null_pct": 0,
+            "non_null_count": 616
+          }
+        },
+        {
+          "field": "time",
+          "mapped": true,
+          "source": null,
+          "computed": "COALESCE earnings_events.report_time/time",
+          "source_health": null
+        },
+        {
+          "field": "trade_class",
+          "mapped": true,
+          "source": null,
+          "computed": "decision_view.trade_class fallback classifyEarningsTrade",
+          "source_health": null
+        },
+        {
+          "field": "trade_confidence",
+          "mapped": true,
+          "source": null,
+          "computed": "classifyEarningsTrade confidence",
+          "source_health": null
+        },
+        {
+          "field": "trade_reason",
+          "mapped": true,
+          "source": null,
+          "computed": "classifyEarningsTrade reason",
+          "source_health": null
+        },
+        {
+          "field": "volume",
+          "mapped": true,
+          "source": null,
+          "computed": "COALESCE market_metrics.volume, market_quotes.volume, external quote",
+          "source_health": null
+        }
+      ]
+    }
+  },
+  "field_mismatches": [
+    "DecisionCard: UI field 'bias' has no direct endpoint field match",
+    "DecisionCard: UI field 'expectedMoveLabel' has no direct endpoint field match",
+    "DecisionCard: UI field 'catalystType' has no direct endpoint field match",
+    "TopOpportunities: UI field 'confidence_context_percent' has no direct endpoint field match",
+    "EarningsPage: UI field 'event_date' has no direct endpoint field match",
+    "EarningsPage: UI field 'tradeability' has no direct endpoint field match"
+  ],
+  "pipeline_status": {
+    "signals_rows": 1189,
+    "trade_setups_rows": 689,
+    "signal_outcomes_rows": 779,
+    "trade_outcomes_rows": 789,
+    "symbols_signals_to_setups": 689,
+    "symbols_signals_to_signal_outcomes": 414,
+    "symbols_signals_to_trade_outcomes": 413,
+    "symbols_full_chain": 407,
+    "pass_threshold_gt_50_symbols": true
+  },
+  "decision_engine_truth": [
+    {
+      "symbol": "ULTA",
+      "endpoint_status": 200,
+      "execution_plan_present": true,
+      "decision_score_present": true,
+      "data_quality_flag": "sufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_outcomes.expected_move_percent",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": true,
+        "trade_outcomes": true,
+        "trade_catalysts": true,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "BRZE",
+      "endpoint_status": 200,
+      "execution_plan_present": true,
+      "decision_score_present": true,
+      "data_quality_flag": "derived",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_outcomes.max_drawdown_pct",
+        "trade_outcomes.expected_move_percent",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": true,
+        "trade_outcomes": true,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "CADL",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup_type",
+        "signal_outcomes:no_row",
+        "trade_outcomes:no_row",
+        "trade_catalysts:no_row",
+        "news_articles.catalyst_type"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": false,
+        "trade_outcomes": false,
+        "trade_catalysts": false,
+        "news_articles": true
+      }
+    },
+    {
+      "symbol": "SOJE",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup_type",
+        "signal_outcomes:no_row",
+        "trade_outcomes:no_row",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": false,
+        "trade_outcomes": false,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "NRXP",
+      "endpoint_status": 200,
+      "execution_plan_present": true,
+      "decision_score_present": true,
+      "data_quality_flag": "derived",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_outcomes.max_drawdown_pct",
+        "trade_outcomes.expected_move_percent",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": true,
+        "trade_outcomes": true,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "RAND",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup_type",
+        "signal_outcomes:no_row",
+        "trade_outcomes:no_row",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": false,
+        "trade_outcomes": false,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "BVN",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup_type",
+        "signal_outcomes:no_row",
+        "trade_outcomes:no_row",
+        "trade_catalysts:no_row",
+        "news_articles.catalyst_type"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": false,
+        "trade_outcomes": false,
+        "trade_catalysts": false,
+        "news_articles": true
+      }
+    },
+    {
+      "symbol": "PSKY",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup_type",
+        "signal_outcomes:no_row",
+        "trade_outcomes:no_row",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": false,
+        "trade_outcomes": false,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "MEOH",
+      "endpoint_status": 200,
+      "execution_plan_present": false,
+      "decision_score_present": true,
+      "data_quality_flag": "insufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_setups.setup",
+        "trade_outcomes.expected_move_percent",
+        "trade_catalysts:no_row",
+        "news_articles:no_row"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": true,
+        "trade_outcomes": true,
+        "trade_catalysts": false,
+        "news_articles": false
+      }
+    },
+    {
+      "symbol": "ATLN",
+      "endpoint_status": 200,
+      "execution_plan_present": true,
+      "decision_score_present": true,
+      "data_quality_flag": "sufficient",
+      "null_input_fields": [
+        "market_metrics.liquidity_surge",
+        "trade_outcomes.expected_move_percent",
+        "trade_catalysts:no_row",
+        "news_articles.catalyst_type"
+      ],
+      "input_rows_present": {
+        "market_metrics": true,
+        "trade_setups": true,
+        "signal_outcomes": true,
+        "trade_outcomes": true,
+        "trade_catalysts": false,
+        "news_articles": true
+      }
+    }
+  ],
+  "ui_truth": {
+    "PreMarketCommand": {
+      "files": [
+        "trading-os/src/components/terminal/dashboard-view.tsx",
+        "trading-os/src/components/terminal/trading-terminal-view.tsx"
+      ],
+      "displayed_fields": [
+        "symbol",
+        "strategy",
+        "expected_move_percent",
+        "entry",
+        "stop_loss",
+        "take_profit"
+      ],
+      "endpoint": "/api/intelligence/top-opportunity",
+      "source": "market_metrics + trade_setups + trade_catalysts + market_quotes (computed confidence)",
+      "backed_fields": [
+        "symbol",
+        "strategy",
+        "expected_move_percent",
+        "entry",
+        "stop_loss",
+        "take_profit"
+      ],
+      "unbacked_fields": []
+    },
+    "DecisionCard": {
+      "files": [
+        "trading-os/src/components/terminal/research-view.tsx"
+      ],
+      "displayed_fields": [
+        "bias",
+        "expectedMoveLabel",
+        "catalystType",
+        "probability",
+        "confidence"
+      ],
+      "endpoint": "/api/intelligence/markets + /api/news + /api/earnings/calendar (client-computed decision)",
+      "source": "client-side buildStockDecision derived from overview/news/earnings",
+      "backed_fields": [
+        "probability",
+        "confidence"
+      ],
+      "unbacked_fields": [
+        "bias",
+        "expectedMoveLabel",
+        "catalystType"
+      ]
+    },
+    "TopOpportunities": {
+      "files": [
+        "trading-os/src/components/terminal/trading-terminal-view.tsx",
+        "trading-os/src/components/terminal/dashboard-view.tsx"
+      ],
+      "displayed_fields": [
+        "symbol",
+        "strategy",
+        "confidence_context_percent",
+        "expected_move_percent",
+        "entry",
+        "stop_loss",
+        "take_profit",
+        "rvol"
+      ],
+      "endpoint": "/api/intelligence/top-opportunity",
+      "source": "trade_setups + market_metrics + trade_catalysts + market_quotes",
+      "backed_fields": [
+        "symbol",
+        "strategy",
+        "expected_move_percent",
+        "entry",
+        "stop_loss",
+        "take_profit",
+        "rvol"
+      ],
+      "unbacked_fields": [
+        "confidence_context_percent"
+      ]
+    },
+    "EarningsPage": {
+      "files": [
+        "trading-os/src/components/terminal/earnings-view.tsx"
+      ],
+      "displayed_fields": [
+        "symbol",
+        "event_date",
+        "time",
+        "market_cap",
+        "volume",
+        "expected_move",
+        "score",
+        "tradeability"
+      ],
+      "endpoint": "/api/earnings/calendar",
+      "source": "earnings_events + decision_view + market_metrics + market_quotes + computed classification",
+      "backed_fields": [
+        "symbol",
+        "time",
+        "market_cap",
+        "volume",
+        "expected_move",
+        "score"
+      ],
+      "unbacked_fields": [
+        "event_date",
+        "tradeability"
+      ]
+    }
+  },
+  "data_quality_issues": [
+    "/api/intelligence/decision/:symbol: source always null for field 'execution_plan.expected_move' -> trade_outcomes.expected_move_percent",
+    "/api/intelligence/decision/:symbol: computed field 'tradeability.liquidity_score' depends on always-null input market_metrics.liquidity_surge",
+    "/api/intelligence/decision/:symbol: computed field 'tradeability.tradeability_score' depends on always-null input market_metrics.liquidity_surge",
+    "/api/intelligence/decision/:symbol: computed field 'why_moving.confidence' depends on always-null input trade_outcomes.expected_move_percent",
+    "/api/earnings/calendar: computed field 'bias' depends on always-null input earnings_events.eps_surprise_pct",
+    "/api/earnings/calendar: computed field 'bias' depends on always-null input earnings_events.rev_surprise_pct",
+    "/api/earnings/calendar: source always null for field 'eps_actual' -> earnings_events.eps_actual",
+    "/api/earnings/calendar: source always null for field 'revenue_actual' -> earnings_events.rev_actual",
+    "/api/earnings/calendar: source always null for field 'sector' -> earnings_events.sector",
+    "/api/earnings/calendar: source always null for field 'surprise' -> earnings_events.eps_surprise_pct",
+    "/api/earnings/calendar: computed field 'time' depends on always-null input earnings_events.time",
+    "Decision endpoint sparse for CADL: execution_plan=false, decision_score=true",
+    "Decision endpoint sparse for SOJE: execution_plan=false, decision_score=true",
+    "Decision endpoint sparse for RAND: execution_plan=false, decision_score=true",
+    "Decision endpoint sparse for BVN: execution_plan=false, decision_score=true",
+    "Decision endpoint sparse for PSKY: execution_plan=false, decision_score=true",
+    "Decision endpoint sparse for MEOH: execution_plan=false, decision_score=true",
+    "Top opportunity WNW flagged: not_actively_moving",
+    "Top opportunity LNSR flagged: not_actively_moving",
+    "Top opportunity TAOX flagged: not_actively_moving",
+    "Top opportunity EQ flagged: not_actively_moving",
+    "Top opportunity TENX flagged: not_actively_moving"
+  ],
+  "critical_errors": [
+    "/api/market/quotes: non-200 response (503)",
+    "/api/market/overview: field 'volatility.VIX.volume' has no source mapping",
+    "/api/intelligence/decision/:symbol: field 'execution_plan.expected_move_alignment' has no source mapping",
+    "/api/intelligence/decision/:symbol: field 'execution_plan.source_signal_id' has no source mapping",
+    "/api/intelligence/decision/:symbol: field 'tradeability.float' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'adjusted_confidence' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'catalyst_strength' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'completeness' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'confidence' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'execution_plan.entry' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'execution_plan.stop' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'execution_plan.target' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'how_to_trade' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'learning_weight' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'priority_score' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'raw_decision_score' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'score_primary' has no source mapping",
+    "/api/intelligence/top-opportunities: field 'win_rate' has no source mapping",
+    "PreMarketCommand component not found by explicit name; potential UI surface drift"
+  ],
+  "verdict": "FAIL",
+  "metadata": {
+    "api_base": "http://127.0.0.1:3001",
+    "audited_endpoints": [
+      "/api/screener",
+      "/api/market/quotes",
+      "/api/market/overview",
+      "/api/signals",
+      "/api/intelligence/decision/:symbol",
+      "/api/intelligence/top-opportunities",
+      "/api/earnings/calendar"
+    ]
+  },
+  "data_truth_test": {
+    "tested": 5,
+    "issues": [
+      {
+        "symbol": "WNW",
+        "issues": [
+          "not_actively_moving"
+        ]
+      },
+      {
+        "symbol": "LNSR",
+        "issues": [
+          "not_actively_moving"
+        ]
+      },
+      {
+        "symbol": "TAOX",
+        "issues": [
+          "not_actively_moving"
+        ]
+      },
+      {
+        "symbol": "EQ",
+        "issues": [
+          "not_actively_moving"
+        ]
+      },
+      {
+        "symbol": "TENX",
+        "issues": [
+          "not_actively_moving"
+        ]
+      }
+    ]
+  },
+  "schema_gaps": {
+    "missing_required_columns": [],
+    "duplicate_semantic_fields": [
+      {
+        "group": "relative_volume",
+        "variants": [
+          "rvol (UI/backend alias)",
+          "relative_volume (DB canonical)"
+        ],
+        "note": "Aliasing exists across UI and API responses."
+      }
+    ],
+    "unused_tables": []
+  }
+}

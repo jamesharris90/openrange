@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-04-04T16:15:26.030Z",
+  "phase": "audit_before_fix",
+  "tables": {
+    "earnings_events": {
+      "exists": true,
+      "row_count": 425,
+      "null_report_time_count": 175,
+      "missing_report_date_count": 0,
+      "missing_eps_estimate_count": 119
+    },
+    "earnings_history": {
+      "exists": false,
+      "row_count": null,
+      "null_eps_actual_count": null
+    }
+  },
+  "findings": [
+    "No dedicated earnings_history table existed before the fix.",
+    "earnings_events contained null critical fields, including 175 null report_time values and 119 null eps_estimate values.",
+    "The live codebase had overlapping earnings ingestion paths and deprecated endpoint usage that did not satisfy the stable-source-only requirement.",
+    "Research payload assembly depended on history data that was not being populated from a dedicated authoritative table."
+  ]
+}

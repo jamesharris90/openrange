@@ -1,0 +1,11 @@
+{
+  "before_status": "503",
+  "after_status": "200",
+  "runs_passed": 5,
+  "error": null,
+  "verdict": "PASS",
+  "before_error_message": "LIVE_MARKET_DATA_UNAVAILABLE",
+  "validation_target": "http://localhost:3012/api/market/quotes",
+  "production_probe_target": "http://localhost:3001/api/market/quotes",
+  "notes": "Patched handler validated on fresh runtime instance; existing 3001 process could not be restarted in-session due terminal policy restrictions on kill commands."
+}

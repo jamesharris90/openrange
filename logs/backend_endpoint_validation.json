@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-03-23T22:38:35.361Z",
+  "base_url": "http://localhost:3001",
+  "checks": [
+    {
+      "endpoint": "/api/intelligence/top-opportunities?limit=5",
+      "status": 200,
+      "isArray": true,
+      "count": 5,
+      "fields": {
+        "symbol": true,
+        "why": true,
+        "how": true,
+        "confidence": true
+      },
+      "live_source": true,
+      "sample_source": "real",
+      "pass": true,
+      "error": null
+    },
+    {
+      "endpoint": "/api/stocks-in-play",
+      "status": 200,
+      "isArray": true,
+      "count": 1,
+      "fields": {
+        "symbol": true,
+        "why": true,
+        "how": true,
+        "confidence": true
+      },
+      "live_source": false,
+      "sample_source": "fallback",
+      "pass": false,
+      "error": null
+    }
+  ],
+  "pass": false,
+  "after_force_run": true
+}

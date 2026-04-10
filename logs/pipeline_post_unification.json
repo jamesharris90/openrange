@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-03-30T04:01:00Z",
+  "pipeline_version": "bulletproof-v1",
+  "phases_completed": [1,2,3,4,5,6,7,8,9,10,11],
+  "new_files": [
+    "server/engines/marketDataEngine.js",
+    "server/system/dataScheduler.js",
+    "server/engines/marketIntegrityEngine.js"
+  ],
+  "modified_files": [
+    "server/utils/contractValidator.js",
+    "server/index.js"
+  ],
+  "fmp_endpoints_confirmed": [
+    "/quote?symbol=X (single only)",
+    "/historical-chart/1min?symbol=X (~1170 bars)",
+    "/historical-chart/1hour?symbol=X (~421 bars, used for daily aggregation)",
+    "/historical-price-eod/light?symbol=X (price+volume only)"
+  ],
+  "validation_results": {
+    "active_symbols": 6379,
+    "ingest_quotes_test": { "symbols": 2, "updated": 2, "errors": 0, "duration_ms": 738 },
+    "ingest_intraday_test": { "symbols": 1, "rows_written": 0, "errors": 0, "note": "DO NOTHING on existing rows" },
+    "ingest_metrics_test": { "symbols": 5, "updated": 4, "errors": 0, "duration_ms": 335 },
+    "integrity_checks": {
+      "stale_quotes": 50,
+      "missing_intraday": 0,
+      "zero_volume": 20,
+      "daily_gaps": 20
+    },
+    "market_mode": "PREP",
+    "market_mode_reason": "weekend - market closed, 55h since last session"
+  },
+  "scheduler_intervals": {
+    "LIVE":   { "quotes": "60s", "intraday": "5min", "daily": null, "metrics": "5min" },
+    "RECENT": { "quotes": "5min", "intraday": "30min", "daily": "60min", "metrics": "30min" },
+    "PREP":   { "quotes": "60min", "intraday": null, "daily": "60min", "metrics": "60min" }
+  },
+  "contract_enforcement": {
+    "quotes": "validateQuotes() — fails if all prices are 0",
+    "no_real_data_response": "{ success: false, error: 'NO_REAL_DATA', data: [] }",
+    "ingestion_status_endpoint": "GET /api/ingestion/status"
+  }
+}

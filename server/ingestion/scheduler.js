@@ -4,6 +4,7 @@ const { runNewsIngestion } = require('./fmp_news_ingest');
 const { runStockNewsIngestion } = require('./fmp_stock_news_ingest');
 const { runAll: runEarningsActuals } = require('./fmp_earnings_actuals_ingest');
 const { runPricesIngestion } = require('./fmp_prices_ingest');
+const { runLiveQuotesIngestion } = require('./fmp_live_quotes_ingest');
 const { runEarningsIngestion } = require('./fmp_earnings_ingest');
 const { runAnalystEnrichmentIngestion } = require('./fmp_analyst_enrichment_ingest');
 const { runTranscriptsIngestion } = require('./fmp_transcripts_ingest');
@@ -17,8 +18,21 @@ const { runNewsEnrichmentEngine } = require('../services/newsEnrichmentEngine');
 const { runSignalEvaluation, refreshPerformanceCache } = require('../services/signalEvaluationEngine');
 const { runRegimeCapture } = require('../services/marketRegimeEngine');
 const { runCatalystBackfill } = require('../engines/catalystBackfillEngine');
+const { runNightlyIncrementalBacktest } = require('../backtester/engine');
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
+
+const isRailwayRuntime = Boolean(
+  process.env.RAILWAY_PROJECT_ID
+  || process.env.RAILWAY_ENVIRONMENT_ID
+  || process.env.RAILWAY_SERVICE_ID
+);
+const startupInitialDelayMs = Number(process.env.STARTUP_JOB_INITIAL_DELAY_MS || (isRailwayRuntime ? 30000 : 0));
+const startupStaggerMs = Number(process.env.STARTUP_JOB_STAGGER_MS || (isRailwayRuntime ? 15000 : 0));
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function bridgeStrategySignals() {
   const result = await queryWithTimeout(
@@ -40,6 +54,31 @@ async function bridgeStrategySignals() {
 
 let started = false;
 const inFlightJobs = new Set();
+const JOB_SCHEDULES = {
+  intraday_1m: '*/1 * * * *',
+  live_quotes: '*/5 * * * *',
+  news_articles: '*/15 * * * *',
+  stock_news: '*/15 * * * *',
+  tracked_universe_cleanup: '0 * * * *',
+  build_morning_universe: '0 8 * * 1-5',
+  daily_ohlc: '5 0 * * *',
+  earnings_events: '0 */6 * * *',
+  analyst_enrichment: '30 */6 * * *',
+  ipo_calendar: '0 6 * * 1-5',
+  earnings_actuals: '0 */4 * * *',
+  earnings_transcripts: '12 0 * * *',
+  company_profiles: '15 0 * * *',
+  ticker_universe: '20 0 * * *',
+  narrative_engine: '*/5 * * * *',
+  regime_capture: '*/5 * * * *',
+  news_enrichment: '*/10 * * * *',
+  catalyst_backfill: '*/15 * * * *',
+  signal_evaluation: '*/10 * * * *',
+  signal_bridge: '*/15 * * * *',
+  baseline_cache: '*/30 * * * *',
+  perf_cache_refresh: '*/30 * * * *',
+  nightly_strategy_backtest: '30 21 * * 1-5',
+};
 
 function safeRun(name, fn) {
   return async () => {
@@ -74,68 +113,69 @@ function startIngestionScheduler() {
   if (started) return;
   started = true;
 
-  cron.schedule('*/1 * * * *',   safeRun('intraday_1m',           runIntradayIngestion));
-  cron.schedule('*/15 * * * *',  safeRun('news_articles',          runNewsIngestion));
-  cron.schedule('*/15 * * * *',  safeRun('stock_news',             runStockNewsIngestion));
-  cron.schedule('0 * * * *',     safeRun('tracked_universe_cleanup', cleanupTrackedUniverse));
-  cron.schedule('0 8 * * 1-5',   safeRun('build_morning_universe', buildMorningUniverse));
-  cron.schedule('5 0 * * *',     safeRun('daily_ohlc',             runPricesIngestion));
-  cron.schedule('0 */6 * * *',   safeRun('earnings_events',        runEarningsIngestion));
-  cron.schedule('30 */6 * * *',  safeRun('analyst_enrichment',     runAnalystEnrichmentIngestion));
-  cron.schedule('0 6 * * 1-5',   safeRun('ipo_calendar',           () => refreshIpoCalendar(4)));
-  cron.schedule('0 */4 * * *',   safeRun('earnings_actuals',       runEarningsActuals));
-  cron.schedule('12 0 * * *',    safeRun('earnings_transcripts',   runTranscriptsIngestion));
-  cron.schedule('15 0 * * *',    safeRun('company_profiles',       runProfilesIngestion));
-  cron.schedule('20 0 * * *',    safeRun('ticker_universe',        runUniverseIngestion));
-  cron.schedule('*/5 * * * *',   safeRun('narrative_engine',       runNarrativeEngine));
-  cron.schedule('*/5 * * * *',   safeRun('regime_capture',         runRegimeCapture));
-  cron.schedule('*/10 * * * *',  safeRun('news_enrichment',        runNewsEnrichmentEngine));
-  cron.schedule('*/15 * * * *',  safeRun('catalyst_backfill',      () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })));
-  cron.schedule('*/10 * * * *',  safeRun('signal_evaluation',      runSignalEvaluation));
-  cron.schedule('*/15 * * * *',  safeRun('signal_bridge',          bridgeStrategySignals));
-  cron.schedule('*/30 * * * *',  safeRun('baseline_cache',         runBaselineEngine));
-  cron.schedule('*/30 * * * *',  safeRun('perf_cache_refresh',     refreshPerformanceCache));
+  cron.schedule(JOB_SCHEDULES.intraday_1m, safeRun('intraday_1m', runIntradayIngestion));
+  cron.schedule(JOB_SCHEDULES.live_quotes, safeRun('live_quotes', runLiveQuotesIngestion));
+  cron.schedule(JOB_SCHEDULES.news_articles, safeRun('news_articles', runNewsIngestion));
+  cron.schedule(JOB_SCHEDULES.stock_news, safeRun('stock_news', runStockNewsIngestion));
+  cron.schedule(JOB_SCHEDULES.tracked_universe_cleanup, safeRun('tracked_universe_cleanup', cleanupTrackedUniverse));
+  cron.schedule(JOB_SCHEDULES.build_morning_universe, safeRun('build_morning_universe', buildMorningUniverse));
+  cron.schedule(JOB_SCHEDULES.daily_ohlc, safeRun('daily_ohlc', runPricesIngestion));
+  cron.schedule(JOB_SCHEDULES.earnings_events, safeRun('earnings_events', runEarningsIngestion));
+  cron.schedule(JOB_SCHEDULES.analyst_enrichment, safeRun('analyst_enrichment', runAnalystEnrichmentIngestion));
+  cron.schedule(JOB_SCHEDULES.ipo_calendar, safeRun('ipo_calendar', () => refreshIpoCalendar(4)));
+  cron.schedule(JOB_SCHEDULES.earnings_actuals, safeRun('earnings_actuals', runEarningsActuals));
+  cron.schedule(JOB_SCHEDULES.earnings_transcripts, safeRun('earnings_transcripts', runTranscriptsIngestion));
+  cron.schedule(JOB_SCHEDULES.company_profiles, safeRun('company_profiles', runProfilesIngestion));
+  cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion));
+  cron.schedule(JOB_SCHEDULES.narrative_engine, safeRun('narrative_engine', runNarrativeEngine));
+  cron.schedule(JOB_SCHEDULES.regime_capture, safeRun('regime_capture', runRegimeCapture));
+  cron.schedule(JOB_SCHEDULES.news_enrichment, safeRun('news_enrichment', runNewsEnrichmentEngine));
+  cron.schedule(JOB_SCHEDULES.catalyst_backfill, safeRun('catalyst_backfill', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })));
+  cron.schedule(JOB_SCHEDULES.signal_evaluation, safeRun('signal_evaluation', runSignalEvaluation));
+  cron.schedule(JOB_SCHEDULES.signal_bridge, safeRun('signal_bridge', bridgeStrategySignals));
+  cron.schedule(JOB_SCHEDULES.baseline_cache, safeRun('baseline_cache', runBaselineEngine));
+  cron.schedule(JOB_SCHEDULES.perf_cache_refresh, safeRun('perf_cache_refresh', refreshPerformanceCache));
+  cron.schedule(JOB_SCHEDULES.nightly_strategy_backtest, safeRun('nightly_strategy_backtest', runNightlyIncrementalBacktest));
 
+  logger.info('[SCHEDULER] Started. Jobs: ' + JSON.stringify(JOB_SCHEDULES));
   logger.info('[SCHEDULER STARTED] ingestion scheduler active', {
-    schedules: {
-      intraday:               '*/1 * * * *',
-      news:                   '*/15 * * * *',
-      stockNews:              '*/15 * * * *',
-      trackedUniverseCleanup: '0 * * * *',
-      buildMorningUniverse:   '0 8 * * 1-5',
-      prices:                 '5 0 * * *',
-      earnings:               '0 */6 * * *',
-      analystEnrichment:      '30 */6 * * *',
-      ipoCalendar:            '0 6 * * 1-5',
-      earningsActuals:        '0 */4 * * *',
-      transcripts:            '12 0 * * *',
-      profiles:               '15 0 * * *',
-      universe:               '20 0 * * *',
-      narrativeEngine:        '*/5 * * * *',
-      regimeCapture:          '*/5 * * * *',
-      newsEnrichment:         '*/10 * * * *',
-      catalystBackfill:       '*/15 * * * *',
-      signalEvaluation:       '*/10 * * * *',
-      baselineCache:          '*/30 * * * *',
-      perfCacheRefresh:       '*/30 * * * *',
-    },
+    schedules: JOB_SCHEDULES,
   });
 
-  // Startup runs — fire immediately to fill gaps from any prior downtime
-  safeRun('earnings_events_startup',      runEarningsIngestion)();
-  safeRun('earnings_actuals_startup',     runEarningsActuals)();
-  safeRun('intraday_1m_startup',          runIntradayIngestion)();
-  safeRun('stock_news_startup',           runStockNewsIngestion)();
-  safeRun('ipo_calendar_startup',         () => refreshIpoCalendar(4))();
-  safeRun('analyst_enrichment_startup',   runAnalystEnrichmentIngestion)();
-  safeRun('earnings_transcripts_startup', runTranscriptsIngestion)();
-  safeRun('ticker_universe_startup',      runUniverseIngestion)();
-  safeRun('baseline_cache_startup',       runBaselineEngine)();
-  safeRun('news_enrichment_startup',      runNewsEnrichmentEngine)();
-  safeRun('catalyst_backfill_startup',    () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 }))();
-  safeRun('signal_evaluation_startup',    runSignalEvaluation)();
-  safeRun('perf_cache_startup',           refreshPerformanceCache)();
-  safeRun('regime_capture_startup',       runRegimeCapture)();
+  void (async () => {
+    const startupJobs = [
+      ['live_quotes_startup', runLiveQuotesIngestion],
+      ['earnings_events_startup', runEarningsIngestion],
+      ['earnings_actuals_startup', runEarningsActuals],
+      ['intraday_1m_startup', runIntradayIngestion],
+      ['stock_news_startup', runStockNewsIngestion],
+      ['ipo_calendar_startup', () => refreshIpoCalendar(4)],
+      ['analyst_enrichment_startup', runAnalystEnrichmentIngestion],
+      ['earnings_transcripts_startup', runTranscriptsIngestion],
+      ['ticker_universe_startup', runUniverseIngestion],
+      ['baseline_cache_startup', runBaselineEngine],
+      ['news_enrichment_startup', runNewsEnrichmentEngine],
+      ['catalyst_backfill_startup', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })],
+      ['signal_evaluation_startup', runSignalEvaluation],
+      ['perf_cache_startup', refreshPerformanceCache],
+      ['regime_capture_startup', runRegimeCapture],
+    ];
+
+    if (startupInitialDelayMs > 0) {
+      logger.info('[SCHEDULER] delaying startup ingestion jobs', {
+        initialDelayMs: startupInitialDelayMs,
+        staggerMs: startupStaggerMs,
+      });
+      await sleep(startupInitialDelayMs);
+    }
+
+    for (const [name, fn] of startupJobs) {
+      await safeRun(name, fn)();
+      if (startupStaggerMs > 0) {
+        await sleep(startupStaggerMs);
+      }
+    }
+  })();
 }
 
 module.exports = {

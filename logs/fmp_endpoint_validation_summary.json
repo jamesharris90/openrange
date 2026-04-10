@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-03-23T20:41:45.069Z",
+  "total": 19,
+  "by_status": {
+    "valid": 15,
+    "error": 4
+  },
+  "market_hours_et": false,
+  "v3_requirements": {
+    "v3_stock_screener_valid": false,
+    "v3_any_mover_valid": false,
+    "v3_movers_valid": []
+  }
+}

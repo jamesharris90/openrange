@@ -172,6 +172,12 @@ function normalizeChartPoints(points) {
         return null;
       }
 
+      const hasValidPrices = open > 0 && high > 0 && low > 0 && close > 0;
+      const hasConsistentRange = high >= Math.max(open, close, low) && low <= Math.min(open, close, high);
+      if (!hasValidPrices || !hasConsistentRange) {
+        return null;
+      }
+
       return { open, high, low, close, volume, time };
     })
     .filter(Boolean);

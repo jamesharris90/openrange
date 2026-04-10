@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-03-26T16:21:27.515Z",
+  "market_quotes_updated_lt_60s": {
+    "fresh": 0,
+    "total": 6379,
+    "percent": 0
+  },
+  "market_metrics_updated_lt_5min": {
+    "fresh": 5915,
+    "total": 7778,
+    "percent": 76.05
+  },
+  "news_within_24h": {
+    "fresh": 200,
+    "total": 18381,
+    "percent": 1.09
+  },
+  "earnings_within_7_days": {
+    "fresh": 606,
+    "total": 639,
+    "percent": 94.84
+  }
+}

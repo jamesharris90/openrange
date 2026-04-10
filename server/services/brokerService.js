@@ -1,11 +1,9 @@
 const logger = require('../logger');
 const userModel = require('../users/model');
 const ibkrProvider = require('../providers/brokers/ibkrProvider');
-const saxoProvider = require('../providers/brokers/saxoProvider');
 
 const providers = {
-  ibkr: ibkrProvider,
-  saxo: saxoProvider
+  ibkr: ibkrProvider
 };
 
 const brokerHealth = new Map(); // userId -> { lastResponseMs, lastError, lastErrorAt, failures: [timestamps] }

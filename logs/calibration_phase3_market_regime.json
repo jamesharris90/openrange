@@ -1,0 +1,12 @@
+{
+  "ts": "2026-03-20T14:53:12.568Z",
+  "avg_rvol_spy_qqq": 0,
+  "stocks_in_play_count": 16,
+  "current_regime": "low_activity",
+  "validation": {
+    "low": "low_activity",
+    "normal": "normal",
+    "high": "high_momentum"
+  },
+  "pass": true
+}

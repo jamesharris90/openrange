@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-03-22T21:26:47.683Z",
+  "pages_visited": [
+    {
+      "key": "homepage",
+      "url": "http://localhost:3001",
+      "final_url": "http://localhost:3001/",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "key": "premarket",
+      "url": "http://localhost:3001/dashboard",
+      "final_url": "http://localhost:3001/dashboard",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/dashboard\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/dashboard\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "top_opportunities",
+      "url": "http://localhost:3001/intelligence",
+      "final_url": "http://localhost:3001/intelligence",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/intelligence\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/intelligence\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "earnings",
+      "url": "http://localhost:3001/earnings",
+      "final_url": "http://localhost:3001/earnings",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/earnings\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/earnings\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "research",
+      "url": "http://localhost:3001/research",
+      "final_url": "http://localhost:3001/research",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/research\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/research\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "homepage_app",
+      "url": "http://localhost:3000",
+      "final_url": "http://localhost:3000",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "premarket_app",
+      "url": "http://localhost:3000/dashboard",
+      "final_url": "http://localhost:3000/dashboard",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/dashboard\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/dashboard\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "top_opportunities_app",
+      "url": "http://localhost:3000/intelligence",
+      "final_url": "http://localhost:3000/intelligence",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/intelligence\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/intelligence\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "earnings_app",
+      "url": "http://localhost:3000/earnings",
+      "final_url": "http://localhost:3000/earnings",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/earnings\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/earnings\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "key": "research_app",
+      "url": "http://localhost:3000/research",
+      "final_url": "http://localhost:3000/research",
+      "status": 0,
+      "ok": false,
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/research\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/research\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    }
+  ],
+  "page_errors": [],
+  "symbols": [
+    {
+      "symbol": "WNW",
+      "visible_on_site": false,
+      "page_location": "",
+      "data_match": false,
+      "intelligence_visible": false,
+      "ui_quality": "broken",
+      "failure_reasons": [
+        "symbol_not_visible",
+        "ui_api_data_mismatch",
+        "intelligence_not_visible"
+      ]
+    },
+    {
+      "symbol": "LNSR",
+      "visible_on_site": false,
+      "page_location": "",
+      "data_match": false,
+      "intelligence_visible": false,
+      "ui_quality": "broken",
+      "failure_reasons": [
+        "symbol_not_visible",
+        "ui_api_data_mismatch",
+        "intelligence_not_visible"
+      ]
+    },
+    {
+      "symbol": "TAOX",
+      "visible_on_site": false,
+      "page_location": "",
+      "data_match": false,
+      "intelligence_visible": false,
+      "ui_quality": "broken",
+      "failure_reasons": [
+        "symbol_not_visible",
+        "ui_api_data_mismatch",
+        "intelligence_not_visible"
+      ]
+    },
+    {
+      "symbol": "EQ",
+      "visible_on_site": false,
+      "page_location": "",
+      "data_match": false,
+      "intelligence_visible": false,
+      "ui_quality": "broken",
+      "failure_reasons": [
+        "symbol_not_visible",
+        "ui_api_data_mismatch",
+        "intelligence_not_visible"
+      ]
+    },
+    {
+      "symbol": "TENX",
+      "visible_on_site": false,
+      "page_location": "",
+      "data_match": false,
+      "intelligence_visible": false,
+      "ui_quality": "broken",
+      "failure_reasons": [
+        "symbol_not_visible",
+        "ui_api_data_mismatch",
+        "intelligence_not_visible"
+      ]
+    }
+  ],
+  "ui_failures": 5,
+  "pass": false,
+  "blockers": []
+}

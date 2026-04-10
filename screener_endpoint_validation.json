@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-03-25T06:26:10.923Z",
+  "endpoint": "http://127.0.0.1:3016/api/screener?page=1&pageSize=5000",
+  "checks": {
+    "count_gt_3000": true,
+    "all_rows_source_real": true
+  },
+  "metrics": {
+    "response_count": 3381,
+    "row_count": 3381,
+    "non_real_rows": 0
+  },
+  "pass": true,
+  "errors": []
+}

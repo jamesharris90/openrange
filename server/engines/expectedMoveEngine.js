@@ -29,27 +29,9 @@ async function runExpectedMoveEngine() {
            ON d.symbol = sr.symbol
           AND d.date = DATE(COALESCE(sr.entry_time, sr.created_at))
          LEFT JOIN signal_features sf ON sf.signal_id = sr.id
-         WHERE NOT EXISTS (
-           SELECT 1
-           FROM expected_move_tracking emt
-           WHERE emt.signal_id = sr.id
-         )
          ORDER BY COALESCE(sr.entry_time, sr.created_at) DESC
          LIMIT 2000
-       )
-       INSERT INTO expected_move_tracking (
-         signal_id,
-         symbol,
-         expected_move_percent,
-         actual_move_percent,
-         expected_move_hit,
-         expected_move_error,
-         implied_volatility,
-         historical_volatility,
-         iv_hv_ratio,
-         atr_percent,
-         created_at
-       )
+       ), computed AS (
        SELECT
          c.signal_id,
          c.symbol,
@@ -101,21 +83,75 @@ async function runExpectedMoveEngine() {
            WHEN NULLIF(c.close, 0) IS NULL OR c.high IS NULL OR c.low IS NULL THEN 0
            ELSE ((c.high - c.low) / NULLIF(c.close, 0) * 100)::numeric
          END AS atr_percent,
-         NOW()
+         NOW() AS created_at
        FROM candidates c
-       RETURNING signal_id`,
+       ), updated AS (
+         UPDATE expected_move_tracking emt
+         SET symbol = comp.symbol,
+             expected_move_percent = comp.expected_move_percent,
+             actual_move_percent = comp.actual_move_percent,
+             expected_move_hit = comp.expected_move_hit,
+             expected_move_error = comp.expected_move_error,
+             implied_volatility = comp.implied_volatility,
+             historical_volatility = comp.historical_volatility,
+             iv_hv_ratio = comp.iv_hv_ratio,
+             atr_percent = comp.atr_percent,
+             created_at = comp.created_at
+         FROM computed comp
+         WHERE emt.signal_id = comp.signal_id
+         RETURNING emt.signal_id
+       ), inserted AS (
+         INSERT INTO expected_move_tracking (
+           signal_id,
+           symbol,
+           expected_move_percent,
+           actual_move_percent,
+           expected_move_hit,
+           expected_move_error,
+           implied_volatility,
+           historical_volatility,
+           iv_hv_ratio,
+           atr_percent,
+           created_at
+         )
+         SELECT
+           comp.signal_id,
+           comp.symbol,
+           comp.expected_move_percent,
+           comp.actual_move_percent,
+           comp.expected_move_hit,
+           comp.expected_move_error,
+           comp.implied_volatility,
+           comp.historical_volatility,
+           comp.iv_hv_ratio,
+           comp.atr_percent,
+           comp.created_at
+         FROM computed comp
+         WHERE NOT EXISTS (
+           SELECT 1
+           FROM expected_move_tracking emt
+           WHERE emt.signal_id = comp.signal_id
+         )
+         RETURNING signal_id
+       )
+       SELECT
+         (SELECT COUNT(*)::int FROM inserted) AS inserted,
+         (SELECT COUNT(*)::int FROM updated) AS updated,
+         (SELECT COUNT(*)::int FROM computed) AS processed`,
       [],
       { timeoutMs: 25000, label: 'engines.expectedMove.insert_tracking', maxRetries: 0 }
     );
 
-    const updated = Array.isArray(result?.rows) ? result.rows.length : 0;
+    const inserted = Number(result?.rows?.[0]?.inserted || 0);
+    const updated = Number(result?.rows?.[0]?.updated || 0);
+    const processed = Number(result?.rows?.[0]?.processed || 0);
     const runtimeMs = Date.now() - startedAt;
-    logger.info('Expected move engine complete', { updated, runtimeMs });
-    return { updated, runtimeMs };
+    logger.info('Expected move engine complete', { inserted, updated, processed, runtimeMs });
+    return { inserted, updated, processed, runtimeMs };
   } catch (error) {
     const runtimeMs = Date.now() - startedAt;
     logger.error('Expected move engine failed', { error: error.message, runtimeMs });
-    return { updated: 0, runtimeMs, error: error.message };
+    return { inserted: 0, updated: 0, processed: 0, runtimeMs, error: error.message };
   }
 }
 

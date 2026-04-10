@@ -7,15 +7,13 @@ const MAX_SYMBOLS_PER_CYCLE = 10;
 const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
 let ingestionCursor = 0;
 
-const db = {
-  query: async (sql) =>
-    queryWithTimeout(sql, [], {
-      timeoutMs: 10000,
-      label: 'intraday_ingest.load_symbols',
-      maxRetries: 0,
-      poolType: 'read',
-    }),
-};
+function dbRead(sql, label) {
+  return queryWithTimeout(sql, [], {
+    timeoutMs: 30000,
+    label,
+    maxRetries: 0,
+  });
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,32 +56,25 @@ async function insertIntradayRows(rows) {
 }
 
 async function loadPrioritySymbols() {
-  const activeSignals = await db.query(`
+  const activeSignals = await dbRead(`
     SELECT DISTINCT symbol
     FROM catalyst_signals
     WHERE created_at > NOW() - INTERVAL '2 hours'
-  `);
+  `, 'intraday_ingest.active_signals');
 
-  const recentSymbols = await db.query(`
-    SELECT DISTINCT symbol
-    FROM intraday_1m
-    WHERE timestamp > NOW() - INTERVAL '30 minutes'
-  `);
-
-  const fallbackUniverse = await db.query(`
+  const fallbackUniverse = await dbRead(`
     SELECT symbol
     FROM ticker_universe
+    ORDER BY last_updated DESC NULLS LAST
     LIMIT 500
-  `);
+  `, 'intraday_ingest.fallback_universe');
 
   console.log('[INTRADAY] active signals:', activeSignals.rowCount);
-  console.log('[INTRADAY] recent symbols:', recentSymbols.rowCount);
   console.log('[INTRADAY] fallback symbols:', fallbackUniverse.rowCount);
 
   const symbols = [
     ...PINNED_INTRADAY_SYMBOLS,
     ...activeSignals.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
-    ...recentSymbols.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
     ...fallbackUniverse.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
   ]
     .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
@@ -141,7 +132,8 @@ async function ingestSymbol(symbol) {
       inserted = await insertIntradayRows(deduped);
     }
 
-    console.log('[INGESTION] Inserted intraday bars:', inserted);
+    const latestTimestamp = deduped[0]?.timestamp ?? null;
+    console.log(`[INTRADAY] symbol=${canonicalSymbol} rows_fetched=${normalized.length} rows_inserted=${inserted} latest_timestamp=${latestTimestamp}`);
 
     return {
       jobName: 'fmp_intraday_ingest',
@@ -230,6 +222,12 @@ async function runIntradayIngestion() {
     if (i + 10 < ingestSymbols.length) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
+  }
+
+  if (totals.inserted === 0 && totals.fetched > 0) {
+    console.error('[INTRADAY DEAD] No new data — all fetched rows already exist or were rejected');
+  } else if (totals.fetched === 0) {
+    console.error('[INTRADAY DEAD] No data returned from FMP for any symbol');
   }
 
   return {

@@ -1,0 +1,240 @@
+{
+  "timestamp": "2026-03-21T17:25:12.451Z",
+  "signals_created": 0,
+  "setups_created": 284,
+  "decisions_unlocked": 20,
+  "earnings_in_top20": 4,
+  "verdict": "pass",
+  "reasons": [],
+  "phase_validation": {
+    "window_fallback": {
+      "anchor_date": "Tue Mar 24 2026 00:00:00 GMT+0000 (Greenwich Mean Time)",
+      "symbols_in_fallback_window": 284
+    },
+    "phase1": {
+      "earnings_symbols": 284,
+      "covered_symbols": 284
+    },
+    "phase2": {
+      "setups_linked_to_earnings_signals": 284
+    },
+    "phase5": {
+      "decision_source_table": "decision_view_elite_source_1774024257600",
+      "earnings_48h_symbols": 284,
+      "top20_earnings_count": 4,
+      "ranking_multiplier_attempts": 0
+    },
+    "phase6": {
+      "validation_symbols": 20,
+      "earnings_with_signals": 20,
+      "signal_coverage_ratio": 1,
+      "decisions_with_execution_plan": 20,
+      "decision_coverage_ratio": 1,
+      "earnings_in_top20": 4,
+      "signal_rows": [
+        {
+          "symbol": "AACG",
+          "signal_count": 1
+        },
+        {
+          "symbol": "AAME",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ABSI",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ACHV",
+          "signal_count": 1
+        },
+        {
+          "symbol": "AIR",
+          "signal_count": 1
+        },
+        {
+          "symbol": "AIRJ",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ARQQ",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ATER",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ATOS",
+          "signal_count": 1
+        },
+        {
+          "symbol": "BRZE",
+          "signal_count": 1
+        },
+        {
+          "symbol": "BZAI",
+          "signal_count": 1
+        },
+        {
+          "symbol": "BZAIW",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CDLR",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CNF",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CNM",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CNTN",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CNXC",
+          "signal_count": 1
+        },
+        {
+          "symbol": "CUE",
+          "signal_count": 1
+        },
+        {
+          "symbol": "EPSN",
+          "signal_count": 1
+        },
+        {
+          "symbol": "ERNA",
+          "signal_count": 1
+        }
+      ],
+      "decision_rows": [
+        {
+          "symbol": "AACG",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "AAME",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ABSI",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ACHV",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "AIR",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "AIRJ",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ARQQ",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ATER",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ATOS",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "BRZE",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "BZAI",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "BZAIW",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CDLR",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CNF",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CNM",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CNTN",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CNXC",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "CUE",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "EPSN",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        },
+        {
+          "symbol": "ERNA",
+          "status": 200,
+          "hasExecutionPlan": true,
+          "hasDecisionScore": true
+        }
+      ]
+    }
+  }
+}

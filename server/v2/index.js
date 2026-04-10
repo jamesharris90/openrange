@@ -105,17 +105,19 @@ function envFlag(name, defaultValue = true) {
 }
 
 function resolveSchedulerFlags() {
+  const safeModeEnabled = envFlag('SAFE_MODE', false);
+  const railwayMainServiceEnabled = railwayServiceRole !== 'coverage-worker' && railwayServiceRole !== 'phase2-worker';
   const backgroundServicesDefault = isRailwayRuntime ? false : true;
-  const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !envFlag('SAFE_MODE', false);
+  const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !safeModeEnabled;
   const nonEssentialDefault = isRailwayRuntime ? false : true;
-  const screenerSnapshotDefault = isRailwayRuntime ? false : true;
-  const railwayIngestionRoleEnabled = railwayServiceRole !== 'coverage-worker' && railwayServiceRole !== 'phase2-worker';
+  const screenerSnapshotDefault = isRailwayRuntime ? railwayMainServiceEnabled : true;
+  const railwayIngestionRoleEnabled = railwayMainServiceEnabled;
   const ingestionSchedulerDefault = isRailwayRuntime
     ? railwayIngestionRoleEnabled
     : backgroundServicesEnabled;
-  const ingestionSchedulerEnabled = envFlag('ENABLE_INGESTION_SCHEDULER', ingestionSchedulerDefault) && !envFlag('SAFE_MODE', false);
+  const ingestionSchedulerEnabled = envFlag('ENABLE_INGESTION_SCHEDULER', ingestionSchedulerDefault) && !safeModeEnabled;
   const nonEssentialEnginesEnabled = backgroundServicesEnabled && envFlag('ENABLE_NON_ESSENTIAL_ENGINES', nonEssentialDefault);
-  const screenerSnapshotEnabled = backgroundServicesEnabled && envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', screenerSnapshotDefault);
+  const screenerSnapshotEnabled = envFlag('ENABLE_SCREENER_SNAPSHOT_SCHEDULER', screenerSnapshotDefault) && !safeModeEnabled;
 
   return {
     ingestionSchedulerEnabled,

@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-03-23T00:00:00.000Z",
+  "phase": "engine_discovery",
+  "definitions": {
+    "startEngines": "server/system/startEngines.js (exports startEngines + startEnginesSequentially)",
+    "signal_engine": "runStrategySignalEngine in server/engines/strategySignalEngine.js (called by startEnginesSequentially)",
+    "stocks_in_play_engine": "runStocksInPlayEngine in server/engines/stocksInPlayEngine.js (called by startEnginesSequentially + cron)",
+    "ingestion_engine": "runIntelNewsNow from server/engines/scheduler.js (called by startEnginesSequentially)"
+  },
+  "boot_path": {
+    "entry_file": "server/index.js",
+    "server_start_hook": "app.listen(...)",
+    "background_gate": "shouldBootstrapBackgroundServices()",
+    "bootstrap_function": "bootstrapBackgroundServices() -> bootstrapEngines()",
+    "engine_init_call": "bootstrapEngines() -> startEnginesSequentially() via runSafe('startEnginesSequentially', ...)"
+  },
+  "gates_identified": {
+    "safe_mode": "SAFE_MODE default true unless SAFE_MODE=false",
+    "background_services": "ENABLE_BACKGROUND_SERVICES=true required in non-production",
+    "non_essential": "NON_ESSENTIAL_ENGINES_ENABLED previously required ENABLE_NON_ESSENTIAL_ENGINES=true and could short-circuit startup"
+  },
+  "root_cause": "non-essential engine gate could return before startEnginesSequentially despite background services bootstrapping",
+  "status": "discovered"
+}

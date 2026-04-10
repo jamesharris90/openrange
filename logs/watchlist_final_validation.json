@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-03-22T20:43:50.760Z",
+  "status": 200,
+  "response_time_ms": 459,
+  "timeout": false,
+  "watchlist_count": 30,
+  "realistic_symbols": true,
+  "sample_symbols": [
+    "LNG",
+    "ACXP",
+    "RWAYI",
+    "GAING",
+    "ELAB",
+    "LNZA",
+    "EDSA",
+    "CVGI",
+    "ALTO",
+    "DAWN"
+  ],
+  "verdict": "PASS"
+}

@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-22T20:06:53.775Z",
+  "verdict": "NO_GO",
+  "gates": {
+    "phase1_runtime": true,
+    "phase2_quotes": true,
+    "phase3_entry": true,
+    "phase4_watchlist": false,
+    "phase5_navigation": true,
+    "phase6_contracts": false
+  },
+  "unresolved": [
+    "watchlist gate failed (endpoint timeout and/or unbalanced distribution)",
+    "contract gate failed"
+  ],
+  "summary": "One or more remediation gates are still failing."
+}

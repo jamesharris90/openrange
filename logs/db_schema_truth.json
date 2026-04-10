@@ -1,0 +1,893 @@
+{
+  "generated_at": "2026-03-23T21:35:40.869Z",
+  "required_tables": [
+    "tradable_universe",
+    "market_metrics",
+    "market_quotes",
+    "opportunity_stream",
+    "news_articles",
+    "earnings_events",
+    "trade_setups"
+  ],
+  "missing_tables": [],
+  "pass": true,
+  "tables": {
+    "tradable_universe": {
+      "columns": [
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "price",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "change_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "relative_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "volume",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "column": "avg_volume_30d",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "gap_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "source",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "symbol"
+      ],
+      "indexes": [
+        {
+          "name": "idx_tradable_universe_symbol",
+          "definition": "CREATE INDEX idx_tradable_universe_symbol ON public.tradable_universe USING btree (symbol)"
+        },
+        {
+          "name": "tradable_universe_pkey",
+          "definition": "CREATE UNIQUE INDEX tradable_universe_pkey ON public.tradable_universe USING btree (symbol)"
+        }
+      ]
+    },
+    "market_metrics": {
+      "columns": [
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "price",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "gap_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "relative_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "atr",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "rsi",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "vwap",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "float_rotation",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "last_updated",
+          "type": "timestamp without time zone",
+          "nullable": true
+        },
+        {
+          "column": "change_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "avg_volume_30d",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "volume",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "column": "previous_high",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "float_shares",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "atr_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "short_float",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "liquidity_surge",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "previous_close",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "source",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "symbol"
+      ],
+      "indexes": [
+        {
+          "name": "idx_market_metrics_gap",
+          "definition": "CREATE INDEX idx_market_metrics_gap ON public.market_metrics USING btree (gap_percent)"
+        },
+        {
+          "name": "idx_market_metrics_rvol",
+          "definition": "CREATE INDEX idx_market_metrics_rvol ON public.market_metrics USING btree (relative_volume)"
+        },
+        {
+          "name": "idx_market_metrics_symbol",
+          "definition": "CREATE INDEX idx_market_metrics_symbol ON public.market_metrics USING btree (symbol)"
+        },
+        {
+          "name": "idx_market_metrics_updated_at",
+          "definition": "CREATE INDEX idx_market_metrics_updated_at ON public.market_metrics USING btree (updated_at DESC)"
+        },
+        {
+          "name": "idx_metrics_atr",
+          "definition": "CREATE INDEX idx_metrics_atr ON public.market_metrics USING btree (atr)"
+        },
+        {
+          "name": "idx_metrics_gap",
+          "definition": "CREATE INDEX idx_metrics_gap ON public.market_metrics USING btree (gap_percent)"
+        },
+        {
+          "name": "idx_metrics_rvol",
+          "definition": "CREATE INDEX idx_metrics_rvol ON public.market_metrics USING btree (relative_volume)"
+        },
+        {
+          "name": "market_metrics_pkey",
+          "definition": "CREATE UNIQUE INDEX market_metrics_pkey ON public.market_metrics USING btree (symbol)"
+        }
+      ]
+    },
+    "market_quotes": {
+      "columns": [
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "price",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "change_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "volume",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "column": "market_cap",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "column": "sector",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "short_float",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "float",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "relative_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "premarket_volume",
+          "type": "numeric",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "symbol"
+      ],
+      "indexes": [
+        {
+          "name": "idx_market_quotes_symbol",
+          "definition": "CREATE INDEX idx_market_quotes_symbol ON public.market_quotes USING btree (symbol)"
+        },
+        {
+          "name": "idx_market_quotes_updated_at",
+          "definition": "CREATE INDEX idx_market_quotes_updated_at ON public.market_quotes USING btree (updated_at DESC)"
+        },
+        {
+          "name": "market_quotes_pkey",
+          "definition": "CREATE UNIQUE INDEX market_quotes_pkey ON public.market_quotes USING btree (symbol)"
+        }
+      ]
+    },
+    "opportunity_stream": {
+      "columns": [
+        {
+          "column": "id",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "event_type",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "headline",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "score",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "source",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "created_at",
+          "type": "timestamp without time zone",
+          "nullable": true
+        },
+        {
+          "column": "change_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "gap_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "relative_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "confidence",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "expected_move",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "trade_class",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "why",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "how",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "catalyst_type",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "earnings_flag",
+          "type": "boolean",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "idx_opportunity_stream_created",
+          "definition": "CREATE INDEX idx_opportunity_stream_created ON public.opportunity_stream USING btree (created_at DESC)"
+        },
+        {
+          "name": "idx_opportunity_stream_score",
+          "definition": "CREATE INDEX idx_opportunity_stream_score ON public.opportunity_stream USING btree (score DESC)"
+        },
+        {
+          "name": "idx_stream_symbol",
+          "definition": "CREATE INDEX idx_stream_symbol ON public.opportunity_stream USING btree (symbol)"
+        },
+        {
+          "name": "idx_stream_time",
+          "definition": "CREATE INDEX idx_stream_time ON public.opportunity_stream USING btree (created_at DESC)"
+        },
+        {
+          "name": "opportunity_stream_pkey",
+          "definition": "CREATE UNIQUE INDEX opportunity_stream_pkey ON public.opportunity_stream USING btree (id)"
+        }
+      ]
+    },
+    "news_articles": {
+      "columns": [
+        {
+          "column": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "column": "headline",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "symbols",
+          "type": "ARRAY",
+          "nullable": false
+        },
+        {
+          "column": "source",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "url",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "published_at",
+          "type": "timestamp without time zone",
+          "nullable": false
+        },
+        {
+          "column": "summary",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "catalyst_type",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "news_score",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "column": "score_breakdown",
+          "type": "jsonb",
+          "nullable": true
+        },
+        {
+          "column": "raw_payload",
+          "type": "jsonb",
+          "nullable": true
+        },
+        {
+          "column": "created_at",
+          "type": "timestamp without time zone",
+          "nullable": true
+        },
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "sector",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "narrative",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "provider",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "sentiment",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "title",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "body_text",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "publisher",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "site",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "image_url",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "published_date",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "source_url",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "ingested_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "idx_news_articles_catalyst",
+          "definition": "CREATE INDEX idx_news_articles_catalyst ON public.news_articles USING btree (catalyst_type)"
+        },
+        {
+          "name": "idx_news_articles_news_score",
+          "definition": "CREATE INDEX idx_news_articles_news_score ON public.news_articles USING btree (news_score DESC)"
+        },
+        {
+          "name": "idx_news_articles_provider",
+          "definition": "CREATE INDEX idx_news_articles_provider ON public.news_articles USING btree (provider)"
+        },
+        {
+          "name": "idx_news_articles_published_at",
+          "definition": "CREATE INDEX idx_news_articles_published_at ON public.news_articles USING btree (published_at DESC)"
+        },
+        {
+          "name": "idx_news_articles_published_date",
+          "definition": "CREATE INDEX idx_news_articles_published_date ON public.news_articles USING btree (published_date DESC)"
+        },
+        {
+          "name": "idx_news_articles_symbol",
+          "definition": "CREATE INDEX idx_news_articles_symbol ON public.news_articles USING btree (symbol)"
+        },
+        {
+          "name": "idx_news_articles_symbols",
+          "definition": "CREATE INDEX idx_news_articles_symbols ON public.news_articles USING gin (symbols)"
+        },
+        {
+          "name": "idx_news_published_at",
+          "definition": "CREATE INDEX idx_news_published_at ON public.news_articles USING btree (published_at DESC)"
+        },
+        {
+          "name": "idx_news_score",
+          "definition": "CREATE INDEX idx_news_score ON public.news_articles USING btree (news_score DESC)"
+        },
+        {
+          "name": "idx_news_source",
+          "definition": "CREATE INDEX idx_news_source ON public.news_articles USING btree (source)"
+        },
+        {
+          "name": "idx_news_symbol",
+          "definition": "CREATE INDEX idx_news_symbol ON public.news_articles USING btree (symbol)"
+        },
+        {
+          "name": "idx_news_symbols",
+          "definition": "CREATE INDEX idx_news_symbols ON public.news_articles USING gin (symbols)"
+        },
+        {
+          "name": "idx_news_time",
+          "definition": "CREATE INDEX idx_news_time ON public.news_articles USING btree (published_at DESC)"
+        },
+        {
+          "name": "news_articles_pkey",
+          "definition": "CREATE UNIQUE INDEX news_articles_pkey ON public.news_articles USING btree (id)"
+        },
+        {
+          "name": "news_articles_symbol_published_date_title_key",
+          "definition": "CREATE UNIQUE INDEX news_articles_symbol_published_date_title_key ON public.news_articles USING btree (symbol, published_date, title)"
+        }
+      ]
+    },
+    "earnings_events": {
+      "columns": [
+        {
+          "column": "id",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "report_date",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "column": "report_time",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "eps_estimate",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "eps_actual",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "rev_estimate",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "rev_actual",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "eps_surprise_pct",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "rev_surprise_pct",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "guidance_direction",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "market_cap",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "float",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "sector",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "industry",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "created_at",
+          "type": "timestamp without time zone",
+          "nullable": true
+        },
+        {
+          "column": "company",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "earnings_date",
+          "type": "date",
+          "nullable": true
+        },
+        {
+          "column": "revenue_estimate",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "time",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "expected_move_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "avg_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "atr",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "exchange",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "price",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "current_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "rvol",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "score",
+          "type": "numeric",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "brin_earnings_events_report_date",
+          "definition": "CREATE INDEX brin_earnings_events_report_date ON public.earnings_events USING brin (report_date)"
+        },
+        {
+          "name": "earnings_events_pkey",
+          "definition": "CREATE UNIQUE INDEX earnings_events_pkey ON public.earnings_events USING btree (id)"
+        },
+        {
+          "name": "earnings_events_symbol_report_date_key",
+          "definition": "CREATE UNIQUE INDEX earnings_events_symbol_report_date_key ON public.earnings_events USING btree (symbol, report_date)"
+        },
+        {
+          "name": "earnings_events_symbol_report_date_uniq",
+          "definition": "CREATE UNIQUE INDEX earnings_events_symbol_report_date_uniq ON public.earnings_events USING btree (symbol, report_date)"
+        },
+        {
+          "name": "idx_earnings_events_report_date",
+          "definition": "CREATE INDEX idx_earnings_events_report_date ON public.earnings_events USING btree (report_date)"
+        },
+        {
+          "name": "idx_earnings_events_symbol",
+          "definition": "CREATE INDEX idx_earnings_events_symbol ON public.earnings_events USING btree (symbol)"
+        },
+        {
+          "name": "idx_earnings_events_symbol_date",
+          "definition": "CREATE INDEX idx_earnings_events_symbol_date ON public.earnings_events USING btree (symbol, report_date DESC)"
+        },
+        {
+          "name": "idx_earnings_events_symbol_report_date_desc",
+          "definition": "CREATE INDEX idx_earnings_events_symbol_report_date_desc ON public.earnings_events USING btree (symbol, report_date DESC)"
+        }
+      ]
+    },
+    "trade_setups": {
+      "columns": [
+        {
+          "column": "symbol",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "column": "setup",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "grade",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "score",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "gap_percent",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "relative_volume",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "atr",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "float_rotation",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "column": "detected_at",
+          "type": "timestamp without time zone",
+          "nullable": true
+        },
+        {
+          "column": "setup_type",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "column": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "column": "signal_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "column": "entry_price",
+          "type": "double precision",
+          "nullable": true
+        },
+        {
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "primary_keys": [
+        "symbol"
+      ],
+      "indexes": [
+        {
+          "name": "idx_setup_grade",
+          "definition": "CREATE INDEX idx_setup_grade ON public.trade_setups USING btree (grade)"
+        },
+        {
+          "name": "idx_setup_type",
+          "definition": "CREATE INDEX idx_setup_type ON public.trade_setups USING btree (setup)"
+        },
+        {
+          "name": "idx_trade_setups_signal_id",
+          "definition": "CREATE INDEX idx_trade_setups_signal_id ON public.trade_setups USING btree (signal_id)"
+        },
+        {
+          "name": "idx_trade_setups_symbol_unique",
+          "definition": "CREATE UNIQUE INDEX idx_trade_setups_symbol_unique ON public.trade_setups USING btree (symbol)"
+        },
+        {
+          "name": "trade_setups_pkey",
+          "definition": "CREATE UNIQUE INDEX trade_setups_pkey ON public.trade_setups USING btree (symbol)"
+        }
+      ]
+    }
+  }
+}

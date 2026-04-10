@@ -145,11 +145,15 @@ router.post('/login', async (req, res) => {
       plan: user.plan || ((user.is_admin === 1 || user.is_admin === true || user.is_admin === '1') ? 'admin' : 'free')
     }, JWT_SECRET, { expiresIn: '24h' });
 
+    const isAdminFlag = user.is_admin === 1 || user.is_admin === true || user.is_admin === '1';
     return res.json({
       success: true,
       token,
       user: {
+        id: user.id,
         username: user.username,
+        email: user.email,
+        is_admin: isAdminFlag ? 1 : 0,
       },
     });
   } catch (err) {

@@ -111,6 +111,11 @@ async function ensureStocksInPlayTable() {
     { timeoutMs: 7000, label: 'engines.stocks_in_play.ensure_stocks_table', maxRetries: 0 }
   );
   await queryWithTimeout(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_sip_symbol_unique ON stocks_in_play(symbol)`,
+    [],
+    { timeoutMs: 7000, label: 'engines.stocks_in_play.idx_symbol_unique', maxRetries: 0 }
+  );
+  await queryWithTimeout(
     `CREATE INDEX IF NOT EXISTS idx_sip_symbol ON stocks_in_play(symbol)`,
     [],
     { timeoutMs: 7000, label: 'engines.stocks_in_play.idx_symbol', maxRetries: 0 }
@@ -581,7 +586,7 @@ function generateStockNarrative(stock = {}) {
 
 function generateProbabilityContext(stats = null) {
   if (!stats || Number(stats.sampleSize || 0) <= 0) {
-    return 'Historical performance data building';
+    return 'Historical performance data unavailable';
   }
 
   const winRate = Number(stats.winRate || 0).toFixed(1);

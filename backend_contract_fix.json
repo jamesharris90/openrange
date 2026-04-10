@@ -1,0 +1,296 @@
+{
+  "generated_at": "2026-03-24T10:20:29.880Z",
+  "passed": true,
+  "summary": {
+    "live_mode": true,
+    "recent_mode": true,
+    "research_mode": true,
+    "contract_integrity": true,
+    "data_availability": true
+  },
+  "data_availability": {
+    "url": "http://localhost:3001/api/system/data-availability",
+    "checks": {
+      "status_200": true,
+      "success_true": true,
+      "counts_present": true,
+      "last_updated_present": true
+    },
+    "pass": true,
+    "summary": {
+      "status": 200,
+      "request_error": null,
+      "counts": {
+        "opportunity_stream_total": 2217409,
+        "opportunity_stream_last_15m": 2260,
+        "opportunity_stream_last_24h": 2217409,
+        "trade_setups_total": 758
+      },
+      "last_updated": "2026-03-24T10:20:29.878Z"
+    }
+  },
+  "results": [
+    {
+      "url": "http://localhost:3001/api/intelligence/top-opportunities?mode=live",
+      "mode": "live",
+      "checks": {
+        "status_200": true,
+        "success_false_or_count_gt_5": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 18,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "FLGT",
+          "why": "Signal candidate FLGT",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 98.38314213696914,
+          "expected_move": 1.374285714285714
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"live\",\"count\":18,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286},{\"s"
+    },
+    {
+      "url": "http://localhost:3001/api/intelligence/top-opportunities?mode=recent",
+      "mode": "recent",
+      "checks": {
+        "status_200": true,
+        "success_true": true,
+        "count_gt_0": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 20,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "UGRO",
+          "why": "Price/volume movement: change 182.11%, gap 182.11%",
+          "how": "Breakout continuation above premarket high with volume confirmation",
+          "confidence": 99,
+          "expected_move": 273.17
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"recent\",\"count\":20,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286},{"
+    },
+    {
+      "url": "http://localhost:3001/api/intelligence/top-opportunities?mode=research",
+      "mode": "research",
+      "checks": {
+        "status_200": true,
+        "success_true": true,
+        "count_gte_10": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 38,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "PTLE",
+          "why": "Price/volume movement: change 87.59%, gap 87.59%",
+          "how": "Breakout continuation above premarket high with volume confirmation",
+          "confidence": 99,
+          "expected_move": 131.38
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"research\",\"count\":38,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286}"
+    },
+    {
+      "url": "http://localhost:3001/api/stocks-in-play?mode=live",
+      "mode": "live",
+      "checks": {
+        "status_200": true,
+        "success_false_or_count_gt_5": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 18,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "FLGT",
+          "why": "Signal candidate FLGT",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 98.38314213696914,
+          "expected_move": 1.374285714285714
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"live\",\"count\":18,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286},{\"s"
+    },
+    {
+      "url": "http://localhost:3001/api/stocks-in-play?mode=recent",
+      "mode": "recent",
+      "checks": {
+        "status_200": true,
+        "success_true": true,
+        "count_gt_0": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 20,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "UGRO",
+          "why": "Price/volume movement: change 182.11%, gap 182.11%",
+          "how": "Breakout continuation above premarket high with volume confirmation",
+          "confidence": 99,
+          "expected_move": 273.17
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"recent\",\"count\":20,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286},{"
+    },
+    {
+      "url": "http://localhost:3001/api/stocks-in-play?mode=research",
+      "mode": "research",
+      "checks": {
+        "status_200": true,
+        "success_true": true,
+        "count_gte_10": true,
+        "source_real_when_success": true,
+        "every_row_valid_when_success": true
+      },
+      "pass": true,
+      "summary": {
+        "status": 200,
+        "count": 38,
+        "source": "real",
+        "success": true,
+        "request_error": null
+      },
+      "invalid_rows": [],
+      "sample_rows": [
+        {
+          "symbol": "CCLD",
+          "why": "OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 0.12785714285714286
+        },
+        {
+          "symbol": "SMCI",
+          "why": "Signal candidate SMCI",
+          "how": "Breakout continuation above key level with volume confirmation",
+          "confidence": 100,
+          "expected_move": 1.7292857142857134
+        },
+        {
+          "symbol": "UGRO",
+          "why": "Price/volume movement: change 182.11%, gap 182.11%",
+          "how": "Breakout continuation above premarket high with volume confirmation",
+          "confidence": 99,
+          "expected_move": 273.17
+        }
+      ],
+      "raw_preview": "{\"success\":true,\"source\":\"real\",\"mode\":\"research\",\"count\":38,\"data\":[{\"symbol\":\"CCLD\",\"why\":\"OpenAI's data center pivot underscores Wall Street spending concerns ahead of IPO\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"confidence\":100,\"expected_move\":0.12785714285714286}"
+    }
+  ]
+}

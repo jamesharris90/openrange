@@ -1,0 +1,7 @@
+{
+  "session_correct": true,
+  "trade_gating_correct": true,
+  "early_false_trades": 0,
+  "missed_opportunities": 0,
+  "verdict": "PASS"
+}

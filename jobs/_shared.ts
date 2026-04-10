@@ -4,7 +4,7 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import { Pool } from "pg";
+import sharedQuery = require("../server/db/pool");
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 dotenv.config({ path: path.resolve(process.cwd(), "server/.env") });
@@ -15,14 +15,7 @@ if (!FMP_API_KEY) {
   throw new Error("FMP_API_KEY missing");
 }
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL_DISABLE === "true" ? false : { rejectUnauthorized: false },
-  max: Number(process.env.PGPOOL_MAX || 20),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: Number(process.env.PGPOOL_CONNECTION_TIMEOUT_MS || 10000),
-  statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS || 10000),
-});
+export const pool = sharedQuery;
 
 export function ensureDir(relPath: string) {
   const dir = path.resolve(process.cwd(), relPath);

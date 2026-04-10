@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-03-22T21:26:47.682Z",
+  "total": 5,
+  "tradeable_count": 5,
+  "exhausted_count": 0,
+  "weak_count": 0,
+  "pass": true,
+  "data": [
+    {
+      "symbol": "WNW",
+      "final_score": 100,
+      "change_percent": 0,
+      "relative_volume": 7757.594381233572,
+      "catalyst_type": "technical",
+      "strategy": "VWAP RECLAIM",
+      "tradeability_score": 2,
+      "stocks_in_play": true,
+      "move_status": "early",
+      "verdict": "TRADEABLE",
+      "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+      "why_tradeable": "High RVOL (7757.59) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+      "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+      "execution_plan": {
+        "entry": "Reclaim of VWAP with volume",
+        "stop": "Below VWAP",
+        "target": "2R minimum"
+      },
+      "missing_fields": []
+    },
+    {
+      "symbol": "LNSR",
+      "final_score": 83.78981058752098,
+      "change_percent": 0,
+      "relative_volume": 30.453555081063794,
+      "catalyst_type": "earnings",
+      "strategy": "VWAP RECLAIM",
+      "tradeability_score": 3,
+      "stocks_in_play": true,
+      "move_status": "early",
+      "verdict": "TRADEABLE",
+      "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+      "why_tradeable": "High RVOL (30.45) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+      "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+      "execution_plan": {
+        "entry": "Reclaim of VWAP with volume",
+        "stop": "Below VWAP",
+        "target": "2R minimum"
+      },
+      "missing_fields": []
+    },
+    {
+      "symbol": "TAOX",
+      "final_score": 42.39796741771979,
+      "change_percent": 0,
+      "relative_volume": 2.442332636667706,
+      "catalyst_type": "earnings",
+      "strategy": "INTRADAY TREND",
+      "tradeability_score": 3,
+      "stocks_in_play": true,
+      "move_status": "early",
+      "verdict": "TRADEABLE",
+      "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+      "why_tradeable": "High RVOL (2.44) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+      "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+      "execution_plan": {
+        "entry": "Trend continuation",
+        "stop": "Recent support",
+        "target": "2R minimum"
+      },
+      "missing_fields": []
+    },
+    {
+      "symbol": "EQ",
+      "final_score": 42.394608111656574,
+      "change_percent": 0,
+      "relative_volume": 2.1465592762640515,
+      "catalyst_type": "earnings",
+      "strategy": "INTRADAY TREND",
+      "tradeability_score": 3,
+      "stocks_in_play": true,
+      "move_status": "early",
+      "verdict": "TRADEABLE",
+      "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+      "why_tradeable": "High RVOL (2.15) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+      "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+      "execution_plan": {
+        "entry": "Trend continuation",
+        "stop": "Recent support",
+        "target": "2R minimum"
+      },
+      "missing_fields": []
+    },
+    {
+      "symbol": "TENX",
+      "final_score": 42.394342905760695,
+      "change_percent": 0,
+      "relative_volume": 2.111814608494867,
+      "catalyst_type": "earnings",
+      "strategy": "INTRADAY TREND",
+      "tradeability_score": 3,
+      "stocks_in_play": true,
+      "move_status": "early",
+      "verdict": "TRADEABLE",
+      "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+      "why_tradeable": "High RVOL (2.11) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+      "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+      "execution_plan": {
+        "entry": "Trend continuation",
+        "stop": "Recent support",
+        "target": "2R minimum"
+      },
+      "missing_fields": []
+    }
+  ]
+}

@@ -2,7 +2,6 @@
 
 const fs = require('fs/promises');
 const path = require('path');
-const { Client } = require('pg');
 const dotenv = require('dotenv');
 
 console.log(JSON.stringify({
@@ -241,12 +240,7 @@ async function fetchJsonWithRetry(url, attempt = 1) {
 }
 
 async function createPool() {
-  const pool = new Client({
-    connectionString: SUPABASE_DB_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-  await pool.connect();
-  return pool;
+  return require('../server/db/pool');
 }
 
 async function loadIngestionState(pool) {

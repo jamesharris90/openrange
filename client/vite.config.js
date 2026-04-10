@@ -1,3 +1,5 @@
+throw new Error("❌ VITE FRONTEND DISABLED — USE PRIMARY FRONTEND ONLY")
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'

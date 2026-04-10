@@ -3,12 +3,87 @@ const { getCachedValue, setCachedValue } = require('../utils/responseCache');
 const { runOpportunityRanker } = require('../engines/opportunityRanker');
 const { supabaseAdmin } = require('../services/supabaseClient');
 const { getTopOpportunities } = require('../repositories/opportunityRepository');
+const { buildTruthDecisionForSymbol } = require('../services/truthEngine');
 
 const router = express.Router();
 
 function isDbTimeoutError(error) {
   const msg = String(error?.message || '').toLowerCase();
   return error?.code === 'QUERY_TIMEOUT' || msg.includes('timeout');
+}
+
+async function mapOpportunityRows(rows) {
+  return Promise.all((rows || []).map(async (row) => {
+    const decision = await buildTruthDecisionForSymbol(row.symbol, {
+      includeNarrative: true,
+      allowRemoteNarrative: false,
+    }).catch(() => ({
+      symbol: row.symbol,
+      tradeable: Number(row.score) >= 60,
+      confidence: Number(row.score) || 0,
+      setup: row.setup_type || 'NO_SETUP',
+      bias: 'NEUTRAL',
+      driver: 'STRATEGY_SETUP',
+      earnings_edge: {
+        label: 'NO_EDGE',
+        score: 0,
+        bias: 'NEUTRAL',
+        next_date: null,
+        report_time: null,
+        expected_move_percent: null,
+        status: 'none',
+        read: null,
+      },
+      risk_flags: [],
+      status: Number(row.score) >= 60 ? 'TRADEABLE' : 'AVOID',
+      action: Number(row.score) >= 60 ? 'TRADEABLE' : 'AVOID',
+      why: row.setup_type || 'Setup detected from authoritative opportunities table.',
+      how: 'Wait for the setup to confirm before entering.',
+      risk: 'Avoid forcing size without confirmation.',
+      narrative: {
+        why_this_matters: row.setup_type || 'A setup was detected, but deeper context was unavailable.',
+        what_to_do: 'Wait for confirmation before acting.',
+        what_to_avoid: 'Avoid trading without a confirmed trigger.',
+        source: 'deterministic_fallback',
+        locked: true,
+      },
+      execution_plan: null,
+      source: 'truth_engine',
+      why_moving: {
+        driver: 'STRATEGY_SETUP',
+        summary: row.setup_type || 'Setup detected from authoritative opportunities table.',
+        tradeability: Number(row.score) >= 60 ? 'HIGH' : 'LOW',
+        confidence_score: Number(row.score) || 0,
+        bias: 'NEUTRAL',
+        what_to_do: 'Wait for confirmation before acting.',
+        what_to_avoid: 'Avoid trading without a confirmed trigger.',
+        setup: row.setup_type || 'NO_SETUP',
+        action: Number(row.score) >= 60 ? 'TRADE' : 'AVOID',
+        trade_plan: null,
+      },
+    }));
+
+    return {
+      symbol: row.symbol,
+      score: row.score,
+      confidence: decision.confidence,
+      gap: null,
+      rvol: null,
+      volume: null,
+      float: null,
+      catalyst: decision.driver.toLowerCase(),
+      strategy: decision.setup,
+      signal_explanation: decision.narrative?.why_this_matters || decision.why,
+      rationale: decision.why,
+      updated_at: row.updated_at,
+      atr_percent: null,
+      class: null,
+      sector: null,
+      catalyst_type: decision.driver,
+      decision,
+      why_moving: decision.why_moving,
+    };
+  }));
 }
 
 router.get('/opportunities/top', async (req, res) => {
@@ -27,24 +102,7 @@ router.get('/opportunities/top', async (req, res) => {
       source: 'opportunity_ranker',
     });
 
-    let mapped = (dbRows || []).map((row) => ({
-      symbol: row.symbol,
-      score: row.score,
-      confidence: row.score,
-      gap: null,
-      rvol: null,
-      volume: null,
-      float: null,
-      catalyst: 'strategy_setup',
-      strategy: row.setup_type || 'Momentum Continuation',
-      signal_explanation: row.setup_type || 'Setup detected from authoritative opportunities table',
-      rationale: row.setup_type || 'Setup detected from authoritative opportunities table',
-      updated_at: row.updated_at,
-      atr_percent: null,
-      class: null,
-      sector: null,
-      catalyst_type: null,
-    }));
+    let mapped = await mapOpportunityRows(dbRows || []);
 
     if (!mapped.length) {
       await runOpportunityRanker();
@@ -53,24 +111,7 @@ router.get('/opportunities/top', async (req, res) => {
         source: 'opportunity_ranker',
       });
 
-      mapped = (fallbackRows || []).map((row) => ({
-        symbol: row.symbol,
-        score: row.score,
-        confidence: row.score,
-        gap: null,
-        rvol: null,
-        volume: null,
-        float: null,
-        catalyst: 'strategy_setup',
-        strategy: row.setup_type || 'Momentum Continuation',
-        signal_explanation: row.setup_type || 'Setup detected from authoritative opportunities table',
-        rationale: row.setup_type || 'Setup detected from authoritative opportunities table',
-        updated_at: row.updated_at,
-        atr_percent: null,
-        class: null,
-        sector: null,
-        catalyst_type: null,
-      }));
+      mapped = await mapOpportunityRows(fallbackRows || []);
     }
 
     const payload = { success: true, degraded: false, items: mapped, data: mapped, timestamp: new Date().toISOString() };

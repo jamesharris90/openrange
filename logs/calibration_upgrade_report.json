@@ -1,0 +1,281 @@
+{
+  "started_at": "2026-03-20T14:53:09.376Z",
+  "phases": [
+    {
+      "phase": "PHASE_0",
+      "result": {
+        "ts": "2026-03-20T14:53:10.830Z",
+        "lifecycle_overlap": 130,
+        "decision_count": 421,
+        "avg_decision_score": 8.8867,
+        "signals_recent": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_1",
+      "result": {
+        "ts": "2026-03-20T14:53:12.158Z",
+        "inspected_fields": {
+          "signal_outcomes_strategy": true,
+          "trade_outcomes_strategy": true,
+          "trade_setups_setup_type": true
+        },
+        "strategy_count": 10,
+        "null_win_rate_count": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_2",
+      "result": {
+        "ts": "2026-03-20T14:53:12.223Z",
+        "symbol_count": 137,
+        "nan_count": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_3",
+      "result": {
+        "ts": "2026-03-20T14:53:12.568Z",
+        "avg_rvol_spy_qqq": 0,
+        "stocks_in_play_count": 16,
+        "current_regime": "low_activity",
+        "validation": {
+          "low": "low_activity",
+          "normal": "normal",
+          "high": "high_momentum"
+        },
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_4",
+      "result": {
+        "ts": "2026-03-20T14:53:13.304Z",
+        "total_count": 793,
+        "null_count": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_5",
+      "result": {
+        "ts": "2026-03-20T14:53:14.261Z",
+        "null_count": 0,
+        "nan_count": 0,
+        "out_of_range_count": 0,
+        "total_count": 793,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_6",
+      "result": {
+        "ts": "2026-03-20T14:53:15.558Z",
+        "non_null_scores": 421,
+        "score_stddev": 2.338255064131802,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_7",
+      "result": {
+        "ts": "2026-03-20T14:53:16.175Z",
+        "strategy_count": 3,
+        "min_weight": 1,
+        "max_weight": 1,
+        "extreme_count": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_8",
+      "result": {
+        "ts": "2026-03-20T14:53:31.581Z",
+        "status": 200,
+        "total_items": 16,
+        "null_critical_rows": 0,
+        "explanation_missing_rows": 0,
+        "sample": [
+          {
+            "symbol": "LNG",
+            "decision_score": 9.0369,
+            "raw_decision_score": 47,
+            "tqi_score": 0.0922,
+            "strategy": "stocks_in_play",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_peak",
+            "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+            "execution_plan": null,
+            "data_quality": "insufficient"
+          },
+          {
+            "symbol": "COHR",
+            "decision_score": 9.011,
+            "raw_decision_score": 37,
+            "tqi_score": 0.0274,
+            "strategy": "stocks_in_play",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_peak",
+            "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+            "execution_plan": {
+              "strategy": "stocks_in_play_setup",
+              "entry_type": "Discretionary setup trigger",
+              "risk_level": "HIGH",
+              "expected_move": null,
+              "win_probability": 0,
+              "historical_win_rate": 0,
+              "avg_pnl_pct": 0,
+              "avg_drawdown_pct": 0,
+              "setup_candidates": [
+                {
+                  "setup": "stocks_in_play_setup",
+                  "setup_type": "stocks_in_play_setup",
+                  "score": "60",
+                  "atr": null,
+                  "relative_volume": null,
+                  "gap_percent": null,
+                  "updated_at": "2026-03-20T13:24:45.493Z"
+                }
+              ],
+              "expected_move_alignment": null
+            },
+            "data_quality": "sufficient"
+          },
+          {
+            "symbol": "COCO",
+            "decision_score": 9.0094,
+            "raw_decision_score": 34.3,
+            "tqi_score": 0.0235,
+            "strategy": "stocks_in_play",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_peak",
+            "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+            "execution_plan": {
+              "strategy": "stocks_in_play_setup",
+              "entry_type": "Discretionary setup trigger",
+              "risk_level": "HIGH",
+              "expected_move": null,
+              "win_probability": 0,
+              "historical_win_rate": 0,
+              "avg_pnl_pct": 0,
+              "avg_drawdown_pct": 0,
+              "setup_candidates": [
+                {
+                  "setup": "stocks_in_play_setup",
+                  "setup_type": "stocks_in_play_setup",
+                  "score": "60",
+                  "atr": null,
+                  "relative_volume": null,
+                  "gap_percent": null,
+                  "updated_at": "2026-03-20T13:24:45.493Z"
+                }
+              ],
+              "expected_move_alignment": null
+            },
+            "data_quality": "sufficient"
+          },
+          {
+            "symbol": "KC",
+            "decision_score": 9.0086,
+            "raw_decision_score": 42.55,
+            "tqi_score": 0.0215,
+            "strategy": "stocks_in_play",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_peak",
+            "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+            "execution_plan": {
+              "strategy": "stocks_in_play_setup",
+              "entry_type": "Discretionary setup trigger",
+              "risk_level": "HIGH",
+              "expected_move": null,
+              "win_probability": 0,
+              "historical_win_rate": 0,
+              "avg_pnl_pct": 0,
+              "avg_drawdown_pct": 0,
+              "setup_candidates": [
+                {
+                  "setup": "stocks_in_play_setup",
+                  "setup_type": "stocks_in_play_setup",
+                  "score": "60",
+                  "atr": null,
+                  "relative_volume": null,
+                  "gap_percent": null,
+                  "updated_at": "2026-03-20T13:24:45.493Z"
+                }
+              ],
+              "expected_move_alignment": null
+            },
+            "data_quality": "sufficient"
+          },
+          {
+            "symbol": "QSR",
+            "decision_score": 9.0082,
+            "raw_decision_score": 34,
+            "tqi_score": 0.0204,
+            "strategy": "stocks_in_play",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_peak",
+            "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+            "execution_plan": {
+              "strategy": "stocks_in_play_setup",
+              "entry_type": "Discretionary setup trigger",
+              "risk_level": "HIGH",
+              "expected_move": null,
+              "win_probability": 0,
+              "historical_win_rate": 0,
+              "avg_pnl_pct": 0,
+              "avg_drawdown_pct": 0,
+              "setup_candidates": [
+                {
+                  "setup": "stocks_in_play_setup",
+                  "setup_type": "stocks_in_play_setup",
+                  "score": "60",
+                  "atr": null,
+                  "relative_volume": null,
+                  "gap_percent": null,
+                  "updated_at": "2026-03-20T13:24:45.493Z"
+                }
+              ],
+              "expected_move_alignment": null
+            },
+            "data_quality": "sufficient"
+          }
+        ],
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_8B",
+      "result": {
+        "ts": "2026-03-20T14:53:32.206Z",
+        "before_recent_signals": 0,
+        "inserted": 7,
+        "after_recent_signals": 7,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_9",
+      "result": {
+        "ts": "2026-03-20T14:53:34.454Z",
+        "lifecycle_overlap": 130,
+        "decision_count": 421,
+        "avg_decision_score": 9.235781472684085,
+        "signals_recent": 7,
+        "tqi_populated": 800,
+        "tqi_total": 800,
+        "strategy_performance_count": 11,
+        "pass": true
+      }
+    }
+  ],
+  "completed_at": "2026-03-20T14:53:34.454Z"
+}

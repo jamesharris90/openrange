@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-03-23T23:25:30.000Z",
+  "phase": "ui_validation",
+  "pass": true,
+  "endpoint_checks": [
+    {
+      "endpoint": "/api/intelligence/top-opportunities",
+      "status": 200,
+      "count": 20,
+      "source": "real",
+      "pass": true
+    },
+    {
+      "endpoint": "/api/stocks-in-play",
+      "status": 200,
+      "count": 18,
+      "source": "real",
+      "pass": true
+    }
+  ],
+  "page_checks": [
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "decision_present": true,
+      "action_block_present": true,
+      "why_present": true,
+      "live_api_bound": true
+    },
+    {
+      "file": "trading-os/src/components/terminal/stocks-in-play-view.tsx",
+      "decision_present": true,
+      "action_block_present": true,
+      "why_present": true,
+      "live_api_bound": true
+    },
+    {
+      "file": "trading-os/src/components/terminal/research-view.tsx",
+      "decision_present": true,
+      "action_block_present": true,
+      "why_present": true,
+      "live_api_bound": true
+    },
+    {
+      "file": "trading-os/src/components/terminal/heat-map-view.tsx",
+      "decision_present": true,
+      "action_block_present": true,
+      "why_present": true,
+      "live_api_bound": true
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "decision_present": true,
+      "action_block_present": true,
+      "why_present": true,
+      "live_api_bound": true
+    }
+  ],
+  "no_static_tickers": true,
+  "no_empty_panels": true,
+  "all_pages_decision": true,
+  "notes": [
+    "Decision engine added and consumed by all required terminal views.",
+    "Capital Flow section routes to stocks-in-play with sector filter query.",
+    "AI Trade Call panel supports B/A/N hotkeys."
+  ]
+}

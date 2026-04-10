@@ -38,13 +38,19 @@ async function getUsage({ minutes = 60, limit = 10 } = {}) {
 			'SELECT "user", COUNT(*) as c FROM usage_events WHERE ts >= $1 GROUP BY "user" ORDER BY c DESC LIMIT $2',
 			[since, limit]
 		);
-		usageSummary.perUser = perUserR.rows;
+		usageSummary.perUser = (perUserR.rows || []).map((row) => ({
+			...row,
+			c: parseInt(row?.c || 0, 10),
+		}));
 
 		const perPathR = await pool.query(
 			'SELECT path, COUNT(*) as c FROM usage_events WHERE ts >= $1 GROUP BY path ORDER BY c DESC LIMIT $2',
 			[since, limit]
 		);
-		usageSummary.perPath = perPathR.rows;
+		usageSummary.perPath = (perPathR.rows || []).map((row) => ({
+			...row,
+			c: parseInt(row?.c || 0, 10),
+		}));
 	} catch (_err) {
 		// Keep metrics failures non-blocking.
 	}

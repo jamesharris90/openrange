@@ -1,0 +1,18 @@
+{
+  "safe_mode_disabled": true,
+  "engines_running": false,
+  "market_data_live": false,
+  "signals_active": false,
+  "stocks_in_play_active": false,
+  "api_dynamic": false,
+  "verdict": "STILL_BLOCKED",
+  "stopped_at_phase": "PHASE_3",
+  "reason": "Required boot markers not found in logs: signal engine started, stocks_in_play engine started, ingestion engine started",
+  "evidence": {
+    "engine_boot_log": "logs/engine_boot.log",
+    "safe_mode_marker_absent": true,
+    "background_services_skipped_marker_absent": true,
+    "boot_has_background_services_start": true,
+    "health_status": 200
+  }
+}

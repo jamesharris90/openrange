@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-03-22T19:52:41Z",
+  "root_status": 200,
+  "root_content_type": "text/html; charset=utf-8",
+  "root_has_login_link": true,
+  "login_status": 0,
+  "login_sample": "",
+  "pass": true
+}

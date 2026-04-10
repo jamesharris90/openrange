@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-03-23T14:07:43.612Z",
+  "base_url": "http://localhost:3001",
+  "checks": [
+    {
+      "endpoint": "/api/stocks-in-play",
+      "status": 200,
+      "ok": true,
+      "rows": 0,
+      "has_trade_shape": false
+    },
+    {
+      "endpoint": "/api/intelligence/top-opportunities?limit=20",
+      "status": 200,
+      "ok": true,
+      "rows": 20,
+      "has_trade_shape": true
+    },
+    {
+      "endpoint": "/api/earnings?limit=40",
+      "status": 200,
+      "ok": true,
+      "rows": 50,
+      "has_trade_shape": false
+    },
+    {
+      "endpoint": "/api/catalysts?limit=40",
+      "status": 200,
+      "ok": true,
+      "rows": 40,
+      "has_trade_shape": false
+    },
+    {
+      "endpoint": "/api/market/overview",
+      "status": 200,
+      "ok": true,
+      "rows": 0,
+      "has_trade_shape": false
+    }
+  ],
+  "static_ticker_leaks": [],
+  "pass": true
+}

@@ -3,6 +3,7 @@ import { pool } from '../../db/pg';
 
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
+const MAX_EARNINGS_ROWS = 12;
 
 export interface EarningsEventRecord {
   id?: number;
@@ -41,55 +42,34 @@ function normalizeGuidanceDirection(raw: unknown): string | null {
   return null;
 }
 
-async function fetchCompanyProfile(symbol: string) {
-  if (!FMP_API_KEY) return null;
-  const url = `${FMP_BASE}/profile?symbol=${encodeURIComponent(symbol)}&apikey=${FMP_API_KEY}`;
-  const response = await axios.get(url, { timeout: 15000, validateStatus: () => true });
-  if (response.status !== 200 || !Array.isArray(response.data) || response.data.length === 0) {
-    return null;
-  }
-  return response.data[0];
+function normalizeReportDate(item: Record<string, unknown>): string | null {
+  const rawDate = item.date || item.reportDate || item.fiscalDateEnding || item.report_date;
+  const text = String(rawDate || '').trim();
+  return text ? text.slice(0, 10) : null;
 }
 
-export async function ingestEarningsEvent(symbol: string): Promise<EarningsEventRecord | null> {
-  const safeSymbol = String(symbol || '').trim().toUpperCase();
-  if (!safeSymbol) return null;
-  if (!FMP_API_KEY) return null;
-
-  const calendarUrl = `${FMP_BASE}/earnings-calendar?symbol=${encodeURIComponent(safeSymbol)}&limit=12&apikey=${FMP_API_KEY}`;
-  const calendarResponse = await axios.get(calendarUrl, { timeout: 15000, validateStatus: () => true });
-  if (calendarResponse.status !== 200 || !Array.isArray(calendarResponse.data) || calendarResponse.data.length === 0) {
-    return null;
+function normalizeEarningsRows(payload: unknown, symbol: string): Record<string, unknown>[] {
+  if (!Array.isArray(payload)) {
+    return [];
   }
 
-  const latest = [...calendarResponse.data]
-    .filter((item) => item && (item.date || item.reportDate || item.fiscalDateEnding))
-    .sort((a, b) => new Date(b.date || b.reportDate || b.fiscalDateEnding).getTime() - new Date(a.date || a.reportDate || a.fiscalDateEnding).getTime())[0];
+  return payload
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => item as Record<string, unknown>)
+    .filter((item) => {
+      const itemSymbol = String(item.symbol || symbol).trim().toUpperCase();
+      return itemSymbol === symbol && Boolean(normalizeReportDate(item));
+    })
+    .sort((left, right) => {
+      const leftDate = Date.parse(normalizeReportDate(left) || '');
+      const rightDate = Date.parse(normalizeReportDate(right) || '');
+      return rightDate - leftDate;
+    })
+    .slice(0, MAX_EARNINGS_ROWS);
+}
 
-  if (!latest) return null;
-
-  const profile = await fetchCompanyProfile(safeSymbol);
-  const epsEstimate = toNumber(latest.epsEstimated ?? latest.epsEstimate ?? latest.estimatedEps);
-  const epsActual = toNumber(latest.eps ?? latest.epsActual ?? latest.actualEps);
-  const revEstimate = toNumber(latest.revenueEstimated ?? latest.revenueEstimate ?? latest.estimatedRevenue);
-  const revActual = toNumber(latest.revenue ?? latest.revenueActual ?? latest.actualRevenue);
-
-  const row: EarningsEventRecord = {
-    symbol: safeSymbol,
-    report_date: String(latest.date || latest.reportDate || latest.fiscalDateEnding).slice(0, 10),
-    report_time: latest.time || latest.reportTime || null,
-    eps_estimate: epsEstimate,
-    eps_actual: epsActual,
-    rev_estimate: revEstimate,
-    rev_actual: revActual,
-    eps_surprise_pct: calcSurprisePct(epsActual, epsEstimate),
-    rev_surprise_pct: calcSurprisePct(revActual, revEstimate),
-    guidance_direction: normalizeGuidanceDirection(latest.guidance || latest.guidanceDirection),
-    market_cap: toNumber(profile?.mktCap ?? profile?.marketCap),
-    float: toNumber(profile?.sharesOutstanding ?? profile?.floatShares),
-    sector: profile?.sector ? String(profile.sector) : null,
-    industry: profile?.industry ? String(profile.industry) : null,
-  };
+async function replaceSymbolEarningsRows(symbol: string, rows: EarningsEventRecord[]) {
+  await pool.query('DELETE FROM earnings_events WHERE symbol = $1', [symbol]);
 
   const insertSql = `
     INSERT INTO earnings_events (
@@ -106,23 +86,90 @@ export async function ingestEarningsEvent(symbol: string): Promise<EarningsEvent
     RETURNING *
   `;
 
-  const values = [
-    row.symbol,
-    row.report_date,
-    row.report_time,
-    row.eps_estimate,
-    row.eps_actual,
-    row.rev_estimate,
-    row.rev_actual,
-    row.eps_surprise_pct,
-    row.rev_surprise_pct,
-    row.guidance_direction,
-    row.market_cap,
-    row.float,
-    row.sector,
-    row.industry,
-  ];
+  const insertedRows: EarningsEventRecord[] = [];
+  for (const row of rows) {
+    const values = [
+      row.symbol,
+      row.report_date,
+      row.report_time,
+      row.eps_estimate,
+      row.eps_actual,
+      row.rev_estimate,
+      row.rev_actual,
+      row.eps_surprise_pct,
+      row.rev_surprise_pct,
+      row.guidance_direction,
+      row.market_cap,
+      row.float,
+      row.sector,
+      row.industry,
+    ];
 
-  const result = await pool.query(insertSql, values);
-  return result.rows[0] || row;
+    const result = await pool.query(insertSql, values);
+    insertedRows.push((result.rows[0] || row) as EarningsEventRecord);
+  }
+
+  return insertedRows;
+}
+
+async function fetchCompanyProfile(symbol: string) {
+  if (!FMP_API_KEY) return null;
+  const url = `${FMP_BASE}/profile?symbol=${encodeURIComponent(symbol)}&apikey=${FMP_API_KEY}`;
+  const response = await axios.get(url, { timeout: 15000, validateStatus: () => true });
+  if (response.status !== 200 || !Array.isArray(response.data) || response.data.length === 0) {
+    return null;
+  }
+  return response.data[0];
+}
+
+export async function ingestEarningsEvent(symbol: string): Promise<EarningsEventRecord | null> {
+  const safeSymbol = String(symbol || '').trim().toUpperCase();
+  if (!safeSymbol) return null;
+  if (!FMP_API_KEY) return null;
+
+  const today = new Date();
+  const from = new Date(today);
+  from.setUTCDate(from.getUTCDate() - 730);
+  const to = new Date(today);
+  to.setUTCDate(to.getUTCDate() + 180);
+
+  const earningsUrl = `${FMP_BASE}/earnings-calendar?from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}&apikey=${FMP_API_KEY}`;
+  const earningsResponse = await axios.get(earningsUrl, { timeout: 15000, validateStatus: () => true });
+  const normalizedRows = normalizeEarningsRows((Array.isArray(earningsResponse.data) ? earningsResponse.data : []).filter((item) => {
+    const candidate = String(item?.symbol || '').trim().toUpperCase();
+    return candidate === safeSymbol;
+  }), safeSymbol);
+  if (earningsResponse.status !== 200 || normalizedRows.length === 0) {
+    return null;
+  }
+
+  const profile = await fetchCompanyProfile(safeSymbol);
+
+  const rows: EarningsEventRecord[] = normalizedRows.map((item) => {
+    const epsEstimate = toNumber(item.epsEstimated ?? item.epsEstimate ?? item.estimatedEps);
+    const epsActual = toNumber(item.eps ?? item.epsActual ?? item.actualEps);
+    const revEstimate = toNumber(item.revenueEstimated ?? item.revenueEstimate ?? item.estimatedRevenue);
+    const revActual = toNumber(item.revenue ?? item.revenueActual ?? item.actualRevenue);
+
+    return {
+      symbol: safeSymbol,
+      report_date: normalizeReportDate(item) as string,
+      report_time: String(item.time || item.reportTime || '').trim() || null,
+      eps_estimate: epsEstimate,
+      eps_actual: epsActual,
+      rev_estimate: revEstimate,
+      rev_actual: revActual,
+      eps_surprise_pct: calcSurprisePct(epsActual, epsEstimate),
+      rev_surprise_pct: calcSurprisePct(revActual, revEstimate),
+      guidance_direction: normalizeGuidanceDirection(item.guidance || item.guidanceDirection),
+      market_cap: toNumber(profile?.mktCap ?? profile?.marketCap),
+      float: toNumber(profile?.sharesOutstanding ?? profile?.floatShares),
+      sector: profile?.sector ? String(profile.sector) : null,
+      industry: profile?.industry ? String(profile.industry) : null,
+    };
+  });
+
+  const insertedRows = await replaceSymbolEarningsRows(safeSymbol, rows);
+  const latestHistorical = insertedRows.find((row) => Date.parse(row.report_date) <= Date.now());
+  return latestHistorical || insertedRows[0] || null;
 }

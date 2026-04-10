@@ -1,0 +1,15 @@
+DB pool configured: shared(max=5) idle=30s timeout=5s
+DB pool initialised
+Active DB Ops: 1
+Active DB Ops: 2
+[DB] Connected to: postgresql://postgres.qyfxbuxuxyvdmwamzdtq:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+DB CONNECTED TO: aws-1-eu-west-1.pooler.supabase.com
+[DB] Connected to: postgresql://postgres.qyfxbuxuxyvdmwamzdtq:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+DB CONNECTED TO: aws-1-eu-west-1.pooler.supabase.com
+Active DB Ops: 1
+Active DB Ops: 0
+Active DB Ops: 1
+[DB] Connected to: postgresql://postgres.qyfxbuxuxyvdmwamzdtq:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+DB CONNECTED TO: aws-1-eu-west-1.pooler.supabase.com
+Active DB Ops: 0
+{"checked_at":"2026-03-23T06:34:14.795Z","first_max_updated_at":"2026-03-23T06:32:45.777Z","second_max_updated_at":"2026-03-23T06:33:38.071Z","increased":true}

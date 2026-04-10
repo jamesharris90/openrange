@@ -1,0 +1,327 @@
+{
+  "generated_at": "2026-03-23T20:08:13.936Z",
+  "backend_entrypoint": "server/index.js",
+  "scheduler_entrypoints": [
+    "server/alerts/alert_scheduler.js",
+    "server/catalyst/catalyst_scheduler.js",
+    "server/data-engine/scheduler.js",
+    "server/discovery/discovery_scheduler.js",
+    "server/engines/scheduler.js",
+    "server/ingestion/scheduler.js",
+    "server/logs/cron.log",
+    "server/metrics/metrics_scheduler.js",
+    "server/narrative/narrative_scheduler.js",
+    "server/opportunity/stream_scheduler.js",
+    "server/orchestrator/engineScheduler.js",
+    "server/routes/cronControl.js",
+    "server/scheduler/phaseScheduler.js",
+    "server/services/schedulerService.ts",
+    "server/services/trades/dailyReviewCron.js",
+    "server/strategy/strategy_scheduler.js",
+    "server/system/cronMonitor.js",
+    "server/system/engineScheduler.js"
+  ],
+  "ingestion_engines": [
+    "server/engines/fmpMarketIngestion.js",
+    "server/engines/fmp_extended_hours_ingest.js",
+    "server/ingestion/_helpers.js",
+    "server/ingestion/fmp_analyst_enrichment_ingest.js",
+    "server/ingestion/fmp_earnings_ingest.js",
+    "server/ingestion/fmp_intraday_ingest.js",
+    "server/ingestion/fmp_news_ingest.js",
+    "server/ingestion/fmp_prices_ingest.js",
+    "server/ingestion/fmp_profiles_ingest.js",
+    "server/ingestion/fmp_transcripts_ingest.js",
+    "server/ingestion/fmp_universe_ingest.js",
+    "server/ingestion/run_all_ingest.js",
+    "server/ingestion/run_universe.js",
+    "server/ingestion/scheduler.js"
+  ],
+  "strategy_engines": [
+    "server/data-engine/computedSignals.js",
+    "server/data-engine/strategyEngine.js",
+    "server/db/migrations/012_signal_performance.sql",
+    "server/db/migrations/012a_signal_outcomes.sql",
+    "server/engines/adaptiveStrategyEngine.js",
+    "server/engines/catalystSignalEngine.js",
+    "server/engines/earlySignalOutcomeEngine.js",
+    "server/engines/finalTradeBuilder.js",
+    "server/engines/missedOpportunityEngine.js",
+    "server/engines/missedOpportunityReplay.js",
+    "server/engines/opportunityEngine.js",
+    "server/engines/opportunityIntelligenceEngine.js",
+    "server/engines/opportunityRanker.js",
+    "server/engines/replay/historicalSignalReplayEngine.js",
+    "server/engines/signalCalibrationEngine.js",
+    "server/engines/signalCaptureEngine.js",
+    "server/engines/signalConfirmationEngine.js",
+    "server/engines/signalFeatureEngine.js",
+    "server/engines/signalHierarchyEngine.js",
+    "server/engines/signalLearningEngine.js",
+    "server/engines/signalNarrativeEngine.js",
+    "server/engines/signalOutcomeEngine.js",
+    "server/engines/signalOutcomeWriter.js",
+    "server/engines/signalPerformanceEngine.js",
+    "server/engines/signalScoringEngine.js",
+    "server/engines/stocksInPlayEngine.js",
+    "server/engines/strategyEngine.js",
+    "server/engines/strategyEvaluationEngine.js",
+    "server/engines/strategyLearningEngine.js",
+    "server/engines/strategySignalEngine.js",
+    "server/migrations/addSignalIndexes.sql",
+    "server/migrations/create_opportunity_stream.sql",
+    "server/opportunity/stream_engine.js",
+    "server/opportunity/stream_scheduler.js",
+    "server/reports/opportunity_duplication_report.json",
+    "server/repositories/opportunityRepository.js",
+    "server/repositories/signalsRepository.js",
+    "server/routes/signals.js",
+    "server/routes/strategyIntelligence.js",
+    "server/services/opportunityGenerationService.js",
+    "server/services/signalDiagnostics.js",
+    "server/services/signalService.js",
+    "server/services/strategyDetectionEngineV1.ts",
+    "server/strategy/run_strategy.js",
+    "server/strategy/strategy_engine.js",
+    "server/strategy/strategy_scheduler.js",
+    "server/system/signalRouter.js",
+    "server/utils/enrichOpportunity.js"
+  ],
+  "intelligence_routes": [
+    "server/routes/intelDetails.js",
+    "server/routes/intelligence.js",
+    "server/routes/radar.js",
+    "server/routes/radarRoutes.deprecated.js",
+    "server/routes/radarRoutes.js",
+    "server/routes/radarTrades.js",
+    "server/routes/signals.js",
+    "server/routes/strategyIntelligence.js"
+  ],
+  "earnings_routes": [
+    "server/adapters/earningsAdapter.js",
+    "server/data-engine/earningsEngine.js",
+    "server/db/migrations/007_earnings_intelligence.sql",
+    "server/email/templates/EarningsTemplate.js",
+    "server/engines/earningsEngine.js",
+    "server/ingestion/fmp_earnings_ingest.js",
+    "server/intelligence/earningsClassifier.js",
+    "server/migrations/create_chart_trends_and_earnings_sector.sql",
+    "server/migrations/create_earnings_transcripts.sql",
+    "server/routes/earnings.js",
+    "server/routes/earningsRoutes.js",
+    "server/schema/canonical/CanonicalEarnings.ts",
+    "server/scripts/auditUpcomingEarnings.js",
+    "server/scripts/check_earnings_long.js",
+    "server/scripts/compareEarningsWhispers.js",
+    "server/scripts/earningsForceInjection.js",
+    "server/scripts/earningsOutcomeBackfill.js",
+    "server/scripts/verify_earnings_page.js",
+    "server/services/earnings/earningsController.ts",
+    "server/services/earnings/earningsIngestionService.ts",
+    "server/services/earnings/earningsReactionService.ts",
+    "server/services/earnings/earningsRoutes.ts",
+    "server/services/earnings/earningsScoreEngine.ts",
+    "server/services/earnings/layer2/contextReinforcementEngine.ts",
+    "server/services/earnings/layer2/continuationModel.ts",
+    "server/services/earnings/layer2/reactionQualityEngine.ts",
+    "server/tests/earningsLayer2.scenarios.test.js",
+    "server/workers/earningsWorker.js"
+  ],
+  "catalyst_news_routes": [
+    "server/routes/news.js",
+    "server/routes/newsV3.js",
+    "server/routes/newsV4.ts",
+    "server/routes/newsletter.js"
+  ],
+  "market_quote_routes": [
+    "server/modules/marketData/marketDataRoutes.js",
+    "server/routes/marketContextRoutes.js",
+    "server/routes/marketData.js",
+    "server/routes/marketSymbol.js",
+    "server/routes/trades.js"
+  ],
+  "db_connection_layer": [
+    "server/db/connectionConfig.js",
+    "server/db/pg.js",
+    "server/db/pool.js",
+    "server/pg.js",
+    "server/system/supabaseClient.js"
+  ],
+  "migration_system": {
+    "primary": [
+      "server/db/migrate.js",
+      "server/db/migrations/001_trade_intelligence.sql",
+      "server/db/migrations/002_add_market_metrics_columns.sql",
+      "server/db/migrations/002_universe_presets.sql",
+      "server/db/migrations/007_earnings_intelligence.sql",
+      "server/db/migrations/008_options_cache.sql",
+      "server/db/migrations/009_options_cache_null_reason.sql",
+      "server/db/migrations/010_market_data.sql",
+      "server/db/migrations/011_intelligence_emails.sql",
+      "server/db/migrations/011_news_articles.sql",
+      "server/db/migrations/012_signal_performance.sql",
+      "server/db/migrations/012a_signal_outcomes.sql",
+      "server/db/migrations/013_phase_d_calibration.sql",
+      "server/db/migrations/014_phase_e_adaptive_weights.sql",
+      "server/db/migrations/015_intraday_extended_hours_session.sql",
+      "server/db/migrations/016_fmp_events_rebuild.sql",
+      "server/db/migrations/017_trade_outcomes_standalone.sql",
+      "server/db/migrations/create_intelligence_table.sql"
+    ],
+    "legacy_or_aux": [
+      "server/migrations/20260316_catalyst_reaction_layer.sql",
+      "server/migrations/addSignalIndexes.sql",
+      "server/migrations/add_market_metrics_change_percent.sql",
+      "server/migrations/create_alert_history.sql",
+      "server/migrations/create_alert_tables.sql",
+      "server/migrations/create_chart_trends_and_earnings_sector.sql",
+      "server/migrations/create_core_market_tables.sql",
+      "server/migrations/create_discovered_symbols.sql",
+      "server/migrations/create_earnings_transcripts.sql",
+      "server/migrations/create_market_metrics.sql",
+      "server/migrations/create_market_narratives.sql",
+      "server/migrations/create_opportunity_stream.sql",
+      "server/migrations/create_saas_personalization_tables.sql",
+      "server/migrations/create_symbol_queue.sql",
+      "server/migrations/create_ticker_universe.sql",
+      "server/migrations/create_trade_catalysts.sql",
+      "server/migrations/create_trade_setups.sql",
+      "server/migrations/create_user_alerts.sql"
+    ]
+  },
+  "frontend_fetch_routes": {
+    "dashboard": {
+      "page_file": "trading-os/src/app/dashboard/page.tsx",
+      "imports": [
+        "next",
+        "@/components/terminal/dashboard-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "stocks-in-play": {
+      "page_file": "trading-os/src/app/stocks-in-play/page.tsx",
+      "imports": [
+        "next",
+        "@/components/auth/protected-route",
+        "@/components/terminal/stocks-in-play-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "trading-terminal": {
+      "page_file": "trading-os/src/app/trading-terminal/page.tsx",
+      "imports": [
+        "next",
+        "react",
+        "@/components/auth/protected-route",
+        "@/components/terminal/trading-terminal-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "research": {
+      "page_file": "trading-os/src/app/research/page.tsx",
+      "imports": [
+        "next/navigation"
+      ],
+      "inline_api_refs": []
+    },
+    "catalyst-scanner": {
+      "page_file": "trading-os/src/app/catalyst-scanner/page.tsx",
+      "imports": [
+        "next",
+        "@/components/auth/protected-route",
+        "@/components/terminal/catalyst-scanner-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "earnings": {
+      "page_file": "trading-os/src/app/earnings/page.tsx",
+      "imports": [
+        "next",
+        "@/components/terminal/earnings-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "alerts": {
+      "page_file": "trading-os/src/app/alerts/page.tsx",
+      "imports": [
+        "next",
+        "@/components/terminal/alerts-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "heat-map": {
+      "page_file": "trading-os/src/app/heat-map/page.tsx",
+      "imports": [
+        "next",
+        "@/components/terminal/heat-map-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    },
+    "markets": {
+      "page_file": "trading-os/src/app/markets/page.tsx",
+      "imports": [
+        "next",
+        "@/components/terminal/markets-view",
+        "@/lib/seo"
+      ],
+      "inline_api_refs": []
+    }
+  },
+  "frontend_api_proxy_routes": [
+    "trading-os/src/app/api/_lib/proxy.ts",
+    "trading-os/src/app/api/_lib/tradeObject.ts",
+    "trading-os/src/app/api/catalyst-reactions/latest/route.ts",
+    "trading-os/src/app/api/catalyst-reactions/symbol/[symbol]/route.ts",
+    "trading-os/src/app/api/catalysts/id/[newsId]/route.ts",
+    "trading-os/src/app/api/catalysts/latest/route.ts",
+    "trading-os/src/app/api/catalysts/route.ts",
+    "trading-os/src/app/api/catalysts/symbol/[symbol]/route.ts",
+    "trading-os/src/app/api/catalysts/top/route.ts",
+    "trading-os/src/app/api/cron/run-all/route.ts",
+    "trading-os/src/app/api/earnings/calendar/route.ts",
+    "trading-os/src/app/api/earnings/route.ts",
+    "trading-os/src/app/api/health/route.ts",
+    "trading-os/src/app/api/intelligence/catalysts/route.ts",
+    "trading-os/src/app/api/intelligence/dashboard/route.ts",
+    "trading-os/src/app/api/intelligence/decision/[symbol]/route.ts",
+    "trading-os/src/app/api/intelligence/diagnostics/route.ts",
+    "trading-os/src/app/api/intelligence/heatmap/route.ts",
+    "trading-os/src/app/api/intelligence/markets/route.ts",
+    "trading-os/src/app/api/intelligence/news/route.ts",
+    "trading-os/src/app/api/intelligence/opportunities/route.ts",
+    "trading-os/src/app/api/intelligence/signals/route.ts",
+    "trading-os/src/app/api/intelligence/system/route.ts",
+    "trading-os/src/app/api/intelligence/top-opportunities/route.ts",
+    "trading-os/src/app/api/intelligence/top-opportunity/route.ts",
+    "trading-os/src/app/api/intelligence/top5/route.ts",
+    "trading-os/src/app/api/intelligence/watchlist/route.ts",
+    "trading-os/src/app/api/ipos/route.ts",
+    "trading-os/src/app/api/macro/route.ts",
+    "trading-os/src/app/api/market/ohlc/route.ts",
+    "trading-os/src/app/api/market/quotes/route.ts",
+    "trading-os/src/app/api/markets/route.ts",
+    "trading-os/src/app/api/news/id/[id]/route.ts",
+    "trading-os/src/app/api/news/latest/route.ts",
+    "trading-os/src/app/api/news/route.ts",
+    "trading-os/src/app/api/news/symbol/[symbol]/route.ts",
+    "trading-os/src/app/api/ohlc/daily/route.ts",
+    "trading-os/src/app/api/ohlc/intraday/route.ts",
+    "trading-os/src/app/api/opportunities/route.ts",
+    "trading-os/src/app/api/query/run/route.ts",
+    "trading-os/src/app/api/signals/route.ts",
+    "trading-os/src/app/api/splits/route.ts",
+    "trading-os/src/app/api/stocks-in-play/route.ts",
+    "trading-os/src/app/api/stream/market/route.ts",
+    "trading-os/src/app/api/system/cron-status/route.ts",
+    "trading-os/src/app/api/system/data-integrity/route.ts",
+    "trading-os/src/app/api/system/health/route.ts",
+    "trading-os/src/app/api/trading-terminal/route.ts"
+  ]
+}

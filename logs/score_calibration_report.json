@@ -1,0 +1,98 @@
+{
+  "started_at": "2026-03-20T15:07:46.479Z",
+  "phases": [
+    {
+      "phase": "PHASE_0",
+      "result": {
+        "ts": "2026-03-20T15:07:47.887Z",
+        "min_decision_score": 7,
+        "max_decision_score": 47,
+        "avg_decision_score": 9.235784228028503,
+        "stddev_decision_score": 3.574152075887595,
+        "suppressed": false,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_1",
+      "result": {
+        "ts": "2026-03-20T15:07:49.127Z",
+        "total_count": 421,
+        "null_count": 0,
+        "negative_count": 0,
+        "avg_decision_score": 9.235784228028503,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_2",
+      "result": {
+        "ts": "2026-03-20T15:07:50.365Z",
+        "avg_before": 9.235784228028503,
+        "avg_after": 10.07901463182898,
+        "min_after": 9,
+        "max_after": 49,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_3",
+      "result": {
+        "ts": "2026-03-20T15:07:54.202Z",
+        "top5_avg_before": 33.8,
+        "top5_avg_after": 44.6,
+        "boosted_rows_in_top20": 17,
+        "max_boost": 15,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_4",
+      "result": {
+        "ts": "2026-03-20T15:07:55.477Z",
+        "out_of_range": 0,
+        "nan_count": 0,
+        "null_count": 0,
+        "total_count": 421,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_5",
+      "result": {
+        "ts": "2026-03-20T15:07:56.725Z",
+        "top5_avg": 86.0525186181928,
+        "mid10_avg": 60.98415931074073,
+        "separation": 25.0684,
+        "zero_bucket": 54,
+        "total_count": 421,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_6",
+      "result": {
+        "ts": "2026-03-20T15:07:57.931Z",
+        "above_60": 10,
+        "top5_max": 100,
+        "top5_min": 81.50429096426684,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_8",
+      "result": {
+        "ts": "2026-03-20T15:07:59.104Z",
+        "min_final_score": 0,
+        "max_final_score": 100,
+        "avg_final_score": 34.68973437960134,
+        "stddev_final_score": 18.214075219693378,
+        "above_60": 10,
+        "above_40": 149,
+        "total": 421,
+        "pass": true
+      }
+    }
+  ],
+  "completed_at": "2026-03-20T15:07:59.104Z"
+}

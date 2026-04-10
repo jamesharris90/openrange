@@ -237,6 +237,8 @@ async function runDbSchemaGuard() {
       'db.schema_guard.provider_health.table'
     );
 
+    await ensureColumn('market_quotes', 'market_cap', 'BIGINT');
+    await ensureColumn('market_quotes', 'sector', 'TEXT');
     await ensureColumn('market_quotes', 'short_float', 'NUMERIC');
     await ensureColumn('market_quotes', 'float', 'NUMERIC');
     await ensureColumn('market_quotes', 'relative_volume', 'NUMERIC');

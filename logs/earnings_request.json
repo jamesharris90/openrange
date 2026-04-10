@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-03-21T00:00:00.000Z",
+  "frontend_callers": [
+    {
+      "file": "client/src/pages/EarningsCalendar.jsx",
+      "request_path": "/api/earnings/calendar?limit=400",
+      "method": "GET",
+      "params": {
+        "limit": "400"
+      },
+      "header_source": "client/src/api/apiClient.js -> client/src/lib/apiClient.js",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <openrange_token|authToken> (optional)"
+      }
+    },
+    {
+      "file": "trading-os/src/lib/api/earnings.ts",
+      "request_path": "/api/earnings/calendar?from=<YYYY-MM-DD>&to=<YYYY-MM-DD>",
+      "method": "GET",
+      "params": {
+        "from": "current trading week start (UTC)",
+        "to": "current trading week end (UTC)"
+      },
+      "header_source": "trading-os/src/lib/api/client.ts",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <token> (optional)"
+      }
+    }
+  ],
+  "api_base": {
+    "trading_os": "http://localhost:3001",
+    "file": "trading-os/src/lib/apiBase.ts"
+  }
+}

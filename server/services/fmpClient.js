@@ -73,8 +73,11 @@ async function fmpFetch(endpoint, params = {}) {
     throw new Error('FMP_API_KEY is not configured');
   }
 
-  if (String(endpoint || '').includes('/api/v3')) {
-    warn('FMP legacy endpoint detected', { endpoint });
+  if (/\/api\/v[34]\b/i.test(String(endpoint || ''))) {
+    const legacyError = new Error(`Legacy FMP endpoint blocked: ${endpoint}`);
+    legacyError.code = 'FMP_LEGACY_ENDPOINT_BLOCKED';
+    warn('FMP legacy endpoint blocked', { endpoint });
+    throw legacyError;
   }
 
   const requestParams = {

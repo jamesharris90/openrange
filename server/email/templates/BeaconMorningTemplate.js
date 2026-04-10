@@ -44,10 +44,16 @@ function renderStocksInPlayCard(row = {}) {
     `Average drawdown: ${Number.isFinite(Number(stats.avgDrawdown)) ? `${Number(stats.avgDrawdown) >= 0 ? '+' : ''}${Number(stats.avgDrawdown).toFixed(2)}%` : 'N/A'}`,
     `Sample size: ${Number.isFinite(Number(stats.sampleSize)) ? `${Number(stats.sampleSize)} signals` : 'N/A'}`,
   ].join('\n');
-  const probabilityHtml = String(probabilityContext || 'Historical performance data building')
+  const probabilityHtml = String(probabilityContext || 'Historical performance data unavailable')
     .split('\n')
     .map((line) => esc(line))
     .join('<br />');
+  const scoreLine = Number.isFinite(Number(row.tradeScore))
+    ? `<span style="display:inline-block;background:#1e3a8a;color:#dbeafe;padding:5px 9px;border-radius:999px;font-weight:700;">Trade Score ${tradeScore} (${grade})</span>`
+    : '';
+  const winRateLine = Number.isFinite(Number(row?.strategyStats?.winRate))
+    ? `<span style="margin-left:8px;"><strong style="color:#e2e8f0;">Strategy win rate:</strong> ${winRate}</span>`
+    : `<span style="margin-left:8px;"><strong style="color:#e2e8f0;">Setup:</strong> ${esc(row.setupType || 'Watchlist candidate')}</span>`;
 
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #1f2937;border-radius:10px;background:#0f172a;margin-bottom:14px;overflow:hidden;">
@@ -68,7 +74,7 @@ function renderStocksInPlayCard(row = {}) {
       </tr>
       <tr>
         <td style="padding:12px;color:#cbd5e1;font-size:13px;line-height:1.6;">
-          <div style="margin:0 0 8px 0;"><span style="display:inline-block;background:#1e3a8a;color:#dbeafe;padding:5px 9px;border-radius:999px;font-weight:700;">Trade Score ${tradeScore} (${grade})</span> <span style="margin-left:8px;"><strong style="color:#e2e8f0;">Strategy win rate:</strong> ${winRate}</span></div>
+          <div style="margin:0 0 8px 0;">${scoreLine}${winRateLine}</div>
           <div style="margin:0 0 8px 0;"><strong style="color:#e2e8f0;">Confidence:</strong> ${confidence}</div>
           <div style="margin:0 0 10px 0;">
             <div style="height:8px;background:#1f2937;border-radius:999px;overflow:hidden;">
@@ -76,7 +82,7 @@ function renderStocksInPlayCard(row = {}) {
             </div>
           </div>
           <div style="margin:0 0 8px 0;padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1220;color:#cbd5e1;">
-            ${probabilityHtml || 'Historical performance data building'}
+            ${probabilityHtml || 'Historical performance data unavailable'}
           </div>
           <div style="margin-top:6px;"><strong style="color:#e2e8f0;">News:</strong> ${newsUrl ? `<a href="${esc(newsUrl)}" style="color:#38bdf8;text-decoration:none;">${newsHeadline}</a>` : newsHeadline}</div>
           <div><strong style="color:#e2e8f0;">Why moving:</strong> ${esc(narrative.whyMoving || row.catalyst || 'No catalyst summary available.')}</div>
@@ -97,6 +103,7 @@ function renderStocksInPlayCard(row = {}) {
 
 function renderBeaconMorningTemplate(payload = {}) {
   const marketContext = payload.marketContext || {};
+  const mode = payload.mode || 'setup';
   const stockOfDay = payload.stockOfDay || null;
   const secondary = Array.isArray(payload.secondaryOpportunities)
     ? payload.secondaryOpportunities
@@ -139,6 +146,12 @@ function renderBeaconMorningTemplate(payload = {}) {
   `;
 
   const fallbackCardMessage = '<div style="color:#94a3b8;margin-bottom:10px;">No qualified setup detected for this section.</div>';
+  const sectionLead = mode === 'watchlist'
+    ? 'Priority Watchlist'
+    : 'Stock of the Day';
+  const sectionSublead = mode === 'watchlist'
+    ? '<div style="color:#94a3b8;margin:0 0 10px 0;">These are the highest-ranked live hierarchy names while the deeper setup engine refreshes.</div>'
+    : '';
 
   const tradePlan = stockOfDay?.narrative || {};
   const tradePlanBlock = `
@@ -174,7 +187,8 @@ function renderBeaconMorningTemplate(payload = {}) {
     <div style="font-size:14px;font-weight:700;color:#f8fafc;margin:0 0 10px 0;">Today's Radar Themes</div>
     <div style="margin:0 0 12px 0;">${themesBlock}</div>
     ${fallbackMessage}
-    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin:0 0 10px 0;">Stock of the Day</div>
+    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin:0 0 10px 0;">${sectionLead}</div>
+    ${sectionSublead}
     ${stockOfDayCard || fallbackCardMessage}
     ${tradePlanBlock}
     <div style="font-size:14px;font-weight:700;color:#f8fafc;margin:8px 0 10px 0;">Secondary Watchlist</div>

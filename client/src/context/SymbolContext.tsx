@@ -8,7 +8,7 @@ type SymbolContextType = {
 };
 
 const SymbolContext = createContext<SymbolContextType | null>(null);
-const DEFAULT_SYMBOL = 'SPY';
+const DEFAULT_SYMBOL = '';
 
 export function SymbolProvider({ children }: { children: React.ReactNode }) {
   const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);

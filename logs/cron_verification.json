@@ -1,0 +1,296 @@
+{
+  "generated_at": "2026-03-23T16:29:43.598Z",
+  "run_all": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "runs": [
+        {
+          "engine": "stocks-in-play",
+          "ok": true,
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 9927
+        },
+        {
+          "engine": "catalyst",
+          "ok": true,
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 7002
+        },
+        {
+          "engine": "earnings",
+          "ok": true,
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 3963
+        },
+        {
+          "engine": "intelligence",
+          "ok": true,
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 8321
+        }
+      ]
+    }
+  },
+  "cron_status": {
+    "status": 200,
+    "recent_runs": [
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:20:08.207Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:20:08.738Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:22:08.744Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:22:08.891Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T16:22:15.749Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T16:22:15.892Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:25:00.819Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:25:00.973Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:25:07.820Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:25:07.976Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:27:08.750Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:27:08.899Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T16:27:15.752Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T16:27:15.901Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:28:26.542Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:28:35.595Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 7,
+          "symbols_sample": [],
+          "duration_ms": 9052
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:28:35.596Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:28:40.670Z",
+        "payload": {
+          "engine": "catalyst",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 5074
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:28:40.670Z",
+        "payload": {
+          "engine": "earnings"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:28:44.684Z",
+        "payload": {
+          "engine": "earnings",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 4012
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:28:44.684Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:28:52.752Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 8068
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:29:10.861Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:29:20.790Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 9927
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:29:20.790Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:29:27.792Z",
+        "payload": {
+          "engine": "catalyst",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 7002
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:29:27.793Z",
+        "payload": {
+          "engine": "earnings"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:29:31.756Z",
+        "payload": {
+          "engine": "earnings",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 3963
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T16:29:31.756Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T16:29:40.078Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0,
+          "symbols_sample": [],
+          "duration_ms": 8321
+        }
+      }
+    ]
+  },
+  "verification": {
+    "engine_success_present_for_required": true,
+    "required_engine_counts": {
+      "stocks-in-play": 0,
+      "catalyst": 0,
+      "earnings": 0,
+      "intelligence": 0
+    },
+    "at_least_two_engines_count_gt_zero": false
+  }
+}

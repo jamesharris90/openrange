@@ -1,0 +1,2 @@
+ERROR: http://localhost:3001/api/intelligence/top-opportunities This operation was aborted
+ERROR: non-200 status http://localhost:3001/api/earnings 500

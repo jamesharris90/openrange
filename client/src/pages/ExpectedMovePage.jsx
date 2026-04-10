@@ -101,7 +101,7 @@ export default function ExpectedMovePage() {
 
       {!loading && !error && symbol && !row && (
         <Card>
-          <div className="muted">No data available for {symbol}.</div>
+          <div className="muted">No qualifying setups right now for {symbol}.</div>
         </Card>
       )}
 

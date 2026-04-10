@@ -1,0 +1,328 @@
+{
+  "generated_at": "2026-03-23T20:25:53.906Z",
+  "row_count": 19,
+  "rows": [
+    {
+      "endpoint_key": "stable_aftermarket_quote",
+      "endpoint_url": "https://financialmodelingprep.com/stable/aftermarket-quote",
+      "endpoint_family": "stable",
+      "purpose": "single_symbol_afterhours_quote",
+      "job_name": "premarket_and_afterhours_signal_enrichment",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for afterhours quote context per symbol. Do not use for portfolio-sized scans where batch aftermarket endpoints are available.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_aftermarket_trade",
+      "endpoint_url": "https://financialmodelingprep.com/stable/aftermarket-trade",
+      "endpoint_family": "stable",
+      "purpose": "single_symbol_afterhours_trade",
+      "job_name": "premarket_and_afterhours_signal_enrichment",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for single symbol pre/post market last-trade context. Do not use as the primary regular-session quote endpoint.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_batch_aftermarket_quote",
+      "endpoint_url": "https://financialmodelingprep.com/stable/batch-aftermarket-quote",
+      "endpoint_family": "stable",
+      "purpose": "multi_symbol_afterhours_quote",
+      "job_name": "premarket_gap_and_afterhours_scan",
+      "method": "GET",
+      "query_template": {
+        "symbols": "AAPL,MSFT,NVDA"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Preferred bulk endpoint for premarket/afterhours quote scanning. Do not use for full-day historical bars.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_batch_aftermarket_trade",
+      "endpoint_url": "https://financialmodelingprep.com/stable/batch-aftermarket-trade",
+      "endpoint_family": "stable",
+      "purpose": "multi_symbol_afterhours_trade",
+      "job_name": "premarket_gap_and_afterhours_scan",
+      "method": "GET",
+      "query_template": {
+        "symbols": "AAPL,MSFT,NVDA"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for bulk afterhours trade snapshots. Do not use during regular session as replacement for batch-quote endpoints.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_batch_exchange_quote",
+      "endpoint_url": "https://financialmodelingprep.com/stable/batch-exchange-quote",
+      "endpoint_family": "stable",
+      "purpose": "exchange_wide_quotes",
+      "job_name": "universe_snapshot_and_market_breadth",
+      "method": "GET",
+      "query_template": {
+        "short": "true",
+        "exchange": "NASDAQ"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for exchange-wide snapshots and breadth calculations. Do not use when strict universe filters require screener fields.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_batch_quote",
+      "endpoint_url": "https://financialmodelingprep.com/stable/batch-quote",
+      "endpoint_family": "stable",
+      "purpose": "multi_symbol_quotes",
+      "job_name": "watchlist_and_market_snapshot",
+      "method": "GET",
+      "query_template": {
+        "symbols": "AAPL,MSFT,NVDA,SPY,QQQ"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Primary batch quote source for universe snapshots. Do not use for exchange-wide scans if endpoint limits are reached.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_batch_quote_short",
+      "endpoint_url": "https://financialmodelingprep.com/stable/batch-quote-short",
+      "endpoint_family": "stable",
+      "purpose": "multi_symbol_quote_short",
+      "job_name": "lightweight_quote_snapshot",
+      "method": "GET",
+      "query_template": {
+        "symbols": "AAPL,MSFT,NVDA,SPY,QQQ"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use when performance is favored over full contract richness. Do not use when downstream fields require full quote payloads.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_earnings_calendar",
+      "endpoint_url": "https://financialmodelingprep.com/stable/earnings-calendar",
+      "endpoint_family": "stable",
+      "purpose": "earnings_calendar",
+      "job_name": "earnings_ingestion",
+      "method": "GET",
+      "query_template": {
+        "to": "2026-03-30",
+        "from": "2026-03-23"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for earnings event ingestion with bounded date windows. Do not query unbounded historical ranges in hot-path jobs.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_historical_chart_1min",
+      "endpoint_url": "https://financialmodelingprep.com/stable/historical-chart/1min",
+      "endpoint_family": "stable",
+      "purpose": "intraday_chart_data",
+      "job_name": "chart_ingestion_1m",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for intraday 1-minute bars. Do not use for daily EOD ingestion where dedicated EOD endpoint exists.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_historical_price_eod",
+      "endpoint_url": "https://financialmodelingprep.com/stable/historical-price-eod/full",
+      "endpoint_family": "stable",
+      "purpose": "daily_eod_data",
+      "job_name": "daily_ohlc_ingestion",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for daily OHLC/EOD history. Do not use for real-time quote updates or intraday chart refreshes.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_market_gainers",
+      "endpoint_url": "https://financialmodelingprep.com/stable/market-gainers",
+      "endpoint_family": "stable",
+      "purpose": "top_gainers_list",
+      "job_name": "premarket_and_open_movers",
+      "method": "GET",
+      "query_template": {},
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for direct top-gainers lists. Do not use as sole mover source if endpoint is unavailable; fall back to computed movers.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_market_losers",
+      "endpoint_url": "https://financialmodelingprep.com/stable/market-losers",
+      "endpoint_family": "stable",
+      "purpose": "top_losers_list",
+      "job_name": "premarket_and_open_movers",
+      "method": "GET",
+      "query_template": {},
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for direct top-losers lists. Do not use as sole mover source if endpoint is unavailable; fall back to computed movers.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_market_most_active",
+      "endpoint_url": "https://financialmodelingprep.com/stable/market-actives",
+      "endpoint_family": "stable",
+      "purpose": "most_active_list",
+      "job_name": "active_volume_scan",
+      "method": "GET",
+      "query_template": {},
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for most-active volume scans. Do not use as a replacement for liquidity filtering logic in universe construction.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_press_releases",
+      "endpoint_url": "https://financialmodelingprep.com/stable/news/press-releases",
+      "endpoint_family": "stable",
+      "purpose": "press_releases",
+      "job_name": "catalyst_press_release_ingestion",
+      "method": "GET",
+      "query_template": {
+        "limit": "50",
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use as press-release catalyst feed and backup to stock news. Do not assume stock-news-like fields unless validated.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_quote",
+      "endpoint_url": "https://financialmodelingprep.com/stable/quote",
+      "endpoint_family": "stable",
+      "purpose": "single_symbol_quote",
+      "job_name": "quote_lookup",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for one symbol spot quote checks. Do not use for broad watchlists where batch endpoints are more efficient.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_quote_short",
+      "endpoint_url": "https://financialmodelingprep.com/stable/quote-short",
+      "endpoint_family": "stable",
+      "purpose": "single_symbol_quote_short",
+      "job_name": "quote_lookup_short",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for low-latency quote snapshots when only price and small core fields are needed. Do not use when full quote context is required.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_stock_news",
+      "endpoint_url": "https://financialmodelingprep.com/stable/news/stock",
+      "endpoint_family": "stable",
+      "purpose": "stock_news",
+      "job_name": "catalyst_news_ingestion",
+      "method": "GET",
+      "query_template": {
+        "limit": "50",
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Preferred stock-news feed for catalyst ingestion. Do not use if symbol parameter contract fails validation.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_stock_price_change",
+      "endpoint_url": "https://financialmodelingprep.com/stable/stock-price-change",
+      "endpoint_family": "stable",
+      "purpose": "multi_horizon_price_change",
+      "job_name": "momentum_and_context_enrichment",
+      "method": "GET",
+      "query_template": {
+        "symbol": "AAPL"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Use for multi-horizon percent-change enrichment. Do not use for candlestick-level charting.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    },
+    {
+      "endpoint_key": "stable_stock_screener",
+      "endpoint_url": "https://financialmodelingprep.com/stable/stock-screener",
+      "endpoint_family": "stable",
+      "purpose": "universe_builder_and_filter_engine",
+      "job_name": "tradable_universe_builder",
+      "method": "GET",
+      "query_template": {
+        "limit": "100",
+        "exchange": "NASDAQ"
+      },
+      "plan_required": "stable",
+      "is_active": true,
+      "validation_status": "unvalidated",
+      "notes": "Primary endpoint for tradable universe construction. Do not assume unsupported filter params; validator must confirm contract first.",
+      "created_at": "2026-03-23 20:25:36.7508+00",
+      "updated_at": "2026-03-23 20:25:36.7508+00"
+    }
+  ]
+}

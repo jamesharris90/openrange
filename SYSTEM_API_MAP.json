@@ -1,0 +1,1349 @@
+{
+  "generatedAt": "2026-04-04T14:08:12.068Z",
+  "backendEntrypoint": "server/index.js -> server/v2/index.js",
+  "nextRoutes": [
+    {
+      "route": "/api/catalyst-reactions/latest",
+      "file": "trading-os/src/app/api/catalyst-reactions/latest/route.ts",
+      "targets": [
+        "/api/catalyst-reactions/latest"
+      ]
+    },
+    {
+      "route": "/api/catalyst-reactions/symbol/[symbol]",
+      "file": "trading-os/src/app/api/catalyst-reactions/symbol/[symbol]/route.ts",
+      "targets": [
+        "/api/catalyst-reactions/symbol/${symbol}"
+      ]
+    },
+    {
+      "route": "/api/catalysts",
+      "file": "trading-os/src/app/api/catalysts/route.ts",
+      "targets": [
+        "/api/catalysts"
+      ]
+    },
+    {
+      "route": "/api/catalysts/id/[newsId]",
+      "file": "trading-os/src/app/api/catalysts/id/[newsId]/route.ts",
+      "targets": [
+        "/api/catalysts/id/${newsId}"
+      ]
+    },
+    {
+      "route": "/api/catalysts/latest",
+      "file": "trading-os/src/app/api/catalysts/latest/route.ts",
+      "targets": [
+        "/api/catalysts/latest"
+      ]
+    },
+    {
+      "route": "/api/catalysts/symbol/[symbol]",
+      "file": "trading-os/src/app/api/catalysts/symbol/[symbol]/route.ts",
+      "targets": [
+        "/api/catalysts/symbol/${symbol}"
+      ]
+    },
+    {
+      "route": "/api/catalysts/top",
+      "file": "trading-os/src/app/api/catalysts/top/route.ts",
+      "targets": [
+        "/api/catalysts/top"
+      ]
+    },
+    {
+      "route": "/api/cron/run-all",
+      "file": "trading-os/src/app/api/cron/run-all/route.ts",
+      "targets": [
+        "/api/cron/run-all"
+      ]
+    },
+    {
+      "route": "/api/earnings",
+      "file": "trading-os/src/app/api/earnings/route.ts",
+      "targets": [
+        "${path}"
+      ]
+    },
+    {
+      "route": "/api/earnings/calendar",
+      "file": "trading-os/src/app/api/earnings/calendar/route.ts",
+      "targets": [
+        "/api/earnings/calendar"
+      ]
+    },
+    {
+      "route": "/api/fmp/quotes",
+      "file": "trading-os/src/app/api/fmp/quotes/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/health",
+      "file": "trading-os/src/app/api/health/route.ts",
+      "targets": [
+        "/api/health"
+      ]
+    },
+    {
+      "route": "/api/intelligence/catalysts",
+      "file": "trading-os/src/app/api/intelligence/catalysts/route.ts",
+      "targets": [
+        "/api/intelligence/catalysts"
+      ]
+    },
+    {
+      "route": "/api/intelligence/dashboard",
+      "file": "trading-os/src/app/api/intelligence/dashboard/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/intelligence/decision/[symbol]",
+      "file": "trading-os/src/app/api/intelligence/decision/[symbol]/route.ts",
+      "targets": [
+        "/api/intelligence/decision/${symbol}"
+      ]
+    },
+    {
+      "route": "/api/intelligence/diagnostics",
+      "file": "trading-os/src/app/api/intelligence/diagnostics/route.ts",
+      "targets": [
+        "/api/intelligence/diagnostics"
+      ]
+    },
+    {
+      "route": "/api/intelligence/heatmap",
+      "file": "trading-os/src/app/api/intelligence/heatmap/route.ts",
+      "targets": [
+        "/api/intelligence/heatmap"
+      ]
+    },
+    {
+      "route": "/api/intelligence/markets",
+      "file": "trading-os/src/app/api/intelligence/markets/route.ts",
+      "targets": [
+        "/api/market/overview"
+      ]
+    },
+    {
+      "route": "/api/intelligence/news",
+      "file": "trading-os/src/app/api/intelligence/news/route.ts",
+      "targets": [
+        "/api/intelligence/news"
+      ]
+    },
+    {
+      "route": "/api/intelligence/opportunities",
+      "file": "trading-os/src/app/api/intelligence/opportunities/route.ts",
+      "targets": [
+        "/api/intelligence/opportunities"
+      ]
+    },
+    {
+      "route": "/api/intelligence/prep",
+      "file": "trading-os/src/app/api/intelligence/prep/route.ts",
+      "targets": [
+        "/api/intelligence/prep"
+      ]
+    },
+    {
+      "route": "/api/intelligence/signals",
+      "file": "trading-os/src/app/api/intelligence/signals/route.ts",
+      "targets": [
+        "/api/intelligence/signals",
+        ");\n}\n\nexport async function POST() {\n  return Response.json({ success: false, error: "
+      ]
+    },
+    {
+      "route": "/api/intelligence/system",
+      "file": "trading-os/src/app/api/intelligence/system/route.ts",
+      "targets": [
+        "/api/admin/email-test",
+        "${path}"
+      ]
+    },
+    {
+      "route": "/api/intelligence/top-opportunities",
+      "file": "trading-os/src/app/api/intelligence/top-opportunities/route.ts",
+      "targets": [
+        "/api/intelligence/top-opportunities"
+      ]
+    },
+    {
+      "route": "/api/intelligence/top-opportunity",
+      "file": "trading-os/src/app/api/intelligence/top-opportunity/route.ts",
+      "targets": [
+        "/api/intelligence/top-opportunity"
+      ]
+    },
+    {
+      "route": "/api/intelligence/top5",
+      "file": "trading-os/src/app/api/intelligence/top5/route.ts",
+      "targets": [
+        "/api/intelligence/top5"
+      ]
+    },
+    {
+      "route": "/api/intelligence/watchlist",
+      "file": "trading-os/src/app/api/intelligence/watchlist/route.ts",
+      "targets": [
+        "/api/intelligence/watchlist"
+      ]
+    },
+    {
+      "route": "/api/ipo/calendar",
+      "file": "trading-os/src/app/api/ipo/calendar/route.ts",
+      "targets": [
+        "/api/ipo/calendar"
+      ]
+    },
+    {
+      "route": "/api/ipos",
+      "file": "trading-os/src/app/api/ipos/route.ts",
+      "targets": [
+        "/api/ipos"
+      ]
+    },
+    {
+      "route": "/api/macro",
+      "file": "trading-os/src/app/api/macro/route.ts",
+      "targets": [
+        "/api/macro"
+      ]
+    },
+    {
+      "route": "/api/market/ohlc",
+      "file": "trading-os/src/app/api/market/ohlc/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/market/quotes",
+      "file": "trading-os/src/app/api/market/quotes/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/markets",
+      "file": "trading-os/src/app/api/markets/route.ts",
+      "targets": [
+        "/api/radar/summary"
+      ]
+    },
+    {
+      "route": "/api/mode",
+      "file": "trading-os/src/app/api/mode/route.ts",
+      "targets": [
+        "/api/mode"
+      ]
+    },
+    {
+      "route": "/api/news",
+      "file": "trading-os/src/app/api/news/route.ts",
+      "targets": [
+        "/api/news"
+      ]
+    },
+    {
+      "route": "/api/news/id/[id]",
+      "file": "trading-os/src/app/api/news/id/[id]/route.ts",
+      "targets": [
+        "/api/news/id/${id}"
+      ]
+    },
+    {
+      "route": "/api/news/latest",
+      "file": "trading-os/src/app/api/news/latest/route.ts",
+      "targets": [
+        "/api/v2/news"
+      ]
+    },
+    {
+      "route": "/api/news/symbol/[symbol]",
+      "file": "trading-os/src/app/api/news/symbol/[symbol]/route.ts",
+      "targets": [
+        "/api/news/symbol/${symbol}"
+      ]
+    },
+    {
+      "route": "/api/news/symbol72h/[symbol]",
+      "file": "trading-os/src/app/api/news/symbol72h/[symbol]/route.ts",
+      "targets": [
+        "/api/news/symbol72h/${params.symbol}"
+      ]
+    },
+    {
+      "route": "/api/ohlc/daily",
+      "file": "trading-os/src/app/api/ohlc/daily/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/ohlc/intraday",
+      "file": "trading-os/src/app/api/ohlc/intraday/route.ts",
+      "targets": [
+        "/api/ohlc/intraday"
+      ]
+    },
+    {
+      "route": "/api/opportunities",
+      "file": "trading-os/src/app/api/opportunities/route.ts",
+      "targets": [
+        "/api/opportunities"
+      ]
+    },
+    {
+      "route": "/api/premarket/intelligence/[symbol]",
+      "file": "trading-os/src/app/api/premarket/intelligence/[symbol]/route.ts",
+      "targets": [
+        "/api/premarket/intelligence/${params.symbol}"
+      ]
+    },
+    {
+      "route": "/api/premarket/watchlist",
+      "file": "trading-os/src/app/api/premarket/watchlist/route.ts",
+      "targets": [
+        "/api/premarket/watchlist"
+      ]
+    },
+    {
+      "route": "/api/query/run",
+      "file": "trading-os/src/app/api/query/run/route.ts",
+      "targets": [
+        "/api/query/run"
+      ]
+    },
+    {
+      "route": "/api/research/[symbol]",
+      "file": "trading-os/src/app/api/research/[symbol]/route.ts",
+      "targets": [
+        "/api/research/${symbol}"
+      ]
+    },
+    {
+      "route": "/api/research/[symbol]/full",
+      "file": "trading-os/src/app/api/research/[symbol]/full/route.ts",
+      "targets": [
+        "/api/research/${symbol}/full"
+      ]
+    },
+    {
+      "route": "/api/screener",
+      "file": "trading-os/src/app/api/screener/route.ts",
+      "targets": [
+        "/api/screener"
+      ]
+    },
+    {
+      "route": "/api/signals",
+      "file": "trading-os/src/app/api/signals/route.ts",
+      "targets": [
+        "/api/signals"
+      ]
+    },
+    {
+      "route": "/api/splits",
+      "file": "trading-os/src/app/api/splits/route.ts",
+      "targets": [
+        "/api/splits"
+      ]
+    },
+    {
+      "route": "/api/stocks-in-play",
+      "file": "trading-os/src/app/api/stocks-in-play/route.ts",
+      "targets": [
+        "/api/stocks-in-play",
+        "/api/intelligence/top-opportunities"
+      ]
+    },
+    {
+      "route": "/api/stocks/[symbol]",
+      "file": "trading-os/src/app/api/stocks/[symbol]/route.ts",
+      "targets": [
+        "/api/stocks/${upper}"
+      ]
+    },
+    {
+      "route": "/api/stocks/intraday-sparkline",
+      "file": "trading-os/src/app/api/stocks/intraday-sparkline/route.ts",
+      "targets": [
+        "/api/stocks/intraday-sparkline"
+      ]
+    },
+    {
+      "route": "/api/stream/market",
+      "file": "trading-os/src/app/api/stream/market/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/system/cron-status",
+      "file": "trading-os/src/app/api/system/cron-status/route.ts",
+      "targets": [
+        "/api/system/cron-status"
+      ]
+    },
+    {
+      "route": "/api/system/data-integrity",
+      "file": "trading-os/src/app/api/system/data-integrity/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/system/health",
+      "file": "trading-os/src/app/api/system/health/route.ts",
+      "targets": []
+    },
+    {
+      "route": "/api/trading-terminal",
+      "file": "trading-os/src/app/api/trading-terminal/route.ts",
+      "targets": [
+        "/api/intelligence/top-opportunities",
+        "/api/stocks-in-play"
+      ]
+    }
+  ],
+  "backendMounts": [
+    {
+      "path": "/api/screener",
+      "variable": "screenerRoute",
+      "module": "./routes/screener"
+    },
+    {
+      "path": "/api/v2/screener",
+      "variable": "screenerRoute",
+      "module": "./routes/screener"
+    },
+    {
+      "path": "/api/opportunities",
+      "variable": "opportunitiesRoute",
+      "module": "./routes/opportunities"
+    },
+    {
+      "path": "/api/v2/opportunities",
+      "variable": "opportunitiesRoute",
+      "module": "./routes/opportunities"
+    },
+    {
+      "path": "/api/v2/chart",
+      "variable": "chartRoute",
+      "module": "./routes/chart"
+    },
+    {
+      "path": "/api/v5",
+      "variable": "chartV5Route",
+      "module": "../routes/chartV2.ts"
+    },
+    {
+      "path": "/api/v2/research",
+      "variable": "legacyResearchRoute",
+      "module": "./routes/research"
+    },
+    {
+      "path": "/api/research",
+      "variable": "researchRoute",
+      "module": "../routes/research"
+    },
+    {
+      "path": "/api/v2/news",
+      "variable": "newsRoute",
+      "module": "./routes/news"
+    },
+    {
+      "path": "/api/v2/earnings",
+      "variable": "earningsRoute",
+      "module": "./routes/earnings"
+    },
+    {
+      "path": "/api/market",
+      "variable": "marketRoute",
+      "module": "../routes/market"
+    },
+    {
+      "path": "/api/system",
+      "variable": "systemRoute",
+      "module": "./routes/system"
+    },
+    {
+      "path": "/api/validation",
+      "variable": "validationRoute",
+      "module": "./routes/validation"
+    },
+    {
+      "path": "/api/admin",
+      "variable": "adminRoute",
+      "module": "./routes/admin"
+    },
+    {
+      "path": "/api/dev",
+      "variable": "devRoute",
+      "module": "./routes/dev"
+    }
+  ],
+  "frontendCalls": [
+    {
+      "file": "trading-os/src/app/admin/cron-debug/page.tsx",
+      "line": 24,
+      "code": "const response = await fetch(\"/api/system/cron-status\", { cache: \"no-store\" });"
+    },
+    {
+      "file": "trading-os/src/app/admin/cron-debug/page.tsx",
+      "line": 60,
+      "code": "const response = await fetch(\"/api/cron/run-all\", { method: \"POST\" });"
+    },
+    {
+      "file": "trading-os/src/app/api/fmp/quotes/route.ts",
+      "line": 21,
+      "code": "const backendUrl = `${API_BASE}/api/fmp/quotes${search}`;"
+    },
+    {
+      "file": "trading-os/src/app/api/intelligence/catalysts/route.ts",
+      "line": 19,
+      "code": "const response = await fetch(`${API_BASE}/api/intelligence/catalysts`, {"
+    },
+    {
+      "file": "trading-os/src/app/api/intelligence/dashboard/route.ts",
+      "line": 17,
+      "code": "const target = `${API_BASE}/api/intelligence/summary`;"
+    },
+    {
+      "file": "trading-os/src/app/api/intelligence/markets/route.ts",
+      "line": 8,
+      "code": "const overviewRes = await fetch(`${API_BASE}/api/market/overview`, {"
+    },
+    {
+      "file": "trading-os/src/app/api/intelligence/markets/route.ts",
+      "line": 50,
+      "code": "const target = `${API_BASE}/api/market/quotes?symbols=${encodeURIComponent(symbols.join(\",\"))}`;"
+    },
+    {
+      "file": "trading-os/src/app/api/market/ohlc/route.ts",
+      "line": 24,
+      "code": "const backendUrl = `${API_BASE}/api/market/ohlc${search}`;"
+    },
+    {
+      "file": "trading-os/src/app/api/market/quotes/route.ts",
+      "line": 57,
+      "code": "const backendUrl = `${API_BASE}/api/market/quotes${search}`;"
+    },
+    {
+      "file": "trading-os/src/app/api/markets/route.ts",
+      "line": 17,
+      "code": "const response = await fetch(`${API_BASE}/api/radar/summary`, {"
+    },
+    {
+      "file": "trading-os/src/app/api/ohlc/daily/route.ts",
+      "line": 11,
+      "code": "const url = `${API_BASE}/api/market/ohlc?symbol=${encodeURIComponent(symbol)}&interval=1d`;"
+    },
+    {
+      "file": "trading-os/src/app/api/system/data-integrity/route.ts",
+      "line": 17,
+      "code": "const target = `${API_BASE}/api/system/data-integrity`;"
+    },
+    {
+      "file": "trading-os/src/app/api/system/health/route.ts",
+      "line": 17,
+      "code": "const target = `${API_BASE}/api/system/health`;"
+    },
+    {
+      "file": "trading-os/src/app/login/page.tsx",
+      "line": 7,
+      "code": "import { apiFetch } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/app/login/page.tsx",
+      "line": 38,
+      "code": "const response = await apiFetch(\"/api/users/login\", {"
+    },
+    {
+      "file": "trading-os/src/app/research/[ticker]/page.tsx",
+      "line": 17,
+      "code": "const response = await fetch(`${SITE_URL}/api/research/${encodeURIComponent(ticker)}`, {"
+    },
+    {
+      "file": "trading-os/src/app/research-v2/[symbol]/page.tsx",
+      "line": 15,
+      "code": "import { apiFetch } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/app/research-v2/[symbol]/page.tsx",
+      "line": 515,
+      "code": "const response = await apiFetch(`/api/research/${encodeURIComponent(symbol)}`, {"
+    },
+    {
+      "file": "trading-os/src/app/screener-v2/page.tsx",
+      "line": 8,
+      "code": "import { apiFetch } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/app/screener-v2/page.tsx",
+      "line": 415,
+      "code": "apiFetch(\"/api/screener\", { cache: \"no-store\" }),"
+    },
+    {
+      "file": "trading-os/src/app/screener-v2/page.tsx",
+      "line": 416,
+      "code": "apiFetch(\"/api/opportunities\", { cache: \"no-store\" }),"
+    },
+    {
+      "file": "trading-os/src/app/stocks/[symbol]/page.tsx",
+      "line": 228,
+      "code": "fetch(`/api/stocks/${symbol}`, { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/app/stocks/page.tsx",
+      "line": 8,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/app/stocks/page.tsx",
+      "line": 46,
+      "code": "queryFn: () => apiGet<StocksResponse>(\"/api/screener?limit=100&rvolMin=1&sortBy=relative_volume&sortDir=desc\").catch(() => ({ data: [] })),"
+    },
+    {
+      "file": "trading-os/src/components/StockChart.tsx",
+      "line": 30,
+      "code": "fetch(`/api/ohlc/intraday?symbol=${encodeURIComponent(symbol)}`, { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/components/app-shell.tsx",
+      "line": 26,
+      "code": "const response = await fetch(`${API_BASE}/api/health`, {"
+    },
+    {
+      "file": "trading-os/src/components/app-shell.tsx",
+      "line": 46,
+      "code": "const response = await fetch(`${API_BASE}/api/system/health`, {"
+    },
+    {
+      "file": "trading-os/src/components/research/ResearchChartPanel.jsx",
+      "line": 7,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/research/ResearchChartPanel.jsx",
+      "line": 36,
+      "code": "const primary = await apiGet(`/api/v5/chart?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}`)"
+    },
+    {
+      "file": "trading-os/src/components/research/ResearchChartPanel.jsx",
+      "line": 50,
+      "code": "const daily = await apiGet(`/api/v5/chart?symbol=${encodeURIComponent(symbol)}&interval=1day`).catch(() => null);"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 12,
+      "code": "import { apiGet, apiPost } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 132,
+      "code": "queryFn: () => apiGet<ScorePayload>(\"/api/system/score\").catch(() => ({} as ScorePayload)),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 201,
+      "code": "queryFn: () => apiGet<EmailStatsPayload>(\"/api/admin/email-stats\").catch(() => ({} as EmailStatsPayload)),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 321,
+      "code": "const healthQuery    = useQuery({ queryKey: [\"admin\", \"health\"], queryFn: () => apiGet<HealthPayload>(\"/api/system/health\").catch(() => ({} as HealthPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 322,
+      "code": "const dbQuery        = useQuery({ queryKey: [\"admin\", \"db-connections\"], queryFn: () => apiGet<DbConnectionsPayload>(\"/api/admin/db/connections\").catch(() => ({} as DbConnectionsPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 323,
+      "code": "const learningQuery  = useQuery({ queryKey: [\"admin\", \"learning\"], queryFn: () => apiGet<LearningPayload>(\"/api/system/learning-status\").catch(() => ({} as LearningPayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 413,
+      "code": "const pipelineQuery = useQuery({ queryKey: [\"admin\", \"pipeline\"], queryFn: () => apiGet<PipelinePayload>(\"/api/admin/pipeline-stats\").catch(() => ({} as PipelinePayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 466,
+      "code": "const perfQuery = useQuery({ queryKey: [\"admin\", \"signals-perf\"], queryFn: () => apiGet<SignalPerfPayload>(\"/api/signals/performance?days=7\").catch(() => ({} as SignalPerfPayload)), ...QUERY_POLICY.slow, refetchInterval: 120_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 467,
+      "code": "const simQuery  = useQuery({ queryKey: [\"admin\", \"sim-signals\"], queryFn: () => apiGet<SimLivePayload>(\"/api/simulation/live\").catch(() => ({} as SimLivePayload)), ...QUERY_POLICY.slow });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 543,
+      "code": "const simQuery = useQuery({ queryKey: [\"admin\", \"sim-live\"], queryFn: () => apiGet<SimLivePayload>(\"/api/simulation/live\").catch(() => ({} as SimLivePayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 581,
+      "code": "const flowQuery = useQuery({ queryKey: [\"admin\", \"signal-flow\"], queryFn: () => apiGet<SignalFlowPayload>(\"/api/admin/signal-flow\").catch(() => ({} as SignalFlowPayload)), ...QUERY_POLICY.fast, refetchInterval: 30_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 612,
+      "code": "const usersQuery = useQuery({ queryKey: [\"admin\", \"users\"], queryFn: () => apiGet<UsersPayload>(\"/api/admin/users\").catch(() => ({ ok: false, users: [], count: 0 })), ...QUERY_POLICY.slow });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 681,
+      "code": "const statsQuery = useQuery({ queryKey: [\"admin\", \"newsletter-stats\"], queryFn: () => apiGet<NewsletterStats>(\"/api/admin/newsletter-stats\").catch(() => ({} as NewsletterStats)), ...QUERY_POLICY.slow });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 682,
+      "code": "const subsQuery  = useQuery({ queryKey: [\"admin\", \"newsletter-subs\"], queryFn: () => apiGet<SubscribersPayload>(\"/api/admin/newsletter-subscribers\").catch(() => ({ subscribers: [] })), ...QUERY_POLICY.slow });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 725,
+      "code": "const intQuery = useQuery({ queryKey: [\"admin\", \"data-integrity\"], queryFn: () => apiGet<IntegrityPayload>(\"/api/admin/data-integrity\").catch(() => ({} as IntegrityPayload)), ...QUERY_POLICY.slow, refetchInterval: 120_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 768,
+      "code": "const engQuery  = useQuery({ queryKey: [\"admin\", \"engines\"], queryFn: () => apiGet<EnginesPayload>(\"/api/admin/engines\").catch(() => ({} as EnginesPayload)), ...QUERY_POLICY.medium, refetchInterval: 60_000 });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/admin-view.tsx",
+      "line": 821,
+      "code": "queryFn: () => apiGet<LogsPayload>(`/api/admin/logs${filter ? `?filter=${filter}` : \"\"}`).catch(() => ({} as LogsPayload)),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 8,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 303,
+      "code": "queryFn: () => apiGet<TopFocusResponse>(\"/api/intelligence/top-focus?limit=3\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 310,
+      "code": "queryFn: () => apiGet<PrepResponse>(\"/api/intelligence/prep\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 317,
+      "code": "queryFn: () => apiGet<OverviewPayload>(\"/api/market/overview\").catch(() => ({} as OverviewPayload)),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 323,
+      "code": "queryFn: () => apiGet<{ data?: Array<{ symbol?: string; headline?: string; source?: string; created_at?: string }> }>(\"/api/catalysts?limit=10\").catch(() => ({ data: [] })),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 340,
+      "code": "queryFn: () => apiGet<WatchlistResponse>(\"/api/premarket/watchlist?limit=20\").catch(() => ({ success: false, count: 0, data: [] })),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/dashboard-view.tsx",
+      "line": 346,
+      "code": "queryFn: () => apiGet<SimLiveResponse>(\"/api/simulation/live\").catch(() => ({ ok: false } as SimLiveResponse)),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/earnings-view.tsx",
+      "line": 140,
+      "code": "fetch(`/api/earnings/calendar?from=${from}&to=${to}&limit=600`, { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/components/terminal/ipo-view.tsx",
+      "line": 111,
+      "code": "fetch(`/api/ipo/calendar?weekOffset=${weekOffset}`, { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/components/terminal/markets-view.tsx",
+      "line": 6,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/news-view.tsx",
+      "line": 7,
+      "code": "import { apiFetch } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/news-view.tsx",
+      "line": 120,
+      "code": "const res = await apiFetch(`/api/v2/news?${params.toString()}`, {"
+    },
+    {
+      "file": "trading-os/src/components/terminal/research-view.tsx",
+      "line": 8,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/research-view.tsx",
+      "line": 183,
+      "code": "queryFn: () => apiGet<{ decision?: DecisionPayload }>(`/api/intelligence/decision/${encodeURIComponent(ticker)}`),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/research-view.tsx",
+      "line": 189,
+      "code": "queryFn: () => apiGet<{ data?: Opportunity[] }>(\"/api/intelligence/top-opportunities?limit=200\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/research-view.tsx",
+      "line": 207,
+      "code": "queryFn: () => apiGet<{ data?: PremarketIntel[] }>(`/api/premarket/watchlist?symbol=${encodeURIComponent(ticker)}&limit=1`),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/screener-view.tsx",
+      "line": 48,
+      "code": "fetch(`/api/stocks/intraday-sparkline?symbol=${symbol}&minutes=60`, { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/components/terminal/screener-view.tsx",
+      "line": 104,
+      "code": "fetch(\"/api/premarket/watchlist?limit=100\", { cache: \"no-store\" })"
+    },
+    {
+      "file": "trading-os/src/components/terminal/screener-view.tsx",
+      "line": 409,
+      "code": "const res  = await fetch(`/api/screener?${params}`, { cache: \"no-store\" });"
+    },
+    {
+      "file": "trading-os/src/components/terminal/stocks-in-play-view.tsx",
+      "line": 8,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/stocks-in-play-view.tsx",
+      "line": 132,
+      "code": "queryFn: () => apiGet<{ data?: Opportunity[] }>(\"/api/intelligence/top-opportunities?limit=200\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/stocks-in-play-view.tsx",
+      "line": 145,
+      "code": "return apiGet<{ data?: Quote[] }>(`/api/market/quotes?symbols=${encodeURIComponent(symbols.join(\",\"))}`);"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 9,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 100,
+      "code": "queryFn: () => apiGet<{ data?: Opportunity[] }>(\"/api/trading-terminal?limit=200\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 106,
+      "code": "queryFn: () => apiGet<{ data?: Watchlist[] }>(\"/api/intelligence/watchlist?limit=100\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 112,
+      "code": "queryFn: () => apiGet<ApiEnvelope<Record<string, unknown>>>(\"/api/signals?limit=500\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 118,
+      "code": "queryFn: () => apiGet<ApiEnvelope<Record<string, unknown>>>(\"/api/catalysts?limit=200\"),"
+    },
+    {
+      "file": "trading-os/src/components/terminal/trading-terminal-view.tsx",
+      "line": 124,
+      "code": "queryFn: () => apiGet<ApiEnvelope<Record<string, unknown>>>(\"/api/macro?limit=20\"),"
+    },
+    {
+      "file": "trading-os/src/lib/api/admin.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/admin.ts",
+      "line": 22,
+      "code": "apiGet<OpportunityStatusResponse>(\"/api/intelligence/opportunities\"),"
+    },
+    {
+      "file": "trading-os/src/lib/api/admin.ts",
+      "line": 23,
+      "code": "apiGet<OpportunityStatusResponse>(\"/api/intelligence/top-opportunity\"),"
+    },
+    {
+      "file": "trading-os/src/lib/api/dataIntegrity.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/dataIntegrity.ts",
+      "line": 64,
+      "code": "const payload = await apiGet<Partial<IntegrityPayload>>(\"/api/system/data-integrity\", {"
+    },
+    {
+      "file": "trading-os/src/lib/api/earnings.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/catalysts.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/catalysts.ts",
+      "line": 24,
+      "code": "const response = await apiGet<Record<string, unknown> | CatalystRow[]>(\"/api/catalysts?limit=60\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/catalysts.ts",
+      "line": 59,
+      "code": "const response = await apiGet<Record<string, unknown> | CatalystRow[]>(`/api/catalysts?symbol=${encodeURIComponent(normalized)}&limit=60`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/dashboard.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/dashboard.ts",
+      "line": 18,
+      "code": "const response = await apiGet<Record<string, unknown>>(\"/api/intelligence/dashboard\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/heatmap.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/heatmap.ts",
+      "line": 9,
+      "code": "const response = await apiGet<Record<string, unknown>>(\"/api/intelligence/heatmap\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/markets.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/markets.ts",
+      "line": 50,
+      "code": "const response = await apiGet<{ data?: { regime?: Record<string, unknown> } }>(\"/api/intelligence/markets\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/opportunities.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/opportunities.ts",
+      "line": 36,
+      "code": "const response = await apiGet<Record<string, unknown>>(\"/api/intelligence/opportunities\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/signals.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/signals.ts",
+      "line": 45,
+      "code": "const response = await apiGet<{ success?: boolean; data?: SignalItem[] }>(`/api/intelligence/signals?limit=${limit}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/signals.ts",
+      "line": 58,
+      "code": "const response = await apiGet<{ success?: boolean; data?: SignalItem[] }>(\"/api/intelligence/signals?limit=100\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/signals.ts",
+      "line": 63,
+      "code": ": (await apiGet<OpportunityEnvelope>(\"/api/intelligence/top-opportunities?limit=40\")).data || [];"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/system.ts",
+      "line": 3,
+      "code": "import { apiGet, apiPost } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/intelligence/system.ts",
+      "line": 22,
+      "code": "const response = await apiGet<{ data?: { email?: Record<string, unknown> } }>(\"/api/intelligence/system\");"
+    },
+    {
+      "file": "trading-os/src/lib/api/markets.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/markets.ts",
+      "line": 18,
+      "code": "const json = await apiGet<QuotesResponse>(`/api/market/quotes?symbols=${encodeURIComponent(normalized)}`, {"
+    },
+    {
+      "file": "trading-os/src/lib/api/news.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/news.ts",
+      "line": 50,
+      "code": "const response = await apiGet<{ success?: boolean; data?: NewsItem[] } | NewsItem[]>(`/api/news?limit=${limit}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/news.ts",
+      "line": 64,
+      "code": "const response = await apiGet<{ success?: boolean; data?: NewsItem[] } | NewsItem[]>(`/api/news?symbol=${normalized}&limit=${limit}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/news.ts",
+      "line": 75,
+      "code": "const response = await apiGet<{ ok?: boolean; items?: NewsItem[] }>(`/api/news/id/${encodeURIComponent(id)}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/news.ts",
+      "line": 80,
+      "code": "const response = await apiGet<{ ok?: boolean; items?: NewsItem[] }>(`/api/catalysts/id/${encodeURIComponent(newsId)}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/opportunities.ts",
+      "line": 3,
+      "code": "import { apiGet, apiPost } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/opportunities.ts",
+      "line": 14,
+      "code": "const json = await apiGet<OpportunitiesResponse>(\"/api/intelligence/top-opportunity\", { cache: \"no-store\" });"
+    },
+    {
+      "file": "trading-os/src/lib/api/opportunities.ts",
+      "line": 33,
+      "code": "const json = await apiGet<OpportunitiesResponse>(\"/api/intelligence/top-opportunity\", { cache: \"no-store\" });"
+    },
+    {
+      "file": "trading-os/src/lib/api/research.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/research.ts",
+      "line": 235,
+      "code": "return apiGet<ResearchResponse>(`/api/research/${encodeURIComponent(normalized)}`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/research.ts",
+      "line": 240,
+      "code": "return apiGet<ResearchFullResponse>(`/api/research/${encodeURIComponent(normalized)}/full`);"
+    },
+    {
+      "file": "trading-os/src/lib/api/screener.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/stocks.ts",
+      "line": 3,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/systemHealth.ts",
+      "line": 1,
+      "code": "import { apiGet } from \"@/lib/api/client\";"
+    },
+    {
+      "file": "trading-os/src/lib/api/systemHealth.ts",
+      "line": 5,
+      "code": "const response = await apiGet<Record<string, unknown>>(\"/api/system/health\");"
+    },
+    {
+      "file": "trading-os/src/lib/apiBase.ts",
+      "line": 6,
+      "code": "process.env.NEXT_PUBLIC_API_BASE ||"
+    },
+    {
+      "file": "trading-os/src/lib/hooks/useTopOpportunity.ts",
+      "line": 4,
+      "code": "import { fetchOpportunities } from \"@/lib/api/opportunities\";"
+    }
+  ],
+  "duplicates": [
+    {
+      "module": "./routes/screener",
+      "paths": [
+        "/api/screener",
+        "/api/v2/screener"
+      ]
+    },
+    {
+      "module": "./routes/opportunities",
+      "paths": [
+        "/api/opportunities",
+        "/api/v2/opportunities"
+      ]
+    }
+  ],
+  "directBackendRisks": [
+    {
+      "file": "trading-os/src/lib/apiBase.ts",
+      "line": 6,
+      "code": "process.env.NEXT_PUBLIC_API_BASE ||"
+    }
+  ],
+  "missingProxyCandidates": [
+    {
+      "path": "/api/admin/data-integrity",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:725"
+    },
+    {
+      "path": "/api/admin/db/connections",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:322"
+    },
+    {
+      "path": "/api/admin/email-stats",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:201"
+    },
+    {
+      "path": "/api/admin/engines",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:768"
+    },
+    {
+      "path": "/api/admin/logs${filter ",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:821"
+    },
+    {
+      "path": "/api/admin/newsletter-stats",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:681"
+    },
+    {
+      "path": "/api/admin/newsletter-subscribers",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:682"
+    },
+    {
+      "path": "/api/admin/pipeline-stats",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:413"
+    },
+    {
+      "path": "/api/admin/signal-flow",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:581"
+    },
+    {
+      "path": "/api/admin/users",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:612"
+    },
+    {
+      "path": "/api/catalysts/id/${encodeURIComponent(newsId)}",
+      "source": "trading-os/src/lib/api/news.ts:80"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/app/login/page.tsx:7"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/app/research-v2/[symbol]/page.tsx:15"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/app/screener-v2/page.tsx:8"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/app/stocks/page.tsx:8"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/research/ResearchChartPanel.jsx:7"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:12"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/dashboard-view.tsx:8"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/markets-view.tsx:6"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/news-view.tsx:7"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/research-view.tsx:8"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/stocks-in-play-view.tsx:8"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/components/terminal/trading-terminal-view.tsx:9"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/admin.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/dataIntegrity.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/earnings.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/catalysts.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/dashboard.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/heatmap.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/markets.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/opportunities.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/signals.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/intelligence/system.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/markets.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/news.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/opportunities.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/research.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/screener.ts:1"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/stocks.ts:3"
+    },
+    {
+      "path": "/api/client",
+      "source": "trading-os/src/lib/api/systemHealth.ts:1"
+    },
+    {
+      "path": "/api/fmp/quotes${search}",
+      "source": "trading-os/src/app/api/fmp/quotes/route.ts:21"
+    },
+    {
+      "path": "/api/intelligence/decision/${encodeURIComponent(ticker)}",
+      "source": "trading-os/src/components/terminal/research-view.tsx:183"
+    },
+    {
+      "path": "/api/intelligence/summary",
+      "source": "trading-os/src/app/api/intelligence/dashboard/route.ts:17"
+    },
+    {
+      "path": "/api/intelligence/top-focus",
+      "source": "trading-os/src/components/terminal/dashboard-view.tsx:303"
+    },
+    {
+      "path": "/api/market/ohlc${search}",
+      "source": "trading-os/src/app/api/market/ohlc/route.ts:24"
+    },
+    {
+      "path": "/api/market/overview",
+      "source": "trading-os/src/app/api/intelligence/markets/route.ts:8"
+    },
+    {
+      "path": "/api/market/overview",
+      "source": "trading-os/src/components/terminal/dashboard-view.tsx:317"
+    },
+    {
+      "path": "/api/market/quotes${search}",
+      "source": "trading-os/src/app/api/market/quotes/route.ts:57"
+    },
+    {
+      "path": "/api/news/id/${encodeURIComponent(id)}",
+      "source": "trading-os/src/lib/api/news.ts:75"
+    },
+    {
+      "path": "/api/radar/summary",
+      "source": "trading-os/src/app/api/markets/route.ts:17"
+    },
+    {
+      "path": "/api/research/${encodeURIComponent(normalized)}",
+      "source": "trading-os/src/lib/api/research.ts:235"
+    },
+    {
+      "path": "/api/research/${encodeURIComponent(normalized)}/full",
+      "source": "trading-os/src/lib/api/research.ts:240"
+    },
+    {
+      "path": "/api/research/${encodeURIComponent(symbol)}",
+      "source": "trading-os/src/app/research-v2/[symbol]/page.tsx:515"
+    },
+    {
+      "path": "/api/research/${encodeURIComponent(ticker)}",
+      "source": "trading-os/src/app/research/[ticker]/page.tsx:17"
+    },
+    {
+      "path": "/api/signals/performance",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:466"
+    },
+    {
+      "path": "/api/simulation/live",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:467"
+    },
+    {
+      "path": "/api/simulation/live",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:543"
+    },
+    {
+      "path": "/api/simulation/live",
+      "source": "trading-os/src/components/terminal/dashboard-view.tsx:346"
+    },
+    {
+      "path": "/api/stocks/${symbol}",
+      "source": "trading-os/src/app/stocks/[symbol]/page.tsx:228"
+    },
+    {
+      "path": "/api/system/learning-status",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:323"
+    },
+    {
+      "path": "/api/system/score",
+      "source": "trading-os/src/components/terminal/admin-view.tsx:132"
+    },
+    {
+      "path": "/api/users/login",
+      "source": "trading-os/src/app/login/page.tsx:38"
+    },
+    {
+      "path": "/api/v2/news",
+      "source": "trading-os/src/components/terminal/news-view.tsx:120"
+    },
+    {
+      "path": "/api/v5/chart",
+      "source": "trading-os/src/components/research/ResearchChartPanel.jsx:36"
+    },
+    {
+      "path": "/api/v5/chart",
+      "source": "trading-os/src/components/research/ResearchChartPanel.jsx:50"
+    }
+  ]
+}

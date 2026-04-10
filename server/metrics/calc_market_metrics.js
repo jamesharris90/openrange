@@ -12,6 +12,10 @@ async function ensureMetricsTable() {
   const sqlPath = path.join(__dirname, '..', 'migrations', 'create_market_metrics.sql');
   const sql = await fs.readFile(sqlPath, 'utf8');
   await pool.query(sql);
+  await pool.query(
+    `ALTER TABLE market_metrics
+       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`
+  );
 }
 
 async function seedQueueFromSources() {
@@ -234,7 +238,8 @@ async function upsertMetrics(rows) {
        rsi,
        vwap,
        float_rotation,
-       last_updated
+      last_updated,
+      updated_at
      )
      SELECT symbol,
             price,
@@ -244,7 +249,8 @@ async function upsertMetrics(rows) {
             rsi,
             vwap,
             float_rotation,
-            NOW()
+           NOW(),
+           NOW()
      FROM jsonb_to_recordset($1::jsonb) AS x(
        symbol text,
        price numeric,
@@ -263,7 +269,8 @@ async function upsertMetrics(rows) {
          rsi = EXCLUDED.rsi,
          vwap = EXCLUDED.vwap,
          float_rotation = EXCLUDED.float_rotation,
-         last_updated = NOW()`,
+         last_updated = NOW(),
+         updated_at = NOW()`,
     [payload]
   );
 

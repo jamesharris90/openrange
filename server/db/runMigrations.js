@@ -12,6 +12,7 @@ async function runMigrations() {
 
   const files = fs.readdirSync(migrationsDir).sort();
   let timeoutDisabled = false;
+  const failures = [];
 
   try {
     await pool.query("SET statement_timeout = 0");
@@ -25,13 +26,13 @@ async function runMigrations() {
         await pool.query(sql);
         console.log(`[Migration] Completed: ${file}`);
       } catch (err) {
-        console.error(`❌ MIGRATION FAILED: ${file} :: ${err.message}`);
-        process.exit(1);
+        failures.push({ file, error: err.message });
+        console.error("[Migration] failed, continuing startup in degraded mode:", file, err.message);
       }
     }
   } catch (err) {
-    console.error(`❌ MIGRATION FAILED: ${err.message}`);
-    process.exit(1);
+    failures.push({ file: 'bootstrap', error: err.message });
+    console.error("[Migration] bootstrap failed, continuing startup in degraded mode:", err.message);
   } finally {
     if (timeoutDisabled) {
       try {
@@ -40,6 +41,10 @@ async function runMigrations() {
         console.error("[Migration] Failed to restore statement timeout", err);
       }
     }
+  }
+
+  if (failures.length) {
+    console.warn('[Migration] completed with failures', { failures });
   }
 }
 

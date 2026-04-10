@@ -1,0 +1,311 @@
+{
+  "timestamp": "2026-03-21T16:43:04.714Z",
+  "earnings_count": 622,
+  "earnings_symbols": [
+    "AACG",
+    "AAME",
+    "ABSI",
+    "ACHV",
+    "AIR",
+    "AIRJ",
+    "ARQQ",
+    "ATER",
+    "ATOS",
+    "BRZE",
+    "BZAI",
+    "BZAIW",
+    "CDLR",
+    "CNF",
+    "CNM",
+    "CNTN",
+    "CNXC",
+    "CUE",
+    "EPSN",
+    "ERNA"
+  ],
+  "earnings_with_signals": 0,
+  "earnings_with_decisions": 0,
+  "earnings_in_top_scores": 0,
+  "ui_status": "connected_data_renderable",
+  "verdict": "fail",
+  "reasons": [
+    "EARNINGS NOT DRIVING SIGNALS",
+    "decision coverage below threshold",
+    "EARNINGS NOT IMPACTING RANKING"
+  ],
+  "thresholds": {
+    "signal_min_ratio": 0.3,
+    "decision_min_ratio": 0.3
+  },
+  "details": {
+    "phase1": {
+      "earnings_count_last_7d": 622
+    },
+    "phase2": {
+      "symbol_count_window_pm3": 20,
+      "symbols": [
+        "AACG",
+        "AAME",
+        "ABSI",
+        "ACHV",
+        "AIR",
+        "AIRJ",
+        "ARQQ",
+        "ATER",
+        "ATOS",
+        "BRZE",
+        "BZAI",
+        "BZAIW",
+        "CDLR",
+        "CNF",
+        "CNM",
+        "CNTN",
+        "CNXC",
+        "CUE",
+        "EPSN",
+        "ERNA"
+      ]
+    },
+    "phase3": {
+      "per_symbol": [
+        {
+          "symbol": "AACG",
+          "signal_count": 0
+        },
+        {
+          "symbol": "AAME",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ABSI",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ACHV",
+          "signal_count": 0
+        },
+        {
+          "symbol": "AIR",
+          "signal_count": 0
+        },
+        {
+          "symbol": "AIRJ",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ARQQ",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ATER",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ATOS",
+          "signal_count": 0
+        },
+        {
+          "symbol": "BRZE",
+          "signal_count": 0
+        },
+        {
+          "symbol": "BZAI",
+          "signal_count": 0
+        },
+        {
+          "symbol": "BZAIW",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CDLR",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CNF",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CNM",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CNTN",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CNXC",
+          "signal_count": 0
+        },
+        {
+          "symbol": "CUE",
+          "signal_count": 0
+        },
+        {
+          "symbol": "EPSN",
+          "signal_count": 0
+        },
+        {
+          "symbol": "ERNA",
+          "signal_count": 0
+        }
+      ],
+      "ratio": 0
+    },
+    "phase4": {
+      "per_symbol": [
+        {
+          "symbol": "AACG",
+          "status": 200,
+          "valid": false,
+          "decision_score": 52.7,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "AAME",
+          "status": 200,
+          "valid": false,
+          "decision_score": 42.8,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ABSI",
+          "status": 200,
+          "valid": false,
+          "decision_score": 45.8,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ACHV",
+          "status": 200,
+          "valid": false,
+          "decision_score": 41.9,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "AIR",
+          "status": 200,
+          "valid": false,
+          "decision_score": 42.2,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "AIRJ",
+          "status": 200,
+          "valid": false,
+          "decision_score": 44.3,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ARQQ",
+          "status": 200,
+          "valid": false,
+          "decision_score": 51.65,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ATER",
+          "status": 200,
+          "valid": false,
+          "decision_score": 33.5,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ATOS",
+          "status": 200,
+          "valid": false,
+          "decision_score": 43.7,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "BRZE",
+          "status": 200,
+          "valid": false,
+          "decision_score": 42.8,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "BZAI",
+          "status": 200,
+          "valid": false,
+          "decision_score": 45.8,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "BZAIW",
+          "status": 200,
+          "valid": false,
+          "decision_score": 33.5,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CDLR",
+          "status": 200,
+          "valid": false,
+          "decision_score": 42.8,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CNF",
+          "status": 200,
+          "valid": false,
+          "decision_score": 42.5,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CNM",
+          "status": 200,
+          "valid": false,
+          "decision_score": 43.1,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CNTN",
+          "status": 200,
+          "valid": false,
+          "decision_score": 43.7,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CNXC",
+          "status": 200,
+          "valid": false,
+          "decision_score": 47.3,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "CUE",
+          "status": 200,
+          "valid": false,
+          "decision_score": 33.5,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "EPSN",
+          "status": 200,
+          "valid": false,
+          "decision_score": 46.4,
+          "has_execution_plan": false
+        },
+        {
+          "symbol": "ERNA",
+          "status": 200,
+          "valid": false,
+          "decision_score": 33.5,
+          "has_execution_plan": false
+        }
+      ],
+      "ratio": 0
+    },
+    "phase5": {
+      "total_ranked": 421,
+      "top_n_20pct": 85,
+      "earnings_in_top_20pct": 0
+    },
+    "phase6": {
+      "api_status": 200,
+      "api_count": 350,
+      "has_error_loading_branch": true,
+      "card_renderable_data": true
+    }
+  }
+}

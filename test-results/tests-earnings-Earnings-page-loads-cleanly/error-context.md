@@ -1,0 +1,1092 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary "Primary" [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: OpenRange
+        - button "Collapse sidebar" [ref=e7] [cursor=pointer]:
+          - generic [ref=e8]: <
+      - navigation "Trading sections" [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e11]
+          - generic [ref=e16]: Dashboard
+        - link "Markets" [ref=e17] [cursor=pointer]:
+          - /url: /markets
+          - img [ref=e18]
+          - generic [ref=e21]: Markets
+        - link "Heat Map" [ref=e22] [cursor=pointer]:
+          - /url: /heat-map
+          - img [ref=e23]
+          - generic [ref=e27]: Heat Map
+        - link "Stocks In Play" [ref=e28] [cursor=pointer]:
+          - /url: /stocks-in-play
+          - img [ref=e29]
+          - generic [ref=e31]: Stocks In Play
+        - link "Catalyst Scanner" [ref=e32] [cursor=pointer]:
+          - /url: /catalyst-scanner
+          - img [ref=e33]
+          - generic [ref=e40]: Catalyst Scanner
+        - link "Trading Terminal" [ref=e41] [cursor=pointer]:
+          - /url: /trading-terminal
+          - img [ref=e42]
+          - generic [ref=e45]: Trading Terminal
+        - link "Research" [ref=e46] [cursor=pointer]:
+          - /url: /research/AAPL
+          - img [ref=e47]
+          - generic [ref=e49]: Research
+        - link "Earnings Calendar" [ref=e50] [cursor=pointer]:
+          - /url: /earnings
+          - img [ref=e51]
+          - generic [ref=e53]: Earnings Calendar
+        - link "Alerts" [ref=e54] [cursor=pointer]:
+          - /url: /alerts
+          - img [ref=e55]
+          - generic [ref=e58]: Alerts
+        - link "Admin" [ref=e59] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e60]
+          - generic [ref=e62]: Admin
+        - link "Settings" [ref=e63] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e64]
+          - generic [ref=e67]: Settings
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - img
+            - textbox "Ticker search" [ref=e73]
+          - generic [ref=e74]:
+            - button "Cmd+K" [ref=e75] [cursor=pointer]:
+              - img
+              - text: Cmd+K
+            - button "Toggle" [ref=e76] [cursor=pointer]
+        - generic [ref=e77]: No data available
+      - main [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - generic [ref=e81]: Earnings Calendar
+            - generic [ref=e82]:
+              - button "Tue, Mar 24 68 earnings" [ref=e83] [cursor=pointer]:
+                - generic [ref=e84]: Tue, Mar 24
+                - generic [ref=e85]: 68 earnings
+              - button "Wed, Mar 25 71 earnings" [ref=e86] [cursor=pointer]:
+                - generic [ref=e87]: Wed, Mar 25
+                - generic [ref=e88]: 71 earnings
+              - button "Thu, Mar 26 145 earnings" [ref=e89] [cursor=pointer]:
+                - generic [ref=e90]: Thu, Mar 26
+                - generic [ref=e91]: 145 earnings
+              - button "Fri, Mar 27 66 earnings" [ref=e92] [cursor=pointer]:
+                - generic [ref=e93]: Fri, Mar 27
+                - generic [ref=e94]: 66 earnings
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - button "All" [ref=e97] [cursor=pointer]
+              - button "High Conviction" [ref=e98] [cursor=pointer]
+              - button "Large Cap" [ref=e99] [cursor=pointer]
+              - button "High IV" [ref=e100] [cursor=pointer]
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - heading "CNTN" [level=3] [ref=e103]
+                - paragraph [ref=e104]: "Expected Move: ±399.77%"
+                - paragraph [ref=e105]: "Score: 67.46"
+                - paragraph [ref=e106]: "Source: none"
+                - paragraph [ref=e107]: Before Open
+                - link "Trade Setup →" [ref=e108] [cursor=pointer]:
+                  - /url: /research/CNTN
+              - generic [ref=e109]:
+                - heading "VELO" [level=3] [ref=e110]
+                - paragraph [ref=e111]: "Expected Move: ±78.05%"
+                - paragraph [ref=e112]: "Score: 59.58"
+                - paragraph [ref=e113]: "Source: none"
+                - paragraph [ref=e114]: Before Open
+                - link "Trade Setup →" [ref=e115] [cursor=pointer]:
+                  - /url: /research/VELO
+              - generic [ref=e116]:
+                - heading "BZAI" [level=3] [ref=e117]
+                - paragraph [ref=e118]: "Expected Move: ±1016.03%"
+                - paragraph [ref=e119]: "Score: 58.37"
+                - paragraph [ref=e120]: "Source: none"
+                - paragraph [ref=e121]: Before Open
+                - link "Trade Setup →" [ref=e122] [cursor=pointer]:
+                  - /url: /research/BZAI
+              - generic [ref=e123]:
+                - heading "HSDT" [level=3] [ref=e124]
+                - paragraph [ref=e125]: "Expected Move: ±519.77%"
+                - paragraph [ref=e126]: "Score: 57.91"
+                - paragraph [ref=e127]: "Source: none"
+                - paragraph [ref=e128]: Before Open
+                - link "Trade Setup →" [ref=e129] [cursor=pointer]:
+                  - /url: /research/HSDT
+              - generic [ref=e130]:
+                - heading "INTZ" [level=3] [ref=e131]
+                - paragraph [ref=e132]: "Expected Move: ±1018.47%"
+                - paragraph [ref=e133]: "Score: 54.98"
+                - paragraph [ref=e134]: "Source: none"
+                - paragraph [ref=e135]: Before Open
+                - link "Trade Setup →" [ref=e136] [cursor=pointer]:
+                  - /url: /research/INTZ
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - generic [ref=e139]: Selected Date
+              - generic [ref=e140]: Tue, Mar 24
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - generic [ref=e143]: CNTN
+                - generic [ref=e144]: BMO
+                - generic [ref=e145]: Before Market Open
+                - generic [ref=e146]: MCap 131436741
+                - generic [ref=e147]: Move 399.77%
+                - generic [ref=e148]: Vol 310945
+                - generic [ref=e149]: IV 0.00
+                - generic [ref=e150]: Score 67.46
+                - generic [ref=e151]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e152] [cursor=pointer]:
+                  - /url: /research/CNTN
+                - generic [ref=e153]: "Source: none"
+                - generic [ref=e154]: Event-driven setup
+              - generic [ref=e155]:
+                - generic [ref=e156]: VELO
+                - generic [ref=e157]: BMO
+                - generic [ref=e158]: Before Market Open
+                - generic [ref=e159]: MCap 314043138
+                - generic [ref=e160]: Move 78.05%
+                - generic [ref=e161]: Vol 977034
+                - generic [ref=e162]: IV 0.00
+                - generic [ref=e163]: Score 59.58
+                - generic [ref=e164]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e165] [cursor=pointer]:
+                  - /url: /research/VELO
+                - generic [ref=e166]: "Source: none"
+                - generic [ref=e167]: Event-driven setup
+              - generic [ref=e168]:
+                - generic [ref=e169]: BZAI
+                - generic [ref=e170]: BMO
+                - generic [ref=e171]: Before Market Open
+                - generic [ref=e172]: MCap 133026946
+                - generic [ref=e173]: Move 1016.03%
+                - generic [ref=e174]: Vol 1962513
+                - generic [ref=e175]: IV 0.00
+                - generic [ref=e176]: Score 58.37
+                - generic [ref=e177]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e178] [cursor=pointer]:
+                  - /url: /research/BZAI
+                - generic [ref=e179]: "Source: none"
+                - generic [ref=e180]: Low liquidity risk
+              - generic [ref=e181]:
+                - generic [ref=e182]: HSDT
+                - generic [ref=e183]: BMO
+                - generic [ref=e184]: Before Market Open
+                - generic [ref=e185]: MCap 88256993
+                - generic [ref=e186]: Move 519.77%
+                - generic [ref=e187]: Vol 275217
+                - generic [ref=e188]: IV 0.00
+                - generic [ref=e189]: Score 57.91
+                - generic [ref=e190]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e191] [cursor=pointer]:
+                  - /url: /research/HSDT
+                - generic [ref=e192]: "Source: none"
+                - generic [ref=e193]: Event-driven setup
+              - generic [ref=e194]:
+                - generic [ref=e195]: INTZ
+                - generic [ref=e196]: BMO
+                - generic [ref=e197]: Before Market Open
+                - generic [ref=e198]: MCap 21309115
+                - generic [ref=e199]: Move 1018.47%
+                - generic [ref=e200]: Vol 120671
+                - generic [ref=e201]: IV 0.00
+                - generic [ref=e202]: Score 54.98
+                - generic [ref=e203]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e204] [cursor=pointer]:
+                  - /url: /research/INTZ
+                - generic [ref=e205]: "Source: none"
+                - generic [ref=e206]: Event-driven setup
+              - generic [ref=e207]:
+                - generic [ref=e208]: SDOT
+                - generic [ref=e209]: BMO
+                - generic [ref=e210]: Before Market Open
+                - generic [ref=e211]: MCap 0
+                - generic [ref=e212]: Move 454.70%
+                - generic [ref=e213]: Vol 0
+                - generic [ref=e214]: IV 0.00
+                - generic [ref=e215]: Score 50.11
+                - generic [ref=e216]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e217] [cursor=pointer]:
+                  - /url: /research/SDOT
+                - generic [ref=e218]: "Source: none"
+                - generic [ref=e219]: Event-driven setup
+              - generic [ref=e220]:
+                - generic [ref=e221]: THAR
+                - generic [ref=e222]: BMO
+                - generic [ref=e223]: Before Market Open
+                - generic [ref=e224]: MCap 183813789
+                - generic [ref=e225]: Move 208.12%
+                - generic [ref=e226]: Vol 267589
+                - generic [ref=e227]: IV 0.00
+                - generic [ref=e228]: Score 49.39
+                - generic [ref=e229]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e230] [cursor=pointer]:
+                  - /url: /research/THAR
+                - generic [ref=e231]: "Source: none"
+                - generic [ref=e232]: Event-driven setup
+              - generic [ref=e233]:
+                - generic [ref=e234]: FGI
+                - generic [ref=e235]: BMO
+                - generic [ref=e236]: Before Market Open
+                - generic [ref=e237]: MCap 6976897
+                - generic [ref=e238]: Move 251.10%
+                - generic [ref=e239]: Vol 6486
+                - generic [ref=e240]: IV 0.00
+                - generic [ref=e241]: Score 46.66
+                - generic [ref=e242]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e243] [cursor=pointer]:
+                  - /url: /research/FGI
+                - generic [ref=e244]: "Source: none"
+                - generic [ref=e245]: Event-driven setup
+              - generic [ref=e246]:
+                - generic [ref=e247]: ATOS
+                - generic [ref=e248]: BMO
+                - generic [ref=e249]: Before Market Open
+                - generic [ref=e250]: MCap 0
+                - generic [ref=e251]: Move 200.18%
+                - generic [ref=e252]: Vol 0
+                - generic [ref=e253]: IV 0.00
+                - generic [ref=e254]: Score 45.34
+                - generic [ref=e255]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e256] [cursor=pointer]:
+                  - /url: /research/ATOS
+                - generic [ref=e257]: "Source: none"
+                - generic [ref=e258]: Event-driven setup
+              - generic [ref=e259]:
+                - generic [ref=e260]: MBOT
+                - generic [ref=e261]: BMO
+                - generic [ref=e262]: Before Market Open
+                - generic [ref=e263]: MCap 122584462
+                - generic [ref=e264]: Move 294.16%
+                - generic [ref=e265]: Vol 2043978
+                - generic [ref=e266]: IV 0.00
+                - generic [ref=e267]: Score 42.56
+                - generic [ref=e268]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e269] [cursor=pointer]:
+                  - /url: /research/MBOT
+                - generic [ref=e270]: "Source: none"
+                - generic [ref=e271]: Low liquidity risk
+              - generic [ref=e272]:
+                - generic [ref=e273]: ARQQ
+                - generic [ref=e274]: BMO
+                - generic [ref=e275]: Before Market Open
+                - generic [ref=e276]: MCap 212865282
+                - generic [ref=e277]: Move 60.36%
+                - generic [ref=e278]: Vol 200861
+                - generic [ref=e279]: IV 0.00
+                - generic [ref=e280]: Score 42.04
+                - generic [ref=e281]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e282] [cursor=pointer]:
+                  - /url: /research/ARQQ
+                - generic [ref=e283]: "Source: none"
+                - generic [ref=e284]: Event-driven setup
+              - generic [ref=e285]:
+                - generic [ref=e286]: CNXC
+                - generic [ref=e287]: BMO
+                - generic [ref=e288]: Before Market Open
+                - generic [ref=e289]: MCap 1987257485
+                - generic [ref=e290]: Move 24.14%
+                - generic [ref=e291]: Vol 1564103
+                - generic [ref=e292]: IV 0.00
+                - generic [ref=e293]: Score 41.52
+                - generic [ref=e294]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e295] [cursor=pointer]:
+                  - /url: /research/CNXC
+                - generic [ref=e296]: "Source: none"
+                - generic [ref=e297]: Low liquidity risk
+              - generic [ref=e298]:
+                - generic [ref=e299]: LITB
+                - generic [ref=e300]: BMO
+                - generic [ref=e301]: Before Market Open
+                - generic [ref=e302]: MCap 22024771
+                - generic [ref=e303]: Move 330.80%
+                - generic [ref=e304]: Vol 884
+                - generic [ref=e305]: IV 0.00
+                - generic [ref=e306]: Score 40.86
+                - generic [ref=e307]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e308] [cursor=pointer]:
+                  - /url: /research/LITB
+                - generic [ref=e309]: "Source: none"
+                - generic [ref=e310]: Event-driven setup
+              - generic [ref=e311]:
+                - generic [ref=e312]: BRZE
+                - generic [ref=e313]: BMO
+                - generic [ref=e314]: Before Market Open
+                - generic [ref=e315]: MCap 1964556082
+                - generic [ref=e316]: Move 38.69%
+                - generic [ref=e317]: Vol 1203943
+                - generic [ref=e318]: IV 0.00
+                - generic [ref=e319]: Score 40.16
+                - generic [ref=e320]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e321] [cursor=pointer]:
+                  - /url: /research/BRZE
+                - generic [ref=e322]: "Source: none"
+                - generic [ref=e323]: Low liquidity risk
+              - generic [ref=e324]:
+                - generic [ref=e325]: ICMB
+                - generic [ref=e326]: BMO
+                - generic [ref=e327]: Before Market Open
+                - generic [ref=e328]: MCap 24657793
+                - generic [ref=e329]: Move 447.02%
+                - generic [ref=e330]: Vol 159582
+                - generic [ref=e331]: IV 0.00
+                - generic [ref=e332]: Score 39.22
+                - generic [ref=e333]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e334] [cursor=pointer]:
+                  - /url: /research/ICMB
+                - generic [ref=e335]: "Source: none"
+                - generic [ref=e336]: Event-driven setup
+              - generic [ref=e337]:
+                - generic [ref=e338]: ZURA
+                - generic [ref=e339]: BMO
+                - generic [ref=e340]: Before Market Open
+                - generic [ref=e341]: MCap 0
+                - generic [ref=e342]: Move 107.25%
+                - generic [ref=e343]: Vol 0
+                - generic [ref=e344]: IV 0.00
+                - generic [ref=e345]: Score 36.50
+                - generic [ref=e346]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e347] [cursor=pointer]:
+                  - /url: /research/ZURA
+                - generic [ref=e348]: "Source: none"
+                - generic [ref=e349]: Event-driven setup
+              - generic [ref=e350]:
+                - generic [ref=e351]: EVTL
+                - generic [ref=e352]: BMO
+                - generic [ref=e353]: Before Market Open
+                - generic [ref=e354]: MCap 0
+                - generic [ref=e355]: Move 166.48%
+                - generic [ref=e356]: Vol 0
+                - generic [ref=e357]: IV 0.00
+                - generic [ref=e358]: Score 36.29
+                - generic [ref=e359]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e360] [cursor=pointer]:
+                  - /url: /research/EVTL
+                - generic [ref=e361]: "Source: none"
+                - generic [ref=e362]: Event-driven setup
+              - generic [ref=e363]:
+                - generic [ref=e364]: TVRD
+                - generic [ref=e365]: BMO
+                - generic [ref=e366]: Before Market Open
+                - generic [ref=e367]: MCap 34523346
+                - generic [ref=e368]: Move 187.77%
+                - generic [ref=e369]: Vol 103439
+                - generic [ref=e370]: IV 0.00
+                - generic [ref=e371]: Score 35.55
+                - generic [ref=e372]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e373] [cursor=pointer]:
+                  - /url: /research/TVRD
+                - generic [ref=e374]: "Source: none"
+                - generic [ref=e375]: Event-driven setup
+              - generic [ref=e376]:
+                - generic [ref=e377]: VRM
+                - generic [ref=e378]: BMO
+                - generic [ref=e379]: Before Market Open
+                - generic [ref=e380]: MCap 0
+                - generic [ref=e381]: Move 45.94%
+                - generic [ref=e382]: Vol 0
+                - generic [ref=e383]: IV 0.00
+                - generic [ref=e384]: Score 35.53
+                - generic [ref=e385]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e386] [cursor=pointer]:
+                  - /url: /research/VRM
+                - generic [ref=e387]: "Source: none"
+                - generic [ref=e388]: Event-driven setup
+              - generic [ref=e389]:
+                - generic [ref=e390]: TIL
+                - generic [ref=e391]: BMO
+                - generic [ref=e392]: Before Market Open
+                - generic [ref=e393]: MCap 57511156
+                - generic [ref=e394]: Move 81.35%
+                - generic [ref=e395]: Vol 16031
+                - generic [ref=e396]: IV 0.00
+                - generic [ref=e397]: Score 35.49
+                - generic [ref=e398]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e399] [cursor=pointer]:
+                  - /url: /research/TIL
+                - generic [ref=e400]: "Source: none"
+                - generic [ref=e401]: Event-driven setup
+              - generic [ref=e402]:
+                - generic [ref=e403]: MPLT
+                - generic [ref=e404]: BMO
+                - generic [ref=e405]: Before Market Open
+                - generic [ref=e406]: MCap 14271231
+                - generic [ref=e407]: Move 36.36%
+                - generic [ref=e408]: Vol 92716
+                - generic [ref=e409]: IV 0.00
+                - generic [ref=e410]: Score 33.87
+                - generic [ref=e411]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e412] [cursor=pointer]:
+                  - /url: /research/MPLT
+                - generic [ref=e413]: "Source: none"
+                - generic [ref=e414]: Event-driven setup
+              - generic [ref=e415]:
+                - generic [ref=e416]: TONX
+                - generic [ref=e417]: BMO
+                - generic [ref=e418]: Before Market Open
+                - generic [ref=e419]: MCap 148892830
+                - generic [ref=e420]: Move 262.86%
+                - generic [ref=e421]: Vol 347900
+                - generic [ref=e422]: IV 0.00
+                - generic [ref=e423]: Score 33.86
+                - generic [ref=e424]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e425] [cursor=pointer]:
+                  - /url: /research/TONX
+                - generic [ref=e426]: "Source: none"
+                - generic [ref=e427]: Event-driven setup
+              - generic [ref=e428]:
+                - generic [ref=e429]: XFOR
+                - generic [ref=e430]: BMO
+                - generic [ref=e431]: Before Market Open
+                - generic [ref=e432]: MCap 42096627
+                - generic [ref=e433]: Move 175.21%
+                - generic [ref=e434]: Vol 216950
+                - generic [ref=e435]: IV 0.00
+                - generic [ref=e436]: Score 33.33
+                - generic [ref=e437]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e438] [cursor=pointer]:
+                  - /url: /research/XFOR
+                - generic [ref=e439]: "Source: none"
+                - generic [ref=e440]: Event-driven setup
+              - generic [ref=e441]:
+                - generic [ref=e442]: AACG
+                - generic [ref=e443]: BMO
+                - generic [ref=e444]: Before Market Open
+                - generic [ref=e445]: MCap 16362816
+                - generic [ref=e446]: Move 623.52%
+                - generic [ref=e447]: Vol 49672
+                - generic [ref=e448]: IV 0.00
+                - generic [ref=e449]: Score 33.11
+                - generic [ref=e450]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e451] [cursor=pointer]:
+                  - /url: /research/AACG
+                - generic [ref=e452]: "Source: none"
+                - generic [ref=e453]: Event-driven setup
+              - generic [ref=e454]:
+                - generic [ref=e455]: PYXS
+                - generic [ref=e456]: BMO
+                - generic [ref=e457]: Before Market Open
+                - generic [ref=e458]: MCap 100868028
+                - generic [ref=e459]: Move 389.20%
+                - generic [ref=e460]: Vol 157421
+                - generic [ref=e461]: IV 0.00
+                - generic [ref=e462]: Score 32.53
+                - generic [ref=e463]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e464] [cursor=pointer]:
+                  - /url: /research/PYXS
+                - generic [ref=e465]: "Source: none"
+                - generic [ref=e466]: Event-driven setup
+              - generic [ref=e467]:
+                - generic [ref=e468]: NRXP
+                - generic [ref=e469]: BMO
+                - generic [ref=e470]: Before Market Open
+                - generic [ref=e471]: MCap 31805714
+                - generic [ref=e472]: Move 341.78%
+                - generic [ref=e473]: Vol 645657
+                - generic [ref=e474]: IV 0.00
+                - generic [ref=e475]: Score 32.44
+                - generic [ref=e476]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e477] [cursor=pointer]:
+                  - /url: /research/NRXP
+                - generic [ref=e478]: "Source: none"
+                - generic [ref=e479]: Event-driven setup
+              - generic [ref=e480]:
+                - generic [ref=e481]: LENZ
+                - generic [ref=e482]: BMO
+                - generic [ref=e483]: Before Market Open
+                - generic [ref=e484]: MCap 0
+                - generic [ref=e485]: Move 46.55%
+                - generic [ref=e486]: Vol 0
+                - generic [ref=e487]: IV 0.00
+                - generic [ref=e488]: Score 32.40
+                - generic [ref=e489]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e490] [cursor=pointer]:
+                  - /url: /research/LENZ
+                - generic [ref=e491]: "Source: none"
+                - generic [ref=e492]: Event-driven setup
+              - generic [ref=e493]:
+                - generic [ref=e494]: ABSI
+                - generic [ref=e495]: BMO
+                - generic [ref=e496]: Before Market Open
+                - generic [ref=e497]: MCap 463144315
+                - generic [ref=e498]: Move 188.24%
+                - generic [ref=e499]: Vol 3767699
+                - generic [ref=e500]: IV 0.00
+                - generic [ref=e501]: Score 31.99
+                - generic [ref=e502]: 🔥 High
+                - link "View Trade Setup" [ref=e503] [cursor=pointer]:
+                  - /url: /research/ABSI
+                - generic [ref=e504]: "Source: none"
+                - generic [ref=e505]: Low liquidity risk
+              - generic [ref=e506]:
+                - generic [ref=e507]: AIRJ
+                - generic [ref=e508]: BMO
+                - generic [ref=e509]: Before Market Open
+                - generic [ref=e510]: MCap 0
+                - generic [ref=e511]: Move 189.65%
+                - generic [ref=e512]: Vol 0
+                - generic [ref=e513]: IV 0.00
+                - generic [ref=e514]: Score 31.63
+                - generic [ref=e515]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e516] [cursor=pointer]:
+                  - /url: /research/AIRJ
+                - generic [ref=e517]: "Source: none"
+                - generic [ref=e518]: Event-driven setup
+              - generic [ref=e519]:
+                - generic [ref=e520]: XCUR
+                - generic [ref=e521]: BMO
+                - generic [ref=e522]: Before Market Open
+                - generic [ref=e523]: MCap 30275878
+                - generic [ref=e524]: Move 125.68%
+                - generic [ref=e525]: Vol 18223
+                - generic [ref=e526]: IV 0.00
+                - generic [ref=e527]: Score 30.85
+                - generic [ref=e528]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e529] [cursor=pointer]:
+                  - /url: /research/XCUR
+                - generic [ref=e530]: "Source: none"
+                - generic [ref=e531]: Event-driven setup
+              - generic [ref=e532]:
+                - generic [ref=e533]: HSAI
+                - generic [ref=e534]: BMO
+                - generic [ref=e535]: Before Market Open
+                - generic [ref=e536]: MCap 0
+                - generic [ref=e537]: Move 21.78%
+                - generic [ref=e538]: Vol 0
+                - generic [ref=e539]: IV 0.00
+                - generic [ref=e540]: Score 30.35
+                - generic [ref=e541]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e542] [cursor=pointer]:
+                  - /url: /research/HSAI
+                - generic [ref=e543]: "Source: none"
+                - generic [ref=e544]: Event-driven setup
+              - generic [ref=e545]:
+                - generic [ref=e546]: IH
+                - generic [ref=e547]: BMO
+                - generic [ref=e548]: Before Market Open
+                - generic [ref=e549]: MCap 20140448
+                - generic [ref=e550]: Move 293.04%
+                - generic [ref=e551]: Vol 3340
+                - generic [ref=e552]: IV 0.00
+                - generic [ref=e553]: Score 29.57
+                - generic [ref=e554]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e555] [cursor=pointer]:
+                  - /url: /research/IH
+                - generic [ref=e556]: "Source: none"
+                - generic [ref=e557]: Event-driven setup
+              - generic [ref=e558]:
+                - generic [ref=e559]: AAME
+                - generic [ref=e560]: BMO
+                - generic [ref=e561]: Before Market Open
+                - generic [ref=e562]: MCap 55031721
+                - generic [ref=e563]: Move 209.01%
+                - generic [ref=e564]: Vol 4002
+                - generic [ref=e565]: IV 0.00
+                - generic [ref=e566]: Score 29.20
+                - generic [ref=e567]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e568] [cursor=pointer]:
+                  - /url: /research/AAME
+                - generic [ref=e569]: "Source: none"
+                - generic [ref=e570]: Event-driven setup
+              - generic [ref=e571]:
+                - generic [ref=e572]: ACHV
+                - generic [ref=e573]: BMO
+                - generic [ref=e574]: Before Market Open
+                - generic [ref=e575]: MCap 0
+                - generic [ref=e576]: Move 118.17%
+                - generic [ref=e577]: Vol 0
+                - generic [ref=e578]: IV 0.00
+                - generic [ref=e579]: Score 27.94
+                - generic [ref=e580]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e581] [cursor=pointer]:
+                  - /url: /research/ACHV
+                - generic [ref=e582]: "Source: none"
+                - generic [ref=e583]: Event-driven setup
+              - generic [ref=e584]:
+                - generic [ref=e585]: PAYS
+                - generic [ref=e586]: BMO
+                - generic [ref=e587]: Before Market Open
+                - generic [ref=e588]: MCap 194301395
+                - generic [ref=e589]: Move 151.33%
+                - generic [ref=e590]: Vol 413322
+                - generic [ref=e591]: IV 0.00
+                - generic [ref=e592]: Score 27.71
+                - generic [ref=e593]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e594] [cursor=pointer]:
+                  - /url: /research/PAYS
+                - generic [ref=e595]: "Source: none"
+                - generic [ref=e596]: Event-driven setup
+              - generic [ref=e597]:
+                - generic [ref=e598]: FENC
+                - generic [ref=e599]: BMO
+                - generic [ref=e600]: Before Market Open
+                - generic [ref=e601]: MCap 0
+                - generic [ref=e602]: Move 62.03%
+                - generic [ref=e603]: Vol 0
+                - generic [ref=e604]: IV 0.00
+                - generic [ref=e605]: Score 27.33
+                - generic [ref=e606]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e607] [cursor=pointer]:
+                  - /url: /research/FENC
+                - generic [ref=e608]: "Source: none"
+                - generic [ref=e609]: Event-driven setup
+              - generic [ref=e610]:
+                - generic [ref=e611]: MDAI
+                - generic [ref=e612]: BMO
+                - generic [ref=e613]: Before Market Open
+                - generic [ref=e614]: MCap 0
+                - generic [ref=e615]: Move 375.36%
+                - generic [ref=e616]: Vol 0
+                - generic [ref=e617]: IV 0.00
+                - generic [ref=e618]: Score 27.28
+                - generic [ref=e619]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e620] [cursor=pointer]:
+                  - /url: /research/MDAI
+                - generic [ref=e621]: "Source: none"
+                - generic [ref=e622]: Event-driven setup
+              - generic [ref=e623]:
+                - generic [ref=e624]: TENX
+                - generic [ref=e625]: BMO
+                - generic [ref=e626]: Before Market Open
+                - generic [ref=e627]: MCap 70445000
+                - generic [ref=e628]: Move 33.77%
+                - generic [ref=e629]: Vol 483147
+                - generic [ref=e630]: IV 0.00
+                - generic [ref=e631]: Score 27.07
+                - generic [ref=e632]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e633] [cursor=pointer]:
+                  - /url: /research/TENX
+                - generic [ref=e634]: "Source: none"
+                - generic [ref=e635]: Event-driven setup
+              - generic [ref=e636]:
+                - generic [ref=e637]: WILC
+                - generic [ref=e638]: BMO
+                - generic [ref=e639]: Before Market Open
+                - generic [ref=e640]: MCap 369153215
+                - generic [ref=e641]: Move 19.45%
+                - generic [ref=e642]: Vol 1581
+                - generic [ref=e643]: IV 0.00
+                - generic [ref=e644]: Score 26.77
+                - generic [ref=e645]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e646] [cursor=pointer]:
+                  - /url: /research/WILC
+                - generic [ref=e647]: "Source: none"
+                - generic [ref=e648]: Event-driven setup
+              - generic [ref=e649]:
+                - generic [ref=e650]: SMTI
+                - generic [ref=e651]: BMO
+                - generic [ref=e652]: Before Market Open
+                - generic [ref=e653]: MCap 0
+                - generic [ref=e654]: Move 23.87%
+                - generic [ref=e655]: Vol 0
+                - generic [ref=e656]: IV 0.00
+                - generic [ref=e657]: Score 25.39
+                - generic [ref=e658]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e659] [cursor=pointer]:
+                  - /url: /research/SMTI
+                - generic [ref=e660]: "Source: none"
+                - generic [ref=e661]: Event-driven setup
+              - generic [ref=e662]:
+                - generic [ref=e663]: CNF
+                - generic [ref=e664]: BMO
+                - generic [ref=e665]: Before Market Open
+                - generic [ref=e666]: MCap 0
+                - generic [ref=e667]: Move 92.70%
+                - generic [ref=e668]: Vol 0
+                - generic [ref=e669]: IV 0.00
+                - generic [ref=e670]: Score 25.24
+                - generic [ref=e671]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e672] [cursor=pointer]:
+                  - /url: /research/CNF
+                - generic [ref=e673]: "Source: none"
+                - generic [ref=e674]: Event-driven setup
+              - generic [ref=e675]:
+                - generic [ref=e676]: WVVI
+                - generic [ref=e677]: BMO
+                - generic [ref=e678]: Before Market Open
+                - generic [ref=e679]: MCap 13354583
+                - generic [ref=e680]: Move 173.73%
+                - generic [ref=e681]: Vol 3795
+                - generic [ref=e682]: IV 0.00
+                - generic [ref=e683]: Score 24.37
+                - generic [ref=e684]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e685] [cursor=pointer]:
+                  - /url: /research/WVVI
+                - generic [ref=e686]: "Source: none"
+                - generic [ref=e687]: Event-driven setup
+              - generic [ref=e688]:
+                - generic [ref=e689]: KPRX
+                - generic [ref=e690]: BMO
+                - generic [ref=e691]: Before Market Open
+                - generic [ref=e692]: MCap 0
+                - generic [ref=e693]: Move 215.85%
+                - generic [ref=e694]: Vol 0
+                - generic [ref=e695]: IV 0.00
+                - generic [ref=e696]: Score 23.56
+                - generic [ref=e697]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e698] [cursor=pointer]:
+                  - /url: /research/KPRX
+                - generic [ref=e699]: "Source: none"
+                - generic [ref=e700]: Event-driven setup
+              - generic [ref=e701]:
+                - generic [ref=e702]: YQ
+                - generic [ref=e703]: BMO
+                - generic [ref=e704]: Before Market Open
+                - generic [ref=e705]: MCap 25948203
+                - generic [ref=e706]: Move 154.72%
+                - generic [ref=e707]: Vol 887
+                - generic [ref=e708]: IV 0.00
+                - generic [ref=e709]: Score 22.35
+                - generic [ref=e710]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e711] [cursor=pointer]:
+                  - /url: /research/YQ
+                - generic [ref=e712]: "Source: none"
+                - generic [ref=e713]: Event-driven setup
+              - generic [ref=e714]:
+                - generic [ref=e715]: CNM
+                - generic [ref=e716]: BMO
+                - generic [ref=e717]: Before Market Open
+                - generic [ref=e718]: MCap 9099360585
+                - generic [ref=e719]: Move 7.93%
+                - generic [ref=e720]: Vol 3165562
+                - generic [ref=e721]: IV 0.00
+                - generic [ref=e722]: Score 22.12
+                - generic [ref=e723]: 🔥 High
+                - link "View Trade Setup" [ref=e724] [cursor=pointer]:
+                  - /url: /research/CNM
+                - generic [ref=e725]: "Source: none"
+                - generic [ref=e726]: Low liquidity risk
+              - generic [ref=e727]:
+                - generic [ref=e728]: KALV
+                - generic [ref=e729]: BMO
+                - generic [ref=e730]: Before Market Open
+                - generic [ref=e731]: MCap 850188648
+                - generic [ref=e732]: Move 24.69%
+                - generic [ref=e733]: Vol 912662
+                - generic [ref=e734]: IV 0.00
+                - generic [ref=e735]: Score 21.77
+                - generic [ref=e736]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e737] [cursor=pointer]:
+                  - /url: /research/KALV
+                - generic [ref=e738]: "Source: none"
+                - generic [ref=e739]: Event-driven setup
+              - generic [ref=e740]:
+                - generic [ref=e741]: GME
+                - generic [ref=e742]: BMO
+                - generic [ref=e743]: Before Market Open
+                - generic [ref=e744]: MCap 10407260220
+                - generic [ref=e745]: Move 14.04%
+                - generic [ref=e746]: Vol 4810545
+                - generic [ref=e747]: IV 0.00
+                - generic [ref=e748]: Score 20.31
+                - generic [ref=e749]: 🔥 High
+                - link "View Trade Setup" [ref=e750] [cursor=pointer]:
+                  - /url: /research/GME
+                - generic [ref=e751]: "Source: none"
+                - generic [ref=e752]: Large cap mover • Low liquidity risk
+              - generic [ref=e753]:
+                - generic [ref=e754]: EPSN
+                - generic [ref=e755]: BMO
+                - generic [ref=e756]: Before Market Open
+                - generic [ref=e757]: MCap 123031450
+                - generic [ref=e758]: Move 58.27%
+                - generic [ref=e759]: Vol 216670
+                - generic [ref=e760]: IV 0.00
+                - generic [ref=e761]: Score 17.26
+                - generic [ref=e762]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e763] [cursor=pointer]:
+                  - /url: /research/EPSN
+                - generic [ref=e764]: "Source: none"
+                - generic [ref=e765]: Event-driven setup
+              - generic [ref=e766]:
+                - generic [ref=e767]: AIR
+                - generic [ref=e768]: BMO
+                - generic [ref=e769]: Before Market Open
+                - generic [ref=e770]: MCap 4180438900
+                - generic [ref=e771]: Move 2.91%
+                - generic [ref=e772]: Vol 419227
+                - generic [ref=e773]: IV 0.00
+                - generic [ref=e774]: Score 16.36
+                - generic [ref=e775]: ❌ Low
+                - link "View Trade Setup" [ref=e776] [cursor=pointer]:
+                  - /url: /research/AIR
+                - generic [ref=e777]: "Source: none"
+                - generic [ref=e778]: Event-driven setup
+              - generic [ref=e779]:
+                - generic [ref=e780]: NOAH
+                - generic [ref=e781]: BMO
+                - generic [ref=e782]: Before Market Open
+                - generic [ref=e783]: MCap 761600180
+                - generic [ref=e784]: Move 26.23%
+                - generic [ref=e785]: Vol 95186
+                - generic [ref=e786]: IV 0.00
+                - generic [ref=e787]: Score 15.96
+                - generic [ref=e788]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e789] [cursor=pointer]:
+                  - /url: /research/NOAH
+                - generic [ref=e790]: "Source: none"
+                - generic [ref=e791]: Event-driven setup
+              - generic [ref=e792]:
+                - generic [ref=e793]: WOR
+                - generic [ref=e794]: BMO
+                - generic [ref=e795]: Before Market Open
+                - generic [ref=e796]: MCap 2387399146
+                - generic [ref=e797]: Move 5.74%
+                - generic [ref=e798]: Vol 48738
+                - generic [ref=e799]: IV 0.00
+                - generic [ref=e800]: Score 14.80
+                - generic [ref=e801]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e802] [cursor=pointer]:
+                  - /url: /research/WOR
+                - generic [ref=e803]: "Source: none"
+                - generic [ref=e804]: Event-driven setup
+              - generic [ref=e805]:
+                - generic [ref=e806]: CDLR
+                - generic [ref=e807]: BMO
+                - generic [ref=e808]: Before Market Open
+                - generic [ref=e809]: MCap 2087103874
+                - generic [ref=e810]: Move 11.51%
+                - generic [ref=e811]: Vol 114745
+                - generic [ref=e812]: IV 0.00
+                - generic [ref=e813]: Score 14.70
+                - generic [ref=e814]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e815] [cursor=pointer]:
+                  - /url: /research/CDLR
+                - generic [ref=e816]: "Source: none"
+                - generic [ref=e817]: Event-driven setup
+              - generic [ref=e818]:
+                - generic [ref=e819]: KZR
+                - generic [ref=e820]: BMO
+                - generic [ref=e821]: Before Market Open
+                - generic [ref=e822]: MCap 0
+                - generic [ref=e823]: Move 40.42%
+                - generic [ref=e824]: Vol 0
+                - generic [ref=e825]: IV 0.00
+                - generic [ref=e826]: Score 14.54
+                - generic [ref=e827]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e828] [cursor=pointer]:
+                  - /url: /research/KZR
+                - generic [ref=e829]: "Source: none"
+                - generic [ref=e830]: Event-driven setup
+              - generic [ref=e831]:
+                - generic [ref=e832]: SFD
+                - generic [ref=e833]: BMO
+                - generic [ref=e834]: Before Market Open
+                - generic [ref=e835]: MCap 9084834751
+                - generic [ref=e836]: Move 10.24%
+                - generic [ref=e837]: Vol 992565
+                - generic [ref=e838]: IV 0.00
+                - generic [ref=e839]: Score 12.84
+                - generic [ref=e840]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e841] [cursor=pointer]:
+                  - /url: /research/SFD
+                - generic [ref=e842]: "Source: none"
+                - generic [ref=e843]: Event-driven setup
+              - generic [ref=e844]:
+                - generic [ref=e845]: MLCIL
+                - generic [ref=e846]: BMO
+                - generic [ref=e847]: Before Market Open
+                - generic [ref=e848]: MCap 2007148749
+                - generic [ref=e849]: Move 7.37%
+                - generic [ref=e850]: Vol 8034
+                - generic [ref=e851]: IV 0.00
+                - generic [ref=e852]: Score 9.52
+                - generic [ref=e853]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e854] [cursor=pointer]:
+                  - /url: /research/MLCIL
+                - generic [ref=e855]: "Source: none"
+                - generic [ref=e856]: Event-driven setup
+              - generic [ref=e857]:
+                - generic [ref=e858]: HDL
+                - generic [ref=e859]: BMO
+                - generic [ref=e860]: Before Market Open
+                - generic [ref=e861]: MCap 926088084
+                - generic [ref=e862]: Move 8.19%
+                - generic [ref=e863]: Vol 1364
+                - generic [ref=e864]: IV 0.00
+                - generic [ref=e865]: Score 7.44
+                - generic [ref=e866]: ⚠️ Medium
+                - link "View Trade Setup" [ref=e867] [cursor=pointer]:
+                  - /url: /research/HDL
+                - generic [ref=e868]: "Source: none"
+                - generic [ref=e869]: Event-driven setup
+              - generic [ref=e870]:
+                - generic [ref=e871]: GUTS
+                - generic [ref=e872]: BMO
+                - generic [ref=e873]: Before Market Open
+                - generic [ref=e874]: MCap 31859111
+                - generic [ref=e875]: Move 0.00%
+                - generic [ref=e876]: Vol 1656905
+                - generic [ref=e877]: IV 0.00
+                - generic [ref=e878]: Score 3.00
+                - generic [ref=e879]: ❌ Low
+                - link "View Trade Setup" [ref=e880] [cursor=pointer]:
+                  - /url: /research/GUTS
+                - generic [ref=e881]: "Source: none"
+                - generic [ref=e882]: Low liquidity risk
+              - generic [ref=e883]:
+                - generic [ref=e884]: CUE
+                - generic [ref=e885]: BMO
+                - generic [ref=e886]: Before Market Open
+                - generic [ref=e887]: MCap 24557986
+                - generic [ref=e888]: Move 0.00%
+                - generic [ref=e889]: Vol 16809971
+                - generic [ref=e890]: IV 0.00
+                - generic [ref=e891]: Score 3.00
+                - generic [ref=e892]: ❌ Low
+                - link "View Trade Setup" [ref=e893] [cursor=pointer]:
+                  - /url: /research/CUE
+                - generic [ref=e894]: "Source: none"
+                - generic [ref=e895]: Low liquidity risk
+              - generic [ref=e896]:
+                - generic [ref=e897]: ERNA
+                - generic [ref=e898]: BMO
+                - generic [ref=e899]: Before Market Open
+                - generic [ref=e900]: MCap 2545187
+                - generic [ref=e901]: Move 0.00%
+                - generic [ref=e902]: Vol 3404726
+                - generic [ref=e903]: IV 0.00
+                - generic [ref=e904]: Score 3.00
+                - generic [ref=e905]: ❌ Low
+                - link "View Trade Setup" [ref=e906] [cursor=pointer]:
+                  - /url: /research/ERNA
+                - generic [ref=e907]: "Source: none"
+                - generic [ref=e908]: Low liquidity risk
+              - generic [ref=e909]:
+                - generic [ref=e910]: MXCT
+                - generic [ref=e911]: BMO
+                - generic [ref=e912]: Before Market Open
+                - generic [ref=e913]: MCap 80272193
+                - generic [ref=e914]: Move 0.00%
+                - generic [ref=e915]: Vol 832031
+                - generic [ref=e916]: IV 0.00
+                - generic [ref=e917]: Score 1.00
+                - generic [ref=e918]: ❌ Low
+                - link "View Trade Setup" [ref=e919] [cursor=pointer]:
+                  - /url: /research/MXCT
+                - generic [ref=e920]: "Source: none"
+                - generic [ref=e921]: Event-driven setup
+              - generic [ref=e922]:
+                - generic [ref=e923]: HOWL
+                - generic [ref=e924]: BMO
+                - generic [ref=e925]: Before Market Open
+                - generic [ref=e926]: MCap 39366102
+                - generic [ref=e927]: Move 0.00%
+                - generic [ref=e928]: Vol 290761
+                - generic [ref=e929]: IV 0.00
+                - generic [ref=e930]: Score 1.00
+                - generic [ref=e931]: ❌ Low
+                - link "View Trade Setup" [ref=e932] [cursor=pointer]:
+                  - /url: /research/HOWL
+                - generic [ref=e933]: "Source: none"
+                - generic [ref=e934]: Event-driven setup
+              - generic [ref=e935]:
+                - generic [ref=e936]: BZAIW
+                - generic [ref=e937]: BMO
+                - generic [ref=e938]: Before Market Open
+                - generic [ref=e939]: MCap 29001208
+                - generic [ref=e940]: Move 0.00%
+                - generic [ref=e941]: Vol 10770
+                - generic [ref=e942]: IV 0.00
+                - generic [ref=e943]: Score 1.00
+                - generic [ref=e944]: ❌ Low
+                - link "View Trade Setup" [ref=e945] [cursor=pointer]:
+                  - /url: /research/BZAIW
+                - generic [ref=e946]: "Source: none"
+                - generic [ref=e947]: Event-driven setup
+              - generic [ref=e948]:
+                - generic [ref=e949]: SURG
+                - generic [ref=e950]: BMO
+                - generic [ref=e951]: Before Market Open
+                - generic [ref=e952]: MCap 16684916
+                - generic [ref=e953]: Move 0.00%
+                - generic [ref=e954]: Vol 201836
+                - generic [ref=e955]: IV 0.00
+                - generic [ref=e956]: Score 1.00
+                - generic [ref=e957]: ❌ Low
+                - link "View Trade Setup" [ref=e958] [cursor=pointer]:
+                  - /url: /research/SURG
+                - generic [ref=e959]: "Source: none"
+                - generic [ref=e960]: Event-driven setup
+              - generic [ref=e961]:
+                - generic [ref=e962]: ATER
+                - generic [ref=e963]: BMO
+                - generic [ref=e964]: Before Market Open
+                - generic [ref=e965]: MCap 6081376
+                - generic [ref=e966]: Move 0.00%
+                - generic [ref=e967]: Vol 69559
+                - generic [ref=e968]: IV 0.00
+                - generic [ref=e969]: Score 1.00
+                - generic [ref=e970]: ❌ Low
+                - link "View Trade Setup" [ref=e971] [cursor=pointer]:
+                  - /url: /research/ATER
+                - generic [ref=e972]: "Source: none"
+                - generic [ref=e973]: Event-driven setup
+              - generic [ref=e974]:
+                - generic [ref=e975]: TWAV
+                - generic [ref=e976]: BMO
+                - generic [ref=e977]: Before Market Open
+                - generic [ref=e978]: MCap 4169373
+                - generic [ref=e979]: Move 0.00%
+                - generic [ref=e980]: Vol 281243
+                - generic [ref=e981]: IV 0.00
+                - generic [ref=e982]: Score 1.00
+                - generic [ref=e983]: ❌ Low
+                - link "View Trade Setup" [ref=e984] [cursor=pointer]:
+                  - /url: /research/TWAV
+                - generic [ref=e985]: "Source: none"
+                - generic [ref=e986]: Event-driven setup
+              - generic [ref=e987]:
+                - generic [ref=e988]: ERNAW
+                - generic [ref=e989]: BMO
+                - generic [ref=e990]: Before Market Open
+                - generic [ref=e991]: MCap 275644
+                - generic [ref=e992]: Move 0.00%
+                - generic [ref=e993]: Vol 661
+                - generic [ref=e994]: IV 0.00
+                - generic [ref=e995]: Score 1.00
+                - generic [ref=e996]: ❌ Low
+                - link "View Trade Setup" [ref=e997] [cursor=pointer]:
+                  - /url: /research/ERNAW
+                - generic [ref=e998]: "Source: none"
+                - generic [ref=e999]: Event-driven setup
+              - generic [ref=e1000]:
+                - generic [ref=e1001]: FGIWW
+                - generic [ref=e1002]: BMO
+                - generic [ref=e1003]: Before Market Open
+                - generic [ref=e1004]: MCap 76410
+                - generic [ref=e1005]: Move 0.00%
+                - generic [ref=e1006]: Vol 2
+                - generic [ref=e1007]: IV 0.00
+                - generic [ref=e1008]: Score 1.00
+                - generic [ref=e1009]: ❌ Low
+                - link "View Trade Setup" [ref=e1010] [cursor=pointer]:
+                  - /url: /research/FGIWW
+                - generic [ref=e1011]: "Source: none"
+                - generic [ref=e1012]: Event-driven setup
+              - generic [ref=e1013]:
+                - generic [ref=e1014]: VRPX
+                - generic [ref=e1015]: BMO
+                - generic [ref=e1016]: Before Market Open
+                - generic [ref=e1017]: MCap 13668
+                - generic [ref=e1018]: Move 0.00%
+                - generic [ref=e1019]: Vol 300
+                - generic [ref=e1020]: IV 0.00
+                - generic [ref=e1021]: Score 1.00
+                - generic [ref=e1022]: ❌ Low
+                - link "View Trade Setup" [ref=e1023] [cursor=pointer]:
+                  - /url: /research/VRPX
+                - generic [ref=e1024]: "Source: none"
+                - generic [ref=e1025]: Event-driven setup
+            - generic [ref=e1026]: "Sorted by: Opportunity Score DESC, then Market Cap DESC, Expected Move DESC, Volume DESC"
+            - generic [ref=e1027]: "Session tags: AMC = After Market Close, BMO = Before Market Open"
+  - alert [ref=e1028]
+```

@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-04-06T08:48:41.238Z",
+  "removed_columns": [
+    "strategyScore",
+    "catalystScore",
+    "avg_score_summary"
+  ],
+  "removed_sorting": [
+    "strategyScore",
+    "catalystScore",
+    "final_score",
+    "tqi"
+  ],
+  "backend_order_updated": {
+    "endpoint": "/api/screener",
+    "order": [
+      "volume desc",
+      "abs(change_percent) desc",
+      "rvol desc",
+      "symbol asc"
+    ]
+  },
+  "filters_preserved": [
+    "ORB Scanner",
+    "Gap filters",
+    "Momentum filters",
+    "Earnings filters",
+    "Technical filters"
+  ],
+  "backend_score_fields_preserved_for_other_pages": [
+    "tqi",
+    "tqi_label",
+    "final_score",
+    "coverage_score",
+    "data_confidence"
+  ],
+  "total_rows_returned": 6372,
+  "screener_meta": {
+    "total_ms": 51626,
+    "returned_rows": 6372,
+    "final_scored_size": 6372,
+    "raw_universe_size": 6372
+  },
+  "precheck_tables": {
+    "market_quotes": {
+      "exists": true,
+      "row_count": 6381
+    },
+    "market_metrics": {
+      "exists": true,
+      "row_count": 7779
+    },
+    "stocks_in_play": {
+      "exists": true,
+      "row_count": 0
+    },
+    "ticker_universe": {
+      "exists": true,
+      "row_count": 5915
+    },
+    "intraday_1m": {
+      "exists": true,
+      "row_count": 1920059
+    },
+    "daily_ohlc": {
+      "exists": true,
+      "row_count": 2355146
+    },
+    "earnings_events": {
+      "exists": true,
+      "row_count": 361
+    },
+    "news_articles": {
+      "exists": true,
+      "row_count": 121940
+    },
+    "screener_snapshots": {
+      "exists": true,
+      "row_count": 941
+    }
+  }
+}

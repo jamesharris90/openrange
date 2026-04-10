@@ -1,0 +1,104 @@
+{
+  "generated_at": "2026-03-26T16:22:30.447Z",
+  "artifacts": {
+    "fmp_endpoint_audit_json": "fmp_endpoint_audit.json",
+    "db_schema_audit_json": "db_schema_audit.json",
+    "data_freshness_audit_json": "data_freshness_audit.json"
+  },
+  "pipeline_integrity": {
+    "refresh_result": {
+      "timestamp": "2026-03-26T16:22:14.488Z",
+      "total_symbols": 5915,
+      "quotes_updated": 5915,
+      "coverage_percent": 100,
+      "duration_ms": 46842,
+      "coverage": 1,
+      "required": 0.7
+    },
+    "coverage_db": {
+      "total_universe_count": 5915,
+      "fresh_quote_count": 5915,
+      "coverage": 1
+    },
+    "latest_refresh_log": {
+      "timestamp": "2026-03-26T16:22:14.488Z",
+      "total_symbols": 5915,
+      "quotes_updated": 5915,
+      "coverage_percent": 100,
+      "duration_ms": 46842
+    },
+    "no_hidden_batch_failures_in_runtime_result": true,
+    "retry_logic_present_in_code": true,
+    "coverage_matches_db_percent": 100,
+    "screener_validation": {
+      "http_status": 200,
+      "count": 7758,
+      "rows_returned": 25,
+      "count_gt_5000": true,
+      "all_rows_have_price": true,
+      "all_rows_relative_volume_valid": true,
+      "all_rows_catalyst_type_valid_enum": false
+    },
+    "screener_sample": {
+      "symbol": "BTBD",
+      "price": 1.8601,
+      "change_percent": 41.99236641221374,
+      "percent_change": 41.99236641221374,
+      "gap_percent": -100,
+      "volume": 1838499,
+      "relative_volume": 35.76832385866203,
+      "atr": 0,
+      "market_cap": 8062688,
+      "sector": "Consumer Cyclical",
+      "industry": "Restaurants",
+      "name": "BT Brands, Inc.",
+      "momentum_score": 262.8263521177376,
+      "liquidity_score": 1,
+      "trade_quality_score": 100,
+      "setup": "PARABOLIC",
+      "confidence": 90,
+      "confidence_label": "CONFIRMED",
+      "catalyst": "EARNINGS",
+      "catalyst_type": "EARNINGS",
+      "catalyst_source": "earnings_events",
+      "catalyst_age_minutes": -4777.5,
+      "catalyst_headline": null,
+      "structure": "BULLISH",
+      "why_moving": "EARNINGS",
+      "entry": 1.31,
+      "stop": 0,
+      "target": 3.93,
+      "signal_valid": true,
+      "data_timestamp": "2026-03-26T16:22:30.158Z",
+      "last_price_update": "2026-03-26T16:22:06.410Z",
+      "data_age_seconds": 23.748,
+      "data_freshness": "LIVE",
+      "data_quality": "valid",
+      "source": "real",
+      "fallback_mode": false,
+      "drift_status": "UNKNOWN",
+      "drift_value": 0,
+      "baseline_valid": false,
+      "early_signal": null,
+      "early_signal_time": null,
+      "source_dataset_id": "2026-03-26T16:22:30.158Z:7758",
+      "generated_at": "2026-03-26T16:22:30.158Z",
+      "screener_mode": "all",
+      "first_seen_at": "2026-03-26T16:18:49.973Z",
+      "last_updated_at": "2026-03-26T16:22:30.474Z",
+      "signal_age_minutes": 3.67
+    }
+  },
+  "environment_check": {
+    "frontend_api_base_default_localhost": "http://localhost:3001",
+    "frontend_api_base_is_3007": false,
+    "no_mixed_environment_db_ping": true
+  },
+  "fail_conditions": {
+    "multiple_backend_ports_active": true,
+    "endpoint_failures": true,
+    "stale_data_gt_50pct": true,
+    "missing_required_data": false
+  },
+  "system_audit_pass": false
+}

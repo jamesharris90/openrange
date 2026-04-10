@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-04-06T14:50:00.952Z",
+  "url": "http://127.0.0.1:3000/research/AAPL",
+  "tabs": [
+    "Overview",
+    "Technical",
+    "Fundamentals",
+    "Earnings",
+    "Flow & Score"
+  ],
+  "overview": {
+    "dashCount": 4,
+    "mutedDashCount": 4,
+    "hasLegacyTimeUnavailable": false,
+    "hasLegacyEstimating": false,
+    "hasLegacyNotAvailable": false,
+    "hasLegacyPending": false,
+    "bodySample": "OpenRange\nDashboard\nScreener\nOpportunities\nResearch\nNews\nEarnings\nAAPL\nApple Inc.\n$260.04\n+1.61%\nTRADEABLE\n⚠ Regime conflict\nBULLISH ↗\nCONFIDENCE\n73\nMACRO SECTOR\nRISK_OFF\nSector Tailwind\nVIX 32.94 · EXTREME\nDCS 91 · HIGH\nUpdated Apr 6, 3:49 PM\nAA\nRESEARCH CONSOLE\nAAPL\nApple Inc.\n\nInstitutional decision engine for why it is moving, whether it is tradeable, and what deserves action.\n\nLive Fill\nDCS 91 · HIGH\nData Confidence: 91 (HIGH)\nCoverage: 100%\nFreshness: 100\nSources: 40\nCoverage Complete · 100%\nPRICE\n$260.04\nCHANGE\n+1.61%\nEXPECTED MOVE\n+15.64%\nSECTOR\nTechnology\nChart\n\nClean overlays on the main chart, with optional indicator panels stacked below and synced to the same cursor.\n\nSparkline\nCandle\n1m\n5m\n1D\nVWAP\nEMA 9\nEMA 20\nMAR 30, 2:40 PM\nO $247.49\nH $247.65\nL $247.37\nC $247.48\n255.7\n253.1\n250.4\n247.8\n245.1\n2:40 PM\n10:59 PM\n3:20 PM\n11:41 PM\n4:02 PM\nX AXIS: TIME\nY AXIS: PRICE\nVWAP\nEMA 9\nEMA 20\n52W LOW\n$169.21\n52W HIGH\n$288.62\nLATEST VOLUME 1D\n22.2M\nLive session daily volume\nCHART STATS\nShow more\nAdvanced range and debug-adjacent metrics\nIndicator Panels\n\nBackend-computed overlays aligned with the active chart interval.\n\nShow Volume\nShow RSI\nShow MACD\nDecision Panel v2\n\nDeterministic"
+  },
+  "earnings": {
+    "dashCount": 2,
+    "mutedDashCount": 2,
+    "hasLegacyTimeUnavailable": false,
+    "hasLegacyEstimating": false,
+    "hasLegacyNotAvailable": false,
+    "hasLegacyPending": false,
+    "bodySample": "OpenRange\nDashboard\nScreener\nOpportunities\nResearch\nNews\nEarnings\nAAPL\nApple Inc.\n$260.04\n+1.61%\nTRADEABLE\n⚠ Regime conflict\nBULLISH ↗\nCONFIDENCE\n73\nMACRO SECTOR\nRISK_OFF\nSector Tailwind\nVIX 32.94 · EXTREME\nDCS 91 · HIGH\nUpdated Apr 6, 3:49 PM\nAA\nRESEARCH CONSOLE\nAAPL\nApple Inc.\n\nInstitutional decision engine for why it is moving, whether it is tradeable, and what deserves action.\n\nLive Fill\nDCS 91 · HIGH\nData Confidence: 91 (HIGH)\nCoverage: 100%\nFreshness: 100\nSources: 40\nCoverage Complete · 100%\nPRICE\n$260.04\nCHANGE\n+1.61%\nEXPECTED MOVE\n+15.64%\nSECTOR\nTechnology\nChart\n\nClean overlays on the main chart, with optional indicator panels stacked below and synced to the same cursor.\n\nSparkline\nCandle\n1m\n5m\n1D\nVWAP\nEMA 9\nEMA 20\nMAR 30, 2:40 PM\nO $247.49\nH $247.65\nL $247.37\nC $247.48\n255.7\n253.1\n250.4\n247.8\n245.1\n2:40 PM\n10:59 PM\n3:20 PM\n11:41 PM\n4:02 PM\nX AXIS: TIME\nY AXIS: PRICE\nVWAP\nEMA 9\nEMA 20\n52W LOW\n$169.21\n52W HIGH\n$288.62\nLATEST VOLUME 1D\n22.2M\nLive session daily volume\nCHART STATS\nShow more\nAdvanced range and debug-adjacent metrics\nIndicator Panels\n\nBackend-computed overlays aligned with the active chart interval.\n\nShow Volume\nShow RSI\nShow MACD\nDecision Panel v2\n\nDeterministic"
+  },
+  "flow": {
+    "dashCount": 5,
+    "mutedDashCount": 5,
+    "hasLegacyTimeUnavailable": false,
+    "hasLegacyEstimating": false,
+    "hasLegacyNotAvailable": false,
+    "hasLegacyPending": false,
+    "bodySample": "OpenRange\nDashboard\nScreener\nOpportunities\nResearch\nNews\nEarnings\nAAPL\nApple Inc.\n$260.04\n+1.61%\nTRADEABLE\n⚠ Regime conflict\nBULLISH ↗\nCONFIDENCE\n73\nMACRO SECTOR\nRISK_OFF\nSector Tailwind\nVIX 32.94 · EXTREME\nDCS 91 · HIGH\nUpdated Apr 6, 3:49 PM\nAA\nRESEARCH CONSOLE\nAAPL\nApple Inc.\n\nInstitutional decision engine for why it is moving, whether it is tradeable, and what deserves action.\n\nLive Fill\nDCS 91 · HIGH\nData Confidence: 91 (HIGH)\nCoverage: 100%\nFreshness: 100\nSources: 40\nCoverage Complete · 100%\nPRICE\n$260.04\nCHANGE\n+1.61%\nEXPECTED MOVE\n+15.64%\nSECTOR\nTechnology\nChart\n\nClean overlays on the main chart, with optional indicator panels stacked below and synced to the same cursor.\n\nSparkline\nCandle\n1m\n5m\n1D\nVWAP\nEMA 9\nEMA 20\nMAR 30, 2:40 PM\nO $247.49\nH $247.65\nL $247.37\nC $247.48\n255.7\n253.1\n250.4\n247.8\n245.1\n2:40 PM\n10:59 PM\n3:20 PM\n11:41 PM\n4:02 PM\nX AXIS: TIME\nY AXIS: PRICE\nVWAP\nEMA 9\nEMA 20\n52W LOW\n$169.21\n52W HIGH\n$288.62\nLATEST VOLUME 1D\n22.2M\nLive session daily volume\nCHART STATS\nShow more\nAdvanced range and debug-adjacent metrics\nIndicator Panels\n\nBackend-computed overlays aligned with the active chart interval.\n\nShow Volume\nShow RSI\nShow MACD\nDecision Panel v2\n\nDeterministic"
+  },
+  "screenshots": {
+    "overview": "/Users/jamesharris/Server/logs/smoke/research-aapl-overview.png",
+    "earnings": "/Users/jamesharris/Server/logs/smoke/research-aapl-earnings.png",
+    "flow": "/Users/jamesharris/Server/logs/smoke/research-aapl-flow.png"
+  }
+}

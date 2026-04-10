@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-22T20:43:47.560Z",
+  "session": {
+    "now_utc": "2026-03-22T20:43:47.525Z",
+    "timezone": "America/New_York",
+    "ny_weekday": "sun",
+    "ny_hour": 16,
+    "weekend": true,
+    "market_open": false
+  },
+  "counts": {
+    "stocks_in_play": 23245,
+    "stocks_in_play_filtered": 30,
+    "signals_recent": 0,
+    "decision_view": 421
+  },
+  "checks": {
+    "stocks_in_play_nonzero": true,
+    "decision_view_nonzero": true,
+    "signals_recent_rule": true,
+    "signals_recent_expected_offsession": true,
+    "filtered_nonzero": true
+  },
+  "verdict": "PASS"
+}

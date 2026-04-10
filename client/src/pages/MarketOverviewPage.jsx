@@ -1,27 +1,34 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { authFetch } from '../utils/api';
-import { formatNumber, formatPercent } from '../utils/formatters';
-import { PageContainer, PageHeader } from '../components/layout/PagePrimitives';
-import MarketCard from '../components/MarketCard';
-import SectorMomentumCard from '../components/cards/SectorMomentumCard';
-import MarketBreadthCard from '../components/cards/MarketBreadthCard';
-import SignalCard from '../components/cards/SignalCard';
-import OpportunityCard from '../components/cards/OpportunityCard';
-import NewsCatalystCard from '../components/cards/NewsCatalystCard';
+import { PageContainer } from '../components/layout/PagePrimitives';
 
-const INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX'];
+function toNum(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function mapCandles(candles = []) {
+  return candles
+    .map((row) => {
+      const ts = Number(row?.time ?? row?.timestamp ?? 0);
+      const close = toNum(row?.close, null);
+      if (!ts || close == null) return null;
+      return {
+        ts,
+        time: new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        close,
+      };
+    })
+    .filter(Boolean);
+}
 
 export default function MarketOverviewPage() {
-  const [compactMode, setCompactMode] = useState(false);
-  const [quotesPayload, setQuotesPayload] = useState([]);
-  const [intelData, setIntelData] = useState({
-    sectors: [],
-    signals: [],
-    opportunities: [],
-    news: [],
-    breadth: {},
-  });
   const [loading, setLoading] = useState(true);
+  const [spySeries, setSpySeries] = useState([]);
+  const [quotes, setQuotes] = useState({});
+  const [summary, setSummary] = useState({});
+  const [sectors, setSectors] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,200 +36,154 @@ export default function MarketOverviewPage() {
     async function load() {
       setLoading(true);
       try {
-        const [results, sectorsRes, signalsRes, opportunitiesRes, newsRes, summaryRes] = await Promise.all([
-          Promise.all(
-            INDEX_SYMBOLS?.map(async (symbol) => {
-              const query = new URLSearchParams({ symbol, timeframe: '1D', interval: '1day' }).toString();
-              const response = await authFetch(`/api/v5/chart?${query}`);
-              if (!response.ok) {
-                return { ticker: symbol, shortName: symbol, price: null, changePercent: null };
-              }
-
-              const data = await response.json();
-              const candles = Array.isArray(data?.candles) ? data?.candles : [];
-              const latest = candles[candles.length - 1];
-              const previous = candles[candles.length - 2];
-              const price = Number(latest?.close);
-              const prevClose = Number(previous?.close);
-
-              const changePercent = Number.isFinite(price) && Number.isFinite(prevClose) && prevClose !== 0
-                ? ((price - prevClose) / prevClose) * 100
-                : null;
-
-              return {
-                ticker: symbol,
-                shortName: symbol,
-                price: Number.isFinite(price) ? price : null,
-                changePercent,
-              };
-            }),
-          ),
-          authFetch('/api/market/sector-strength').catch(() => null),
-          authFetch('/api/intelligence/flow?limit=16').catch(() => null),
-          authFetch('/api/opportunities?limit=16').catch(() => null),
-          authFetch('/api/news/v3?limit=16&sort=score').catch(() => null),
+        const [spyRes, quoteRes, summaryRes, sectorsRes] = await Promise.all([
+          authFetch('/api/v5/chart?symbol=SPY&timeframe=1D&interval=5m').catch(() => null),
+          authFetch('/api/market/quotes?symbols=SPY,QQQ,IWM,VIX').catch(() => null),
           authFetch('/api/radar/summary').catch(() => null),
+          authFetch('/api/market/sector-strength').catch(() => null),
         ]);
 
-        const [sectorsData, signalsData, opportunitiesData, newsData, summaryData] = await Promise.all([
-          sectorsRes?.ok ? sectorsRes.json().catch(() => []) : [],
-          signalsRes?.ok ? signalsRes.json().catch(() => ({ items: [] })) : { items: [] },
-          opportunitiesRes?.ok ? opportunitiesRes.json().catch(() => ({ items: [] })) : { items: [] },
-          newsRes?.ok ? newsRes.json().catch(() => ([])) : [],
+        const [spyJson, quoteJson, summaryJson, sectorsJson] = await Promise.all([
+          spyRes?.ok ? spyRes.json().catch(() => ({})) : {},
+          quoteRes?.ok ? quoteRes.json().catch(() => ({ data: [] })) : { data: [] },
           summaryRes?.ok ? summaryRes.json().catch(() => ({})) : {},
+          sectorsRes?.ok ? sectorsRes.json().catch(() => ({})) : {},
         ]);
 
-        if (!cancelled) {
-          setQuotesPayload(results);
-          setIntelData({
-            sectors: Array.isArray(sectorsData) ? sectorsData : (sectorsData?.items || sectorsData?.rows || []),
-            signals: signalsData?.items || signalsData?.rows || signalsData?.signals || (Array.isArray(signalsData) ? signalsData : []),
-            opportunities: opportunitiesData?.items || opportunitiesData?.rows || (Array.isArray(opportunitiesData) ? opportunitiesData : []),
-            news: Array.isArray(newsData) ? newsData : (newsData?.items || []),
-            breadth: summaryData?.breadth || summaryData || {},
-          });
-        }
-      } catch (_error) {
-        if (!cancelled) {
-          setQuotesPayload(INDEX_SYMBOLS?.map((ticker) => ({ ticker, shortName: ticker, price: null, changePercent: null })));
-          setIntelData({ sectors: [], signals: [], opportunities: [], news: [], breadth: {} });
-        }
+        if (cancelled) return;
+
+        const quoteRows = Array.isArray(quoteJson?.data) ? quoteJson.data : (Array.isArray(quoteJson) ? quoteJson : []);
+        const sectorRows = Array.isArray(sectorsJson) ? sectorsJson : (Array.isArray(sectorsJson?.data) ? sectorsJson.data : []);
+
+        setSpySeries(mapCandles(spyJson?.candles || []));
+        setQuotes(Object.fromEntries(quoteRows.map((row) => [String(row?.symbol || '').toUpperCase(), row])));
+        setSummary(summaryJson || {});
+        setSectors(sectorRows);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
+    const timer = setInterval(load, 30000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 
-  const quotes = useMemo(() => {
-    const map = {};
-    quotesPayload.forEach((q) => {
-      map[q.ticker] = q;
-    });
-    return INDEX_SYMBOLS?.map((sym) => map[sym] || { ticker: sym, shortName: sym, price: null, changePercent: null });
-  }, [quotesPayload]);
+  const breadth = summary?.breadth || summary || {};
+  const vix = toNum(quotes?.VIX?.price, null);
+  const advancers = toNum(breadth?.advancers, 0);
+  const decliners = toNum(breadth?.decliners, 0);
+  const breadthRatio = decliners > 0 ? (advancers / decliners) : advancers;
 
-  const compactRows = useMemo(() => {
-    const toRow = (item) => ({
-      symbol: String(item?.symbol || item?.ticker || '').toUpperCase() || '--',
-      confidence: Number(item?.confidence ?? item?.score ?? item?.rank_score ?? item?.news_score ?? 0).toFixed(1),
-      expectedMove: item?.expected_move ?? item?.expectedMove ?? item?.move_percent ?? '--',
-      catalyst: item?.catalyst_summary ?? item?.catalyst ?? item?.reason ?? item?.headline ?? '--',
-      sector: item?.sector_context ?? item?.sector ?? item?.industry ?? '--',
+  const indexTiles = useMemo(() => {
+    return ['SPY', 'QQQ', 'IWM', 'VIX'].map((symbol) => {
+      const row = quotes[symbol] || {};
+      return {
+        symbol,
+        price: toNum(row?.price, null),
+        change: toNum(row?.change_percent, null),
+      };
     });
-
-    return [
-      ...(intelData?.opportunities || []).slice(0, 6).map(toRow),
-      ...(intelData?.signals || []).slice(0, 6).map(toRow),
-      ...(intelData?.news || []).slice(0, 6).map(toRow),
-    ];
-  }, [intelData]);
+  }, [quotes]);
 
   return (
-    <PageContainer className="space-y-3">
-      <PageHeader
-        title="Global Market Overview"
-        subtitle="Key indices, volatility gauge, and live SPY chart."
-        actions={(
-          <button
-            type="button"
-            onClick={() => setCompactMode((current) => !current)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
-          >
-            {compactMode ? 'Card Mode' : 'Compact Table Mode'}
-          </button>
-        )}
-      />
+    <PageContainer className="space-y-4 bg-slate-950 text-slate-100">
+      <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+        <h1 className="text-xl font-semibold">Market Command</h1>
+        <p className="mt-1 text-sm text-slate-400">Large-index flow, risk regime, and sector rotation in one decision frame.</p>
+      </section>
 
-      <div className="panel">
-        <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-          {quotes?.map(q => (
-            <div key={q.ticker} className="stat-card" style={{ padding: 12 }}>
-              <div className="stat-label" style={{ marginBottom: 4 }}>{q.shortName || q.ticker}</div>
-              <div className="stat-value">{q.price != null ? formatNumber(q.price) : '--'}</div>
-              <div className={q.changePercent >= 0 ? 'text-positive' : 'text-negative'}>
-                {q.changePercent != null ? formatPercent(q.changePercent) : '--'}
+      <section className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 grid grid-cols-2 gap-2 xl:col-span-3 xl:grid-cols-1">
+          {indexTiles.map((tile) => (
+            <div key={tile.symbol} className="rounded-lg border border-slate-700 bg-slate-900 p-2">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500">{tile.symbol}</div>
+              <div className="text-lg font-semibold">{tile.price == null ? '--' : tile.price.toFixed(2)}</div>
+              <div className={`text-xs ${tile.change == null ? 'text-slate-400' : tile.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {tile.change == null ? '--' : `${tile.change >= 0 ? '+' : ''}${tile.change.toFixed(2)}%`}
               </div>
             </div>
           ))}
-          {loading && <div style={{ color: 'var(--text-muted)' }}>Loading index quotes…</div>}
         </div>
-      </div>
 
-      <div className="panel grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          <h3 className="mt-0">SPY Market Card</h3>
-          <MarketCard symbol="SPY" />
+        <div className="col-span-12 xl:col-span-6 rounded-xl border border-slate-700 bg-slate-900 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-cyan-300">SPY Intraday</h2>
+            <span className="text-xs text-slate-500">5m bars</span>
+          </div>
+          <div className="h-[420px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={spySeries} margin={{ top: 8, right: 10, left: 2, bottom: 8 }}>
+                <CartesianGrid stroke="#1f2937" strokeDasharray="2 2" />
+                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 11 }} minTickGap={28} />
+                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} domain={['auto', 'auto']} />
+                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8 }} />
+                <Area type="monotone" dataKey="close" stroke="#22d3ee" strokeWidth={2} fill="url(#spyFill)" />
+                <defs>
+                  <linearGradient id="spyFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          {loading && <div className="mt-2 text-xs text-slate-500">Loading market tape...</div>}
         </div>
-        <div>
-          <h3 className="mt-0">QQQ Market Card</h3>
-          <MarketCard symbol="QQQ" />
+
+        <div className="col-span-12 xl:col-span-3 space-y-3">
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-300">Market Stats</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between rounded border border-slate-700 bg-slate-950 p-2">
+                <span className="text-slate-400">Breadth</span>
+                <span className={breadthRatio >= 1 ? 'text-emerald-300' : 'text-rose-300'}>{breadthRatio.toFixed(2)} A/D</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded border border-slate-700 bg-slate-950 p-2">
+                  <div className="text-slate-500">Advancers</div>
+                  <div className="font-semibold text-emerald-300">{advancers}</div>
+                </div>
+                <div className="rounded border border-slate-700 bg-slate-950 p-2">
+                  <div className="text-slate-500">Decliners</div>
+                  <div className="font-semibold text-rose-300">{decliners}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded border border-slate-700 bg-slate-950 p-2">
+                <span className="text-slate-400">VIX Level</span>
+                <span className={vix != null && vix < 18 ? 'text-emerald-300' : vix != null && vix < 24 ? 'text-amber-300' : 'text-rose-300'}>
+                  {vix == null ? '--' : vix.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-300">Sector Strength</h3>
+            <div className="space-y-2">
+              {sectors.slice(0, 8).map((row, idx) => {
+                const score = toNum(row?.change_percent ?? row?.score ?? row?.strength, 0);
+                const width = Math.max(5, Math.min(100, Math.abs(score) * 12));
+                return (
+                  <div key={`${row?.sector || 'sector'}-${idx}`} className="rounded border border-slate-700 bg-slate-950 p-2">
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="text-slate-300">{row?.sector || row?.name || '--'}</span>
+                      <span className={score >= 0 ? 'text-emerald-300' : 'text-rose-300'}>{score.toFixed(2)}%</span>
+                    </div>
+                    <div className="h-1.5 rounded bg-slate-800">
+                      <div className={`h-1.5 rounded ${score >= 0 ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ width: `${width}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {sectors.length === 0 ? <div className="text-xs text-slate-500">No qualifying setups right now</div> : null}
+            </div>
+          </div>
         </div>
-      </div>
-
-      {!compactMode ? (
-        <>
-          <section className="grid gap-4 xl:grid-cols-2">
-            {(intelData?.sectors || []).slice(0, 6).map((sector, idx) => (
-              <SectorMomentumCard key={`${sector?.sector || sector?.name || 'sector'}-${idx}`} sector={sector} />
-            ))}
-            <MarketBreadthCard data={intelData?.breadth || {}} />
-          </section>
-
-          <section className="grid gap-4 xl:grid-cols-2">
-            {(intelData?.opportunities || []).slice(0, 9).map((item, idx) => (
-              <OpportunityCard key={`${item?.symbol || 'opp'}-${idx}`} item={item} />
-            ))}
-          </section>
-
-          <section className="grid gap-4 xl:grid-cols-2">
-            {(intelData?.signals || []).slice(0, 8).map((signal, idx) => (
-              <SignalCard key={`${signal?.symbol || 'signal'}-${idx}`} signal={signal} />
-            ))}
-          </section>
-
-          <section className="grid gap-4 xl:grid-cols-2">
-            {(intelData?.news || []).slice(0, 8).map((item, idx) => (
-              <NewsCatalystCard key={`${item?.id || item?.symbol || 'news'}-${idx}`} item={item} />
-            ))}
-          </section>
-        </>
-      ) : (
-        <section className="panel overflow-x-auto">
-          <table className="data-table data-table--compact min-w-full">
-            <thead>
-              <tr>
-                <th>symbol</th>
-                <th style={{ textAlign: 'right' }}>confidence</th>
-                <th>expected move</th>
-                <th>catalyst</th>
-                <th>sector</th>
-              </tr>
-            </thead>
-            <tbody>
-              {compactRows.length ? compactRows.map((row, idx) => (
-                <tr key={`${row.symbol}-${idx}`}>
-                  <td>{row.symbol}</td>
-                  <td style={{ textAlign: 'right' }}>{row.confidence}</td>
-                  <td>{row.expectedMove}</td>
-                  <td>{row.catalyst}</td>
-                  <td>{row.sector}</td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="muted">No compact intelligence rows available.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {loading && <div style={{ color: 'var(--text-muted)' }}>Loading intelligence cards…</div>}
+      </section>
     </PageContainer>
   );
 }

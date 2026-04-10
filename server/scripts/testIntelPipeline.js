@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const crypto = require('crypto');
-const { Client } = require('pg');
+const pool = require('../db/pool');
 const { resolveDatabaseUrl } = require('../db/connectionConfig');
 const { runCatalystSignalEngine } = require('../engines/catalystSignalEngine');
 
@@ -65,14 +65,10 @@ async function run() {
     signal: null,
   };
 
-  let client;
-
   try {
-    const { dbUrl, host } = resolveDatabaseUrl();
-    client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await client.connect();
+    const { host } = resolveDatabaseUrl();
 
-    const dbPing = await client.query('SELECT NOW() AS now');
+    const dbPing = await pool.query('SELECT NOW() AS now');
     trace.db = {
       host,
       now: dbPing.rows?.[0]?.now || null,
@@ -115,7 +111,7 @@ async function run() {
       `${String(inboxPayload.sender || '').toLowerCase()}|${String(inboxPayload.subject || '').toLowerCase()}|${String(inboxPayload.body || '').toLowerCase()}`
     );
 
-    const rawResult = await client.query(
+    const rawResult = await pool.query(
       `SELECT id, fingerprint, sender, subject, received_at, created_at
        FROM intel_raw
        WHERE fingerprint = $1
@@ -131,7 +127,7 @@ async function run() {
       failNow('FAIL: no raw row in intel_raw', null, trace);
     }
 
-    const parsedResult = await client.query(
+    const parsedResult = await pool.query(
       `SELECT id, symbol, sentiment, key_narrative, headline, source, published_at
        FROM intel_news
        WHERE symbol = 'NVDA'
@@ -160,7 +156,7 @@ async function run() {
       failNow('FAIL: parsed narrative missing', parsedRow, trace);
     }
 
-    const catalystEventResult = await client.query(
+    const catalystEventResult = await pool.query(
       `SELECT event_uuid::text AS id, strength_score, source_table, created_at
        FROM catalyst_events
        WHERE symbol = 'NVDA'
@@ -173,7 +169,7 @@ async function run() {
     let catalystRow = catalystEventResult.rows?.[0] || null;
 
     if (!catalystRow) {
-      const tradeCatalystResult = await client.query(
+      const tradeCatalystResult = await pool.query(
         `SELECT
            CONCAT(symbol, '|', COALESCE(published_at::text, created_at::text), '|', LEFT(headline, 40)) AS id,
            score::double precision AS strength_score,
@@ -202,7 +198,7 @@ async function run() {
     }));
     trace.signal_engine = signalEngineResult;
 
-    const signalResult = await client.query(
+    const signalResult = await pool.query(
       `SELECT id::text, symbol, signal_score AS confidence, signal_type, created_at
        FROM catalyst_signals
        WHERE symbol = 'NVDA'
@@ -214,7 +210,7 @@ async function run() {
     let signalRow = signalResult.rows?.[0] || null;
 
     if (!signalRow) {
-      const fallbackSignalResult = await client.query(
+      const fallbackSignalResult = await pool.query(
         `SELECT id::text, symbol, confidence, signal_type, created_at
        FROM signals
        WHERE symbol = 'NVDA'
@@ -258,9 +254,7 @@ async function run() {
   } catch (error) {
     failNow('DB/PIPELINE ERROR', error.message || String(error), trace);
   } finally {
-    if (client) {
-      await client.end().catch(() => {});
-    }
+    await pool.end().catch(() => {});
   }
 }
 

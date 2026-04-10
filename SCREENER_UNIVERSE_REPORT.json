@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-04-05T11:49:51.973Z",
+  "snapshot_at": "2026-04-05T11:49:51.114Z",
+  "raw_universe_size": 6372,
+  "final_scored_size": 6372,
+  "returned_rows": 6372,
+  "performance_timing_ms": {
+    "snapshot_total_ms": 13709,
+    "report_total_ms": 15587
+  },
+  "sample": [
+    {
+      "symbol": "RDGT",
+      "price": 0.0246,
+      "change_percent": -11.51079,
+      "volume": 56579821,
+      "rvol": 9620.618761796262,
+      "state": "DEAD"
+    },
+    {
+      "symbol": "WNW",
+      "price": 0.0506,
+      "change_percent": -13.65188,
+      "volume": 145050118,
+      "rvol": 6528.378191048861,
+      "state": "DEAD"
+    },
+    {
+      "symbol": "BCG",
+      "price": 2.31,
+      "change_percent": -2.94118,
+      "volume": 26186608,
+      "rvol": 3076.5348395544247,
+      "state": "DEAD"
+    },
+    {
+      "symbol": "UCAR",
+      "price": 0.6604,
+      "change_percent": 9.51907,
+      "volume": 107543842,
+      "rvol": 3068.0207304142755,
+      "state": "DEAD"
+    },
+    {
+      "symbol": "HKIT",
+      "price": 0.0358,
+      "change_percent": -26.03306,
+      "volume": 68945541,
+      "rvol": 2389.8597188136932,
+      "state": "EXTENDED"
+    }
+  ]
+}

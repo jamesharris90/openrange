@@ -1,191 +1,194 @@
 {
-  "started_at": "2026-04-07T13:42:02.782Z",
+  "generated_at": "2026-04-10T11:22:00.000Z",
+  "status": "BUILD FAILED - FIX REQUIRED",
   "precheck": {
-    "daily_ohlcv_exists": true,
-    "ticker_universe": {
-      "count": "5977",
-      "latest_update": "2026-04-07T12:34:34.492Z"
+    "pass": true,
+    "log": "logs/precheck_validation.json"
+  },
+  "backend": {
+    "endpoint_validation": {
+      "pass": false,
+      "log": "logs/endpoint_validation.json",
+      "statuses": {
+        "/api/health": 200,
+        "/api/screener": 200,
+        "/api/intelligence/decision/AAPL": 200,
+        "/api/intelligence/top-opportunities?limit=5": 200,
+        "/api/market/overview": 200,
+        "/api/earnings/calendar?limit=5": 200
+      }
     },
-    "daily_ohlc": {
-      "count": "2355155",
-      "max_date": "2026-04-05T23:00:00.000Z"
+    "truth_calibration": {
+      "AAPL": "AVOID",
+      "META": "TRADEABLE",
+      "SMCI": "AVOID",
+      "GERN": "AVOID",
+      "CLRC": "INSUFFICIENT_DATA"
     },
-    "daily_ohlcv": {
-      "count": "2355155",
-      "max_date": "2026-04-05T23:00:00.000Z"
+    "snapshot_rebuild": {
+      "pass": false,
+      "attempted": true,
+      "failure": "canceling statement due to statement timeout",
+      "failing_stage": "fetchLatestNewsBySymbol during buildAndStoreScreenerSnapshot"
     },
-    "intraday_1m": {
-      "count": "1982684",
-      "latest_bar": "2026-04-07T09:40:00.000Z"
-    },
-    "catalyst_signals": {
-      "count": "6045",
-      "latest_created_at": "2026-04-07T12:31:35.583Z"
-    },
-    "trade_outcomes": {
-      "count": "40",
-      "latest_evaluated_at": "2026-04-07T13:40:01.875Z"
-    },
-    "backtest_signals": {
-      "total": "833",
-      "pending": "17",
-      "evaluated": "816"
-    },
-    "pending_opportunities": {
-      "count": "6"
+    "screener_observations": {
+      "clrc_present": false,
+      "shell_candidates_remaining": 0,
+      "aapl_gap_percent": 0.1599,
+      "aapl_premarket_fields_on_live_endpoint": false
     }
   },
-  "jobs": {
-    "ticker_universe": {
-      "ok": true,
-      "result": {
-        "jobName": "fmp_universe_ingest",
-        "symbols_processed": 5832,
-        "symbols_inserted": 5736,
-        "new_symbols": 0,
-        "duplicates_ignored": 0,
-        "filtered_out": 96,
-        "durationMs": 45943
+  "frontend": {
+    "build_pass": false,
+    "command": "cd trading-os && npm run build",
+    "failure": "Failed to collect page data for /api/catalyst-reactions/latest",
+    "related_errors": [
+      "PageNotFoundError: Cannot find module for page: /api/catalyst-reactions/latest",
+      "PageNotFoundError: Cannot find module for page: /api/health"
+    ]
+  },
+  "deploy_ready": false,
+  "required_message": "BUILD FAILED - FIX REQUIRED"
+}{
+  "generated_at": "2026-04-10T07:00:30.000Z",
+  "status_text": "BUILD FAILED - FIX REQUIRED",
+  "pass": false,
+  "local_api_base": "http://127.0.0.1:3007",
+  "production_api_base": "https://openrange-backend-production.up.railway.app",
+  "production_site_base": "https://openrangetrading.co.uk",
+  "precheck": {
+    "pass": true,
+    "validated_objects": [
+      {
+        "name": "market_quotes",
+        "row_count": 6382
       },
-      "runtime_ms": 45944
+      {
+        "name": "market_metrics",
+        "row_count": 7780
+      },
+      {
+        "name": "earnings_events",
+        "row_count": 723
+      },
+      {
+        "name": "daily_ohlcv",
+        "row_count": 3082035
+      }
+    ]
+  },
+  "endpoint_validation": {
+    "pass": true,
+    "local_results": [
+      {
+        "endpoint": "/api/screener",
+        "status": 200,
+        "elapsed_ms": 255
+      },
+      {
+        "endpoint": "/api/intelligence/decision/CLRC",
+        "status": 200,
+        "elapsed_ms": 2,
+        "decision_action": "WAIT"
+      },
+      {
+        "endpoint": "/api/intelligence/decision/AAPL",
+        "status": 200,
+        "elapsed_ms": 2,
+        "decision_action": "TRADEABLE"
+      },
+      {
+        "endpoint": "/api/intelligence/top-opportunities?limit=5",
+        "status": 200,
+        "elapsed_ms": 465
+      },
+      {
+        "endpoint": "/api/market/overview",
+        "status": 200,
+        "elapsed_ms": 407
+      },
+      {
+        "endpoint": "/api/earnings/calendar?limit=5",
+        "status": 200,
+        "elapsed_ms": 606
+      }
+    ],
+    "production_spot_checks": [
+      {
+        "endpoint": "/api/screener",
+        "status": 200,
+        "elapsed_ms": 1947
+      },
+      {
+        "endpoint": "/api/intelligence/decision/CLRC",
+        "status": 200,
+        "elapsed_ms": 321,
+        "decision_action": "AVOID"
+      },
+      {
+        "endpoint": "/api/intelligence/top-opportunities?limit=5",
+        "status": 200,
+        "elapsed_ms": 3406
+      },
+      {
+        "endpoint": "/api/market/overview",
+        "status": 200,
+        "elapsed_ms": 8442
+      },
+      {
+        "endpoint": "/api/earnings/calendar?limit=5",
+        "status": 200,
+        "elapsed_ms": 6039
+      }
+    ]
+  },
+  "parity": {
+    "tickers_checked": 10,
+    "price_matches": 10,
+    "next_earnings_matches": 6,
+    "sector_matches": 10,
+    "mismatched_next_earnings": [
+      "AAPL",
+      "NVDA",
+      "MU",
+      "CRWD"
+    ],
+    "clrc": {
+      "db_recent_invalid_ohlcv_rows": 3,
+      "local_decision_status": "INSUFFICIENT_DATA",
+      "local_decision_action": "WAIT",
+      "production_decision_status": "TRADEABLE",
+      "production_decision_action": "TRADEABLE"
     },
-    "intraday_1m": {
-      "ok": true,
-      "result": {
-        "jobName": "fmp_intraday_ingest",
-        "table": "intraday_1m",
-        "fetched": 4800,
-        "deduped": 4800,
-        "inserted": 90,
-        "failures": 0,
-        "durationMs": 2556
-      },
-      "runtime_ms": 2628
-    },
-    "daily_ohlc_smoke": {
-      "ok": true,
-      "result": {
-        "jobName": "fmp_prices_ingest",
-        "table": "daily_ohlc",
-        "fetched": 18,
-        "deduped": 18,
-        "inserted": 18,
-        "failures": 0,
-        "durationMs": 911
-      },
-      "runtime_ms": 950
-    },
-    "catalyst_backfill": {
-      "ok": true,
-      "result": {
-        "backfill": {
-          "batchesRun": 1,
-          "scanned": 100,
-          "inserted": 100,
-          "skippedDuplicates": 0,
-          "updated": 2546,
-          "signalsCreated": 25,
-          "cursorBefore": "2024-12-05T06:14:00.000Z",
-          "cursorAfter": "2024-12-05T06:14:00.000Z"
-        },
-        "engines": {
-          "intelligence": {
-            "scanned": 500,
-            "inserted": 500
-          },
-          "precedent": {
-            "computed": 1941,
-            "inserted": 72,
-            "updated": 1869
-          },
-          "signals": {
-            "scanned": 500,
-            "eligible": 0,
-            "fallback_selected": 25,
-            "fallback_used": true,
-            "inserted": 25,
-            "signals_attempted": 25,
-            "signals_inserted": 25,
-            "duplicate_signal_skipped": 0,
-            "backtest_logged": 25,
-            "thresholds": {
-              "confidence_threshold": 0.35,
-              "freshness_threshold_minutes": 180,
-              "provider_threshold": 1
-            }
-          },
-          "narratives": {
-            "scanned": 80,
-            "updated": 80,
-            "narrativeGenerationActive": true
-          }
-        }
-      },
-      "runtime_ms": 336845
-    },
-    "signal_evaluation": {
-      "ok": true,
-      "result": {
-        "evaluated": 0
-      },
-      "runtime_ms": 104
-    },
-    "backtest_evaluation": {
-      "ok": true,
-      "result": {
-        "ok": true,
-        "processed": 0,
-        "evaluated": 0,
-        "skipped": 0,
-        "errors": 0,
-        "runtimeMs": 30
-      },
-      "runtime_ms": 30
-    },
-    "trade_outcomes": {
-      "ok": true,
-      "result": {
-        "evaluated": 5,
-        "pending": 6,
-        "missingPriceData": 1
-      },
-      "runtime_ms": 1169
+    "meta": {
+      "db_price": 628.39,
+      "production_price": 628.39,
+      "local_research_status": 200,
+      "production_site_proxy_status": 200
     }
   },
-  "postcheck": {
-    "daily_ohlcv_exists": true,
-    "ticker_universe": {
-      "count": "5977",
-      "latest_update": "2026-04-07T12:42:56.370Z"
-    },
-    "daily_ohlc": {
-      "count": "2355158",
-      "max_date": "2026-04-06T23:00:00.000Z"
-    },
-    "daily_ohlcv": {
-      "count": "2355158",
-      "max_date": "2026-04-06T23:00:00.000Z"
-    },
-    "intraday_1m": {
-      "count": "1994344",
-      "latest_bar": "2026-04-07T09:46:00.000Z"
-    },
-    "catalyst_signals": {
-      "count": "6070",
-      "latest_created_at": "2026-04-07T12:46:04.168Z"
-    },
-    "trade_outcomes": {
-      "count": "45",
-      "latest_evaluated_at": "2026-04-07T13:48:39.967Z"
-    },
-    "backtest_signals": {
-      "total": "858",
-      "pending": "42",
-      "evaluated": "816"
-    },
-    "pending_opportunities": {
-      "count": "6"
-    }
+  "ui_validation": {
+    "pass": false,
+    "research_page_working": true,
+    "top_opportunities_visible": true,
+    "earnings_visible": true,
+    "routes_working": false,
+    "local_route_failures": [
+      "/",
+      "/login",
+      "/coverage-campaign"
+    ],
+    "console_errors": 1,
+    "note": "Local frontend validation is blocked by a stale or broken Next asset state returning 500/404 for non-research routes."
   },
-  "finished_at": "2026-04-07T13:48:53.749Z"
+  "failures_fixed": [
+    "Local backend now suppresses CLRC as INSUFFICIENT_DATA instead of emitting a tradeable decision.",
+    "Local screener endpoint returns cleanly with 5119 rows after the quality gate changes.",
+    "10 of 10 ticker price fields matched DB to production research API during the parity check."
+  ],
+  "remaining_risks": [
+    "Production backend still shows CLRC as TRADEABLE, which means the decision-layer integrity fix is not deployed there yet.",
+    "Four of ten production research next-earnings dates differed from DB by one calendar day, which needs timezone or source-contract review before calling parity perfect.",
+    "Local frontend validation remains red because the current Next dev server state serves 500/404 asset failures on non-research routes."
+  ]
 }

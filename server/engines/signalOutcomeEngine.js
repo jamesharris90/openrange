@@ -7,7 +7,21 @@ function toNumber(value, fallback = NaN) {
 }
 
 async function runSignalOutcomeEngine() {
-  console.log('[SIGNAL_OUTCOME_ENGINE] evaluating pending catalyst signals');
+  // Retired: signal_outcomes table migrated to new schema (029_signal_outcomes.sql).
+  // Outcome evaluation is now handled by signalEvaluationEngine.js (runSignalEvaluation).
+  console.log('[SIGNAL_OUTCOME_ENGINE] retired — skipping (use signalEvaluationEngine)');
+  return { signals_scanned: 0, evaluated: 0, outcomes_written: 0 };
+  const validateOutcomeWrite = ({ symbol, pnlPct }) => {
+    if (!symbol || String(symbol).trim() === '' || pnlPct === undefined) {
+      console.error('INVALID OUTCOME WRITE BLOCKED', {
+        writer: 'signalOutcomeEngine.runSignalOutcomeEngine',
+        symbol,
+        pnl_pct: pnlPct,
+      });
+      throw new Error('INVALID OUTCOME WRITE BLOCKED');
+    }
+  };
+
   try {
     const { rows: pendingSignals } = await queryWithTimeout(
       `SELECT cs.id, cs.symbol, cs.created_at
@@ -42,7 +56,7 @@ async function runSignalOutcomeEngine() {
       if (!Number.isFinite(startPrice) || startPrice <= 0) continue;
 
       const { rows: bars } = await queryWithTimeout(
-        `SELECT high, low
+        `SELECT high, low, close
          FROM intraday_1m
          WHERE symbol = $1
            AND timestamp > $2
@@ -84,15 +98,30 @@ async function runSignalOutcomeEngine() {
 
       const maxMove = ((maxHigh - startPrice) / startPrice) * 100;
       const maxDrawdown = ((minLow - startPrice) / startPrice) * 100;
+      const lastClose = (bars?.length || 0) > 0
+        ? toNumber(bars[bars.length - 1]?.close, startPrice)
+        : minLow;
+      const pnlPct = ((lastClose - startPrice) / startPrice) * 100;
       const success = maxMove >= 2;
+      const symbol = String(signal.symbol || '').toUpperCase().trim();
+
+      validateOutcomeWrite({ symbol, pnlPct });
 
       const insertResult = await queryWithTimeout(
         `INSERT INTO trade_outcomes
-           (signal_id, max_move, max_drawdown, success, evaluation_time)
-         VALUES ($1, $2, $3, $4, NOW())
+           (signal_id, symbol, max_move, max_drawdown, max_drawdown_pct, pnl_pct, success, evaluation_time)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          ON CONFLICT (signal_id) DO NOTHING`,
-        [signal.id, maxMove, maxDrawdown, success],
+        [signal.id, symbol, maxMove, maxDrawdown, maxDrawdown, pnlPct, success],
         { timeoutMs: 7000, label: 'signal_outcome_engine.insert_outcome', maxRetries: 0, poolType: 'write' }
+      );
+
+      await queryWithTimeout(
+        `INSERT INTO signal_outcomes
+           (signal_id, symbol, entry_price, exit_price, return_percent, pnl_pct, max_move_percent, move_down_percent, evaluated_at, outcome, created_at)
+         VALUES ($1, $2, $3, $4, $5, $5, $6, $7, NOW(), $8, NOW())`,
+        [signal.id, symbol, startPrice, lastClose, pnlPct, maxMove, maxDrawdown, success ? 'win' : 'loss'],
+        { timeoutMs: 7000, label: 'signal_outcome_engine.insert_signal_outcomes', maxRetries: 0, poolType: 'write' }
       );
 
       evaluated += 1;

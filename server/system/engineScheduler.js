@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const pLimit = require('p-limit').default;
+const createConcurrencyLimiter = require('../utils/createConcurrencyLimiter');
 const logger = require('../logger');
 const { updateTelemetry } = require('../cache/telemetryCache');
 const { ingestMarketQuotesRefresh } = require('../engines/fmpMarketIngestion');
@@ -12,7 +12,7 @@ const { refreshSparklineCache } = require('../cache/sparklineCacheEngine');
 const { refreshTickerCache } = require('../cache/tickerCache');
 const { recordEngineTelemetry, logSystemAlert, normalizeRowsProcessed } = require('./engineOps');
 
-const limit = pLimit(2);
+const limit = createConcurrencyLimiter(2);
 
 const schedulerState = {
   status: 'idle',

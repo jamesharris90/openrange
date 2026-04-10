@@ -1,14 +1,13 @@
 const logger = require('../logger');
 const { queryWithTimeout } = require('../db/pg');
 const { generateChartSnapshot } = require('./chartSnapshotEngine');
-const { generateMorningNarrative } = require('../services/mcpClient');
 const { generateMarketNarrative } = require('../engines/marketNarrativeEngine');
 const { generateMarketStory } = require('../engines/marketStoryEngine');
-const { getStocksInPlay } = require('../engines/stocksInPlayEngine');
+const { buildNewsletterPayload } = require('../engines/newsletterEngine');
 
-function toNumber(value) {
+function toNumber(value, fallback = null) {
   const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? n : fallback;
 }
 
 function sanitizeTickerRows(rows = []) {
@@ -31,55 +30,47 @@ function sanitizeTickerRows(rows = []) {
 
 async function getTopSetups(limit = 5) {
   const sql = `
-    WITH radar AS (
+    WITH opportunity AS (
       SELECT DISTINCT ON (symbol)
         symbol,
-        beacon_probability,
         expected_move,
-        catalyst AS catalyst_headline,
-        setup_reasoning,
-        confidence_score,
-        created_at
-      FROM institutional_radar_signals
-      ORDER BY symbol, created_at DESC
-    ),
-    stream AS (
-      SELECT DISTINCT ON (symbol)
-        symbol,
-        strategy_name,
-        setup_type,
-        confidence AS stream_confidence,
-        rationale,
+        why,
+        how,
+        change_percent,
+        relative_volume,
+        trade_class,
         created_at
       FROM opportunity_stream
       ORDER BY symbol, created_at DESC
-    ),
-    prices AS (
-      SELECT DISTINCT ON (symbol)
-        symbol,
-        close AS price
-      FROM intraday
-      ORDER BY symbol, timestamp DESC
     )
     SELECT
-      r.symbol,
-      r.beacon_probability,
-      r.expected_move,
-      r.catalyst_headline,
-      r.setup_reasoning,
-      r.confidence_score,
-      s.strategy_name,
-      s.setup_type,
-      s.stream_confidence,
-      s.rationale,
-      p.price
-    FROM radar r
-    LEFT JOIN stream s USING (symbol)
-    LEFT JOIN prices p USING (symbol)
-    WHERE r.beacon_probability IS NOT NULL
-      AND r.expected_move IS NOT NULL
-      AND p.price IS NOT NULL
-    ORDER BY r.beacon_probability DESC, r.expected_move DESC
+      h.symbol,
+      COALESCE(t.score, h.score, 0) AS beacon_probability,
+      COALESCE(o.expected_move, q.change_percent, 0) AS expected_move,
+      COALESCE(nc.headline, t.signal_explanation, t.rationale, 'Momentum and catalyst alignment detected.') AS catalyst_headline,
+      COALESCE(o.how, t.narrative, t.rationale, 'Wait for confirmation at key levels before entry.') AS setup_reasoning,
+      COALESCE(t.confidence, h.confidence, 'Moderate') AS confidence_score,
+      COALESCE(t.strategy, h.strategy, 'Momentum Continuation') AS strategy_name,
+      COALESCE(t.setup_type, o.trade_class, 'Momentum Continuation') AS setup_type,
+      COALESCE(o.why, t.rationale, t.signal_explanation, 'Momentum leadership detected.') AS rationale,
+      COALESCE(q.price, t.entry_price, 0) AS price,
+      COALESCE(q.relative_volume, o.relative_volume, 0) AS relative_volume,
+      COALESCE(q.change_percent, o.change_percent, 0) AS change_percent,
+      COALESCE(t.sector, q.sector, 'Unknown') AS sector,
+      COALESCE(t.catalyst_type, nc.catalyst_type, 'unknown') AS catalyst_type
+    FROM signal_hierarchy h
+    LEFT JOIN trade_signals t ON t.symbol = h.symbol
+    LEFT JOIN opportunity o ON o.symbol = h.symbol
+    LEFT JOIN LATERAL (
+      SELECT headline, catalyst_type
+      FROM news_catalysts nc
+      WHERE nc.symbol = h.symbol
+      ORDER BY nc.published_at DESC NULLS LAST
+      LIMIT 1
+    ) nc ON TRUE
+    LEFT JOIN market_quotes q ON q.symbol = h.symbol
+    WHERE COALESCE(q.price, t.entry_price, 0) > 0
+    ORDER BY h.hierarchy_rank DESC NULLS LAST, COALESCE(t.score, h.score, 0) DESC
     LIMIT $1
   `;
 
@@ -95,36 +86,15 @@ async function getTopSetups(limit = 5) {
 async function getMarketSnapshot() {
   const symbols = ['SPY', 'QQQ', 'VIX'];
 
-  const intradayRows = await queryWithTimeout(
-    `SELECT symbol, close AS price
-     FROM (
-       SELECT symbol, close, ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY timestamp DESC) AS rn
-       FROM intraday
-       WHERE symbol = ANY($1)
-     ) t
-     WHERE rn = 1`,
+  const quoteRows = await queryWithTimeout(
+    `SELECT symbol, COALESCE(price, previous_close, 0) AS price
+     FROM market_quotes
+     WHERE symbol = ANY($1)`,
     [symbols],
-    { timeoutMs: 6000, label: 'email.beacon_brief.market_snapshot.intraday', maxRetries: 0 }
+    { timeoutMs: 6000, label: 'email.beacon_brief.market_snapshot.quotes', maxRetries: 0 }
   ).then((r) => r.rows || []).catch(() => []);
 
-  const bySymbol = new Map((intradayRows || []).map((row) => [String(row.symbol || '').toUpperCase(), toNumber(row.price)]));
-  const missingAfterPrimary = symbols.filter((sym) => !Number.isFinite(bySymbol.get(sym)));
-
-  if (missingAfterPrimary.length) {
-    const quoteRows = await queryWithTimeout(
-      `SELECT symbol, COALESCE(price, close, last) AS price
-       FROM market_quotes
-       WHERE symbol = ANY($1)`,
-      [missingAfterPrimary],
-      { timeoutMs: 5000, label: 'email.beacon_brief.market_snapshot.quotes', maxRetries: 0 }
-    ).then((r) => r.rows || []).catch(() => []);
-
-    for (const row of quoteRows) {
-      const sym = String(row.symbol || '').toUpperCase();
-      const p = toNumber(row.price);
-      if (Number.isFinite(p)) bySymbol.set(sym, p);
-    }
-  }
+  const bySymbol = new Map((quoteRows || []).map((row) => [String(row.symbol || '').toUpperCase(), toNumber(row.price)]));
 
   const missingAfterQuotes = symbols.filter((sym) => !Number.isFinite(bySymbol.get(sym)));
   if (missingAfterQuotes.length) {
@@ -155,29 +125,18 @@ async function getMarketSnapshot() {
 async function getTopMovers() {
   const { rows } = await queryWithTimeout(
     `SELECT
-       tu.symbol,
-       COALESCE(q.price, m.price, 0) AS price,
-       COALESCE(
-         ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
-         q.change_percent,
-         m.change_percent,
-         0
-       ) AS move,
-       COALESCE(m.volume, q.volume, 0) AS volume,
-       COALESCE(q.sector, 'Unknown') AS sector,
-       COALESCE(m.relative_volume, 0) AS relative_volume
-     FROM tradable_universe tu
-     LEFT JOIN market_quotes q ON q.symbol = tu.symbol
-     LEFT JOIN market_metrics m ON m.symbol = tu.symbol
-     WHERE COALESCE(q.price, m.price, 0) > 2
-       AND COALESCE(m.volume, q.volume, 0) > 200000
-     ORDER BY ABS(COALESCE(
-                ((COALESCE(q.price, m.price, 0) - COALESCE(q.previous_close, m.previous_close, m.prev_close, 0)) / NULLIF(COALESCE(q.previous_close, m.previous_close, m.prev_close, 0), 0)) * 100,
-                q.change_percent,
-                m.change_percent,
-                0
-              )) DESC,
-              COALESCE(m.relative_volume, 0) DESC
+       symbol,
+       COALESCE(price, 0) AS price,
+       COALESCE(change_percent, 0) AS move,
+       COALESCE(volume, 0) AS volume,
+       COALESCE(sector, 'Unknown') AS sector,
+       COALESCE(relative_volume, 0) AS relative_volume
+     FROM market_quotes
+     WHERE COALESCE(price, 0) > 2
+       AND COALESCE(volume, 0) > 200000
+     ORDER BY ABS(COALESCE(change_percent, 0)) DESC,
+              COALESCE(relative_volume, 0) DESC,
+              COALESCE(volume, 0) DESC
      LIMIT 5`,
     [],
     { timeoutMs: 7000, label: 'email.beacon_brief.top_movers', maxRetries: 0 }
@@ -218,10 +177,22 @@ function generateRadarThemes(movers = []) {
 
   if (!themes.length && movers.length) {
     const sector = String(movers[0].sector || 'Market').trim();
-    themes.push(`${sector} leadership`);
+    themes.push(sector.toLowerCase() === 'unknown' ? 'Speculative momentum leaders' : `${sector} leadership`);
   }
 
   return themes;
+}
+
+function uniqueStrings(values = []) {
+  const seen = new Set();
+  return values.filter((value) => {
+    const normalized = String(value || '').trim();
+    if (!normalized || seen.has(normalized)) {
+      return false;
+    }
+    seen.add(normalized);
+    return true;
+  });
 }
 
 async function buildMomentumCandidateFromMover(mover = {}) {
@@ -246,7 +217,7 @@ async function buildMomentumCandidateFromMover(mover = {}) {
       avgDrawdown: 0,
       sampleSize: 0,
     },
-    probabilityContext: 'Historical performance data building',
+    probabilityContext: 'Historical performance data unavailable',
     news: {
       headline: 'Momentum-led move with expanding participation',
       url: null,
@@ -266,6 +237,119 @@ async function buildMomentumCandidateFromMover(mover = {}) {
   };
 }
 
+async function getSignalContextMap(symbols = []) {
+  const normalizedSymbols = Array.from(new Set((symbols || []).map((symbol) => String(symbol || '').toUpperCase().trim()).filter(Boolean)));
+  if (!normalizedSymbols.length) {
+    return new Map();
+  }
+
+  const [quoteRows, opportunityRows] = await Promise.all([
+    queryWithTimeout(
+      `SELECT symbol, price, change_percent, relative_volume, volume, sector
+       FROM market_quotes
+       WHERE symbol = ANY($1)`,
+      [normalizedSymbols],
+      { timeoutMs: 7000, label: 'email.beacon_brief.signal_context.quotes', maxRetries: 0 }
+    ).then((result) => result.rows || []).catch(() => []),
+    queryWithTimeout(
+      `SELECT DISTINCT ON (symbol)
+         symbol,
+         expected_move,
+         change_percent,
+         relative_volume,
+         trade_class,
+         why,
+         how,
+         created_at
+       FROM opportunity_stream
+       WHERE symbol = ANY($1)
+       ORDER BY symbol, created_at DESC NULLS LAST`,
+      [normalizedSymbols],
+      { timeoutMs: 7000, label: 'email.beacon_brief.signal_context.opportunity', maxRetries: 0 }
+    ).then((result) => result.rows || []).catch(() => []),
+  ]);
+
+  const opportunityMap = new Map(opportunityRows.map((row) => [String(row.symbol || '').toUpperCase(), row]));
+  const contextMap = new Map();
+
+  for (const symbol of normalizedSymbols) {
+    const quote = quoteRows.find((row) => String(row.symbol || '').toUpperCase() === symbol) || null;
+    const opportunity = opportunityMap.get(symbol) || null;
+    contextMap.set(symbol, {
+      price: toNumber(quote?.price, null),
+      change_percent: toNumber(quote?.change_percent, toNumber(opportunity?.change_percent, toNumber(opportunity?.expected_move, null))),
+      relative_volume: toNumber(quote?.relative_volume, toNumber(opportunity?.relative_volume, null)),
+      sector: String(quote?.sector || '').trim() || String(opportunity?.sector || '').trim() || null,
+      trade_class: String(opportunity?.trade_class || '').trim() || null,
+      why: String(opportunity?.why || '').trim() || null,
+      how: String(opportunity?.how || '').trim() || null,
+    });
+  }
+
+  return contextMap;
+}
+
+async function buildSignalCandidate(signal = {}, index = 0, contextMap = new Map()) {
+  const symbol = String(signal.symbol || '').toUpperCase().trim();
+  if (!symbol) return null;
+
+  const snapshot = await generateChartSnapshot(symbol).catch(() => ({ imageUrl: null }));
+  const context = contextMap.get(symbol) || {};
+  const price = toNumber(signal.entry_price, toNumber(context.price, null));
+  const move = toNumber(context.change_percent, null);
+  const relativeVolume = toNumber(context.relative_volume, null);
+  const tradeScore = Math.max(55, Math.min(99, Math.round(toNumber(signal.score, 70))));
+  const confidence = String(signal.confidence || 'B').trim();
+  const grade = confidence.toUpperCase().slice(0, 2) || 'B';
+  const strategy = String(signal.strategy || context.trade_class || 'Gap and Go').trim();
+  const sector = String(signal.sector || context.sector || 'Unknown').trim() || 'Unknown';
+  const catalyst = String(signal.catalyst || 'market structure').trim() || 'market structure';
+  const tradePlan = buildTradePlan({ price });
+
+  return {
+    symbol,
+    price,
+    rvol: relativeVolume,
+    relative_volume: relativeVolume,
+    move,
+    price_change_percent: move,
+    setupType: strategy,
+    tradeScore,
+    grade,
+    confidence,
+    strategyStats: {
+      winRate: null,
+      avgMove: null,
+      avgDrawdown: null,
+      sampleSize: null,
+    },
+    probabilityContext: [
+      `${index === 0 ? 'Primary' : 'Secondary'} hierarchy selection`,
+      `Score: ${tradeScore}`,
+      `Confidence: ${confidence}`,
+      `Strategy: ${strategy}`,
+    ].join('\n'),
+    news: {
+      headline: catalyst === 'unknown' ? `${symbol} is ranking highly on the live hierarchy feed.` : `${symbol} catalyst: ${catalyst}`,
+      url: null,
+    },
+    sector,
+    narrative: {
+      whyMoving: catalyst === 'unknown'
+        ? (context.why || `${symbol} is surfacing through the live hierarchy with strong relative ranking this morning.`)
+        : `${symbol} is being driven by ${catalyst} while staying elevated in the hierarchy feed.`,
+      whyTradeable: `${symbol} is on the priority watchlist because ${strategy.toLowerCase()} conditions are present with ${confidence} confidence.`,
+      howToTrade: context.how || `Use ${strategy.toLowerCase()} rules and wait for confirmation through the opening range before committing size.`,
+      risk: tradePlan.stop,
+      target: tradePlan.targets,
+    },
+    chartImage: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+    chartUrl: snapshot?.imageUrl || `https://finviz.com/chart.ashx?t=${encodeURIComponent(symbol)}`,
+    label: index === 0 ? 'Priority Watchlist' : 'Watchlist Candidate',
+    stockOfTheDay: index === 0,
+  };
+}
+
 function buildTradePlan(setup = {}) {
   const entry = setup.price ? `$${Number(setup.price).toFixed(2)} breakout confirmation` : 'Break above opening range high';
   const stop = setup.price ? `$${(Number(setup.price) * 0.985).toFixed(2)} invalidation` : 'Below VWAP / opening range low';
@@ -280,17 +364,16 @@ function buildTradePlan(setup = {}) {
 
 async function generateBeaconMorningPayload(options = {}) {
   const limit = Math.max(1, Math.min(Number(options.limit || 5), 8));
-  const [setups, market, stocksInPlayRaw, topMoversRaw] = await Promise.all([
+  const [setups, market, previewPayload, topMoversRaw] = await Promise.all([
     getTopSetups(limit),
     getMarketSnapshot(),
-    getStocksInPlay().catch(() => []),
+    buildNewsletterPayload().catch(() => ({ topSignals: [], topCatalysts: [], marketNarrative: null })),
     getTopMovers().catch(() => []),
   ]);
 
-  let stocksInPlay = Array.isArray(stocksInPlayRaw) ? stocksInPlayRaw : [];
-
   const enriched = await Promise.all(setups.map(async (row) => {
     const snapshot = await generateChartSnapshot(row.symbol);
+    const tradePlan = buildTradePlan(row);
     return {
       ...row,
       chartUrl: snapshot.imageUrl,
@@ -298,22 +381,58 @@ async function generateBeaconMorningPayload(options = {}) {
       why_moving: row.catalyst_headline || row.rationale || 'Momentum and catalyst alignment detected.',
       why_tradeable: row.setup_reasoning || row.setup_type || row.strategy_name || 'A+ setup quality from institutional scanner',
       how_to_trade: `Focus on ${row.strategy_name || 'breakout continuation'} with disciplined risk control.`,
-      tradePlan: buildTradePlan(row),
+      tradePlan,
+      price_change_percent: toNumber(row.change_percent, toNumber(row.expected_move, 0)),
+      relative_volume: toNumber(row.relative_volume, 0),
+      tradeScore: toNumber(row.beacon_probability, 0),
+      confidence: row.confidence_score || 'Moderate',
+      setupType: row.setup_type || row.strategy_name || 'Momentum Continuation',
+      sector: row.sector || 'Unknown',
+      catalyst: row.catalyst_type || row.catalyst_headline || 'unknown',
+      news: {
+        headline: row.catalyst_headline || 'No catalyst summary available.',
+        url: null,
+      },
+      narrative: {
+        whyMoving: row.catalyst_headline || row.rationale || 'Momentum leadership detected.',
+        whyTradeable: row.setup_reasoning || row.setup_type || 'Structure quality currently acceptable for active monitoring.',
+        howToTrade: `Focus on ${row.strategy_name || 'breakout continuation'} with disciplined risk control.`,
+        risk: tradePlan.stop,
+        target: tradePlan.targets,
+      },
+      grade: String(row.confidence_score || 'B').toUpperCase().slice(0, 2),
+      stockOfTheDay: false,
     };
   }));
+
+  let stocksInPlay = enriched.map((row, index) => ({
+    ...row,
+    stockOfTheDay: index === 0,
+  }));
+  const previewSignals = Array.isArray(previewPayload?.topSignals) ? previewPayload.topSignals : [];
+
+  if (!stocksInPlay.length && previewSignals.length) {
+    const signalContextMap = await getSignalContextMap(previewSignals.slice(0, 4).map((signal) => signal.symbol));
+    const signalCandidates = await Promise.all(previewSignals.slice(0, 4).map((signal, index) => buildSignalCandidate(signal, index, signalContextMap)));
+    stocksInPlay = signalCandidates.filter(Boolean);
+  }
 
   logger.info('[EMAIL_BEACON_BRIEF] generated payload', {
     setupCount: enriched.length,
     symbols: enriched.map((row) => row.symbol),
   });
 
-  const narrative = await generateMorningNarrative({ market, setups: enriched }).catch(() => ({
-    overview: 'Market tone is mixed; focus on conviction signals and liquidity confirmation.',
-    risk: 'Risk remains elevated around macro headlines and opening volatility.',
-    catalysts: [],
-    watchlist: enriched.map((row) => row.symbol).slice(0, 8),
-    _meta: { source: 'fallback' },
-  }));
+  const narrative = {
+    overview: String(previewPayload?.marketNarrative || 'Market tone is mixed; focus on conviction signals and liquidity confirmation.'),
+    risk: enriched.length
+      ? 'Focus on confirmation, opening liquidity, and disciplined invalidation levels.'
+      : 'Risk posture neutral until stronger momentum and catalyst alignment returns.',
+    catalysts: Array.isArray(previewPayload?.topCatalysts)
+      ? uniqueStrings(previewPayload.topCatalysts.map((row) => `${row.symbol || 'N/A'} ${row.catalyst_type || 'catalyst'}`)).slice(0, 4)
+      : [],
+    watchlist: uniqueStrings([...enriched.map((row) => row.symbol), ...stocksInPlay.map((row) => row.symbol)]).slice(0, 8),
+    _meta: { source: 'live-newsletter-payload' },
+  };
 
   const fallbackMovers = (enriched || []).slice(0, 3).map((row) => ({
     symbol: row.symbol,
@@ -334,13 +453,23 @@ async function generateBeaconMorningPayload(options = {}) {
     })));
 
   if (!stocksInPlay.length && topMovers.length) {
-    const momentumCandidate = await buildMomentumCandidateFromMover(topMovers[0]);
-    if (momentumCandidate) {
-      stocksInPlay = [momentumCandidate];
-    }
+    const moverCandidates = await Promise.all(topMovers.slice(0, 4).map((mover) => buildMomentumCandidateFromMover(mover)));
+    stocksInPlay = moverCandidates.filter(Boolean).map((row, index) => ({
+      ...row,
+      stockOfTheDay: index === 0,
+    }));
   }
 
-  const radarThemes = generateRadarThemes(topMovers).slice(0, 4);
+  const watchlistSymbols = uniqueStrings(stocksInPlay.map((row) => row.symbol)).slice(0, 8);
+  narrative.watchlist = watchlistSymbols;
+
+  const previewThemes = Array.isArray(previewPayload?.sectorLeaders)
+    ? previewPayload.sectorLeaders
+        .map((row) => String(row?.sector || '').trim())
+        .filter((sector) => sector && sector.toLowerCase() !== 'unknown')
+        .map((sector) => `${sector} leadership`)
+    : [];
+  const radarThemes = uniqueStrings([...previewThemes, ...generateRadarThemes(topMovers)]).slice(0, 4);
 
   const overviewFromEngine = generateMarketNarrative({
     spy: market.spy,
@@ -382,7 +511,7 @@ async function generateBeaconMorningPayload(options = {}) {
 
   const guaranteedRadarThemes = (marketContext.radarThemes && marketContext.radarThemes.length)
     ? marketContext.radarThemes
-    : ['Market leadership rotation'];
+    : ['Priority watchlist rotation'];
 
   const guaranteedStockOfDay = stockOfDay
     || (await buildMomentumCandidateFromMover(guaranteedTopMovers[0]))
@@ -398,11 +527,11 @@ async function generateBeaconMorningPayload(options = {}) {
       grade: 'C',
       confidence: 'Low',
       strategyStats: { winRate: 0, avgMove: 0, avgDrawdown: 0, sampleSize: 0 },
-      probabilityContext: 'Historical performance data building',
+      probabilityContext: 'Historical performance data unavailable',
       news: { headline: 'No momentum headline available', url: null },
       narrative: {
-        whyMoving: 'Momentum snapshot currently building from live market feeds.',
-        whyTradeable: 'Scanner confidence will improve as intraday participation builds.',
+        whyMoving: 'No momentum catalyst summary is available yet.',
+        whyTradeable: 'Scanner confidence is limited until stronger price and volume confirmation appears.',
         howToTrade: 'Wait for liquidity confirmation before considering entries.',
         risk: 'Stand aside until price and volume confirmation appear.',
         target: 'Reassess once fresh momentum candidates are detected.',
@@ -431,11 +560,13 @@ async function generateBeaconMorningPayload(options = {}) {
     secondaryOpportunities: guaranteedSecondary,
     topMovers: guaranteedTopMovers,
     radarThemes: guaranteedRadarThemes,
-    fallbackMessage: hasSetups ? null : 'Market conditions currently lack high probability setups.',
+    mode: enriched.length ? 'setup' : (stocksInPlay.length ? 'watchlist' : 'fallback'),
+    fallbackMessage: hasSetups
+      ? null
+      : (stocksInPlay.length
+        ? 'Live hierarchy signals are leading this morning, so this brief is prioritizing the strongest watchlist names while deeper setup scoring catches up.'
+        : 'Market conditions currently lack high probability setups.'),
   };
-
-  // Debug payload shape used by the email template.
-  console.log('Beacon payload:', payload);
 
   return payload;
 }

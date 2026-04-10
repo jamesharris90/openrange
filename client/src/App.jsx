@@ -53,6 +53,8 @@ const Charts = loadPage('Charts');
 const CockpitPage = loadPage('CockpitPage');
 const IntelligenceFrameworkPage = loadPage('IntelligenceFrameworkPage');
 const EarningsCalendar = loadPage('EarningsCalendar');
+const IpoCalendarPage = loadPage('IpoCalendarPage');
+const NewsFeedPage = loadPage('NewsFeedPage');
 const ExpectedMove = loadPage('ExpectedMove');
 const IntelInbox = loadPage('IntelInbox');
 const IntelligenceEngine = loadPage('IntelligenceEngine');
@@ -114,6 +116,8 @@ export default function App() {
                 <Route path="/discovery/advanced-screener" element={<ProtectedRoute><DiscoveryShell title="Advanced Screener"><AdvancedScreenerPage /></DiscoveryShell></ProtectedRoute>} />
                 <Route path="/discovery/expected-move" element={<ProtectedRoute><DiscoveryShell title="Expected Move"><ExpectedMove /></DiscoveryShell></ProtectedRoute>} />
                 <Route path="/discovery/earnings" element={<ProtectedRoute><DiscoveryShell title="Earnings Calendar"><EarningsCalendar /></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/discovery/ipo" element={<ProtectedRoute><DiscoveryShell title="IPO Calendar"><IpoCalendarPage /></DiscoveryShell></ProtectedRoute>} />
+                <Route path="/market/news-feed" element={<ProtectedRoute><MarketShell title="News Feed"><NewsFeedPage /></MarketShell></ProtectedRoute>} />
 
                 <Route path="/beacon/hub" element={<ProtectedRoute><BeaconShell title="Beacon Hub"><BeaconHub /></BeaconShell></ProtectedRoute>} />
                 <Route path="/beacon/opportunities" element={<ProtectedRoute><BeaconShell title="Opportunity Stream"><OpportunityStream /></BeaconShell></ProtectedRoute>} />
@@ -128,7 +132,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="/terminal" element={<OpenRangeTerminal />} />
-                  <Route path="/dashboard" element={<Navigate to="/terminal" replace />} />
+                  <Route path="/dashboard" element={<PreMarketCommandCenter />} />
                   <Route
                     path="/radar"
                     element={(
@@ -163,7 +167,11 @@ export default function App() {
                   <Route path="/news-v2" element={<NewsScannerV2 />} />
                   <Route path="/earnings" element={<Navigate to="/discovery/earnings" replace />} />
                   <Route path="/earnings-calendar" element={<Navigate to="/discovery/earnings" replace />} />
+                  <Route path="/ipo" element={<Navigate to="/discovery/ipo" replace />} />
+                  <Route path="/ipo-calendar" element={<Navigate to="/discovery/ipo" replace />} />
+                  <Route path="/news-feed" element={<Navigate to="/market/news-feed" replace />} />
                   <Route path="/research" element={<ResearchPage />} />
+                  <Route path="/research/:symbol" element={<ResearchPage />} />
                   <Route path="/alerts" element={<Navigate to="/trading/alerts" replace />} />
                   <Route path="/charts" element={<SymbolDataProvider><Charts /></SymbolDataProvider>} />
                   <Route path="/setup/:symbol" element={<TradeSetup />} />

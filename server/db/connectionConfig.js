@@ -23,7 +23,7 @@ function resolveDatabaseUrl() {
     throw error;
   }
 
-  if (isSupabasePooler && parsed.port !== '6543') {
+  if (isSupabasePooler && !parsed.port) {
     parsed.port = '6543';
   }
 

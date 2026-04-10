@@ -323,4 +323,4 @@ function classifyStructures(universe, logger = console) {
   return out;
 }
 
-module.exports = { classifyStructures, STRUCTURES, GRADE_ORDER };
+module.exports = { classifyRow, classifyStructures, STRUCTURES, GRADE_ORDER };

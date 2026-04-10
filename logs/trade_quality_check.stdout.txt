@@ -1,0 +1,9 @@
+
+TRADE PIPELINE BROKEN
+ISSUES:
+- ZERO DATA: http://localhost:3001/api/stocks-in-play
+- NON-200 OR ERROR: http://localhost:3001/api/intelligence/top-opportunities status=0 error=This operation was aborted
+- ZERO DATA: http://localhost:3001/api/intelligence/top-opportunities
+- ZERO DATA: http://localhost:3001/api/catalysts
+- NON-200 OR ERROR: http://localhost:3001/api/earnings status=500 error=none
+- ZERO DATA: http://localhost:3001/api/earnings

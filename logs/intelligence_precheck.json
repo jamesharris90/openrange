@@ -1,0 +1,8 @@
+{
+  "ts": "2026-03-20T14:01:07.375Z",
+  "lifecycle_overlap": 130,
+  "decision_coverage": 16,
+  "signals_recent_15m": 0,
+  "endpoint_status": 200,
+  "pass": true
+}

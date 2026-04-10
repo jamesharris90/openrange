@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-23T21:16:43.091Z",
+  "checks": {
+    "tradable_universe_gt_100": true,
+    "market_metrics_gt_50": true,
+    "opportunity_stream_gt_5": true,
+    "all_trades_have_why_how": true,
+    "all_source_real": true
+  },
+  "counts": {
+    "tradable_universe": 3389,
+    "market_metrics": 3389,
+    "opportunity_stream": 20,
+    "missing_why_how": 0,
+    "non_real_source_rows": 0
+  },
+  "pass": true
+}

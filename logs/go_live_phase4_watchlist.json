@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-03-22T20:04:33.301Z",
+  "latency_ms": 300026,
+  "status": 0,
+  "count": 0,
+  "distribution": {},
+  "high_volatility_percent": 0,
+  "has_earnings": false,
+  "has_news": false,
+  "has_large_move": false,
+  "sample": [],
+  "error": "Error: timeout",
+  "pass": false
+}

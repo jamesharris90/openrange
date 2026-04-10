@@ -1,0 +1,232 @@
+{
+  "generated_at": "2026-03-26T16:21:25.725Z",
+  "all_status_200": false,
+  "failed_endpoints": [
+    "/stable/news"
+  ],
+  "endpoints": [
+    {
+      "endpoint": "/stable/batch-quote",
+      "url": "https://financialmodelingprep.com/stable/batch-quote?symbols=AAPL,MSFT&apikey=REDACTED",
+      "status": 200,
+      "status_200": true,
+      "response_time_ms": 513,
+      "rows_returned": 2,
+      "required_fields": {
+        "symbol": {
+          "non_null_rows": 2,
+          "total_rows": 2,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "price": {
+          "non_null_rows": 2,
+          "total_rows": 2,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "volume": {
+          "non_null_rows": 2,
+          "total_rows": 2,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "marketCap": {
+          "non_null_rows": 2,
+          "total_rows": 2,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        }
+      },
+      "data_completeness_required_fields_percent": 100,
+      "sample_row": {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "price": 256.0558,
+        "changePercentage": 1.36007,
+        "change": 3.4358,
+        "volume": 15723803.55807,
+        "dayLow": 250.77,
+        "dayHigh": 256.99,
+        "yearHigh": 288.62,
+        "yearLow": 169.21,
+        "marketCap": 3763489126271.0005,
+        "priceAvg50": 261.13,
+        "priceAvg200": 246.82304,
+        "exchange": "NASDAQ",
+        "open": 252.115,
+        "previousClose": 252.62,
+        "timestamp": 1774542084
+      },
+      "error": null
+    },
+    {
+      "endpoint": "/stable/quote",
+      "url": "https://financialmodelingprep.com/stable/quote?symbol=AAPL&apikey=REDACTED",
+      "status": 200,
+      "status_200": true,
+      "response_time_ms": 151,
+      "rows_returned": 1,
+      "required_fields": {
+        "symbol": {
+          "non_null_rows": 1,
+          "total_rows": 1,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "price": {
+          "non_null_rows": 1,
+          "total_rows": 1,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "volume": {
+          "non_null_rows": 1,
+          "total_rows": 1,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "marketCap": {
+          "non_null_rows": 1,
+          "total_rows": 1,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        }
+      },
+      "data_completeness_required_fields_percent": 100,
+      "sample_row": {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "price": 256.0558,
+        "changePercentage": 1.36007,
+        "change": 3.4358,
+        "volume": 15723803.55807,
+        "dayLow": 250.77,
+        "dayHigh": 256.99,
+        "yearHigh": 288.62,
+        "yearLow": 169.21,
+        "marketCap": 3763489126271.0005,
+        "priceAvg50": 261.13,
+        "priceAvg200": 246.82304,
+        "exchange": "NASDAQ",
+        "open": 252.115,
+        "previousClose": 252.62,
+        "timestamp": 1774542084
+      },
+      "error": null
+    },
+    {
+      "endpoint": "/stable/historical-chart/1min",
+      "url": "https://financialmodelingprep.com/stable/historical-chart/1min?symbol=AAPL&apikey=REDACTED",
+      "status": 200,
+      "status_200": true,
+      "response_time_ms": 112,
+      "rows_returned": 170,
+      "required_fields": {
+        "date": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "open": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "high": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "low": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "close": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "volume": {
+          "non_null_rows": 170,
+          "total_rows": 170,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        }
+      },
+      "data_completeness_required_fields_percent": 100,
+      "sample_row": {
+        "date": "2026-03-26 12:19:00",
+        "open": 256.18,
+        "low": 256.18,
+        "high": 256.24,
+        "close": 256.22,
+        "volume": 41919.83630999923
+      },
+      "error": null
+    },
+    {
+      "endpoint": "/stable/news",
+      "url": "https://financialmodelingprep.com/stable/news?symbols=AAPL&limit=25&apikey=REDACTED",
+      "status": 404,
+      "status_200": false,
+      "response_time_ms": 190,
+      "rows_returned": 0,
+      "required_fields": {},
+      "data_completeness_required_fields_percent": null,
+      "sample_row": null,
+      "error": null
+    },
+    {
+      "endpoint": "/stable/earnings-calendar",
+      "url": "https://financialmodelingprep.com/stable/earnings-calendar?from=2026-03-26&to=2026-04-09&apikey=REDACTED",
+      "status": 200,
+      "status_200": true,
+      "response_time_ms": 544,
+      "rows_returned": 3686,
+      "required_fields": {
+        "symbol": {
+          "non_null_rows": 3686,
+          "total_rows": 3686,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "date": {
+          "non_null_rows": 3686,
+          "total_rows": 3686,
+          "coverage_percent": 100,
+          "present_in_sample": true
+        },
+        "eps": {
+          "non_null_rows": 0,
+          "total_rows": 3686,
+          "coverage_percent": 0,
+          "present_in_sample": false
+        },
+        "revenue": {
+          "non_null_rows": 0,
+          "total_rows": 3686,
+          "coverage_percent": 0,
+          "present_in_sample": false
+        }
+      },
+      "data_completeness_required_fields_percent": 50,
+      "sample_row": {
+        "symbol": "7544.T",
+        "date": "2026-04-09",
+        "epsActual": null,
+        "epsEstimated": null,
+        "revenueActual": null,
+        "revenueEstimated": null,
+        "lastUpdated": "2026-03-26"
+      },
+      "error": null
+    }
+  ]
+}

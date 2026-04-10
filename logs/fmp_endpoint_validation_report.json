@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-03-23T20:41:45.069Z",
+  "report": [
+    {
+      "endpoint_key": "stable_aftermarket_quote",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 627,
+      "timed_out": false,
+      "rows_detected": 1,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_aftermarket_trade",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 118,
+      "timed_out": false,
+      "rows_detected": 1,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_batch_aftermarket_quote",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 100,
+      "timed_out": false,
+      "rows_detected": 3,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_batch_aftermarket_trade",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 103,
+      "timed_out": false,
+      "rows_detected": 3,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_batch_exchange_quote",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 781,
+      "timed_out": false,
+      "rows_detected": 13854,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_batch_quote",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 114,
+      "timed_out": false,
+      "rows_detected": 5,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_batch_quote_short",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 101,
+      "timed_out": false,
+      "rows_detected": 5,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_earnings_calendar",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 138,
+      "timed_out": false,
+      "rows_detected": 3641,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_historical_chart_1min",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 146,
+      "timed_out": false,
+      "rows_detected": 1170,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_historical_price_eod",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 113,
+      "timed_out": false,
+      "rows_detected": 1255,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_press_releases",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 105,
+      "timed_out": false,
+      "rows_detected": 20,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_quote",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 123,
+      "timed_out": false,
+      "rows_detected": 1,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_quote_short",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 100,
+      "timed_out": false,
+      "rows_detected": 1,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_stock_news",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 114,
+      "timed_out": false,
+      "rows_detected": 20,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "stable_stock_price_change",
+      "status": "valid",
+      "http_status": 200,
+      "duration_ms": 131,
+      "timed_out": false,
+      "rows_detected": 1,
+      "error": null,
+      "is_empty": false
+    },
+    {
+      "endpoint_key": "v3_market_actives",
+      "status": "error",
+      "http_status": 403,
+      "duration_ms": 107,
+      "timed_out": false,
+      "rows_detected": 0,
+      "error": "http_403",
+      "is_empty": true
+    },
+    {
+      "endpoint_key": "v3_market_gainers",
+      "status": "error",
+      "http_status": 403,
+      "duration_ms": 101,
+      "timed_out": false,
+      "rows_detected": 0,
+      "error": "http_403",
+      "is_empty": true
+    },
+    {
+      "endpoint_key": "v3_market_losers",
+      "status": "error",
+      "http_status": 403,
+      "duration_ms": 167,
+      "timed_out": false,
+      "rows_detected": 0,
+      "error": "http_403",
+      "is_empty": true
+    },
+    {
+      "endpoint_key": "v3_stock_screener",
+      "status": "error",
+      "http_status": 403,
+      "duration_ms": 100,
+      "timed_out": false,
+      "rows_detected": 0,
+      "error": "http_403",
+      "is_empty": true
+    }
+  ]
+}

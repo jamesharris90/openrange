@@ -1,0 +1,12 @@
+
+====================
+TABLE: trade_setups
+
+====================
+TABLE: market_metrics
+
+====================
+TABLE: news_articles
+
+====================
+TABLE: earnings_events

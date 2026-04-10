@@ -1,0 +1,208 @@
+{
+  "generated_at": "2026-03-23T22:52:26.998Z",
+  "selection_rule": "Prefer symbol+why+how+confidence+source=real+fresh updated_at",
+  "candidates": [
+    {
+      "table": "opportunity_stream",
+      "row_count": 2169972,
+      "fresh_15m_count": 1946,
+      "latest_ts": "2026-03-23T22:52:12.109Z",
+      "sources": [
+        {
+          "source": "opportunity_ranker",
+          "count": 2162574
+        },
+        {
+          "source": "market_metrics_engine",
+          "count": 4960
+        },
+        {
+          "source": "catalyst_engine",
+          "count": 2181
+        },
+        {
+          "source": "strategy_engine",
+          "count": 219
+        },
+        {
+          "source": "real",
+          "count": 38
+        }
+      ],
+      "sample_5": [
+        {
+          "symbol": "AAPD",
+          "why": "Opportunity ranker score 0.054",
+          "how": "",
+          "confidence": "5.409400",
+          "score": "0.054094",
+          "source": "opportunity_ranker",
+          "updated_at": "2026-03-23T22:52:12.109Z"
+        },
+        {
+          "symbol": "SOUNW",
+          "why": "Opportunity ranker score 0.081",
+          "how": "",
+          "confidence": "8.0600",
+          "score": "0.0806",
+          "source": "opportunity_ranker",
+          "updated_at": "2026-03-23T22:52:10.522Z"
+        },
+        {
+          "symbol": "ONCH",
+          "why": "Opportunity ranker score 0.073",
+          "how": "",
+          "confidence": "7.284500",
+          "score": "0.072845",
+          "source": "opportunity_ranker",
+          "updated_at": "2026-03-23T22:52:10.446Z"
+        },
+        {
+          "symbol": "JSM",
+          "why": "Opportunity ranker score 0.093",
+          "how": "",
+          "confidence": "9.283700",
+          "score": "0.092837",
+          "source": "opportunity_ranker",
+          "updated_at": "2026-03-23T22:52:10.374Z"
+        },
+        {
+          "symbol": "JRSH",
+          "why": "Opportunity ranker score 0.075",
+          "how": "",
+          "confidence": "7.500",
+          "score": "0.075",
+          "source": "opportunity_ranker",
+          "updated_at": "2026-03-23T22:52:10.297Z"
+        }
+      ]
+    },
+    {
+      "table": "trade_setups",
+      "row_count": 755,
+      "fresh_15m_count": 78,
+      "latest_ts": "2026-03-23T22:52:18.600Z",
+      "sources": [
+        {
+          "source": "legacy",
+          "count": 755
+        }
+      ],
+      "sample_5": [
+        {
+          "symbol": "LXU",
+          "why": "Day 2 Continuation",
+          "how": "Day 2 Continuation",
+          "confidence": "61.27391362333541",
+          "score": "61.27391362333541",
+          "source": "legacy",
+          "updated_at": "2026-03-23T22:52:18.600Z"
+        },
+        {
+          "symbol": "AIRS",
+          "why": "{\"symbol\":\"AIRS\",\"price\":2.78,\"change_percent\":4.90566,\"volume\":3773310,\"strategy\":\"Catalyst Momentum Breakout\",\"confidence\":94.01252859696706,\"expected_move\":0.16999999999999998,\"why\":\"Why Spotify AI more than music will be the secret to keeping subscribers\",\"how\":\"Breakout continuation above key level with volume confirmation\",\"trade_class\":\"CONFIRMING\",\"session\":\"CLOSE\",\"source\":\"real\"}",
+          "how": "Day 2 Continuation",
+          "confidence": "168.7662949195275",
+          "score": "168.7662949195275",
+          "source": "legacy",
+          "updated_at": "2026-03-23T22:52:18.441Z"
+        },
+        {
+          "symbol": "TLYS",
+          "why": "Day 2 Continuation",
+          "how": "Day 2 Continuation",
+          "confidence": "443.4829148224563",
+          "score": "443.4829148224563",
+          "source": "legacy",
+          "updated_at": "2026-03-23T22:52:18.197Z"
+        },
+        {
+          "symbol": "EQNR",
+          "why": "Day 2 Continuation",
+          "how": "Day 2 Continuation",
+          "confidence": "73.88535615256265",
+          "score": "73.88535615256265",
+          "source": "legacy",
+          "updated_at": "2026-03-23T22:52:18.079Z"
+        },
+        {
+          "symbol": "AMTX",
+          "why": "Day 2 Continuation",
+          "how": "Day 2 Continuation",
+          "confidence": "190.8868043350523",
+          "score": "190.8868043350523",
+          "source": "legacy",
+          "updated_at": "2026-03-23T22:52:17.953Z"
+        }
+      ]
+    },
+    {
+      "table": "market_metrics",
+      "row_count": 7416,
+      "fresh_15m_count": 7412,
+      "latest_ts": "2026-03-23T22:52:06.246Z",
+      "sources": [
+        {
+          "source": "<null>",
+          "count": 4025
+        },
+        {
+          "source": "real",
+          "count": 3381
+        },
+        {
+          "source": "fmp_write_validation",
+          "count": 10
+        }
+      ],
+      "sample_5": [
+        {
+          "symbol": "GOLD",
+          "why": "",
+          "how": "",
+          "confidence": "0.76076274796814276952",
+          "score": "0.76076274796814276952",
+          "source": "",
+          "updated_at": "2026-03-23T22:52:06.246Z"
+        },
+        {
+          "symbol": "LVLU",
+          "why": "",
+          "how": "",
+          "confidence": "0.16661364347776395029",
+          "score": "0.16661364347776395029",
+          "source": "",
+          "updated_at": "2026-03-23T22:52:06.246Z"
+        },
+        {
+          "symbol": "LTH",
+          "why": "",
+          "how": "",
+          "confidence": "0.00372397357724531361",
+          "score": "0.00372397357724531361",
+          "source": "",
+          "updated_at": "2026-03-23T22:52:06.246Z"
+        },
+        {
+          "symbol": "BBBY",
+          "why": "",
+          "how": "",
+          "confidence": "0.82357095797877229604",
+          "score": "0.82357095797877229604",
+          "source": "",
+          "updated_at": "2026-03-23T22:52:06.246Z"
+        },
+        {
+          "symbol": "AXIN",
+          "why": "",
+          "how": "",
+          "confidence": "0.00710846544246217017",
+          "score": "0.00710846544246217017",
+          "source": "",
+          "updated_at": "2026-03-23T22:52:06.246Z"
+        }
+      ]
+    }
+  ],
+  "preferred_table": "opportunity_stream"
+}

@@ -1,174 +1,112 @@
 {
-  "base_url": "http://127.0.0.1:3007",
-  "checked_at": "2026-04-07T13:38:01.322Z",
-  "all_ok": true,
-  "results": [
+  "generated_at": "2026-04-10T10:20:03.404Z",
+  "base_url": "http://127.0.0.1:3001",
+  "pass": false,
+  "snapshot_rebuild": {
+    "ok": false,
+    "error": "SKIPPED_FOR_VALIDATION"
+  },
+  "endpoints": [
     {
       "endpoint": "/api/health",
-      "url": "http://127.0.0.1:3007/api/health",
-      "ok": true,
       "status": 200,
-      "runtime_ms": 246,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "status",
-          "env",
-          "allowedOrigins",
-          "data_integrity_engine",
-          "integrity",
-          "data_health",
-          "telemetry",
-          "scheduler_flags",
-          "schedulers",
-          "checked_at"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"status\":\"ok\",\"env\":\"development\",\"allowedOrigins\":[\"https://openrangetrading.co.uk\",\"http://localhost:5173\"],\"data_integrity_engine\":\"ok\",\"integrity\":{\"status\":\"idle\",\"last_run\":null,\"execution_time_ms\":0,\"issue_count\":0,\"persistence\":{\"status\":\"ok\",\"persisted_issue_count\":0,\"dropped_issue_count\":0,\"last_error\":null}},\"data_health\":{\"status\":\"warning\",\"tables\":{\"trade_setups\":2079,\"daily_ohlc\":3"
     },
     {
-      "endpoint": "/api/screener?limit=5",
-      "url": "http://127.0.0.1:3007/api/screener?limit=5",
-      "ok": true,
+      "endpoint": "/api/screener",
       "status": 200,
-      "runtime_ms": 227,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "data",
-          "meta",
-          "count",
-          "total",
-          "success",
-          "fallbackUsed",
-          "macro_context",
-          "snapshot_at"
-        ],
-        "data_length": 6372,
-        "data_sample_keys": [
-          "tqi",
-          "why",
-          "rvol",
-          "price",
-          "state",
-          "trend",
-          "sector",
-          "symbol",
-          "volume",
-          "exchange",
-          "has_news",
-          "momentum"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"data\":[{\"tqi\":53,\"why\":\"LNKS falling after heavy volume selloff\",\"rvol\":209.14327328492132,\"price\":0.0083,\"state\":\"EXTENDED\",\"trend\":\"NEUTRAL\",\"sector\":\"Industrials\",\"symbol\":\"LNKS\",\"volume\":341077215,\"exchange\":\"NASDAQ\",\"has_news\":true,\"momentum\":\"BULLISH\",\"tqi_label\":\"C\",\"tradeable\":false,\"confidence\":0.2,\"updated_at\":\"2026-04-05T04:59:32.09135+00:00\",\"driver_type\":\"TECHNICAL\",\"final_score\":25"
     },
     {
       "endpoint": "/api/intelligence/decision/AAPL",
-      "url": "http://127.0.0.1:3007/api/intelligence/decision/AAPL",
-      "ok": true,
       "status": 200,
-      "runtime_ms": 9681,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "ok",
-          "status",
-          "source",
-          "data",
-          "decision"
-        ],
-        "data_length": 1,
-        "data_sample_keys": [
-          "symbol",
-          "tradeable",
-          "confidence",
-          "setup",
-          "bias",
-          "driver",
-          "earnings_edge",
-          "risk_flags",
-          "status",
-          "action",
-          "why",
-          "how"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"ok\":true,\"status\":\"ok\",\"source\":\"truth_engine\",\"data\":[{\"symbol\":\"AAPL\",\"tradeable\":false,\"confidence\":19,\"setup\":\"momentum_continuation\",\"bias\":\"NEUTRAL\",\"driver\":\"NO_DRIVER\",\"earnings_edge\":{\"label\":\"NO_EDGE\",\"score\":0,\"bias\":\"NEUTRAL\",\"next_date\":null,\"report_time\":null,\"expected_move_percent\":null,\"status\":\"none\",\"read\":\"No upcoming earnings scheduled.\"},\"risk_flags\":[\"LOW_CONVICTION\",\"RISK_"
     },
     {
       "endpoint": "/api/intelligence/top-opportunities?limit=5",
-      "url": "http://127.0.0.1:3007/api/intelligence/top-opportunities?limit=5",
-      "ok": true,
       "status": 200,
-      "runtime_ms": 205,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "success",
-          "source",
-          "mode",
-          "count",
-          "data"
-        ],
-        "data_length": 10,
-        "data_sample_keys": [
-          "symbol",
-          "why",
-          "how",
-          "confidence",
-          "expected_move",
-          "expected_move_percent",
-          "price",
-          "change_percent",
-          "volume",
-          "source",
-          "trade_class",
-          "strategy"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"success\":true,\"source\":\"fmp_direct\",\"mode\":\"live\",\"count\":10,\"data\":[{\"symbol\":\"DKI\",\"why\":\"DarkIris Inc. Class A Ordinary Shares up 142.7% on elevated volume\",\"how\":\"Monitor for continuation past premarket range. Wait for open-range break confirmation.\",\"confidence\":80,\"expected_move\":142.67003,\"expected_move_percent\":142.67003,\"price\":0.9634,\"change_percent\":142.67003,\"volume\":0,\"source\":\"fmp_"
     },
     {
       "endpoint": "/api/market/overview",
-      "url": "http://127.0.0.1:3007/api/market/overview",
-      "ok": true,
       "status": 200,
-      "runtime_ms": 249,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "status",
-          "data"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"status\":\"ok\",\"data\":{\"overnight\":{\"headlines\":[{\"title\":\"3 Stocks Billionaires Are Buying That You Should Too\",\"source\":\"yahoo\",\"published_at\":\"2026-04-10T07:35:00.000Z\",\"symbols\":[\"NVDA\"],\"sentiment\":\"neutral\"},{\"title\":\"3 Stocks Billionaires Are Buying That You Should Too\",\"source\":\"yahoo\",\"published_at\":\"2026-04-10T07:35:00.000Z\",\"symbols\":[\"INTC\"],\"sentiment\":\"neutral\"},{\"title\":\"This Vangua"
     },
     {
-      "endpoint": "/api/earnings",
-      "url": "http://127.0.0.1:3007/api/earnings",
-      "ok": true,
+      "endpoint": "/api/earnings/calendar?limit=5",
       "status": 200,
-      "runtime_ms": 690,
-      "summary": {
-        "kind": "object",
-        "top_level_keys": [
-          "success",
-          "status",
-          "source",
-          "count",
-          "data"
-        ],
-        "data_length": 100,
-        "data_sample_keys": [
-          "symbol",
-          "company_name",
-          "sector",
-          "report_date",
-          "report_time",
-          "eps_estimate",
-          "eps_actual",
-          "surprise_percent",
-          "expected_move_percent",
-          "actual_move_percent",
-          "pre_move_percent",
-          "post_move_percent"
-        ]
-      }
+      "ok": true,
+      "preview": "{\"success\":true,\"mode\":\"requested_window\",\"window_start\":\"2026-04-06\",\"window_end\":\"2026-04-10\",\"count\":842,\"status\":\"partial\",\"source\":\"fmp\",\"data\":[{\"symbol\":\"TORO\",\"company_name\":null,\"report_date\":\"2026-04-10\",\"time\":\"UNKNOWN\",\"price\":null,\"market_cap\":null,\"volume\":null,\"rvol\":null,\"expected_move_percent\":3.5,\"score\":0,\"eps_estimate\":null,\"eps_actual\":null,\"revenue_estimate\":null,\"revenue_act"
+    }
+  ],
+  "screener_checks": {
+    "count": 5119,
+    "aapl": {
+      "symbol": "AAPL",
+      "preMarketPrice": null,
+      "preMarketChange": null,
+      "preMarketVolume": null,
+      "gapPercent": 0.1599
+    },
+    "clrc_present": false,
+    "shell_candidates_remaining": []
+  },
+  "truth_calibration": [
+    {
+      "symbol": "AAPL",
+      "status": "AVOID",
+      "action": "AVOID",
+      "tradeable": false,
+      "risk_flags": [
+        "LOW_CONVICTION",
+        "RISK_OFF_TAPE",
+        "EARNINGS_ESTIMATING"
+      ]
+    },
+    {
+      "symbol": "META",
+      "status": "TRADEABLE",
+      "action": "TRADEABLE",
+      "tradeable": true,
+      "risk_flags": [
+        "RISK_OFF_TAPE"
+      ]
+    },
+    {
+      "symbol": "SMCI",
+      "status": "AVOID",
+      "action": "AVOID",
+      "tradeable": false,
+      "risk_flags": [
+        "LOW_CONVICTION",
+        "RISK_OFF_TAPE"
+      ]
+    },
+    {
+      "symbol": "GERN",
+      "status": "AVOID",
+      "action": "AVOID",
+      "tradeable": false,
+      "risk_flags": [
+        "NO_STRUCTURED_SETUP",
+        "RISK_OFF_TAPE",
+        "EARNINGS_ESTIMATING"
+      ]
+    },
+    {
+      "symbol": "CLRC",
+      "status": "INSUFFICIENT_DATA",
+      "action": "WAIT",
+      "tradeable": false,
+      "risk_flags": [
+        "INSUFFICIENT_DATA",
+        "INVALID_CHANGE_PERCENT"
+      ]
     }
   ]
 }

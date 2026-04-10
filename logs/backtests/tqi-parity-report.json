@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-03-20T21:17:34.094Z",
+  "apiBase": "http://localhost:3101",
+  "checks": {
+    "normalStatus200": true,
+    "strictStatus200": true,
+    "normalHasResultsKey": true,
+    "strictHasResultsKey": true,
+    "normalCountMatchesRows": true,
+    "strictCountMatchesRows": true,
+    "strictModeFlag": true,
+    "strictNotGreaterThanNormal": true,
+    "allNormalRowsHaveTradeQuality": true,
+    "allNormalRowsHaveCompleteness": true,
+    "strictRowsMeetThreshold": true
+  },
+  "stats": {
+    "normalCount": 25,
+    "strictCount": 10,
+    "strictReduction": 15,
+    "normalTopTradeQuality": 100,
+    "strictTopTradeQuality": 83
+  },
+  "failures": {
+    "normalMissingTradeQuality": [],
+    "normalMissingCompleteness": [],
+    "strictThresholdViolations": []
+  },
+  "samples": {
+    "normalTop3": [
+      {
+        "symbol": "WNW",
+        "trade_quality": 100,
+        "completeness": 100
+      },
+      {
+        "symbol": "CHNR",
+        "trade_quality": 84,
+        "completeness": 100
+      },
+      {
+        "symbol": "PMAX",
+        "trade_quality": 83,
+        "completeness": 100
+      }
+    ],
+    "strictTop3": [
+      {
+        "symbol": "PMAX",
+        "trade_quality": 83,
+        "completeness": 100
+      },
+      {
+        "symbol": "ACXP",
+        "trade_quality": 82,
+        "completeness": 100
+      },
+      {
+        "symbol": "CYCU",
+        "trade_quality": 82,
+        "completeness": 100
+      }
+    ]
+  },
+  "ok": true
+}

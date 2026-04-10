@@ -1,0 +1,108 @@
+{
+  "generated_at": "2026-04-05T23:07:43.803Z",
+  "average_dcs": 44.24,
+  "high_confidence_symbols": 2,
+  "medium_confidence_symbols": 1631,
+  "low_confidence_symbols": 4739,
+  "top_100_by_volume_dcs": {
+    "count": 100,
+    "average_dcs": 58.45,
+    "high_confidence": 0,
+    "medium_confidence": 66,
+    "low_confidence": 34
+  },
+  "top_500_by_volume_dcs": {
+    "count": 500,
+    "average_dcs": 56.99,
+    "high_confidence": 0,
+    "medium_confidence": 313,
+    "low_confidence": 187
+  },
+  "validation": {
+    "high_coverage_ticker_high_score": true,
+    "missing_news_ticker_low_score": true,
+    "no_fake_high_scores": true
+  },
+  "samples": {
+    "high_coverage": {
+      "symbol": "A",
+      "coverage_score": 100,
+      "freshness_score": 100,
+      "source_quality": 100,
+      "data_confidence": 100,
+      "data_confidence_label": "HIGH",
+      "has_news": true,
+      "has_earnings": true,
+      "has_technicals": true
+    },
+    "missing_news": {
+      "symbol": "INFY",
+      "coverage_score": 70,
+      "freshness_score": 100,
+      "source_quality": 100,
+      "data_confidence": 64,
+      "data_confidence_label": "LOW",
+      "has_news": false,
+      "has_earnings": true,
+      "has_technicals": true
+    },
+    "incomplete_coverage_sample": [
+      {
+        "symbol": "AACB",
+        "coverage_score": 70,
+        "freshness_score": 100,
+        "source_quality": 40,
+        "data_confidence": 64,
+        "data_confidence_label": "LOW",
+        "has_news": true,
+        "has_earnings": false,
+        "has_technicals": true
+      },
+      {
+        "symbol": "AAME",
+        "coverage_score": 70,
+        "freshness_score": 100,
+        "source_quality": 40,
+        "data_confidence": 64,
+        "data_confidence_label": "LOW",
+        "has_news": false,
+        "has_earnings": true,
+        "has_technicals": true
+      },
+      {
+        "symbol": "AAMI",
+        "coverage_score": 70,
+        "freshness_score": 100,
+        "source_quality": 40,
+        "data_confidence": 64,
+        "data_confidence_label": "LOW",
+        "has_news": false,
+        "has_earnings": true,
+        "has_technicals": true
+      },
+      {
+        "symbol": "AAON",
+        "coverage_score": 70,
+        "freshness_score": 100,
+        "source_quality": 100,
+        "data_confidence": 64,
+        "data_confidence_label": "LOW",
+        "has_news": false,
+        "has_earnings": true,
+        "has_technicals": true
+      },
+      {
+        "symbol": "AAPG",
+        "coverage_score": 70,
+        "freshness_score": 100,
+        "source_quality": 100,
+        "data_confidence": 64,
+        "data_confidence_label": "LOW",
+        "has_news": false,
+        "has_earnings": true,
+        "has_technicals": true
+      }
+    ],
+    "fake_high_scores": []
+  }
+}

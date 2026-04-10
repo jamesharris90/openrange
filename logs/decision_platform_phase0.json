@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-03-23T23:24:02.312Z",
+  "pass": true,
+  "checks": [
+    {
+      "endpoint": "/api/intelligence/top-opportunities",
+      "status": 200,
+      "count": 20,
+      "source": "real",
+      "pass": true
+    },
+    {
+      "endpoint": "/api/stocks-in-play",
+      "status": 200,
+      "count": 18,
+      "source": "real",
+      "pass": true
+    }
+  ]
+}

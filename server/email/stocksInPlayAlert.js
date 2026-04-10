@@ -52,7 +52,7 @@ async function sendStocksInPlayAlert({ force = false, forceTo = null, campaignKe
     const narrative = focus?.narrative || {};
     const tradeScore = Number.isFinite(Number(focus?.tradeScore)) ? Math.round(Number(focus.tradeScore)) : 'N/A';
     const confidence = String(focus?.confidence || 'Low');
-    const probabilityContext = String(focus?.probabilityContext || 'Historical performance data building')
+    const probabilityContext = String(focus?.probabilityContext || 'Historical performance data unavailable')
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)

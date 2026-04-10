@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-03-23T16:41:43.129Z",
+  "phase": "PHASE_0_RUNTIME_RESET",
+  "targets": {
+    "port3001_pids": [
+      "73051"
+    ],
+    "rogue_matches": [
+      "76213"
+    ]
+  },
+  "actions": [
+    {
+      "pid": 73051,
+      "signal": "SIGTERM",
+      "status": "sent"
+    },
+    {
+      "pid": 76213,
+      "signal": "SIGTERM",
+      "status": "error",
+      "error": "kill ESRCH"
+    }
+  ],
+  "post": {
+    "port3001_pids": [],
+    "rogue_matches": [
+      "76259"
+    ]
+  },
+  "success": true
+}

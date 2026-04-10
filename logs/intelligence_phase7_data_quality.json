@@ -1,0 +1,17 @@
+{
+  "ts": "2026-03-20T14:13:10.608Z",
+  "has_columns": {
+    "relative_volume": true,
+    "volume": true,
+    "avg_volume_30d": true,
+    "gap_percent": true
+  },
+  "null_stats": {
+    "relative_volume_nulls": 854,
+    "gap_percent_nulls": 1172,
+    "avg_volume_30d_nulls": 854,
+    "total_rows": 5975
+  },
+  "nan_rows": 0,
+  "pass": true
+}

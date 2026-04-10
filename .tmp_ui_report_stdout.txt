@@ -1,0 +1,15 @@
+{
+  "reportPath": "/Users/jamesharris/Server/ui_system_report.json",
+  "tradeable_symbols_count": 0,
+  "stale_removed_total": 1004,
+  "endpoint_health": {
+    "opportunities": 200,
+    "watchlist": 200,
+    "heatmap": 200,
+    "earnings": 200,
+    "signals": 200,
+    "catalysts": 200,
+    "macro": 200,
+    "integrity": 503
+  }
+}

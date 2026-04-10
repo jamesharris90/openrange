@@ -1,0 +1,219 @@
+{
+  "generatedAt": "2026-04-04T14:08:12.574Z",
+  "findings": [
+    {
+      "endpoint": "http://localhost:3000/api/v5/chart?symbol=AAPL",
+      "issue": "chart endpoint unavailable on Next public contract",
+      "type": "A_missing_backend_or_proxy_route",
+      "evidence": {
+        "status": 404,
+        "checks": {
+          "candleCount": 0,
+          "hasOhlcData": false
+        }
+      },
+      "codePath": {
+        "frontend": "trading-os/src/components/research/ResearchChartPanel.jsx -> /api/v5/chart",
+        "nextProxy": "missing universal /api/[...path] proxy and no dedicated /api/v5/chart route",
+        "backend": "server/v2/index.js mounts /api/v5 -> server/routes/chartV2.ts"
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/api/earnings",
+      "issue": "public earnings endpoint only returns upcoming calendar rows, not beat/miss history",
+      "type": "D_wrong_field_mapping_or_contract",
+      "evidence": {
+        "status": 404,
+        "checks": {
+          "rowCount": 0,
+          "hasExpectedMovePercent": false,
+          "hasActualMovePercent": false,
+          "hasEpsActual": false,
+          "hasEpsEstimate": false,
+          "hasSurprisePercent": false,
+          "beatDerivable": false
+        }
+      },
+      "codePath": {
+        "frontend": "trading-os/src/app/api/earnings/route.ts -> /api/earnings/calendar envelope",
+        "backend": "server/v2/routes/earnings.js -> server/v2/services/earningsService.js",
+        "database": "earnings_events selected columns exclude expected_move_percent, actual_move_percent, surprise_percent, beat"
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/api/opportunities",
+      "issue": "opportunities route is healthy but snapshot currently has zero rows",
+      "type": "C_empty_database_or_snapshot",
+      "evidence": {
+        "status": 200,
+        "checks": {
+          "rowCount": 0
+        }
+      },
+      "codePath": {
+        "nextProxy": "trading-os/src/app/api/opportunities/route.ts",
+        "backend": "server/v2/routes/opportunities.js -> snapshotService.getLatestOpportunitiesPayload"
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/api/research/AAPL/full",
+      "issue": "research payload is mostly healthy but earnings.next contains null operational fields",
+      "type": "D_wrong_field_mapping_or_incomplete_source",
+      "evidence": {
+        "status": 200,
+        "checks": {
+          "historyLength": 8,
+          "hasExpectedMovePercent": true,
+          "hasActualMovePercent": true,
+          "hasBeatBoolean": true,
+          "hasEpsActual": true,
+          "hasEpsEstimate": true,
+          "hasSurprisePercent": true,
+          "hasPostMovePercent": true
+        },
+        "nullFields": [
+          "earnings.next.report_time",
+          "earnings.next.eps_actual",
+          "earnings.next.pre_move_percent",
+          "earnings.next.post_move_percent",
+          "earnings.next.actual_move_percent",
+          "earnings.next.true_reaction_window"
+        ]
+      },
+      "codePath": {
+        "nextProxy": "trading-os/src/app/api/research/[symbol]/full/route.ts",
+        "backend": "server/routes/research.js -> server/services/researchCacheService.js"
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/api/screener",
+      "issue": "healthy",
+      "type": "healthy",
+      "evidence": {
+        "status": 200,
+        "checks": {
+          "rowCount": 100
+        }
+      },
+      "codePath": {
+        "nextProxy": "trading-os/src/app/api/screener/route.ts",
+        "backend": "server/v2/routes/screener.js -> snapshotService.getLatestScreenerPayload"
+      }
+    },
+    {
+      "systemRisk": "dual API surface remains active",
+      "type": "A_architecture_duplication",
+      "evidence": [
+        {
+          "module": "./routes/screener",
+          "paths": [
+            "/api/screener",
+            "/api/v2/screener"
+          ]
+        },
+        {
+          "module": "./routes/opportunities",
+          "paths": [
+            "/api/opportunities",
+            "/api/v2/opportunities"
+          ]
+        }
+      ]
+    },
+    {
+      "systemRisk": "frontend still contains /api/v2 consumers and env-level backend base override",
+      "type": "A_architecture_duplication",
+      "evidence": {
+        "missingProxyCandidates": [
+          {
+            "path": "/api/admin/data-integrity",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:725"
+          },
+          {
+            "path": "/api/admin/db/connections",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:322"
+          },
+          {
+            "path": "/api/admin/email-stats",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:201"
+          },
+          {
+            "path": "/api/admin/engines",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:768"
+          },
+          {
+            "path": "/api/admin/logs${filter ",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:821"
+          },
+          {
+            "path": "/api/admin/newsletter-stats",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:681"
+          },
+          {
+            "path": "/api/admin/newsletter-subscribers",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:682"
+          },
+          {
+            "path": "/api/admin/pipeline-stats",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:413"
+          },
+          {
+            "path": "/api/admin/signal-flow",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:581"
+          },
+          {
+            "path": "/api/admin/users",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:612"
+          },
+          {
+            "path": "/api/catalysts/id/${encodeURIComponent(newsId)}",
+            "source": "trading-os/src/lib/api/news.ts:80"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/app/login/page.tsx:7"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/app/research-v2/[symbol]/page.tsx:15"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/app/screener-v2/page.tsx:8"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/app/stocks/page.tsx:8"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/components/research/ResearchChartPanel.jsx:7"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/components/terminal/admin-view.tsx:12"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/components/terminal/dashboard-view.tsx:8"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/components/terminal/markets-view.tsx:6"
+          },
+          {
+            "path": "/api/client",
+            "source": "trading-os/src/components/terminal/news-view.tsx:7"
+          }
+        ],
+        "directBackendRisks": [
+          {
+            "file": "trading-os/src/lib/apiBase.ts",
+            "line": 6,
+            "code": "process.env.NEXT_PUBLIC_API_BASE ||"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "generated_at": "2026-04-05T15:57:23.409Z",
+  "snapshot_at": "2026-04-05T15:57:22.194Z",
+  "raw_universe_size": 6372,
+  "final_scored_size": 6372,
+  "returned_rows": 6372,
+  "distributions": {
+    "trend": {
+      "NEUTRAL": 4646,
+      "BEARISH": 1034,
+      "BULLISH": 692
+    },
+    "vwap_position": {
+      "BELOW": 6342,
+      "ABOVE": 30
+    },
+    "momentum": {
+      "BULLISH": 2442,
+      "BEARISH": 3930
+    }
+  },
+  "samples": {
+    "top_rvol": [
+      {
+        "symbol": "RDGT",
+        "rvol": 9620.618761796262,
+        "gap_percent": -0.0037,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "WNW",
+        "rvol": 6528.378191048861,
+        "gap_percent": -0.0211,
+        "trend": "BEARISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "BCG",
+        "rvol": 3076.5348395544247,
+        "gap_percent": 29.41294,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BEARISH"
+      },
+      {
+        "symbol": "UCAR",
+        "rvol": 3068.0207304142755,
+        "gap_percent": 0.6501,
+        "trend": "BEARISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "HKIT",
+        "rvol": 2389.8597188136932,
+        "gap_percent": -21.73913,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BEARISH"
+      }
+    ],
+    "bullish_trend": [
+      {
+        "symbol": "GPAT",
+        "rvol": 61.5552544997097,
+        "gap_percent": -0.04614675,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "SIMA",
+        "rvol": 22.308890560378885,
+        "gap_percent": 0.01,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "NSYS",
+        "rvol": 17.816787235707817,
+        "gap_percent": 5.45565,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "ALEX",
+        "rvol": 12.573365241682614,
+        "gap_percent": 0.04800768,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BEARISH"
+      },
+      {
+        "symbol": "EXAS",
+        "rvol": 9.334329406137298,
+        "gap_percent": 0,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BEARISH"
+      }
+    ],
+    "bullish_momentum": [
+      {
+        "symbol": "CYCN",
+        "rvol": 1984.1131222573558,
+        "gap_percent": 335.23226,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "AGPU",
+        "rvol": 112.91460801888854,
+        "gap_percent": 88.27778,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "LITE",
+        "rvol": 0.585834997917601,
+        "gap_percent": 72.25,
+        "trend": "BULLISH",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "POAI",
+        "rvol": 0.020352448206437685,
+        "gap_percent": 70.98765,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      },
+      {
+        "symbol": "RYM",
+        "rvol": 6.158505922586718,
+        "gap_percent": 32.73224,
+        "trend": "NEUTRAL",
+        "vwap_position": "BELOW",
+        "momentum": "BULLISH"
+      }
+    ]
+  },
+  "timing_ms": {
+    "snapshot_total_ms": 61074,
+    "report_total_ms": 63602
+  }
+}

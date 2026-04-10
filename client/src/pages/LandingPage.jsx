@@ -93,7 +93,7 @@ const screenshots = [
     tint: 'from-blue-500/20 to-blue-900/40',
     labelColor: 'text-blue-300',
     src: '/images/landing/workspace-charts.png',
-    alt: 'OpenRange chart workspace showing AAPL candlestick chart with volume analysis',
+    alt: 'OpenRange chart workspace showing live candlestick flow with volume analysis',
   },
   {
     key: 'scanner',

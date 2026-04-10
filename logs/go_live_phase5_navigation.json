@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-03-22T20:06:40.062Z",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "ms": 16,
+      "contentType": "text/html; charset=utf-8",
+      "error": null,
+      "sample": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale="
+    },
+    {
+      "path": "/login",
+      "status": 302,
+      "ms": 2,
+      "contentType": "text/plain; charset=utf-8",
+      "error": null,
+      "sample": "Found. Redirecting to http://localhost:3000/login"
+    },
+    {
+      "path": "/watchlist",
+      "status": 302,
+      "ms": 1,
+      "contentType": "text/plain; charset=utf-8",
+      "error": null,
+      "sample": "Found. Redirecting to http://localhost:3000/watchlist"
+    },
+    {
+      "path": "/dashboard",
+      "status": 302,
+      "ms": 1,
+      "contentType": "text/plain; charset=utf-8",
+      "error": null,
+      "sample": "Found. Redirecting to http://localhost:3000/dashboard"
+    },
+    {
+      "path": "/intelligence",
+      "status": 302,
+      "ms": 1,
+      "contentType": "text/plain; charset=utf-8",
+      "error": null,
+      "sample": "Found. Redirecting to http://localhost:3000/intelligence"
+    }
+  ],
+  "user_can_navigate_ui": true,
+  "pass": true
+}

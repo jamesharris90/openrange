@@ -1,0 +1,70 @@
+{
+  "ts": "2026-03-20T13:25:34.642Z",
+  "failed_phase": "unknown",
+  "reason": "null value in column \"legacy_signal_id\" of relation \"trade_outcomes\" violates not-null constraint",
+  "details": null,
+  "phase_log": [
+    {
+      "ts": "2026-03-20T13:25:31.163Z",
+      "phase": "PHASE_0",
+      "message": "Starting freeze checks and pre-snapshot"
+    },
+    {
+      "ts": "2026-03-20T13:25:32.626Z",
+      "phase": "PHASE_0",
+      "message": "Pre-snapshot written",
+      "file": "/Users/jamesharris/Server/logs/pipeline_pre_unification.json",
+      "counts": {
+        "signals": 777,
+        "strategy_signals": 222,
+        "trade_signals": 160,
+        "signal_registry": 20263,
+        "trade_setups": 414,
+        "signal_outcomes": 495,
+        "trade_outcomes": 134,
+        "stocks_in_play": 23245
+      }
+    },
+    {
+      "ts": "2026-03-20T13:25:32.627Z",
+      "phase": "PHASE_1",
+      "message": "Inspecting signal schemas and selecting canonical source"
+    },
+    {
+      "ts": "2026-03-20T13:25:32.880Z",
+      "phase": "PHASE_1",
+      "message": "Canonical signal table selected",
+      "canonical": "signals"
+    },
+    {
+      "ts": "2026-03-20T13:25:32.923Z",
+      "phase": "PHASE_2",
+      "message": "Linking lifecycle tables to canonical signal ids",
+      "canonicalTable": "signals"
+    },
+    {
+      "ts": "2026-03-20T13:25:33.913Z",
+      "phase": "PHASE_2",
+      "message": "Lifecycle linking validated",
+      "overlap": 129
+    },
+    {
+      "ts": "2026-03-20T13:25:33.941Z",
+      "phase": "PHASE_3",
+      "message": "Applying session metrics",
+      "sessionPhase": "premarket_peak"
+    },
+    {
+      "ts": "2026-03-20T13:25:34.445Z",
+      "phase": "PHASE_3",
+      "message": "Session logic populated",
+      "sampled_signals": 10,
+      "sampled_stocks_in_play": 10
+    },
+    {
+      "ts": "2026-03-20T13:25:34.445Z",
+      "phase": "PHASE_4",
+      "message": "Ensuring top stocks-in-play symbols are fully linked"
+    }
+  ]
+}

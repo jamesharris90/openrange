@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(process.cwd(), 'server', '.env') });
-const { Client } = require('pg');
+const pool = require('../server/db/pool');
 
 const base = process.env.SERVER_BASE_URL || 'http://localhost:3000';
 const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
@@ -37,12 +37,9 @@ async function getJson(url) {
 }
 
 (async () => {
-  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-  await pg.connect();
-
   const m = {};
   for (const [k, q] of Object.entries(queries)) {
-    const r = await pg.query(q);
+    const r = await pool.query(q);
     m[k] = Number(r.rows?.[0]?.c || 0);
   }
 
@@ -115,6 +112,6 @@ async function getJson(url) {
 
   console.log(`\nOverall System Status: ${overall}`);
 
-  await pg.end();
+  await pool.end();
   process.exit(overall === 'PASS' ? 0 : 1);
 })();

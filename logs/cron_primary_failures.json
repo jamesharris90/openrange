@@ -1,0 +1,453 @@
+{
+  "generated_at": "2026-03-23T14:47:01.417Z",
+  "run_all_response": {
+    "status": 200,
+    "body": {
+      "success": false,
+      "runs": [
+        {
+          "engine": "stocks-in-play",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "engine": "catalyst",
+          "ok": false,
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)",
+          "count": 0
+        },
+        {
+          "engine": "earnings",
+          "ok": false,
+          "error": "Query timeout after 5000ms (engines.earningsEngine.ensure_table)",
+          "count": 0
+        },
+        {
+          "engine": "intelligence",
+          "ok": true,
+          "count": 0
+        }
+      ]
+    }
+  },
+  "recent_cron_status": {
+    "status": "OK",
+    "recent_runs": [
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:00.813Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:35:07.199Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:35:07.815Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:36.456Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:40.782Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:42.361Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:35:43.460Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:35:47.784Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:35:49.363Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:49.363Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:35:56.364Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:35:56.365Z",
+        "payload": {
+          "engine": "earnings"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:36:01.366Z",
+        "payload": {
+          "engine": "earnings",
+          "error": "Query timeout after 5000ms (engines.earningsEngine.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:36:01.367Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:36:09.368Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:36:09.369Z",
+        "payload": {
+          "engine": "run-all",
+          "error": "2 engine(s) failed",
+          "failed": [
+            {
+              "engine": "catalyst",
+              "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+            },
+            {
+              "engine": "earnings",
+              "error": "Query timeout after 5000ms (engines.earningsEngine.ensure_table)"
+            }
+          ]
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:00.317Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:00.320Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:00.603Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:00.605Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:40:07.319Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:40:07.604Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:40:08.322Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:40:08.606Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:36.466Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:40:40.792Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:40:43.467Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:40:45.634Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "UNION types uuid and bigint cannot be matched"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:36.475Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:40.801Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:45:43.477Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:45:47.802Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:47.851Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:45:55.688Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:55.688Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:45:55.732Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "UNION types uuid and bigint cannot be matched"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:55.732Z",
+        "payload": {
+          "engine": "earnings"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:45:59.974Z",
+        "payload": {
+          "engine": "earnings",
+          "error": "FMP /earning_calendar failed with status 404"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:45:59.975Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:46:08.071Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:46:08.071Z",
+        "payload": {
+          "engine": "run-all",
+          "error": "2 engine(s) failed",
+          "failed": [
+            {
+              "engine": "catalyst",
+              "error": "UNION types uuid and bigint cannot be matched"
+            },
+            {
+              "engine": "earnings",
+              "error": "FMP /earning_calendar failed with status 404"
+            }
+          ]
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:46:28.184Z",
+        "payload": {
+          "engine": "stocks-in-play"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:46:37.393Z",
+        "payload": {
+          "engine": "stocks-in-play",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:46:37.393Z",
+        "payload": {
+          "engine": "catalyst"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:46:44.395Z",
+        "payload": {
+          "engine": "catalyst",
+          "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:46:44.395Z",
+        "payload": {
+          "engine": "earnings"
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:46:49.396Z",
+        "payload": {
+          "engine": "earnings",
+          "error": "Query timeout after 5000ms (engines.earningsEngine.ensure_table)"
+        }
+      },
+      {
+        "event": "ENGINE_START",
+        "timestamp": "2026-03-23T14:46:49.397Z",
+        "payload": {
+          "engine": "intelligence"
+        }
+      },
+      {
+        "event": "ENGINE_SUCCESS",
+        "timestamp": "2026-03-23T14:46:57.399Z",
+        "payload": {
+          "engine": "intelligence",
+          "count": 0
+        }
+      },
+      {
+        "event": "ENGINE_ERROR",
+        "timestamp": "2026-03-23T14:46:57.399Z",
+        "payload": {
+          "engine": "run-all",
+          "error": "2 engine(s) failed",
+          "failed": [
+            {
+              "engine": "catalyst",
+              "error": "Query timeout after 7000ms (engines.catalyst.ensure_table)"
+            },
+            {
+              "engine": "earnings",
+              "error": "Query timeout after 5000ms (engines.earningsEngine.ensure_table)"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "recent_errors": [],
+  "grouped_failures": {
+    "stocks-in-play": [],
+    "catalyst": [],
+    "earnings": [],
+    "intelligence": [],
+    "run-all": []
+  }
+}

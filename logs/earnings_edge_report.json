@@ -1,0 +1,195 @@
+{
+  "timestamp": "2026-03-21T20:34:39.865Z",
+  "total_trades": 284,
+  "win_rate": 0,
+  "avg_return": 0,
+  "median_return": 0,
+  "big_winners": 0,
+  "losers": 0,
+  "strategy_rank": 3,
+  "score_correlation": null,
+  "verdict": "fail",
+  "details": {
+    "earnings_trades_sample": [
+      {
+        "symbol": "AACG",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.824Z"
+      },
+      {
+        "symbol": "AAME",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.697Z"
+      },
+      {
+        "symbol": "AAPG",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.572Z"
+      },
+      {
+        "symbol": "ABL",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.445Z"
+      },
+      {
+        "symbol": "ABLLL",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.297Z"
+      },
+      {
+        "symbol": "ABOS",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.170Z"
+      },
+      {
+        "symbol": "ABSI",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:39.042Z"
+      },
+      {
+        "symbol": "ABUS",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.852Z"
+      },
+      {
+        "symbol": "ACHV",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.707Z"
+      },
+      {
+        "symbol": "ACOG",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.555Z"
+      },
+      {
+        "symbol": "ACRV",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.402Z"
+      },
+      {
+        "symbol": "ACTU",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.276Z"
+      },
+      {
+        "symbol": "ADGM",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.150Z"
+      },
+      {
+        "symbol": "AEG",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:38.019Z"
+      },
+      {
+        "symbol": "AGX",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.893Z"
+      },
+      {
+        "symbol": "AIR",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.766Z"
+      },
+      {
+        "symbol": "AIRJ",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.640Z"
+      },
+      {
+        "symbol": "ALUR",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.513Z"
+      },
+      {
+        "symbol": "AMPG",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.385Z"
+      },
+      {
+        "symbol": "AMPGR",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.262Z"
+      },
+      {
+        "symbol": "AMPGZ",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.126Z"
+      },
+      {
+        "symbol": "APLM",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:37.001Z"
+      },
+      {
+        "symbol": "AQB",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:36.877Z"
+      },
+      {
+        "symbol": "ARQQ",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:36.752Z"
+      },
+      {
+        "symbol": "ASPI",
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "pnl_pct": "0",
+        "created_at": "2026-03-21T20:34:36.624Z"
+      }
+    ],
+    "loss_rate": 0,
+    "small_winners": 284,
+    "strategy_comparison": [
+      {
+        "strategy": "momentum_continuation",
+        "trades": 120,
+        "avg_return": 0,
+        "win_rate": 0
+      },
+      {
+        "strategy": null,
+        "trades": 2,
+        "avg_return": 0,
+        "win_rate": 0
+      },
+      {
+        "strategy": "POST_EARNINGS_MOMENTUM",
+        "trades": 284,
+        "avg_return": 0,
+        "win_rate": 0
+      },
+      {
+        "strategy": "stocks_in_play_setup",
+        "trades": 371,
+        "avg_return": 0,
+        "win_rate": 0
+      }
+    ],
+    "correlation_pairs": 15
+  }
+}

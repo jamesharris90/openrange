@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-03-22T21:16:14.714Z",
+  "status": 200,
+  "latency_ms": 25,
+  "count": 3,
+  "change_percent_nulls": 0,
+  "sample": [
+    {
+      "symbol": "SPY",
+      "price": 648.57,
+      "change_percent": -1.43,
+      "volume": 138283514,
+      "relative_volume": 1,
+      "atr": null,
+      "rsi": null,
+      "market_cap": 595245858816,
+      "sector": null,
+      "updated_at": "2026-03-22T21:16:14.713Z",
+      "source": "external_fallback"
+    },
+    {
+      "symbol": "QQQ",
+      "price": 582.06,
+      "change_percent": -1.85,
+      "volume": 91964677,
+      "relative_volume": 1,
+      "atr": null,
+      "rsi": null,
+      "market_cap": 228807786496,
+      "sector": null,
+      "updated_at": "2026-03-22T21:16:14.713Z",
+      "source": "external_fallback"
+    },
+    {
+      "symbol": "AAPL",
+      "price": 247.99,
+      "change_percent": -0.39,
+      "volume": 88331081,
+      "relative_volume": 1,
+      "atr": null,
+      "rsi": null,
+      "market_cap": 3644938780672,
+      "sector": null,
+      "updated_at": "2026-03-22T21:16:14.713Z",
+      "source": "external_fallback"
+    }
+  ],
+  "pass": true
+}

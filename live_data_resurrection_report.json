@@ -1,0 +1,16 @@
+{
+  "market_metrics_live": false,
+  "signals_active": false,
+  "stocks_in_play_active": false,
+  "scheduler_running": false,
+  "api_live": true,
+  "drift_dynamic": false,
+  "verdict": "DEAD",
+  "stopped_at_phase": "PHASE_1",
+  "reason": "SAFE_MODE enabled; background engines and ingestion loops are disabled",
+  "evidence": {
+    "runtime_reset_log": "logs/runtime_reset.json",
+    "backend_start_log": "logs/live_data_backend_stdout.log",
+    "health_status": 200
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "refresh_engine_running": true,
+  "scheduler_active": false,
+  "symbols_loaded": 5915,
+  "quotes_written": 5915,
+  "fresh_quotes_count": 5915,
+  "coverage": 1,
+  "api_failures": 0,
+  "db_write_success": true,
+  "final_status": "PASS",
+  "root_cause": "none"
+}

@@ -103,7 +103,7 @@ router.get('/snapshot', async (_req, res) => {
     fmpGet('/quote', { symbol: 'DIA' }),
     fmpGet('/quote', { symbol: 'QQQ' }),
     fmpGet('/quote', { symbol: 'IWM' }),
-    fmpGet('/quote', { symbol: 'VIX' }),
+    fmpGet('/quote', { symbol: '^VIX' }),
     fmpGet('/sectors-performance'),
     fmpGet('/earnings-calendar', { from: today, to: today }),
     fmpGet('/news/stock-latest', { page: 0, limit: 20 }),

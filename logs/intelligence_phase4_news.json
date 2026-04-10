@@ -1,0 +1,48 @@
+{
+  "ts": "2026-03-20T14:13:09.904Z",
+  "news_time_column": "published_at",
+  "sampled_symbols": 10,
+  "sample": [
+    {
+      "symbol": "LNSR",
+      "priority_score": "483.18852578891434022"
+    },
+    {
+      "symbol": "RDGT",
+      "priority_score": "191.97396114672425233"
+    },
+    {
+      "symbol": "EQS",
+      "priority_score": "52.65158259045621388"
+    },
+    {
+      "symbol": "ASBA",
+      "priority_score": "34.04681977177663009"
+    },
+    {
+      "symbol": "MU",
+      "priority_score": "26.13212450888172969"
+    },
+    {
+      "symbol": "STRZ",
+      "priority_score": "24.97784283497904264"
+    },
+    {
+      "symbol": "RSVR",
+      "priority_score": "14.977891191958736881275"
+    },
+    {
+      "symbol": "SUI",
+      "priority_score": "0.0000000000000000000000000"
+    },
+    {
+      "symbol": "AFGC",
+      "priority_score": "0.000000000000000000000"
+    },
+    {
+      "symbol": "LYTS",
+      "priority_score": "0.0000000000000000000000000"
+    }
+  ],
+  "pass": true
+}

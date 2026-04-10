@@ -1,0 +1,199 @@
+{
+  "generated_at": "2026-03-24T00:01:19.400Z",
+  "phase": "PHASE_0_HARD_GATE",
+  "passed": false,
+  "results": [
+    {
+      "url": "http://localhost:3001/api/intelligence/top-opportunities?limit=5",
+      "checks": {
+        "status_200": true,
+        "count_gt_5": false,
+        "response_source_real": true,
+        "every_row_source_real": true,
+        "required_fields_present": false
+      },
+      "summary": {
+        "status": 200,
+        "count": 5,
+        "response_source": "real"
+      },
+      "missing_fields": [
+        {
+          "index": 0,
+          "missing": [
+            "why",
+            "how",
+            "expected_move"
+          ]
+        },
+        {
+          "index": 1,
+          "missing": [
+            "why",
+            "how",
+            "expected_move"
+          ]
+        },
+        {
+          "index": 2,
+          "missing": [
+            "why",
+            "how",
+            "expected_move"
+          ]
+        },
+        {
+          "index": 3,
+          "missing": [
+            "why",
+            "how",
+            "expected_move"
+          ]
+        },
+        {
+          "index": 4,
+          "missing": [
+            "why",
+            "how",
+            "expected_move"
+          ]
+        }
+      ],
+      "sample_rows": [
+        {
+          "symbol": "WNW",
+          "strategy": "momentum_continuation",
+          "final_score": "100.0000000000000000",
+          "relative_volume": 7757.59,
+          "change_percent": 50,
+          "why_moving": "WNW remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 99,
+          "trade_confidence": 99,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "WNW remains active with elevated participation",
+          "strength": 0.99,
+          "updated_at": "2026-03-24T00:01:09.879Z",
+          "source": "real",
+          "raw": {
+            "symbol": "WNW",
+            "strategy": "momentum_continuation",
+            "why_moving": "WNW remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 100,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 7757.594381233572,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 100,
+          "completeness": 100
+        },
+        {
+          "symbol": "LNSR",
+          "strategy": "momentum_continuation",
+          "final_score": "83.78981058752098086807925000",
+          "relative_volume": 30.45,
+          "change_percent": 50,
+          "why_moving": "LNSR remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 83.79,
+          "trade_confidence": 83.79,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "LNSR remains active with elevated participation",
+          "strength": 0.84,
+          "updated_at": "2026-03-24T00:01:09.879Z",
+          "source": "real",
+          "raw": {
+            "symbol": "LNSR",
+            "strategy": "momentum_continuation",
+            "why_moving": "LNSR remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 83.78981058752098,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 30.453555081063794,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 83.78981058752098,
+          "completeness": 100
+        },
+        {
+          "symbol": "TAOX",
+          "strategy": "momentum_continuation",
+          "final_score": "42.39796741771978803224832100",
+          "relative_volume": 2.44,
+          "change_percent": 50,
+          "why_moving": "TAOX remains active with elevated participation",
+          "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+          "confidence": 42.4,
+          "trade_confidence": 42.4,
+          "expected_move_percent": 2.2,
+          "execution_plan": {
+            "entry": "Confirm momentum_continuation with volume expansion",
+            "stop": "Below VWAP or invalidation low",
+            "target": "Scale into 2.20% move"
+          },
+          "trade_class": "TRADEABLE",
+          "catalyst_type": "FLOW",
+          "headline": "TAOX remains active with elevated participation",
+          "strength": 0.42,
+          "updated_at": "2026-03-24T00:01:09.879Z",
+          "source": "real",
+          "raw": {
+            "symbol": "TAOX",
+            "strategy": "momentum_continuation",
+            "why_moving": "TAOX remains active with elevated participation",
+            "how_to_trade": "Enter on breakout, stop below support, target next resistance",
+            "confidence": 42.39796741771979,
+            "expected_move_percent": 2.2,
+            "change_percent": 0.5,
+            "relative_volume": 2.442332636667706,
+            "trade_class": "TRADEABLE",
+            "source": "real"
+          },
+          "tradeable": true,
+          "trade_quality": 42.39796741771979,
+          "completeness": 100
+        }
+      ],
+      "raw_preview": "{\"ok\":true,\"status\":\"ok\",\"source\":\"real\",\"strict_mode\":false,\"count\":5,\"data\":[{\"symbol\":\"WNW\",\"strategy\":\"momentum_continuation\",\"final_score\":\"100.0000000000000000\",\"relative_volume\":7757.59,\"change_percent\":50,\"why_moving\":\"WNW remains active with elevated participation\",\"how_to_trade\":\"Enter on "
+    },
+    {
+      "url": "http://localhost:3001/api/stocks-in-play",
+      "checks": {
+        "status_200": true,
+        "count_gt_5": false,
+        "response_source_real": false,
+        "every_row_source_real": false,
+        "required_fields_present": true
+      },
+      "summary": {
+        "status": 200,
+        "count": 0,
+        "response_source": "fallback"
+      },
+      "missing_fields": [],
+      "sample_rows": [],
+      "raw_preview": "{\"success\":true,\"data\":[],\"count\":0,\"source\":\"fallback\",\"error\":\"Query timeout after 7000ms (api.stocks_in_play.real_query)\",\"unavailable\":true,\"fallback_used\":true}"
+    }
+  ]
+}

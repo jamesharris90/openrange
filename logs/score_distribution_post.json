@@ -1,0 +1,11 @@
+{
+  "ts": "2026-03-20T15:07:59.104Z",
+  "min_final_score": 0,
+  "max_final_score": 100,
+  "avg_final_score": 34.68973437960134,
+  "stddev_final_score": 18.214075219693378,
+  "above_60": 10,
+  "above_40": 149,
+  "total": 421,
+  "pass": true
+}

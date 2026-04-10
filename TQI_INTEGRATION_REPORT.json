@@ -1,0 +1,128 @@
+{
+  "generated_at": "2026-04-05T16:06:56.796Z",
+  "snapshot_at": "2026-04-05T16:06:55.939Z",
+  "row_count": 6372,
+  "avg_tqi": 26.83,
+  "distribution": {
+    "A": 19,
+    "B": 151,
+    "C": 647,
+    "D": 5555
+  },
+  "top_10_tickers_by_tqi": [
+    {
+      "symbol": "NKE",
+      "tqi": 90,
+      "tqi_label": "A",
+      "rvol": 4.623779424030808,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BEARISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "MSC",
+      "tqi": 90,
+      "tqi_label": "A",
+      "rvol": 4.514951882710069,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BEARISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "VCIG",
+      "tqi": 88,
+      "tqi_label": "A",
+      "rvol": 5.949544969753296,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BEARISH",
+      "catalyst_type": "TECHNICAL",
+      "catalyst_strength": 1
+    },
+    {
+      "symbol": "WNW",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 6528.378191048861,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "UCAR",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 3068.0207304142755,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "HUBC",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 419.1682041095866,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "OST",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 15,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "LTRN",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 12.65222708566035,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "UL",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 2.3367198485436522,
+      "trend": "BEARISH",
+      "vwap_position": "BELOW",
+      "momentum": "BEARISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    },
+    {
+      "symbol": "OLPX",
+      "tqi": 85,
+      "tqi_label": "A",
+      "rvol": 2.284987763586602,
+      "trend": "BULLISH",
+      "vwap_position": "ABOVE",
+      "momentum": "BULLISH",
+      "catalyst_type": "RECENT_NEWS",
+      "catalyst_strength": 2
+    }
+  ],
+  "timing_ms": {
+    "snapshot_total_ms": 33663,
+    "report_total_ms": 35549
+  }
+}

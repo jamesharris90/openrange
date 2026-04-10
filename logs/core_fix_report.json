@@ -1,0 +1,15 @@
+{
+  "change_percent_fixed": true,
+  "latency_ms": 445,
+  "top_opportunities_count": 20,
+  "valid_percent": 100,
+  "false_positive_percent": 0,
+  "verdict": "PASS",
+  "phase5_checks": {
+    "change_percent_never_null": true,
+    "top_latency_under_2s": true,
+    "watchlist_stable": true,
+    "decision_endpoint_valid": true,
+    "quotes_status_valid": true
+  }
+}

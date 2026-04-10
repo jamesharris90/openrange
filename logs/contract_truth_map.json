@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-03-21T23:52:52Z",
+  "mission": "contract_layer_repair",
+  "verdict": "PASS",
+  "contract_status": "CONTRACT LOCKED",
+  "fields": [
+    {
+      "component": "DecisionCard",
+      "field": "bias",
+      "lineage": {
+        "source_type": "direct",
+        "database": "derived in intelligence engine from execution_plan.win_probability",
+        "producer": "/api/intelligence/decision/:symbol decision.bias",
+        "consumer": "trading-os/src/components/terminal/research-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/intelligence/decision/AAPL",
+        "present": true,
+        "sample": "Neutral"
+      }
+    },
+    {
+      "component": "DecisionCard",
+      "field": "expectedMoveLabel",
+      "lineage": {
+        "source_type": "computed",
+        "database": "trade_outcomes.expected_move_percent and execution_plan.expected_move",
+        "producer": "/api/intelligence/decision/:symbol decision.expectedMoveLabel",
+        "consumer": "trading-os/src/components/terminal/research-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/intelligence/decision/AAPL",
+        "present": true,
+        "sample": "+/- 0.00%"
+      }
+    },
+    {
+      "component": "DecisionCard",
+      "field": "catalystType",
+      "lineage": {
+        "source_type": "direct",
+        "database": "trade_catalysts.catalyst_type or news_articles.catalyst_type",
+        "producer": "/api/intelligence/decision/:symbol decision.catalystType",
+        "consumer": "trading-os/src/components/terminal/research-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/intelligence/decision/AAPL",
+        "present": true,
+        "sample": "newsletter_intelligence"
+      }
+    },
+    {
+      "component": "TopOpportunities",
+      "field": "confidence_context_percent",
+      "lineage": {
+        "source_type": "computed",
+        "database": "derived from adjusted_confidence in intelligence top-opportunities builder",
+        "producer": "/api/intelligence/top-opportunities results[].confidence_context_percent",
+        "consumer": "trading-os/src/components/terminal/trading-terminal-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/intelligence/top-opportunities?limit=3",
+        "present": true,
+        "sample": 100
+      }
+    },
+    {
+      "component": "EarningsPage",
+      "field": "event_date",
+      "lineage": {
+        "source_type": "direct",
+        "database": "earnings_events.report_date",
+        "producer": "/api/earnings/calendar data[].event_date",
+        "consumer": "trading-os/src/lib/api/earnings.ts and trading-os/src/components/terminal/earnings-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/earnings/calendar",
+        "present": true,
+        "sample": "2026-03-24"
+      }
+    },
+    {
+      "component": "EarningsPage",
+      "field": "tradeability",
+      "lineage": {
+        "source_type": "computed",
+        "database": "classification output from earnings classifier",
+        "producer": "/api/earnings/calendar data[].tradeability",
+        "consumer": "trading-os/src/lib/api/earnings.ts and trading-os/src/components/terminal/earnings-view.tsx"
+      },
+      "validation": {
+        "endpoint": "/api/earnings/calendar",
+        "present": true,
+        "sample": "A"
+      }
+    }
+  ],
+  "notes": [
+    "All targeted fields now exist at API contract layer.",
+    "Frontend consumers updated to use canonical names without alias fallbacks for target fields."
+  ]
+}

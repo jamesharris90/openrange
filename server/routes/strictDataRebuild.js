@@ -1,5 +1,6 @@
 const express = require('express');
 const { queryWithTimeout } = require('../db/pg');
+const { mapEarnings } = require('../adapters/earningsAdapter');
 
 const router = express.Router();
 
@@ -24,11 +25,11 @@ router.get('/api/earnings', async (req, res) => {
   }
   if (from) {
     params.push(from);
-    where.push(`event_date >= $${params.length}::date`);
+    where.push(`report_date >= $${params.length}::date`);
   }
   if (to) {
     params.push(to);
-    where.push(`event_date <= $${params.length}::date`);
+    where.push(`report_date <= $${params.length}::date`);
   }
 
   params.push(limit);
@@ -37,18 +38,16 @@ router.get('/api/earnings', async (req, res) => {
     const sql = `
       SELECT
         symbol,
-        event_date,
-        last_updated_date,
+        report_date,
         eps_estimate,
         eps_actual,
-        revenue_estimate,
-        revenue_actual,
-        source,
-        raw_json,
-        ingested_at
-      FROM earnings_calendar
+        rev_estimate,
+        rev_actual,
+        eps_surprise_pct,
+        rev_surprise_pct
+      FROM earnings_events
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-      ORDER BY event_date DESC, symbol ASC
+      ORDER BY report_date DESC, symbol ASC
       LIMIT $${params.length}
     `;
 
@@ -56,13 +55,13 @@ router.get('/api/earnings', async (req, res) => {
       label: 'api.strict.earnings', timeoutMs: 3000, maxRetries: 1, retryDelayMs: 100,
     });
 
-    return res.json({ success: true, data: result.rows || [] });
+    return res.json({ success: true, data: mapEarnings(result.rows || []) });
   } catch (error) {
     return res.status(500).json({ success: false, data: [], error: error.message || 'earnings query failed' });
   }
 });
 
-router.get('/api/news', async (req, res) => {
+router.get('/api/strict/news', async (req, res) => {
   const limit = asLimit(req.query.limit, 200, 1000);
   const symbol = String(req.query.symbol || '').trim().toUpperCase();
   const from = String(req.query.from || '').trim();

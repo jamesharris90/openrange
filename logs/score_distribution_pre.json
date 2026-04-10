@@ -1,0 +1,9 @@
+{
+  "ts": "2026-03-20T15:07:47.887Z",
+  "min_decision_score": 7,
+  "max_decision_score": 47,
+  "avg_decision_score": 9.235784228028503,
+  "stddev_decision_score": 3.574152075887595,
+  "suppressed": false,
+  "pass": true
+}

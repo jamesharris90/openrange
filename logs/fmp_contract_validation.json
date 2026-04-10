@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-03-23T21:39:51.165Z",
+  "phase": "fmp_contract_validation",
+  "source_file": "logs/fmp_dry_run_pipeline.json",
+  "inspected_rows": 10,
+  "violations": [],
+  "null_or_nan_count": 0,
+  "pass": true
+}

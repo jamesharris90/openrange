@@ -1,0 +1,189 @@
+{
+  "started_at": "2026-03-20T14:13:08.590Z",
+  "phases": [
+    {
+      "phase": "PHASE_3",
+      "result": {
+        "ts": "2026-03-20T14:13:09.816Z",
+        "sampled_signals": 10,
+        "sampled_stocks_in_play": 10,
+        "bad_signals": 0,
+        "bad_stocks_in_play": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_4",
+      "result": {
+        "ts": "2026-03-20T14:13:09.904Z",
+        "news_time_column": "published_at",
+        "sampled_symbols": 10,
+        "sample": [
+          {
+            "symbol": "LNSR",
+            "priority_score": "483.18852578891434022"
+          },
+          {
+            "symbol": "RDGT",
+            "priority_score": "191.97396114672425233"
+          },
+          {
+            "symbol": "EQS",
+            "priority_score": "52.65158259045621388"
+          },
+          {
+            "symbol": "ASBA",
+            "priority_score": "34.04681977177663009"
+          },
+          {
+            "symbol": "MU",
+            "priority_score": "26.13212450888172969"
+          },
+          {
+            "symbol": "STRZ",
+            "priority_score": "24.97784283497904264"
+          },
+          {
+            "symbol": "RSVR",
+            "priority_score": "14.977891191958736881275"
+          },
+          {
+            "symbol": "SUI",
+            "priority_score": "0.0000000000000000000000000"
+          },
+          {
+            "symbol": "AFGC",
+            "priority_score": "0.000000000000000000000"
+          },
+          {
+            "symbol": "LYTS",
+            "priority_score": "0.0000000000000000000000000"
+          }
+        ],
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_5",
+      "result": {
+        "ts": "2026-03-20T14:13:10.116Z",
+        "symbol_column": "symbol",
+        "date_column": "report_date",
+        "sampled_rows": 0,
+        "sample": [],
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_6",
+      "result": {
+        "ts": "2026-03-20T14:13:10.498Z",
+        "top_symbols": [
+          {
+            "symbol": "WNW",
+            "priority_score": "123345.72672161379756556000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "CHNR",
+            "priority_score": "16511.18627980462791047000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "PMAX",
+            "priority_score": "9567.51620484541641643000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "ACXP",
+            "priority_score": "2510.11965099903299147000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "CYCU",
+            "priority_score": "1503.99649295749916932000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "HUBC",
+            "priority_score": "1417.83269125841847803000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "SVCO",
+            "priority_score": "1366.62783824837541857000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "LNZA",
+            "priority_score": "1249.21724379560387191000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "AIRS",
+            "priority_score": "1064.90725107748196367000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          },
+          {
+            "symbol": "NPAC",
+            "priority_score": "939.42998674145033516000",
+            "win_rate": "0.00000000000000000000",
+            "avg_return": "0.00000000000000000000"
+          }
+        ],
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_7",
+      "result": {
+        "ts": "2026-03-20T14:13:10.608Z",
+        "has_columns": {
+          "relative_volume": true,
+          "volume": true,
+          "avg_volume_30d": true,
+          "gap_percent": true
+        },
+        "null_stats": {
+          "relative_volume_nulls": 854,
+          "gap_percent_nulls": 1172,
+          "avg_volume_30d_nulls": 854,
+          "total_rows": 5975
+        },
+        "nan_rows": 0,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_8",
+      "result": {
+        "ts": "2026-03-20T14:13:26.723Z",
+        "status": 200,
+        "total_items": 16,
+        "scored_items": 16,
+        "pass": true
+      }
+    },
+    {
+      "phase": "PHASE_9",
+      "result": {
+        "ts": "2026-03-20T14:13:39.811Z",
+        "lifecycle_overlap": 130,
+        "signals_recent": 16,
+        "stocks_in_play_filtered_count": 16,
+        "decision_coverage": 16,
+        "pass": true
+      }
+    }
+  ],
+  "completed_at": "2026-03-20T14:13:39.812Z"
+}

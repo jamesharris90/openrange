@@ -3,7 +3,6 @@
 const path = require('path');
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
-const { Client } = require('pg');
 const { DATA_CONTRACT } = require('../server/contracts/dataContract.cjs');
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -112,11 +111,7 @@ async function main() {
 
   let pg = null;
   if (DATABASE_URL) {
-    pg = new Client({
-      connectionString: DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
-    await pg.connect();
+    pg = require('../server/db/pool');
   }
 
   async function runSql(query, params = []) {

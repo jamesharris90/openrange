@@ -18,6 +18,8 @@ function normalizeServerBackendBase(url: string): string {
 const rawBackendApiBase =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
   "http://localhost:3007";
 

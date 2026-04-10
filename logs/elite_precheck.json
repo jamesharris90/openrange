@@ -1,0 +1,107 @@
+{
+  "ts": "2026-03-20T16:30:57.598Z",
+  "top15": [
+    {
+      "symbol": "WNW",
+      "final_score": 100,
+      "relative_volume": 7757.594381233572,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "CHNR",
+      "final_score": 49.39006702385128,
+      "relative_volume": 1038.4193886669577,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "JBL",
+      "final_score": 47.56470453131581,
+      "relative_volume": 0.8962239947428011,
+      "gap_percent": 7.35
+    },
+    {
+      "symbol": "PMAX",
+      "final_score": 45.71516251168999,
+      "relative_volume": 601.7331883550577,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "ACXP",
+      "final_score": 41.85286689306004,
+      "relative_volume": 157.84236798736057,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "CYCU",
+      "final_score": 41.28952370207171,
+      "relative_volume": 94.60267251305027,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "HUBC",
+      "final_score": 41.241067984554185,
+      "relative_volume": 89.17271831813953,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "SVCO",
+      "final_score": 41.212147964515616,
+      "relative_volume": 85.9187948583884,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "LNZA",
+      "final_score": 41.14574078071367,
+      "relative_volume": 78.45863168525811,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "AIRS",
+      "final_score": 41.04231511473963,
+      "relative_volume": 66.95727994197999,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "COCO",
+      "final_score": 41.01698760425204,
+      "relative_volume": 1.6682761891095421,
+      "gap_percent": 2.25
+    },
+    {
+      "symbol": "NPAC",
+      "final_score": 40.97167182037932,
+      "relative_volume": 59.08477904034279,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "LPBB",
+      "final_score": 40.94328668972518,
+      "relative_volume": 55.91415436300946,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "WINV",
+      "final_score": 40.78553353412082,
+      "relative_volume": 38.333333333333336,
+      "gap_percent": 0
+    },
+    {
+      "symbol": "TLYS",
+      "final_score": 40.76956759010136,
+      "relative_volume": 36.56698883437158,
+      "gap_percent": 0
+    }
+  ],
+  "top10_metrics": {
+    "count": 10,
+    "avg_relative_volume": 997.1596,
+    "avg_gap_percent": 0.735,
+    "trend_alignment_count": 9,
+    "low_rvol_count": 1,
+    "extreme_gap_count": 0,
+    "clean_gap_count": 1,
+    "valid_percent": 100,
+    "score_spread_rank1_to_rank10": 58.9577,
+    "quality_aware_spread_rank1_to_rank10": 58.9577
+  }
+}

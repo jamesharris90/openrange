@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-03-22T20:43:50.034Z",
+  "runs": [
+    {
+      "run": 1,
+      "status": 200,
+      "response_time_ms": 463,
+      "count": 30,
+      "timeout": false,
+      "fallback_used": true,
+      "sample_symbols": [
+        "LNG",
+        "ACXP",
+        "RWAYI",
+        "GAING",
+        "ELAB"
+      ]
+    },
+    {
+      "run": 2,
+      "status": 200,
+      "response_time_ms": 460,
+      "count": 30,
+      "timeout": false,
+      "fallback_used": true,
+      "sample_symbols": [
+        "LNG",
+        "ACXP",
+        "RWAYI",
+        "GAING",
+        "ELAB"
+      ]
+    },
+    {
+      "run": 3,
+      "status": 200,
+      "response_time_ms": 501,
+      "count": 30,
+      "timeout": false,
+      "fallback_used": true,
+      "sample_symbols": [
+        "LNG",
+        "ACXP",
+        "RWAYI",
+        "GAING",
+        "ELAB"
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

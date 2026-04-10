@@ -44,22 +44,17 @@ try {
 
 console.log("\n🔧 Testing database connection...");
 
-const { Client } = require("pg");
-const { resolveDatabaseUrl } = require("../db/connectionConfig");
+const pool = require("../db/pool");
 
 async function testDB() {
-  const { dbUrl } = resolveDatabaseUrl();
-  const client = new Client({
-    connectionString: dbUrl
-  });
-
   try {
-    await client.connect();
+    await pool.query("SELECT NOW() AS now");
     console.log("✅ Database connection successful");
-    await client.end();
   } catch (err) {
     console.log("❌ Database connection failed");
     console.log(err.message);
+  } finally {
+    await pool.end().catch(() => {});
   }
 }
 

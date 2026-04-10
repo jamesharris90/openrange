@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const { Pool } = require('pg');
+const pool = require('../server/db/pool');
 
 dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
 
@@ -58,11 +58,6 @@ async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL missing in server/.env');
   }
-
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.PGSSL_DISABLE === 'true' ? false : { rejectUnauthorized: false },
-  });
 
   const report = {
     generatedAt: new Date().toISOString(),

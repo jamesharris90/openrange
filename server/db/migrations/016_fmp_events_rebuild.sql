@@ -16,8 +16,20 @@ CREATE TABLE IF NOT EXISTS earnings_calendar (
   CONSTRAINT earnings_calendar_unique_event UNIQUE (symbol, event_date, source)
 );
 
-CREATE INDEX IF NOT EXISTS idx_earnings_calendar_symbol ON earnings_calendar (symbol);
-CREATE INDEX IF NOT EXISTS idx_earnings_calendar_event_date ON earnings_calendar (event_date DESC);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'earnings_calendar'
+      AND c.relkind = 'r'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_earnings_calendar_symbol ON earnings_calendar (symbol);
+    CREATE INDEX IF NOT EXISTS idx_earnings_calendar_event_date ON earnings_calendar (event_date DESC);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS ipo_calendar (
   id BIGSERIAL PRIMARY KEY,

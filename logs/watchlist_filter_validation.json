@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-03-22T20:43:48.607Z",
+  "required_fields": [
+    "symbol",
+    "gap_percent",
+    "rvol",
+    "score",
+    "catalyst"
+  ],
+  "optional_fields": [
+    "relative_volume",
+    "atr_percent",
+    "price"
+  ],
+  "missing_required_fields": [],
+  "missing_optional_fields": [
+    "relative_volume",
+    "atr_percent",
+    "price"
+  ],
+  "attempts": [
+    {
+      "label": "base",
+      "gap_threshold": 1,
+      "atr_threshold": 2,
+      "filtered_count": 30
+    }
+  ],
+  "applied_thresholds": {
+    "gap": 1,
+    "atr": 2,
+    "label": "base"
+  },
+  "filtered_count": 30,
+  "verdict": "PASS"
+}

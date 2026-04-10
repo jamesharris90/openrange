@@ -1,0 +1,57 @@
+[
+  {
+    "symbol": "WNW",
+    "entry_price": 0.149,
+    "final_score": 100,
+    "relative_volume": 7757.594381233572,
+    "timestamp": "2026-03-23T09:05:41.675Z",
+    "move_5m": 0,
+    "move_15m": 0,
+    "move_60m": 0,
+    "outcome": "NEUTRAL"
+  },
+  {
+    "symbol": "LNSR",
+    "entry_price": 5.91,
+    "final_score": 83.78981058752098,
+    "relative_volume": 30.453555081063794,
+    "timestamp": "2026-03-23T09:05:41.675Z",
+    "move_5m": 0,
+    "move_15m": 0,
+    "move_60m": 0,
+    "outcome": "NEUTRAL"
+  },
+  {
+    "symbol": "TAOX",
+    "entry_price": 5.95,
+    "final_score": 42.39796741771979,
+    "relative_volume": 2.442332636667706,
+    "timestamp": "2026-03-23T09:05:41.675Z",
+    "move_5m": 0,
+    "move_15m": 0,
+    "move_60m": 0,
+    "outcome": "NEUTRAL"
+  },
+  {
+    "symbol": "EQ",
+    "entry_price": 2.13,
+    "final_score": 42.394608111656574,
+    "relative_volume": 2.1465592762640515,
+    "timestamp": "2026-03-23T09:05:41.675Z",
+    "move_5m": 0,
+    "move_15m": 0,
+    "move_60m": 0,
+    "outcome": "NEUTRAL"
+  },
+  {
+    "symbol": "TENX",
+    "entry_price": 14.3,
+    "final_score": 42.394342905760695,
+    "relative_volume": 2.111814608494867,
+    "timestamp": "2026-03-23T09:05:41.675Z",
+    "move_5m": 0,
+    "move_15m": 0,
+    "move_60m": 0,
+    "outcome": "NEUTRAL"
+  }
+]

@@ -1,0 +1,2005 @@
+{
+  "report": {
+    "all_public_tables": [
+      "activity_log",
+      "adaptive_strategy_rank",
+      "alert_history",
+      "alerts",
+      "audit_log",
+      "beacon_learning_metrics",
+      "beacon_rankings",
+      "beacon_weights",
+      "broker_executions",
+      "calibration_health",
+      "catalyst_clusters",
+      "catalyst_events",
+      "catalyst_intelligence",
+      "catalyst_precedent",
+      "catalyst_reactions",
+      "catalyst_signals",
+      "chart_trends",
+      "company_profiles",
+      "daily_ohlc",
+      "daily_reviews",
+      "daily_signal_snapshot",
+      "data_freshness_dashboard",
+      "data_integrity",
+      "data_integrity_events",
+      "decision_view",
+      "decision_view_core",
+      "decision_view_elite_source",
+      "decision_view_elite_source_1774023870681",
+      "decision_view_elite_source_1774023890956",
+      "decision_view_elite_source_1774023902519",
+      "decision_view_elite_source_1774023923131",
+      "decision_view_elite_source_1774023965822",
+      "decision_view_elite_source_1774023990206",
+      "decision_view_elite_source_1774024015082",
+      "decision_view_elite_source_1774024254491",
+      "decision_view_elite_source_1774024257600",
+      "discovered_symbols",
+      "dynamic_watchlist",
+      "early_accumulation_signals",
+      "early_signal_outcomes",
+      "earnings_calendar",
+      "earnings_events",
+      "earnings_market_reaction",
+      "earnings_scores",
+      "earnings_transcripts",
+      "engine_activity_last_hour",
+      "engine_activity_rates",
+      "engine_errors",
+      "engine_health_dashboard",
+      "engine_runtime",
+      "engine_status",
+      "engine_telemetry",
+      "event_log",
+      "expected_move_tracking",
+      "expected_moves",
+      "feature_access_audit",
+      "feature_audit",
+      "feature_flags",
+      "feature_overrides",
+      "feature_registry",
+      "feature_roles",
+      "flow_signals",
+      "gap_candidates",
+      "ingestion_state",
+      "institutional_flow",
+      "institutional_flow_candidates",
+      "integrity_events",
+      "intel_news",
+      "intel_raw",
+      "intelligence_briefs",
+      "intelligence_emails",
+      "intraday_1h",
+      "intraday_1m",
+      "intraday_ohlc",
+      "intraday_volume_30m",
+      "intraday_volume_spikes",
+      "ipo_calendar",
+      "liquid_universe",
+      "macro_narratives",
+      "market_context_snapshot",
+      "market_index_snapshot",
+      "market_metrics",
+      "market_metrics_clean",
+      "market_narratives",
+      "market_news",
+      "market_quotes",
+      "market_regime_daily",
+      "market_regime_inputs",
+      "missed_opportunities",
+      "morning_briefings",
+      "news_articles",
+      "news_catalysts",
+      "news_events",
+      "newsletter_campaigns",
+      "newsletter_send_history",
+      "newsletter_sends",
+      "newsletter_subscribers",
+      "opportunities",
+      "opportunities_v2",
+      "opportunity_intelligence",
+      "opportunity_stream",
+      "opportunity_stream_dedup",
+      "options_cache",
+      "order_flow_signals",
+      "plan_features",
+      "platform_watchdog",
+      "platform_watchdog_status",
+      "profiles",
+      "provider_health",
+      "qualified_signals",
+      "radar_a_setups",
+      "radar_market_summary",
+      "radar_momentum",
+      "radar_news",
+      "radar_stocks_in_play",
+      "radar_top_trades",
+      "radar_trade_summary",
+      "roles",
+      "scheduler_status",
+      "schema_migrations",
+      "sector_heatmap",
+      "sector_momentum",
+      "sector_momentum_ranked",
+      "sector_momentum_snapshot",
+      "sector_momentum_summary",
+      "sector_rotation_snapshot",
+      "settings",
+      "signal_alerts",
+      "signal_behaviour",
+      "signal_calibrated_scores",
+      "signal_calibration_log",
+      "signal_calibration_results",
+      "signal_capture_analysis",
+      "signal_capture_rate_view",
+      "signal_catalysts",
+      "signal_component_outcomes",
+      "signal_engine_metrics",
+      "signal_features",
+      "signal_grade_distribution",
+      "signal_hierarchy",
+      "signal_narratives",
+      "signal_outcomes",
+      "signal_performance",
+      "signal_registry",
+      "signal_system_metrics",
+      "signal_validation_daily",
+      "signal_validation_weekly",
+      "signal_weight_calibration",
+      "signals",
+      "signals_today",
+      "sparkline_cache",
+      "squeeze_signals",
+      "stock_splits",
+      "stocks_in_play",
+      "stocks_in_play_engine",
+      "stocks_in_play_filtered",
+      "strategy_accuracy",
+      "strategy_edge_rank",
+      "strategy_learning",
+      "strategy_learning_metrics",
+      "strategy_outcome_segments",
+      "strategy_performance",
+      "strategy_performance_dashboard",
+      "strategy_performance_summary",
+      "strategy_signals",
+      "strategy_stats",
+      "strategy_trades",
+      "strategy_weights",
+      "symbol_intraday_cache",
+      "symbol_learning_metrics",
+      "symbol_performance",
+      "symbol_queue",
+      "system_alerts",
+      "system_events",
+      "system_state",
+      "ticker_universe",
+      "tier_feature_defaults",
+      "top_signals_today",
+      "tracked_universe",
+      "tradable_universe",
+      "trade_catalysts",
+      "trade_metadata",
+      "trade_narratives",
+      "trade_opportunities",
+      "trade_outcomes",
+      "trade_setups",
+      "trade_signals",
+      "trade_tags",
+      "trades",
+      "unified_opportunities",
+      "usage_events",
+      "user_alerts",
+      "user_feature_access",
+      "user_preferences",
+      "user_presets",
+      "user_roles",
+      "user_signal_feedback",
+      "user_watchlists",
+      "users"
+    ],
+    "tables": [
+      {
+        "name": "intraday_1m",
+        "exists": true,
+        "columns": [
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "timestamp",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "open",
+            "type": "double precision"
+          },
+          {
+            "name": "high",
+            "type": "double precision"
+          },
+          {
+            "name": "low",
+            "type": "double precision"
+          },
+          {
+            "name": "close",
+            "type": "double precision"
+          },
+          {
+            "name": "volume",
+            "type": "bigint"
+          },
+          {
+            "name": "session",
+            "type": "text"
+          }
+        ],
+        "sample_rows": [
+          {
+            "symbol": "CRCL",
+            "timestamp": "2026-03-18T12:50:00.000Z",
+            "open": 130.75,
+            "high": 130.75,
+            "low": 130.75,
+            "close": 130.75,
+            "volume": "0",
+            "session": "premarket"
+          },
+          {
+            "symbol": "XPOF",
+            "timestamp": "2026-03-18T12:48:00.000Z",
+            "open": 5.465,
+            "high": 5.465,
+            "low": 5.465,
+            "close": 5.465,
+            "volume": "0",
+            "session": "premarket"
+          },
+          {
+            "symbol": "FWDI",
+            "timestamp": "2026-03-18T12:35:00.000Z",
+            "open": 5.555,
+            "high": 5.555,
+            "low": 5.555,
+            "close": 5.555,
+            "volume": "0",
+            "session": "premarket"
+          },
+          {
+            "symbol": "ORKA",
+            "timestamp": "2026-03-17T09:37:00.000Z",
+            "open": 40.71,
+            "high": 40.71,
+            "low": 40.71,
+            "close": 40.71,
+            "volume": "380",
+            "session": "regular"
+          },
+          {
+            "symbol": "ORKA",
+            "timestamp": "2026-03-17T09:36:00.000Z",
+            "open": 41.01,
+            "high": 41.12,
+            "low": 40.68,
+            "close": 40.88,
+            "volume": "6348",
+            "session": "regular"
+          }
+        ]
+      },
+      {
+        "name": "daily_ohlc",
+        "exists": true,
+        "columns": [
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "date",
+            "type": "date"
+          },
+          {
+            "name": "open",
+            "type": "double precision"
+          },
+          {
+            "name": "high",
+            "type": "double precision"
+          },
+          {
+            "name": "low",
+            "type": "double precision"
+          },
+          {
+            "name": "close",
+            "type": "double precision"
+          },
+          {
+            "name": "volume",
+            "type": "bigint"
+          }
+        ],
+        "sample_rows": [
+          {
+            "symbol": "AAPL",
+            "date": "2021-02-24T00:00:00.000Z",
+            "open": 124.94,
+            "high": 125.56,
+            "low": 122.23,
+            "close": 125.35,
+            "volume": "111039900"
+          },
+          {
+            "symbol": "AAPL",
+            "date": "2021-02-25T00:00:00.000Z",
+            "open": 124.68,
+            "high": 126.46,
+            "low": 120.54,
+            "close": 120.99,
+            "volume": "148199500"
+          },
+          {
+            "symbol": "AAPL",
+            "date": "2021-02-26T00:00:00.000Z",
+            "open": 122.59,
+            "high": 124.85,
+            "low": 121.2,
+            "close": 121.26,
+            "volume": "164560400"
+          },
+          {
+            "symbol": "AAPL",
+            "date": "2021-03-01T00:00:00.000Z",
+            "open": 123.75,
+            "high": 127.93,
+            "low": 122.79,
+            "close": 127.79,
+            "volume": "116307900"
+          },
+          {
+            "symbol": "AAPL",
+            "date": "2021-03-02T00:00:00.000Z",
+            "open": 128.41,
+            "high": 128.72,
+            "low": 125.01,
+            "close": 125.12,
+            "volume": "102260900"
+          }
+        ]
+      },
+      {
+        "name": "earnings_events",
+        "exists": true,
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "report_date",
+            "type": "date"
+          },
+          {
+            "name": "report_time",
+            "type": "text"
+          },
+          {
+            "name": "eps_estimate",
+            "type": "double precision"
+          },
+          {
+            "name": "eps_actual",
+            "type": "double precision"
+          },
+          {
+            "name": "rev_estimate",
+            "type": "double precision"
+          },
+          {
+            "name": "rev_actual",
+            "type": "double precision"
+          },
+          {
+            "name": "eps_surprise_pct",
+            "type": "double precision"
+          },
+          {
+            "name": "rev_surprise_pct",
+            "type": "double precision"
+          },
+          {
+            "name": "guidance_direction",
+            "type": "text"
+          },
+          {
+            "name": "market_cap",
+            "type": "double precision"
+          },
+          {
+            "name": "float",
+            "type": "double precision"
+          },
+          {
+            "name": "sector",
+            "type": "text"
+          },
+          {
+            "name": "industry",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "company",
+            "type": "text"
+          },
+          {
+            "name": "earnings_date",
+            "type": "date"
+          },
+          {
+            "name": "revenue_estimate",
+            "type": "numeric"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "time",
+            "type": "text"
+          }
+        ],
+        "sample_rows": [
+          {
+            "id": 3,
+            "symbol": "SPY",
+            "report_date": "2026-02-20T00:00:00.000Z",
+            "report_time": "amc",
+            "eps_estimate": 1,
+            "eps_actual": 1.3,
+            "rev_estimate": 100,
+            "rev_actual": 115,
+            "eps_surprise_pct": 30,
+            "rev_surprise_pct": 15,
+            "guidance_direction": "raised",
+            "market_cap": null,
+            "float": null,
+            "sector": "ETF",
+            "industry": "ETF",
+            "created_at": "2026-02-24T00:03:46.219Z",
+            "company": null,
+            "earnings_date": null,
+            "revenue_estimate": null,
+            "updated_at": "2026-03-05T21:50:45.064Z",
+            "time": null
+          },
+          {
+            "id": 9270,
+            "symbol": "ELV",
+            "report_date": "2026-02-28T00:00:00.000Z",
+            "report_time": null,
+            "eps_estimate": 8270.13,
+            "eps_actual": null,
+            "rev_estimate": 95608000000,
+            "rev_actual": null,
+            "eps_surprise_pct": null,
+            "rev_surprise_pct": null,
+            "guidance_direction": null,
+            "market_cap": null,
+            "float": null,
+            "sector": null,
+            "industry": null,
+            "created_at": "2026-03-01T00:19:51.258Z",
+            "company": null,
+            "earnings_date": null,
+            "revenue_estimate": null,
+            "updated_at": "2026-03-05T21:50:45.064Z",
+            "time": null
+          },
+          {
+            "id": 821,
+            "symbol": "AFGC",
+            "report_date": "2026-02-23T00:00:00.000Z",
+            "report_time": null,
+            "eps_estimate": null,
+            "eps_actual": 18.96,
+            "rev_estimate": null,
+            "rev_actual": 640981787000,
+            "eps_surprise_pct": null,
+            "rev_surprise_pct": null,
+            "guidance_direction": null,
+            "market_cap": null,
+            "float": null,
+            "sector": null,
+            "industry": null,
+            "created_at": "2026-03-01T00:11:16.588Z",
+            "company": null,
+            "earnings_date": null,
+            "revenue_estimate": null,
+            "updated_at": "2026-03-05T21:50:45.064Z",
+            "time": null
+          },
+          {
+            "id": 1477,
+            "symbol": "ALV",
+            "report_date": "2026-02-27T00:00:00.000Z",
+            "report_time": null,
+            "eps_estimate": null,
+            "eps_actual": 0.00172,
+            "rev_estimate": null,
+            "rev_actual": 155675305,
+            "eps_surprise_pct": null,
+            "rev_surprise_pct": null,
+            "guidance_direction": null,
+            "market_cap": null,
+            "float": null,
+            "sector": null,
+            "industry": null,
+            "created_at": "2026-03-01T00:11:51.539Z",
+            "company": null,
+            "earnings_date": null,
+            "revenue_estimate": null,
+            "updated_at": "2026-03-05T21:50:45.064Z",
+            "time": null
+          },
+          {
+            "id": 15,
+            "symbol": "AVNS",
+            "report_date": "2026-02-24T00:00:00.000Z",
+            "report_time": null,
+            "eps_estimate": 0.4871,
+            "eps_actual": -1.6298,
+            "rev_estimate": 2782543550,
+            "rev_actual": 2973700000,
+            "eps_surprise_pct": null,
+            "rev_surprise_pct": null,
+            "guidance_direction": null,
+            "market_cap": 706959954,
+            "float": null,
+            "sector": "Healthcare",
+            "industry": "Medical - Devices",
+            "created_at": "2026-02-24T06:50:57.537Z",
+            "company": null,
+            "earnings_date": null,
+            "revenue_estimate": null,
+            "updated_at": "2026-03-05T21:50:45.064Z",
+            "time": null
+          }
+        ]
+      },
+      {
+        "name": "market_quotes",
+        "exists": true,
+        "columns": [
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "price",
+            "type": "numeric"
+          },
+          {
+            "name": "change_percent",
+            "type": "numeric"
+          },
+          {
+            "name": "volume",
+            "type": "bigint"
+          },
+          {
+            "name": "market_cap",
+            "type": "bigint"
+          },
+          {
+            "name": "sector",
+            "type": "text"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "short_float",
+            "type": "numeric"
+          },
+          {
+            "name": "float",
+            "type": "numeric"
+          },
+          {
+            "name": "relative_volume",
+            "type": "numeric"
+          },
+          {
+            "name": "premarket_volume",
+            "type": "numeric"
+          }
+        ],
+        "sample_rows": [
+          {
+            "symbol": "CGC",
+            "price": "1.01",
+            "change_percent": "-0.01",
+            "volume": "10712757",
+            "market_cap": "519666745",
+            "sector": "Healthcare",
+            "updated_at": "2026-03-20T00:27:08.990Z",
+            "short_float": null,
+            "float": null,
+            "relative_volume": null,
+            "premarket_volume": null
+          },
+          {
+            "symbol": "FLWS",
+            "price": "3.17",
+            "change_percent": "0.01",
+            "volume": "409829",
+            "market_cap": "201802539",
+            "sector": "Consumer Cyclical",
+            "updated_at": "2026-03-19T23:13:40.032Z",
+            "short_float": null,
+            "float": null,
+            "relative_volume": null,
+            "premarket_volume": null
+          },
+          {
+            "symbol": "AGNCZ",
+            "price": "25.6988",
+            "change_percent": "0.0188",
+            "volume": "52082",
+            "market_cap": "28494058476",
+            "sector": "Financial Services",
+            "updated_at": "2026-03-09T18:41:03.674Z",
+            "short_float": null,
+            "float": null,
+            "relative_volume": null,
+            "premarket_volume": null
+          },
+          {
+            "symbol": "DBI",
+            "price": "5.61",
+            "change_percent": "0.21",
+            "volume": "376971",
+            "market_cap": "278458493",
+            "sector": "Consumer Cyclical",
+            "updated_at": "2026-03-19T23:13:40.032Z",
+            "short_float": null,
+            "float": null,
+            "relative_volume": null,
+            "premarket_volume": null
+          },
+          {
+            "symbol": "VIX",
+            "price": "23.09",
+            "change_percent": "0.72",
+            "volume": "0",
+            "market_cap": "0",
+            "sector": null,
+            "updated_at": "2026-03-18T15:16:42.500Z",
+            "short_float": null,
+            "float": null,
+            "relative_volume": null,
+            "premarket_volume": null
+          }
+        ]
+      },
+      {
+        "name": "market_metrics",
+        "exists": true,
+        "columns": [
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "price",
+            "type": "numeric"
+          },
+          {
+            "name": "gap_percent",
+            "type": "numeric"
+          },
+          {
+            "name": "relative_volume",
+            "type": "numeric"
+          },
+          {
+            "name": "atr",
+            "type": "numeric"
+          },
+          {
+            "name": "rsi",
+            "type": "numeric"
+          },
+          {
+            "name": "vwap",
+            "type": "numeric"
+          },
+          {
+            "name": "float_rotation",
+            "type": "numeric"
+          },
+          {
+            "name": "last_updated",
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "change_percent",
+            "type": "numeric"
+          },
+          {
+            "name": "avg_volume_30d",
+            "type": "numeric"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "volume",
+            "type": "bigint"
+          },
+          {
+            "name": "previous_high",
+            "type": "numeric"
+          },
+          {
+            "name": "float_shares",
+            "type": "numeric"
+          },
+          {
+            "name": "atr_percent",
+            "type": "numeric"
+          },
+          {
+            "name": "short_float",
+            "type": "numeric"
+          },
+          {
+            "name": "liquidity_surge",
+            "type": "numeric"
+          }
+        ],
+        "sample_rows": [
+          {
+            "symbol": "VIX",
+            "price": "23.09",
+            "gap_percent": "0.72",
+            "relative_volume": null,
+            "atr": null,
+            "rsi": null,
+            "vwap": null,
+            "float_rotation": null,
+            "last_updated": "2026-03-18T15:21:44.163Z",
+            "change_percent": "0.72",
+            "avg_volume_30d": null,
+            "updated_at": "2026-03-20T00:22:36.925Z",
+            "volume": "0",
+            "previous_high": null,
+            "float_shares": null,
+            "atr_percent": null,
+            "short_float": null,
+            "liquidity_surge": null
+          },
+          {
+            "symbol": "KELYA",
+            "price": "8.496",
+            "gap_percent": "-0.054",
+            "relative_volume": "0.34619063501338572307",
+            "atr": "0.53285714285714271429",
+            "rsi": "29.76878612716758655479",
+            "vwap": null,
+            "float_rotation": null,
+            "last_updated": "2026-03-04T21:15:55.492Z",
+            "change_percent": "-12.5025746652935",
+            "avg_volume_30d": "571765.900000000000",
+            "updated_at": "2026-03-20T00:22:36.925Z",
+            "volume": "197940",
+            "previous_high": null,
+            "float_shares": "34211526.012241054614",
+            "atr_percent": "3.90032502708558",
+            "short_float": null,
+            "liquidity_surge": null
+          },
+          {
+            "symbol": "OYSER",
+            "price": "0.1401",
+            "gap_percent": "-0.0098",
+            "relative_volume": null,
+            "atr": null,
+            "rsi": null,
+            "vwap": null,
+            "float_rotation": null,
+            "last_updated": "2026-03-16T11:45:27.794Z",
+            "change_percent": "-0.0098",
+            "avg_volume_30d": null,
+            "updated_at": "2026-03-20T00:22:36.925Z",
+            "volume": "700",
+            "previous_high": null,
+            "float_shares": "34583361.884368308351",
+            "atr_percent": null,
+            "short_float": null,
+            "liquidity_surge": null
+          },
+          {
+            "symbol": "ALIT",
+            "price": "0.668",
+            "gap_percent": "-0.01490001",
+            "relative_volume": null,
+            "atr": null,
+            "rsi": null,
+            "vwap": null,
+            "float_rotation": null,
+            "last_updated": "2026-03-19T23:23:35.149Z",
+            "change_percent": "-0.01490001",
+            "avg_volume_30d": null,
+            "updated_at": "2026-03-20T00:22:36.925Z",
+            "volume": "34359818",
+            "previous_high": null,
+            "float_shares": "524107829.34131737",
+            "atr_percent": null,
+            "short_float": null,
+            "liquidity_surge": null
+          },
+          {
+            "symbol": "CNTN",
+            "price": "3.38",
+            "gap_percent": "-0.125",
+            "relative_volume": "0.43828732180881682771",
+            "atr": "0.44928571428571442857",
+            "rsi": "64.7619047619048024",
+            "vwap": null,
+            "float_rotation": null,
+            "last_updated": "2026-03-04T21:15:45.701Z",
+            "change_percent": "-33.3333333333333",
+            "avg_volume_30d": "1434282.875000000000",
+            "updated_at": "2026-03-20T00:22:36.925Z",
+            "volume": "628628",
+            "previous_high": null,
+            "float_shares": "39529847.041420118343",
+            "atr_percent": "4.93096646942801",
+            "short_float": null,
+            "liquidity_surge": null
+          }
+        ]
+      },
+      {
+        "name": "trade_setups",
+        "exists": true,
+        "columns": [
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "setup",
+            "type": "text"
+          },
+          {
+            "name": "grade",
+            "type": "text"
+          },
+          {
+            "name": "score",
+            "type": "numeric"
+          },
+          {
+            "name": "gap_percent",
+            "type": "numeric"
+          },
+          {
+            "name": "relative_volume",
+            "type": "numeric"
+          },
+          {
+            "name": "atr",
+            "type": "numeric"
+          },
+          {
+            "name": "float_rotation",
+            "type": "numeric"
+          },
+          {
+            "name": "detected_at",
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "setup_type",
+            "type": "text"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "signal_id",
+            "type": "uuid"
+          },
+          {
+            "name": "entry_price",
+            "type": "double precision"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone"
+          }
+        ],
+        "sample_rows": [
+          {
+            "symbol": "QSR",
+            "setup": "stocks_in_play_setup",
+            "grade": null,
+            "score": "60",
+            "gap_percent": null,
+            "relative_volume": null,
+            "atr": null,
+            "float_rotation": null,
+            "detected_at": "2026-03-20T13:24:45.493Z",
+            "setup_type": "stocks_in_play_setup",
+            "updated_at": "2026-03-20T13:24:45.493Z",
+            "signal_id": "9b1ed118-02ae-44fb-93fc-8ff24249e18f",
+            "entry_price": 74.13,
+            "created_at": "2026-03-20T13:24:45.493Z"
+          },
+          {
+            "symbol": "GPCR",
+            "setup": "stocks_in_play_setup",
+            "grade": null,
+            "score": "60",
+            "gap_percent": null,
+            "relative_volume": null,
+            "atr": null,
+            "float_rotation": null,
+            "detected_at": "2026-03-20T13:24:45.493Z",
+            "setup_type": "stocks_in_play_setup",
+            "updated_at": "2026-03-20T13:24:45.493Z",
+            "signal_id": "ffc81cb3-b1e2-4f8b-8f2a-e908bc83e2b7",
+            "entry_price": 50.46,
+            "created_at": "2026-03-20T13:24:45.493Z"
+          },
+          {
+            "symbol": "UBER",
+            "setup": "stocks_in_play_setup",
+            "grade": null,
+            "score": "60",
+            "gap_percent": null,
+            "relative_volume": null,
+            "atr": null,
+            "float_rotation": null,
+            "detected_at": "2026-03-20T13:24:45.493Z",
+            "setup_type": "stocks_in_play_setup",
+            "updated_at": "2026-03-20T13:24:45.493Z",
+            "signal_id": "f741b171-92f8-4387-b92c-0d0db224094e",
+            "entry_price": 75.34,
+            "created_at": "2026-03-20T13:24:45.493Z"
+          },
+          {
+            "symbol": "CRGY",
+            "setup": "stocks_in_play_setup",
+            "grade": null,
+            "score": "60",
+            "gap_percent": null,
+            "relative_volume": null,
+            "atr": null,
+            "float_rotation": null,
+            "detected_at": "2026-03-20T13:24:45.493Z",
+            "setup_type": "stocks_in_play_setup",
+            "updated_at": "2026-03-20T13:24:45.493Z",
+            "signal_id": "7d6bea9d-e398-4ba8-a6cd-f362bd46b6b0",
+            "entry_price": 12.25,
+            "created_at": "2026-03-20T13:24:45.493Z"
+          },
+          {
+            "symbol": "PAR",
+            "setup": "stocks_in_play_setup",
+            "grade": null,
+            "score": "60",
+            "gap_percent": null,
+            "relative_volume": null,
+            "atr": null,
+            "float_rotation": null,
+            "detected_at": "2026-03-20T13:24:45.493Z",
+            "setup_type": "stocks_in_play_setup",
+            "updated_at": "2026-03-20T13:24:45.493Z",
+            "signal_id": "ff5f926a-1820-4f71-b580-440046e8b338",
+            "entry_price": 14.1,
+            "created_at": "2026-03-20T13:24:45.493Z"
+          }
+        ]
+      },
+      {
+        "name": "opportunity_stream",
+        "exists": true,
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "event_type",
+            "type": "text"
+          },
+          {
+            "name": "headline",
+            "type": "text"
+          },
+          {
+            "name": "score",
+            "type": "numeric"
+          },
+          {
+            "name": "source",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp without time zone"
+          }
+        ],
+        "sample_rows": [
+          {
+            "id": 1877438,
+            "symbol": "GGROW",
+            "event_type": "ranked_opportunity",
+            "headline": "Opportunity ranker score 0.075",
+            "score": "0.074997",
+            "source": "opportunity_ranker",
+            "created_at": "2026-03-17T10:09:21.577Z"
+          },
+          {
+            "id": 1877443,
+            "symbol": "XCBEW",
+            "event_type": "ranked_opportunity",
+            "headline": "Opportunity ranker score 0.075",
+            "score": "0.0747",
+            "source": "opportunity_ranker",
+            "created_at": "2026-03-17T10:09:21.708Z"
+          },
+          {
+            "id": 1877445,
+            "symbol": "ATYR",
+            "event_type": "ranked_opportunity",
+            "headline": "Opportunity ranker score 0.077",
+            "score": "0.07678",
+            "source": "opportunity_ranker",
+            "created_at": "2026-03-17T10:09:21.760Z"
+          },
+          {
+            "id": 1877447,
+            "symbol": "HTFC",
+            "event_type": "ranked_opportunity",
+            "headline": "Opportunity ranker score 0.075",
+            "score": "0.075",
+            "source": "opportunity_ranker",
+            "created_at": "2026-03-17T10:09:21.813Z"
+          },
+          {
+            "id": 1877451,
+            "symbol": "MLACU",
+            "event_type": "ranked_opportunity",
+            "headline": "Opportunity ranker score 0.060",
+            "score": "0.060375",
+            "source": "opportunity_ranker",
+            "created_at": "2026-03-17T10:09:21.919Z"
+          }
+        ]
+      },
+      {
+        "name": "news_articles",
+        "exists": true,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "headline",
+            "type": "text"
+          },
+          {
+            "name": "symbols",
+            "type": "ARRAY"
+          },
+          {
+            "name": "source",
+            "type": "text"
+          },
+          {
+            "name": "url",
+            "type": "text"
+          },
+          {
+            "name": "published_at",
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "summary",
+            "type": "text"
+          },
+          {
+            "name": "catalyst_type",
+            "type": "text"
+          },
+          {
+            "name": "news_score",
+            "type": "integer"
+          },
+          {
+            "name": "score_breakdown",
+            "type": "jsonb"
+          },
+          {
+            "name": "raw_payload",
+            "type": "jsonb"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "symbol",
+            "type": "text"
+          },
+          {
+            "name": "sector",
+            "type": "text"
+          },
+          {
+            "name": "narrative",
+            "type": "text"
+          },
+          {
+            "name": "provider",
+            "type": "text"
+          },
+          {
+            "name": "sentiment",
+            "type": "text"
+          },
+          {
+            "name": "title",
+            "type": "text"
+          },
+          {
+            "name": "body_text",
+            "type": "text"
+          },
+          {
+            "name": "publisher",
+            "type": "text"
+          },
+          {
+            "name": "site",
+            "type": "text"
+          },
+          {
+            "name": "image_url",
+            "type": "text"
+          },
+          {
+            "name": "published_date",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "source_url",
+            "type": "text"
+          },
+          {
+            "name": "ingested_at",
+            "type": "timestamp with time zone"
+          }
+        ],
+        "sample_rows": [
+          {
+            "id": "99f1f6c9-4ccc-40f3-bfea-4231210c2527",
+            "headline": "As Americans struggle with rising costs, many states’ unemployment benefits fall short, analysis finds",
+            "symbols": [],
+            "source": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+            "url": "https://www.cnbc.com/2026/03/18/state-unemployment-benefits.html",
+            "published_at": "2026-03-18T16:49:49.000Z",
+            "summary": "The U.S. unemployment system is not prepared for a recession, with some states having failed to raise their maximum weekly benefit in decades, experts say.",
+            "catalyst_type": "rss",
+            "news_score": 0,
+            "score_breakdown": {
+              "provider": "fmp"
+            },
+            "raw_payload": {
+              "guid": "108276019",
+              "link": "https://www.cnbc.com/2026/03/18/state-unemployment-benefits.html",
+              "title": "As Americans struggle with rising costs, many states’ unemployment benefits fall short, analysis finds",
+              "content": "The U.S. unemployment system is not prepared for a recession, with some states having failed to raise their maximum weekly benefit in decades, experts say. ",
+              "isoDate": "2026-03-18T16:49:49.000Z",
+              "pubDate": "Wed, 18 Mar 2026 16:49:49 GMT",
+              "contentSnippet": "The U.S. unemployment system is not prepared for a recession, with some states having failed to raise their maximum weekly benefit in decades, experts say."
+            },
+            "created_at": "2026-03-19T06:40:47.783Z",
+            "symbol": null,
+            "sector": null,
+            "narrative": null,
+            "provider": "fmp",
+            "sentiment": "neutral",
+            "title": null,
+            "body_text": null,
+            "publisher": null,
+            "site": null,
+            "image_url": null,
+            "published_date": null,
+            "source_url": null,
+            "ingested_at": "2026-03-19T06:40:47.783Z"
+          },
+          {
+            "id": "7342f5f0-a943-4c15-9987-45cb81a72c0a",
+            "headline": "1 Financials Stock for Long-Term Investors and 2 That Underwhelm",
+            "symbols": [],
+            "source": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+            "url": "https://finance.yahoo.com/markets/stocks/articles/1-financials-stock-long-term-120538560.html?.tsrc=rss",
+            "published_at": "2026-03-19T12:05:38.000Z",
+            "summary": "Financial providers use their expertise in capital allocation and risk assessment to help facilitate economic growth while offering consumers and businesses essential financial services. But uncertainty about fiscal and monetary policy has tempered enthusiasm, and over the past six months, the industry has pulled back by 13.6%. This drop is a far cry from the S&P 500’s 1.1% ascent.",
+            "catalyst_type": "rss",
+            "news_score": 0,
+            "score_breakdown": {
+              "provider": "yahoo"
+            },
+            "raw_payload": {
+              "guid": "b440842a-dea5-3668-a23f-7972ee63aeb0",
+              "link": "https://finance.yahoo.com/markets/stocks/articles/1-financials-stock-long-term-120538560.html?.tsrc=rss",
+              "title": "1 Financials Stock for Long-Term Investors and 2 That Underwhelm",
+              "content": "Financial providers use their expertise in capital allocation and risk assessment to help facilitate economic growth while offering consumers and businesses essential financial services. But uncertainty about fiscal and monetary policy has tempered enthusiasm, and over the past six months, the industry has pulled back by 13.6%. This drop is a far cry from the S&P 500’s 1.1% ascent.",
+              "isoDate": "2026-03-19T12:05:38.000Z",
+              "pubDate": "Thu, 19 Mar 2026 12:05:38 +0000",
+              "contentSnippet": "Financial providers use their expertise in capital allocation and risk assessment to help facilitate economic growth while offering consumers and businesses essential financial services. But uncertainty about fiscal and monetary policy has tempered enthusiasm, and over the past six months, the industry has pulled back by 13.6%. This drop is a far cry from the S&P 500’s 1.1% ascent."
+            },
+            "created_at": "2026-03-19T12:18:18.002Z",
+            "symbol": null,
+            "sector": null,
+            "narrative": null,
+            "provider": "yahoo",
+            "sentiment": "neutral",
+            "title": null,
+            "body_text": null,
+            "publisher": null,
+            "site": null,
+            "image_url": null,
+            "published_date": null,
+            "source_url": null,
+            "ingested_at": "2026-03-19T12:18:18.002Z"
+          },
+          {
+            "id": "73a8b18d-5cb8-49f9-9abf-9e77db1eaca2",
+            "headline": "Stock Market Today: Dow Under Pressure As Oil Rise Boosts Chevron; Micron Slammed (Live Coverage)",
+            "symbols": [],
+            "source": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+            "url": "https://finance.yahoo.com/m/c3e12ded-26ca-3572-9c97-c2d111ff86d8/stock-market-today%3A-dow-under.html?.tsrc=rss",
+            "published_at": "2026-03-19T16:54:26.000Z",
+            "summary": "The Dow Jones index falls Thursday as oil prices jump. Micron stock plunges despite strong earnings.",
+            "catalyst_type": "rss",
+            "news_score": 0,
+            "score_breakdown": {
+              "provider": "yahoo"
+            },
+            "raw_payload": {
+              "guid": "c3e12ded-26ca-3572-9c97-c2d111ff86d8",
+              "link": "https://finance.yahoo.com/m/c3e12ded-26ca-3572-9c97-c2d111ff86d8/stock-market-today%3A-dow-under.html?.tsrc=rss",
+              "title": "Stock Market Today: Dow Under Pressure As Oil Rise Boosts Chevron; Micron Slammed (Live Coverage)",
+              "content": "The Dow Jones index falls Thursday as oil prices jump. Micron stock plunges despite strong earnings.",
+              "isoDate": "2026-03-19T16:54:26.000Z",
+              "pubDate": "Thu, 19 Mar 2026 16:54:26 +0000",
+              "contentSnippet": "The Dow Jones index falls Thursday as oil prices jump. Micron stock plunges despite strong earnings."
+            },
+            "created_at": "2026-03-19T17:00:19.812Z",
+            "symbol": null,
+            "sector": null,
+            "narrative": null,
+            "provider": "yahoo",
+            "sentiment": "neutral",
+            "title": null,
+            "body_text": null,
+            "publisher": null,
+            "site": null,
+            "image_url": null,
+            "published_date": null,
+            "source_url": null,
+            "ingested_at": "2026-03-19T17:00:19.812Z"
+          },
+          {
+            "id": "06826a53-6728-4c80-a86a-1cd17055d71f",
+            "headline": "Why New Fortress Energy Stock Just Fell 20.3%",
+            "symbols": [],
+            "source": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+            "url": "https://www.fool.com/investing/2026/03/18/why-new-fortress-energy-stock-just-fell-203/?.tsrc=rss",
+            "published_at": "2026-03-18T22:21:44.000Z",
+            "summary": "Investors found out there are strings attached to slashing billions in debt.",
+            "catalyst_type": "rss",
+            "news_score": 0,
+            "score_breakdown": {
+              "provider": "yahoo"
+            },
+            "raw_payload": {
+              "guid": "634dd188-ec13-3a13-8cfb-7a53da05eace",
+              "link": "https://www.fool.com/investing/2026/03/18/why-new-fortress-energy-stock-just-fell-203/?.tsrc=rss",
+              "title": "Why New Fortress Energy Stock Just Fell 20.3%",
+              "content": "Investors found out there are strings attached to slashing billions in debt.",
+              "isoDate": "2026-03-18T22:21:44.000Z",
+              "pubDate": "Wed, 18 Mar 2026 22:21:44 +0000",
+              "contentSnippet": "Investors found out there are strings attached to slashing billions in debt."
+            },
+            "created_at": "2026-03-19T06:41:21.415Z",
+            "symbol": null,
+            "sector": null,
+            "narrative": null,
+            "provider": "yahoo",
+            "sentiment": "neutral",
+            "title": null,
+            "body_text": null,
+            "publisher": null,
+            "site": null,
+            "image_url": null,
+            "published_date": null,
+            "source_url": null,
+            "ingested_at": "2026-03-19T06:41:21.415Z"
+          },
+          {
+            "id": "aab55e03-6df4-4435-babc-ac02e2bd141e",
+            "headline": "Stock market today: Dow, S&P 500, Nasdaq cut losses as oil prices drop",
+            "symbols": [],
+            "source": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-cut-losses-as-oil-prices-drop-193229258.html?.tsrc=rss",
+            "published_at": "2026-03-19T19:37:02.000Z",
+            "summary": "Major gauges are shrinking in the face of surging oil prices as the Fed points to inflation pressures in the economy.",
+            "catalyst_type": "rss",
+            "news_score": 0,
+            "score_breakdown": {
+              "provider": "yahoo"
+            },
+            "raw_payload": {
+              "guid": "02276a7d-66b5-405d-9696-eb849ff00c65",
+              "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-cut-losses-as-oil-prices-drop-193229258.html?.tsrc=rss",
+              "title": "Stock market today: Dow, S&P 500, Nasdaq cut losses as oil prices drop",
+              "content": "Major gauges are shrinking in the face of surging oil prices as the Fed points to inflation pressures in the economy.",
+              "isoDate": "2026-03-19T19:37:02.000Z",
+              "pubDate": "Thu, 19 Mar 2026 19:37:02 +0000",
+              "contentSnippet": "Major gauges are shrinking in the face of surging oil prices as the Fed points to inflation pressures in the economy."
+            },
+            "created_at": "2026-03-19T19:34:11.869Z",
+            "symbol": null,
+            "sector": null,
+            "narrative": null,
+            "provider": "yahoo",
+            "sentiment": "neutral",
+            "title": null,
+            "body_text": null,
+            "publisher": null,
+            "site": null,
+            "image_url": null,
+            "published_date": null,
+            "source_url": null,
+            "ingested_at": "2026-03-19T19:34:11.869Z"
+          }
+        ]
+      }
+    ]
+  },
+  "null_analysis": [
+    {
+      "table": "intraday_1m",
+      "total_rows": 560270,
+      "nulls": [
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "timestamp",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "open",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "high",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "low",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "close",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "volume",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "session",
+          "null_count": 0,
+          "null_ratio": 0
+        }
+      ]
+    },
+    {
+      "table": "daily_ohlc",
+      "total_rows": 2350357,
+      "nulls": [
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "date",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "open",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "high",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "low",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "close",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "volume",
+          "null_count": 0,
+          "null_ratio": 0
+        }
+      ]
+    },
+    {
+      "table": "earnings_events",
+      "total_rows": 20803,
+      "nulls": [
+        {
+          "column": "id",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "report_date",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "report_time",
+          "null_count": 20802,
+          "null_ratio": 1
+        },
+        {
+          "column": "eps_estimate",
+          "null_count": 7475,
+          "null_ratio": 0.3593
+        },
+        {
+          "column": "eps_actual",
+          "null_count": 4185,
+          "null_ratio": 0.2012
+        },
+        {
+          "column": "rev_estimate",
+          "null_count": 7645,
+          "null_ratio": 0.3675
+        },
+        {
+          "column": "rev_actual",
+          "null_count": 4185,
+          "null_ratio": 0.2012
+        },
+        {
+          "column": "eps_surprise_pct",
+          "null_count": 20683,
+          "null_ratio": 0.9942
+        },
+        {
+          "column": "rev_surprise_pct",
+          "null_count": 20717,
+          "null_ratio": 0.9959
+        },
+        {
+          "column": "guidance_direction",
+          "null_count": 20802,
+          "null_ratio": 1
+        },
+        {
+          "column": "market_cap",
+          "null_count": 20772,
+          "null_ratio": 0.9985
+        },
+        {
+          "column": "float",
+          "null_count": 20803,
+          "null_ratio": 1
+        },
+        {
+          "column": "sector",
+          "null_count": 20771,
+          "null_ratio": 0.9985
+        },
+        {
+          "column": "industry",
+          "null_count": 20771,
+          "null_ratio": 0.9985
+        },
+        {
+          "column": "created_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "company",
+          "null_count": 20803,
+          "null_ratio": 1
+        },
+        {
+          "column": "earnings_date",
+          "null_count": 20803,
+          "null_ratio": 1
+        },
+        {
+          "column": "revenue_estimate",
+          "null_count": 20803,
+          "null_ratio": 1
+        },
+        {
+          "column": "updated_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "time",
+          "null_count": 20803,
+          "null_ratio": 1
+        }
+      ]
+    },
+    {
+      "table": "market_quotes",
+      "total_rows": 5975,
+      "nulls": [
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "price",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "change_percent",
+          "null_count": 1172,
+          "null_ratio": 0.1962
+        },
+        {
+          "column": "volume",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "market_cap",
+          "null_count": 1172,
+          "null_ratio": 0.1962
+        },
+        {
+          "column": "sector",
+          "null_count": 1174,
+          "null_ratio": 0.1965
+        },
+        {
+          "column": "updated_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "short_float",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "float",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "relative_volume",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "premarket_volume",
+          "null_count": 5975,
+          "null_ratio": 1
+        }
+      ]
+    },
+    {
+      "table": "market_metrics",
+      "total_rows": 5975,
+      "nulls": [
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "price",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "gap_percent",
+          "null_count": 1172,
+          "null_ratio": 0.1962
+        },
+        {
+          "column": "relative_volume",
+          "null_count": 854,
+          "null_ratio": 0.1429
+        },
+        {
+          "column": "atr",
+          "null_count": 854,
+          "null_ratio": 0.1429
+        },
+        {
+          "column": "rsi",
+          "null_count": 856,
+          "null_ratio": 0.1433
+        },
+        {
+          "column": "vwap",
+          "null_count": 5869,
+          "null_ratio": 0.9823
+        },
+        {
+          "column": "float_rotation",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "last_updated",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "change_percent",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "avg_volume_30d",
+          "null_count": 854,
+          "null_ratio": 0.1429
+        },
+        {
+          "column": "updated_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "volume",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "previous_high",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "float_shares",
+          "null_count": 1176,
+          "null_ratio": 0.1968
+        },
+        {
+          "column": "atr_percent",
+          "null_count": 857,
+          "null_ratio": 0.1434
+        },
+        {
+          "column": "short_float",
+          "null_count": 5975,
+          "null_ratio": 1
+        },
+        {
+          "column": "liquidity_surge",
+          "null_count": 5975,
+          "null_ratio": 1
+        }
+      ]
+    },
+    {
+      "table": "trade_setups",
+      "total_rows": 414,
+      "nulls": [
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "setup",
+          "null_count": 112,
+          "null_ratio": 0.2705
+        },
+        {
+          "column": "grade",
+          "null_count": 195,
+          "null_ratio": 0.471
+        },
+        {
+          "column": "score",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "gap_percent",
+          "null_count": 195,
+          "null_ratio": 0.471
+        },
+        {
+          "column": "relative_volume",
+          "null_count": 81,
+          "null_ratio": 0.1957
+        },
+        {
+          "column": "atr",
+          "null_count": 195,
+          "null_ratio": 0.471
+        },
+        {
+          "column": "float_rotation",
+          "null_count": 414,
+          "null_ratio": 1
+        },
+        {
+          "column": "detected_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "setup_type",
+          "null_count": 216,
+          "null_ratio": 0.5217
+        },
+        {
+          "column": "updated_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "signal_id",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "entry_price",
+          "null_count": 277,
+          "null_ratio": 0.6691
+        },
+        {
+          "column": "created_at",
+          "null_count": 0,
+          "null_ratio": 0
+        }
+      ]
+    },
+    {
+      "table": "opportunity_stream",
+      "total_rows": 2095250,
+      "nulls": [
+        {
+          "column": "id",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "symbol",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "event_type",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "headline",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "score",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "source",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "created_at",
+          "null_count": 0,
+          "null_ratio": 0
+        }
+      ]
+    },
+    {
+      "table": "news_articles",
+      "total_rows": 357,
+      "nulls": [
+        {
+          "column": "id",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "headline",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "symbols",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "source",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "url",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "published_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "summary",
+          "null_count": 11,
+          "null_ratio": 0.0308
+        },
+        {
+          "column": "catalyst_type",
+          "null_count": 49,
+          "null_ratio": 0.1373
+        },
+        {
+          "column": "news_score",
+          "null_count": 49,
+          "null_ratio": 0.1373
+        },
+        {
+          "column": "score_breakdown",
+          "null_count": 49,
+          "null_ratio": 0.1373
+        },
+        {
+          "column": "raw_payload",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "created_at",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "symbol",
+          "null_count": 307,
+          "null_ratio": 0.8599
+        },
+        {
+          "column": "sector",
+          "null_count": 357,
+          "null_ratio": 1
+        },
+        {
+          "column": "narrative",
+          "null_count": 357,
+          "null_ratio": 1
+        },
+        {
+          "column": "provider",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "sentiment",
+          "null_count": 0,
+          "null_ratio": 0
+        },
+        {
+          "column": "title",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "body_text",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "publisher",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "site",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "image_url",
+          "null_count": 309,
+          "null_ratio": 0.8655
+        },
+        {
+          "column": "published_date",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "source_url",
+          "null_count": 308,
+          "null_ratio": 0.8627
+        },
+        {
+          "column": "ingested_at",
+          "null_count": 0,
+          "null_ratio": 0
+        }
+      ]
+    }
+  ]
+}

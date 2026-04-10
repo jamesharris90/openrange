@@ -1,0 +1,375 @@
+{
+  "summary": {
+    "timestamp": "2026-03-22T20:51:18.669Z",
+    "endpoint_status": 200,
+    "endpoint_latency_ms": 27642,
+    "total": 20,
+    "counts": {
+      "valid": 0,
+      "weak": 20,
+      "false_positive": 0
+    }
+  },
+  "opportunities": [
+    {
+      "symbol": "WNW",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 7757.594381233572,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "CHNR",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 1038.4193886669577,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 1038.42, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "PMAX",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 601.7331883550577,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 601.73, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "ACXP",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 157.84236798736057,
+        "liquidity": null,
+        "catalyst": "News catalyst. news: gap 0.00%, RVOL 157.84, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "CYCU",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 94.60267251305027,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 94.60, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "HUBC",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 89.17271831813953,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 89.17, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "SVCO",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 85.9187948583884,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 85.92, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "LNZA",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 78.45863168525811,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 78.46, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "LNSR",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 30.453555081063794,
+        "liquidity": null,
+        "catalyst": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "AIRS",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 66.95727994197999,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 66.96, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "ANNA",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 28.61760800636092,
+        "liquidity": null,
+        "catalyst": "Earnings-driven move. earnings: gap 0.00%, RVOL 28.62, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "NPAC",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 59.08477904034279,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 59.08, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "LPBB",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 55.91415436300946,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 55.91, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "TAOX",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 2.442332636667706,
+        "liquidity": null,
+        "catalyst": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+        "strategy": "INTRADAY TREND"
+      }
+    },
+    {
+      "symbol": "EQ",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 2.1465592762640515,
+        "liquidity": null,
+        "catalyst": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+        "strategy": "INTRADAY TREND"
+      }
+    },
+    {
+      "symbol": "TENX",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 2.111814608494867,
+        "liquidity": null,
+        "catalyst": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+        "strategy": "INTRADAY TREND"
+      }
+    },
+    {
+      "symbol": "WINV",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 38.333333333333336,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 38.33, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "TLYS",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 36.56698883437158,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 36.57, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "ORIS",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 34.31009423539471,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 34.31, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    },
+    {
+      "symbol": "AHG",
+      "classification": "weak",
+      "checks": {
+        "catalyst_present": true,
+        "earnings_or_news_driver": true,
+        "actually_moving": false,
+        "liquidity_rvol_valid": true,
+        "execution_plan_realistic": true
+      },
+      "metrics": {
+        "change_percent": null,
+        "relative_volume": 28.420318267719317,
+        "liquidity": null,
+        "catalyst": "Momentum continuation. technical: gap 0.00%, RVOL 28.42, news score 0.00.",
+        "strategy": "VWAP RECLAIM"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2998 @@
+{
+  "generatedAt": "2026-03-25T06:23:00.946Z",
+  "queryPatterns": [
+    ".limit(",
+    ".slice(",
+    ".range(",
+    "pageSize",
+    "limit:"
+  ],
+  "matchCount": 597,
+  "matches": [
+    {
+      "path": "server/.env.example",
+      "line": 24,
+      "text": "# Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex').slice(0,32))\""
+    },
+    {
+      "path": "server/cache/sparklineCacheEngine.js",
+      "line": 43,
+      "text": "const points = (rows || []).slice().reverse().map((r) => ({ time: Number(r.time), value: Number(r.value) }));"
+    },
+    {
+      "path": "server/catalyst/catalyst_engine.js",
+      "line": 281,
+      "text": "const batch = catalystRows.slice(index, index + BATCH_SIZE);"
+    },
+    {
+      "path": "server/controllers/opportunitiesController.js",
+      "line": 240,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/data-engine/fundamentalsEnricher.js",
+      "line": 8,
+      "text": "for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));"
+    },
+    {
+      "path": "server/data-engine/structureClassifier.js",
+      "line": 288,
+      "text": "explanation:          `${def.label}: ${matched.slice(0, 3).join(', ')}`,"
+    },
+    {
+      "path": "server/data-engine/technicalCalculator.js",
+      "line": 9,
+      "text": "let acc = sma(values.slice(0, period));"
+    },
+    {
+      "path": "server/data-engine/technicalCalculator.js",
+      "line": 47,
+      "text": "return sma(trs.slice(-period));"
+    },
+    {
+      "path": "server/data-engine/yahooHistoricalEnricher.js",
+      "line": 116,
+      "text": "const openingBars      = marketBars.slice(0, 30);"
+    },
+    {
+      "path": "server/dataWarehouse/exportFilteredUniverse.js",
+      "line": 99,
+      "text": "throw new Error(`Backend route failed (${response.status}) at ${url}${body ? `: ${body.slice(0, 200)}` : ''}`);"
+    },
+    {
+      "path": "server/discovery/discovery_engine.js",
+      "line": 109,
+      "text": "const batch = candidates.slice(index, index + BATCH_SIZE);"
+    },
+    {
+      "path": "server/email/beaconMorningBrief.js",
+      "line": 314,
+      "text": "watchlist: enriched.map((row) => row.symbol).slice(0, 8),"
+    },
+    {
+      "path": "server/email/beaconMorningBrief.js",
+      "line": 318,
+      "text": "const fallbackMovers = (enriched || []).slice(0, 3).map((row) => ({"
+    },
+    {
+      "path": "server/email/beaconMorningBrief.js",
+      "line": 343,
+      "text": "const radarThemes = generateRadarThemes(topMovers).slice(0, 4);"
+    },
+    {
+      "path": "server/email/beaconMorningBrief.js",
+      "line": 374,
+      "text": "|| (stocksInPlay || []).slice().sort((a, b) => Number(b.tradeScore || 0) - Number(a.tradeScore || 0))[0]"
+    },
+    {
+      "path": "server/email/chartSnapshotEngine.js",
+      "line": 30,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/email/chartSnapshotEngine.js",
+      "line": 47,
+      "text": "let ema = values.slice(0, period).reduce((acc, v) => acc + v, 0) / period;"
+    },
+    {
+      "path": "server/engines/beaconEvolutionEngine.js",
+      "line": 585,
+      "text": "return { updated, rows: adjustedRows.slice(0, 100) };"
+    },
+    {
+      "path": "server/engines/beaconEvolutionEngine.js",
+      "line": 644,
+      "text": "state.edge = strategyAdjustments.slice(0, 50);"
+    },
+    {
+      "path": "server/engines/beaconEvolutionEngine.js",
+      "line": 647,
+      "text": ".slice(0, 200)"
+    },
+    {
+      "path": "server/engines/candleIntegrityEngine.js",
+      "line": 39,
+      "text": "const ordered = (rows || []).slice().reverse();"
+    },
+    {
+      "path": "server/engines/catalystSignalEngine.js",
+      "line": 185,
+      "text": ".slice(0, Math.min(25, rows.length))"
+    },
+    {
+      "path": "server/engines/dynamicUniverseEngine.js",
+      "line": 85,
+      "text": "const finalSelection = universeGuardApplied ? mergedRanked.slice(0, 800) : mergedRanked;"
+    },
+    {
+      "path": "server/engines/earningsEngine.js",
+      "line": 103,
+      "text": "const from = today.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/engines/earningsEngine.js",
+      "line": 104,
+      "text": "const to = toDate.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 46,
+      "text": "chunks.push(items.slice(i, i + chunkSize));"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 118,
+      "text": "const profileCandidates = candidateSymbols.slice(0, PROFILE_SCAN_LIMIT);"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 401,
+      "text": "console.log('[INGESTION SAMPLE]', realData.slice(0, 3).map((row) => row.symbol));"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 472,
+      "text": "const activeUniverse = universe.symbols.slice(0, ACTIVE_UNIVERSE_LIMIT);"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 515,
+      "text": "let symbols = topByVolume.slice(0, REFRESH_UNIVERSE_LIMIT);"
+    },
+    {
+      "path": "server/engines/fmpMarketIngestion.js",
+      "line": 522,
+      "text": "symbols = [...filtered, ...refill].slice(0, REFRESH_UNIVERSE_LIMIT);"
+    },
+    {
+      "path": "server/engines/fmp_extended_hours_ingest.js",
+      "line": 354,
+      "text": "console.log('[EXTENDED] first symbols:', watchlist.slice(0, 5));"
+    },
+    {
+      "path": "server/engines/fmp_extended_hours_ingest.js",
+      "line": 376,
+      "text": "const batch = watchlist.slice(i, i + MAX_SYMBOLS_PER_BATCH);"
+    },
+    {
+      "path": "server/engines/intelAnalysisEngine.js",
+      "line": 16,
+      "text": "return JSON.parse(text.slice(start, end + 1));"
+    },
+    {
+      "path": "server/engines/intelAnalysisEngine.js",
+      "line": 31,
+      "text": "? parsed.relevant_tickers.map((t) => String(t || '').toUpperCase()).filter(Boolean).slice(0, 12)"
+    },
+    {
+      "path": "server/engines/internalScannerEngine.js",
+      "line": 92,
+      "text": ".slice(0, 20);"
+    },
+    {
+      "path": "server/engines/marketContextEngine.js",
+      "line": 231,
+      "text": "const recent = bars.slice(-30);"
+    },
+    {
+      "path": "server/engines/marketContextEngine.js",
+      "line": 232,
+      "text": "const baseline = bars.slice(-150, -30);"
+    },
+    {
+      "path": "server/engines/marketNarrativeEngine.js",
+      "line": 10,
+      "text": "const names = (topMovers || []).slice(0, 2).map((row) => String(row.symbol || '').toUpperCase()).filter(Boolean);"
+    },
+    {
+      "path": "server/engines/marketNarrativeEngine.js",
+      "line": 34,
+      "text": "const movers = topMovers.slice(0, 2).map((row) => row.symbol).filter(Boolean).join(' and ');"
+    },
+    {
+      "path": "server/engines/marketSnapshotEngine.js",
+      "line": 14,
+      "text": "for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));"
+    },
+    {
+      "path": "server/engines/morningBriefEngine.js",
+      "line": 170,
+      "text": ".slice(0, 8);"
+    },
+    {
+      "path": "server/engines/morningBriefEngine.js",
+      "line": 334,
+      "text": "const top = Array.isArray(signals) ? signals.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/engines/morningBriefEngine.js",
+      "line": 359,
+      "text": "return [...enriched, ...(signals || []).slice(5)];"
+    },
+    {
+      "path": "server/engines/morningBriefEngine.js",
+      "line": 409,
+      "text": "const topFocus = stocksInPlay.slice(0, 3).map((row) => row.symbol).filter(Boolean);"
+    },
+    {
+      "path": "server/engines/morningBriefEngine.js",
+      "line": 527,
+      "text": "topSymbols: enhancedSignals.slice(0, 5).map((row) => row.symbol),"
+    },
+    {
+      "path": "server/engines/opportunityRanker.js",
+      "line": 85,
+      "text": "for (const item of ranked.slice(0, 100)) {"
+    },
+    {
+      "path": "server/engines/orderFlowImbalanceEngine.js",
+      "line": 101,
+      "text": ".slice(0, 25);"
+    },
+    {
+      "path": "server/engines/priceAnomalyEngine.js",
+      "line": 47,
+      "text": "const volumes = rows.slice(1).map((row) => Number(row.volume || 0));"
+    },
+    {
+      "path": "server/engines/signalQualityEngine.js",
+      "line": 94,
+      "text": "const topSignals = scored.sort((a, b) => b.score - a.score).slice(0, 20);"
+    },
+    {
+      "path": "server/engines/stocksInPlayEngine.js",
+      "line": 824,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/engines/stocksInPlayEngine.js",
+      "line": 826,
+      "text": ".slice(0, 3)"
+    },
+    {
+      "path": "server/engines/trendDetectionEngine.js",
+      "line": 46,
+      "text": "const window = candles.slice(-20);"
+    },
+    {
+      "path": "server/engines/trendDetectionEngine.js",
+      "line": 134,
+      "text": "const support = lows.slice(-3).map((item) => toNumber(item.price));"
+    },
+    {
+      "path": "server/engines/trendDetectionEngine.js",
+      "line": 135,
+      "text": "const resistance = highs.slice(-3).map((item) => toNumber(item.price));"
+    },
+    {
+      "path": "server/examples/request_example.js",
+      "line": 19,
+      "text": "console.log('/api/saxo/ ->', r.status, typeof r.data === 'object' ? JSON.stringify(r.data) : String(r.data).slice(0, 200));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 276,
+      "text": "return base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Unknown publisher';"
+    },
+    {
+      "path": "server/index.js",
+      "line": 372,
+      "text": "const batch = symbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 465,
+      "text": "const compact = (csvData || []).slice(0, 20).map(row => {"
+    },
+    {
+      "path": "server/index.js",
+      "line": 472,
+      "text": "const text = compact.join('\\n').slice(0, 4000);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 486,
+      "text": "const compact = (Array.isArray(data) ? data : []).slice(0, 25).map(item => {"
+    },
+    {
+      "path": "server/index.js",
+      "line": 492,
+      "text": "const text = compact.join('\\n').slice(0, 4000);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 499,
+      "text": "const text = md.slice(0, 4000);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 994,
+      "text": ".slice(0, 50)"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1013,
+      "text": "const slice = returns.slice(i - window, i);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1061,
+      "text": ".limit(500);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1065,
+      "text": "const mapped = mapOHLC((Array.isArray(data) ? data : []).slice().reverse());"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1091,
+      "text": "report_date: new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1111,
+      "text": ".limit(50);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 1234,
+      "text": "const today = new Date().toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2391,
+      "text": ".slice(0, Math.min(20, hardResultLimit));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2399,
+      "text": ".slice(0, 3);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2419,
+      "text": ".slice(0, 3);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2425,
+      "text": "console.log('TOP 3 SCORES:', processed.slice(0, 3).map((r) => r.score));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2454,
+      "text": "const fallback = buildStocksInPlayRawFallback(rows).slice(0, hardResultLimit);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 2557,
+      "text": "console.log('TOP 3 SCORES:', processedFallbackRows.slice(0, 3).map((r) => r.score));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 3114,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 3129,
+      "text": "const { error } = await client.from(tableName).select(columnName).limit(1);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 3203,
+      "text": ".limit(500);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 4812,
+      "text": "key_drivers: opportunityRows.slice(0, 3).map((item) => ({"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5240,
+      "text": "symbols: canonicalSymbols.slice(0, 10),"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5253,
+      "text": "symbols: canonicalSymbols.slice(0, 10),"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5294,
+      "text": ".slice(0, Math.max(1, Math.min(Number(limit) || 1000, 5000)))"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5343,
+      "text": "return yahooRows.sort((a, b) => a.time - b.time).slice(-Math.max(1, Math.min(Number(limit) || 1000, 5000)));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5427,
+      "text": "symbols: symbols.slice(0, 10),"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5541,
+      "text": ": dbRows.slice(0, Math.max(1, Math.min(limit, 50))).map((row) => row.symbol).filter(Boolean);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5569,
+      "text": "console.log('QUOTE sample:', dbRows.slice(0, 3));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5723,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5790,
+      "text": "console.log('OHLC sample:', data.slice(0, 3));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 5865,
+      "text": "res.json({ sectors: rows, leaders: rows.slice(0, 3) });"
+    },
+    {
+      "path": "server/index.js",
+      "line": 6407,
+      "text": "leaders: rows.slice(0, 3).map((row) => String(row?.symbol || '').toUpperCase()).filter(Boolean),"
+    },
+    {
+      "path": "server/index.js",
+      "line": 6987,
+      "text": "const smaCalc = (arr, p) => arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null;"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7038,
+      "text": "return Array.isArray(data) ? data.slice(0, 20) : [];"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7153,
+      "text": "const smaCalcLocal = (arr, p) => arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null;"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7162,
+      "text": "const recent = bars30d.slice(-15);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7387,
+      "text": "const recent = bars.slice(-15);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7612,
+      "text": "data: [], total: 0, page: 1, pageSize: 25, lastUpdated: null,"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7627,
+      "text": "const { useOperational: _ignored, page: _p, pageSize: _ps, ...filterRest } = req.query;"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7635,
+      "text": "const pageSize = Math.min(Math.max(parseInt(req.query.pageSize, 10) || 25, 1), 100);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7636,
+      "text": "const start    = (page - 1) * pageSize;"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7637,
+      "text": "const paginatedRows = filtered.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7637,
+      "text": "const paginatedRows = filtered.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7642,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7650,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7662,
+      "text": "pageSize: 25,"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7708,
+      "text": ".slice(0, 500);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7740,
+      "text": ".slice(0, 500)"
+    },
+    {
+      "path": "server/index.js",
+      "line": 7792,
+      "text": "const tickerList = tickers.split(',').slice(0, 100); // max 100 tickers"
+    },
+    {
+      "path": "server/index.js",
+      "line": 8857,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 8885,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9201,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9424,
+      "text": "const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : '';"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9664,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9672,
+      "text": "const batch = tickers.slice(i, i + GAP_BATCH_SIZE);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9716,
+      "text": "const newsTargets = gappers.slice(0, Math.min(10, gappers.length));"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9718,
+      "text": "const from = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9719,
+      "text": "const to = now.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/index.js",
+      "line": 9750,
+      "text": "}).slice(0, limit);"
+    },
+    {
+      "path": "server/ingestion/_helpers.js",
+      "line": 34,
+      "text": "const batch = safeSymbols.slice(i, i + MAX_SYMBOLS_PER_BATCH);"
+    },
+    {
+      "path": "server/ingestion/fmp_analyst_enrichment_ingest.js",
+      "line": 236,
+      "text": "const batch = symbols.slice(i, i + BATCH_SIZE);"
+    },
+    {
+      "path": "server/ingestion/fmp_intraday_ingest.js",
+      "line": 107,
+      "text": "const ingestSymbols = orderedSymbols.slice(start, end);"
+    },
+    {
+      "path": "server/ingestion/fmp_intraday_ingest.js",
+      "line": 117,
+      "text": "console.log('[INTRADAY] first 10 symbols:', ingestSymbols.slice(0, 10));"
+    },
+    {
+      "path": "server/ingestion/fmp_intraday_ingest.js",
+      "line": 220,
+      "text": "const batch = ingestSymbols.slice(i, i + 10);"
+    },
+    {
+      "path": "server/ingestion/fmp_news_ingest.js",
+      "line": 157,
+      "text": "const iso = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;"
+    },
+    {
+      "path": "server/ingestion/fmp_news_ingest.js",
+      "line": 179,
+      "text": "const benzinga = await fetchBenzingaNews({ tickers: symbol, pageSize: 25 });"
+    },
+    {
+      "path": "server/ingestion/fmp_transcripts_ingest.js",
+      "line": 117,
+      "text": "const chunk = rows.slice(index, index + 200);"
+    },
+    {
+      "path": "server/ingestion/fmp_universe_ingest.js",
+      "line": 128,
+      "text": "const chunk = incomingSymbols.slice(index, index + 1000);"
+    },
+    {
+      "path": "server/ingestion/fmp_universe_ingest.js",
+      "line": 156,
+      "text": "const chunk = dedupedRows.slice(index, index + 500);"
+    },
+    {
+      "path": "server/lib/scoring/historicalScore.js",
+      "line": 61,
+      "text": "const recent = closes.slice(-30);"
+    },
+    {
+      "path": "server/metrics/calc_market_metrics.js",
+      "line": 283,
+      "text": "queue.push(symbols.slice(index, index + batchSize));"
+    },
+    {
+      "path": "server/middleware/requireAdmin.js",
+      "line": 9,
+      "text": "return header.slice(7).trim();"
+    },
+    {
+      "path": "server/middleware/requireAdminAccess.js",
+      "line": 13,
+      "text": "return header.slice(7).trim();"
+    },
+    {
+      "path": "server/middleware/requireFeature.js",
+      "line": 12,
+      "text": "return header.slice(7).trim();"
+    },
+    {
+      "path": "server/modules/marketData/marketDataRoutes.js",
+      "line": 186,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/providers/brokers/ibkrProvider.js",
+      "line": 9,
+      "text": "accessToken: `ibkr-${Buffer.from(username).toString('hex').slice(0, 12)}`,"
+    },
+    {
+      "path": "server/providers/brokers/ibkrProvider.js",
+      "line": 68,
+      "text": "date: new Date().toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/providers/brokers/ibkrProvider.js",
+      "line": 81,
+      "text": "date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/providers/brokers/saxoProvider.js",
+      "line": 8,
+      "text": "accessToken: `saxo-${Buffer.from(username).toString('hex').slice(0, 12)}`,"
+    },
+    {
+      "path": "server/providers/brokers/saxoProvider.js",
+      "line": 55,
+      "text": "date: new Date().toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/providers/brokers/saxoProvider.js",
+      "line": 68,
+      "text": "date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/providers/finnhubProvider.js",
+      "line": 15,
+      "text": "const from = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/providers/finnhubProvider.js",
+      "line": 16,
+      "text": "const to = now.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/providers/finvizProvider.js",
+      "line": 20,
+      "text": "const tickers = rows.map(r => (r.Ticker || r.ticker || r.Symbol || '').trim().toUpperCase()).filter(Boolean).slice(0, limit);"
+    },
+    {
+      "path": "server/repositories/alertsRepository.js",
+      "line": 18,
+      "text": ".limit(limit);"
+    },
+    {
+      "path": "server/repositories/newsRepository.js",
+      "line": 21,
+      "text": ".limit(limit);"
+    },
+    {
+      "path": "server/repositories/opportunityRepository.js",
+      "line": 17,
+      "text": ".limit(limit);"
+    },
+    {
+      "path": "server/repositories/opportunityRepository.js",
+      "line": 47,
+      "text": ".limit(Math.max(limit * 20, 100));"
+    },
+    {
+      "path": "server/repositories/opportunityRepository.js",
+      "line": 59,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/repositories/opportunityRepository.js",
+      "line": 121,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/repositories/signalsRepository.js",
+      "line": 18,
+      "text": ".limit(limit);"
+    },
+    {
+      "path": "server/routes/adminFeatureAccess.js",
+      "line": 59,
+      "text": "return header.slice(7).trim();"
+    },
+    {
+      "path": "server/routes/canonical/fmpScreener.ts",
+      "line": 76,
+      "text": "for (const symbol of (Array.isArray(symbols) ? symbols : []).slice(0, 15)) {"
+    },
+    {
+      "path": "server/routes/canonical/fmpScreener.ts",
+      "line": 123,
+      "text": ").slice(0, 15);"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 114,
+      "text": "const requestedPageSize = parsePositiveInt(req.query.pageSize, 50);"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 115,
+      "text": "const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 147,
+      "text": "const offset = (page - 1) * pageSize;"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 148,
+      "text": "const pagedSymbols = symbols.slice(offset, offset + pageSize);"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 148,
+      "text": "const pagedSymbols = symbols.slice(offset, offset + pageSize);"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 154,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/routes/canonical/universe.ts",
+      "line": 184,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 29,
+      "text": "const cutoffStr = cutoff.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 104,
+      "text": "const date = new Date(c.time * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 122,
+      "text": "const today = new Date().toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 124,
+      "text": "return new Date(c.time * 1000).toISOString().slice(0, 10) === today;"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 126,
+      "text": "const window = todayBars.slice(0, Math.min(15, todayBars.length));"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 133,
+      "text": "const prior = candles1m.slice(-31, -1).map((c) => Number(c.volume || 0)).filter((v) => Number.isFinite(v));"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 273,
+      "text": "return new Date(parsed).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 436,
+      "text": "const nowDate = new Date(nowUnix * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 440,
+      "text": "const fromDate = hasRange ? new Date(from * 1000).toISOString().slice(0, 10) : null;"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 441,
+      "text": "const toDate = hasRange ? new Date(to * 1000).toISOString().slice(0, 10) : null;"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 590,
+      "text": ".slice(0, limit)"
+    },
+    {
+      "path": "server/routes/chartV2.ts",
+      "line": 912,
+      "text": "dailyCandles: dailyCandles.slice(-260),"
+    },
+    {
+      "path": "server/routes/cronControl.js",
+      "line": 27,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/routes/cronControl.js",
+      "line": 39,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/routes/cronControl.js",
+      "line": 48,
+      "text": "const symbolsSample = getEngineSymbols(result).slice(0, 10);"
+    },
+    {
+      "path": "server/routes/earnings.js",
+      "line": 134,
+      "text": "return date.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 110,
+      "text": "const slice = candles.slice(0, Math.min(width, candles.length));"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 142,
+      "text": "const from = start.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 143,
+      "text": "const to = end.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 183,
+      "text": "candles: interval === '1day' ? daily.slice(-500) : series.slice(-2500),"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 184,
+      "text": "dailyCandles: daily.slice(-500),"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 214,
+      "text": "const sliced = interval === '1day' ? candles.slice(-700) : candles.slice(-3000);"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 313,
+      "text": ".slice(0, 20)"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 327,
+      "text": ".slice(0, 8)"
+    },
+    {
+      "path": "server/routes/historical.js",
+      "line": 379,
+      "text": "const slice = returns.slice(i - window, i);"
+    },
+    {
+      "path": "server/routes/intelDetails.js",
+      "line": 20,
+      "text": "const names = symbols.slice(0, 2).join(' / ') || 'primary symbols';"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 405,
+      "text": ".limit(limit),"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 931,
+      "text": ".limit(50);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 948,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 973,
+      "text": ".limit(100);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1073,
+      "text": ".slice(0, 3);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1097,
+      "text": "supabaseClient.from('opportunities').select('*').limit(50),"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1158,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1194,
+      "text": "return res.json(results.slice(0, 20));"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1198,
+      "text": "return res.json(results.slice(0, 20));"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1265,
+      "text": ".limit(200),"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1393,
+      "text": ".limit(20);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 1558,
+      "text": "const quickFinalRows = quickContractRows.slice(0, hardResultLimit);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2039,
+      "text": "results = results.slice(0, hardResultLimit)"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2086,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2094,
+      "text": "const validatedTop = results.slice(0, 10);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2129,
+      "text": "const finalRows = contractRows.slice(0, hardResultLimit);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2203,
+      "text": ".slice(0, limit)"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2271,
+      "text": "data: fastWatchlist.slice(0, limit),"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2295,
+      "text": "decisionSymbols.slice(0, Math.min(symbolUniverseCap, 20)).map((symbol) => withTimeout("
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2317,
+      "text": ".slice(0, limit);"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2359,
+      "text": "})).filter((item) => item.symbol).slice(0, Math.min(limit, 10));"
+    },
+    {
+      "path": "server/routes/intelligence.js",
+      "line": 2420,
+      "text": ".slice(0, 5)"
+    },
+    {
+      "path": "server/routes/marketData.js",
+      "line": 190,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/routes/newsV3.js",
+      "line": 216,
+      "text": "const data = sorted.slice(0, limit).map((row) => {"
+    },
+    {
+      "path": "server/routes/newsletter.js",
+      "line": 35,
+      "text": "return header.slice(7).trim();"
+    },
+    {
+      "path": "server/routes/newsletter.js",
+      "line": 293,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/routes/options.js",
+      "line": 15,
+      "text": "earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/routes/platformStabilityRoutes.js",
+      "line": 124,
+      "text": "symbols: uniqueSymbols(rows).slice(0, 25),"
+    },
+    {
+      "path": "server/routes/platformStabilityRoutes.js",
+      "line": 353,
+      "text": ".slice(0, limit)"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 17,
+      "text": "*   pageSize           - rows per page, max 100 (default 25)"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 89,
+      "text": "pageSize: _pageSize,"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 153,
+      "text": "const pageSize = Math.min(Math.max(parseInt(req.query.pageSize, 10) || 25, 1), 100);"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 154,
+      "text": "const results  = filtered.slice(page * pageSize, (page + 1) * pageSize);"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 154,
+      "text": "const results  = filtered.slice(page * pageSize, (page + 1) * pageSize);"
+    },
+    {
+      "path": "server/routes/screenerV3.js",
+      "line": 162,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/routes/screenerV3Engine.ts",
+      "line": 135,
+      "text": "const paginated = searched.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/routes/screenerV3Engine.ts",
+      "line": 184,
+      "text": "const paginated = results.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/routes/system.js",
+      "line": 20,
+      "text": ".slice(-50)"
+    },
+    {
+      "path": "server/routes/testFmpNews.js",
+      "line": 12,
+      "text": "sample: data.slice(0, 2)"
+    },
+    {
+      "path": "server/routes/uiErrors.js",
+      "line": 16,
+      "text": "res.json({ ok: true, data: uiErrors.slice(0, 50), error: null });"
+    },
+    {
+      "path": "server/scheduler/phaseScheduler.js",
+      "line": 201,
+      "text": "return updateIntraday1m(intradaySymbols.slice(0, 500), 1);"
+    },
+    {
+      "path": "server/scripts/build_go_live_phases_5_7.js",
+      "line": 63,
+      "text": "sample: (c.text || '').slice(0, 140),"
+    },
+    {
+      "path": "server/scripts/build_go_live_phases_5_7.js",
+      "line": 114,
+      "text": "sample: (resp.text || '').slice(0, 180),"
+    },
+    {
+      "path": "server/scripts/build_phase4_watchlist.js",
+      "line": 53,
+      "text": "sample: rows.slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/build_phase4_watchlist_long.js",
+      "line": 50,
+      "text": "sample: rows.slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleAudit.js",
+      "line": 95,
+      "text": "throw new Error(`HTTP ${res.status} for ${url}${txt ? `: ${txt.slice(0, 300)}` : ''}`);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 727,
+      "text": "server/services/intradayEnrichmentService.ts:173:  return sortCandles(rows).slice(-120);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 728,
+      "text": "server/services/intradayEnrichmentService.ts:181:  const intraday5m = intraday1m.length ? aggregateCandles(intraday1m, 5).slice(-120) : await fetchIntraday(sym, '5min');"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 738,
+      "text": "server/providers/finvizProvider.js:20:  const tickers = rows.map(r => (r.Ticker || r.ticker || r.Symbol || '').trim().toUpperCase()).filter(Boolean).slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 751,
+      "text": "server/index.js:1565:    .slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 752,
+      "text": "server/index.js:1651:  }).slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 788,
+      "text": "server/routes/screenerV3Engine.ts:123:    const paginated = searched.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 792,
+      "text": "server/routes/screenerV3Engine.ts:162:    const paginated = results.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 800,
+      "text": "server/routes/newsV3.js:177:    const data = sorted.slice(0, limit).map((row) => {"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 830,
+      "text": "server/services/schedulerService.ts:21:    ? symbolsAll.slice(0, Number(limit))"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 843,
+      "text": "=== TERM: .slice( ==="
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 844,
+      "text": "server/data-engine/yahooHistoricalEnricher.js:116:  const openingBars      = marketBars.slice(0, 30);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 845,
+      "text": "server/data-engine/technicalCalculator.js:9:  let acc = sma(values.slice(0, period));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 846,
+      "text": "server/data-engine/technicalCalculator.js:47:  return sma(trs.slice(-period));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 847,
+      "text": "server/data-engine/fundamentalsEnricher.js:8:  for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 848,
+      "text": "server/data-engine/structureClassifier.js:288:      explanation:          `${def.label}: ${matched.slice(0, 3).join(', ')}`,"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 849,
+      "text": "server/providers/finvizProvider.js:20:  const tickers = rows.map(r => (r.Ticker || r.ticker || r.Symbol || '').trim().toUpperCase()).filter(Boolean).slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 850,
+      "text": "server/providers/brokers/saxoProvider.js:8:    accessToken: `saxo-${Buffer.from(username).toString('hex').slice(0, 12)}`,"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 851,
+      "text": "server/providers/brokers/saxoProvider.js:55:    date: new Date().toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 852,
+      "text": "server/providers/brokers/saxoProvider.js:68:      date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 853,
+      "text": "server/providers/brokers/ibkrProvider.js:9:    accessToken: `ibkr-${Buffer.from(username).toString('hex').slice(0, 12)}`,"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 854,
+      "text": "server/providers/brokers/ibkrProvider.js:68:    date: new Date().toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 855,
+      "text": "server/providers/brokers/ibkrProvider.js:81:      date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 856,
+      "text": "server/providers/finnhubProvider.js:14:  const from = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 857,
+      "text": "server/providers/finnhubProvider.js:15:  const to = now.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 858,
+      "text": "server/index.js:93:    const batch = symbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 859,
+      "text": "server/index.js:186:    const compact = (csvData || []).slice(0, 20).map(row => {"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 860,
+      "text": "server/index.js:193:    const text = compact.join('\\n').slice(0, 4000);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 861,
+      "text": "server/index.js:207:      const compact = (Array.isArray(data) ? data : []).slice(0, 25).map(item => {"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 862,
+      "text": "server/index.js:213:      const text = compact.join('\\n').slice(0, 4000);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 863,
+      "text": "server/index.js:220:      const text = md.slice(0, 4000);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 864,
+      "text": "server/index.js:416:      .slice(0, 50)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 865,
+      "text": "server/index.js:435:    const slice = returns.slice(i - window, i);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 866,
+      "text": "server/index.js:681:        const smaCalc = (arr, p) => arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null;"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 867,
+      "text": "server/index.js:732:        return Array.isArray(data) ? data.slice(0, 20) : [];"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 868,
+      "text": "server/index.js:847:    const smaCalcLocal = (arr, p) => arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null;"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 869,
+      "text": "server/index.js:856:      const recent = bars30d.slice(-15);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 870,
+      "text": "server/index.js:1051:          const recent = bars.slice(-15);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 871,
+      "text": "server/index.js:1280:    const paginatedRows = filtered.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 871,
+      "text": "server/index.js:1280:    const paginatedRows = filtered.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 872,
+      "text": "server/index.js:1351:      .slice(0, 500);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 873,
+      "text": "server/index.js:1383:      .slice(0, 500)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 874,
+      "text": "server/index.js:1435:  const tickerList = tickers.split(',').slice(0, 100); // max 100 tickers"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 875,
+      "text": "server/index.js:1565:    .slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 876,
+      "text": "server/index.js:1573:    const batch = tickers.slice(i, i + GAP_BATCH_SIZE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 877,
+      "text": "server/index.js:1617:    const newsTargets = gappers.slice(0, Math.min(10, gappers.length));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 878,
+      "text": "server/index.js:1619:    const from = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 879,
+      "text": "server/index.js:1620:    const to = now.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 880,
+      "text": "server/index.js:1651:  }).slice(0, limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 881,
+      "text": "server/utils/usageStore.js:34:  const topPaths = Array.from(store.perPath.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 882,
+      "text": "server/utils/usageStore.js:35:  const topUsers = Array.from(store.perUser.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 883,
+      "text": "server/utils/encryption.js:3:const ENCRYPTION_KEY = (process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')).slice(0, 32);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 884,
+      "text": "server/examples/request_example.js:20:    console.log('/api/saxo/ ->', r.status, typeof r.data === 'object' ? JSON.stringify(r.data) : String(r.data).slice(0, 200));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 885,
+      "text": "server/scripts/dataIntegritySmoke.ts:62:  return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 886,
+      "text": "server/scripts/structureHardeningSmoke.ts:70:  return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 887,
+      "text": "server/scripts/structureHardeningSmoke.ts:116:    sampleViolations: violations.slice(0, 15),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 888,
+      "text": "server/scripts/candleAudit.js:64:    throw new Error(`HTTP ${res.status} for ${url}${txt ? `: ${txt.slice(0, 300)}` : ''}`);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 889,
+      "text": "server/scripts/structureSmoke.ts:63:  return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 890,
+      "text": "server/scripts/structureSmoke.ts:137:      sampleViolations.push({ symbol, violations: violations.slice(0, 3) });"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 891,
+      "text": "server/scripts/structureSmoke.ts:141:  console.log(JSON.stringify({ totalViolations, sampleViolations: sampleViolations.slice(0, 10) }, null, 2));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 892,
+      "text": "server/lib/scoring/historicalScore.js:61:    const recent = closes.slice(-30);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 893,
+      "text": "server/.env.example:28:# Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex').slice(0,32))\""
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 894,
+      "text": "server/routes/screenerV3Engine.ts:123:    const paginated = searched.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 895,
+      "text": "server/routes/screenerV3Engine.ts:162:    const paginated = results.slice(offset, offset + limit);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 896,
+      "text": "server/routes/testFmpNews.js:12:      sample: data.slice(0, 2)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 897,
+      "text": "server/routes/historical.js:50:    const slice = returns.slice(i - window, i);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 898,
+      "text": "server/routes/canonical/fmpScreener.ts:76:  for (const symbol of (Array.isArray(symbols) ? symbols : []).slice(0, 15)) {"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 899,
+      "text": "server/routes/canonical/fmpScreener.ts:123:    ).slice(0, 15);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 900,
+      "text": "server/routes/canonical/universe.ts:148:    const pagedSymbols = symbols.slice(offset, offset + pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 900,
+      "text": "server/routes/canonical/universe.ts:148:    const pagedSymbols = symbols.slice(offset, offset + pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 901,
+      "text": "server/routes/options.js:15:      earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 902,
+      "text": "server/routes/screenerV3.js:154:    const results  = filtered.slice(page * pageSize, (page + 1) * pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 902,
+      "text": "server/routes/screenerV3.js:154:    const results  = filtered.slice(page * pageSize, (page + 1) * pageSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 903,
+      "text": "server/routes/chartV2.ts:85:      ? dailyCandles.slice(-250)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 904,
+      "text": "server/routes/chartV2.ts:137:      dailyCandles: dailyCandles.slice(-260),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 905,
+      "text": "server/routes/newsV3.js:177:    const data = sorted.slice(0, limit).map((row) => {"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 906,
+      "text": "server/services/options/optionsService.js:63:    const chunk = list.slice(i, i + MAX_SYMBOLS_PER_MINUTE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 907,
+      "text": "server/services/trades/pdfParser.js:78:  if (val instanceof Date) return val.toISOString().slice(0, 16);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 908,
+      "text": "server/services/trades/pdfParser.js:80:  if (/^\\d{4}-\\d{2}-\\d{2}/.test(str)) return str.slice(0, 16);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 909,
+      "text": "server/services/trades/pdfParser.js:654:  throw new Error(`Could not detect format from pasted text.\\n\\nFirst line: \"${firstLine.slice(0, 100)}\"\\n\\nSupported formats:\\n- Saxo Execution Logs (Position XXXX: Share trade executed to Buy ...)\\n- CSV with headers (ticker, qty, entry, exit, etc.)\\n- Tab-separated with headers`);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 910,
+      "text": "server/services/trades/pdfParser.js:960:      const nextLines = lines.slice(i + 1, i + 4).join(' ');"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 911,
+      "text": "server/services/trades/dailyReviewCron.js:12:      const dateStr = yesterday.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 912,
+      "text": "server/services/trades/demoSeeder.js:79:    const date = t.closedAt.slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 913,
+      "text": "server/services/directoryServiceV1.ts:296:      common: data.commonStocks.slice(0, 5),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 914,
+      "text": "server/services/directoryServiceV1.ts:297:      etfs: data.etfs.slice(0, 5),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 915,
+      "text": "server/services/dailyEnrichmentService.ts:58:  const closes = candles.slice(-period).map((c) => toNum(c?.close));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 916,
+      "text": "server/services/dailyEnrichmentService.ts:116:  const seed = average(trueRanges.slice(0, period));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 917,
+      "text": "server/services/dailyEnrichmentService.ts:288:  const from = start.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 918,
+      "text": "server/services/dailyEnrichmentService.ts:289:  const to = end.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 919,
+      "text": "server/services/dailyEnrichmentService.ts:346:  const avgVolume = average(candles.slice(-20).map((c) => toNum(c?.volume)).filter((v) => Number.isFinite(v) && v > 0));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 920,
+      "text": "server/services/dailyEnrichmentService.ts:355:  const trailing252 = candles.slice(-252);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 921,
+      "text": "server/services/dailyEnrichmentService.ts:406:    const batch = uniqueSymbols.slice(start, start + BATCH_SIZE);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 922,
+      "text": "server/services/newsEngineV3.js:92:  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 923,
+      "text": "server/services/newsEngineV3.js:372:    const chunk = normalizedSymbols.slice(index, index + MAX_CONCURRENCY);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 924,
+      "text": "server/services/newsEngineV3.js:418:        String(row.raw_payload?.text || row.raw_payload?.content || '').slice(0, 2000),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 925,
+      "text": "server/services/strategyDetectionEngineV1.ts:112:  const opening = intraday.slice(0, 3);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 926,
+      "text": "server/services/strategyDetectionEngineV1.ts:122:    const prev = intraday.slice(Math.max(0, i - 5), i);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 927,
+      "text": "server/services/strategyDetectionEngineV1.ts:192:    const avgPrevVol = average(intraday.slice(Math.max(0, i - 5), i).map((c) => c.volume)) ?? null;"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 928,
+      "text": "server/services/strategyDetectionEngineV1.ts:249:  const prior5 = candles.slice(-6, -1);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 929,
+      "text": "server/services/strategyDetectionEngineV1.ts:291:        invalidationLevel: Math.min(...candles.slice(-6).map((c) => c.low)),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 930,
+      "text": "server/services/strategyDetectionEngineV1.ts:306:    const priorWindow = intraday.slice(Math.max(0, i - 6), i);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 931,
+      "text": "server/services/marketDataEngineV1.ts:254:  const from = start.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 932,
+      "text": "server/services/marketDataEngineV1.ts:255:  const to = end.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 933,
+      "text": "server/services/marketDataEngineV1.ts:425:  let atr = average(trueRanges.slice(0, period));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 934,
+      "text": "server/services/marketDataEngineV1.ts:498:    const recent20 = Array.isArray(dailyCandles) ? dailyCandles.slice(-20) : [];"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 935,
+      "text": "server/services/marketDataEngineV1.ts:510:      .slice(-20);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 936,
+      "text": "server/services/marketDataEngineV1.ts:548:  for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 937,
+      "text": "server/services/marketDataEngineV1.ts:559:  const closeSlice = candles.slice(-period).map((c) => toFiniteOrNull(c?.close)).filter(Number.isFinite);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 938,
+      "text": "server/services/marketDataEngineV1.ts:793:    candles = dailyCandles.slice(-250);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 939,
+      "text": "server/services/schedulerService.ts:21:    ? symbolsAll.slice(0, Number(limit))"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 940,
+      "text": "server/services/volumeMetricsService.ts:55:  const fmt = (value) => value.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 941,
+      "text": "server/services/volumeMetricsService.ts:85:  const latest30 = volumes.slice(0, 30);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 942,
+      "text": "server/services/universeBuilderV4.ts:46:    parts.push(values.slice(i, i + size));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 943,
+      "text": "server/services/earnings/earningsIngestionService.ts:79:    report_date: String(latest.date || latest.reportDate || latest.fiscalDateEnding).slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 944,
+      "text": "server/services/earnings/earningsReactionService.ts:33:  return new Date(tsSeconds * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 945,
+      "text": "server/services/earnings/earningsReactionService.ts:105:  const reportDateStr = reportDate.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 946,
+      "text": "server/services/earnings/earningsReactionService.ts:131:    .slice(Math.max(0, dayIndex - 20), dayIndex)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 947,
+      "text": "server/services/intradayEnrichmentService.ts:106:      atr = trs.slice(0, period).reduce((sum, row) => sum + row.tr, 0) / period;"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 948,
+      "text": "server/services/intradayEnrichmentService.ts:173:  return sortCandles(rows).slice(-120);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 949,
+      "text": "server/services/intradayEnrichmentService.ts:181:  const intraday5m = intraday1m.length ? aggregateCandles(intraday1m, 5).slice(-120) : await fetchIntraday(sym, '5min');"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 950,
+      "text": "server/services/intradayEnrichmentService.ts:185:  const orbWindow = intraday1m.slice(0, Math.min(15, intraday1m.length));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 951,
+      "text": "server/services/intradayEnrichmentService.ts:186:  const fallbackWindow = intraday1m.slice(0, Math.min(5, intraday1m.length));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 952,
+      "text": "server/services/intradayEnrichmentService.ts:191:  const priorVolumes = intraday1m.slice(-31, -1).map((c) => Number(c.volume || 0)).filter((v) => Number.isFinite(v));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 953,
+      "text": "server/services/screenerV3/quoteService.ts:14:    out.push(arr.slice(index, index + size));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 954,
+      "text": "server/services/marketDataService.js:142:    earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 955,
+      "text": "server/services/marketDataService.js:217:      const sma = (arr, p) => (arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 956,
+      "text": "server/services/marketDataService.js:275:    .slice(0, 10)"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 957,
+      "text": "server/services/marketDataService.js:308:    const batch = uniqueSymbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 958,
+      "text": "server/services/marketDataService.js:428:  const beatSymbols = [...new Set(earnings.map(e => e.symbol).filter(Boolean))].slice(0, 150);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 959,
+      "text": "server/services/marketDataService.js:430:    const batch = beatSymbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 960,
+      "text": "server/services/marketDataService.js:451:  )].slice(0, 300);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 961,
+      "text": "server/services/marketDataService.js:603:    recentInsiderTxns: (insiderTxns || []).slice(0, 5).map(t => ({"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 962,
+      "text": "server/services/marketDataService.js:619:  }).slice(0, 10).map(u => ({"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 963,
+      "text": "server/services/marketDataService.js:648:  const news = (Array.isArray(newsItems) ? newsItems : []).slice(0, 10).map(n => ({"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 964,
+      "text": "server/services/marketDataService.js:654:    summary: (n.summary || '').slice(0, 200),"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 965,
+      "text": "server/services/marketDataService.js:666:      return +(arr.slice(-period).reduce((a, b) => a + b, 0) / period).toFixed(2);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 966,
+      "text": "server/services/marketDataService.js:671:      const recent = arr.slice(-(period + 1));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 967,
+      "text": "server/services/marketDataService.js:685:      const recent = bars.slice(-(period + 1));"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 968,
+      "text": "server/services/marketDataService.js:704:    const year52 = validQuotes.slice(-252);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 969,
+      "text": "server/services/marketDataService.js:708:    const recent20 = validQuotes.slice(-20);"
+    },
+    {
+      "path": "server/scripts/candleDepthOccurrences.txt",
+      "line": 970,
+      "text": "server/services/marketDataService.js:739:    quarterlyEarnings.slice(0, 4).forEach(q => { if (q.beat === true) et += 3; else if (q.beat === false) et -= 3; });"
+    },
+    {
+      "path": "server/scripts/check_earnings_long.js",
+      "line": 16,
+      "text": "console.log(t.slice(0, 2000).replace(/\\n/g, ' | '));"
+    },
+    {
+      "path": "server/scripts/core_fix_lock_run.js",
+      "line": 198,
+      "text": "const top20 = rows.slice(0, 20);"
+    },
+    {
+      "path": "server/scripts/dataIntegritySmoke.ts",
+      "line": 62,
+      "text": "return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/debug_frontend_ui.js",
+      "line": 36,
+      "text": "console.log(t.slice(0, 1200).replace(/\\n/g, ' | '));"
+    },
+    {
+      "path": "server/scripts/debug_frontend_ui.js",
+      "line": 40,
+      "text": "console.log(errs.slice(0, 30).join('\\n'));"
+    },
+    {
+      "path": "server/scripts/debug_frontend_ui.js",
+      "line": 42,
+      "text": "console.log(failed.slice(0, 30).join('\\n'));"
+    },
+    {
+      "path": "server/scripts/debug_frontend_ui.js",
+      "line": 44,
+      "text": "console.log(traced.slice(0, 40).join('\\n'));"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 72,
+      "text": "const rows = Array.isArray(payload?.data) ? payload.data.slice(0, SYMBOL_TRACK_COUNT) : [];"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 191,
+      "text": "const finalTop5 = finalSnapshot.symbols.slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 220,
+      "text": "const firstHalf = validSnapshots.slice(0, half);"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 221,
+      "text": "const secondHalf = validSnapshots.slice(half);"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 254,
+      "text": "const prev = new Set(validSnapshots[i - 1].symbols.slice(0, 5).map((r) => r.symbol));"
+    },
+    {
+      "path": "server/scripts/drift_validation_runner.js",
+      "line": 255,
+      "text": "const curr = validSnapshots[i].symbols.slice(0, 5).map((r) => r.symbol);"
+    },
+    {
+      "path": "server/scripts/earningsForceInjection.js",
+      "line": 278,
+      "text": "const earnings48Symbols = earningsSymbols.slice();"
+    },
+    {
+      "path": "server/scripts/earningsOutcomeBackfill.js",
+      "line": 84,
+      "text": "report.details.earnings_trades_sample = (earningsTrades.rows || []).slice(0, 25);"
+    },
+    {
+      "path": "server/scripts/frontend_fix_validation.js",
+      "line": 230,
+      "text": "uiState.console_error_samples = consoleErrors.slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/frontend_fix_validation.js",
+      "line": 231,
+      "text": "uiState.failed_request_samples = failedRequests.slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 82,
+      "text": "text_sample: (text || '').slice(0, 180),"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 198,
+      "text": "resetState.active_processes.lsof_sample = lsofRaw.split('\\n').slice(0, 80);"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 415,
+      "text": "key_columns: cols.slice(0, 40),"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 441,
+      "text": "definition_sample: decisionDef.slice(0, 500),"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 780,
+      "text": "first_page_shown: (body || '').slice(0, 120),"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 827,
+      "text": "notes: String(text || '').slice(0, 160),"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 907,
+      "text": "for (const r of rows.slice(0, 10)) {"
+    },
+    {
+      "path": "server/scripts/fullReadinessAudit.js",
+      "line": 951,
+      "text": "empty_top_symbols: rows.filter((r) => String(r?.why_moving || r?.explanation || '').trim().length === 0).map((r) => r?.symbol).slice(0, 10),"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 183,
+      "text": "return Array.isArray(payload.rows) ? payload.rows.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 185,
+      "text": "return Array.isArray(payload.data) ? payload.data.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 189,
+      "text": "return Array.isArray(payload.data) ? payload.data.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 193,
+      "text": "return Array.isArray(payload.results) ? payload.results.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 195,
+      "text": "return Array.isArray(payload.data) ? payload.data.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 563,
+      "text": "const topOppFields = unique(topOppRows.slice(0, 5).flatMap((row) => Object.keys(flattenObject(row))));"
+    },
+    {
+      "path": "server/scripts/fullSystemAuditReadOnly.js",
+      "line": 614,
+      "text": "const sample10 = rows.slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/goLivePhases1to4.js",
+      "line": 122,
+      "text": "sample: Array.isArray(q.json?.data) ? q.json.data.slice(0, 2) : null,"
+    },
+    {
+      "path": "server/scripts/previewMorningBrief.js",
+      "line": 16,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/previewMorningBrief.js",
+      "line": 20,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/previewMorningBrief.js",
+      "line": 24,
+      "text": ".slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/previewMorningBrief.js",
+      "line": 26,
+      "text": "const topCatalysts = narrative.catalysts || news.map((n) => n.headline).slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/previewMorningBrief.js",
+      "line": 27,
+      "text": "const top5Stocks = (narrative.watchlist || signals.map((s) => s.symbol)).filter(Boolean).slice(0, 5);"
+    },
+    {
+      "path": "server/scripts/probe_endpoints.js",
+      "line": 40,
+      "text": "sample: body.slice(0, 140),"
+    },
+    {
+      "path": "server/scripts/screenerValidation.js",
+      "line": 91,
+      "text": "const pageSize = 25;"
+    },
+    {
+      "path": "server/scripts/screenerValidation.js",
+      "line": 92,
+      "text": "const start = (page - 1) * pageSize;"
+    },
+    {
+      "path": "server/scripts/screenerValidation.js",
+      "line": 93,
+      "text": "const paginatedRows = sortedRows.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/scripts/screenerValidation.js",
+      "line": 93,
+      "text": "const paginatedRows = sortedRows.slice(start, start + pageSize);"
+    },
+    {
+      "path": "server/scripts/screenerValidation.js",
+      "line": 96,
+      "text": "const paginationCorrect = paginatedRows.length === Math.min(pageSize, sortedRows.length);"
+    },
+    {
+      "path": "server/scripts/session_drift_validator.js",
+      "line": 126,
+      "text": "const top5 = rows.slice(0, Math.min(5, rows.length));"
+    },
+    {
+      "path": "server/scripts/structureHardeningSmoke.ts",
+      "line": 70,
+      "text": "return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/structureHardeningSmoke.ts",
+      "line": 116,
+      "text": "sampleViolations: violations.slice(0, 15),"
+    },
+    {
+      "path": "server/scripts/structureSmoke.ts",
+      "line": 63,
+      "text": "return shuffle(symbols).slice(0, SAMPLE_SIZE);"
+    },
+    {
+      "path": "server/scripts/structureSmoke.ts",
+      "line": 137,
+      "text": "sampleViolations.push({ symbol, violations: violations.slice(0, 3) });"
+    },
+    {
+      "path": "server/scripts/structureSmoke.ts",
+      "line": 141,
+      "text": "console.log(JSON.stringify({ totalViolations, sampleViolations: sampleViolations.slice(0, 10) }, null, 2));"
+    },
+    {
+      "path": "server/scripts/top5_live_validation.js",
+      "line": 325,
+      "text": "const hasWhyMoving = whyMoving.length > 8 && includesAny(snap.body_text, [whyMoving.slice(0, 20), whyMoving.slice(0, 30)]);"
+    },
+    {
+      "path": "server/scripts/top5_live_validation.js",
+      "line": 326,
+      "text": "const hasWhyTradeable = whyTradeable.length > 8 && includesAny(snap.body_text, [whyTradeable.slice(0, 20), whyTradeable.slice(0, 30)]);"
+    },
+    {
+      "path": "server/scripts/top5_live_validation.js",
+      "line": 327,
+      "text": "const hasPlan = planTokens.length > 0 && includesAny(snap.body_text, planTokens.map((x) => normalizeWhitespace(x).slice(0, 20)));"
+    },
+    {
+      "path": "server/scripts/top5_live_validation.js",
+      "line": 381,
+      "text": "const top5 = rows.slice(0, 5).map((r) => ({"
+    },
+    {
+      "path": "server/scripts/validate_top20_opportunities.js",
+      "line": 140,
+      "text": "const top20 = rows.slice(0, 20);"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 14,
+      "text": "return d.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 65,
+      "text": "return toUtcMidnight(`${String(raw).slice(0, 10)}T00:00:00Z`);"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 71,
+      "text": ".map((r) => String(r.report_date || r.date || r.earnings_date || '').slice(0, 10))"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 78,
+      "text": "console.log('STEP1 sample 5 rows:', JSON.stringify(rawCalendar.slice(0, 5), null, 2));"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 129,
+      "text": "for (const symbol of symbols.slice(0, 5)) {"
+    },
+    {
+      "path": "server/scripts/verify_earnings_page.js",
+      "line": 214,
+      "text": ".slice(0, 10)"
+    },
+    {
+      "path": "server/scripts/watchlist_session_lock_run.js",
+      "line": 322,
+      "text": "sample_symbols: rows.slice(0, 5).map((r) => r?.symbol).filter(Boolean),"
+    },
+    {
+      "path": "server/scripts/watchlist_session_lock_run.js",
+      "line": 419,
+      "text": "sample_symbols: rows.slice(0, 10).map((r) => r?.symbol).filter(Boolean),"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 43,
+      "text": "? topSector.tickers.slice(0, 4).map((item) => String(item?.symbol || '').toUpperCase()).filter(Boolean)"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 64,
+      "text": "return JSON.parse(text.slice(start, end + 1));"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 84,
+      "text": "indices: (input?.indexCards || []).slice(0, 6),"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 85,
+      "text": "sector_movers: (input?.sectorMovers || []).slice(0, 5),"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 86,
+      "text": "top_news: (input?.newsItems || []).slice(0, 8),"
+    },
+    {
+      "path": "server/services/RadarNarrativeEngine.js",
+      "line": 132,
+      "text": "tickers_to_watch: Array.isArray(parsed.tickers_to_watch) ? parsed.tickers_to_watch.slice(0, 6) : fallback.tickers_to_watch,"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 31,
+      "text": "for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 52,
+      "text": "return new Date(ms).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 138,
+      "text": ".toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 139,
+      "text": "const toDate = new Date().toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 203,
+      "text": ".toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 204,
+      "text": "const toDate = nyNowDate.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 360,
+      "text": ".toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/candleUpdateService.ts",
+      "line": 362,
+      "text": ".toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 58,
+      "text": "const closes = candles.slice(-period).map((c) => toNum(c?.close));"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 116,
+      "text": "const seed = average(trueRanges.slice(0, period));"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 288,
+      "text": "const from = start.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 289,
+      "text": "const to = end.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 346,
+      "text": "const avgVolume = average(candles.slice(-20).map((c) => toNum(c?.volume)).filter((v) => Number.isFinite(v) && v > 0));"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 355,
+      "text": "const trailing252 = candles.slice(-252);"
+    },
+    {
+      "path": "server/services/dailyEnrichmentService.ts",
+      "line": 406,
+      "text": "const batch = uniqueSymbols.slice(start, start + BATCH_SIZE);"
+    },
+    {
+      "path": "server/services/dataIntegrityMonitorService.js",
+      "line": 362,
+      "text": "symbols: symbols.slice(0, 100),"
+    },
+    {
+      "path": "server/services/directoryServiceV1.ts",
+      "line": 296,
+      "text": "common: data.commonStocks.slice(0, 5),"
+    },
+    {
+      "path": "server/services/directoryServiceV1.ts",
+      "line": 297,
+      "text": "etfs: data.etfs.slice(0, 5),"
+    },
+    {
+      "path": "server/services/earnings/earningsIngestionService.ts",
+      "line": 79,
+      "text": "report_date: String(latest.date || latest.reportDate || latest.fiscalDateEnding).slice(0, 10),"
+    },
+    {
+      "path": "server/services/earnings/earningsReactionService.ts",
+      "line": 33,
+      "text": "return new Date(tsSeconds * 1000).toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/earnings/earningsReactionService.ts",
+      "line": 105,
+      "text": "const reportDateStr = reportDate.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/earnings/earningsReactionService.ts",
+      "line": 131,
+      "text": ".slice(Math.max(0, dayIndex - 20), dayIndex)"
+    },
+    {
+      "path": "server/services/emailIntelBridge.js",
+      "line": 65,
+      "text": ".slice(0, 280);"
+    },
+    {
+      "path": "server/services/emailIntelBridge.js",
+      "line": 74,
+      "text": ".slice(0, 24);"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 33,
+      "text": "return normalized.split(' ').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 73,
+      "text": "const topSignalsRows = signals.slice(0, 10).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 87,
+      "text": "const topSignalNarratives = signals.slice(0, 5).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 95,
+      "text": "const sectorRows = sectorStrength.slice(0, 3).map((row) =>"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 99,
+      "text": "const catalystsRows = topCatalysts.slice(0, 5).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 105,
+      "text": "}).join('') || (narrative.catalysts || []).slice(0, 6).map((item) =>"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 109,
+      "text": "const newsRows = news.slice(0, 8).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 114,
+      "text": "const earningsRows = earningsToday.slice(0, 5).map((row) =>"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 126,
+      "text": "const top3 = signals.slice(0, 3)"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 204,
+      "text": "const topCatalystsText = (briefing?.topCatalysts || []).slice(0, 5).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 212,
+      "text": ".slice(0, 6)"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 224,
+      "text": "...dedupeSignals(briefing?.signals || []).slice(0, 5).map((row) => `${row.symbol} ${row.confidence || 'N/A'} ${row.catalyst_type || 'unknown'}\\n${row.narrative || row.signal_explanation || row.rationale || 'No narrative explanation available.'}`),"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 225,
+      "text": "`Top Stocks In Play: ${(briefing?.stocksInPlay || []).slice(0, 5).map((row) => row.symbol).join(', ') || 'None'}`,"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 257,
+      "text": "subject: `OpenRange Morning Briefing - ${new Date().toISOString().slice(0, 10)}`,"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 287,
+      "text": "const bodyRows = rows.slice(0, 20).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 325,
+      "text": "...(rows.slice(0, 20).map((row) => {"
+    },
+    {
+      "path": "server/services/emailService.js",
+      "line": 338,
+      "text": "subject: `OpenRange Premarket Scan - ${new Date().toISOString().slice(0, 10)}`,"
+    },
+    {
+      "path": "server/services/featureAccessService.js",
+      "line": 166,
+      "text": "const why = reason ? String(reason).slice(0, 500) : null;"
+    },
+    {
+      "path": "server/services/intelParser.js",
+      "line": 44,
+      "text": "return firstSentence.slice(0, 400);"
+    },
+    {
+      "path": "server/services/intradayEnrichmentService.ts",
+      "line": 178,
+      "text": "atr = trs.slice(0, period).reduce((sum, row) => sum + row.tr, 0) / period;"
+    },
+    {
+      "path": "server/services/intradayEnrichmentService.ts",
+      "line": 294,
+      "text": "const orbWindow = intraday1m.slice(0, Math.min(15, intraday1m.length));"
+    },
+    {
+      "path": "server/services/intradayEnrichmentService.ts",
+      "line": 295,
+      "text": "const fallbackWindow = intraday1m.slice(0, Math.min(5, intraday1m.length));"
+    },
+    {
+      "path": "server/services/intradayEnrichmentService.ts",
+      "line": 300,
+      "text": "const priorVolumes = intraday1m.slice(-31, -1).map((c) => Number(c.volume || 0)).filter((v) => Number.isFinite(v));"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 254,
+      "text": "const from = start.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 255,
+      "text": "const to = end.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 401,
+      "text": "let atr = average(trueRanges.slice(0, period));"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 474,
+      "text": "const recent20 = Array.isArray(dailyCandles) ? dailyCandles.slice(-20) : [];"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 486,
+      "text": ".slice(-20);"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 524,
+      "text": "for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 535,
+      "text": "const closeSlice = candles.slice(-period).map((c) => toFiniteOrNull(c?.close)).filter(Number.isFinite);"
+    },
+    {
+      "path": "server/services/marketDataEngineV1.ts",
+      "line": 769,
+      "text": "candles = dailyCandles.slice(-250);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 51,
+      "text": "const key = `svc:quotes:${canonicalList.slice().sort().join(',')}`;"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 160,
+      "text": "earningsDate = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 237,
+      "text": "const sma = (arr, p) => (arr.length >= p ? +(arr.slice(-p).reduce((a, b) => a + b, 0) / p).toFixed(2) : null);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 295,
+      "text": ".slice(0, 10)"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 328,
+      "text": "const batch = uniqueSymbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 448,
+      "text": "const beatSymbols = [...new Set(earnings.map(e => e.symbol).filter(Boolean))].slice(0, 150);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 450,
+      "text": "const batch = beatSymbols.slice(i, i + batchSize);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 471,
+      "text": ")].slice(0, 300);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 623,
+      "text": "recentInsiderTxns: (insiderTxns || []).slice(0, 5).map(t => ({"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 639,
+      "text": "}).slice(0, 10).map(u => ({"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 668,
+      "text": "const news = (Array.isArray(newsItems) ? newsItems : []).slice(0, 10).map(n => ({"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 674,
+      "text": "summary: (n.summary || '').slice(0, 200),"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 686,
+      "text": "return +(arr.slice(-period).reduce((a, b) => a + b, 0) / period).toFixed(2);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 691,
+      "text": "const recent = arr.slice(-(period + 1));"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 705,
+      "text": "const recent = bars.slice(-(period + 1));"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 724,
+      "text": "const year52 = validQuotes.slice(-252);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 728,
+      "text": "const recent20 = validQuotes.slice(-20);"
+    },
+    {
+      "path": "server/services/marketDataService.js",
+      "line": 759,
+      "text": "quarterlyEarnings.slice(0, 4).forEach(q => { if (q.beat === true) et += 3; else if (q.beat === false) et -= 3; });"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 7,
+      "text": "const market = Array.isArray(payload.market) ? payload.market.slice(0, 4) : [];"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 8,
+      "text": "const signals = Array.isArray(payload.signals) ? payload.signals.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 9,
+      "text": "const news = Array.isArray(payload.news) ? payload.news.slice(0, 5) : [];"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 16,
+      "text": "catalysts: news.map((item) => item.headline).filter(Boolean).slice(0, 3),"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 17,
+      "text": "watchlist: signals.map((item) => item.symbol).filter(Boolean).slice(0, 5),"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 97,
+      "text": "const cleanSignals = Array.isArray(signals) ? signals.slice(0, 20) : [];"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 98,
+      "text": "const signalPayload = JSON.stringify(cleanSignals).slice(0, 12000);"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 125,
+      "text": "userPrompt: `Signal context: ${JSON.stringify(signal).slice(0, 4000)}`,"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 143,
+      "text": "userPrompt: `Signal context: ${JSON.stringify(signal).slice(0, 5000)}`,"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 175,
+      "text": ".slice(0, 5),"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 184,
+      "text": "const userPayload = JSON.stringify(payload).slice(0, 14000);"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 204,
+      "text": "? row.affected_symbols.map((v) => String(v).toUpperCase()).slice(0, 10)"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 210,
+      "text": "const userPayload = JSON.stringify(payload).slice(0, 12000);"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 225,
+      "text": "catalysts: Array.isArray(parsed?.catalysts) ? parsed.catalysts.map((v) => String(v)).slice(0, 6) : [],"
+    },
+    {
+      "path": "server/services/mcpClient.js",
+      "line": 226,
+      "text": "watchlist: Array.isArray(parsed?.watchlist) ? parsed.watchlist.map((v) => String(v)).slice(0, 8) : [],"
+    },
+    {
+      "path": "server/services/newsEngineV3.js",
+      "line": 151,
+      "text": "return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;"
+    },
+    {
+      "path": "server/services/newsEngineV3.js",
+      "line": 434,
+      "text": "const chunk = normalizedSymbols.slice(index, index + MAX_CONCURRENCY);"
+    },
+    {
+      "path": "server/services/newsEngineV3.js",
+      "line": 465,
+      "text": "summary: String(row.raw_payload?.text || row.raw_payload?.content || '').slice(0, 2000),"
+    },
+    {
+      "path": "server/services/newsStorage.js",
+      "line": 59,
+      "text": "const summary = String(article.summary || '').slice(0, 2000) || null;"
+    },
+    {
+      "path": "server/services/newsletterService.js",
+      "line": 327,
+      "text": "const subject = String(entry.subject || 'OpenRange Newsletter').slice(0, 400);"
+    },
+    {
+      "path": "server/services/newsletterService.js",
+      "line": 458,
+      "text": "campaignKey: `newsletter:${new Date().toISOString().slice(0, 10)}`,"
+    },
+    {
+      "path": "server/services/opportunityGenerationService.js",
+      "line": 296,
+      "text": ".slice()"
+    },
+    {
+      "path": "server/services/opportunityGenerationService.js",
+      "line": 359,
+      "text": ".slice(0, targetCount)"
+    },
+    {
+      "path": "server/services/opportunityGenerationService.js",
+      "line": 372,
+      "text": ".slice(0, targetCount)"
+    },
+    {
+      "path": "server/services/opportunityGenerationService.js",
+      "line": 385,
+      "text": ".slice(0, targetCount)"
+    },
+    {
+      "path": "server/services/options/optionsService.js",
+      "line": 63,
+      "text": "const chunk = list.slice(i, i + MAX_SYMBOLS_PER_MINUTE);"
+    },
+    {
+      "path": "server/services/schedulerService.ts",
+      "line": 23,
+      "text": "? symbolsAll.slice(0, Number(limit))"
+    },
+    {
+      "path": "server/services/schedulerService.ts",
+      "line": 51,
+      "text": "const symbols = common.map((row) => row.symbol).filter(Boolean).slice(0, 500);"
+    },
+    {
+      "path": "server/services/schedulerService.ts",
+      "line": 59,
+      "text": "const symbols = common.map((row) => row.symbol).filter(Boolean).slice(0, 500);"
+    },
+    {
+      "path": "server/services/screenerV3/quoteService.ts",
+      "line": 14,
+      "text": "out.push(arr.slice(index, index + size));"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 112,
+      "text": "const opening = intraday.slice(0, 3);"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 122,
+      "text": "const prev = intraday.slice(Math.max(0, i - 5), i);"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 192,
+      "text": "const avgPrevVol = average(intraday.slice(Math.max(0, i - 5), i).map((c) => c.volume)) ?? null;"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 249,
+      "text": "const prior5 = candles.slice(-6, -1);"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 291,
+      "text": "invalidationLevel: Math.min(...candles.slice(-6).map((c) => c.low)),"
+    },
+    {
+      "path": "server/services/strategyDetectionEngineV1.ts",
+      "line": 306,
+      "text": "const priorWindow = intraday.slice(Math.max(0, i - 6), i);"
+    },
+    {
+      "path": "server/services/trades/dailyReviewCron.js",
+      "line": 12,
+      "text": "const dateStr = yesterday.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/trades/demoSeeder.js",
+      "line": 79,
+      "text": "const date = t.closedAt.slice(0, 10);"
+    },
+    {
+      "path": "server/services/trades/pdfParser.js",
+      "line": 78,
+      "text": "if (val instanceof Date) return val.toISOString().slice(0, 16);"
+    },
+    {
+      "path": "server/services/trades/pdfParser.js",
+      "line": 80,
+      "text": "if (/^\\d{4}-\\d{2}-\\d{2}/.test(str)) return str.slice(0, 16);"
+    },
+    {
+      "path": "server/services/trades/pdfParser.js",
+      "line": 654,
+      "text": "throw new Error(`Could not detect format from pasted text.\\n\\nFirst line: \"${firstLine.slice(0, 100)}\"\\n\\nSupported formats:\\n- Saxo Execution Logs (Position XXXX: Share trade executed to Buy ...)\\n- CSV with headers (ticker, qty, entry, exit, etc.)\\n- Tab-separated with headers`);"
+    },
+    {
+      "path": "server/services/trades/pdfParser.js",
+      "line": 960,
+      "text": "const nextLines = lines.slice(i + 1, i + 4).join(' ');"
+    },
+    {
+      "path": "server/services/universeBuilderV4.ts",
+      "line": 46,
+      "text": "parts.push(values.slice(i, i + size));"
+    },
+    {
+      "path": "server/services/volumeMetricsService.ts",
+      "line": 54,
+      "text": "const fmt = (value) => value.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/services/volumeMetricsService.ts",
+      "line": 81,
+      "text": "const latest30 = volumes.slice(0, 30);"
+    },
+    {
+      "path": "server/strategy/strategy_engine.js",
+      "line": 152,
+      "text": "const batch = metrics.slice(index, index + BATCH_SIZE);"
+    },
+    {
+      "path": "server/system/fmpEndpointValidator.js",
+      "line": 28,
+      "text": "return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };"
+    },
+    {
+      "path": "server/system/fmpEndpointValidator.js",
+      "line": 134,
+      "text": "sample_fields: result.data[0] && typeof result.data[0] === 'object' ? Object.keys(result.data[0]).slice(0, 20) : [],"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 43,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 56,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 77,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 112,
+      "text": ".limit(1000);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 136,
+      "text": ".limit(500);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 161,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 188,
+      "text": ".limit(500);"
+    },
+    {
+      "path": "server/system/platformHealthExtended.js",
+      "line": 230,
+      "text": ".limit(1);"
+    },
+    {
+      "path": "server/system/startEngines.js",
+      "line": 119,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/system/startEngines.js",
+      "line": 131,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 11,
+      "text": "const pageSize = Number.isFinite(pageSizeRaw) ? Math.max(1, Math.min(100, Math.floor(pageSizeRaw))) : 10;"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 12,
+      "text": "return { tickers, pageSize };"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 23,
+      "text": "async function fetchBenzingaNews({ tickers = 'AAPL,TSLA', pageSize = 10 } = {}) {"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 31,
+      "text": "params.set('pageSize', String(pageSize));"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 86,
+      "text": "pageSize,"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 99,
+      "text": "const { tickers, pageSize } = parseArgs();"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 100,
+      "text": "fetchBenzingaNews({ tickers, pageSize })"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 102,
+      "text": "console.log(`[BENZINGA] tickers=${result.tickers} pageSize=${result.pageSize} authMode=${result.authMode} count=${result.count}`);"
+    },
+    {
+      "path": "server/tools/benzinga_news.js",
+      "line": 109,
+      "text": "console.log(`  teaser: ${String(teaser).slice(0, 220)}`);"
+    },
+    {
+      "path": "server/tools/catalyst_data_source_audit.js",
+      "line": 533,
+      "text": "catalystSample: catalysts.slice(0, 3),"
+    },
+    {
+      "path": "server/tools/news_feed_sources_final_report.js",
+      "line": 17,
+      "text": "return date.toISOString().slice(0, 10);"
+    },
+    {
+      "path": "server/tools/news_feed_sources_final_report.js",
+      "line": 56,
+      "text": "sampleFields: Object.keys(first).slice(0, 8),"
+    },
+    {
+      "path": "server/tools/news_feed_sources_final_report.js",
+      "line": 305,
+      "text": "const result = await fetchBenzingaNews({ tickers: 'AAPL,TSLA', pageSize: 10 });"
+    },
+    {
+      "path": "server/tools/news_feed_sources_final_report.js",
+      "line": 310,
+      "text": "sample: result.articles.slice(0, 5).map((article) => ({"
+    },
+    {
+      "path": "server/utils/batchInsert.js",
+      "line": 29,
+      "text": "const chunk = rows.slice(index, index + batchSize);"
+    },
+    {
+      "path": "server/utils/candleDepthPolicy.ts",
+      "line": 18,
+      "text": "return safe.length > limit ? safe.slice(-limit) : safe;"
+    },
+    {
+      "path": "server/utils/encryption.js",
+      "line": 3,
+      "text": "const ENCRYPTION_KEY = (process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')).slice(0, 32);"
+    },
+    {
+      "path": "server/utils/usageStore.js",
+      "line": 34,
+      "text": "const topPaths = Array.from(store.perPath.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);"
+    },
+    {
+      "path": "server/utils/usageStore.js",
+      "line": 35,
+      "text": "const topUsers = Array.from(store.perUser.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);"
+    },
+    {
+      "path": "server/workers/earningsWorker.js",
+      "line": 25,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/workers/earningsWorker.js",
+      "line": 37,
+      "text": ".slice(0, 50);"
+    },
+    {
+      "path": "server/workers/earningsWorker.js",
+      "line": 51,
+      "text": "const symbolsSample = getEngineSymbols(result).slice(0, 10);"
+    },
+    {
+      "path": "server/workers/rss_worker.js",
+      "line": 70,
+      "text": "const source = String(item.creator || item.author || item.source || feedUrl).slice(0, 255);"
+    },
+    {
+      "path": "server/workers/rss_worker.js",
+      "line": 89,
+      "text": "String(item.contentSnippet || item.content || '').slice(0, 2000) || null,"
+    },
+    {
+      "path": "server/workers/rss_worker.js",
+      "line": 110,
+      "text": "summary: String(item.contentSnippet || item.content || '').slice(0, 2000) || null,"
+    }
+  ]
+}

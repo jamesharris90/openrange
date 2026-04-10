@@ -1,0 +1,121 @@
+{
+  "ts": "2026-03-20T16:26:50.165Z",
+  "top15": [
+    {
+      "symbol": "WNW",
+      "final_score": 100,
+      "relative_volume": 7757.594381233572,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "COCO",
+      "final_score": 85.74972019816344,
+      "relative_volume": 1.6682761891095421,
+      "gap_percent": 2.25,
+      "news_score": 0
+    },
+    {
+      "symbol": "COHR",
+      "final_score": 81.50429096426684,
+      "relative_volume": 1.0017391863899525,
+      "gap_percent": 16.6,
+      "news_score": 0
+    },
+    {
+      "symbol": "JBL",
+      "final_score": 81.50429096426684,
+      "relative_volume": 0.8962239947428011,
+      "gap_percent": 7.35,
+      "news_score": 0
+    },
+    {
+      "symbol": "GPCR",
+      "final_score": 81.50429096426684,
+      "relative_volume": 0.9013705021310162,
+      "gap_percent": 2.9,
+      "news_score": 0
+    },
+    {
+      "symbol": "FHI",
+      "final_score": 69.64518080497305,
+      "relative_volume": 0.7526280152224394,
+      "gap_percent": -0.26,
+      "news_score": 0
+    },
+    {
+      "symbol": "CRGY",
+      "final_score": 69.64518080497305,
+      "relative_volume": 1.4109427055809616,
+      "gap_percent": -0.21,
+      "news_score": 0
+    },
+    {
+      "symbol": "CHE",
+      "final_score": 68.33068852791186,
+      "relative_volume": 1.4004073480523518,
+      "gap_percent": 1.01,
+      "news_score": 0
+    },
+    {
+      "symbol": "LNG",
+      "final_score": 62.802823501785234,
+      "relative_volume": 6.095570164860754,
+      "gap_percent": 15.65,
+      "news_score": 0
+    },
+    {
+      "symbol": "CHNR",
+      "final_score": 61.791172145652006,
+      "relative_volume": 1038.4193886669577,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "PMAX",
+      "final_score": 58.30051014758817,
+      "relative_volume": 601.7331883550577,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "IPM",
+      "final_score": 54.83799018018443,
+      "relative_volume": 5.642603282864597,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "VIA",
+      "final_score": 54.83263893927922,
+      "relative_volume": 5.064394478929916,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "SOS",
+      "final_score": 54.82985880839303,
+      "relative_volume": 4.73292184380462,
+      "gap_percent": 0,
+      "news_score": 0
+    },
+    {
+      "symbol": "BCRX",
+      "final_score": 54.82554924666723,
+      "relative_volume": 4.240455981993315,
+      "gap_percent": 0,
+      "news_score": 0
+    }
+  ],
+  "summary": {
+    "total_symbols": 15,
+    "valid_count": 12,
+    "false_positive_count": 3,
+    "valid_percent": 80,
+    "false_positive_percent": 20,
+    "avg_final_score_valid": 69.3736,
+    "avg_final_score_invalid": 69.207,
+    "high_rvol_or_gap_count": 10,
+    "passive_no_move_count": 0
+  }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "strategy": "UNKNOWN",
+    "trades": 14,
+    "avg_return": 0,
+    "win_rate": 14.29
+  },
+  {
+    "strategy": "stocks_in_play_setup",
+    "trades": 371,
+    "avg_return": 0,
+    "win_rate": 0
+  },
+  {
+    "strategy": "momentum_continuation",
+    "trades": 120,
+    "avg_return": 0,
+    "win_rate": 0
+  }
+]

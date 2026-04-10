@@ -35,7 +35,7 @@ function startMetricsScheduler() {
   if (started) return;
   started = true;
 
-  cron.schedule('*/1 * * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     await runCycle('cron-queue', { mode: 'queue' });
   });
 
@@ -46,7 +46,7 @@ function startMetricsScheduler() {
   logger.info('metrics scheduler started', {
     scope: 'metrics',
     schedules: {
-      queue: '*/1 * * * *',
+      queue: '*/5 * * * *',
       full: '*/15 * * * *',
     },
   });

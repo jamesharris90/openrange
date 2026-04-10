@@ -1718,7 +1718,7 @@ export default function ScreenerV3() {
                     ? activeFilterIds.length > 0
                       ? 'No stocks match these filters'
                       : 'Universe is empty — waiting for data pipeline'
-                    : 'No data available yet'}
+                    : 'No qualifying setups right now'}
                 </span>
                 {totalRows === 0 && activeFilterIds.length > 0 && (
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>

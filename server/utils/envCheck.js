@@ -15,8 +15,6 @@ const REQUIRED_WARN_KEYS = [
   'FINNHUB_API_KEY',
   'PPLX_API_KEY',
   'OPENAI_API_KEY',
-  'SAXO_APP_KEY',
-  'SAXO_APP_SECRET',
 ];
 
 function isMissing(value) {

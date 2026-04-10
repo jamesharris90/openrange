@@ -1,0 +1,370 @@
+{
+  "generated_at": "2026-04-10T06:59:14.818Z",
+  "local_api_base": "http://127.0.0.1:3007",
+  "production_api_base": "https://openrange-backend-production.up.railway.app",
+  "production_site_base": "https://openrangetrading.co.uk",
+  "tickers": [
+    {
+      "symbol": "META",
+      "db": {
+        "symbol": "META",
+        "price": 628.39,
+        "change_percent": 2.60769,
+        "volume": 7530431,
+        "avg_volume_30d": 9219074.066666666,
+        "sector": "Communication Services",
+        "updated_at": "2026-04-10T06:54:59.573Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11528,
+        "research": {
+          "symbol": "META",
+          "price": 628.39,
+          "change_percent": 2.60769,
+          "next_earnings": null,
+          "sector": "Communication Services"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "AAPL",
+      "db": {
+        "symbol": "AAPL",
+        "price": 260.49,
+        "change_percent": 0.61414,
+        "volume": 10048019,
+        "avg_volume_30d": 19641339.133333333,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:50:38.341Z",
+        "next_earnings": "2026-05-06",
+        "earnings_event_count": 109,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 12124,
+        "research": {
+          "symbol": "AAPL",
+          "price": 260.49,
+          "change_percent": 0.61414,
+          "next_earnings": null,
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": false,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "MSFT",
+      "db": {
+        "symbol": "MSFT",
+        "price": 373.07,
+        "change_percent": -0.3366,
+        "volume": 10321077,
+        "avg_volume_30d": 19900956.366666667,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:50:58.513Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 12348,
+        "research": {
+          "symbol": "MSFT",
+          "price": 373.07,
+          "change_percent": -0.3366,
+          "next_earnings": null,
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "NVDA",
+      "db": {
+        "symbol": "NVDA",
+        "price": 183.91,
+        "change_percent": 1.00505,
+        "volume": 62146174,
+        "avg_volume_30d": 137245433.86666667,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:51:16.708Z",
+        "next_earnings": "2026-05-26",
+        "earnings_event_count": 1,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 12362,
+        "research": {
+          "symbol": "NVDA",
+          "price": 183.91,
+          "change_percent": 1.00505,
+          "next_earnings": "2026-05-27",
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": false,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "TSLA",
+      "db": {
+        "symbol": "TSLA",
+        "price": 345.62,
+        "change_percent": 0.69046,
+        "volume": 22936763,
+        "avg_volume_30d": 43318889.266666666,
+        "sector": "Consumer Cyclical",
+        "updated_at": "2026-04-10T06:43:15.619Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11612,
+        "research": {
+          "symbol": "TSLA",
+          "price": 345.62,
+          "change_percent": 0.69046,
+          "next_earnings": null,
+          "sector": "Consumer Cyclical"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "SOFI",
+      "db": {
+        "symbol": "SOFI",
+        "price": 16.27,
+        "change_percent": -1.33414,
+        "volume": 21039627,
+        "avg_volume_30d": 62500378.06666667,
+        "sector": "Financial Services",
+        "updated_at": "2026-04-10T06:43:51.196Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11053,
+        "research": {
+          "symbol": "SOFI",
+          "price": 16.27,
+          "change_percent": -1.33414,
+          "next_earnings": null,
+          "sector": "Financial Services"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "MU",
+      "db": {
+        "symbol": "MU",
+        "price": 421.51,
+        "change_percent": 3.63386,
+        "volume": 34649294,
+        "avg_volume_30d": 25216462.533333335,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:52:38.071Z",
+        "next_earnings": "2026-06-23",
+        "earnings_event_count": 1,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 10979,
+        "research": {
+          "symbol": "MU",
+          "price": 421.51,
+          "change_percent": 3.63386,
+          "next_earnings": "2026-06-24",
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": false,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "CRWD",
+      "db": {
+        "symbol": "CRWD",
+        "price": 394.68,
+        "change_percent": -7.4629,
+        "volume": 812844,
+        "avg_volume_30d": 4713838.533333333,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:52:59.973Z",
+        "next_earnings": "2026-06-01",
+        "earnings_event_count": 1,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11890,
+        "research": {
+          "symbol": "CRWD",
+          "price": 394.68,
+          "change_percent": -7.4629,
+          "next_earnings": "2026-06-02",
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": false,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "SMCI",
+      "db": {
+        "symbol": "SMCI",
+        "price": 23.22,
+        "change_percent": -0.64185,
+        "volume": 10373285,
+        "avg_volume_30d": 34243834.3,
+        "sector": "Technology",
+        "updated_at": "2026-04-10T06:53:32.171Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 0
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11654,
+        "research": {
+          "symbol": "SMCI",
+          "price": 23.22,
+          "change_percent": -0.64185,
+          "next_earnings": null,
+          "sector": "Technology"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    },
+    {
+      "symbol": "CLRC",
+      "db": {
+        "symbol": "CLRC",
+        "price": 12,
+        "change_percent": 100,
+        "volume": 1122,
+        "avg_volume_30d": 112.2,
+        "sector": "Financial Services",
+        "updated_at": "2026-04-10T06:54:19.463Z",
+        "next_earnings": null,
+        "earnings_event_count": 0,
+        "recent_invalid_ohlcv_rows": 3
+      },
+      "production_api": {
+        "status": 200,
+        "elapsed_ms": 11123,
+        "research": {
+          "symbol": "CLRC",
+          "price": 12,
+          "change_percent": 100,
+          "next_earnings": null,
+          "sector": "Financial Services"
+        }
+      },
+      "parity": {
+        "price_match": true,
+        "next_earnings_match": true,
+        "sector_match": true
+      }
+    }
+  ],
+  "summary": {
+    "price_matches": 10,
+    "next_earnings_matches": 6,
+    "sectors_compared": 10,
+    "sector_matches": 10
+  },
+  "focused_evidence": {
+    "meta_local_research": {
+      "status": 200,
+      "elapsed_ms": 5170,
+      "research": {
+        "symbol": "META",
+        "price": 628.39,
+        "change_percent": 2.60769,
+        "next_earnings": null,
+        "sector": "Communication Services"
+      }
+    },
+    "clrc_decision_local": {
+      "status": 200,
+      "elapsed_ms": 2,
+      "decision": {
+        "status": "INSUFFICIENT_DATA",
+        "action": "WAIT",
+        "confidence": 0,
+        "risk_flags": [
+          "INSUFFICIENT_DATA",
+          "INVALID_CHANGE_PERCENT",
+          "INSUFFICIENT_RECENT_OHLCV",
+          "CORRUPT_RECENT_OHLCV"
+        ]
+      }
+    },
+    "clrc_decision_production": {
+      "status": 200,
+      "elapsed_ms": 349,
+      "decision": {
+        "status": "TRADEABLE",
+        "action": "TRADEABLE",
+        "confidence": 92,
+        "risk_flags": [
+          "RISK_OFF_TAPE"
+        ]
+      }
+    },
+    "meta_frontend_proxy": {
+      "status": 200,
+      "elapsed_ms": 13661,
+      "ok": true,
+      "text_sample": "{\"success\":true,\"profile\":{\"symbol\":\"META\",\"company_name\":\"Meta Platforms, Inc.\",\"sector\":\"Communication Services\",\"industry\":\"Internet Content & Information\",\"exchange\":\"NASDAQ\",\""
+    }
+  }
+}

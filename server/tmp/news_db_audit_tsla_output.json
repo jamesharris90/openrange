@@ -1,0 +1,513 @@
+{
+  "table_exists": [
+    {
+      "table_name": "intel_news"
+    },
+    {
+      "table_name": "news_articles"
+    },
+    {
+      "table_name": "news_events"
+    }
+  ],
+  "news_articles_columns": [
+    {
+      "column_name": "created_at"
+    },
+    {
+      "column_name": "headline"
+    },
+    {
+      "column_name": "published_at"
+    },
+    {
+      "column_name": "source"
+    },
+    {
+      "column_name": "symbol"
+    },
+    {
+      "column_name": "symbols"
+    },
+    {
+      "column_name": "url"
+    }
+  ],
+  "table_counts_and_latest": [
+    {
+      "table_name": "news_articles",
+      "rows": "222376",
+      "latest_published_at": "2026-04-08T11:35:25.000Z"
+    },
+    {
+      "table_name": "news_events",
+      "rows": "1342773",
+      "latest_published_at": "2026-03-04T16:12:18.000Z"
+    },
+    {
+      "table_name": "intel_news",
+      "rows": "743571",
+      "latest_published_at": "2026-05-31T23:00:00.000Z"
+    }
+  ],
+  "recent_counts": [
+    {
+      "metric": "news_articles_24h",
+      "count": "1478"
+    },
+    {
+      "metric": "news_articles_48h",
+      "count": "21673"
+    },
+    {
+      "metric": "news_articles_7d",
+      "count": "181981"
+    },
+    {
+      "metric": "tsla_news_articles_24h",
+      "count": "0"
+    },
+    {
+      "metric": "tsla_news_articles_7d",
+      "count": "206"
+    },
+    {
+      "metric": "tsla_news_articles_total",
+      "count": "241"
+    },
+    {
+      "metric": "tsla_intel_news_24h",
+      "count": "0"
+    },
+    {
+      "metric": "tsla_news_events_24h",
+      "count": "0"
+    }
+  ],
+  "tsla_latest_articles": [
+    {
+      "symbol": "TSLA",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T09:05:55.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Tesla stock fails to rebound even as broader market rockets: here's why",
+      "source": "invezz.com",
+      "url": "https://invezz.com/news/2026/04/08/tesla-stock-fails-to-rebound-even-as-broader-market-rockets-heres-why/",
+      "published_at": "2026-04-08T08:53:54.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Tesla Won't Crash Anytime Soon",
+      "source": "seekingalpha.com",
+      "url": "https://seekingalpha.com/article/4889199-tesla-wont-crash-anytime-soon",
+      "published_at": "2026-04-08T08:32:51.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Dow Jones Futures Jump, Oil Prices Dive; Trump Suspends Attacks By Two Weeks, Iran To Open Hormuz",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/c967ddec-7767-34cb-98b8-9a8508faf308/dow-jones-futures-jump%2C-oil.html?.tsrc=rss",
+      "published_at": "2026-04-07T22:10:48.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel Terafab Alliance With Musk Companies Puts Foundry Turnaround To Test",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/intel-terafab-alliance-musk-companies-230845681.html?.tsrc=rss",
+      "published_at": "2026-04-07T22:08:45.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Dow Jones Futures Rise On Trump Reprieve Hopes As Iran War Deadline Looms",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/c967ddec-7767-34cb-98b8-9a8508faf308/dow-jones-futures-rise-on.html?.tsrc=rss",
+      "published_at": "2026-04-07T21:21:54.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel Joins Musk's Terafab, Shares Rise on Partnership News",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/intel-joins-musks-terafab-shares-221013007.html?.tsrc=rss",
+      "published_at": "2026-04-07T21:10:13.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel Stock Rises After Joining Musk's Terafab Project",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/intel-stock-rises-joining-musks-220754826.html?.tsrc=rss",
+      "published_at": "2026-04-07T21:07:54.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel (INTC) Stock Trades Up, Here Is Why",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/intel-intc-stock-trades-why-214950142.html?.tsrc=rss",
+      "published_at": "2026-04-07T20:49:50.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Why Tesla (TSLA) Shares Are Trading Lower Today",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/why-tesla-tsla-shares-trading-214150784.html?.tsrc=rss",
+      "published_at": "2026-04-07T20:41:50.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Dow Jones Futures: Stocks Whipsaw Into Trump's Iran War Deadline; Apple, Tesla Slump",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/c967ddec-7767-34cb-98b8-9a8508faf308/dow-jones-futures%3A-stocks.html?.tsrc=rss",
+      "published_at": "2026-04-07T20:05:00.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "JPMorgan has a stark warning on Tesla stock",
+      "source": "yahoo",
+      "url": "https://www.thestreet.com/investing/stocks/jpmorgan-has-a-stark-warning-on-tesla-stock?.tsrc=rss",
+      "published_at": "2026-04-07T20:03:00.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel Stock Jumps Following Elon Musk Chip Deal. Why the Turnaround Is Gaining Steam.",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/a784a1ec-6119-3f31-95c0-07f561e4bb04/intel-stock-jumps-following.html?.tsrc=rss",
+      "published_at": "2026-04-07T20:02:00.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Tesla South Korea Sales Surge in Q1",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/tesla-south-korea-sales-surge-210038640.html?.tsrc=rss",
+      "published_at": "2026-04-07T20:00:38.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel Joins Elon Musk's Terafab Chip Factory Project",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/1189dfdf-c751-3dc2-afb3-ce221590a970/intel-joins-elon-musk%27s.html?.tsrc=rss",
+      "published_at": "2026-04-07T19:58:48.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel to Join Musk’s Terafab in Surprise Move, Lifting Stock",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/intel-join-musk-terafab-surprise-202340140.html?.tsrc=rss",
+      "published_at": "2026-04-07T19:23:40.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Tesla Stock Is Dropping—and Cathie Wood’s ARK Is Buying the Dip",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/m/b05a92e4-65ae-3cb3-a298-7615d8b9a4e7/tesla-stock-is-dropping%E2%80%94and.html?.tsrc=rss",
+      "published_at": "2026-04-07T19:11:00.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Intel teams up with Elon Musk on his Terafab endeavor",
+      "source": "yahoo",
+      "url": "https://finance.yahoo.com/video/intel-teams-up-with-elon-musk-on-his-terafab-endeavor-195200000.html?.tsrc=rss",
+      "published_at": "2026-04-07T18:52:00.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Why Intel Stock Is Gaining Today",
+      "source": "yahoo",
+      "url": "https://www.fool.com/investing/2026/04/07/why-intel-stock-is-gaining-today/?.tsrc=rss",
+      "published_at": "2026-04-07T18:41:39.000Z"
+    },
+    {
+      "symbol": "TSLA",
+      "headline": "Rivian Tumbles 5% After U.S. Sales Plunge 26%, With R2 Launch and April 30 Earnings in Focus",
+      "source": "yahoo",
+      "url": "https://247wallst.com/investing/2026/04/07/rivian-tumbles-5-after-u-s-sales-plunge-26-with-r2-launch-and-april-30-earnings-in-focus/?.tsrc=rss",
+      "published_at": "2026-04-07T18:18:37.000Z"
+    }
+  ],
+  "latest_news_articles": [
+    {
+      "symbol": "ZUMZ",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZVIA",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZYME",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZYBT",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZTO",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZURA",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZVSA",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZTEK",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZXZZT",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZWS",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZTS",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZVRA",
+      "headline": "4 Top Picks in Leisure & Recreation as Industry Outlook Brightens",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/commentary/2896487/4-top-picks-in-leisure-recreation-as-industry-outlook-brightens",
+      "published_at": "2026-04-08T10:35:25.000Z"
+    },
+    {
+      "symbol": "ZVIA",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZURA",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZVRA",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZVSA",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZTS",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZTO",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZUMZ",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    },
+    {
+      "symbol": "ZTEK",
+      "headline": "Artivion Secures FDA Approval for NEXUS Aortic Arch System",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896640/artivion-secures-fda-approval-for-nexus-aortic-arch-system",
+      "published_at": "2026-04-08T10:35:24.000Z"
+    }
+  ],
+  "latest_news_articles_with_tsla_symbols": [
+    {
+      "symbol": "XNET",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XPEV",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XLO",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XNCR",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XOS",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XPER",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XGN",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XHR",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XMTR",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XOMA",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XOMAO",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XOMAP",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XP",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XPEL",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XERS",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XFOR",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XHG",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XHLD",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XIFR",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    },
+    {
+      "symbol": "XPL",
+      "headline": "Is Tesla's Model Y L Expansion Set to Boost Sales in Asia?",
+      "source": "zacks.com",
+      "url": "https://www.zacks.com/stock/news/2896504/is-tesla-s-model-y-l-expansion-set-to-boost-sales-in-asia",
+      "published_at": "2026-04-08T10:05:55.000Z"
+    }
+  ]
+}

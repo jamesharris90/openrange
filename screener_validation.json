@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-03-25T06:13:45.291Z",
+  "checks": {
+    "rawData_gt_1000": false,
+    "processedRows_gt_500": false,
+    "sorting_changes_order": true,
+    "pagination_correct": true,
+    "no_undefined_fields": true
+  },
+  "counts": {
+    "rawData": 500,
+    "processedRows": 500,
+    "sortedRows": 500,
+    "paginatedRows": 25
+  },
+  "pass": false,
+  "errors": [
+    "rawData_gt_1000 failed",
+    "processedRows_gt_500 failed"
+  ]
+}

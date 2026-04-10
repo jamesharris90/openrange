@@ -1,292 +1,136 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, ExternalLink, Info, RefreshCw } from 'lucide-react';
-import Card from '../components/shared/Card';
-import NewsButton from '../components/shared/NewsButton';
-import LoadingSpinner from '../components/shared/LoadingSpinner';
-import { getTimeAgo } from '../features/news/NewsScannerLogic';
-import NewsCatalystCard from '../components/cards/NewsCatalystCard';
 import { apiJSON } from '@/config/api';
+import { SentimentBadge } from '../components/terminal/SignalVisuals';
 
-const FRESHNESS_OPTIONS = ['1h', '6h', '24h'];
-const CATALYST_OPTIONS = ['earnings', 'guidance', 'merger', 'fda', 'contract', 'offering', 'analyst', 'general'];
-
-function scoreBand(score) {
-  if (score >= 85) return 'strong';
-  if (score >= 60) return 'teal';
-  if (score >= 30) return 'warn';
-  return 'weak';
+function toNum(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function breakdownText(breakdown = {}) {
-  return [
-    `Recency: ${breakdown.recency_score ?? 0}`,
-    `Source: ${breakdown.source_score ?? 0}`,
-    `Keyword: ${breakdown.keyword_score ?? 0}`,
-    `Analyst Boost: ${breakdown.analyst_boost_score ?? 0}`,
-    `Reinforcement: ${breakdown.reinforcement_score ?? 0}`,
-    `Symbol relevance: ${breakdown.symbol_relevance_score ?? 0}`,
-  ].join(' | ');
+function timeAgo(raw) {
+  if (!raw) return 'Unknown';
+  const now = Date.now();
+  const then = new Date(raw).getTime();
+  if (Number.isNaN(then)) return 'Unknown';
+  const diff = Math.max(0, now - then);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
 }
 
-function buildQuery(filters) {
-  const params = new URLSearchParams();
-
-  if (filters.symbols) params.set('symbols', filters.symbols);
-  if (filters.minScore !== '') params.set('minScore', String(filters.minScore));
-  if (filters.maxScore !== '') params.set('maxScore', String(filters.maxScore));
-  if (filters.freshness) params.set('freshness', filters.freshness);
-  if (filters.catalyst) params.set('catalyst', filters.catalyst);
-  if (filters.priceMin !== '') params.set('priceMin', String(filters.priceMin));
-  if (filters.priceMax !== '') params.set('priceMax', String(filters.priceMax));
-  if (filters.sector) params.set('sector', filters.sector);
-  if (filters.marketCapMin !== '') params.set('marketCapMin', String(filters.marketCapMin));
-  if (filters.marketCapMax !== '') params.set('marketCapMax', String(filters.marketCapMax));
-  if (filters.limit !== '') params.set('limit', String(filters.limit));
-  params.set('sort', filters.sort || 'score');
-
-  return params.toString();
+function impactScore(item) {
+  const base = toNum(item?.news_score, 0);
+  if (base >= 85) return 5;
+  if (base >= 70) return 4;
+  if (base >= 55) return 3;
+  if (base >= 35) return 2;
+  return 1;
 }
 
-function NewsScannerV2() {
+export default function NewsScannerV2() {
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [activeView, setActiveView] = useState('');
-  const [activeRow, setActiveRow] = useState(null);
-  const [filters, setFilters] = useState({
-    symbols: '',
-    minScore: '',
-    maxScore: '',
-    freshness: '',
-    catalyst: '',
-    priceMin: '',
-    priceMax: '',
-    sector: '',
-    marketCapMin: '',
-    marketCapMax: '',
-    limit: 50,
-    sort: 'recency',
-  });
-  const [appliedFilters, setAppliedFilters] = useState(filters);
-  const [compactMode, setCompactMode] = useState(false);
-
-  const normalizedSymbols = useMemo(
-    () => String(appliedFilters.symbols || '')
-      .split(',')
-      ?.map((value) => value.trim().toUpperCase())
-      .filter(Boolean),
-    [appliedFilters.symbols]
-  );
-
-  async function loadNews(nextFilters = appliedFilters) {
-    setLoading(true);
-    setError('');
-    try {
-      const query = buildQuery(nextFilters);
-      const data = await apiJSON(`/api/news/v3?${query}`);
-      setRows(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || 'Failed to load news');
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function refreshNews() {
-    if (!normalizedSymbols.length) {
-      setError('Enter at least one symbol to refresh.');
-      return;
-    }
-
-    setRefreshing(true);
-    setError('');
-    try {
-      const params = new URLSearchParams({ symbols: normalizedSymbols.join(',') });
-      await apiJSON(`/api/news/v3/refresh?${params.toString()}`, { method: 'POST' });
-      await loadNews(appliedFilters);
-    } catch (err) {
-      setError(err.message || 'Failed to refresh news');
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  function applyFilters() {
-    setAppliedFilters(filters);
-  }
+  const [mode, setMode] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadNews(appliedFilters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedFilters]);
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const payload = await apiJSON('/api/news/v3?limit=120&sort=score').catch(() => []);
+        const list = Array.isArray(payload) ? payload : [];
+        if (!cancelled) setRows(list);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    const timer = setInterval(load, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const visibleRows = useMemo(() => {
+    const base = rows
+      .map((item) => ({
+        ...item,
+        symbol: String(item?.symbol || '').toUpperCase(),
+        impact: impactScore(item),
+      }))
+      .filter((item) => item.symbol || item.headline)
+      .sort((a, b) => toNum(b.news_score, 0) - toNum(a.news_score, 0));
+
+    if (mode === 'SIGNAL') {
+      return base.filter((item) => item.impact >= 4 || toNum(item?.expected_move, 0) >= 2.5);
+    }
+
+    return base;
+  }, [rows, mode]);
 
   return (
-    <div className="page-container news-scanner-page space-y-3">
-      <Card className="ns-command-shell">
-        <div className="ns-command-bar">
-          <div className="ns-heading">
-            <h2 className="m-0">News Intelligence</h2>
-            <p className="mt-1">Canonical v3 feed with deterministic score, catalyst, and metadata filters.</p>
+    <div className="space-y-4 bg-slate-950 text-slate-100">
+      <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold">Catalyst Scanner</h1>
+            <p className="mt-1 text-sm text-slate-400">Headline feed ranked by impact and trade relevance.</p>
           </div>
-          <div className="page-actions ns-command-actions">
-            <NewsButton variant="primary" onClick={refreshNews} disabled={refreshing} icon={<RefreshCw size={16} strokeWidth={2} />}>
-              {refreshing ? 'Refreshing…' : 'Refresh Ingestion'}
-            </NewsButton>
-            <NewsButton variant="secondary" onClick={() => loadNews(appliedFilters)} disabled={loading}>
-              {loading ? 'Loading…' : 'Reload'}
-            </NewsButton>
+          <div className="inline-flex rounded-md border border-slate-700 bg-slate-950 p-1 text-xs font-semibold">
+            <button
+              type="button"
+              className={`rounded px-3 py-1 ${mode === 'ALL' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => setMode('ALL')}
+            >
+              ALL
+            </button>
+            <button
+              type="button"
+              className={`rounded px-3 py-1 ${mode === 'SIGNAL' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => setMode('SIGNAL')}
+            >
+              SIGNAL ONLY
+            </button>
           </div>
         </div>
+      </section>
 
-        <div className="ns-command-subrow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(180px, 1fr))', gap: 12 }}>
-          <label className="muted text-sm">Symbols
-            <input type="text" value={filters.symbols} onChange={(e) => setFilters((prev) => ({ ...prev, symbols: e.target.value }))} placeholder="AMD,SHOP" />
-          </label>
+      <section className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+        <div className="space-y-2">
+          {loading ? <div className="px-2 py-3 text-sm text-slate-400">Loading catalyst feed...</div> : null}
 
-          <label className="muted text-sm">Min Score
-            <input type="number" value={filters.minScore} onChange={(e) => setFilters((prev) => ({ ...prev, minScore: e.target.value }))} />
-          </label>
+          {!loading && visibleRows.slice(0, 80).map((item, idx) => (
+            <article key={`${item?.id || item?.symbol || 'news'}-${idx}`} className="grid grid-cols-12 items-center gap-2 rounded-md border border-slate-700 bg-slate-950 p-2 text-xs">
+              <div className="col-span-2 sm:col-span-1 font-semibold text-slate-100">{item.symbol || '--'}</div>
 
-          <label className="muted text-sm">Max Score
-            <input type="number" value={filters.maxScore} onChange={(e) => setFilters((prev) => ({ ...prev, maxScore: e.target.value }))} />
-          </label>
+              <div className="col-span-10 sm:col-span-6 truncate text-slate-300" title={item?.headline}>
+                {item?.headline || 'No qualifying setups right now'}
+              </div>
 
-          <label className="muted text-sm">Freshness
-            <select value={filters.freshness} onChange={(e) => setFilters((prev) => ({ ...prev, freshness: e.target.value }))}>
-              <option value="">Any</option>
-              {FRESHNESS_OPTIONS?.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </label>
+              <div className="col-span-4 sm:col-span-2">
+                <SentimentBadge value={item?.sentiment || 'neutral'} />
+              </div>
 
-          <label className="muted text-sm">Catalyst
-            <select value={filters.catalyst} onChange={(e) => setFilters((prev) => ({ ...prev, catalyst: e.target.value }))}>
-              <option value="">Any</option>
-              {CATALYST_OPTIONS?.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </label>
-
-          <label className="muted text-sm">Price Min
-            <input type="number" value={filters.priceMin} onChange={(e) => setFilters((prev) => ({ ...prev, priceMin: e.target.value }))} />
-          </label>
-
-          <label className="muted text-sm">Price Max
-            <input type="number" value={filters.priceMax} onChange={(e) => setFilters((prev) => ({ ...prev, priceMax: e.target.value }))} />
-          </label>
-
-          <label className="muted text-sm">Sector
-            <input type="text" value={filters.sector} onChange={(e) => setFilters((prev) => ({ ...prev, sector: e.target.value }))} placeholder="Technology" />
-          </label>
-
-          <label className="muted text-sm">Market Cap Min
-            <input type="number" value={filters.marketCapMin} onChange={(e) => setFilters((prev) => ({ ...prev, marketCapMin: e.target.value }))} />
-          </label>
-
-          <label className="muted text-sm">Market Cap Max
-            <input type="number" value={filters.marketCapMax} onChange={(e) => setFilters((prev) => ({ ...prev, marketCapMax: e.target.value }))} />
-          </label>
-
-          <label className="muted text-sm">Limit
-            <input type="number" value={filters.limit} onChange={(e) => setFilters((prev) => ({ ...prev, limit: e.target.value }))} min="1" max="500" />
-          </label>
-
-          <label className="muted text-sm">Sort
-            <select value={filters.sort} onChange={(e) => setFilters((prev) => ({ ...prev, sort: e.target.value }))}>
-              <option value="score">Score</option>
-              <option value="recency">Recency</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-3">
-          <NewsButton variant="primary" onClick={applyFilters}>Apply Filters</NewsButton>
-          <NewsButton
-            variant="secondary"
-            onClick={() => setCompactMode((current) => !current)}
-            style={{ marginLeft: 8 }}
-          >
-            {compactMode ? 'Card Mode' : 'Compact Table Mode'}
-          </NewsButton>
-        </div>
-      </Card>
-
-      {error && <Card className="ns-error-card"><div className="ns-error-text">{error}</div></Card>}
-
-      {activeRow && (
-        <Card className="ns-intel-section">
-          <h4>{activeRow.symbol} · {activeView}</h4>
-          <p><strong>{activeRow.headline}</strong></p>
-          <p>Score: {activeRow.news_score}</p>
-          <p>{breakdownText(activeRow.score_breakdown)}</p>
-          <p>Catalysts: {(activeRow.catalyst_tags || []).join(', ') || '—'}</p>
-        </Card>
-      )}
-
-      <Card className="ns-feed-pane">
-        {loading && <LoadingSpinner message="Loading news intelligence…" />}
-        {!loading && rows.length === 0 && <div className="ns-state-empty">No results for current filters.</div>}
-        {!compactMode ? (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {rows?.map((item) => {
-              const enriched = {
-                ...item,
-                confidence: item.news_score,
-                expected_move: item.expected_move,
-                catalyst_summary: (item.catalyst_tags || []).length ? item.catalyst_tags.join(', ') : item.headline,
-                sector_context: item.sector,
-              };
-              return (
-                <div key={item.id || `${item.symbol}-${item.headline}`} className="space-y-2">
-                  <button type="button" className="w-full text-left" onClick={() => { setActiveView('View Details'); setActiveRow(item); }}>
-                    <NewsCatalystCard item={enriched} />
-                  </button>
-                  <div className="flex flex-wrap gap-2">
-                    <NewsButton variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={() => { setActiveView('Market Behaviour'); setActiveRow(item); }}>
-                      Market Behaviour
-                    </NewsButton>
-                    <NewsButton as="a" variant="secondary" size="sm" href={item.url || '#'} target="_blank" rel="noopener noreferrer" icon={<ExternalLink size={16} />}>
-                      Open Original Article
-                    </NewsButton>
-                  </div>
+              <div className="col-span-4 sm:col-span-2">
+                <div className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-amber-200">
+                  <span>Impact</span>
+                  <strong>{item.impact}/5</strong>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead>
-                <tr className="text-left text-slate-500">
-                  <th className="px-2 py-1">Symbol</th>
-                  <th className="px-2 py-1">Confidence</th>
-                  <th className="px-2 py-1">Expected Move</th>
-                  <th className="px-2 py-1">Catalyst</th>
-                  <th className="px-2 py-1">Sector</th>
-                  <th className="px-2 py-1">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows?.map((item, idx) => {
-                  const publishedTs = item.publishedAt ? new Date(item.publishedAt) : null;
-                  return (
-                    <tr key={`${item.id || item.symbol || 'n'}-${idx}`} className="border-t border-slate-800">
-                      <td className="px-2 py-1 text-slate-100">{item.symbol || '--'}</td>
-                      <td className="px-2 py-1">{Number(item.news_score || 0).toFixed(1)}</td>
-                      <td className="px-2 py-1">{item.expected_move ?? '--'}</td>
-                      <td className="px-2 py-1">{(item.catalyst_tags || []).join(', ') || '--'}</td>
-                      <td className="px-2 py-1">{item.sector || '--'}</td>
-                      <td className="px-2 py-1">{publishedTs ? getTimeAgo(publishedTs) : 'Unknown'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+              </div>
+
+              <div className="col-span-4 sm:col-span-1 text-right text-slate-500">{timeAgo(item?.publishedAt)}</div>
+            </article>
+          ))}
+
+          {!loading && visibleRows.length === 0 ? <div className="px-2 py-3 text-sm text-slate-500">No qualifying setups right now</div> : null}
+        </div>
+      </section>
     </div>
   );
 }
-
-export default NewsScannerV2;

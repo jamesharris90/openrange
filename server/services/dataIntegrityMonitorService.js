@@ -724,11 +724,11 @@ async function runDataIntegrityMonitor() {
     );
 
     const backendQuotes = await safeFetchJson(
-      `http://localhost:${process.env.PORT || 3000}/api/market/quotes?symbols=${encodeURIComponent(PARITY_SYMBOLS.join(','))}`
+      `http://localhost:3007/api/market/quotes?symbols=${encodeURIComponent(PARITY_SYMBOLS.join(','))}`
     );
 
     const nextQuotes = await safeFetchJson(
-      'http://localhost:3001/api/intelligence/markets?symbols=AAPL,SPY'
+      'http://localhost:3000/api/intelligence/markets?symbols=AAPL,SPY'
     );
 
     const backendRows = findQuoteRows(backendQuotes.payload);

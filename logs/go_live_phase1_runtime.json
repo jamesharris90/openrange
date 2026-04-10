@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-22T20:06:29.394Z",
+  "active_processes": {
+    "rogue_query_output": [],
+    "lsof_lines": [
+      "node      36772 jamesharris   21u  IPv6 0xfc1b34a466298b53      0t0  TCP *:3001 (LISTEN)"
+    ]
+  },
+  "active_ports": [
+    "node      36772 jamesharris   21u  IPv6 0xfc1b34a466298b53      0t0  TCP *:3001 (LISTEN)"
+  ],
+  "rogue_loops_running": false,
+  "topology_summary": {
+    "backend_listener_count": 1,
+    "topology_unambiguous": true
+  },
+  "pass": true
+}

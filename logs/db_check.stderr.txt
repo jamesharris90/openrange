@@ -1,0 +1,4 @@
+ERROR: Could not query the database for the schema cache. Retrying.
+ERROR: Could not query the database for the schema cache. Retrying.
+ERROR: Could not query the database for the schema cache. Retrying.
+ERROR: Could not query the database for the schema cache. Retrying.

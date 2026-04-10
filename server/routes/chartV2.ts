@@ -5,6 +5,7 @@ const YahooFinance = require('yahoo-finance2').default;
 const fs = require('fs/promises');
 const path = require('path');
 const pool = require('../pg');
+const { queryWithTimeout } = require('../db/pg');
 const { getChartMarketData, computeEMA, computeRSI, computeATR } = require('../services/marketDataEngineV1.ts');
 const { enrichWithIntraday } = require('../services/intradayEnrichmentService.ts');
 const { detectStructures } = require('../services/strategyDetectionEngineV1.ts');
@@ -14,6 +15,7 @@ const logger = require('../logger');
 const router = express.Router();
 const yahooFinance = new YahooFinance();
 const candleCache = new Map();
+const responseCache = new Map();
 const cacheRefreshInFlight = new Map();
 const FMP_NEWS_URL = 'https://financialmodelingprep.com/stable/news/stock-latest';
 const DRAWINGS_STORE_PATH = path.join(__dirname, '..', 'data', 'chart-drawings.json');
@@ -27,12 +29,13 @@ async function readDailyFromDB(symbol) {
     const cutoff = new Date();
     cutoff.setFullYear(cutoff.getFullYear() - 2);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
-    const { rows } = await pool.query(
+    const { rows } = await queryWithTimeout(
       `SELECT date::text AS d, open, high, low, close, volume
        FROM daily_ohlc
        WHERE symbol = $1 AND date >= $2
        ORDER BY date ASC`,
       [symbol, cutoffStr],
+      { timeoutMs: 8000, label: `chart_v5.daily.${symbol}`, maxRetries: 0 },
     );
     return rows.map((r) => ({
       time: Math.floor(new Date(r.d + 'T00:00:00Z').getTime() / 1000),
@@ -49,14 +52,15 @@ async function readDailyFromDB(symbol) {
 
 async function readIntraday1mFromDB(symbol) {
   try {
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { rows } = await pool.query(
+    const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    const { rows } = await queryWithTimeout(
       `SELECT EXTRACT(EPOCH FROM "timestamp")::bigint AS ts_unix,
               open, high, low, close, volume
        FROM intraday_1m
        WHERE symbol = $1 AND "timestamp" >= $2
        ORDER BY "timestamp" ASC`,
       [symbol, cutoff],
+      { timeoutMs: 8000, label: `chart_v5.intraday.${symbol}`, maxRetries: 0 },
     );
     return rows.map((r) => ({
       time: Number(r.ts_unix),
@@ -151,6 +155,77 @@ function normalizeInterval(value) {
 function toNum(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+const MAX_SERIES_JUMP_RATIO = 3;
+const MIN_SERIES_JUMP_RATIO = 1 / MAX_SERIES_JUMP_RATIO;
+
+function sanitizeSeries(data, options = {}) {
+  const type = options.type === 'candle' ? 'candle' : 'line';
+  const allowNegative = options.allowNegative === true;
+  const sorted = Array.isArray(data)
+    ? [...data].sort((left, right) => Number(left?.time || 0) - Number(right?.time || 0))
+    : [];
+  const deduped = new Map();
+
+  for (const row of sorted) {
+    const time = Number(row?.time);
+    if (!Number.isFinite(time)) {
+      continue;
+    }
+
+    if (type === 'candle') {
+      const open = Number(row?.open ?? row?.close);
+      const high = Number(row?.high ?? row?.close);
+      const low = Number(row?.low ?? row?.close);
+      const close = Number(row?.close);
+      const volume = Number(row?.volume ?? 0);
+
+      if (![open, high, low, close].every(Number.isFinite) || close <= 0) {
+        continue;
+      }
+
+      const normalized = {
+        time,
+        open,
+        high: Math.max(high, open, close),
+        low: Math.min(low, open, close),
+        close,
+        volume: Number.isFinite(volume) && volume > 0 ? volume : 0,
+      };
+
+      const previous = deduped.size > 0 ? Array.from(deduped.values())[deduped.size - 1] : null;
+      const reference = Number(previous?.close);
+      if (Number.isFinite(reference) && reference > 0) {
+        const highRatio = normalized.high / reference;
+        const lowRatio = normalized.low / reference;
+        if (highRatio > MAX_SERIES_JUMP_RATIO || lowRatio < MIN_SERIES_JUMP_RATIO) {
+          continue;
+        }
+      }
+
+      deduped.set(time, normalized);
+      continue;
+    }
+
+    const value = Number(row?.value);
+    if (!Number.isFinite(value) || (!allowNegative && value <= 0)) {
+      continue;
+    }
+
+    const previous = deduped.size > 0 ? Array.from(deduped.values())[deduped.size - 1] : null;
+    const reference = Number(previous?.value);
+    if (!allowNegative && Number.isFinite(reference) && reference > 0) {
+      const ratio = value / reference;
+      if (ratio > MAX_SERIES_JUMP_RATIO || ratio < MIN_SERIES_JUMP_RATIO) {
+        continue;
+      }
+    }
+
+    deduped.set(time, { time, value });
+  }
+
+  return Array.from(deduped.values());
 }
 
 function computeAtrPercentSeries(candles, atrSeries) {
@@ -672,25 +747,27 @@ router.put('/drawings', async (req, res) => {
 });
 
 async function loadRawPayload(symbol, interval) {
+  const needsIntraday = interval !== '1day' && interval !== '1week';
+
   // ── DB-first path ───────────────────────────────────────────────────────────
   const [dbDaily, dbIntraday1m] = await Promise.all([
     readDailyFromDB(symbol),
-    readIntraday1mFromDB(symbol),
+    needsIntraday ? readIntraday1mFromDB(symbol) : Promise.resolve([]),
   ]);
 
   if (dbDaily.length > 0) {
-    const intraday1m  = dbIntraday1m;
-    const intraday3m  = aggregateCandlesDB(intraday1m, 3);
-    const intraday5m  = aggregateCandlesDB(intraday1m, 5);
-    const intraday15m = aggregateCandlesDB(intraday1m, 15);
-    const intraday1h  = aggregateCandlesDB(intraday1m, 60);
-    const intraday4h  = aggregateCandlesDB(intraday1m, 240);
-    const vwap        = computeVWAPDB(intraday1m);
+    const intraday1m  = sanitizeSeries(dbIntraday1m, { type: 'candle' });
+    const intraday3m  = sanitizeSeries(aggregateCandlesDB(intraday1m, 3), { type: 'candle' });
+    const intraday5m  = sanitizeSeries(aggregateCandlesDB(intraday1m, 5), { type: 'candle' });
+    const intraday15m = sanitizeSeries(aggregateCandlesDB(intraday1m, 15), { type: 'candle' });
+    const intraday1h  = sanitizeSeries(aggregateCandlesDB(intraday1m, 60), { type: 'candle' });
+    const intraday4h  = sanitizeSeries(aggregateCandlesDB(intraday1m, 240), { type: 'candle' });
+    const vwap        = sanitizeSeries(computeVWAPDB(intraday1m), { type: 'line' });
     const orh         = computeORHDB(intraday1m);
     const relativeVolume = computeRvolDB(intraday1m);
     const sessionMinute  = intraday1m.length ? Math.min(intraday1m.length, 390) : 0;
 
-    const dailyCandles = dbDaily;
+    const dailyCandles = sanitizeSeries(dbDaily, { type: 'candle' });
 
     // Weekly candles: aggregate daily by ISO week
     const weekly = (() => {
@@ -712,7 +789,7 @@ async function loadRawPayload(symbol, interval) {
           ex.volume += c.volume;
         }
       }
-      return Array.from(buckets.values()).sort((a, b) => a.time - b.time);
+      return sanitizeSeries(Array.from(buckets.values()).sort((a, b) => a.time - b.time), { type: 'candle' });
     })();
 
     const rawCandles = interval === '1week'
@@ -731,7 +808,7 @@ async function loadRawPayload(symbol, interval) {
                   ? intraday3m
                   : intraday1m;
 
-    const candles = applyDepthPolicy(rawCandles, interval);
+    const candles = sanitizeSeries(applyDepthPolicy(rawCandles, interval), { type: 'candle' });
 
     return {
       market: { dailyCandles, metrics: { avgVolume: null } },
@@ -751,13 +828,13 @@ async function loadRawPayload(symbol, interval) {
   const market = await getChartMarketData(symbol, '1day', { skipIntraday: true });
   const intraday = await enrichWithIntraday(symbol);
 
-  const intraday1m = Array.isArray(intraday?.intraday1m) ? intraday.intraday1m : [];
-  const intraday3m = Array.isArray(intraday?.intraday3m) ? intraday.intraday3m : [];
-  const intraday5m = Array.isArray(intraday?.intraday5m) ? intraday.intraday5m : [];
-  const intraday15m = Array.isArray(intraday?.intraday15m) ? intraday.intraday15m : [];
-  const intraday1h = Array.isArray(intraday?.intraday1h) ? intraday.intraday1h : [];
-  const intraday4h = Array.isArray(intraday?.intraday4h) ? intraday.intraday4h : [];
-  const dailyCandles = Array.isArray(market?.dailyCandles) ? market.dailyCandles : [];
+  const intraday1m = sanitizeSeries(Array.isArray(intraday?.intraday1m) ? intraday.intraday1m : [], { type: 'candle' });
+  const intraday3m = sanitizeSeries(Array.isArray(intraday?.intraday3m) ? intraday.intraday3m : [], { type: 'candle' });
+  const intraday5m = sanitizeSeries(Array.isArray(intraday?.intraday5m) ? intraday.intraday5m : [], { type: 'candle' });
+  const intraday15m = sanitizeSeries(Array.isArray(intraday?.intraday15m) ? intraday.intraday15m : [], { type: 'candle' });
+  const intraday1h = sanitizeSeries(Array.isArray(intraday?.intraday1h) ? intraday.intraday1h : [], { type: 'candle' });
+  const intraday4h = sanitizeSeries(Array.isArray(intraday?.intraday4h) ? intraday.intraday4h : [], { type: 'candle' });
+  const dailyCandles = sanitizeSeries(Array.isArray(market?.dailyCandles) ? market.dailyCandles : [], { type: 'candle' });
 
   const rawCandles = interval === '1week'
     ? dailyCandles
@@ -775,7 +852,7 @@ async function loadRawPayload(symbol, interval) {
                 ? intraday3m
                 : intraday1m;
 
-  const candles = applyDepthPolicy(rawCandles, interval);
+  const candles = sanitizeSeries(applyDepthPolicy(rawCandles, interval), { type: 'candle' });
 
   return {
     market,
@@ -827,6 +904,11 @@ router.get('/chart', async (req, res) => {
     const ttlMs = getCacheTtlMs(interval);
     const cached = candleCache.get(cacheKey);
     const isFresh = Boolean(cached && (Date.now() - cached.timestamp) < ttlMs);
+    const cachedResponse = responseCache.get(cacheKey);
+
+    if (cachedResponse && (Date.now() - cachedResponse.timestamp) < ttlMs) {
+      return res.json(cachedResponse.data);
+    }
 
     let payload;
     if (isFresh) {
@@ -853,17 +935,18 @@ router.get('/chart', async (req, res) => {
     const intraday15m = payload.intraday15m;
     const intraday1h = payload.intraday1h;
     const intraday4h = payload.intraday4h;
-    const dailyCandles = payload.dailyCandles;
-    const candles = payload.candles;
+    const dailyCandles = sanitizeSeries(payload.dailyCandles, { type: 'candle' });
+    const candles = sanitizeSeries(payload.candles, { type: 'candle' });
 
-    const ema9 = computeEMA(candles, 9);
-    const ema20 = computeEMA(candles, 20);
-    const ema50 = computeEMA(candles, 50);
-    const ema200 = computeEMA(candles, 200);
+    const ema9 = sanitizeSeries(computeEMA(candles, 9), { type: 'line' });
+    const ema20 = sanitizeSeries(computeEMA(candles, 20), { type: 'line' });
+    const ema50 = sanitizeSeries(computeEMA(candles, 50), { type: 'line' });
+    const ema200 = sanitizeSeries(computeEMA(candles, 200), { type: 'line' });
     const rsi14 = computeRSI(candles, 14);
     const atr = computeATR(candles, 14);
     const atrPercentSeries = computeAtrPercentSeries(candles, atr);
     const macdBundle = computeMACD(candles);
+    const safeVwap = sanitizeSeries(Array.isArray(intraday?.vwap) ? intraday.vwap : [], { type: 'line' });
 
     const lastCandle = candles[candles.length - 1] || null;
     const lastClose = toNum(lastCandle?.close);
@@ -888,7 +971,7 @@ router.get('/chart', async (req, res) => {
         macd: macdBundle.macd,
         macdSignal: macdBundle.macdSignal,
         macdHistogram: macdBundle.macdHistogram,
-        vwap: Array.isArray(intraday?.vwap) ? intraday.vwap : [],
+        vwap: safeVwap,
       },
       metrics: {
         relativeVolume: toNum(intraday?.relativeVolume),
@@ -905,7 +988,7 @@ router.get('/chart', async (req, res) => {
       to: candles[candles.length - 1]?.time,
     });
 
-    return res.json({
+    const response = {
       symbol,
       interval,
       candles,
@@ -921,7 +1004,7 @@ router.get('/chart', async (req, res) => {
         macd: macdBundle.macd,
         macdSignal: macdBundle.macdSignal,
         macdHistogram: macdBundle.macdHistogram,
-        vwap: Array.isArray(intraday?.vwap) ? intraday.vwap : [],
+        vwap: safeVwap,
       },
       structures: strategy.structures,
       primaryStructure: strategy.primaryStructure,
@@ -944,7 +1027,14 @@ router.get('/chart', async (req, res) => {
       volatilityScore: strategy.volatilityScore,
       trendScore: strategy.trendScore,
       events,
+    };
+
+    responseCache.set(cacheKey, {
+      data: response,
+      timestamp: Date.now(),
     });
+
+    return res.json(response);
   } catch (error) {
     return res.status(500).json({
       error: 'CHART_V2_ERROR',

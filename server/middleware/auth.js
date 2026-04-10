@@ -42,8 +42,9 @@ function authMiddleware(req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
-  } catch (_err) {
-    // Non-API routes are not JWT-gated by this middleware.
+    console.log('[AUTH] verified user:', payload?.id || payload?.sub || 'unknown', 'path:', req.path);
+  } catch (err) {
+    console.warn('[AUTH] invalid token for path:', req.path, '—', err.message);
   }
 
   return next();

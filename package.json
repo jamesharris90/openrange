@@ -5,10 +5,20 @@
     "node": ">=20"
   },
   "scripts": {
+    "warning:legacy": "echo 'WARNING: LEGACY FRONTEND DISABLED'",
     "build": "cd server && npm ci && npm run build",
+    "dev": "node server/index.js",
     "start": "node server/index.js",
     "calibrate": "ts-node server/scripts/runCalibration.ts",
     "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",
+    "check:system": "node scripts/runSystemCheck.js",
+    "validate:build": "node server/system/runSystemCheck.js",
+    "validate:ui": "node scripts/uiValidation.js",
+    "check:tqi": "node scripts/runTqiParityCheck.js",
+    "validate:system": "node scripts/systemValidation.js",
+    "validate:backend-lock": "node scripts/backendLockValidation.js",
+    "validate:screener-enriched": "node scripts/screenerEnrichedValidation.js",
+    "backfill:coverage-campaign": "cd server && npm run backfill:coverage-campaign",
     "check:canonical-schema": "cd server && npm run check:canonical-schema",
     "healthcheck": "ts-node server/scripts/healthcheck.ts",
     "ingest:full": "ts-node scripts/fullMarketIngestion.ts",
@@ -24,6 +34,7 @@
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^8.0.3",
     "p-limit": "^7.3.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.18.0",
@@ -31,7 +42,9 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "nodemon": "^3.1.11",
+    "playwright": "^1.58.2",
     "ts-node": "^10.9.2"
   }
 }

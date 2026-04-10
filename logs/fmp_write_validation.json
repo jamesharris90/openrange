@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-03-23T21:39:52.220Z",
+  "phase": "fmp_write_validation",
+  "max_rows_allowed": 50,
+  "rows_attempted": 10,
+  "tables_written": [
+    "tradable_universe",
+    "market_metrics"
+  ],
+  "write_counts": {
+    "tradable_universe_upserts": 10,
+    "market_metrics_upserts": 10
+  },
+  "verification": {
+    "tradable_universe_rows_with_validation_source": 10,
+    "market_metrics_rows_with_validation_source": 10
+  },
+  "duration_ms": 788,
+  "pass": true
+}

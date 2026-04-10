@@ -1,9 +1,7 @@
 // API Configuration
 const CONFIG = {
-    // Dynamic API base URL (prefers explicit override, falls back to origin)
-    API_BASE: window.API_BASE || (location.hostname === 'localhost'
-        ? 'http://localhost:3001'
-        : window.location.origin),
+    // Locked backend target for single-source local environment.
+    API_BASE: 'http://localhost:3007',
     // Broker API Configuration (monitoring-only via server proxy)
     BROKER: {
         apiUrl: '/api/broker',
@@ -38,6 +36,8 @@ const CONFIG = {
         }
     }
 };
+
+console.log('API BASE LOCKED:', CONFIG.API_BASE);
 
 // Configuration ready promise
 let configReady = null;

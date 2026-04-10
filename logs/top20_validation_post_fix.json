@@ -1,0 +1,294 @@
+{
+  "timestamp": "2026-03-22T21:16:16.778Z",
+  "total": 20,
+  "counts": {
+    "valid": 20,
+    "weak": 0,
+    "false_positive": 0
+  },
+  "valid_percent": 100,
+  "false_positive_percent": 0,
+  "pass": true,
+  "opportunities": [
+    {
+      "symbol": "WNW",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 7757.594381233572,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "CHNR",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 1038.4193886669577,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "PMAX",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 601.7331883550577,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "ACXP",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 157.84236798736057,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "CYCU",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 94.60267251305027,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "HUBC",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 89.17271831813953,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "SVCO",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 85.9187948583884,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "LNZA",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 78.45863168525811,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "LNSR",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 30.453555081063794,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "AIRS",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 66.95727994197999,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "ANNA",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 28.61760800636092,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "NPAC",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 59.08477904034279,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "LPBB",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 55.91415436300946,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "TAOX",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 2.442332636667706,
+      "strategy": "INTRADAY TREND"
+    },
+    {
+      "symbol": "EQ",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 2.1465592762640515,
+      "strategy": "INTRADAY TREND"
+    },
+    {
+      "symbol": "TENX",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 2.111814608494867,
+      "strategy": "INTRADAY TREND"
+    },
+    {
+      "symbol": "WINV",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 38.333333333333336,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "TLYS",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 36.56698883437158,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "ORIS",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 34.31009423539471,
+      "strategy": "VWAP RECLAIM"
+    },
+    {
+      "symbol": "AHG",
+      "classification": "valid",
+      "checks": {
+        "change_percent_present": true,
+        "catalyst_present": true,
+        "earnings_news_present": true,
+        "liquidity_present": true,
+        "execution_plan_present": true
+      },
+      "change_percent": 0,
+      "relative_volume": 28.420318267719317,
+      "strategy": "VWAP RECLAIM"
+    }
+  ]
+}

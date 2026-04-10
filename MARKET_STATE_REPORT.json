@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-04-04T15:43:00Z",
+  "status": "pass",
+  "route": "/api/opportunities/next-session",
+  "market_state_engine": {
+    "timezone": "America/New_York",
+    "sessions_supported": [
+      "LIVE",
+      "PREMARKET",
+      "AFTERHOURS",
+      "CLOSED"
+    ],
+    "weekend_detection": true,
+    "holiday_source": "static_first",
+    "fmp_holiday_opt_in": true
+  },
+  "simulations": {
+    "weekend": {
+      "request": "/api/opportunities/next-session?as_of=2026-04-04T15:00:00Z",
+      "mode": "NEXT_SESSION",
+      "market": {
+        "session": "CLOSED",
+        "is_market_open": false,
+        "is_weekend": true,
+        "next_open_et": "Mon, Apr 6, 09:30 AM EDT"
+      },
+      "counts": {
+        "earnings": 20,
+        "catalysts": 19,
+        "momentum": 20
+      },
+      "cold_total_ms": 348,
+      "warm_total_ms": 1,
+      "missing_data_sources": []
+    },
+    "premarket": {
+      "request": "/api/opportunities/next-session?as_of=2026-04-06T12:00:00Z",
+      "mode": "NEXT_SESSION",
+      "market": {
+        "session": "PREMARKET",
+        "is_market_open": false,
+        "is_premarket": true,
+        "next_open_et": "Mon, Apr 6, 09:30 AM EDT"
+      },
+      "counts": {
+        "earnings": 20,
+        "catalysts": 19,
+        "momentum": 20
+      },
+      "cold_total_ms": 234,
+      "warm_total_ms": 0,
+      "missing_data_sources": []
+    },
+    "live_override": {
+      "request": "/api/opportunities/next-session?session_override=LIVE",
+      "mode": "LIVE",
+      "market": {
+        "session": "LIVE",
+        "is_market_open": true
+      },
+      "live_snapshot_count": 0,
+      "warm_total_ms": 2,
+      "notes": [
+        "Route correctly returns the existing live opportunities payload shape.",
+        "Current live snapshot is empty, but this is not a time-based blank state."
+      ]
+    }
+  },
+  "ui_validation": {
+    "page": "/screener-v2",
+    "weekend": {
+      "banner_rendered": true,
+      "sections_rendered": [
+        "UPCOMING EARNINGS",
+        "CATALYST WATCHLIST",
+        "MOMENTUM CARRY"
+      ],
+      "console_errors": 0,
+      "page_errors": 0
+    },
+    "premarket": {
+      "banner_rendered": true,
+      "reopen_line_rendered": true,
+      "console_errors": 0,
+      "page_errors": 0
+    },
+    "live_override": {
+      "closed_banner_absent": true,
+      "console_errors": 0,
+      "page_errors": 0
+    }
+  },
+  "performance": {
+    "warm_path_target_ms": 150,
+    "weekend_warm_target_met": true,
+    "premarket_warm_target_met": true,
+    "live_warm_target_met": true
+  },
+  "non_regression": {
+    "screener": "unchanged base feed and table fetch path",
+    "research": "not modified",
+    "earnings": "not modified",
+    "news": "not modified"
+  }
+}

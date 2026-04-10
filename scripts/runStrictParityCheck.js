@@ -3,17 +3,12 @@
 const fs = require("fs");
 const path = require("path");
 const dotenv = require("dotenv");
-const { Pool } = require("pg");
+const pool = require("../server/db/pool");
 
 dotenv.config({ path: path.resolve(process.cwd(), "server/.env") });
 
 const API_BASE = process.env.API_BASE || "http://localhost:3001";
 const API_KEY = process.env.PROXY_API_KEY || "";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL_DISABLE === "true" ? false : { rejectUnauthorized: false },
-});
 
 function ensureDir(relPath) {
   const dir = path.resolve(process.cwd(), relPath);

@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-03-23T23:00:36.742Z",
+  "base_url": "http://localhost:3001",
+  "run_all": {
+    "status": null,
+    "ok": false,
+    "body_preview": null,
+    "error": "This operation was aborted"
+  },
+  "checks": [
+    {
+      "endpoint": "/api/stocks-in-play",
+      "status": 200,
+      "count": 18,
+      "response_source": "real",
+      "sample_sources": [
+        "real",
+        "real",
+        "real",
+        "real",
+        "real"
+      ],
+      "has_required_fields": true,
+      "fallback_used": false,
+      "pass": true,
+      "error": null
+    },
+    {
+      "endpoint": "/api/intelligence/top-opportunities?limit=5",
+      "status": 200,
+      "count": 5,
+      "response_source": "intelligence_top_opportunities_fast",
+      "sample_sources": [
+        "real",
+        "real",
+        "real",
+        "real",
+        "real"
+      ],
+      "has_required_fields": true,
+      "fallback_used": true,
+      "pass": true,
+      "error": null
+    }
+  ],
+  "pass": true
+}

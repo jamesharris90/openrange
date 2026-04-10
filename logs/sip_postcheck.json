@@ -1,0 +1,489 @@
+{
+  "ts": "2026-03-20T16:26:53.045Z",
+  "top15_table": [
+    {
+      "symbol": "LNG",
+      "final_score": 100,
+      "decision_score": 25.03688,
+      "relative_volume": 6.095570164860754,
+      "gap_percent": 15.65,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_peak",
+      "change_percent": 19.5732405718407,
+      "sip_score": 60
+    },
+    {
+      "symbol": "WNW",
+      "final_score": 98.03727725190939,
+      "decision_score": 59,
+      "relative_volume": 7757.594381233572,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": -92.1883116883117,
+      "sip_score": 30
+    },
+    {
+      "symbol": "COHR",
+      "final_score": 85.08535614686069,
+      "decision_score": 40,
+      "relative_volume": 1.0017391863899525,
+      "gap_percent": 16.6,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -4.46452709226432,
+      "sip_score": 30
+    },
+    {
+      "symbol": "JBL",
+      "final_score": 75.7484725990598,
+      "decision_score": 40,
+      "relative_volume": 0.8962239947428011,
+      "gap_percent": 7.35,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -1.39627910487188,
+      "sip_score": 20
+    },
+    {
+      "symbol": "CHNR",
+      "final_score": 71.280924038858,
+      "decision_score": 24.3544,
+      "relative_volume": 1038.4193886669577,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": 34.984520123839,
+      "sip_score": 30
+    },
+    {
+      "symbol": "COCO",
+      "final_score": 69.38451992880806,
+      "decision_score": 44,
+      "relative_volume": 1.6682761891095421,
+      "gap_percent": 2.25,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": 4.37478470547709,
+      "sip_score": 10
+    },
+    {
+      "symbol": "PMAX",
+      "final_score": 68.83653119530881,
+      "decision_score": 22.10268,
+      "relative_volume": 601.7331883550577,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": -78.625,
+      "sip_score": 30
+    },
+    {
+      "symbol": "IPM",
+      "final_score": 66.41184526649,
+      "decision_score": 20.02908,
+      "relative_volume": 5.642603282864597,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -3.55029585798817,
+      "sip_score": 30
+    },
+    {
+      "symbol": "VIA",
+      "final_score": 66.4080979730024,
+      "decision_score": 20.026,
+      "relative_volume": 5.064394478929916,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -17.1711292200233,
+      "sip_score": 30
+    },
+    {
+      "symbol": "SOS",
+      "final_score": 66.40615114112748,
+      "decision_score": 20.0244,
+      "relative_volume": 4.73292184380462,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_peak",
+      "change_percent": -4.76190476190477,
+      "sip_score": 30
+    },
+    {
+      "symbol": "BCRX",
+      "final_score": 66.4031333004293,
+      "decision_score": 20.02192,
+      "relative_volume": 4.240455981993315,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": 6.28571428571429,
+      "sip_score": 30
+    },
+    {
+      "symbol": "NFE",
+      "final_score": 66.40045592790769,
+      "decision_score": 20.01972,
+      "relative_volume": 3.827227754487931,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -18.4311926605505,
+      "sip_score": 30
+    },
+    {
+      "symbol": "CTMX",
+      "final_score": 66.40016383635471,
+      "decision_score": 20.01948,
+      "relative_volume": 3.776926520381084,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -10.9869646182495,
+      "sip_score": 30
+    },
+    {
+      "symbol": "MBCN",
+      "final_score": 66.39928754451891,
+      "decision_score": 20.01876,
+      "relative_volume": 3.6382430172420457,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": 0,
+      "sip_score": 30
+    },
+    {
+      "symbol": "RAND",
+      "final_score": 66.39919017716886,
+      "decision_score": 20.01868,
+      "relative_volume": 3.6203529354118396,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -4.03418803418803,
+      "sip_score": 30
+    }
+  ],
+  "classification_per_symbol": [
+    {
+      "symbol": "LNG",
+      "final_score": 100,
+      "decision_score": 25.03688,
+      "relative_volume": 6.095570164860754,
+      "gap_percent": 15.65,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_peak",
+      "change_percent": 19.5732405718407,
+      "sip_score": 60,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": true,
+        "has_catalyst": false
+      },
+      "real_signal_score": 2,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "WNW",
+      "final_score": 98.03727725190939,
+      "decision_score": 59,
+      "relative_volume": 7757.594381233572,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": -92.1883116883117,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "COHR",
+      "final_score": 85.08535614686069,
+      "decision_score": 40,
+      "relative_volume": 1.0017391863899525,
+      "gap_percent": 16.6,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -4.46452709226432,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": false,
+        "gap_percent_gt_2": true,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "JBL",
+      "final_score": 75.7484725990598,
+      "decision_score": 40,
+      "relative_volume": 0.8962239947428011,
+      "gap_percent": 7.35,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -1.39627910487188,
+      "sip_score": 20,
+      "checks": {
+        "relative_volume_gt_1_5": false,
+        "gap_percent_gt_2": true,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "CHNR",
+      "final_score": 71.280924038858,
+      "decision_score": 24.3544,
+      "relative_volume": 1038.4193886669577,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": 34.984520123839,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "COCO",
+      "final_score": 69.38451992880806,
+      "decision_score": 44,
+      "relative_volume": 1.6682761891095421,
+      "gap_percent": 2.25,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": 4.37478470547709,
+      "sip_score": 10,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": true,
+        "has_catalyst": false
+      },
+      "real_signal_score": 2,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "PMAX",
+      "final_score": 68.83653119530881,
+      "decision_score": 22.10268,
+      "relative_volume": 601.7331883550577,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_early",
+      "change_percent": -78.625,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "IPM",
+      "final_score": 66.41184526649,
+      "decision_score": 20.02908,
+      "relative_volume": 5.642603282864597,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -3.55029585798817,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "VIA",
+      "final_score": 66.4080979730024,
+      "decision_score": 20.026,
+      "relative_volume": 5.064394478929916,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -17.1711292200233,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "SOS",
+      "final_score": 66.40615114112748,
+      "decision_score": 20.0244,
+      "relative_volume": 4.73292184380462,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "premarket_peak",
+      "change_percent": -4.76190476190477,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "BCRX",
+      "final_score": 66.4031333004293,
+      "decision_score": 20.02192,
+      "relative_volume": 4.240455981993315,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": 6.28571428571429,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "NFE",
+      "final_score": 66.40045592790769,
+      "decision_score": 20.01972,
+      "relative_volume": 3.827227754487931,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -18.4311926605505,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "CTMX",
+      "final_score": 66.40016383635471,
+      "decision_score": 20.01948,
+      "relative_volume": 3.776926520381084,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -10.9869646182495,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "MBCN",
+      "final_score": 66.39928754451891,
+      "decision_score": 20.01876,
+      "relative_volume": 3.6382430172420457,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": 0,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    },
+    {
+      "symbol": "RAND",
+      "final_score": 66.39919017716886,
+      "decision_score": 20.01868,
+      "relative_volume": 3.6203529354118396,
+      "gap_percent": 0,
+      "news_score": 0,
+      "earnings_flag": false,
+      "session_phase": "intraday",
+      "change_percent": -4.03418803418803,
+      "sip_score": 30,
+      "checks": {
+        "relative_volume_gt_1_5": true,
+        "gap_percent_gt_2": false,
+        "has_catalyst": false
+      },
+      "real_signal_score": 1,
+      "classification": "VALID STOCK IN PLAY"
+    }
+  ],
+  "summary_metrics": {
+    "total_symbols": 15,
+    "valid_count": 15,
+    "false_positive_count": 0,
+    "valid_percent": 100,
+    "false_positive_percent": 0,
+    "avg_final_score_valid": 73.3068,
+    "avg_final_score_invalid": 0,
+    "high_rvol_or_gap_count": 14,
+    "passive_no_move_count": 0
+  },
+  "pass_conditions": {
+    "valid_gte_60_percent": true,
+    "high_rvol_or_gap_gte_5": true,
+    "no_passive_megacap_dominance": true
+  },
+  "stocks_in_play_engine": "PASS"
+}

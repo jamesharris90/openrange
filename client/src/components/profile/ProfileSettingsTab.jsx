@@ -177,13 +177,6 @@ export default function ProfileSettingsTab() {
               <div className="profile-broker-desc">Username / password or session token</div>
             </div>
           </button>
-          <button className="profile-broker-tile" onClick={() => openBrokerModal('saxo')}>
-            <div className="profile-broker-icon saxo">SX</div>
-            <div>
-              <div className="profile-broker-name">Saxo Trader</div>
-              <div className="profile-broker-desc">Username / password or session token</div>
-            </div>
-          </button>
           {broker.connected && (
             <button className="btn-secondary" onClick={disconnectBroker}>Disconnect</button>
           )}

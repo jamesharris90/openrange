@@ -1,0 +1,2 @@
+COMMAND   PID        USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+node    36772 jamesharris   21u  IPv6 0xfc1b34a466298b53      0t0  TCP *:3001 (LISTEN)

@@ -1,0 +1,10 @@
+{
+  "engine_success_present_for_required": true,
+  "required_engine_counts": {
+    "stocks-in-play": 0,
+    "catalyst": 0,
+    "earnings": 0,
+    "intelligence": 0
+  },
+  "at_least_two_engines_count_gt_zero": false
+}

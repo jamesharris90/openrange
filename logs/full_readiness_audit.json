@@ -1,0 +1,3016 @@
+{
+  "generated_at": "2026-03-22T18:58:54.119Z",
+  "mode": "READ_ONLY_SAFE_VALIDATION",
+  "api_base": "http://127.0.0.1:3001",
+  "reset_state": {
+    "reset_checkpoint_valid": true,
+    "reset_checkpoint_path": "/Users/jamesharris/Server/logs/prep_data_repair_reset.json",
+    "active_processes": {
+      "rogue_query_output": "28246",
+      "lsof_sample": [
+        "COMMAND     PID        USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME",
+        "rapportd    476 jamesharris   10u  IPv4 0x1d19bc4a9cc3912b      0t0  TCP *:49178 (LISTEN)",
+        "rapportd    476 jamesharris   11u  IPv6 0x8e21f6145e90e58e      0t0  TCP *:49178 (LISTEN)",
+        "ControlCe   621 jamesharris   10u  IPv4 0xf78a53673d8fe19a      0t0  TCP *:7000 (LISTEN)",
+        "ControlCe   621 jamesharris   11u  IPv6 0xd145cb57599d6fa3      0t0  TCP *:7000 (LISTEN)",
+        "ControlCe   621 jamesharris   12u  IPv4 0xf8e94acc0e4d4783      0t0  TCP *:5000 (LISTEN)",
+        "ControlCe   621 jamesharris   13u  IPv6 0x7439a5be08180130      0t0  TCP *:5000 (LISTEN)",
+        "node       5619 jamesharris   21u  IPv6 0xb0cb32729900a4d0      0t0  TCP *:3016 (LISTEN)",
+        "node      18891 jamesharris   21u  IPv6 0xafcbfd1e6d3472b1      0t0  TCP *:3023 (LISTEN)",
+        "Code\\x20H 56158 jamesharris   34u  IPv4 0xce6bf3933206cc43      0t0  TCP 127.0.0.1:46833 (LISTEN)",
+        "Code\\x20H 56158 jamesharris  116u  IPv4 0x49f48bb29484f95f      0t0  TCP 127.0.0.1:55865 (LISTEN)",
+        "Code\\x20H 56406 jamesharris   20u  IPv4 0xfe4f2fd7722b97ff      0t0  TCP 127.0.0.1:4188 (LISTEN)",
+        "node      63415 jamesharris   21u  IPv6 0xd448138340c666b3      0t0  TCP *:3001 (LISTEN)",
+        "node      77602 jamesharris   21u  IPv6 0x41b8b16130cd49ee      0t0  TCP *:3011 (LISTEN)",
+        "node      78277 jamesharris   21u  IPv6 0xd6743b1b8aa8ed28      0t0  TCP *:3012 (LISTEN)"
+      ]
+    },
+    "active_ports": [
+      {
+        "port": 49178,
+        "process_sample": "rapportd    476 jamesharris   10u  IPv4 0x1d19bc4a9cc3912b      0t0  TCP *:49178 (LISTEN)"
+      },
+      {
+        "port": 49178,
+        "process_sample": "rapportd    476 jamesharris   11u  IPv6 0x8e21f6145e90e58e      0t0  TCP *:49178 (LISTEN)"
+      },
+      {
+        "port": 7000,
+        "process_sample": "ControlCe   621 jamesharris   10u  IPv4 0xf78a53673d8fe19a      0t0  TCP *:7000 (LISTEN)"
+      },
+      {
+        "port": 7000,
+        "process_sample": "ControlCe   621 jamesharris   11u  IPv6 0xd145cb57599d6fa3      0t0  TCP *:7000 (LISTEN)"
+      },
+      {
+        "port": 5000,
+        "process_sample": "ControlCe   621 jamesharris   12u  IPv4 0xf8e94acc0e4d4783      0t0  TCP *:5000 (LISTEN)"
+      },
+      {
+        "port": 5000,
+        "process_sample": "ControlCe   621 jamesharris   13u  IPv6 0x7439a5be08180130      0t0  TCP *:5000 (LISTEN)"
+      },
+      {
+        "port": 3016,
+        "process_sample": "node       5619 jamesharris   21u  IPv6 0xb0cb32729900a4d0      0t0  TCP *:3016 (LISTEN)"
+      },
+      {
+        "port": 3023,
+        "process_sample": "node      18891 jamesharris   21u  IPv6 0xafcbfd1e6d3472b1      0t0  TCP *:3023 (LISTEN)"
+      },
+      {
+        "port": 3001,
+        "process_sample": "node      63415 jamesharris   21u  IPv6 0xd448138340c666b3      0t0  TCP *:3001 (LISTEN)"
+      },
+      {
+        "port": 3011,
+        "process_sample": "node      77602 jamesharris   21u  IPv6 0x41b8b16130cd49ee      0t0  TCP *:3011 (LISTEN)"
+      },
+      {
+        "port": 3012,
+        "process_sample": "node      78277 jamesharris   21u  IPv6 0xd6743b1b8aa8ed28      0t0  TCP *:3012 (LISTEN)"
+      }
+    ],
+    "rogue_loops_running": true,
+    "topology_summary": {
+      "expected_ports": [
+        3001,
+        3023
+      ],
+      "base_ports_state": [
+        {
+          "port": 3001,
+          "status": 200,
+          "ok": true,
+          "sample": {
+            "status": "ok",
+            "env": "development",
+            "allowedOrigins": [
+              "http://localhost:3000",
+              "http://localhost:3001"
+            ]
+          }
+        },
+        {
+          "port": 3023,
+          "status": 200,
+          "ok": true,
+          "sample": {
+            "status": "ok",
+            "env": "development",
+            "allowedOrigins": [
+              "http://localhost:3000",
+              "http://localhost:3001"
+            ]
+          }
+        }
+      ],
+      "discovered_api_instances": [
+        3001,
+        3011,
+        3012,
+        3016,
+        3023
+      ],
+      "service_fingerprints": [
+        {
+          "port": 3001,
+          "health_status": 200,
+          "health_ok": true,
+          "root_status": 404,
+          "root_is_json": true,
+          "root_sample": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+        },
+        {
+          "port": 3011,
+          "health_status": 200,
+          "health_ok": true,
+          "root_status": 404,
+          "root_is_json": true,
+          "root_sample": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+        },
+        {
+          "port": 3012,
+          "health_status": 200,
+          "health_ok": true,
+          "root_status": 404,
+          "root_is_json": true,
+          "root_sample": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+        },
+        {
+          "port": 3016,
+          "health_status": 200,
+          "health_ok": true,
+          "root_status": 404,
+          "root_is_json": true,
+          "root_sample": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+        },
+        {
+          "port": 3023,
+          "health_status": 200,
+          "health_ok": true,
+          "root_status": 404,
+          "root_is_json": true,
+          "root_sample": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+        }
+      ],
+      "frontend_root_present": false,
+      "warning_multiple_api_instances": true
+    },
+    "reset_checkpoint": {
+      "timestamp": "2026-03-22T18:37:37Z",
+      "task": "prep_data_repair",
+      "status": "RESET_SAFE_POINT",
+      "last_known_report": "logs/prep_data_repair.json",
+      "last_known_verdict": "FAIL",
+      "last_known_fail_reason": "watchlist distribution gate failed (HIGH_VOLATILITY=100%)",
+      "active_api_ports": [
+        3001,
+        3023
+      ],
+      "reset_actions": [
+        "stopped repair/calibration scripts",
+        "did not apply new data mutations",
+        "preserved latest fail-fast report"
+      ]
+    }
+  },
+  "engine_status": {
+    "stocks_in_play_engine": {
+      "running": true,
+      "last_execution_timestamp": "2026-03-20T00:28:12.762Z",
+      "last_success_failure": "unknown",
+      "last_error": null,
+      "expected_role": "Maintains ranked stocks-in-play universe for intelligence and prep flows."
+    },
+    "signal_generation_engine": {
+      "running": true,
+      "last_execution_timestamp": "2026-03-22T13:18:26.843Z",
+      "last_success_failure": "recent_activity",
+      "last_error": null,
+      "expected_role": "Produces trade signal records consumed by setup/outcome lifecycle."
+    },
+    "intelligence_decision_engine": {
+      "running": true,
+      "last_execution_timestamp": "2026-03-22T18:59:05.132Z",
+      "last_success_failure": "success",
+      "last_error": null,
+      "expected_role": "Builds per-symbol decision objects including why_moving, execution, and score."
+    },
+    "calibration_trust_layer": {
+      "running": false,
+      "last_execution_timestamp": "2026-03-22T18:59:05.132Z",
+      "last_success_failure": "degraded",
+      "last_error": "missing_truth_or_quality_fields",
+      "expected_role": "Applies truth filters and quality calibration to avoid score-only false positives."
+    },
+    "prep_watchlist_layer": {
+      "running": false,
+      "last_execution_timestamp": "2026-03-22T18:59:05.132Z",
+      "last_success_failure": "failure",
+      "last_error": "status_404",
+      "expected_role": "Builds prep-mode watchlist and reason distribution for premarket planning."
+    },
+    "earnings_signal_injection_layer": {
+      "running": true,
+      "last_execution_timestamp": "2026-04-03T00:00:00.000Z",
+      "last_success_failure": "recent_activity",
+      "last_error": null,
+      "expected_role": "Links earnings events into signals/setups/decisions for catalyst-aware planning."
+    },
+    "news_ingestion_layer": {
+      "running": true,
+      "last_execution_timestamp": "2026-03-22T14:22:13.000Z",
+      "last_success_failure": "recent_activity",
+      "last_error": null,
+      "expected_role": "Ingests and symbol-links recent news for catalysts and explainability."
+    },
+    "mcp_narrative_engine": {
+      "running": true,
+      "last_execution_timestamp": "2026-03-22T18:59:05.288Z",
+      "last_success_failure": "success",
+      "last_error": null,
+      "expected_role": "Provides symbol-level narrative/explanation for trader context and AI assistance."
+    },
+    "systemGuard": {
+      "running": true,
+      "last_execution_timestamp": null,
+      "last_success_failure": "unknown",
+      "last_error": null,
+      "expected_role": "Blocks writes or alerts when lifecycle/validation invariants fail."
+    },
+    "validation_build_guard": {
+      "running": true,
+      "last_execution_timestamp": null,
+      "last_success_failure": "see runSystemCheck evidence",
+      "last_error": null,
+      "expected_role": "Runs schema/data/endpoint checks to gate unsafe operation states."
+    }
+  },
+  "schema_health": {
+    "signals": {
+      "row_count": 1189,
+      "key_columns": [
+        "id",
+        "symbol",
+        "signal_type",
+        "score",
+        "confidence",
+        "catalyst_ids",
+        "created_at",
+        "session_phase",
+        "volume_acceleration",
+        "priority_score",
+        "session_weight",
+        "tqi_score"
+      ],
+      "latest_timestamp": "2026-03-22T13:18:26.843Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "id": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "trade_setups": {
+      "row_count": 689,
+      "key_columns": [
+        "symbol",
+        "setup",
+        "grade",
+        "score",
+        "gap_percent",
+        "relative_volume",
+        "atr",
+        "float_rotation",
+        "detected_at",
+        "setup_type",
+        "updated_at",
+        "signal_id",
+        "entry_price",
+        "created_at"
+      ],
+      "latest_timestamp": "2026-03-22T13:33:34.917Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "signal_id": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "updated_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "signal_outcomes": {
+      "row_count": 779,
+      "key_columns": [
+        "id",
+        "symbol",
+        "entry_price",
+        "exit_price",
+        "return_percent",
+        "hold_minutes",
+        "strategy",
+        "created_at",
+        "signal_id",
+        "high_1d",
+        "low_1d",
+        "move_up_percent",
+        "move_down_percent",
+        "evaluated_at",
+        "max_move_percent",
+        "time_to_high_minutes",
+        "breakout_volume",
+        "pullback_percent",
+        "move_15m_percent",
+        "move_1h_percent",
+        "close_move_percent",
+        "next_day_move_percent",
+        "outcome",
+        "pnl_pct",
+        "pnl_5m",
+        "pnl_15m",
+        "pnl_1h"
+      ],
+      "latest_timestamp": "2026-03-21T20:34:39.804Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "signal_id": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "pnl_pct": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "trade_outcomes": {
+      "row_count": 789,
+      "key_columns": [
+        "legacy_signal_id",
+        "max_move",
+        "max_drawdown",
+        "success",
+        "evaluation_time",
+        "symbol",
+        "strategy",
+        "class",
+        "probability",
+        "entry_time",
+        "entry_price",
+        "exit_time",
+        "exit_price",
+        "max_runup_pct",
+        "max_drawdown_pct",
+        "result_pct",
+        "pnl_pct",
+        "outcome",
+        "opportunity_id",
+        "stop_loss",
+        "take_profit",
+        "expected_move_percent",
+        "actual_max_move_percent",
+        "time_to_target_minutes",
+        "created_at",
+        "evaluated_at",
+        "data_quality",
+        "calibration_eligible",
+        "max_move_pct",
+        "pnl_5m",
+        "pnl_15m",
+        "pnl_1h",
+        "id",
+        "signal_id",
+        "canonical_signal_id"
+      ],
+      "latest_timestamp": "2026-03-21T20:34:39.824Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "signal_id": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "pnl_pct": {
+          "null_count": 12,
+          "null_pct": 1.52
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "market_metrics": {
+      "row_count": 5984,
+      "key_columns": [
+        "symbol",
+        "price",
+        "gap_percent",
+        "relative_volume",
+        "atr",
+        "rsi",
+        "vwap",
+        "float_rotation",
+        "last_updated",
+        "change_percent",
+        "avg_volume_30d",
+        "updated_at",
+        "volume",
+        "previous_high",
+        "float_shares",
+        "atr_percent",
+        "short_float",
+        "liquidity_surge"
+      ],
+      "latest_timestamp": "2026-03-21T13:32:49.865Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "relative_volume": {
+          "null_count": 863,
+          "null_pct": 14.42
+        },
+        "change_percent": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "updated_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "news_articles": {
+      "row_count": 17618,
+      "key_columns": [
+        "id",
+        "headline",
+        "symbols",
+        "source",
+        "url",
+        "published_at",
+        "summary",
+        "catalyst_type",
+        "news_score",
+        "score_breakdown",
+        "raw_payload",
+        "created_at",
+        "symbol",
+        "sector",
+        "narrative",
+        "provider",
+        "sentiment",
+        "title",
+        "body_text",
+        "publisher",
+        "site",
+        "image_url",
+        "published_date",
+        "source_url",
+        "ingested_at"
+      ],
+      "latest_timestamp": "2026-03-22T18:35:01.398Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 307,
+          "null_pct": 1.74
+        },
+        "published_at": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "earnings_events": {
+      "row_count": 616,
+      "key_columns": [
+        "id",
+        "symbol",
+        "report_date",
+        "report_time",
+        "eps_estimate",
+        "eps_actual",
+        "rev_estimate",
+        "rev_actual",
+        "eps_surprise_pct",
+        "rev_surprise_pct",
+        "guidance_direction",
+        "market_cap",
+        "float",
+        "sector",
+        "industry",
+        "created_at",
+        "company",
+        "earnings_date",
+        "revenue_estimate",
+        "updated_at",
+        "time",
+        "expected_move_percent",
+        "avg_volume",
+        "atr",
+        "exchange",
+        "price",
+        "current_volume",
+        "rvol",
+        "score"
+      ],
+      "latest_timestamp": "2026-03-22T13:33:34.190Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "report_date": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "stocks_in_play": {
+      "row_count": 23245,
+      "key_columns": [
+        "id",
+        "symbol",
+        "gap_percent",
+        "rvol",
+        "catalyst",
+        "score",
+        "detected_at",
+        "session_phase",
+        "volume_acceleration",
+        "priority_score",
+        "catalyst_score"
+      ],
+      "latest_timestamp": "2026-03-20T00:28:12.762Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "score": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "detected_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "opportunity_stream": {
+      "row_count": 2095250,
+      "key_columns": [
+        "id",
+        "symbol",
+        "event_type",
+        "headline",
+        "score",
+        "source",
+        "created_at"
+      ],
+      "latest_timestamp": "2026-03-20T00:28:32.543Z",
+      "critical_null_stats": {
+        "symbol": {
+          "null_count": 0,
+          "null_pct": 0
+        },
+        "created_at": {
+          "null_count": 0,
+          "null_pct": 0
+        }
+      }
+    },
+    "decision_view": {
+      "exists": true,
+      "referenced_relations": [
+        "market_metrics",
+        "latest_mm",
+        "base",
+        "q1",
+        "q2",
+        "i",
+        "b"
+      ],
+      "definition_sample": " WITH latest_mm AS (\n         SELECT DISTINCT ON ((upper(m.symbol))) upper(m.symbol) AS symbol_key,\n            m.symbol,\n            m.price,\n            m.gap_percent,\n            m.relative_volume,\n            m.atr,\n            m.rsi,\n            m.vwap,\n            m.float_rotation,\n            m.last_updated,\n            m.change_percent,\n            m.avg_volume_30d,\n            m.updated_at,\n            m.volume,\n            m.previous_high,\n            m.float_shares,\n            m.atr_"
+    },
+    "top_opportunities_surface": {
+      "endpoint_status": 200,
+      "sample_fields": [
+        "symbol",
+        "final_score",
+        "decision_score",
+        "score_primary",
+        "raw_decision_score",
+        "boost_score",
+        "tqi_score",
+        "catalyst_type",
+        "catalyst_strength",
+        "strategy",
+        "relative_volume",
+        "earnings_flag",
+        "news_count",
+        "why_moving",
+        "why_tradeable",
+        "how_to_trade",
+        "win_rate",
+        "regime",
+        "session_phase",
+        "explanation",
+        "execution_plan",
+        "data_quality",
+        "trade_confidence",
+        "completeness",
+        "confidence",
+        "adjusted_confidence",
+        "trade_quality",
+        "learning_weight",
+        "priority_score"
+      ],
+      "inferred_backing_relation": "decision_view + enrichment joins (runtime endpoint)"
+    }
+  },
+  "data_inventory": {
+    "signals": {
+      "row_count": 1189,
+      "latest_timestamp": "2026-03-22T13:18:26.843Z",
+      "freshness_hint": "2026-03-22T13:18:26.843Z"
+    },
+    "trade_setups": {
+      "row_count": 689,
+      "latest_timestamp": "2026-03-22T13:33:34.917Z",
+      "freshness_hint": "2026-03-22T13:33:34.917Z"
+    },
+    "signal_outcomes": {
+      "row_count": 779,
+      "latest_timestamp": "2026-03-21T20:34:39.804Z",
+      "freshness_hint": "2026-03-21T20:34:39.804Z"
+    },
+    "trade_outcomes": {
+      "row_count": 789,
+      "latest_timestamp": "2026-03-21T20:34:39.824Z",
+      "freshness_hint": "2026-03-21T20:34:39.824Z"
+    },
+    "market_metrics": {
+      "row_count": 5984,
+      "latest_timestamp": "2026-03-21T13:32:49.865Z",
+      "freshness_hint": "2026-03-21T13:32:49.865Z"
+    },
+    "news_articles": {
+      "row_count": 17618,
+      "latest_timestamp": "2026-03-22T18:35:01.398Z",
+      "freshness_hint": "2026-03-22T18:35:01.398Z"
+    },
+    "earnings_events": {
+      "row_count": 616,
+      "latest_timestamp": "2026-03-22T13:33:34.190Z",
+      "freshness_hint": "2026-03-22T13:33:34.190Z"
+    },
+    "stocks_in_play": {
+      "row_count": 23245,
+      "latest_timestamp": "2026-03-20T00:28:12.762Z",
+      "freshness_hint": "2026-03-20T00:28:12.762Z"
+    },
+    "opportunity_stream": {
+      "row_count": 2095250,
+      "latest_timestamp": "2026-03-20T00:28:32.543Z",
+      "freshness_hint": "2026-03-20T00:28:32.543Z"
+    }
+  },
+  "freshness_summary": {
+    "now_utc": "2026-03-22T18:59:13.911Z",
+    "market_metrics_latest": "2026-03-21T13:32:49.865Z",
+    "news_latest": "2026-03-22T18:35:01.398Z",
+    "earnings_latest_report_date": "2026-03-22T13:33:34.190Z",
+    "signals_latest": "2026-03-22T13:18:26.843Z"
+  },
+  "pipeline_integrity": {
+    "overlap_count": 407,
+    "orphan_counts": {
+      "signals_without_setups": 500,
+      "setups_without_signal": 0,
+      "signal_outcomes_without_signal": 0,
+      "trade_outcomes_without_signal": 0
+    },
+    "null_symbol_counts": {
+      "signals_null_symbol": 0,
+      "setups_null_symbol": 0,
+      "signal_outcomes_null_symbol": 0,
+      "trade_outcomes_null_symbol": 0
+    },
+    "earnings_linkage": {
+      "earnings_signals": 290,
+      "earnings_trade_outcomes": 284
+    },
+    "verdict": "PASS"
+  },
+  "ingestion_health": {
+    "market_metrics": {
+      "row_count": 5984,
+      "latest_update": "2026-03-21T13:32:49.865Z",
+      "threshold_row_count_gt_5000": true
+    },
+    "news": {
+      "rows_last_6h": 616,
+      "rows_last_24h": 17261,
+      "symbol_coverage_24h": 99,
+      "latest": "2026-03-22T14:22:13.000Z"
+    },
+    "earnings": {
+      "next_7d": 350,
+      "prev_7d": 0,
+      "distinct_symbols": 529,
+      "latest_report_date": "2026-04-02T23:00:00.000Z"
+    },
+    "opportunities": {
+      "row_count": 2095250,
+      "latest": "2026-03-20T00:28:32.543Z"
+    },
+    "signals": {
+      "rows_last_15m": 0,
+      "rows_last_1h": 0,
+      "latest": "2026-03-22T13:18:26.843Z"
+    },
+    "notes": [
+      "Sunday allowance applied: low live signal flow is acceptable."
+    ]
+  },
+  "prep_mode": {
+    "count": 0,
+    "distribution": {},
+    "verdict": "DEGRADED",
+    "root_causes": [
+      "no EARNINGS_UPCOMING entries present",
+      "no NEWS_PENDING entries present",
+      "no LARGE_MOVE entries present"
+    ]
+  },
+  "endpoint_health": {
+    "/api/health": {
+      "status": 200,
+      "response_time_ms": 1,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "status": "ok",
+        "env": "development",
+        "allowedOrigins": [
+          "http://localhost:3000",
+          "http://localhost:3001"
+        ]
+      },
+      "contract_notes": []
+    },
+    "/api/screener": {
+      "status": 200,
+      "response_time_ms": 25,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "rows": [
+          {
+            "symbol": "ACXP",
+            "price": "6.63",
+            "change_percent": "342",
+            "relative_volume": "157.8423679873605655",
+            "volume": "7725963"
+          },
+          {
+            "symbol": "RWAYI",
+            "price": "25.18",
+            "change_percent": "283.257229832572",
+            "relative_volume": "0.05359941680335338091",
+            "volume": "3460"
+          },
+          {
+            "symbol": "GAING",
+            "price": "25.36",
+            "change_percent": "275.147928994083",
+            "relative_volume": "0.09744830034614360531",
+            "volume": "15685"
+          },
+          {
+            "symbol": "ELAB",
+            "price": "3.79",
+            "change_percent": "218.487394957983",
+            "relative_volume": "0.02227223150865495103",
+            "volume": "46379"
+          },
+          {
+            "symbol": "LNZA",
+            "price": "22.54",
+            "change_percent": "163.010501750292",
+            "relative_volume": "15.2981627951840042",
+            "volume": "134812"
+          },
+          {
+            "symbol": "EDSA",
+            "price": "5.12",
+            "change_percent": "132.727272727273",
+            "relative_volume": "0.14687431954083205862",
+            "volume": "794875"
+          },
+          {
+            "symbol": "CVGI",
+            "price": "3.57",
+            "change_percent": "108.771929824561",
+            "relative_volume": "3.8084849113825452",
+            "volume": "445260"
+          },
+          {
+            "symbol": "ALTO",
+            "price": "4.66",
+            "change_percent": "104.385964912281",
+            "relative_volume": "1.8278124681280936",
+            "volume": "1337539"
+          },
+          {
+            "symbol": "DAWN",
+            "price": "21.27",
+            "change_percent": "100.660377358491",
+            "relative_volume": "3.1979634469035241",
+            "volume": "7719571"
+          },
+          {
+            "symbol": "PLYX",
+            "price": "5.97",
+            "change_percent": "95.7377049180328",
+            "relative_volume": "7.4945468889842932",
+            "volume": "24335714"
+          },
+          {
+            "symbol": "NCI",
+            "price": "10.5",
+            "change_percent": "93.0147058823529",
+            "relative_volume": "0.29651329420134084701",
+            "volume": "1552387"
+          },
+          {
+            "symbol": "RDGT",
+            "price": "3.03",
+            "change_percent": "91.7721518987342",
+            "relative_volume": "175.2340548536838347",
+            "volume": "1030569"
+          },
+          {
+            "symbol": "TLYS",
+            "price": "2.72",
+            "change_percent": "88.8888888888889",
+            "relative_volume": "36.5669888343715758",
+            "volume": "1605058"
+          },
+          {
+            "symbol": "AMTX",
+            "price": "2.6",
+            "change_percent": "83.0985915492958",
+            "relative_volume": "1.9145000266673334",
+            "volume": "1743348"
+          },
+          {
+            "symbol": "ROMA",
+            "price": "4.75",
+            "change_percent": "80.6083650190114",
+            "relative_volume": "0.36151947810580449670",
+            "volume": "245872"
+          },
+          {
+            "symbol": "AIRS",
+            "price": "2.805",
+            "change_percent": "77.5316455696203",
+            "relative_volume": "66.9572799419799955",
+            "volume": "76665041"
+          },
+          {
+            "symbol": "TNGX",
+            "price": "19.32",
+            "change_percent": "73.4290843806104",
+            "relative_volume": "1.0814307980175444",
+            "volume": "3141000"
+          },
+          {
+            "symbol": "AMPX",
+            "price": "18.2",
+            "change_percent": "69.6178937558248",
+            "relative_volume": "0.88433283779327102375",
+            "volume": "7452601"
+          },
+          {
+            "symbol": "AHG",
+            "price": "2.42",
+            "change_percent": "69.2307692307692",
+            "relative_volume": "28.4203182677193168",
+            "volume": "160913"
+          },
+          {
+            "symbol": "HIMS",
+            "price": "24.16",
+            "change_percent": "66.3911845730028",
+            "relative_volume": "0.93030510520895055074",
+            "volume": "29697564"
+          },
+          {
+            "symbol": "LWLG",
+            "price": "7.33",
+            "change_percent": "66.2131519274376",
+            "relative_volume": "1.5633364127276285",
+            "volume": "2664456"
+          },
+          {
+            "symbol": "CDXS",
+            "price": "1.67",
+            "change_percent": "65.3465346534653",
+            "relative_volume": "1.6365381359934779",
+            "volume": "1988916"
+          },
+          {
+            "symbol": "DTIL",
+            "price": "6.72",
+            "change_percent": "60",
+            "relative_volume": "2.5294638086494683",
+            "volume": "506228"
+          },
+          {
+            "symbol": "BODI",
+            "price": "11.13",
+            "change_percent": "59.9137931034483",
+            "relative_volume": "1.4975616296855446",
+            "volume": "60311"
+          },
+          {
+            "symbol": "BW",
+            "price": "13.905",
+            "change_percent": "56.941309255079",
+            "relative_volume": "2.4974572350382661",
+            "volume": "6526843"
+          },
+          {
+            "symbol": "CURV",
+            "price": "1.6",
+            "change_percent": "56.8627450980392",
+            "relative_volume": "59.8964653427967764",
+            "volume": "23618498"
+          },
+          {
+            "symbol": "CSCI",
+            "price": "2.72",
+            "change_percent": "55.4285714285714",
+            "relative_volume": "0.46391752577319587626",
+            "volume": "300"
+          },
+          {
+            "symbol": "ZD",
+            "price": "42.05",
+            "change_percent": "55.2806499261448",
+            "relative_volume": "1.6498118698825709",
+            "volume": "1302143"
+          },
+          {
+            "symbol": "CRCL",
+            "price": "128.33",
+            "change_percent": "53.7991371045063",
+            "relative_volume": "1.3508727260427839",
+            "volume": "19382371"
+          },
+          {
+            "symbol": "LFMD",
+            "price": "4.09",
+            "change_percent": "53.1835205992509",
+            "relative_volume": "1.2200945237886417",
+            "volume": "1050308"
+          },
+          {
+            "symbol": "ZIP",
+            "price": "2.77",
+            "change_percent": "53.0386740331492",
+            "relative_volume": "1.4052708309238204",
+            "volume": "1867107"
+          },
+          {
+            "symbol": "TAOX",
+            "price": "5.95",
+            "change_percent": "52.1739130434783",
+            "relative_volume": "2.6437190397561285",
+            "volume": "343431"
+          },
+          {
+            "symbol": "TRON",
+            "price": "2.05",
+            "change_percent": "50.735294117647",
+            "relative_volume": "3.5598815039885704",
+            "volume": "1992359"
+          },
+          {
+            "symbol": "NCSM",
+            "price": "59.885",
+            "change_percent": "50.3137550200803",
+            "relative_volume": "6.9066681411036161",
+            "volume": "41638"
+          },
+          {
+            "symbol": "GNFT",
+            "price": "8.95",
+            "change_percent": "49.9162479061976",
+            "relative_volume": "1.7829785433154175",
+            "volume": "4213"
+          },
+          {
+            "symbol": "LONA",
+            "price": "8.435",
+            "change_percent": "49.8223801065719",
+            "relative_volume": "1.1433640767550259",
+            "volume": "64914"
+          },
+          {
+            "symbol": "SVCO",
+            "price": "5.03",
+            "change_percent": "49.702380952381",
+            "relative_volume": "85.9187948583883911",
+            "volume": "11809630"
+          },
+          {
+            "symbol": "VELO",
+            "price": "15.01",
+            "change_percent": "47.4459724950884",
+            "relative_volume": "0.41431054883183827456",
+            "volume": "977034"
+          },
+          {
+            "symbol": "QTTB",
+            "price": "6.67",
+            "change_percent": "46.2719298245614",
+            "relative_volume": "2.0766844065445455",
+            "volume": "343424"
+          },
+          {
+            "symbol": "SEDG",
+            "price": "51.73",
+            "change_percent": "46.1299435028249",
+            "relative_volume": "2.9518571046011112",
+            "volume": "9695409"
+          },
+          {
+            "symbol": "MGNX",
+            "price": "2.9",
+            "change_percent": "45.7286432160804",
+            "relative_volume": "1.00430310193993698882",
+            "volume": "777097"
+          },
+          {
+            "symbol": "CYN",
+            "price": "2.21",
+            "change_percent": "44.4444444444444",
+            "relative_volume": "0.07642275565080359696",
+            "volume": "379596"
+          },
+          {
+            "symbol": "INV",
+            "price": "4.085",
+            "change_percent": "43.8380281690141",
+            "relative_volume": "2.6933232096739502",
+            "volume": "4579241"
+          },
+          {
+            "symbol": "PURR",
+            "price": "5.85",
+            "change_percent": "43.3823529411765",
+            "relative_volume": "2.0440212108692128",
+            "volume": "7040653"
+          },
+          {
+            "symbol": "ODYS",
+            "price": "7.07",
+            "change_percent": "42.8282828282828",
+            "relative_volume": "2.7389456505959562",
+            "volume": "54714"
+          },
+          {
+            "symbol": "DWSN",
+            "price": "4.88",
+            "change_percent": "42.6900584795322",
+            "relative_volume": "2.7455812053661737",
+            "volume": "212183"
+          },
+          {
+            "symbol": "IMMX",
+            "price": "11.515",
+            "change_percent": "42.6889714993804",
+            "relative_volume": "0.86857194282548672585",
+            "volume": "745731"
+          },
+          {
+            "symbol": "NBIS",
+            "price": "129.85",
+            "change_percent": "42.3949994516943",
+            "relative_volume": "2.4497695487181992",
+            "volume": "34249154"
+          },
+          {
+            "symbol": "CHCI",
+            "price": "16.49",
+            "change_percent": "41.3024850042845",
+            "relative_volume": "4.5716164188168959",
+            "volume": "54700"
+          },
+          {
+            "symbol": "EDHL",
+            "price": "3.67",
+            "change_percent": "41.1538461538461",
+            "relative_volume": "0.69583052841680096657",
+            "volume": "78695"
+          }
+        ]
+      },
+      "contract_notes": []
+    },
+    "/api/market/quotes?symbols=SPY,QQQ,AAPL": {
+      "status": 503,
+      "response_time_ms": 48,
+      "valid_json": true,
+      "ok": false,
+      "root_object_present": true,
+      "sample_payload": {
+        "success": false,
+        "error": "LIVE_MARKET_DATA_UNAVAILABLE",
+        "message": "Live market data unavailable",
+        "missing_symbols": [
+          "SPY",
+          "QQQ",
+          "AAPL"
+        ],
+        "count": 0,
+        "data": []
+      },
+      "contract_notes": []
+    },
+    "/api/market/overview": {
+      "status": 200,
+      "response_time_ms": 26,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "indices": {
+          "SPY": {
+            "symbol": "SPY",
+            "price": "682.39",
+            "change_percent": "0",
+            "volume": "0"
+          },
+          "QQQ": {
+            "symbol": "QQQ",
+            "price": null,
+            "change_percent": null,
+            "volume": null
+          },
+          "DIA": {
+            "symbol": "DIA",
+            "price": null,
+            "change_percent": null,
+            "volume": null
+          },
+          "IWM": {
+            "symbol": "IWM",
+            "price": null,
+            "change_percent": null,
+            "volume": null
+          }
+        },
+        "volatility": {
+          "VIX": {
+            "symbol": "VIX",
+            "price": "23.09",
+            "change_percent": "0.72",
+            "volume": "0"
+          }
+        },
+        "breadth": {
+          "advancers": 1429,
+          "decliners": 3286,
+          "up_volume": 3628753910,
+          "down_volume": 6007341900
+        }
+      },
+      "contract_notes": []
+    },
+    "/api/signals?limit=5": {
+      "status": 200,
+      "response_time_ms": 22,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "success": true,
+        "data": [
+          {
+            "id": "73334691-f936-4825-b3c2-f0c1101eb412",
+            "symbol": "STOK",
+            "signal_type": "earnings",
+            "score": 76,
+            "confidence": 0.75,
+            "catalyst_ids": [],
+            "created_at": "2026-03-22T13:18:26.843Z"
+          },
+          {
+            "id": "575acefc-af7e-4b44-af60-e3e437b03648",
+            "symbol": "SCNX",
+            "signal_type": "earnings",
+            "score": 76,
+            "confidence": 0.75,
+            "catalyst_ids": [],
+            "created_at": "2026-03-22T13:18:26.443Z"
+          },
+          {
+            "id": "fa205622-4098-4823-b269-81d636b20278",
+            "symbol": "LINK",
+            "signal_type": "earnings",
+            "score": 76,
+            "confidence": 0.75,
+            "catalyst_ids": [],
+            "created_at": "2026-03-22T13:18:24.526Z"
+          },
+          {
+            "id": "297df0e7-757e-4186-891f-9ae32916bdd2",
+            "symbol": "KBH",
+            "signal_type": "earnings",
+            "score": 76,
+            "confidence": 0.75,
+            "catalyst_ids": [],
+            "created_at": "2026-03-22T13:18:24.018Z"
+          },
+          {
+            "id": "6e1ba5d9-3554-415c-89df-6531d34a8a66",
+            "symbol": "HMR",
+            "signal_type": "earnings",
+            "score": 76,
+            "confidence": 0.75,
+            "catalyst_ids": [],
+            "created_at": "2026-03-22T13:18:23.078Z"
+          }
+        ]
+      },
+      "contract_notes": []
+    },
+    "/api/intelligence/decision/AAPL": {
+      "status": 200,
+      "response_time_ms": 839,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "ok": true,
+        "decision": {
+          "symbol": "AAPL",
+          "why_moving": {
+            "catalyst": "MarketWatch Newsletter Audit 1773667870121 b8e7f9b4",
+            "catalyst_type": "newsletter_intelligence",
+            "narrative": "AAPL is moving on newsletter_intelligence: MarketWatch Newsletter Audit 1773667870121 b8e7f9b4",
+            "confidence": 40
+          },
+          "tradeability": {
+            "rvol": 0.275436063482679,
+            "range_pct": 3.85302571273208,
+            "liquidity_score": 0,
+            "tradeability_score": 30,
+            "float": 14697926330.997559
+          },
+          "execution_plan": {
+            "strategy": "momentum_continuation",
+            "entry_type": "Momentum continuation",
+            "risk_level": "HIGH",
+            "expected_move": null,
+            "win_probability": 50,
+            "historical_win_rate": 0,
+            "avg_pnl_pct": 0,
+            "avg_drawdown_pct": 0,
+            "setup_candidates": [
+              {
+                "setup": "momentum_continuation",
+                "setup_type": "momentum_continuation",
+                "score": "70",
+                "atr": null,
+                "relative_volume": null,
+                "gap_percent": null,
+                "updated_at": "2026-03-20T10:15:23.229Z"
+              }
+            ],
+            "expected_move_alignment": null
+          },
+          "data_quality": "sufficient",
+          "decision_score": 47.5
+        }
+      },
+      "contract_notes": []
+    },
+    "/api/intelligence/top-opportunities?limit=10": {
+      "status": 200,
+      "response_time_ms": 9193,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "ok": true,
+        "strict_mode": false,
+        "count": 10,
+        "results": [
+          {
+            "symbol": "WNW",
+            "final_score": 100,
+            "decision_score": 59,
+            "score_primary": 100,
+            "raw_decision_score": 46.1,
+            "boost_score": 10,
+            "tqi_score": 100,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 7757.594381233572,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+            "why_tradeable": "High RVOL (7757.59) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "High TQI + Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 100,
+            "completeness": 100,
+            "confidence": 1,
+            "adjusted_confidence": 1,
+            "trade_quality": 100,
+            "learning_weight": 52.3,
+            "priority_score": 100
+          },
+          {
+            "symbol": "LNSR",
+            "final_score": 83.78981058752098,
+            "decision_score": 19.15684,
+            "score_primary": 83.78981058752098,
+            "raw_decision_score": 37.9,
+            "boost_score": 30,
+            "tqi_score": 4.3921,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 30.453555081063794,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+            "why_tradeable": "High RVOL (30.45) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 76.8574,
+            "completeness": 100,
+            "confidence": 0.7686,
+            "adjusted_confidence": 0.7686,
+            "trade_quality": 95,
+            "learning_weight": 55.7306,
+            "priority_score": 67.4392
+          },
+          {
+            "symbol": "TAOX",
+            "final_score": 42.39796741771979,
+            "decision_score": 19.0126,
+            "score_primary": 42.39796741771979,
+            "raw_decision_score": 44.5,
+            "boost_score": 30,
+            "tqi_score": 4.0315,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.442332636667706,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+            "why_tradeable": "High RVOL (2.44) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4873,
+            "completeness": 100,
+            "confidence": 0.0349,
+            "adjusted_confidence": 0.0349,
+            "trade_quality": 81,
+            "learning_weight": 48.5105,
+            "priority_score": 1.7448
+          },
+          {
+            "symbol": "EQ",
+            "final_score": 42.394608111656574,
+            "decision_score": 19.01108,
+            "score_primary": 42.394608111656574,
+            "raw_decision_score": 37.3,
+            "boost_score": 30,
+            "tqi_score": 4.0277,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.1465592762640515,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+            "why_tradeable": "High RVOL (2.15) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4825,
+            "completeness": 100,
+            "confidence": 0.0348,
+            "adjusted_confidence": 0.0348,
+            "trade_quality": 81,
+            "learning_weight": 48.5104,
+            "priority_score": 1.7398
+          },
+          {
+            "symbol": "TENX",
+            "final_score": 42.394342905760695,
+            "decision_score": 19.01096,
+            "score_primary": 42.394342905760695,
+            "raw_decision_score": 43,
+            "boost_score": 30,
+            "tqi_score": 4.0274,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.111814608494867,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+            "why_tradeable": "High RVOL (2.11) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4821,
+            "completeness": 100,
+            "confidence": 0.0348,
+            "adjusted_confidence": 0.0348,
+            "trade_quality": 81,
+            "learning_weight": 48.5104,
+            "priority_score": 1.7398
+          },
+          {
+            "symbol": "CHNR",
+            "final_score": 37.03195035515959,
+            "decision_score": 24.3544,
+            "score_primary": 37.03195035515959,
+            "raw_decision_score": 58.55,
+            "boost_score": 10,
+            "tqi_score": 13.386,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 1038.4193886669577,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 1038.42, news score 0.00.",
+            "why_tradeable": "High RVOL (1038.42) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 10.1031,
+            "completeness": 100,
+            "confidence": 0.101,
+            "adjusted_confidence": 0.101,
+            "trade_quality": 82,
+            "learning_weight": 43.0303,
+            "priority_score": 5.3774
+          },
+          {
+            "symbol": "PMAX",
+            "final_score": 33.73937441013136,
+            "decision_score": 22.10268,
+            "score_primary": 33.73937441013136,
+            "raw_decision_score": 42.7,
+            "boost_score": 10,
+            "tqi_score": 7.7567,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 601.7331883550577,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 601.73, news score 0.00.",
+            "why_tradeable": "High RVOL (601.73) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Holding above VWAP -> trend continuation long. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 5.4023,
+            "completeness": 100,
+            "confidence": 0.054,
+            "adjusted_confidence": 0.054,
+            "trade_quality": 81,
+            "learning_weight": 42.5162,
+            "priority_score": 2.7411
+          },
+          {
+            "symbol": "ACXP",
+            "final_score": 30.458312185930183,
+            "decision_score": 19.81396,
+            "score_primary": 30.458312185930183,
+            "raw_decision_score": 60.4,
+            "boost_score": 10,
+            "tqi_score": 2.0349,
+            "catalyst_type": "news",
+            "catalyst_strength": 30,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 157.84236798736057,
+            "earnings_flag": false,
+            "news_count": 100,
+            "why_moving": "News catalyst. news: gap 0.00%, RVOL 157.84, news score 0.00.",
+            "why_tradeable": "High RVOL (157.84) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 0.7181,
+            "completeness": 100,
+            "confidence": 0.0072,
+            "adjusted_confidence": 0.0072,
+            "trade_quality": 80,
+            "learning_weight": 46.0022,
+            "priority_score": 0.3477
+          },
+          {
+            "symbol": "CYCU",
+            "final_score": 29.995012463020917,
+            "decision_score": 19.48776,
+            "score_primary": 29.995012463020917,
+            "raw_decision_score": 44.8,
+            "boost_score": 10,
+            "tqi_score": 1.2194,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 94.60267251305027,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 94.60, news score 0.00.",
+            "why_tradeable": "High RVOL (94.60) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 0.0566,
+            "completeness": 100,
+            "confidence": 0.0006,
+            "adjusted_confidence": 0.0006,
+            "trade_quality": 80,
+            "learning_weight": 42.0002,
+            "priority_score": 0.0288
+          },
+          {
+            "symbol": "HUBC",
+            "final_score": 29.955342807073627,
+            "decision_score": 19.4598,
+            "score_primary": 29.955342807073627,
+            "raw_decision_score": 55.4,
+            "boost_score": 10,
+            "tqi_score": 1.1495,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 89.17271831813953,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 89.17, news score 0.00.",
+            "why_tradeable": "High RVOL (89.17) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 0,
+            "completeness": 100,
+            "confidence": 0,
+            "adjusted_confidence": 0,
+            "trade_quality": 80,
+            "learning_weight": 42,
+            "priority_score": 48
+          }
+        ],
+        "total_symbols": 10,
+        "non_null_scores": 10,
+        "null_rate_percent": 0,
+        "execution_layer_status": "ACTIVE",
+        "items": [
+          {
+            "symbol": "WNW",
+            "final_score": 100,
+            "decision_score": 59,
+            "score_primary": 100,
+            "raw_decision_score": 46.1,
+            "boost_score": 10,
+            "tqi_score": 100,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 7757.594381233572,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+            "why_tradeable": "High RVOL (7757.59) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "High TQI + Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 100,
+            "completeness": 100,
+            "confidence": 1,
+            "adjusted_confidence": 1,
+            "trade_quality": 100,
+            "learning_weight": 52.3,
+            "priority_score": 100
+          },
+          {
+            "symbol": "LNSR",
+            "final_score": 83.78981058752098,
+            "decision_score": 19.15684,
+            "score_primary": 83.78981058752098,
+            "raw_decision_score": 37.9,
+            "boost_score": 30,
+            "tqi_score": 4.3921,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 30.453555081063794,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+            "why_tradeable": "High RVOL (30.45) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 76.8574,
+            "completeness": 100,
+            "confidence": 0.7686,
+            "adjusted_confidence": 0.7686,
+            "trade_quality": 95,
+            "learning_weight": 55.7306,
+            "priority_score": 67.4392
+          },
+          {
+            "symbol": "TAOX",
+            "final_score": 42.39796741771979,
+            "decision_score": 19.0126,
+            "score_primary": 42.39796741771979,
+            "raw_decision_score": 44.5,
+            "boost_score": 30,
+            "tqi_score": 4.0315,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.442332636667706,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+            "why_tradeable": "High RVOL (2.44) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4873,
+            "completeness": 100,
+            "confidence": 0.0349,
+            "adjusted_confidence": 0.0349,
+            "trade_quality": 81,
+            "learning_weight": 48.5105,
+            "priority_score": 1.7448
+          },
+          {
+            "symbol": "EQ",
+            "final_score": 42.394608111656574,
+            "decision_score": 19.01108,
+            "score_primary": 42.394608111656574,
+            "raw_decision_score": 37.3,
+            "boost_score": 30,
+            "tqi_score": 4.0277,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.1465592762640515,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+            "why_tradeable": "High RVOL (2.15) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4825,
+            "completeness": 100,
+            "confidence": 0.0348,
+            "adjusted_confidence": 0.0348,
+            "trade_quality": 81,
+            "learning_weight": 48.5104,
+            "priority_score": 1.7398
+          },
+          {
+            "symbol": "TENX",
+            "final_score": 42.394342905760695,
+            "decision_score": 19.01096,
+            "score_primary": 42.394342905760695,
+            "raw_decision_score": 43,
+            "boost_score": 30,
+            "tqi_score": 4.0274,
+            "catalyst_type": "earnings",
+            "catalyst_strength": 40,
+            "strategy": "INTRADAY TREND",
+            "relative_volume": 2.111814608494867,
+            "earnings_flag": true,
+            "news_count": 0,
+            "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+            "why_tradeable": "High RVOL (2.11) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Trend continuation. Stop: Recent support. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Trend continuation",
+              "stop": "Recent support",
+              "target": "2R minimum"
+            },
+            "data_quality": "derived",
+            "trade_confidence": 3.4821,
+            "completeness": 100,
+            "confidence": 0.0348,
+            "adjusted_confidence": 0.0348,
+            "trade_quality": 81,
+            "learning_weight": 48.5104,
+            "priority_score": 1.7398
+          },
+          {
+            "symbol": "CHNR",
+            "final_score": 37.03195035515959,
+            "decision_score": 24.3544,
+            "score_primary": 37.03195035515959,
+            "raw_decision_score": 58.55,
+            "boost_score": 10,
+            "tqi_score": 13.386,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 1038.4193886669577,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 1038.42, news score 0.00.",
+            "why_tradeable": "High RVOL (1038.42) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 10.1031,
+            "completeness": 100,
+            "confidence": 0.101,
+            "adjusted_confidence": 0.101,
+            "trade_quality": 82,
+            "learning_weight": 43.0303,
+            "priority_score": 5.3774
+          },
+          {
+            "symbol": "PMAX",
+            "final_score": 33.73937441013136,
+            "decision_score": 22.10268,
+            "score_primary": 33.73937441013136,
+            "raw_decision_score": 42.7,
+            "boost_score": 10,
+            "tqi_score": 7.7567,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 601.7331883550577,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 601.73, news score 0.00.",
+            "why_tradeable": "High RVOL (601.73) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Holding above VWAP -> trend continuation long. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 5.4023,
+            "completeness": 100,
+            "confidence": 0.054,
+            "adjusted_confidence": 0.054,
+            "trade_quality": 81,
+            "learning_weight": 42.5162,
+            "priority_score": 2.7411
+          },
+          {
+            "symbol": "ACXP",
+            "final_score": 30.458312185930183,
+            "decision_score": 19.81396,
+            "score_primary": 30.458312185930183,
+            "raw_decision_score": 60.4,
+            "boost_score": 10,
+            "tqi_score": 2.0349,
+            "catalyst_type": "news",
+            "catalyst_strength": 30,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 157.84236798736057,
+            "earnings_flag": false,
+            "news_count": 100,
+            "why_moving": "News catalyst. news: gap 0.00%, RVOL 157.84, news score 0.00.",
+            "why_tradeable": "High RVOL (157.84) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 0.7181,
+            "completeness": 100,
+            "confidence": 0.0072,
+            "adjusted_confidence": 0.0072,
+            "trade_quality": 80,
+            "learning_weight": 46.0022,
+            "priority_score": 0.3477
+          },
+          {
+            "symbol": "CYCU",
+            "final_score": 29.995012463020917,
+            "decision_score": 19.48776,
+            "score_primary": 29.995012463020917,
+            "raw_decision_score": 44.8,
+            "boost_score": 10,
+            "tqi_score": 1.2194,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 94.60267251305027,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 94.60, news score 0.00.",
+            "why_tradeable": "High RVOL (94.60) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "sufficient",
+            "trade_confidence": 0.0566,
+            "completeness": 100,
+            "confidence": 0.0006,
+            "adjusted_confidence": 0.0006,
+            "trade_quality": 80,
+            "learning_weight": 42.0002,
+            "priority_score": 0.0288
+          },
+          {
+            "symbol": "HUBC",
+            "final_score": 29.955342807073627,
+            "decision_score": 19.4598,
+            "score_primary": 29.955342807073627,
+            "raw_decision_score": 55.4,
+            "boost_score": 10,
+            "tqi_score": 1.1495,
+            "catalyst_type": "technical",
+            "catalyst_strength": 10,
+            "strategy": "VWAP RECLAIM",
+            "relative_volume": 89.17271831813953,
+            "earnings_flag": false,
+            "news_count": 0,
+            "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 89.17, news score 0.00.",
+            "why_tradeable": "High RVOL (89.17) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+            "how_to_trade": "Breakout with volume confirmation. Entry: Reclaim of VWAP with volume. Stop: Below VWAP. Target: 2R minimum.",
+            "win_rate": 0,
+            "regime": "low_activity",
+            "session_phase": "premarket_early",
+            "explanation": "Regime: low_activity + Session: premarket_early",
+            "execution_plan": {
+              "entry": "Reclaim of VWAP with volume",
+              "stop": "Below VWAP",
+              "target": "2R minimum"
+            },
+            "data_quality": "insufficient",
+            "trade_confidence": 0,
+            "completeness": 100,
+            "confidence": 0,
+            "adjusted_confidence": 0,
+            "trade_quality": 80,
+            "learning_weight": 42,
+            "priority_score": 48
+          }
+        ]
+      },
+      "contract_notes": []
+    },
+    "/api/intelligence/watchlist?limit=50": {
+      "status": 404,
+      "response_time_ms": 2,
+      "valid_json": true,
+      "ok": false,
+      "root_object_present": true,
+      "sample_payload": {
+        "error": "API_ROUTE_NOT_FOUND",
+        "path": "/api/intelligence/watchlist?limit=50"
+      },
+      "contract_notes": []
+    },
+    "/api/earnings": {
+      "status": 200,
+      "response_time_ms": 134,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "success": true,
+        "count": 50,
+        "data": [
+          {
+            "symbol": "XCUR",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "CNM",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "MBOT",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "LITB",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "FGIWW",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "NOAH",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "WILC",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "MLCIL",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "EFOI",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "KBH",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "ERNAW",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "GME",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "SMTI",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "ABSI",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "IH",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "KPRX",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "KZR",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "SURG",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "HSDT",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "ICMB",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "INTZ",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "AACG",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "CNTN",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "LENZ",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "BZAIW",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "GUTS",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "YQ",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "CUE",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "WOR",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "TVRD",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "SFD",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "ACHV",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "CNF",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "STOK",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "VRM",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "AIR",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "NRXP",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "PYXS",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "BRZE",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "VELO",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "ATER",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "VRPX",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "HOWL",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "AIRJ",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "AAME",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "KALV",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "TONX",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "EVTL",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "CYCN",
+            "report_date": "2026-03-24"
+          },
+          {
+            "symbol": "TIL",
+            "report_date": "2026-03-24"
+          }
+        ]
+      },
+      "contract_notes": []
+    },
+    "/api/earnings/calendar?limit=10": {
+      "status": 200,
+      "response_time_ms": 725,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "success": true,
+        "mode": "requested_window",
+        "window_start": "2026-03-23",
+        "window_end": "2026-03-27",
+        "count": 10,
+        "status": "ok",
+        "data": [
+          {
+            "symbol": "AACG",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "1.03",
+            "market_cap": "16362816",
+            "volume": "49672",
+            "rvol": "3.4190371740217785",
+            "atr": "0.06283571428571427857",
+            "expected_move": "6.100554785020803",
+            "expected_move_percent": "6.100554785020803",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": null,
+            "eps_actual": null,
+            "revenue_estimate": null,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "A",
+            "setup": "Momentum Breakout",
+            "trade_confidence": "HIGH",
+            "trade_reason": "High expected move + strong participation + mid/low cap",
+            "execution_plan": "Break of pre-market high OR VWAP reclaim with volume expansion",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "AAME",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "2.698",
+            "market_cap": "55031721",
+            "volume": "4002",
+            "rvol": "0.28047338936882975551",
+            "atr": "0.15214285714285708571",
+            "expected_move": "5.6390977443609",
+            "expected_move_percent": "5.6390977443609",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": null,
+            "eps_actual": null,
+            "revenue_estimate": null,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "ABSI",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "3.08",
+            "market_cap": "463144315",
+            "volume": "3767699",
+            "rvol": "1.2511228518157043",
+            "atr": "0.17857142857142857143",
+            "expected_move": "5.7977736549165115",
+            "expected_move_percent": "5.7977736549165115",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -0.17778,
+            "eps_actual": null,
+            "revenue_estimate": 1381250,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "B",
+            "setup": "Continuation / VWAP",
+            "trade_confidence": "MEDIUM",
+            "trade_reason": "Moderate move + acceptable volume",
+            "execution_plan": "VWAP reclaim or pullback continuation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "ACHV",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "4.56",
+            "market_cap": null,
+            "volume": "0",
+            "rvol": "0.000000000000000000000000",
+            "atr": "0.24571428571428571429",
+            "expected_move": "5.388471177944862",
+            "expected_move_percent": "5.388471177944862",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -0.288,
+            "eps_actual": null,
+            "revenue_estimate": null,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "AIR",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "105.64",
+            "market_cap": "4180438900",
+            "volume": "419227",
+            "rvol": "1.0564071300200886",
+            "atr": "3.2450000000000000",
+            "expected_move": "3.071753123816736",
+            "expected_move_percent": "3.071753123816736",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": 1.15,
+            "eps_actual": null,
+            "revenue_estimate": 812576330,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "AIRJ",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "3.23",
+            "market_cap": null,
+            "volume": "0",
+            "rvol": "0.000000000000000000000000",
+            "atr": "0.19785714285714285714",
+            "expected_move": "6.125608137992039",
+            "expected_move_percent": "6.125608137992039",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -0.09,
+            "eps_actual": null,
+            "revenue_estimate": null,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "ATER",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "0.6065",
+            "market_cap": "6081376",
+            "volume": "69559",
+            "rvol": 0.66,
+            "atr": null,
+            "expected_move": null,
+            "expected_move_percent": null,
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -0.58,
+            "eps_actual": null,
+            "revenue_estimate": 18382000,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "UNTRADEABLE",
+            "setup": null,
+            "trade_confidence": null,
+            "trade_reason": "Missing critical fields",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "ATOS",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "4.43",
+            "market_cap": null,
+            "volume": "0",
+            "rvol": "0.000000000000000000000000",
+            "atr": "0.39285714285714292857",
+            "expected_move": "8.86810706223799",
+            "expected_move_percent": "8.86810706223799",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -1.05,
+            "eps_actual": null,
+            "revenue_estimate": null,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "BRZE",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "19.21",
+            "market_cap": "1964556082",
+            "volume": "1203943",
+            "rvol": "0.33173542931471696344",
+            "atr": "1.4278571428571431",
+            "expected_move": "7.432884658288096",
+            "expected_move_percent": "7.432884658288096",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": 0.138,
+            "eps_actual": null,
+            "revenue_estimate": 198224820,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          },
+          {
+            "symbol": "BZAI",
+            "report_date": "2026-03-24",
+            "time": "BMO",
+            "price": "1.09",
+            "market_cap": "133026946",
+            "volume": "1962513",
+            "rvol": "0.59041313212106851764",
+            "atr": "0.12071428571428571429",
+            "expected_move": "11.074705111402357",
+            "expected_move_percent": "11.074705111402357",
+            "final_score": null,
+            "score": null,
+            "eps_estimate": -0.16374,
+            "eps_actual": null,
+            "revenue_estimate": 21968800,
+            "revenue_actual": null,
+            "surprise": null,
+            "sector": null,
+            "trade_class": "C",
+            "setup": "Low Conviction",
+            "trade_confidence": "LOW",
+            "trade_reason": "Insufficient move or volume",
+            "execution_plan": "Avoid or wait for confirmation",
+            "bias": "NEUTRAL"
+          }
+        ],
+        "message": ""
+      },
+      "contract_notes": []
+    },
+    "/api/earnings/health": {
+      "status": 200,
+      "response_time_ms": 56,
+      "valid_json": true,
+      "ok": true,
+      "root_object_present": true,
+      "sample_payload": {
+        "db": "ok",
+        "external": "ok"
+      },
+      "contract_notes": []
+    }
+  },
+  "user_journey": {
+    "entry_route": {
+      "url": "http://localhost:3001/",
+      "status": 404,
+      "first_page_shown": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+    },
+    "login_status": {
+      "page_load": 404,
+      "valid_login_api": {
+        "status": 200,
+        "token_present": true
+      },
+      "invalid_login_api": {
+        "status": 401,
+        "handled_gracefully": true
+      }
+    },
+    "session_status": {
+      "token_based_navigation_probe_status": 200,
+      "token_based_navigation_probe_ok": true
+    },
+    "console_errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "network_errors": [],
+    "redirects": [
+      "http://localhost:3001/",
+      "http://localhost:3001/login",
+      "http://localhost:3001/",
+      "http://localhost:3001/login",
+      "http://localhost:3001/dashboard",
+      "http://localhost:3001/trading-terminal",
+      "http://localhost:3001/premarket",
+      "http://localhost:3001/watchlist",
+      "http://localhost:3001/screener",
+      "http://localhost:3001/intelligence",
+      "http://localhost:3001/earnings",
+      "http://localhost:3001/research/AAPL",
+      "http://localhost:3001/admin"
+    ],
+    "verdict": "FAIL"
+  },
+  "page_audit": [
+    {
+      "route": "/",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/\"}"
+    },
+    {
+      "route": "/login",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/login\"}"
+    },
+    {
+      "route": "/dashboard",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/dashboard\"}"
+    },
+    {
+      "route": "/trading-terminal",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/trading-terminal\"}"
+    },
+    {
+      "route": "/premarket",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/premarket\"}"
+    },
+    {
+      "route": "/watchlist",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/watchlist\"}"
+    },
+    {
+      "route": "/screener",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/screener\"}"
+    },
+    {
+      "route": "/intelligence",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/intelligence\"}"
+    },
+    {
+      "route": "/earnings",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/earnings\"}"
+    },
+    {
+      "route": "/research/AAPL",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/research/AAPL\"}"
+    },
+    {
+      "route": "/admin",
+      "status": 404,
+      "loads": true,
+      "data_status": "fatal_or_missing",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "notes": "{\"error\":\"API_ROUTE_NOT_FOUND\",\"path\":\"/admin\"}"
+    }
+  ],
+  "ui_truth": {
+    "mismatches": [
+      "Decision card mapped field missing: bias",
+      "Decision card mapped field missing: expectedMoveLabel",
+      "Decision card mapped field missing: catalystType"
+    ],
+    "fake_fields": [
+      "UI navigation appears unavailable on backend host; route-level UI contract cannot be fully validated on localhost:3001."
+    ],
+    "stale_fields": [],
+    "verdict": "DEGRADED"
+  },
+  "data_truth": {
+    "valid_count": 0,
+    "weak_count": 10,
+    "false_positive_count": 0,
+    "sample_rows": [
+      {
+        "symbol": "WNW",
+        "relative_volume": 7757.594381233572,
+        "catalyst_type": "technical",
+        "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 7757.59, news score 0.00.",
+        "why_tradeable": "High RVOL (7757.59) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "LNSR",
+        "relative_volume": 30.453555081063794,
+        "catalyst_type": "earnings",
+        "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 30.45, news score 0.00.",
+        "why_tradeable": "High RVOL (30.45) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "TAOX",
+        "relative_volume": 2.442332636667706,
+        "catalyst_type": "earnings",
+        "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.44, news score 0.00.",
+        "why_tradeable": "High RVOL (2.44) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Trend continuation",
+          "stop": "Recent support",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "EQ",
+        "relative_volume": 2.1465592762640515,
+        "catalyst_type": "earnings",
+        "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.15, news score 0.00.",
+        "why_tradeable": "High RVOL (2.15) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Trend continuation",
+          "stop": "Recent support",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "TENX",
+        "relative_volume": 2.111814608494867,
+        "catalyst_type": "earnings",
+        "why_moving": "Earnings-driven move. earnings: gap 0.00%, RVOL 2.11, news score 0.00.",
+        "why_tradeable": "High RVOL (2.11) + Low float structure. SIP 0.00 + quality 25.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Trend continuation",
+          "stop": "Recent support",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "CHNR",
+        "relative_volume": 1038.4193886669577,
+        "catalyst_type": "technical",
+        "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 1038.42, news score 0.00.",
+        "why_tradeable": "High RVOL (1038.42) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "PMAX",
+        "relative_volume": 601.7331883550577,
+        "catalyst_type": "technical",
+        "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 601.73, news score 0.00.",
+        "why_tradeable": "High RVOL (601.73) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "ACXP",
+        "relative_volume": 157.84236798736057,
+        "catalyst_type": "news",
+        "why_moving": "News catalyst. news: gap 0.00%, RVOL 157.84, news score 0.00.",
+        "why_tradeable": "High RVOL (157.84) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "CYCU",
+        "relative_volume": 94.60267251305027,
+        "catalyst_type": "technical",
+        "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 94.60, news score 0.00.",
+        "why_tradeable": "High RVOL (94.60) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      },
+      {
+        "symbol": "HUBC",
+        "relative_volume": 89.17271831813953,
+        "catalyst_type": "technical",
+        "why_moving": "Momentum continuation. technical: gap 0.00%, RVOL 89.17, news score 0.00.",
+        "why_tradeable": "High RVOL (89.17) + Low float structure. SIP 0.00 + quality 45.00 with trend alignment.",
+        "execution_plan": {
+          "entry": "Reclaim of VWAP with volume",
+          "stop": "Below VWAP",
+          "target": "2R minimum"
+        },
+        "classification": "weak"
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "mcp_status": {
+    "connected": true,
+    "narratives_present": true,
+    "narrative_quality": {
+      "total_rows": 10,
+      "rows_with_narrative": 10,
+      "narrative_coverage_pct": 100,
+      "empty_top_symbols": []
+    },
+    "verdict": "PASS"
+  },
+  "critical_issues": [
+    "Rogue repair/calibration/injection loops are still running.",
+    "Engine missing/not running: prep_watchlist_layer",
+    "Endpoint hard failure: /api/market/quotes?symbols=SPY,QQQ,AAPL status 503",
+    "Entry route at localhost:3001 does not provide a usable landing/login page.",
+    "Monday readiness failed checks: no_rogue_loops, watchlist_balanced, user_can_navigate_ui"
+  ],
+  "warnings": [
+    "Multiple API instances are active simultaneously; topology may be confusing.",
+    "Prep watchlist reason balance is weak/degraded.",
+    "UI contract mismatches detected: 3"
+  ],
+  "monday_open_readiness": {
+    "checks": {
+      "reset_checkpoint_valid": true,
+      "no_rogue_loops": false,
+      "market_data_ready": true,
+      "news_ready": true,
+      "earnings_ready": true,
+      "decision_endpoint_ok": true,
+      "top_opportunities_ok": true,
+      "watchlist_balanced": false,
+      "user_can_login": true,
+      "user_can_navigate_ui": false
+    },
+    "critical_failed_checks": [
+      "no_rogue_loops",
+      "watchlist_balanced",
+      "user_can_navigate_ui"
+    ],
+    "sunday_allowances_applied": true,
+    "summary": "Not ready: failed checks -> no_rogue_loops, watchlist_balanced, user_can_navigate_ui"
+  },
+  "verdict": "NO_GO"
+}

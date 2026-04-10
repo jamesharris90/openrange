@@ -7,6 +7,7 @@ const { buildEarningsMap } = require('./earningsEngine');
 const { buildAnalystMap } = require('./analystEngine');
 const { buildStrategyFlags } = require('./strategyEngine');
 const { buildComputedSignals } = require('./computedSignals');
+const { classifyStructures } = require('./structureClassifier');
 const cache = require('./cacheManager');
 
 let inFlight = {
@@ -96,6 +97,11 @@ function refreshDerived(logger = console) {
   const withStrategy = cache.mergeMasterDataset();
   const computed = buildComputedSignals(withStrategy, logger);
   cache.setDataset('computed', computed);
+
+  // Classify structures on the fully-merged universe
+  const withComputed = cache.mergeMasterDataset();
+  const structures = classifyStructures(withComputed, logger);
+  cache.setDataset('structures', structures);
 
   cache.mergeMasterDataset();
 }

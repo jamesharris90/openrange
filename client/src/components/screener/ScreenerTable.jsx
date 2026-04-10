@@ -11,7 +11,7 @@ const NEW_ROW_HIGHLIGHT_MS = 1800;
 
 function fmt(value, digits = 2) {
   const number = Number(value);
-  if (!Number.isFinite(number)) return '--';
+  if (!Number.isFinite(number)) return 'Data unavailable';
   return number.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
@@ -32,12 +32,6 @@ function heatColor(key, value, enabled) {
   if (key === 'relativeVolume') {
     const strength = Math.min(1, Math.max(0, (number - 1) / 3));
     return `rgba(56, 189, 248, ${baseIntensity * strength})`;
-  }
-
-  if (key === 'strategyScore' || key === 'catalystScore') {
-    const clamped = Math.max(0, Math.min(100, number));
-    const strength = clamped / 100;
-    return `rgba(34, 197, 94, ${baseIntensity * strength})`;
   }
 
   if (!enabled) return null;
@@ -70,12 +64,12 @@ const TableRow = memo(function TableRow({
       {visibleColumns?.map((column) => {
         const rendered = column.render ? column.render(row) : row[column.key];
         const cellHeat = heatColor(column.key, row[column.key], heatmapMode);
-        const isMetricBar = ['gapPercent', 'changePercent', 'relativeVolume', 'strategyScore', 'catalystScore'].includes(column.key);
+        const isMetricBar = ['gapPercent', 'changePercent', 'relativeVolume'].includes(column.key);
         const metricColor = (column.key === 'gapPercent' || column.key === 'changePercent')
           ? (Number(row[column.key]) >= 0 ? 'green' : 'red')
-          : (column.key === 'relativeVolume' ? 'blue' : 'green');
-        const metricMax = column.key === 'relativeVolume' ? 5 : (column.key === 'strategyScore' || column.key === 'catalystScore' ? 100 : 10);
-        const metricDigits = column.key === 'strategyScore' || column.key === 'catalystScore' ? 1 : 2;
+          : 'blue';
+        const metricMax = column.key === 'relativeVolume' ? 5 : 10;
+        const metricDigits = 2;
         const metricSuffix = (column.key === 'gapPercent' || column.key === 'changePercent') ? '%' : '';
 
         return (
@@ -93,7 +87,7 @@ const TableRow = memo(function TableRow({
               </div>
             ) : column.key === 'sectorStrength' ? (
               <div className="flex items-center gap-2">
-                <span className="truncate">{row.sector || '--'}</span>
+                <span className="truncate">{row.sector || 'Data unavailable'}</span>
                 <MetricBar value={row.sectorStrength} maxValue={10} colorScheme="blue" suffix="%" digits={1} />
               </div>
             ) : isMetricBar ? (
@@ -104,7 +98,7 @@ const TableRow = memo(function TableRow({
                 suffix={metricSuffix}
                 digits={metricDigits}
               />
-            ) : rendered ?? '--'}
+            ) : rendered ?? 'Data unavailable'}
           </td>
         );
       })}
@@ -296,7 +290,7 @@ export default function ScreenerTable({
 
             {slice?.map((row) => (
               <TableRow
-                key={`${row.symbol}-${row.strategyScore ?? ''}-${row.catalystScore ?? ''}`}
+                key={`${row.symbol}-${row.updated_at ?? row.price ?? ''}`}
                 row={row}
                 visibleColumns={visibleColumns}
                 onSelect={(nextSymbol) => {
@@ -349,6 +343,4 @@ export const defaultColumns = [
   { key: 'atrPct', label: 'ATR %', align: 'right', render: (row) => fmt(row.atrPct, 2) },
   { key: 'vwapDistance', label: 'VWAP Distance', align: 'right', render: (row) => fmt(row.vwapDistance, 2) },
   { key: 'rsi', label: 'RSI', align: 'right', render: (row) => fmt(row.rsi, 2) },
-  { key: 'strategyScore', label: 'Strategy Score', align: 'right', render: (row) => fmt(row.strategyScore, 1) },
-  { key: 'catalystScore', label: 'Catalyst Score', align: 'right', render: (row) => fmt(row.catalystScore, 1) },
 ];

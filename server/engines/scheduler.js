@@ -34,6 +34,12 @@ const { runBeaconEvolutionEngine } = require('./beaconEvolutionEngine');
 const { runMarketContextEngine } = require('./marketContextEngine');
 const { runSectorRotationEngine } = require('./sectorRotationEngine');
 const { runTradeNarrativeEngine } = require('./tradeNarrativeEngine');
+const { runUniverseBuilderEngine } = require('./universeBuilderEngine');
+const { runMarketSnapshotEngine } = require('./marketSnapshotEngine');
+const { runSignalQualityEngine } = require('./signalQualityEngine');
+const { runCatalystValidationEngine } = require('./catalystValidationEngine');
+const { runTradeObjectEngine } = require('./tradeObjectEngine');
+const { runSessionContextEngine } = require('./sessionContextEngine');
 
 let started = false;
 let ingestionInterval = null;
@@ -62,6 +68,7 @@ let beaconEvolutionInFlight = false;
 let marketContextInFlight = false;
 let sectorRotationInFlight = false;
 let tradeNarrativeInFlight = false;
+let internalScannerPipelineInFlight = false;
 let bootstrapCompleted = false;
 let schedulerCronJob = null;
 let premarketScanCronJob = null;
@@ -75,6 +82,13 @@ let tradeNarrativeCronJob = null;
 const BOOTSTRAP_MIN_ROWS = 2000;
 const ENGINE_DELAY_MS = 1500;
 const BEACON_EVOLUTION_MAX_RUNTIME_MS = 10 * 60 * 1000;
+const METRICS_EVERY_N_MINUTES = 1;
+
+function shouldRunMinuteInterval(intervalMinutes) {
+  const safeInterval = Math.max(1, Number(intervalMinutes) || 1);
+  const minute = new Date().getUTCMinutes();
+  return minute % safeInterval === 0;
+}
 
 function withTimeout(promise, timeoutMs, timeoutMessage) {
   let timer = null;
@@ -222,29 +236,33 @@ async function runIngestionNow() {
     return null;
   }
 
+  console.log('[INGESTION] START');
   ingestionInFlight = true;
   state.lastIngestionRunAt = new Date().toISOString();
   try {
+    const preCountResult = await poolWrite.query('SELECT COUNT(*)::int AS count FROM market_quotes');
+    const existingQuoteCount = Number(preCountResult.rows?.[0]?.count || 0);
+    bootstrapCompleted = existingQuoteCount >= BOOTSTRAP_MIN_ROWS;
+    state.bootstrapCompleted = bootstrapCompleted;
+
     let mode = 'bootstrap';
     let runner = ingestMarketQuotesBootstrap;
 
-    if (bootstrapCompleted) {
-      const { rows } = await poolWrite.query('SELECT COUNT(*)::int AS count FROM market_quotes');
-      const quoteCount = Number(rows?.[0]?.count || 0);
-      if (quoteCount < BOOTSTRAP_MIN_ROWS) {
-        logger.warn('Refresh skipped during bootstrap gate', {
-          quoteCount,
+    if (existingQuoteCount > 0) {
+      mode = 'refresh';
+      runner = ingestMarketQuotesRefresh;
+      if (existingQuoteCount < BOOTSTRAP_MIN_ROWS) {
+        logger.warn('Bootstrap gate bypassed to keep live refresh updates flowing', {
+          quoteCount: existingQuoteCount,
           required: BOOTSTRAP_MIN_ROWS,
         });
-        mode = 'bootstrap';
-        runner = ingestMarketQuotesBootstrap;
-      } else {
-        mode = 'refresh';
-        runner = ingestMarketQuotesRefresh;
       }
     }
 
     const result = await safeRun(`fmpMarketIngestion:${mode}`, runner);
+    if (!Number(result?.rowsInserted || 0)) {
+      console.warn('[INGESTION] NO DATA RETURNED');
+    }
 
     const { rows } = await poolWrite.query('SELECT COUNT(*)::int AS count FROM market_quotes');
     const quoteCount = Number(rows?.[0]?.count || 0);
@@ -259,6 +277,10 @@ async function runIngestionNow() {
   } finally {
     ingestionInFlight = false;
   }
+}
+
+async function runIngestion() {
+  return runIngestionNow();
 }
 
 async function runMetricsNow() {
@@ -610,6 +632,52 @@ async function runCorePipelineNow() {
   await runStrategyEngineNow();
 }
 
+async function runInternalScannerPipelineNow() {
+  if (internalScannerPipelineInFlight) {
+    logger.warn('Skipping internal scanner pipeline; previous run still in flight');
+    return null;
+  }
+
+  internalScannerPipelineInFlight = true;
+  const startedAt = Date.now();
+  try {
+    const snapshot = await safeRun('marketSnapshotEngine', runMarketSnapshotEngine);
+    await sleep(ENGINE_DELAY_MS);
+
+    const scanner = await safeRun('signalQualityEngine', runSignalQualityEngine);
+    await sleep(ENGINE_DELAY_MS);
+
+    const catalyst = await safeRun('catalystValidationEngine', runCatalystValidationEngine);
+    await sleep(ENGINE_DELAY_MS);
+
+    const tradeBuilder = await safeRun('tradeObjectEngine', runTradeObjectEngine);
+    await sleep(ENGINE_DELAY_MS);
+
+    const session = await safeRun('sessionContextEngine', runSessionContextEngine);
+
+    logger.info('Internal scanner pipeline complete', {
+      snapshotCount: snapshot?.symbols || 0,
+      scannerCount: scanner?.count || 0,
+      catalystCount: catalyst?.count || 0,
+      tradeBuilderCount: tradeBuilder?.count || 0,
+      session: session?.session || null,
+      sessionUpdated: session?.updated || 0,
+      runtimeMs: Date.now() - startedAt,
+    });
+
+    return {
+      snapshot,
+      scanner,
+      catalyst,
+      tradeBuilder,
+      session,
+      runtimeMs: Date.now() - startedAt,
+    };
+  } finally {
+    internalScannerPipelineInFlight = false;
+  }
+}
+
 async function runSchedulerCycleNow() {
   if (schedulerInFlight) {
     logger.warn('Skipping scheduler cycle; previous cycle still in flight');
@@ -618,6 +686,9 @@ async function runSchedulerCycleNow() {
 
   schedulerInFlight = true;
   try {
+    await runInternalScannerPipelineNow();
+    await sleep(ENGINE_DELAY_MS);
+
     // Requested sequential order with small delay to reduce DB contention.
     await runIntelNewsNow();
     await sleep(ENGINE_DELAY_MS);
@@ -632,8 +703,14 @@ async function runSchedulerCycleNow() {
     await sleep(ENGINE_DELAY_MS);
 
     // Keep existing supporting engines in the same sequential cycle.
-    await runMetricsNow();
-    await sleep(ENGINE_DELAY_MS);
+    if (shouldRunMinuteInterval(METRICS_EVERY_N_MINUTES)) {
+      await runMetricsNow();
+      await sleep(ENGINE_DELAY_MS);
+    } else {
+      logger.info('Skipping metrics cycle this minute', {
+        intervalMinutes: METRICS_EVERY_N_MINUTES,
+      });
+    }
 
     await runUniverseBuilderNow();
     await sleep(ENGINE_DELAY_MS);
@@ -741,6 +818,12 @@ function startEngineScheduler() {
   registerEngine('marketNarrative', runMarketNarrativeEngine);
 
   startAllEngines();
+
+  if (!metricsInterval) {
+    metricsInterval = setInterval(() => {
+      runMetricsNow();
+    }, 60 * 1000);
+  }
 
   schedulerCronJob = cron.schedule('* * * * *', () => {
     runPipeline();
@@ -858,9 +941,11 @@ function getEngineSchedulerStatus() {
 
 module.exports = {
   startEngineScheduler,
+  runIngestion,
   runIngestionNow,
   runMetricsNow,
   runCorePipelineNow,
+  runInternalScannerPipelineNow,
   runUniverseNow,
   runUniverseBuilderNow,
   runSectorNow,

@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-03-25T07:34:08.714Z",
+  "endpoint": "http://localhost:3007/api/screener?page=1&pageSize=5000",
+  "status": 200,
+  "counts": {
+    "rawData": 3381,
+    "cleaned": 3381,
+    "validated": 3381,
+    "filtered": 3381,
+    "processedRows": 3381
+  },
+  "coverage": {
+    "sectorPresentCount": 1961,
+    "marketCapPresentCount": 1961,
+    "sectorCoveragePct": 58,
+    "marketCapCoveragePct": 58
+  },
+  "source": {
+    "realCount": 3381,
+    "nonRealCount": 0
+  },
+  "checks": {
+    "status200": true,
+    "rawDataGt3000": true,
+    "processedRowsGt500": true,
+    "sectorCoverageGt50Pct": true,
+    "marketCapCoverageGt50Pct": true,
+    "sortingChangesOrder": true,
+    "sourceAllReal": true
+  },
+  "passed": true
+}

@@ -1,0 +1,37 @@
+{
+  "ts": "2026-03-22T12:44:02.930Z",
+  "watchlist_distribution": {
+    "endpoint_status": 200,
+    "total_watchlist": 46,
+    "by_reason": {
+      "HIGH_VOLATILITY": {
+        "count": 46,
+        "percent": 100
+      }
+    }
+  },
+  "earnings_coverage": {
+    "earnings_symbols_total": 139,
+    "earnings_events_rows_total": 139,
+    "earnings_in_decision_view": 6,
+    "earnings_in_watchlist": 3,
+    "earnings_in_watchlist_percent": 2.16
+  },
+  "news_coverage": {
+    "news_rows_last_6h": 0,
+    "news_symbols_total": 0,
+    "news_in_signals": 0,
+    "news_in_decision_view": 0,
+    "news_in_watchlist": 0,
+    "news_in_watchlist_percent": 0
+  },
+  "large_move_coverage": {
+    "large_move_symbols_total": 2649,
+    "large_move_in_watchlist": 42,
+    "large_move_in_watchlist_percent": 1.59
+  },
+  "root_causes": [
+    "Only HIGH_VOLATILITY currently triggers in watchlist output."
+  ],
+  "verdict": "DATA GAP"
+}

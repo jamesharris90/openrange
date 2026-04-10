@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-03-22T18:37:37Z",
+  "task": "prep_data_repair",
+  "status": "RESET_SAFE_POINT",
+  "last_known_report": "logs/prep_data_repair.json",
+  "last_known_verdict": "FAIL",
+  "last_known_fail_reason": "watchlist distribution gate failed (HIGH_VOLATILITY=100%)",
+  "active_api_ports": [3001, 3023],
+  "reset_actions": [
+    "stopped repair/calibration scripts",
+    "did not apply new data mutations",
+    "preserved latest fail-fast report"
+  ]
+}

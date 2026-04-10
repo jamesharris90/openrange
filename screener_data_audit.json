@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-03-25T06:13:14.155Z",
+  "counts": {
+    "market_metrics_real": 3381,
+    "tradable_universe_real": 3381,
+    "market_metrics_price_gt_1": 6786
+  },
+  "thresholds": {
+    "market_metrics_real_min": 1000,
+    "tradable_universe_real_min": 3000
+  },
+  "pass": true,
+  "errors": []
+}

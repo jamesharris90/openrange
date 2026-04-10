@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-04-05T11:33:51.362Z",
+  "api_passes": [
+    {
+      "pass": 1,
+      "status": 200,
+      "elapsed_ms": 51,
+      "response_meta_total_ms": 4871,
+      "cached_flag": false,
+      "indicator_rows_1min": 423
+    },
+    {
+      "pass": 2,
+      "status": 200,
+      "elapsed_ms": 7,
+      "response_meta_total_ms": 4871,
+      "cached_flag": false,
+      "indicator_rows_1min": 423
+    },
+    {
+      "pass": 3,
+      "status": 200,
+      "elapsed_ms": 6,
+      "response_meta_total_ms": 4871,
+      "cached_flag": false,
+      "indicator_rows_1min": 423
+    }
+  ],
+  "ui": {
+    "page_url": "http://127.0.0.1:3000/research/AAPL",
+    "chart_box_before": {
+      "x": 298,
+      "y": 525,
+      "width": 680.265625,
+      "height": 320
+    },
+    "chart_box_after": {
+      "x": 298,
+      "y": 525,
+      "width": 680.265625,
+      "height": 320
+    },
+    "chart_layout_shift_px": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "toggle_latency_ms": {
+      "volume": 119,
+      "macd": 137
+    },
+    "toggle_network_requests": [],
+    "cursor_sync": {
+      "chart_from_volume_x": 734.2671335667834,
+      "volume_x": 413.88625592417065,
+      "chart_from_macd_x": 734.2671335667834,
+      "macd_x": 413.88625592417065
+    }
+  }
+}

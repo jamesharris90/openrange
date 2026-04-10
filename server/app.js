@@ -3,7 +3,6 @@ const cors = require('cors');
 const allowedOrigins = [
   'https://openrangetrading.co.uk',
   'https://www.openrangetrading.co.uk',
-  'http://localhost:5173',
   'http://localhost:3000',
 ];
 

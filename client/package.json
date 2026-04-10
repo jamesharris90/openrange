@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "echo '❌ DISABLED: Not primary frontend' && echo 'WARNING: LEGACY FRONTEND DISABLED' && exit 1",
     "build": "rm -rf dist && vite build",
     "preview": "vite preview"
   },

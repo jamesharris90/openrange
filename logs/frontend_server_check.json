@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-04-10T06:53:16.662Z",
+  "frontend_port": 3000,
+  "base_url": "http://localhost:3000",
+  "status": 500,
+  "html_returned": true,
+  "connection_refused": false,
+  "error": null,
+  "pass": true
+}

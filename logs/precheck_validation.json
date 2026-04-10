@@ -1,41 +1,41 @@
 {
-  "ticker_universe": [
-    {
-      "count": 5977,
-      "latest_update": "2026-04-07T12:34:34.492Z"
+  "generated_at": "2026-04-10T09:56:40.811Z",
+  "pass": true,
+  "tables": {
+    "daily_ohlcv": {
+      "exists": true,
+      "row_count": 3082035,
+      "missing_columns": []
+    },
+    "intraday_1m": {
+      "exists": true,
+      "row_count": 3375290,
+      "missing_columns": []
+    },
+    "market_quotes": {
+      "exists": true,
+      "row_count": 6452,
+      "missing_columns": []
+    },
+    "market_metrics": {
+      "exists": true,
+      "row_count": 7843,
+      "missing_columns": []
+    },
+    "ticker_universe": {
+      "exists": true,
+      "row_count": 6019,
+      "missing_columns": []
+    },
+    "company_profiles": {
+      "exists": true,
+      "row_count": 3428,
+      "missing_columns": []
+    },
+    "screener_snapshots": {
+      "exists": true,
+      "row_count": 55,
+      "missing_columns": []
     }
-  ],
-  "daily_ohlc": [
-    {
-      "count": "2355155",
-      "min_date": "2021-02-24T00:00:00.000Z",
-      "max_date": "2026-04-05T23:00:00.000Z",
-      "symbols": 5123
-    }
-  ],
-  "intraday_1m": [
-    {
-      "count": "1980547",
-      "latest_bar": "2026-04-07T09:39:00.000Z",
-      "symbols": 2184
-    }
-  ],
-  "catalyst_signals": [
-    {
-      "count": "6045",
-      "latest_created_at": "2026-04-07T12:31:35.583Z"
-    }
-  ],
-  "trade_outcomes": [
-    {
-      "count": "40"
-    }
-  ],
-  "backtest_signals": [
-    {
-      "total": "833",
-      "pending": "17",
-      "evaluated": "816"
-    }
-  ]
+  }
 }

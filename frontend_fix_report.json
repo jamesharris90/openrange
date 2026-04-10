@@ -1,0 +1,158 @@
+{
+  "frontend_running": true,
+  "routes_working": false,
+  "api_connected": true,
+  "top_opportunities_visible": true,
+  "earnings_visible": true,
+  "research_page_working": true,
+  "console_errors": 1,
+  "verdict": "FAIL",
+  "details": {
+    "structure": {
+      "timestamp": "2026-04-10T06:53:12.116Z",
+      "framework": "Next.js",
+      "frontend_root": "/Users/jamesharris/Server/trading-os",
+      "package_json_exists": true,
+      "src_app_exists": true,
+      "src_pages_exists": false,
+      "scripts": {
+        "clean": "rm -rf .next node_modules/.cache",
+        "dev": "PORT=3000 node start.js || next dev || vite",
+        "reset": "rm -rf .next node_modules package-lock.json && npm install && npm install tailwind-merge",
+        "dev:clean": "npm run reset && npm run dev",
+        "build": "next build",
+        "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+        "lint": "next lint"
+      }
+    },
+    "server_check": {
+      "timestamp": "2026-04-10T06:53:16.662Z",
+      "frontend_port": 3000,
+      "base_url": "http://localhost:3000",
+      "status": 500,
+      "html_returned": true,
+      "connection_refused": false,
+      "error": null,
+      "pass": true
+    },
+    "route_checks": [
+      {
+        "route": "/",
+        "status": 500,
+        "location": null,
+        "html": true,
+        "blank": false,
+        "error": null,
+        "pass": false
+      },
+      {
+        "route": "/login",
+        "status": 500,
+        "location": null,
+        "html": true,
+        "blank": false,
+        "error": null,
+        "pass": false
+      },
+      {
+        "route": "/coverage-campaign",
+        "status": 500,
+        "location": null,
+        "html": true,
+        "blank": false,
+        "error": null,
+        "pass": false
+      },
+      {
+        "route": "/research/AAPL",
+        "status": 200,
+        "location": null,
+        "html": true,
+        "blank": false,
+        "error": null,
+        "pass": true
+      }
+    ],
+    "api_checks": [
+      {
+        "route": "/api/health",
+        "status": 200,
+        "has_json": true,
+        "has_data": false,
+        "error": null,
+        "pass": true
+      },
+      {
+        "route": "/api/intelligence/top-opportunities?limit=10",
+        "status": 200,
+        "has_json": true,
+        "has_data": true,
+        "error": null,
+        "pass": true
+      },
+      {
+        "route": "/api/earnings/calendar?limit=10",
+        "status": 200,
+        "has_json": true,
+        "has_data": true,
+        "error": null,
+        "pass": true
+      }
+    ],
+    "playwright_available": true,
+    "ui_state": {
+      "top_opportunities_visible": true,
+      "earnings_visible": true,
+      "coverage_campaign_working": true,
+      "research_page_working": true,
+      "console_errors": 1,
+      "failed_network_requests": 17,
+      "console_error_samples": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "failed_request_samples": [
+        {
+          "url": "http://localhost:3000/_next/static/css/app/layout.css?v=1775804017113",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app-pages-internals.js",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/main-app.js?v=1775804017113",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app/page.js",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app/error.js",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app/global-error.js",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/css/app/layout.css?v=1775804018654",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/main-app.js?v=1775804018654",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app-pages-internals.js",
+          "status": 404
+        },
+        {
+          "url": "http://localhost:3000/_next/static/chunks/app/error.js",
+          "status": 404
+        }
+      ],
+      "journey_ok": false
+    }
+  }
+}

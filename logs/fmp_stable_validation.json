@@ -1,0 +1,137 @@
+{
+  "generated_at": "2026-03-23T21:36:15.910Z",
+  "pass": true,
+  "endpoints": [
+    {
+      "endpoint": "batch-exchange-quote",
+      "url": "https://financialmodelingprep.com/stable/batch-exchange-quote?exchange=NASDAQ&short=true",
+      "http_status": 200,
+      "latency_ms": 1554,
+      "error": null,
+      "is_array": true,
+      "response_size": 13854,
+      "required_fields": [
+        "symbol",
+        "price",
+        "volume"
+      ],
+      "missing_required_fields": [],
+      "sample_row": {
+        "symbol": "AAACX",
+        "price": 6.54,
+        "change": 0.0100003,
+        "volume": 0
+      },
+      "pass": true
+    },
+    {
+      "endpoint": "batch-quote",
+      "url": "https://financialmodelingprep.com/stable/batch-quote?symbols=AAPL,MSFT,NVDA,SPY,QQQ",
+      "http_status": 200,
+      "latency_ms": 119,
+      "error": null,
+      "is_array": true,
+      "response_size": 5,
+      "required_fields": [
+        "symbol",
+        "price",
+        "volume"
+      ],
+      "missing_required_fields": [],
+      "sample_row": {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "price": 251.49,
+        "changePercentage": 1.41135,
+        "change": 3.5,
+        "volume": 37465587,
+        "dayLow": 250.28,
+        "dayHigh": 254.56,
+        "yearHigh": 288.62,
+        "yearLow": 169.21,
+        "marketCap": 3696381523162,
+        "priceAvg50": 261.13,
+        "priceAvg200": 246.82304,
+        "exchange": "NASDAQ",
+        "open": 253.99,
+        "previousClose": 247.99,
+        "timestamp": 1774296002
+      },
+      "pass": true
+    },
+    {
+      "endpoint": "stock-news",
+      "url": "https://financialmodelingprep.com/stable/news/stock?symbols=AAPL",
+      "http_status": 200,
+      "latency_ms": 112,
+      "error": null,
+      "is_array": true,
+      "response_size": 20,
+      "required_fields": [
+        "symbol"
+      ],
+      "missing_required_fields": [],
+      "sample_row": {
+        "symbol": "AAPL",
+        "publishedDate": "2026-03-23 15:39:42",
+        "publisher": "Bloomberg Technology",
+        "title": "Apple's Heir Apparent Steps Into the Spotlight",
+        "image": "https://images.financialmodelingprep.com/news/apples-heir-apparent-steps-into-the-spotlight-20260323.jpg",
+        "site": "youtube.com",
+        "text": "John Ternus, Apple's senior vice president of hardware engineering, has become a leading candidate to take over for CEO Tim Cook. Bloomberg's Mark Gurman discusses the growing role Ternus has taken on overseeing the company's products and marketing.",
+        "url": "https://www.youtube.com/watch?v=THOi7dNcX2E"
+      },
+      "pass": true
+    },
+    {
+      "endpoint": "earnings-calendar",
+      "url": "https://financialmodelingprep.com/stable/earnings-calendar",
+      "http_status": 200,
+      "latency_ms": 183,
+      "error": null,
+      "is_array": true,
+      "response_size": 4000,
+      "required_fields": [
+        "symbol"
+      ],
+      "missing_required_fields": [],
+      "sample_row": {
+        "symbol": "SHZHY",
+        "date": "2026-03-23",
+        "epsActual": null,
+        "epsEstimated": null,
+        "revenueActual": null,
+        "revenueEstimated": null,
+        "lastUpdated": "2026-03-23"
+      },
+      "pass": true
+    },
+    {
+      "endpoint": "historical-chart-1min",
+      "url": "https://financialmodelingprep.com/stable/historical-chart/1min?symbol=AAPL",
+      "http_status": 200,
+      "latency_ms": 300,
+      "error": null,
+      "is_array": true,
+      "response_size": 1170,
+      "required_fields": [
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "missing_required_fields": [],
+      "sample_row": {
+        "date": "2026-03-23 15:59:00",
+        "open": 251.4,
+        "low": 251.4,
+        "high": 251.81,
+        "close": 251.519,
+        "volume": 849221
+      },
+      "pass": true
+    }
+  ]
+}

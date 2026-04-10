@@ -204,11 +204,14 @@ async function fetchByFailover(symbol) {
   return dowJonesRows;
 }
 
-async function runNewsIngestion(symbols = symbolsFromEnv()) {
+async function runNewsIngestion(symbols = symbolsFromEnv(), options = {}) {
   const startedAt = Date.now();
   const normalizedSymbols = (Array.isArray(symbols) ? symbols : [])
     .map((value) => String(value || '').trim().toUpperCase())
     .filter(Boolean);
+  const maxArticlesPerSymbol = Number.isFinite(Number(options.maxArticlesPerSymbol))
+    ? Math.max(1, Number(options.maxArticlesPerSymbol))
+    : null;
 
   await ensureNewsStorageSchema();
 
@@ -239,7 +242,9 @@ async function runNewsIngestion(symbols = symbolsFromEnv()) {
       }
     }
 
-    for (const article of providerRows) {
+    const rowsToInsert = maxArticlesPerSymbol ? providerRows.slice(0, maxArticlesPerSymbol) : providerRows;
+
+    for (const article of rowsToInsert) {
       stats.attempted += 1;
       const result = await insertNormalizedNewsArticle(article);
       if (result.inserted) {

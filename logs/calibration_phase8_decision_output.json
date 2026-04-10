@@ -1,0 +1,159 @@
+{
+  "ts": "2026-03-20T14:53:31.581Z",
+  "status": 200,
+  "total_items": 16,
+  "null_critical_rows": 0,
+  "explanation_missing_rows": 0,
+  "sample": [
+    {
+      "symbol": "LNG",
+      "decision_score": 9.0369,
+      "raw_decision_score": 47,
+      "tqi_score": 0.0922,
+      "strategy": "stocks_in_play",
+      "win_rate": 0,
+      "regime": "low_activity",
+      "session_phase": "premarket_peak",
+      "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+      "execution_plan": null,
+      "data_quality": "insufficient"
+    },
+    {
+      "symbol": "COHR",
+      "decision_score": 9.011,
+      "raw_decision_score": 37,
+      "tqi_score": 0.0274,
+      "strategy": "stocks_in_play",
+      "win_rate": 0,
+      "regime": "low_activity",
+      "session_phase": "premarket_peak",
+      "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+      "execution_plan": {
+        "strategy": "stocks_in_play_setup",
+        "entry_type": "Discretionary setup trigger",
+        "risk_level": "HIGH",
+        "expected_move": null,
+        "win_probability": 0,
+        "historical_win_rate": 0,
+        "avg_pnl_pct": 0,
+        "avg_drawdown_pct": 0,
+        "setup_candidates": [
+          {
+            "setup": "stocks_in_play_setup",
+            "setup_type": "stocks_in_play_setup",
+            "score": "60",
+            "atr": null,
+            "relative_volume": null,
+            "gap_percent": null,
+            "updated_at": "2026-03-20T13:24:45.493Z"
+          }
+        ],
+        "expected_move_alignment": null
+      },
+      "data_quality": "sufficient"
+    },
+    {
+      "symbol": "COCO",
+      "decision_score": 9.0094,
+      "raw_decision_score": 34.3,
+      "tqi_score": 0.0235,
+      "strategy": "stocks_in_play",
+      "win_rate": 0,
+      "regime": "low_activity",
+      "session_phase": "premarket_peak",
+      "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+      "execution_plan": {
+        "strategy": "stocks_in_play_setup",
+        "entry_type": "Discretionary setup trigger",
+        "risk_level": "HIGH",
+        "expected_move": null,
+        "win_probability": 0,
+        "historical_win_rate": 0,
+        "avg_pnl_pct": 0,
+        "avg_drawdown_pct": 0,
+        "setup_candidates": [
+          {
+            "setup": "stocks_in_play_setup",
+            "setup_type": "stocks_in_play_setup",
+            "score": "60",
+            "atr": null,
+            "relative_volume": null,
+            "gap_percent": null,
+            "updated_at": "2026-03-20T13:24:45.493Z"
+          }
+        ],
+        "expected_move_alignment": null
+      },
+      "data_quality": "sufficient"
+    },
+    {
+      "symbol": "KC",
+      "decision_score": 9.0086,
+      "raw_decision_score": 42.55,
+      "tqi_score": 0.0215,
+      "strategy": "stocks_in_play",
+      "win_rate": 0,
+      "regime": "low_activity",
+      "session_phase": "premarket_peak",
+      "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+      "execution_plan": {
+        "strategy": "stocks_in_play_setup",
+        "entry_type": "Discretionary setup trigger",
+        "risk_level": "HIGH",
+        "expected_move": null,
+        "win_probability": 0,
+        "historical_win_rate": 0,
+        "avg_pnl_pct": 0,
+        "avg_drawdown_pct": 0,
+        "setup_candidates": [
+          {
+            "setup": "stocks_in_play_setup",
+            "setup_type": "stocks_in_play_setup",
+            "score": "60",
+            "atr": null,
+            "relative_volume": null,
+            "gap_percent": null,
+            "updated_at": "2026-03-20T13:24:45.493Z"
+          }
+        ],
+        "expected_move_alignment": null
+      },
+      "data_quality": "sufficient"
+    },
+    {
+      "symbol": "QSR",
+      "decision_score": 9.0082,
+      "raw_decision_score": 34,
+      "tqi_score": 0.0204,
+      "strategy": "stocks_in_play",
+      "win_rate": 0,
+      "regime": "low_activity",
+      "session_phase": "premarket_peak",
+      "explanation": "Earnings proximity + Regime: low_activity + Session: premarket_peak",
+      "execution_plan": {
+        "strategy": "stocks_in_play_setup",
+        "entry_type": "Discretionary setup trigger",
+        "risk_level": "HIGH",
+        "expected_move": null,
+        "win_probability": 0,
+        "historical_win_rate": 0,
+        "avg_pnl_pct": 0,
+        "avg_drawdown_pct": 0,
+        "setup_candidates": [
+          {
+            "setup": "stocks_in_play_setup",
+            "setup_type": "stocks_in_play_setup",
+            "score": "60",
+            "atr": null,
+            "relative_volume": null,
+            "gap_percent": null,
+            "updated_at": "2026-03-20T13:24:45.493Z"
+          }
+        ],
+        "expected_move_alignment": null
+      },
+      "data_quality": "sufficient"
+    }
+  ],
+  "pass": true
+}

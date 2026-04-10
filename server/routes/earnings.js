@@ -1,6 +1,7 @@
 const express = require('express');
-const market = require('../services/marketDataService');
 const { pool } = require('../db/pg');
+const { fmpFetch } = require('../services/fmpClient');
+const { fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
 const {
   classifyEarningsTrade,
   buildExecutionPlan,
@@ -10,37 +11,172 @@ const { evaluateTradeTruth } = require('../services/truthEngine');
 const { buildFinalTradeObject } = require('../engines/finalTradeBuilder');
 const { validateTrade } = require('../utils/validateTrade');
 const router = express.Router();
+const earningsHistoryCache = new Map();
+const EARNINGS_HISTORY_TTL_MS = 5 * 60 * 1000;
+const EARNINGS_FRESH_TTL_MS = 24 * 60 * 60 * 1000;
 
 const EARNINGS_REQUIRED_COLUMNS = {
-  earnings_events: ['symbol', 'report_date'],
+  earnings_history: ['symbol', 'report_date', 'eps_actual'],
 };
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function parseTimestamp(value) {
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isFreshTimestamp(value, ttlMs = EARNINGS_FRESH_TTL_MS) {
+  const parsed = parseTimestamp(value);
+  return parsed !== null && (Date.now() - parsed) < ttlMs;
+}
+
+function normalizeEventSource(value, fallback = 'fallback') {
+  const text = String(value || '').trim().toLowerCase();
+  if (text === 'db') return 'db';
+  if (text.startsWith('fmp')) return 'fmp';
+  if (text === 'fallback') return 'fallback';
+  return fallback;
+}
+
+function normalizeSymbolEventRow(symbol, row) {
+  return {
+    symbol: String(row?.symbol || symbol || '').trim().toUpperCase() || null,
+    report_date: row?.report_date || row?.date || null,
+    report_time: row?.report_time || row?.time || 'TBD',
+    eps_estimate: row?.eps_estimate != null ? Number(row.eps_estimate) : null,
+    eps_actual: row?.eps_actual != null ? Number(row.eps_actual) : null,
+    revenue_estimate: row?.revenue_estimate != null ? Number(row.revenue_estimate) : row?.rev_estimate != null ? Number(row.rev_estimate) : null,
+    revenue_actual: row?.revenue_actual != null ? Number(row.revenue_actual) : row?.rev_actual != null ? Number(row.rev_actual) : null,
+    expected_move_percent: row?.expected_move_percent != null ? Number(row.expected_move_percent) : row?.expectedMove != null ? Number(row.expectedMove) : null,
+    updated_at: row?.updated_at || null,
+    source: normalizeEventSource(row?.source, 'fallback'),
+  };
+}
+
+function deriveEventStatus(row) {
+  if (!row?.report_date) {
+    return 'none';
+  }
+
+  const hasTime = Boolean(row.report_time && String(row.report_time).trim().toUpperCase() !== 'TBD');
+  const hasEstimate = row.eps_estimate != null;
+  const hasExpectedMove = row.expected_move_percent != null;
+  return hasTime && hasEstimate && hasExpectedMove ? 'full' : 'partial';
+}
+
+function buildSymbolEnvelope(symbol, row, source) {
+  const data = normalizeSymbolEventRow(symbol, row);
+  return {
+    status: deriveEventStatus(data),
+    source,
+    data,
+  };
+}
+
+function summarizeCalendarStatus(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return 'none';
+  }
+
+  const allFull = rows.every((row) => {
+    const reportTime = String(row?.time || row?.report_time || '').trim().toUpperCase();
+    return Boolean((row?.report_date || row?.date) && row?.eps_estimate != null && reportTime && reportTime !== 'TBD' && row?.expected_move_percent != null);
+  });
+
+  return allFull ? 'full' : 'partial';
+}
+
+async function readUpcomingDbEvent(symbol) {
+  const schemaMap = await getSchemaMap(['earnings_events']);
+  const result = await safePoolQuery(
+    'earnings.symbol_db',
+    `SELECT *
+     FROM (
+       SELECT
+         symbol,
+         report_date::text AS report_date,
+         COALESCE(NULLIF(report_time, ''), 'TBD') AS report_time,
+         eps_estimate,
+         eps_actual,
+         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_estimate')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_estimate')}) AS revenue_estimate,
+         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_actual')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_actual')}) AS revenue_actual,
+         expected_move_percent,
+         COALESCE(source, 'db') AS source,
+         COALESCE(updated_at, created_at, NOW()) AS updated_at,
+         0 AS source_rank
+       FROM earnings_events e
+       WHERE UPPER(symbol) = $1
+         AND report_date >= CURRENT_DATE
+
+       UNION ALL
+
+       SELECT
+         symbol,
+         next_earnings_date::text AS report_date,
+         'TBD' AS report_time,
+         eps_estimate,
+         eps_actual,
+         NULL::numeric AS revenue_estimate,
+         NULL::numeric AS revenue_actual,
+         expected_move_percent,
+         'snapshot' AS source,
+         updated_at,
+         1 AS source_rank
+       FROM earnings_snapshot
+       WHERE UPPER(symbol) = $1
+         AND next_earnings_date >= CURRENT_DATE
+     ) upcoming
+     ORDER BY source_rank ASC, report_date ASC
+     LIMIT 1`,
+    [symbol]
+  );
+
+  return result.rows?.[0] || null;
+}
+
+function getFreshCacheEntry(cache, key, ttlMs) {
+  const entry = cache.get(key);
+  if (!entry) {
+    return null;
+  }
+
+  if ((Date.now() - entry.timestamp) >= ttlMs) {
+    cache.delete(key);
+    return null;
+  }
+
+  return entry.data;
+}
+
 function fallbackCalendarPayload(extra = {}) {
+  return {
+    success: false,
+    data: [],
+    count: 0,
+    status: 'unavailable',
+    source: 'earnings_calendar',
+    error: 'backend_unavailable',
+    ...extra,
+  };
+}
+
+function emptyHistoryPayload(extra = {}) {
   return {
     success: true,
     data: [],
     count: 0,
     status: 'no_data',
-    source: 'earnings_calendar',
-    error: 'safe_fallback',
+    source: 'earnings_history',
     ...extra,
   };
 }
 
 async function fmpEarningsFallback(from, to) {
-  const axios = require('axios');
-  const key = process.env.FMP_API_KEY;
-  if (!key) return [];
   try {
-    const resp = await axios.get('https://financialmodelingprep.com/stable/earnings-calendar', {
-      params: { from, to, apikey: key },
-      timeout: 8000,
-    });
-    const rows = Array.isArray(resp.data) ? resp.data : [];
+    const rows = await fmpFetch('/earnings-calendar', { from, to }).catch(() => []);
     return rows.map((r) => ({
       symbol: String(r.symbol || '').toUpperCase(),
       company_name: r.company || r.name || r.symbol,
@@ -48,12 +184,15 @@ async function fmpEarningsFallback(from, to) {
       time: r.time || 'TBD',
       eps_estimate: r.epsEstimated != null ? Number(r.epsEstimated) : null,
       eps_actual: r.eps != null ? Number(r.eps) : null,
+      revenue_estimate: r.revenueEstimated != null ? Number(r.revenueEstimated) : r.revenueEstimate != null ? Number(r.revenueEstimate) : null,
+      revenue_actual: r.revenueActual != null ? Number(r.revenueActual) : r.revenue != null ? Number(r.revenue) : null,
       expected_move_percent: null,
       market_cap: null,
       sector: null,
       score: null,
       class: 'C',
-      source: 'fmp_direct',
+      updated_at: new Date().toISOString(),
+      source: 'fmp',
     })).filter((r) => r.symbol);
   } catch (_err) {
     return [];
@@ -225,24 +364,144 @@ async function fetchBeatsInLast4(symbols, beforeDate) {
 
 router.get('/api/earnings', async (req, res) => {
   try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const rawSymbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    if (rawSymbol) {
+      const dbRow = await readUpcomingDbEvent(rawSymbol).catch(() => null);
+      if (dbRow && isFreshTimestamp(dbRow.updated_at)) {
+        return res.json(buildSymbolEnvelope(rawSymbol, dbRow, 'db'));
+      }
+
+      const fmpRow = await fetchNextEventForSymbol(rawSymbol).catch(() => null);
+      if (fmpRow) {
+        return res.json(buildSymbolEnvelope(rawSymbol, fmpRow, 'fmp'));
+      }
+
+      if (dbRow) {
+        return res.json(buildSymbolEnvelope(rawSymbol, dbRow, 'fallback'));
+      }
+
+      return res.json(buildSymbolEnvelope(rawSymbol, null, 'fallback'));
+    }
+
+    const cacheKey = `${rawSymbol || 'ALL'}:${limit}`;
+    const cachedResponse = getFreshCacheEntry(earningsHistoryCache, cacheKey, EARNINGS_HISTORY_TTL_MS);
+
+    if (cachedResponse) {
+      return res.json(cachedResponse);
+    }
+
+    const hasRequiredSchema = await ensureRequiredSchema().catch(() => false);
+
+    if (!hasRequiredSchema) {
+      const tradingWeek = computeTradingWeekWindow(new Date());
+      const fmpRows = await fmpEarningsFallback(tradingWeek.from, tradingWeek.to);
+      if (fmpRows.length > 0) {
+        const response = {
+          success: true,
+          status: 'fallback',
+          source: 'fmp_direct',
+          count: fmpRows.length,
+          data: fmpRows.slice(0, limit),
+          message: 'Required earnings history tables are unavailable. Returning live calendar fallback.',
+        };
+
+        earningsHistoryCache.set(cacheKey, {
+          data: response,
+          timestamp: Date.now(),
+        });
+
+        return res.json(response);
+      }
+
+      return res.status(503).json({
+        ...emptyHistoryPayload(),
+        success: false,
+        status: 'unavailable',
+        error: 'schema_unavailable',
+        message: 'Required earnings history tables are unavailable.',
+      });
+    }
+
+    const schemaMap = await getSchemaMap(['earnings_history', 'ticker_universe']);
+    const reportTimeExpr = hasColumn(schemaMap, 'earnings_history', 'report_time')
+      ? "COALESCE(NULLIF(e.report_time, ''), 'TBD')"
+      : "'TBD'";
+    const epsActualExpr = selectColumn(schemaMap, 'earnings_history', 'e', 'eps_actual');
+    const epsEstimateExpr = selectColumn(schemaMap, 'earnings_history', 'e', 'eps_estimate');
+    const expectedMoveExpr = selectColumn(schemaMap, 'earnings_history', 'e', 'expected_move_percent');
+    const actualMoveExpr = selectColumn(schemaMap, 'earnings_history', 'e', 'actual_move_percent');
+    const postMoveExpr = selectColumn(schemaMap, 'earnings_history', 'e', 'post_move_percent');
+
+    const params = [];
+    const where = [
+      `(${epsActualExpr} IS NOT NULL OR ${epsEstimateExpr} IS NOT NULL OR ${expectedMoveExpr} IS NOT NULL OR ${actualMoveExpr} IS NOT NULL OR ${postMoveExpr} IS NOT NULL)`,
+    ];
+
+    if (rawSymbol) {
+      params.push(rawSymbol);
+      where.push(`UPPER(e.symbol) = $${params.length}`);
+    }
+
+    params.push(limit);
+
     const result = await pool.query(
       `SELECT
-         symbol,
-         report_date::text AS report_date
-       FROM earnings_events
-       ORDER BY report_date ASC
-       LIMIT 50`
+         e.symbol,
+         tu.company_name,
+         tu.sector,
+         e.report_date::text AS report_date,
+         ${reportTimeExpr} AS report_time,
+         ${epsEstimateExpr} AS eps_estimate,
+         ${epsActualExpr} AS eps_actual,
+         ${selectColumn(schemaMap, 'earnings_history', 'e', 'eps_surprise_pct')} AS surprise_percent,
+         ${expectedMoveExpr} AS expected_move_percent,
+         ${actualMoveExpr} AS actual_move_percent,
+         ${selectColumn(schemaMap, 'earnings_history', 'e', 'pre_move_percent')} AS pre_move_percent,
+         ${postMoveExpr} AS post_move_percent,
+         ${selectColumn(schemaMap, 'earnings_history', 'e', 'true_reaction_window')} AS true_reaction_window,
+         CASE
+           WHEN ${epsActualExpr} IS NOT NULL AND ${epsEstimateExpr} IS NOT NULL THEN ${epsActualExpr} > ${epsEstimateExpr}
+           ELSE NULL
+         END AS beat
+       FROM earnings_history e
+       LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+       WHERE ${where.join(' AND ')}
+       ORDER BY e.report_date DESC, e.symbol ASC
+       LIMIT $${params.length}`,
+      params,
     );
 
-    return res.json({
+    if (result.rows.length === 0) {
+      return res.json({
+        ...emptyHistoryPayload(),
+        message: rawSymbol
+          ? `No historical earnings data is available for ${rawSymbol}.`
+          : 'No historical earnings data is available.',
+      });
+    }
+
+    const response = {
       success: true,
+      status: 'ok',
+      source: 'earnings_history',
       count: result.rows.length,
       data: result.rows,
+    };
+
+    earningsHistoryCache.set(cacheKey, {
+      data: response,
+      timestamp: Date.now(),
     });
+
+    return res.json(response);
   } catch (err) {
-    return res.status(500).json({
+    return res.status(503).json({
       success: false,
-      error: 'EARNINGS_MINIMAL_FETCH_FAILED',
+      status: 'unavailable',
+      source: 'earnings_history',
+      error: 'EARNINGS_HISTORY_FETCH_FAILED',
       message: err.message,
       data: [],
     });
@@ -280,7 +539,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(200).json(fallbackCalendarPayload({ message: 'schema_unavailable' }));
+      return res.status(503).json(fallbackCalendarPayload({ message: 'schema_unavailable' }));
     }
 
     const joinTables = ['earnings_events', 'decision_view', 'market_metrics', 'market_quotes'];
@@ -297,7 +556,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(200).json(fallbackCalendarPayload({ message: 'schema_lookup_failed' }));
+      return res.status(503).json(fallbackCalendarPayload({ message: 'schema_lookup_failed' }));
     }
 
     const hasDecisionView = hasColumn(schemaMap, 'decision_view', 'symbol');
@@ -320,8 +579,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_estimate')} AS eps_estimate,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_actual')} AS eps_actual,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_surprise_pct')} AS eps_surprise_pct,
-        ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_estimate')} AS rev_estimate,
-        ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_actual')} AS rev_actual,
+        COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_estimate')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_estimate')}) AS revenue_estimate,
+        COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_actual')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_actual')}) AS revenue_actual,
         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'sector')}, ${hasMarketQuotes && hasColumn(schemaMap, 'market_quotes', 'sector') ? 'q.sector' : 'NULL'}, tu.sector) AS sector,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'score')} AS earnings_score,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'expected_move_percent')} AS expected_move_from_earnings,
@@ -332,7 +591,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
         ${hasMarketMetrics && hasColumn(schemaMap, 'market_metrics', 'atr') ? 'm.atr' : 'NULL'} AS atr,
         ${hasDecisionView && hasColumn(schemaMap, 'decision_view', 'final_score') ? 'd.final_score' : 'NULL'} AS final_score,
         ${hasDecisionView ? "(to_jsonb(d)->>'execution_plan')" : 'NULL'} AS decision_execution_plan,
-        ${hasDecisionView ? "(to_jsonb(d)->>'trade_class')" : 'NULL'} AS decision_trade_class
+        ${hasDecisionView ? "(to_jsonb(d)->>'trade_class')" : 'NULL'} AS decision_trade_class,
+        COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
+        COALESCE(e.source, 'db') AS source
       FROM earnings_events e
       LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
       ${hasDecisionView ? 'LEFT JOIN decision_view d ON UPPER(e.symbol) = UPPER(d.symbol)' : ''}
@@ -348,8 +609,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
       eps_estimate,
       eps_actual,
       eps_surprise_pct,
-      rev_estimate,
-      rev_actual,
+      revenue_estimate,
+      revenue_actual,
       sector,
       price,
       market_cap,
@@ -359,6 +620,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
       final_score,
       decision_execution_plan,
       decision_trade_class,
+      updated_at,
+      source,
       COALESCE(
         expected_move_from_earnings,
         CASE
@@ -379,17 +642,15 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(200).json(fallbackCalendarPayload({ message: 'db_query_failed' }));
+      return res.status(503).json(fallbackCalendarPayload({ message: 'db_query_failed' }));
     }
 
-    if (dbRows.length === 0) {
-      const fmpRows = await fmpEarningsFallback(from, to);
-      if (fmpRows.length > 0) {
-        return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
-      }
-    }
+    const dbRowsAreFresh = dbRows.some((row) => isFreshTimestamp(row.updated_at));
+    const fmpRows = !dbRows.length || !dbRowsAreFresh ? await fmpEarningsFallback(from, to) : [];
+    const responseSource = dbRows.length && dbRowsAreFresh ? 'db' : fmpRows.length ? 'fmp' : dbRows.length ? 'fallback' : 'fallback';
+    const responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? fmpRows : dbRows;
 
-    let enriched = dbRows.map((row) => {
+    let enriched = responseRows.map((row) => {
 
       const base = {
         symbol: row.symbol,
@@ -407,10 +668,12 @@ router.get('/api/earnings/calendar', async (req, res) => {
         score: row.final_score ?? row.earnings_score ?? null,
         eps_estimate: row.eps_estimate,
         eps_actual: row.eps_actual,
-        revenue_estimate: row.rev_estimate,
-        revenue_actual: row.rev_actual,
+        revenue_estimate: row.revenue_estimate,
+        revenue_actual: row.revenue_actual,
         surprise: row.eps_surprise_pct,
         sector: row.sector,
+        updated_at: row.updated_at || null,
+        source: normalizeEventSource(row.source, responseSource),
       };
 
       const classification = classifyEarningsTrade({
@@ -494,8 +757,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
       rows_with_rvol: enriched.filter((row) => row.rvol != null).length,
       rows_with_expected_move: enriched.filter((row) => row.expected_move != null).length,
       class_filter: classFilter || null,
-      external_status: 'db_only',
-      external_source: 'market_quotes',
+      external_status: responseSource,
+      external_source: responseSource,
     });
 
     return res.status(200).json({
@@ -504,9 +767,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
       window_start: from,
       window_end: to,
       count: enriched.length,
-      status: enriched.length ? 'ok' : 'no_data',
-      source: 'earnings_calendar',
+      status: summarizeCalendarStatus(enriched),
+      source: responseSource,
       data: enriched,
+      rows: enriched,
       message: enriched.length ? '' : 'No earnings data available',
     });
   } catch (err) {
@@ -515,9 +779,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
       stack: err?.stack,
     });
 
-    return res.status(200).json(
+    return res.status(500).json(
       fallbackCalendarPayload({
-        message: 'No earnings data available — safe fallback',
+        message: 'internal_error',
       }),
     );
   }
@@ -528,6 +792,7 @@ router.get('/api/earnings/health', async (req, res) => {
   let external = 'ok';
 
   try {
+    const market = require('../services/marketDataService');
     await safePoolQuery('health.db_probe', 'SELECT 1 FROM earnings_events LIMIT 1');
   } catch {
     db = 'fail';

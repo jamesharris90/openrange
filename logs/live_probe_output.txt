@@ -1,0 +1,40 @@
+
+== health ==
+status 200
+keys ['status', 'env', 'allowedOrigins', 'data_integrity_engine', 'integrity', 'data_health', 'telemetry', 'checked_at']
+success None
+error None
+message None
+candles 0 dailyCandles 0
+
+== research_snapshot ==
+status 200
+keys ['success', 'data', 'data_confidence', 'data_confidence_label', 'decision', 'why_moving', 'context', 'meta']
+success True
+error None
+message None
+candles 0 dailyCandles 0
+
+== research_full ==
+status 200
+keys ['success', 'profile', 'price', 'fundamentals', 'earnings', 'earningsInsight', 'earningsEdge', 'tradeProbability', 'indicators', 'coverage', 'score', 'scanner', 'data_confidence', 'data_confidence_label', 'freshness_score']
+success True
+error None
+message None
+candles 0 dailyCandles 0
+
+== chart_1day ==
+status 200
+keys ['symbol', 'interval', 'candles', 'dailyCandles', 'indicators', 'structures', 'primaryStructure', 'score', 'invalidation', 'relativeVolume', 'avgVolume', 'currentVolume', 'dollarVolume', 'intraday1m', 'intraday3m']
+success None
+error None
+message None
+candles 497 dailyCandles 260
+
+== chart_1min ==
+status 200
+keys ['symbol', 'interval', 'candles', 'dailyCandles', 'indicators', 'structures', 'primaryStructure', 'score', 'invalidation', 'relativeVolume', 'avgVolume', 'currentVolume', 'dollarVolume', 'intraday1m', 'intraday3m']
+success None
+error None
+message None
+candles 0 dailyCandles 260

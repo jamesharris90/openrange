@@ -1,0 +1,218 @@
+{
+  "generated_at": "2026-03-23T20:08:51.785Z",
+  "process_scan": {
+    "node_processes": "815\n816\n817\n846\n1014\n1015\n1020\n1027\n1033\n1196\n1208\n1298\n1508\n1562\n1563\n6493\n6503",
+    "listeners_3001": "",
+    "listeners_3101": "",
+    "listeners_3102": ""
+  },
+  "api_scan": [
+    {
+      "base": "http://localhost:3001",
+      "checks": [
+        {
+          "route": "/api/system/health",
+          "method": "GET",
+          "url": "http://localhost:3001/api/system/health",
+          "status": 0,
+          "duration_ms": 148,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/system/cron-status",
+          "method": "GET",
+          "url": "http://localhost:3001/api/system/cron-status",
+          "status": 0,
+          "duration_ms": 7,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/stocks-in-play?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3001/api/stocks-in-play?limit=5",
+          "status": 0,
+          "duration_ms": 19,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/intelligence/top-opportunities?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3001/api/intelligence/top-opportunities?limit=5",
+          "status": 0,
+          "duration_ms": 3,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/earnings?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3001/api/earnings?limit=5",
+          "status": 0,
+          "duration_ms": 4,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/catalysts?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3001/api/catalysts?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "method": "GET",
+          "url": "http://localhost:3001/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "status": 0,
+          "duration_ms": 2,
+          "rows": 0,
+          "error": "fetch failed"
+        }
+      ],
+      "ok_routes": 0
+    },
+    {
+      "base": "http://localhost:3101",
+      "checks": [
+        {
+          "route": "/api/system/health",
+          "method": "GET",
+          "url": "http://localhost:3101/api/system/health",
+          "status": 0,
+          "duration_ms": 6,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/system/cron-status",
+          "method": "GET",
+          "url": "http://localhost:3101/api/system/cron-status",
+          "status": 0,
+          "duration_ms": 2,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/stocks-in-play?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3101/api/stocks-in-play?limit=5",
+          "status": 0,
+          "duration_ms": 2,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/intelligence/top-opportunities?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3101/api/intelligence/top-opportunities?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/earnings?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3101/api/earnings?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/catalysts?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3101/api/catalysts?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "method": "GET",
+          "url": "http://localhost:3101/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        }
+      ],
+      "ok_routes": 0
+    },
+    {
+      "base": "http://localhost:3102",
+      "checks": [
+        {
+          "route": "/api/system/health",
+          "method": "GET",
+          "url": "http://localhost:3102/api/system/health",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/system/cron-status",
+          "method": "GET",
+          "url": "http://localhost:3102/api/system/cron-status",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/stocks-in-play?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3102/api/stocks-in-play?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/intelligence/top-opportunities?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3102/api/intelligence/top-opportunities?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/earnings?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3102/api/earnings?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/catalysts?limit=5",
+          "method": "GET",
+          "url": "http://localhost:3102/api/catalysts?limit=5",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        },
+        {
+          "route": "/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "method": "GET",
+          "url": "http://localhost:3102/api/market/quotes?symbols=AAPL,MSFT,SPY",
+          "status": 0,
+          "duration_ms": 1,
+          "rows": 0,
+          "error": "fetch failed"
+        }
+      ],
+      "ok_routes": 0
+    }
+  ]
+}

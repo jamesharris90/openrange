@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-22T20:43:50.299Z",
+  "session": {
+    "now_utc": "2026-03-22T20:43:47.525Z",
+    "timezone": "America/New_York",
+    "ny_weekday": "sun",
+    "ny_hour": 16,
+    "weekend": true,
+    "market_open": false
+  },
+  "sample_symbols": [
+    "LNG"
+  ],
+  "sample_size": 1,
+  "overlap": {
+    "signals": 1,
+    "trade_setups": 1,
+    "outcomes": 1,
+    "signals_percent": 100
+  },
+  "signals_rule_pass": true,
+  "verdict": "PASS"
+}

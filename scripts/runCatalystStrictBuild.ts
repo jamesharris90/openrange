@@ -4,7 +4,7 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import { Pool } from "pg";
+import sharedQuery = require("../server/db/pool");
 import { fileURLToPath } from "url";
 import {
   ensureCatalystLayerSchema,
@@ -26,10 +26,7 @@ if (!process.env.DATABASE_URL) {
   dotenv.config({ path: path.resolve(__dirname, "../.env") });
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL_DISABLE === "true" ? false : { rejectUnauthorized: false },
-});
+const pool = sharedQuery;
 
 function ensureDir(filePath: string): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -141,7 +138,7 @@ async function validateStrictApis(): Promise<any> {
 }
 
 async function run() {
-  const client = await pool.connect();
+  const client = pool;
   const reportPath = path.resolve(__dirname, "../logs/intelligence/catalyst-build-report.json");
 
   try {
@@ -151,8 +148,6 @@ async function run() {
       process.exitCode = 2;
       return;
     }
-
-    await client.query("BEGIN");
 
     await ensureCatalystLayerSchema(client);
 
@@ -419,8 +414,6 @@ async function run() {
     ensureDir(reportPath);
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    await client.query("COMMIT");
-
     const apiValidation = await validateStrictApis();
     if (!apiValidation.ok) {
       throw new Error(`API validation failed: ${JSON.stringify(apiValidation.checks)}`);
@@ -431,12 +424,6 @@ async function run() {
 
     console.log(JSON.stringify(report, null, 2));
   } catch (error: any) {
-    try {
-      await client.query("ROLLBACK");
-    } catch (_rollbackError) {
-      // no-op
-    }
-
     const failure = {
       generated_at: new Date().toISOString(),
       ok: false,
@@ -447,7 +434,6 @@ async function run() {
     console.error(error?.stack || error?.message || error);
     process.exitCode = 2;
   } finally {
-    client.release();
     await pool.end();
   }
 }

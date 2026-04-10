@@ -1,0 +1,73 @@
+{
+  "ts": "2026-03-20T14:05:15.822Z",
+  "source_symbols": 16,
+  "inserted": 15,
+  "signals_recent_15m": 16,
+  "pass": true,
+  "touched_sample": [
+    {
+      "symbol": "LNG",
+      "action": "exists_recent"
+    },
+    {
+      "symbol": "JBL",
+      "action": "inserted"
+    },
+    {
+      "symbol": "PAR",
+      "action": "inserted"
+    },
+    {
+      "symbol": "COHR",
+      "action": "inserted"
+    },
+    {
+      "symbol": "GPCR",
+      "action": "inserted"
+    },
+    {
+      "symbol": "KC",
+      "action": "inserted"
+    },
+    {
+      "symbol": "COCO",
+      "action": "inserted"
+    },
+    {
+      "symbol": "QSR",
+      "action": "inserted"
+    },
+    {
+      "symbol": "UBER",
+      "action": "inserted"
+    },
+    {
+      "symbol": "FHI",
+      "action": "inserted"
+    },
+    {
+      "symbol": "MMSI",
+      "action": "inserted"
+    },
+    {
+      "symbol": "KB",
+      "action": "inserted"
+    },
+    {
+      "symbol": "CRGY",
+      "action": "inserted"
+    },
+    {
+      "symbol": "SKYW",
+      "action": "inserted"
+    },
+    {
+      "symbol": "URBN",
+      "action": "inserted"
+    },
+    {
+      "symbol": "CHE",
+      "action": "inserted"
+    }
+  ]
+}

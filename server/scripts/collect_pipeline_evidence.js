@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-const { Client } = require('pg');
-const { resolveDatabaseUrl } = require('../db/connectionConfig');
+const pool = require('../db/pool');
 
-async function pickLatestTimestamp(client, table) {
+async function pickLatestTimestamp(queryRunner, table) {
   const candidates = ['updated_at', 'timestamp', 'date', 'created_at', 'detected_at', 'published_at'];
   for (const col of candidates) {
     try {
-      const res = await client.query(`SELECT MAX(${col}) AS ts FROM ${table}`);
+      const res = await queryRunner.query(`SELECT MAX(${col}) AS ts FROM ${table}`);
       if (res.rows[0] && res.rows[0].ts) {
         return { column: col, value: res.rows[0].ts };
       }
@@ -20,13 +19,6 @@ async function pickLatestTimestamp(client, table) {
 }
 
 async function main() {
-  const { dbUrl } = resolveDatabaseUrl();
-  const client = new Client({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false },
-  });
-  await client.connect();
-
   const tables = [
     'market_quotes',
     'intraday_1m',
@@ -43,8 +35,8 @@ async function main() {
 
   const out = {};
   for (const table of tables) {
-    const countRes = await client.query(`SELECT COUNT(*)::bigint AS c FROM ${table}`);
-    const latest = await pickLatestTimestamp(client, table);
+    const countRes = await pool.query(`SELECT COUNT(*)::bigint AS c FROM ${table}`);
+    const latest = await pickLatestTimestamp(pool, table);
     out[table] = {
       row_count: Number(countRes.rows[0].c || 0),
       latest_timestamp_column: latest.column,
@@ -52,13 +44,13 @@ async function main() {
     };
   }
 
-  const coverageRes = await client.query(
+  const coverageRes = await pool.query(
     "SELECT symbol, COUNT(*)::int AS c, MAX(timestamp) AS ts FROM intraday_1m WHERE symbol IN ('AAPL','SPY','QQQ','IWM','NVDA','MSFT') GROUP BY symbol ORDER BY symbol"
   );
   out.intraday_symbol_coverage = coverageRes.rows;
 
   console.log(JSON.stringify(out, null, 2));
-  await client.end();
+  await pool.end();
 }
 
 main().catch((err) => {

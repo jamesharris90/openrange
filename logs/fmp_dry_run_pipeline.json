@@ -1,0 +1,194 @@
+{
+  "generated_at": "2026-03-23T21:39:50.987Z",
+  "phase": "fmp_dry_run_pipeline",
+  "no_writes_performed": true,
+  "endpoints": {
+    "batch_exchange_quote": {
+      "status": 200,
+      "size": 13854,
+      "error": null
+    },
+    "batch_quote": {
+      "status": 200,
+      "size": 5,
+      "error": null
+    },
+    "stock_news": {
+      "status": 200,
+      "size": 20,
+      "error": null
+    },
+    "earnings_calendar": {
+      "status": 200,
+      "size": 4000,
+      "error": null
+    }
+  },
+  "counts": {
+    "universe_count": 13851,
+    "movers_count": 383,
+    "contracts_count": 200
+  },
+  "samples": {
+    "top_movers": [
+      {
+        "symbol": "MGLN",
+        "price": 94.99,
+        "change_percent": 94.99,
+        "volume": 832178,
+        "updated_at": "2026-03-23T21:39:50.969Z"
+      },
+      {
+        "symbol": "AEBIV",
+        "price": 83.26,
+        "change_percent": 73.43,
+        "volume": 1318,
+        "updated_at": "2026-03-23T21:39:50.953Z"
+      },
+      {
+        "symbol": "BKNG",
+        "price": 4396.79,
+        "change_percent": 72.75,
+        "volume": 333761,
+        "updated_at": "2026-03-23T21:39:50.957Z"
+      },
+      {
+        "symbol": "ASML",
+        "price": 1369.62,
+        "change_percent": 52.37,
+        "volume": 1975579,
+        "updated_at": "2026-03-23T21:39:50.956Z"
+      },
+      {
+        "symbol": "SPNS",
+        "price": 43.45,
+        "change_percent": 43.45,
+        "volume": 1241079,
+        "updated_at": "2026-03-23T21:39:50.977Z"
+      },
+      {
+        "symbol": "AVGOP",
+        "price": 1406.7,
+        "change_percent": -37.3201,
+        "volume": 36980,
+        "updated_at": "2026-03-23T21:39:50.956Z"
+      },
+      {
+        "symbol": "IESC",
+        "price": 472,
+        "change_percent": 35.05,
+        "volume": 196615,
+        "updated_at": "2026-03-23T21:39:50.966Z"
+      },
+      {
+        "symbol": "FCNCA",
+        "price": 1856.53,
+        "change_percent": 34.14,
+        "volume": 111410,
+        "updated_at": "2026-03-23T21:39:50.962Z"
+      },
+      {
+        "symbol": "MELI",
+        "price": 1666.08,
+        "change_percent": 30.32,
+        "volume": 460334,
+        "updated_at": "2026-03-23T21:39:50.969Z"
+      },
+      {
+        "symbol": "POWL",
+        "price": 542.59,
+        "change_percent": 26.59,
+        "volume": 216147,
+        "updated_at": "2026-03-23T21:39:50.972Z"
+      }
+    ],
+    "contracts": [
+      {
+        "symbol": "MGLN",
+        "price": 94.99,
+        "change_percent": 94.99,
+        "volume": 832178,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "AEBIV",
+        "price": 83.26,
+        "change_percent": 73.43,
+        "volume": 1318,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "BKNG",
+        "price": 4396.79,
+        "change_percent": 72.75,
+        "volume": 333761,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "ASML",
+        "price": 1369.62,
+        "change_percent": 52.37,
+        "volume": 1975579,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "SPNS",
+        "price": 43.45,
+        "change_percent": 43.45,
+        "volume": 1241079,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "AVGOP",
+        "price": 1406.7,
+        "change_percent": -37.3201,
+        "volume": 36980,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "IESC",
+        "price": 472,
+        "change_percent": 35.05,
+        "volume": 196615,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "FCNCA",
+        "price": 1856.53,
+        "change_percent": 34.14,
+        "volume": 111410,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "MELI",
+        "price": 1666.08,
+        "change_percent": 30.32,
+        "volume": 460334,
+        "news_count": 0,
+        "earnings_count": 0
+      },
+      {
+        "symbol": "POWL",
+        "price": 542.59,
+        "change_percent": 26.59,
+        "volume": 216147,
+        "news_count": 0,
+        "earnings_count": 0
+      }
+    ]
+  },
+  "checks": {
+    "universe_gt_1000": true,
+    "movers_gte_10": true,
+    "endpoints_healthy": true
+  },
+  "pass": true
+}

@@ -1,0 +1,141 @@
+{
+  "started_at": "2026-03-26T17:51:02.947Z",
+  "finished_at": "2026-03-26T17:52:54.364Z",
+  "precheck": {
+    "columns": [
+      {
+        "table_name": "market_quotes",
+        "column_name": "last_updated",
+        "data_type": "timestamp with time zone"
+      },
+      {
+        "table_name": "market_quotes",
+        "column_name": "symbol",
+        "data_type": "text"
+      },
+      {
+        "table_name": "market_quotes",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone"
+      },
+      {
+        "table_name": "news_articles",
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone"
+      },
+      {
+        "table_name": "news_articles",
+        "column_name": "published_at",
+        "data_type": "timestamp without time zone"
+      },
+      {
+        "table_name": "news_articles",
+        "column_name": "symbol",
+        "data_type": "text"
+      },
+      {
+        "table_name": "news_articles",
+        "column_name": "symbols",
+        "data_type": "ARRAY"
+      },
+      {
+        "table_name": "ticker_universe",
+        "column_name": "last_updated",
+        "data_type": "timestamp without time zone"
+      },
+      {
+        "table_name": "ticker_universe",
+        "column_name": "symbol",
+        "data_type": "text"
+      }
+    ],
+    "counts": {
+      "news_rows": 18381,
+      "news_symbol_missing": 1069,
+      "quote_fresh_60s": 0,
+      "universe_count": 5915
+    }
+  },
+  "quote_schema_fix": "applied",
+  "news_cleanup": {
+    "before": {
+      "duplicate_groups": 2396,
+      "missing_symbol_rows": 1069
+    },
+    "deleted_duplicates": 5411,
+    "after": {
+      "duplicate_groups": 0,
+      "missing_symbol_rows": 1069,
+      "missing_news_join": 5784
+    }
+  },
+  "news_endpoint_validation": {
+    "checks": [
+      {
+        "url": "https://financialmodelingprep.com/stable/stock_news?limit=10&apikey=REDACTED",
+        "status": 404,
+        "response_time_ms": 542,
+        "rows": 0,
+        "required_fields_present": false,
+        "error": null
+      },
+      {
+        "url": "https://financialmodelingprep.com/stable/news/stock?symbols=AAPL&limit=10&apikey=REDACTED",
+        "status": 200,
+        "response_time_ms": 313,
+        "rows": 10,
+        "required_fields_present": true,
+        "error": null
+      }
+    ],
+    "working_endpoint": {
+      "url": "https://financialmodelingprep.com/stable/news/stock?symbols=AAPL&limit=10&apikey=REDACTED",
+      "status": 200,
+      "response_time_ms": 313,
+      "rows": 10,
+      "required_fields_present": true,
+      "error": null
+    }
+  },
+  "runtime_validation": {
+    "refresh": {
+      "timestamp": "2026-03-26T17:51:58.452Z",
+      "total_symbols": 5915,
+      "quotes_updated": 5915,
+      "coverage_percent": 100,
+      "duration_ms": 53251,
+      "coverage": 1,
+      "required": 0.7
+    },
+    "coverage": {
+      "total_universe_count": 5915,
+      "fresh_quote_count": 5915,
+      "coverage": 1
+    },
+    "quote_freshness": {
+      "fresh_count": 5915,
+      "universe_count": 5915,
+      "fresh_percent": 100,
+      "pass_gt_70pct": true
+    },
+    "screener": {
+      "status": 200,
+      "count": 7759,
+      "rows": 25,
+      "catalyst_types": [
+        "EARNINGS",
+        "VOLUME"
+      ],
+      "catalyst_enum_valid": false,
+      "no_volume_label": false,
+      "price_present_all_rows": true,
+      "relative_volume_valid_all_rows": true
+    }
+  },
+  "pass_conditions": {
+    "frontend_api_locked_3007": true,
+    "market_quotes_freshness_gt_70pct": true,
+    "news_endpoint_200": true,
+    "catalyst_type_valid": false
+  }
+}

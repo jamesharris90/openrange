@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-03-23T23:12:45.123Z",
+  "endpoint": "/api/intelligence/top-opportunities?limit=5",
+  "status": 200,
+  "count": 5,
+  "response_source": "real",
+  "all_rows_real": true,
+  "sample_row_source": "real",
+  "pass": true
+}
