@@ -367,6 +367,33 @@ async function retryCoverageSection(symbol, section) {
   );
 }
 
+async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_TIMEOUT_MS) {
+  const directSection = await loadResearchSection(
+    'coverage_direct',
+    () => loadDirectCoverageRow(symbol, Math.min(1500, timeoutMs)),
+    null,
+    Math.min(1500, timeoutMs),
+  );
+
+  if (directSection.value) {
+    return {
+      ...directSection,
+      section: 'coverage',
+      ok: true,
+      value: new Map([[symbol, directSection.value]]),
+    };
+  }
+
+  const engineSection = await loadResearchSection(
+    'coverage',
+    () => getCoverageStatusBySymbols([symbol]),
+    null,
+    timeoutMs,
+  );
+
+  return retryCoverageSection(symbol, engineSection);
+}
+
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
   const directTableSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count, last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage
@@ -876,7 +903,7 @@ router.get('/:symbol/full', async (req, res) => {
 
   const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
   const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
-  const coveragePromise = loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
+  const coveragePromise = loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
   const scoreRowsPromise = loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), parallelSectionTimeoutMs);
   const scannerSourcesPromise = loadResearchSection('scanner_sources', () => getResearchScannerSources(symbol), null, parallelSectionTimeoutMs);
 
@@ -925,7 +952,7 @@ router.get('/:symbol/full', async (req, res) => {
       scoreRowsPromise,
       scannerSourcesPromise,
     ]);
-    const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
+    const coverageSection = initialCoverageSection;
     let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
     let effectiveCoverageSection = coverageSection;
     if (coverage.coverage_score === 0) {
@@ -1087,7 +1114,7 @@ router.get('/:symbol', async (req, res) => {
   const emptyFundamentals = { symbol, trends: [], updated_at: null, source: 'empty' };
   const emptyOwnership = { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' };
   const emptyContext = { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null };
-  const initialCoverageSection = await loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
+  const initialCoverageSection = await loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
   const priceSection = await loadResearchSection('price', () => getPriceData(symbol), emptyPrice, parallelSectionTimeoutMs);
   const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 750);
   const earningsSection = earningsBudgetMs > 0
@@ -1111,7 +1138,7 @@ router.get('/:symbol', async (req, res) => {
     context: { section: 'context', ok: false, timedOut: true, value: emptyContext, duration_ms: 0, error: 'deferred_for_snapshot' },
   };
   const payload = buildResearchPayloadFromSections(symbol, baseSections, startedAt);
-  const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
+  const coverageSection = initialCoverageSection;
   const indicatorsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
   const indicatorsSection = indicatorsBudgetMs > 0
     ? await loadResearchSection(
