@@ -1,6 +1,8 @@
 const express = require('express');
+const pg = require('pg');
 
 const { queryWithTimeout } = require('../db/pg');
+const { resolveDatabaseUrl } = require('../db/connectionConfig');
 const {
   getCompanyProfile,
   getPriceData,
@@ -26,6 +28,7 @@ const {
 
 const router = express.Router();
 const fullResponseCache = new Map();
+const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverageClient');
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
 const RESEARCH_SECTION_TIMEOUT_MS = 5000;
 const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
@@ -367,6 +370,84 @@ async function retryCoverageSection(symbol, section) {
   );
 }
 
+function buildDirectSupabaseUrl(dbUrl) {
+  try {
+    const parsed = new URL(dbUrl);
+    const username = String(parsed.username || '');
+    const usernameParts = username.split('.');
+    const projectRef = usernameParts[1];
+    if (!projectRef) {
+      return dbUrl;
+    }
+
+    parsed.hostname = `db.${projectRef}.supabase.co`;
+    parsed.port = '5432';
+    parsed.username = usernameParts[0] || 'postgres';
+    return parsed.toString();
+  } catch (_error) {
+    return dbUrl;
+  }
+}
+
+async function getDirectCoverageClient(timeoutMs) {
+  if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
+    return global[DIRECT_COVERAGE_CLIENT_KEY].client;
+  }
+
+  const connectionState = global[Symbol.for('openrange.db.pool.singleton')] || {};
+  const previousAllowDirectClient = connectionState.allowDirectClient;
+  const dbUrl = buildDirectSupabaseUrl(resolveDatabaseUrl().dbUrl);
+  connectionState.allowDirectClient = true;
+
+  try {
+    const client = new pg.Client({
+      connectionString: dbUrl,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: timeoutMs,
+      statement_timeout: timeoutMs,
+      query_timeout: timeoutMs,
+      application_name: 'openrange-research-direct-coverage',
+    });
+    await client.connect();
+    client.on('error', async () => {
+      try {
+        await client.end();
+      } catch {
+        // Ignore direct coverage client shutdown errors.
+      }
+      if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client === client) {
+        global[DIRECT_COVERAGE_CLIENT_KEY] = null;
+      }
+    });
+    global[DIRECT_COVERAGE_CLIENT_KEY] = { client };
+    return client;
+  } finally {
+    connectionState.allowDirectClient = previousAllowDirectClient;
+  }
+}
+
+async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
+  try {
+    const client = await getDirectCoverageClient(timeoutMs);
+    return await client.query(sql, [symbol]);
+  } catch (error) {
+    if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
+      try {
+        await global[DIRECT_COVERAGE_CLIENT_KEY].client.end();
+      } catch {
+        // Ignore reset failures.
+      }
+      global[DIRECT_COVERAGE_CLIENT_KEY] = null;
+    }
+
+    return queryWithTimeout(sql, [symbol], {
+      timeoutMs,
+      label,
+      maxRetries: 0,
+    });
+  }
+}
+
 async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_TIMEOUT_MS) {
   const directSection = await loadResearchSection(
     'coverage_direct',
@@ -424,21 +505,12 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
          (SELECT MAX(published_at) FROM news_articles WHERE UPPER(symbol) = UPPER($1)) AS last_news_at,
          (SELECT MAX(report_date) FROM earnings_history WHERE UPPER(symbol) = UPPER($1)) AS last_earnings_at
      ) AS coverage`;
-  const rawPool = global[Symbol.for('openrange.db.pool.singleton')]?.rawPool;
-  const runDirectQuery = async (sql, label) => (rawPool
-    ? rawPool.query(sql, [symbol])
-    : queryWithTimeout(sql, [symbol], {
-      timeoutMs,
-      label,
-      maxRetries: 0,
-    }));
-
-  const directResult = await runDirectQuery(directTableSql, 'research.coverage_direct_row');
+  const directResult = await runDirectCoverageQuery(directTableSql, symbol, timeoutMs, 'research.coverage_direct_row');
   if (directResult.rows?.[0]) {
     return directResult.rows[0];
   }
 
-  const result = await runDirectQuery(countFallbackSql, 'research.coverage_direct_counts');
+  const result = await runDirectCoverageQuery(countFallbackSql, symbol, timeoutMs, 'research.coverage_direct_counts');
 
   return result.rows?.[0] || null;
 }
