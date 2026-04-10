@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-10T18:27:58.306Z",
+  "generated_at": "2026-04-10T18:43:35.468Z",
   "status": "BUILD VALIDATED - SAFE TO DEPLOY",
   "precheck": {
     "pass": true,
@@ -14,77 +14,47 @@
       {
         "attempt": 1,
         "status": 200,
-        "elapsed_ms": 8005,
+        "elapsed_ms": 5494,
         "coverage_score": 100,
-        "news_count": 489,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
+        "news_count": 490,
+        "degraded_sections": [],
+        "partial": false
       },
       {
         "attempt": 2,
         "status": 200,
-        "elapsed_ms": 8003,
+        "elapsed_ms": 5,
         "coverage_score": 100,
-        "news_count": 489,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
+        "news_count": 490,
+        "degraded_sections": [],
+        "partial": false
       },
       {
         "attempt": 3,
         "status": 200,
-        "elapsed_ms": 8005,
+        "elapsed_ms": 5,
         "coverage_score": 100,
-        "news_count": 489,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
+        "news_count": 490,
+        "degraded_sections": [],
+        "partial": false
       },
       {
         "attempt": 4,
         "status": 200,
-        "elapsed_ms": 8004,
+        "elapsed_ms": 4,
         "coverage_score": 100,
-        "news_count": 489,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
+        "news_count": 490,
+        "degraded_sections": [],
+        "partial": false
       },
       {
         "attempt": 5,
         "status": 200,
-        "elapsed_ms": 8004,
+        "elapsed_ms": 5,
         "coverage_score": 100,
-        "news_count": 489,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
+        "news_count": 490,
+        "degraded_sections": [],
+        "partial": false
       }
     ]
   },

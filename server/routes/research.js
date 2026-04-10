@@ -31,7 +31,7 @@ const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverage
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
 const RESEARCH_SECTION_TIMEOUT_MS = 5000;
 const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
-const RESEARCH_COVERAGE_TIMEOUT_MS = 15000;
+const RESEARCH_COVERAGE_TIMEOUT_MS = 20000;
 
 const EMPTY_SCANNER_PAYLOAD = {
   momentum_flow: {
@@ -449,13 +449,33 @@ async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_T
 }
 
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
+    const directSnapshotSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
+      CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
+      last_news_at, last_earnings_at, coverage_score, last_checked
+     FROM data_coverage
+     WHERE symbol = $1
+     LIMIT 1`;
   const countSql = `SELECT
        UPPER($1) AS symbol,
   (SELECT COUNT(*)::int FROM news_articles WHERE symbol = $1) AS news_count,
   (SELECT COUNT(*)::int FROM earnings_history WHERE symbol = $1) AS earnings_count,
   (SELECT COUNT(*)::int FROM daily_ohlcv WHERE symbol = $1) AS daily_count`;
-  const result = await runDirectCoverageQuery(countSql, symbol, timeoutMs, 'research.coverage_counts');
-  const row = result.rows?.[0] || null;
+  const primaryTimeoutMs = Math.max(5000, timeoutMs - 5000);
+  const fallbackTimeoutMs = Math.max(2000, timeoutMs - primaryTimeoutMs);
+  let row = null;
+
+  try {
+    const result = await runDirectCoverageQuery(countSql, symbol, primaryTimeoutMs, 'research.coverage_counts');
+    row = result.rows?.[0] || null;
+  } catch (_error) {
+    row = null;
+  }
+
+  if (!row) {
+    const snapshotResult = await runDirectCoverageQuery(directSnapshotSql, symbol, fallbackTimeoutMs, 'research.coverage_snapshot');
+    row = snapshotResult.rows?.[0] || null;
+  }
+
   if (!row) {
     return null;
   }
@@ -490,6 +510,11 @@ function shouldCacheFullResearchResponse(response) {
 
 function clearResearchRouteCaches() {
   fullResponseCache.clear();
+}
+
+async function warmResearchRouteResources() {
+  const client = await getDirectCoverageClient(5000);
+  await client.query('SELECT 1');
 }
 
 function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {
@@ -1232,3 +1257,4 @@ router.get('/:symbol', async (req, res) => {
 
 module.exports = router;
 module.exports.clearResearchRouteCaches = clearResearchRouteCaches;
+module.exports.warmResearchRouteResources = warmResearchRouteResources;

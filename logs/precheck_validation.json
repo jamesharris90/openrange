@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "checked_at": "2026-04-10T18:26:29.816Z",
+  "checked_at": "2026-04-10T18:41:54.567Z",
   "tables": [
     {
       "table": "news_articles",
@@ -12,8 +12,8 @@
         "published_at": true
       },
       "symbol_counts": {
-        "AAPL": 8464,
-        "INTC": 489,
+        "AAPL": 8472,
+        "INTC": 490,
         "NVDA": 7801
       }
     },

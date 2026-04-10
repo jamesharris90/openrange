@@ -6,7 +6,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const { createV2App } = require('./v2');
-const { clearResearchRouteCaches } = require('./routes/research');
+const { clearResearchRouteCaches, warmResearchRouteResources } = require('./routes/research');
 const {
   verifySnapshotTableExists,
   isSnapshotStartupSkippableError,
@@ -44,6 +44,11 @@ async function startServer() {
   });
 
   void verifySnapshotStartup();
+  void warmResearchRouteResources().catch((error) => {
+    console.warn('[STARTUP] research coverage warmup skipped', {
+      error: error.message,
+    });
+  });
 
   return { app, server };
 }

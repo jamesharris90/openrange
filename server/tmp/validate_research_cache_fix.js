@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const pg = require('pg');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 if (!process.env.DATABASE_URL) {
@@ -7,12 +8,80 @@ if (!process.env.DATABASE_URL) {
 }
 
 const { queryWithTimeout } = require('../db/pg');
+const { resolveDatabaseUrl } = require('../db/connectionConfig');
 
 const BASE_URL = process.env.VALIDATION_BASE_URL || 'http://127.0.0.1:3001';
 const LOG_DIR = path.resolve(__dirname, '../../logs');
 const PRECHECK_LOG = path.join(LOG_DIR, 'precheck_validation.json');
 const ENDPOINT_LOG = path.join(LOG_DIR, 'endpoint_validation.json');
 const BUILD_LOG = path.join(LOG_DIR, 'build_validation_report.json');
+const DIRECT_VALIDATION_CLIENT_KEY = Symbol.for('openrange.validation.directClient');
+
+function buildDirectSupabaseUrl(dbUrl) {
+  try {
+    const parsed = new URL(dbUrl);
+    const username = String(parsed.username || '');
+    const usernameParts = username.split('.');
+    const projectRef = usernameParts[1];
+    if (!projectRef) {
+      return dbUrl;
+    }
+
+    parsed.hostname = `db.${projectRef}.supabase.co`;
+    parsed.port = '5432';
+    parsed.username = usernameParts[0] || 'postgres';
+    return parsed.toString();
+  } catch (_error) {
+    return dbUrl;
+  }
+}
+
+async function getDirectValidationClient(timeoutMs) {
+  if (global[DIRECT_VALIDATION_CLIENT_KEY]?.client) {
+    return global[DIRECT_VALIDATION_CLIENT_KEY].client;
+  }
+
+  const dbUrl = buildDirectSupabaseUrl(resolveDatabaseUrl().dbUrl);
+  const client = new pg.Client({
+    connectionString: dbUrl,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: timeoutMs,
+    statement_timeout: timeoutMs,
+    query_timeout: timeoutMs,
+    application_name: 'openrange-validation-direct-client',
+  });
+  await client.connect();
+  client.on('error', async () => {
+    try {
+      await client.end();
+    } catch {
+      // Ignore direct validation client shutdown errors.
+    }
+    if (global[DIRECT_VALIDATION_CLIENT_KEY]?.client === client) {
+      global[DIRECT_VALIDATION_CLIENT_KEY] = null;
+    }
+  });
+  global[DIRECT_VALIDATION_CLIENT_KEY] = { client };
+  return client;
+}
+
+async function runDirectValidationQuery(sql, params, timeoutMs, label) {
+  try {
+    const client = await getDirectValidationClient(timeoutMs);
+    return await client.query(sql, params);
+  } catch (_error) {
+    if (global[DIRECT_VALIDATION_CLIENT_KEY]?.client) {
+      try {
+        await global[DIRECT_VALIDATION_CLIENT_KEY].client.end();
+      } catch {
+        // Ignore reset failures.
+      }
+      global[DIRECT_VALIDATION_CLIENT_KEY] = null;
+    }
+
+    return queryWithTimeout(sql, params, { timeoutMs, label, maxRetries: 0 });
+  }
+}
 
 async function fetchJson(endpoint) {
   const startedAt = Date.now();
@@ -58,13 +127,14 @@ async function readTableInfo(table, columns, symbolColumn) {
   }
 
   const symbolCounts = symbolColumn && exists
-    ? await queryWithTimeout(
+    ? await runDirectValidationQuery(
       `SELECT ${symbolColumn} AS symbol, COUNT(*)::bigint AS count
        FROM ${table}
        WHERE ${symbolColumn} = ANY($1::text[])
        GROUP BY ${symbolColumn}`,
       [['AAPL', 'INTC', 'NVDA']],
-      { timeoutMs: symbolCountTimeoutMs, label: `validation.symbol_counts.${table}`, maxRetries: 0 },
+      symbolCountTimeoutMs,
+      `validation.symbol_counts.${table}`,
     )
     : { rows: [] };
 
