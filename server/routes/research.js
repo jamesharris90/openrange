@@ -1,7 +1,15 @@
 const express = require('express');
 
 const { queryWithTimeout } = require('../db/pg');
-const { getResearchTerminalPayload, normalizeSymbol } = require('../services/researchCacheService');
+const {
+  getCompanyProfile,
+  getPriceData,
+  getFundamentals,
+  getEarnings,
+  getOwnership,
+  getMarketContext,
+  normalizeSymbol,
+} = require('../services/researchCacheService');
 const { buildTruthDecisionFromPayload } = require('../services/truthEngine');
 const { buildEarningsEdge: buildEarningsEdgeEngine } = require('../engines/earningsEdgeEngine');
 const { getIndicators, getDailyTechnicalSummary, emptyIndicators } = require('../engines/indicatorEngine');
@@ -19,6 +27,8 @@ const {
 const router = express.Router();
 const fullResponseCache = new Map();
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
+const RESEARCH_SECTION_TIMEOUT_MS = 5000;
+const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
 
 const EMPTY_SCANNER_PAYLOAD = {
   momentum_flow: {
@@ -98,6 +108,220 @@ function getFreshCachedResponse(cache, key, ttlMs) {
   }
 
   return entry.data;
+}
+
+function buildSectionTimeoutError(sectionName, timeoutMs) {
+  const error = new Error(`${sectionName} timed out after ${timeoutMs}ms`);
+  error.code = 'SECTION_TIMEOUT';
+  error.section = sectionName;
+  return error;
+}
+
+function withDeadline(promiseFactory, timeoutMs, sectionName) {
+  return Promise.race([
+    Promise.resolve().then(promiseFactory),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(buildSectionTimeoutError(sectionName, timeoutMs)), timeoutMs);
+    }),
+  ]);
+}
+
+async function loadResearchSection(sectionName, promiseFactory, fallbackValue, timeoutMs = RESEARCH_SECTION_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  try {
+    const value = await withDeadline(promiseFactory, timeoutMs, sectionName);
+    return {
+      section: sectionName,
+      ok: true,
+      timedOut: false,
+      value,
+      duration_ms: Date.now() - startedAt,
+      error: null,
+    };
+  } catch (error) {
+    console.warn('[RESEARCH] section degraded', {
+      section: sectionName,
+      error: error.message,
+      timedOut: error.code === 'SECTION_TIMEOUT',
+      durationMs: Date.now() - startedAt,
+    });
+
+    return {
+      section: sectionName,
+      ok: false,
+      timedOut: error.code === 'SECTION_TIMEOUT',
+      value: fallbackValue,
+      duration_ms: Date.now() - startedAt,
+      error: error.message,
+    };
+  }
+}
+
+function normalizeProfilePayload(profile = {}, fundamentals = {}) {
+  const beta = Number(profile?.beta);
+  const pe = Number(profile?.pe);
+  const fundamentalsPe = Number(fundamentals?.pe);
+  const insiderOwnership = Number(profile?.insider_ownership_percent);
+
+  return {
+    ...profile,
+    beta: Number.isFinite(beta) && beta > 0 ? beta : null,
+    pe: Number.isFinite(pe) && pe !== 0 ? pe : (Number.isFinite(fundamentalsPe) ? fundamentalsPe : null),
+    insider_ownership_percent: Number.isFinite(insiderOwnership) && insiderOwnership !== 0 ? insiderOwnership : null,
+  };
+}
+
+function normalizeContextPayload(profile = {}, context = {}) {
+  const sector = String(profile?.sector || '').trim().toLowerCase();
+  const sectorLeaders = Array.isArray(context?.sectorLeaders) ? context.sectorLeaders : [];
+  const hasSectorTailwind = sector
+    ? sectorLeaders.some((row) => String(row?.sector || '').trim().toLowerCase() === sector)
+    : false;
+
+  return {
+    ...context,
+    sectorTailwind: hasSectorTailwind,
+    lastUpdated: context?.lastUpdated || context?.updated_at || null,
+  };
+}
+
+function buildResearchMeta(parts, startedAt) {
+  const timestamps = parts
+    .map((part) => Date.parse(String(part?.updated_at || part?.lastUpdated || '')))
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => right - left);
+  const sources = parts.map((part) => String(part?.source || 'empty'));
+
+  return {
+    source: sources.join(','),
+    cached: sources.length > 0 && sources.every((source) => source === 'cache'),
+    stale: sources.some((source) => source.includes('stale') || source === 'empty'),
+    updated_at: timestamps[0] ? new Date(timestamps[0]).toISOString() : null,
+    total_ms: Date.now() - startedAt,
+  };
+}
+
+function buildResearchPayloadFromSections(symbol, sections, startedAt) {
+  const profile = normalizeProfilePayload(sections.profile?.value || {}, sections.fundamentals?.value || {});
+  const context = normalizeContextPayload(profile, sections.context?.value || {});
+  const earnings = sections.earnings?.value || {
+    symbol,
+    next: null,
+    history: [],
+    updated_at: null,
+    source: 'empty',
+    status: 'none',
+    read: 'No upcoming earnings scheduled.',
+  };
+
+  return {
+    profile,
+    price: sections.price?.value || { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' },
+    fundamentals: sections.fundamentals?.value || { symbol, trends: [], updated_at: null, source: 'empty' },
+    earnings,
+    ownership: sections.ownership?.value || { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' },
+    context,
+    meta: buildResearchMeta([
+      profile,
+      sections.price?.value,
+      sections.fundamentals?.value,
+      earnings,
+      sections.ownership?.value,
+      context,
+    ], startedAt),
+  };
+}
+
+async function loadResearchBaseSections(symbol) {
+  const startedAt = Date.now();
+  const [profile, price, fundamentals, earnings, ownership, context] = await Promise.all([
+    loadResearchSection('profile', () => getCompanyProfile(symbol), { symbol, source: 'empty' }),
+    loadResearchSection('price', () => getPriceData(symbol), { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' }),
+    loadResearchSection('fundamentals', () => getFundamentals(symbol), { symbol, trends: [], updated_at: null, source: 'empty' }),
+    loadResearchSection('earnings', () => getEarnings(symbol), { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' }),
+    loadResearchSection('ownership', () => getOwnership(symbol), { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' }),
+    loadResearchSection('context', () => getMarketContext(), { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null }),
+  ]);
+
+  const sections = { profile, price, fundamentals, earnings, ownership, context };
+  return {
+    sections,
+    payload: buildResearchPayloadFromSections(symbol, sections, startedAt),
+    startedAt,
+  };
+}
+
+function getRemainingResearchBudgetMs(startedAt, reserveMs = 250) {
+  const remaining = RESEARCH_TOTAL_TIMEOUT_MS - (Date.now() - startedAt) - reserveMs;
+  return remaining > 0 ? remaining : 0;
+}
+
+function buildResearchFallbackDecision(symbol, dataConfidence = { data_confidence: 0, data_confidence_label: 'POOR', freshness_score: 0, source_quality: 0 }) {
+  return {
+    symbol,
+    tradeable: false,
+    confidence: 20,
+    freshness_score: dataConfidence.freshness_score,
+    source_quality: dataConfidence.source_quality,
+    setup: 'NO_SETUP',
+    bias: 'NEUTRAL',
+    driver: 'NO_DRIVER',
+    earnings_edge: {
+      label: 'NO_EDGE',
+      score: 0,
+      bias: 'NEUTRAL',
+      next_date: null,
+      report_time: null,
+      expected_move_percent: null,
+      status: 'none',
+      read: 'No upcoming earnings scheduled.',
+    },
+    risk_flags: ['LOW_CONVICTION', 'NO_STRUCTURED_SETUP'],
+    status: 'AVOID',
+    action: 'AVOID',
+    why: 'No clean driver confirmed.',
+    how: 'Wait for a cleaner setup.',
+    risk: 'Avoid trading without confirmation.',
+    narrative: {
+      why_this_matters: 'No clean catalyst or setup is confirmed right now.',
+      what_to_do: 'Wait for a clear driver, stronger volume, and a structured setup.',
+      what_to_avoid: 'Avoid forcing a trade into low-conviction conditions.',
+      source: 'deterministic_fallback',
+      locked: true,
+    },
+    execution_plan: null,
+    source: 'truth_engine_fallback',
+    why_moving: {
+      driver: 'NO_DRIVER',
+      summary: 'No earnings within 48 hours, no high-impact news, RVOL is below 2.0, and no confirmed breakout or breakdown is present.',
+      tradeability: 'LOW',
+      confidence_score: 20,
+      bias: 'NEUTRAL',
+      what_to_do: 'DO NOT TRADE. Wait for a confirmed catalyst or RVOL above 2.0.',
+      what_to_avoid: 'Do not build a position off low-volume drift or recycled headlines.',
+      setup: 'No valid setup.',
+      trade_plan: null,
+      action: 'DO NOT TRADE',
+    },
+    strategy_signals: {
+      top_setup: null,
+      setup_count: 0,
+      stream_score: null,
+      stream_headline: null,
+    },
+  };
+}
+
+async function loadDecisionSection(symbol, payload, dataConfidence, timeoutMs = RESEARCH_SECTION_TIMEOUT_MS) {
+  const section = await loadResearchSection(
+    'decision',
+    () => buildTruthDecisionFromPayload({ symbol, payload, includeNarrative: false, allowRemoteNarrative: false }),
+    buildResearchFallbackDecision(symbol, dataConfidence),
+    timeoutMs,
+  );
+
+  return section.value || buildResearchFallbackDecision(symbol, dataConfidence);
 }
 
 function mapTerminalPayloadToSnapshot(symbol, payload) {
@@ -536,21 +760,65 @@ router.get('/:symbol/full', async (req, res) => {
     });
   }
 
+  const startedAt = Date.now();
+  const cachedResponse = getFreshCachedResponse(fullResponseCache, symbol, FULL_RESPONSE_TTL_MS);
+  if (cachedResponse) {
+    return res.json(cachedResponse);
+  }
+
+  const { sections: baseSections, payload } = await loadResearchBaseSections(symbol);
+  const initialCoverage = normalizeCoveragePayload(symbol, null);
+  const initialConfidence = computeDataConfidence({ payload, indicators: emptyIndicators(), coverage: initialCoverage });
+  let response = {
+    success: true,
+    profile: payload.profile,
+    price: payload.price,
+    fundamentals: payload.fundamentals,
+    earnings: payload.earnings,
+    earningsInsight: null,
+    earningsEdge: null,
+    tradeProbability: null,
+    indicators: emptyIndicators(),
+    coverage: initialCoverage,
+    score: buildScorePayload({ scoreRow: null, coverage: initialCoverage, dataConfidence: initialConfidence }),
+    scanner: EMPTY_SCANNER_PAYLOAD,
+    data_confidence: initialConfidence.data_confidence,
+    data_confidence_label: initialConfidence.data_confidence_label,
+    freshness_score: initialConfidence.freshness_score,
+    source_quality: initialConfidence.source_quality,
+    decision: buildResearchFallbackDecision(symbol, initialConfidence),
+    why_moving: buildResearchFallbackDecision(symbol, initialConfidence).why_moving,
+    ownership: payload.ownership,
+    context: payload.context,
+    meta: {
+      ...(payload.meta || {}),
+      partial: true,
+      degraded_sections: Object.values(baseSections).filter((section) => !section.ok).map((section) => section.section),
+      section_status: Object.fromEntries(Object.entries(baseSections).map(([key, section]) => [key, {
+        ok: section.ok,
+        timed_out: section.timedOut,
+        error: section.error,
+        duration_ms: section.duration_ms,
+      }])),
+      total_ms: Date.now() - startedAt,
+    },
+  };
+
   try {
-    const startedAt = Date.now();
-    const cachedResponse = getFreshCachedResponse(fullResponseCache, symbol, FULL_RESPONSE_TTL_MS);
-    if (cachedResponse) {
-      return res.json(cachedResponse);
+    const remainingBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+    if (remainingBudgetMs <= 0) {
+      fullResponseCache.set(symbol, { data: response, timestamp: Date.now() });
+      return res.json(response);
     }
 
-    const [payload, indicators, coverageBySymbol, scoreRowsBySymbol, scannerSources] = await Promise.all([
-      getResearchTerminalPayload(symbol),
-      getIndicators(symbol),
-      getCoverageStatusBySymbols([symbol]),
-      getCachedScoreRowsBySymbol(),
-      getResearchScannerSources(symbol),
+    const [indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
+      loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+      loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+      loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+      loadResearchSection('scanner_sources', () => getResearchScannerSources(symbol), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
     ]);
-    const coverage = normalizeCoveragePayload(symbol, coverageBySymbol);
+
+    const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
     const enrichedHistory = calculateDrift(buildEarningsIntelligence(payload.earnings?.history || []));
     const earningsInsight = buildEarningsInsight({
       earnings: {
@@ -562,12 +830,8 @@ router.get('/:symbol/full', async (req, res) => {
     });
     const rawEarningsEdge = buildEarningsEdgeEngine(enrichedHistory);
     const tradeProbability = buildTradeProbability(enrichedHistory);
-    const averageDrift1d = enrichedHistory
-      .map((row) => Number(row?.drift1d))
-      .filter((value) => Number.isFinite(value));
-    const averageDrift3d = enrichedHistory
-      .map((row) => Number(row?.drift3d))
-      .filter((value) => Number.isFinite(value));
+    const averageDrift1d = enrichedHistory.map((row) => Number(row?.drift1d)).filter((value) => Number.isFinite(value));
+    const averageDrift3d = enrichedHistory.map((row) => Number(row?.drift3d)).filter((value) => Number.isFinite(value));
     const earningsEdge = {
       ...rawEarningsEdge,
       beatRate: rawEarningsEdge.beat_rate,
@@ -598,48 +862,33 @@ router.get('/:symbol/full', async (req, res) => {
           ? 'Upcoming earnings scheduled. Some event details are still estimating.'
           : earningsEdge.read,
     };
-    const rawDecision = await buildTruthDecisionFromPayload({
-      symbol,
-      payload: {
-        ...payload,
-        earnings: enrichedEarnings,
-      },
-      earningsEdge,
-    });
-    const dataConfidence = computeDataConfidence({
-      payload: {
-        ...payload,
-        earnings: enrichedEarnings,
-      },
-      indicators,
-      coverage,
-    });
+    const decisionPayload = { ...payload, earnings: enrichedEarnings };
+    const dataConfidence = computeDataConfidence({ payload: decisionPayload, indicators: indicatorsSection.value, coverage });
+    const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
+    const rawDecision = decisionBudgetMs > 0
+      ? await loadDecisionSection(symbol, decisionPayload, dataConfidence, Math.min(RESEARCH_SECTION_TIMEOUT_MS, decisionBudgetMs))
+      : buildResearchFallbackDecision(symbol, dataConfidence);
     const decision = applyDataConfidenceGuard(rawDecision, dataConfidence);
-    const whyMoving = decision.why_moving;
     earningsEdge.confidenceLabel = decision.confidence >= 70 ? 'HIGH' : decision.confidence >= 55 ? 'MEDIUM' : 'LOW';
-    const score = buildScorePayload({
-      scoreRow: scoreRowsBySymbol.get(symbol),
-      coverage,
-      dataConfidence,
-    });
-    const scanner = buildScannerPayload({
-      payload,
-      indicators,
-      coverage,
-      scoreRow: scoreRowsBySymbol.get(symbol),
-      sources: scannerSources,
-    });
+    const scoreRows = scoreRowsSection.value instanceof Map ? scoreRowsSection.value : new Map();
+    const score = buildScorePayload({ scoreRow: scoreRows.get(symbol), coverage, dataConfidence });
+    const scanner = scannerSourcesSection.value
+      ? buildScannerPayload({
+          payload,
+          indicators: indicatorsSection.value,
+          coverage,
+          scoreRow: scoreRows.get(symbol),
+          sources: scannerSourcesSection.value,
+        })
+      : EMPTY_SCANNER_PAYLOAD;
 
-    const response = {
-      success: true,
-      profile: payload.profile,
-      price: payload.price,
-      fundamentals: payload.fundamentals,
+    response = {
+      ...response,
       earnings: enrichedEarnings,
       earningsInsight,
       earningsEdge,
       tradeProbability,
-      indicators,
+      indicators: indicatorsSection.value,
       coverage,
       score,
       scanner,
@@ -648,199 +897,47 @@ router.get('/:symbol/full', async (req, res) => {
       freshness_score: dataConfidence.freshness_score,
       source_quality: dataConfidence.source_quality,
       decision,
-      why_moving: whyMoving,
-      ownership: payload.ownership,
-      context: payload.context,
+      why_moving: decision.why_moving,
       meta: {
-        ...(payload.meta || {}),
+        ...(response.meta || {}),
+        partial: [
+          ...(response.meta?.degraded_sections || []),
+          ...[indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
+        ].length > 0,
+        lazy_sections: ['earnings', 'fundamentals', 'scanner'],
+        degraded_sections: [
+          ...(response.meta?.degraded_sections || []),
+          ...[indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
+        ],
+        section_status: {
+          ...(response.meta?.section_status || {}),
+          indicators: { ok: indicatorsSection.ok, timed_out: indicatorsSection.timedOut, error: indicatorsSection.error, duration_ms: indicatorsSection.duration_ms },
+          coverage: { ok: coverageSection.ok, timed_out: coverageSection.timedOut, error: coverageSection.error, duration_ms: coverageSection.duration_ms },
+          score: { ok: scoreRowsSection.ok, timed_out: scoreRowsSection.timedOut, error: scoreRowsSection.error, duration_ms: scoreRowsSection.duration_ms },
+          scanner_sources: { ok: scannerSourcesSection.ok, timed_out: scannerSourcesSection.timedOut, error: scannerSourcesSection.error, duration_ms: scannerSourcesSection.duration_ms },
+        },
         total_ms: Date.now() - startedAt,
       },
     };
-
-    fullResponseCache.set(symbol, {
-      data: response,
-      timestamp: Date.now(),
-    });
-
-    return res.json(response);
   } catch (error) {
-    console.warn('[RESEARCH] full request failed', { symbol, error: error.message });
-    const fallbackDataConfidence = {
-      data_confidence: 0,
-      data_confidence_label: 'POOR',
-      freshness_score: 0,
-      source_quality: 0,
-    };
-
-    return res.json({
-      success: false,
-      error: 'research_full_unavailable',
-      message: error.message,
-      profile: {},
-      price: {},
-      fundamentals: {},
-      earnings: {
-        history: [],
-        next: null,
-        pattern: [],
-        source: 'fallback',
-        status: 'none',
-        updated_at: null,
-        edge: {
-          beat_rate: 0,
-          avg_move: 0,
-          avg_up_move: 0,
-          avg_down_move: 0,
-          directional_bias: 'MIXED',
-          consistency: 0,
-          edge_score: 0,
-          edge_label: 'NO_EDGE',
-          read: 'No upcoming earnings scheduled.',
-          sample_size: 0,
-          earnings_pattern: [],
-          beatRate: 0,
-          avgMove: 0,
-          avgUpMove: 0,
-          avgDownMove: 0,
-          directionalBias: 'MIXED',
-          consistencyScore: 0,
-          edgeScore: 0,
-          edgeLabel: 'NO_EDGE',
-          avgDrift1d: null,
-          avgDrift3d: null,
-          followThroughPercent: 0,
-          reliabilityScore: 0,
-          confidenceLabel: 'LOW',
-          earningsPattern: [],
-        },
-        read: 'No upcoming earnings scheduled.',
-      },
-      earningsInsight: {
-        beatRate: 0,
-        missRate: 0,
-        avgSurprise: 0,
-        expectedMove: 0,
-        tradeable: false,
-      },
-      earningsEdge: {
-        beat_rate: 0,
-        avg_move: 0,
-        avg_up_move: 0,
-        avg_down_move: 0,
-        directional_bias: 'MIXED',
-        consistency: 0,
-        edge_score: 0,
-        edge_label: 'NO_EDGE',
-        read: 'No upcoming earnings scheduled.',
-        sample_size: 0,
-        earnings_pattern: [],
-        beatRate: 0,
-        missRate: 0,
-        avgMove: 0,
-        avgUpMove: 0,
-        avgDownMove: 0,
-        beatAvgMove: 0,
-        directionalBias: 'MIXED',
-        consistencyScore: 0,
-        edgeScore: 0,
-        edgeLabel: 'NO_EDGE',
-        avgDrift1d: null,
-        avgDrift3d: null,
-        followThroughPercent: 0,
-        reliabilityScore: 0,
-        confidenceLabel: 'LOW',
-        earningsPattern: [],
-      },
-      indicators: emptyIndicators(),
-      coverage: {
-        symbol,
-        has_news: false,
-        has_earnings: false,
-        has_technicals: false,
-        news_count: 0,
-        earnings_count: 0,
-        last_news_at: null,
-        last_earnings_at: null,
-        coverage_score: 0,
-        status: 'LOW',
-        tradeable: false,
-        last_checked: null,
-      },
-      score: {
-        final_score: 0,
-        tqi: 0,
-        tqi_label: 'D',
-        coverage_score: 0,
-        data_confidence: 0,
-        data_confidence_label: 'POOR',
-        tradeable: false,
-        updated_at: null,
-      },
-      scanner: EMPTY_SCANNER_PAYLOAD,
-      data_confidence: fallbackDataConfidence.data_confidence,
-      data_confidence_label: fallbackDataConfidence.data_confidence_label,
-      tradeProbability: {
-        beatFollowThrough: 0,
-        reliabilityScore: 0,
-      },
-      decision: {
-        symbol,
-        tradeable: false,
-        confidence: 20,
-        freshness_score: fallbackDataConfidence.freshness_score,
-        source_quality: fallbackDataConfidence.source_quality,
-        setup: 'NO_SETUP',
-        bias: 'NEUTRAL',
-        driver: 'NO_DRIVER',
-        earnings_edge: {
-          label: 'NO_EDGE',
-          score: 0,
-          bias: 'NEUTRAL',
-          next_date: null,
-          report_time: null,
-          expected_move_percent: null,
-          status: 'none',
-          read: 'No upcoming earnings scheduled.',
-        },
-        risk_flags: ['LOW_CONVICTION', 'NO_STRUCTURED_SETUP'],
-        status: 'AVOID',
-        action: 'AVOID',
-        why: 'No clean driver confirmed.',
-        how: 'Wait for a cleaner setup.',
-        risk: 'Avoid trading without confirmation.',
-        narrative: {
-          why_this_matters: 'No clean catalyst or setup is confirmed right now.',
-          what_to_do: 'Wait for a clear driver, stronger volume, and a structured setup.',
-          what_to_avoid: 'Avoid forcing a trade into low-conviction conditions.',
-          source: 'deterministic_fallback',
-          locked: true,
-        },
-        execution_plan: null,
-        source: 'truth_engine',
-      },
-      why_moving: {
-        driver: 'NO_DRIVER',
-        summary: 'No earnings within 48 hours, no high-impact news, RVOL is below 2.0, and no confirmed breakout or breakdown is present.',
-        tradeability: 'LOW',
-        confidence_score: 20,
-        bias: 'NEUTRAL',
-        what_to_do: 'DO NOT TRADE. Wait for a confirmed catalyst or RVOL above 2.0.',
-        what_to_avoid: 'Do not build a position off low-volume drift or recycled headlines.',
-        setup: 'No valid setup.',
-        trade_plan: null,
-        action: 'DO NOT TRADE',
-      },
-      ownership: {},
-      context: {},
+    console.warn('[RESEARCH] full request degraded', { symbol, error: error.message });
+    response = {
+      ...response,
       meta: {
-        source: 'error',
-        cached: false,
-        stale: true,
-        updated_at: null,
-        total_ms: 0,
+        ...(response.meta || {}),
+        partial: true,
+        route_error: error.message,
+        total_ms: Date.now() - startedAt,
       },
-    });
+    };
   }
+
+  fullResponseCache.set(symbol, {
+    data: response,
+    timestamp: Date.now(),
+  });
+
+  return res.json(response);
 });
 
 router.get('/:symbol', async (req, res) => {
@@ -853,52 +950,67 @@ router.get('/:symbol', async (req, res) => {
     });
   }
 
-  try {
-    const [result, indicators, coverageBySymbol] = await Promise.all([
-      getResearchTerminalPayload(symbol),
-      getIndicators(symbol),
-      getCoverageStatusBySymbols([symbol]),
-    ]);
-    const coverage = normalizeCoveragePayload(symbol, coverageBySymbol);
-    const rawDecision = await buildTruthDecisionFromPayload({
-      symbol,
-      payload: result,
-    });
-    const dataConfidence = computeDataConfidence({ payload: result, indicators, coverage });
-    const decision = applyDataConfidenceGuard(rawDecision, dataConfidence);
-    const whyMoving = decision.why_moving;
-    return res.json({
-      success: true,
-      data: {
-        ...mapTerminalPayloadToSnapshot(symbol, result),
-        decision,
-        why_moving: whyMoving,
-        data_confidence: dataConfidence.data_confidence,
-        data_confidence_label: dataConfidence.data_confidence_label,
-      },
-      data_confidence: dataConfidence.data_confidence,
-      data_confidence_label: dataConfidence.data_confidence_label,
+  const startedAt = Date.now();
+  const { sections: baseSections, payload } = await loadResearchBaseSections(symbol);
+  const remainingBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
+  const [indicatorsSection, coverageSection] = remainingBudgetMs > 0
+    ? await Promise.all([
+        loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+        loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+      ])
+    : [
+        { ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' },
+        { ok: false, timedOut: true, value: null, duration_ms: 0, error: 'budget_exhausted' },
+      ];
+
+  const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+  const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
+  const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
+  const rawDecision = decisionBudgetMs > 0
+    ? await loadDecisionSection(symbol, payload, dataConfidence, Math.min(RESEARCH_SECTION_TIMEOUT_MS, decisionBudgetMs))
+    : buildResearchFallbackDecision(symbol, dataConfidence);
+  const decision = applyDataConfidenceGuard(rawDecision, dataConfidence);
+  const whyMoving = decision.why_moving;
+
+  return res.json({
+    success: true,
+    data: {
+      ...mapTerminalPayloadToSnapshot(symbol, payload),
       decision,
       why_moving: whyMoving,
-      context: result.context || null,
-      meta: {
-        symbol,
-        source: `${result.meta?.source || 'cache'},snapshot`,
-        cached: Boolean(result.meta?.cached),
-        stale: Boolean(result.meta?.stale),
-        updated_at: result.meta?.updated_at || null,
-        cache_age_ms: null,
+      data_confidence: dataConfidence.data_confidence,
+      data_confidence_label: dataConfidence.data_confidence_label,
+    },
+    data_confidence: dataConfidence.data_confidence,
+    data_confidence_label: dataConfidence.data_confidence_label,
+    decision,
+    why_moving: whyMoving,
+    context: payload.context || null,
+    meta: {
+      symbol,
+      source: `${payload.meta?.source || 'cache'},snapshot`,
+      cached: Boolean(payload.meta?.cached),
+      stale: Boolean(payload.meta?.stale),
+      updated_at: payload.meta?.updated_at || null,
+      cache_age_ms: null,
+      partial: !(Object.values(baseSections).every((section) => section.ok) && indicatorsSection.ok && coverageSection.ok),
+      degraded_sections: [
+        ...Object.values(baseSections).filter((section) => !section.ok).map((section) => section.section),
+        ...[indicatorsSection, coverageSection].filter((section) => !section.ok).map((section) => section.section),
+      ],
+      section_status: {
+        ...Object.fromEntries(Object.entries(baseSections).map(([key, section]) => [key, {
+          ok: section.ok,
+          timed_out: section.timedOut,
+          error: section.error,
+          duration_ms: section.duration_ms,
+        }])),
+        indicators: { ok: indicatorsSection.ok, timed_out: indicatorsSection.timedOut, error: indicatorsSection.error, duration_ms: indicatorsSection.duration_ms },
+        coverage: { ok: coverageSection.ok, timed_out: coverageSection.timedOut, error: coverageSection.error, duration_ms: coverageSection.duration_ms },
       },
-    });
-  } catch (error) {
-    return res.status(502).json({
-      success: false,
-      error: 'research_unavailable',
-      message: error.message,
-      data: null,
-      context: null,
-    });
-  }
+      total_ms: Date.now() - startedAt,
+    },
+  });
 });
 
 module.exports = router;

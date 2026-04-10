@@ -2107,6 +2107,7 @@ module.exports = {
   getPriceData,
   getFundamentals,
   getEarnings,
+  getOwnership,
   getMarketContext,
   getResearchTerminalPayload,
   normalizeSymbol,
