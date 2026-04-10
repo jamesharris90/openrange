@@ -41,6 +41,119 @@ function normalizeDate(value) {
   return new Date(parsed).toISOString().slice(0, 10);
 }
 
+function parseTimestamp(value) {
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getEasternTimeParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+  return {
+    weekday: parts.weekday || 'Mon',
+    hour: Number(parts.hour || 0),
+    minute: Number(parts.minute || 0),
+  };
+}
+
+function getSessionContext(date = new Date()) {
+  const { weekday, hour, minute } = getEasternTimeParts(date);
+  const minutes = (hour * 60) + minute;
+
+  if (weekday === 'Sat' || weekday === 'Sun') {
+    return { phase: 'weekend', minutes };
+  }
+
+  if (minutes >= 240 && minutes < 570) {
+    return { phase: 'premarket', minutes };
+  }
+
+  if (minutes >= 570 && minutes < 960) {
+    return { phase: 'market', minutes };
+  }
+
+  if (minutes >= 960 && minutes < 1200) {
+    return { phase: 'postmarket', minutes };
+  }
+
+  return { phase: 'overnight', minutes };
+}
+
+function daysSinceTimestamp(value, nowMs = Date.now()) {
+  const parsed = parseTimestamp(value);
+  if (parsed === null) return null;
+  return Math.floor((nowMs - parsed) / 86400000);
+}
+
+function isCorruptBar(bar) {
+  if (!bar || typeof bar !== 'object') {
+    return true;
+  }
+
+  const open = toNumber(bar.open);
+  const high = toNumber(bar.high);
+  const low = toNumber(bar.low);
+  const close = toNumber(bar.close);
+
+  if (open === null || open <= 0) return true;
+  if (high === null || high <= 0) return true;
+  if (low === null || low <= 0) return true;
+  if (close === null || close <= 0) return true;
+  if (high < low) return true;
+
+  return false;
+}
+
+function hasLiveQuotePayload(payload) {
+  const price = toNumber(payload?.price?.price);
+  const updatedAt = parseTimestamp(
+    payload?.price?.last_updated
+      || payload?.price?.updated_at
+      || payload?.price?.timestamp
+      || payload?.profile?.updated_at
+  );
+
+  return price !== null && price > 0 && updatedAt !== null && (Date.now() - updatedAt) <= (5 * 86400000);
+}
+
+function hasRecentData(payload, priceIntegrity) {
+  const session = getSessionContext();
+  const latestDailyBar = priceIntegrity?.latest_daily_bar || null;
+  const latestDailyDate = priceIntegrity?.latest_date || null;
+  const latestIntradayTimestamp = priceIntegrity?.latest_intraday_timestamp || null;
+  const dailyRecent = latestDailyDate
+    && daysSinceTimestamp(latestDailyDate) !== null
+    && daysSinceTimestamp(latestDailyDate) <= 5
+    && !isCorruptBar(latestDailyBar);
+  const intradayRecent = latestIntradayTimestamp
+    && daysSinceTimestamp(latestIntradayTimestamp) !== null
+    && daysSinceTimestamp(latestIntradayTimestamp) <= 1;
+  const liveQuoteAvailable = hasLiveQuotePayload(payload);
+
+  if (session.phase === 'market') {
+    return Boolean(intradayRecent || dailyRecent || liveQuoteAvailable);
+  }
+
+  if (session.phase === 'premarket') {
+    return Boolean(dailyRecent || liveQuoteAvailable);
+  }
+
+  return Boolean(dailyRecent || intradayRecent || liveQuoteAvailable);
+}
+
 function daysUntil(value) {
   const iso = normalizeDate(value);
   if (!iso) return null;
@@ -92,6 +205,120 @@ function normalizeEarningsEdge(earningsEdge, earnings) {
 
 function countStructuredSignals(strategySignals) {
   return (Array.isArray(strategySignals?.setups) ? strategySignals.setups : []).filter((row) => row.strategy).length;
+}
+
+async function loadRecentPriceIntegrity(symbol) {
+  const [dailyResult, intradayResult] = await Promise.all([
+    queryWithTimeout(
+      `SELECT date, open, high, low, close, volume
+       FROM daily_ohlcv
+       WHERE UPPER(symbol) = $1
+       ORDER BY date DESC
+       LIMIT 5`,
+      [symbol],
+      { timeoutMs: 4000, label: 'truth_engine.price_integrity', maxRetries: 0 }
+    ).catch(() => ({ rows: [] })),
+    queryWithTimeout(
+      `SELECT timestamp, session
+       FROM intraday_1m
+       WHERE UPPER(symbol) = $1
+       ORDER BY timestamp DESC
+       LIMIT 1`,
+      [symbol],
+      { timeoutMs: 4000, label: 'truth_engine.intraday_recency', maxRetries: 0 }
+    ).catch(() => ({ rows: [] })),
+  ]);
+
+  const recentRows = Array.isArray(dailyResult.rows) ? dailyResult.rows : [];
+  const latestDailyBar = recentRows[0] || null;
+  return {
+    recent_rows: recentRows.length,
+    valid_rows: recentRows.filter((row) => !isCorruptBar(row) && (toNumber(row.volume) ?? 0) > 0).length,
+    latest_date: latestDailyBar?.date || null,
+    latest_daily_bar: latestDailyBar,
+    latest_intraday_timestamp: intradayResult.rows?.[0]?.timestamp || null,
+    latest_intraday_session: intradayResult.rows?.[0]?.session || null,
+  };
+}
+
+function getDecisionDataQualityIssues(payload, priceIntegrity) {
+  const issues = [];
+  const price = toNumber(payload?.price?.price);
+  const changePercent = toNumber(payload?.price?.change_percent);
+
+  if (price === null || price <= 0) {
+    issues.push('INVALID_PRICE');
+  }
+
+  if (changePercent === null || Math.abs(changePercent) >= 100) {
+    issues.push('INVALID_CHANGE_PERCENT');
+  }
+
+  if (!hasRecentData(payload, priceIntegrity)) {
+    issues.push('INSUFFICIENT_RECENT_OHLCV');
+  }
+
+  if (priceIntegrity?.latest_daily_bar && isCorruptBar(priceIntegrity.latest_daily_bar)) {
+    issues.push('CORRUPT_RECENT_OHLCV');
+  }
+
+  return issues;
+}
+
+function buildInsufficientDataDecision(symbol, issues = []) {
+  const riskFlags = ['INSUFFICIENT_DATA', ...issues.filter(Boolean)];
+
+  return {
+    symbol,
+    tradeable: false,
+    confidence: 0,
+    setup: 'NO_SETUP',
+    bias: 'NEUTRAL',
+    driver: 'NO_DRIVER',
+    earnings_edge: {
+      label: 'NO_EDGE',
+      score: 0,
+      bias: 'NEUTRAL',
+      next_date: null,
+      report_time: null,
+      expected_move_percent: null,
+      status: 'none',
+      read: null,
+    },
+    risk_flags: riskFlags,
+    status: 'INSUFFICIENT_DATA',
+    action: 'WAIT',
+    why: 'Recent market data fails integrity checks, so this symbol is not safe to score or trade from the decision engine.',
+    how: 'Wait for valid recent OHLCV and quote data before using this decision panel.',
+    risk: 'Do not trade from corrupted or insufficient market data.',
+    execution_plan: null,
+    source: 'truth_engine',
+    narrative: {
+      why_this_matters: 'Recent market data fails integrity checks, so the decision engine is suppressing conviction instead of guessing.',
+      what_to_do: 'Wait for valid recent OHLCV and quote data before using this decision panel.',
+      what_to_avoid: 'Avoid trading from corrupted or insufficient market data.',
+      source: 'deterministic_fallback',
+      locked: true,
+    },
+    why_moving: {
+      driver: 'NO_DRIVER',
+      summary: 'Recent market data fails integrity checks, so the symbol is suppressed from the live decision engine.',
+      tradeability: 'LOW',
+      confidence_score: 0,
+      bias: 'NEUTRAL',
+      what_to_do: 'Wait for valid recent OHLCV and quote data before using this decision panel.',
+      what_to_avoid: 'Avoid trading from corrupted or insufficient market data.',
+      setup: 'NO_SETUP',
+      action: 'WAIT',
+      trade_plan: null,
+    },
+    strategy_signals: {
+      top_setup: null,
+      setup_count: 0,
+      stream_score: null,
+      stream_headline: null,
+    },
+  };
 }
 
 function evaluateTradeTruth({ catalystType, rvol, structureScore }) {
@@ -358,7 +585,15 @@ async function buildTruthDecisionFromPayload({
   allowRemoteNarrative = true,
 }) {
   const symbol = normalizeSymbol(symbolInput || payload?.profile?.symbol);
-  const strategySignals = await loadStrategySignals(symbol);
+  const [strategySignals, priceIntegrity] = await Promise.all([
+    loadStrategySignals(symbol),
+    loadRecentPriceIntegrity(symbol),
+  ]);
+  const qualityIssues = getDecisionDataQualityIssues(payload, priceIntegrity);
+  if (qualityIssues.length > 0) {
+    return buildInsufficientDataDecision(symbol, qualityIssues);
+  }
+
   const enrichedHistory = Array.isArray(payload?.earnings?.history)
     ? calculateDrift(buildEarningsIntelligence(payload.earnings.history))
     : [];
@@ -424,4 +659,5 @@ module.exports = {
   buildCompatibilityWhyMoving,
   buildTruthDecisionFromPayload,
   buildTruthDecisionForSymbol,
+  evaluate: buildTruthDecisionForSymbol,
 };

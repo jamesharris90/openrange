@@ -17,8 +17,20 @@ const SIGNAL_BUCKET_WINDOW = 8;
 const UNIVERSE_PAGE_SIZE = 1000;
 const SYMBOL_BATCH_SIZE = 250;
 const INTRADAY_SYMBOL_BATCH_SIZE = 125;
-const DAILY_SYMBOL_BATCH_SIZE = 250;
+const DAILY_SYMBOL_BATCH_SIZE = 100;
 const DAILY_TECHNICAL_LOOKBACK_ROWS = 260;
+const SCREENER_SKIP_NEWS_ENRICHMENT = /^(1|true|yes)$/i.test(String(process.env.SCREENER_SKIP_NEWS_ENRICHMENT || ''));
+const SECTOR_OVERRIDES = {
+  NFE: 'Energy',
+};
+const SPAC_INDUSTRIES = new Set(['SHELL COMPANIES', 'BLANK CHECKS']);
+const SPAC_NAME_PATTERNS = [
+  'ACQUISITION CORP',
+  'ACQUISITION CO',
+  'BLANK CHECK',
+  'SPAC',
+  'HOLDINGS CORP',
+];
 const SIGNAL_STATES = {
   FORMING: 'FORMING',
   CONFIRMED: 'CONFIRMED',
@@ -45,14 +57,111 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function resolveSector(symbol, ...candidates) {
+  const normalizedSymbol = typeof symbol === 'string' ? symbol.trim().toUpperCase() : null;
+  if (normalizedSymbol && SECTOR_OVERRIDES[normalizedSymbol]) {
+    return SECTOR_OVERRIDES[normalizedSymbol];
+  }
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+function getEasternTimeParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+  return {
+    weekday: parts.weekday || 'Mon',
+    hour: Number(parts.hour || 0),
+    minute: Number(parts.minute || 0),
+  };
+}
+
+function isPremarketSession(referenceTime = new Date()) {
+  const { weekday, hour, minute } = getEasternTimeParts(referenceTime);
+  if (weekday === 'Sat' || weekday === 'Sun') {
+    return false;
+  }
+
+  const minutes = (hour * 60) + minute;
+  return minutes >= 240 && minutes < 570;
+}
+
+function containsSpacNamePattern(value) {
+  const text = String(value || '').trim().toUpperCase();
+  if (!text) {
+    return false;
+  }
+
+  return SPAC_NAME_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+function isSpacOrShell({ companyName, industry, changePercent, volume, hasNews, hasEarnings }) {
+  const normalizedIndustry = String(industry || '').trim().toUpperCase();
+  if (SPAC_INDUSTRIES.has(normalizedIndustry)) {
+    return true;
+  }
+
+  if (containsSpacNamePattern(companyName)) {
+    return true;
+  }
+
+  return Math.abs(toNumber(changePercent) ?? 0) >= 100
+    && (toNumber(volume) ?? 0) < 10000
+    && !hasNews
+    && !hasEarnings;
+}
+
+function resolveGapPercent({ price, previousClose, gapPercent }) {
+  const explicitGap = toNumber(gapPercent);
+  if (explicitGap !== null) {
+    return explicitGap;
+  }
+
+  const currentPrice = toNumber(price);
+  const baseline = toNumber(previousClose);
+  if (currentPrice === null || baseline === null || baseline <= 0) {
+    return null;
+  }
+
+  return Number((((currentPrice - baseline) / baseline) * 100).toFixed(6));
+}
+
 function normalizeScreenerRow(row) {
   return {
     symbol: row.symbol || null,
+    name: row.name || row.company_name || null,
+    company_name: row.company_name || row.name || null,
+    industry: row.industry || null,
     price: toNumber(row.price),
     change_percent: toNumber(row.change_percent),
     volume: toNumber(row.volume),
     rvol: toNumber(row.rvol),
     gap_percent: toNumber(row.gap_percent),
+    gapPercent: toNumber(row.gapPercent ?? row.gap_percent),
+    preMarketPrice: toNumber(row.preMarketPrice),
+    preMarketChange: toNumber(row.preMarketChange),
+    preMarketVolume: toNumber(row.preMarketVolume),
+    pm_change: toNumber(row.pm_change),
+    pm_volume: toNumber(row.pm_volume),
     latest_news_at: row.latest_news_at || null,
     news_source: row.news_source || 'none',
     earnings_date: row.earnings_date || null,
@@ -91,6 +200,36 @@ function normalizeScreenerRow(row) {
     state: row.state || SIGNAL_STATES.DEAD,
     early_signal: Boolean(row.early_signal),
   };
+}
+
+function passesScreenerQualityGate(row) {
+  const price = toNumber(row?.price);
+  const changePercent = toNumber(row?.change_percent);
+  const volume = toNumber(row?.volume);
+  const avgVolume30d = toNumber(row?.avg_volume_30d);
+
+  if (price === null || price <= 0) {
+    return false;
+  }
+
+  if (volume === null || volume <= 0) {
+    return false;
+  }
+
+  if (avgVolume30d === null || avgVolume30d <= 0) {
+    return false;
+  }
+
+  if (changePercent === null || Math.abs(changePercent) >= 100) {
+    return false;
+  }
+
+  const previousClose = price / (1 + (changePercent / 100));
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    return false;
+  }
+
+  return true;
 }
 
 function deriveInstrumentType(profile = {}) {
@@ -145,6 +284,14 @@ function chunkArray(items, chunkSize) {
   return chunks;
 }
 
+function shouldSkipNewsEnrichment(options = {}) {
+  if (options.skipNewsEnrichment === undefined) {
+    return SCREENER_SKIP_NEWS_ENRICHMENT;
+  }
+
+  return Boolean(options.skipNewsEnrichment);
+}
+
 async function fetchAllMarketQuotes() {
   const rows = [];
   let offset = 0;
@@ -152,7 +299,7 @@ async function fetchAllMarketQuotes() {
   while (true) {
     const result = await supabaseAdmin
       .from('market_quotes')
-      .select('symbol, price, change_percent, volume, relative_volume, sector, updated_at')
+      .select('symbol, price, change_percent, volume, relative_volume, sector, updated_at, premarket_volume, previous_close')
       .gt('price', 0)
       .gt('volume', 0)
       .order('volume', { ascending: false })
@@ -199,22 +346,22 @@ async function fetchDailyTechnicalRows(symbols) {
     const result = await queryWithTimeout(
       `WITH target_symbols AS (
          SELECT UNNEST($1::text[]) AS symbol
-       ),
-       ranked AS (
-         SELECT d.symbol,
-                d.date::text AS date,
-                d.close::numeric AS close,
-                ROW_NUMBER() OVER (PARTITION BY d.symbol ORDER BY d.date DESC) AS rn
-         FROM daily_ohlc d
-         JOIN target_symbols t ON t.symbol = d.symbol
        )
-       SELECT symbol, date, close
-       FROM ranked
-       WHERE rn <= $2
-       ORDER BY symbol ASC, date ASC`,
+       SELECT t.symbol,
+              d.date::text AS date,
+              d.close::numeric AS close
+       FROM target_symbols t
+       JOIN LATERAL (
+         SELECT date, close
+         FROM daily_ohlc
+         WHERE symbol = t.symbol
+         ORDER BY date DESC
+         LIMIT $2
+       ) d ON TRUE
+       ORDER BY t.symbol ASC, d.date ASC`,
       [symbolBatch, DAILY_TECHNICAL_LOOKBACK_ROWS],
       {
-        timeoutMs: 20000,
+        timeoutMs: 120000,
         label: 'screener.daily_technicals',
         maxRetries: 0,
         poolType: 'read',
@@ -1110,6 +1257,7 @@ async function getScreenerRows(options = {}) {
   }
 
   const startedAt = Date.now();
+  const skipNewsEnrichment = shouldSkipNewsEnrichment(options);
 
   const previousRowMap = getLatestSnapshotRowMap(options.previousRows);
   const snapshotTimestamp = options.snapshotTimestamp || new Date().toISOString();
@@ -1123,6 +1271,8 @@ async function getScreenerRows(options = {}) {
     relative_volume: row.relative_volume,
     sector: row.sector,
     updated_at: row.updated_at,
+    premarket_volume: row.premarket_volume,
+    previous_close: row.previous_close,
   })));
 
   console.log('[SCREENER_V2] Universe size:', quoteRows.length);
@@ -1153,7 +1303,7 @@ async function getScreenerRows(options = {}) {
     fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
       const result = await supabaseAdmin
         .from('market_metrics')
-        .select('symbol, price, change_percent, volume, gap_percent, relative_volume, updated_at, last_updated, vwap')
+        .select('symbol, price, change_percent, volume, gap_percent, relative_volume, avg_volume_30d, updated_at, last_updated, vwap, previous_close')
         .in('symbol', symbolBatch);
 
       if (result.error) {
@@ -1177,7 +1327,7 @@ async function getScreenerRows(options = {}) {
     fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
       const result = await supabaseAdmin
         .from('ticker_universe')
-        .select('symbol, sector')
+        .select('symbol, company_name, sector, industry, exchange')
         .in('symbol', symbolBatch);
 
       if (result.error) {
@@ -1244,32 +1394,79 @@ async function getScreenerRows(options = {}) {
       const vwapPosition = resolveVwapPosition(price, vwap);
       const momentum = resolveMomentum(dailyTechnicals);
       const coverageScore = toNumber(coverageStatus.coverage_score) ?? 0;
+      const avgVolume30d = toNumber(metrics.avg_volume_30d);
+      const companyName = profile.company_name ?? universe.company_name ?? null;
+      const industry = profile.industry ?? universe.industry ?? null;
+      const exchange = profile.exchange ?? universe.exchange ?? null;
+      const hasNews = Boolean(coverageStatus.has_news);
+      const hasEarnings = Boolean(coverageStatus.has_earnings);
+      const effectiveGapPercent = resolveGapPercent({
+        price,
+        previousClose: quote.previous_close ?? metrics.previous_close ?? null,
+        gapPercent: stocksInPlay.gap_percent ?? metrics.gap_percent ?? null,
+      });
+      const premarketActive = isPremarketSession(new Date(snapshotTimestamp));
+      const preMarketPrice = premarketActive ? price : null;
+      const preMarketChange = premarketActive ? (quote.change_percent ?? metrics.change_percent ?? null) : null;
+      const preMarketVolume = premarketActive
+        ? (quote.premarket_volume ?? quote.volume ?? metrics.volume ?? null)
+        : null;
+
+      if (!passesScreenerQualityGate({
+        price,
+        change_percent: quote.change_percent ?? metrics.change_percent ?? null,
+        volume: quote.volume ?? metrics.volume ?? null,
+        avg_volume_30d: avgVolume30d,
+      })) {
+        return null;
+      }
+
+      if (isSpacOrShell({
+        companyName,
+        industry,
+        changePercent: quote.change_percent ?? metrics.change_percent ?? null,
+        volume: quote.volume ?? metrics.volume ?? null,
+        hasNews,
+        hasEarnings,
+      })) {
+        return null;
+      }
 
       return normalizeScreenerRow({
         symbol,
+        name: companyName,
+        company_name: companyName,
+        industry,
         price,
         change_percent: quote.change_percent ?? metrics.change_percent ?? null,
         volume: quote.volume ?? metrics.volume ?? null,
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
-        gap_percent: stocksInPlay.gap_percent ?? metrics.gap_percent ?? null,
+        gap_percent: effectiveGapPercent,
+        gapPercent: effectiveGapPercent,
+        preMarketPrice,
+        preMarketChange,
+        preMarketVolume,
+        pm_change: preMarketChange,
+        pm_volume: preMarketVolume,
         latest_news_at: null,
         news_source: 'none',
         earnings_date: null,
         earnings_source: 'none',
-        sector: quote.sector ?? universe.sector ?? profile.sector ?? null,
-        exchange: profile.exchange ?? null,
-        instrument_type: deriveInstrumentType(profile),
+        sector: resolveSector(symbol, quote.sector, universe.sector, profile.sector),
+        exchange,
+        instrument_type: deriveInstrumentType({ ...universe, ...profile }),
         updated_at: quote.updated_at ?? metrics.updated_at ?? metrics.last_updated ?? stocksInPlay.detected_at ?? null,
         trend,
         vwap_position: vwapPosition,
         momentum,
         coverage_score: coverageScore,
-        has_news: Boolean(coverageStatus.has_news),
-        has_earnings: Boolean(coverageStatus.has_earnings),
+        has_news: hasNews,
+        has_earnings: hasEarnings,
         has_technicals: Boolean(coverageStatus.has_technicals),
         tradeable: coverageScore >= 60,
       });
     })
+    .filter(Boolean)
     .filter((row) => row.symbol && row.price !== null && row.price > 0 && row.volume !== null && row.volume > 0)
     .sort((left, right) => {
       const rightRvol = right.rvol ?? -1;
@@ -1283,12 +1480,17 @@ async function getScreenerRows(options = {}) {
     });
 
   const coreSymbols = coreRows.map((row) => row.symbol).filter(Boolean);
-  const [latestNewsBySymbol, recentNewsBySymbol, earningsBySymbol, dbEarningsBySymbol] = await Promise.all([
-    fetchLatestNewsBySymbol(coreSymbols),
-    fetchRecentNewsContext(coreSymbols),
-    fetchEarningsBySymbol(coreSymbols),
-    fetchDbEarningsContext(coreSymbols),
-  ]);
+  const [latestNewsBySymbol, recentNewsBySymbol, earningsBySymbol, dbEarningsBySymbol] = skipNewsEnrichment
+    ? [new Map(), new Map(), ...await Promise.all([
+      fetchEarningsBySymbol(coreSymbols),
+      fetchDbEarningsContext(coreSymbols),
+    ])]
+    : await Promise.all([
+      fetchLatestNewsBySymbol(coreSymbols),
+      fetchRecentNewsContext(coreSymbols),
+      fetchEarningsBySymbol(coreSymbols),
+      fetchDbEarningsContext(coreSymbols),
+    ]);
 
   const enrichedRows = coreRows.map((row) => {
     if (!row.symbol) {
@@ -1414,6 +1616,7 @@ async function getScreenerRows(options = {}) {
   console.log('[SCREENER_V2] fallback sources', {
     raw_universe_size: quoteRows.length,
     final_scored_size: rows.length,
+    news_enrichment_skipped: skipNewsEnrichment,
     news: newsSourceCounts,
     earnings: earningsSourceCounts,
     earnings_sources_summary: earningsSourceCounts,
@@ -1435,6 +1638,7 @@ async function getScreenerRows(options = {}) {
         raw_universe_size: quoteRows.length,
         final_scored_size: rows.length,
         returned_rows: rows.length,
+        news_enrichment_skipped: skipNewsEnrichment,
         total_ms: Date.now() - startedAt,
       },
       macroContext,
@@ -1449,6 +1653,7 @@ async function getScreenerRows(options = {}) {
       raw_universe_size: quoteRows.length,
       final_scored_size: fallbackRows.length,
       returned_rows: fallbackRows.length,
+      news_enrichment_skipped: skipNewsEnrichment,
       total_ms: Date.now() - startedAt,
     },
     macroContext: await buildMacroContext({ topMovers: fallbackRows, recentNewsBySymbol: new Map() }).catch(() => ({

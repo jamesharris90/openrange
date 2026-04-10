@@ -50,6 +50,10 @@ function getWarmupPayload() {
   return { status: 'warming_up' };
 }
 
+function shouldSkipSnapshotNewsEnrichment() {
+  return /^(1|true|yes)$/i.test(String(process.env.SCREENER_SKIP_NEWS_ENRICHMENT || ''));
+}
+
 function toAgeSeconds(timestamp) {
   if (!timestamp) {
     return null;
@@ -297,9 +301,11 @@ async function buildSnapshotPayload(previousSnapshot = null) {
   const previousRows = Array.isArray(previousSnapshot?.data?.screener?.data)
     ? previousSnapshot.data.screener.data
     : [];
+  const skipNewsEnrichment = shouldSkipSnapshotNewsEnrichment();
   const screenerResult = await getScreenerRows({
     previousRows,
     snapshotTimestamp: new Date().toISOString(),
+    skipNewsEnrichment,
   });
   const screenerPayload = {
     success: true,
@@ -307,7 +313,10 @@ async function buildSnapshotPayload(previousSnapshot = null) {
     total: screenerResult.rows.length,
     fallbackUsed: screenerResult.fallbackUsed,
     macro_context: screenerResult.macroContext,
-    meta: screenerResult.meta || null,
+    meta: {
+      ...(screenerResult.meta || {}),
+      news_enrichment_skipped: skipNewsEnrichment,
+    },
     data: screenerResult.rows,
   };
 
