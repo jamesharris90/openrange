@@ -368,20 +368,61 @@ async function retryCoverageSection(symbol, section) {
 }
 
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
-  const result = await queryWithTimeout(
-    `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count, last_news_at, last_earnings_at, coverage_score, last_checked
+  const directTableSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count, last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage
      WHERE UPPER(symbol) = UPPER($1)
-     LIMIT 1`,
-    [symbol],
-    {
+     LIMIT 1`;
+  const countFallbackSql = `SELECT
+       UPPER($1) AS symbol,
+       coverage.news_count,
+       coverage.earnings_count,
+       coverage.daily_count,
+       coverage.last_news_at,
+       coverage.last_earnings_at,
+       (coverage.news_count > 0) AS has_news,
+       (coverage.earnings_count > 0) AS has_earnings,
+       (coverage.daily_count > 0) AS has_technicals,
+       CASE
+         WHEN coverage.news_count > 0 AND coverage.earnings_count > 0 AND coverage.daily_count > 0 THEN 100
+         ELSE ((CASE WHEN coverage.news_count > 0 THEN 34 ELSE 0 END)
+           + (CASE WHEN coverage.earnings_count > 0 THEN 33 ELSE 0 END)
+           + (CASE WHEN coverage.daily_count > 0 THEN 33 ELSE 0 END))
+       END AS coverage_score,
+       NOW() AS last_checked
+     FROM (
+       SELECT
+         (SELECT COUNT(*)::int FROM news_articles WHERE UPPER(symbol) = UPPER($1)) AS news_count,
+         (SELECT COUNT(*)::int FROM earnings_history WHERE UPPER(symbol) = UPPER($1)) AS earnings_count,
+         (SELECT COUNT(*)::int FROM daily_ohlcv WHERE UPPER(symbol) = UPPER($1)) AS daily_count,
+         (SELECT MAX(published_at) FROM news_articles WHERE UPPER(symbol) = UPPER($1)) AS last_news_at,
+         (SELECT MAX(report_date) FROM earnings_history WHERE UPPER(symbol) = UPPER($1)) AS last_earnings_at
+     ) AS coverage`;
+  const rawPool = global[Symbol.for('openrange.db.pool.singleton')]?.rawPool;
+  const runDirectQuery = async (sql, label) => (rawPool
+    ? rawPool.query(sql, [symbol])
+    : queryWithTimeout(sql, [symbol], {
       timeoutMs,
-      label: 'research.coverage_direct',
+      label,
       maxRetries: 0,
-    }
-  );
+    }));
+
+  const directResult = await runDirectQuery(directTableSql, 'research.coverage_direct_row');
+  if (directResult.rows?.[0]) {
+    return directResult.rows[0];
+  }
+
+  const result = await runDirectQuery(countFallbackSql, 'research.coverage_direct_counts');
 
   return result.rows?.[0] || null;
+}
+
+function shouldCacheFullResearchResponse(response) {
+  const meta = response?.meta || {};
+  return !meta.partial && (!Array.isArray(meta.degraded_sections) || meta.degraded_sections.length === 0);
+}
+
+function clearResearchRouteCaches() {
+  fullResponseCache.clear();
 }
 
 function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {
@@ -885,8 +926,26 @@ router.get('/:symbol/full', async (req, res) => {
       scannerSourcesPromise,
     ]);
     const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
+    let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+    let effectiveCoverageSection = coverageSection;
+    if (coverage.coverage_score === 0) {
+      const directCoverageSection = await loadResearchSection(
+        'coverage_direct',
+        () => loadDirectCoverageRow(symbol, 1500),
+        null,
+        1500,
+      );
 
-    const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+      if (directCoverageSection.value) {
+        effectiveCoverageSection = {
+          ...directCoverageSection,
+          section: 'coverage',
+          ok: true,
+          value: new Map([[symbol, directCoverageSection.value]]),
+        };
+        coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
+      }
+    }
     const enrichedHistory = calculateDrift(buildEarningsIntelligence(payload.earnings?.history || []));
     const earningsInsight = buildEarningsInsight({
       earnings: {
@@ -970,17 +1029,17 @@ router.get('/:symbol/full', async (req, res) => {
         ...(response.meta || {}),
         partial: [
           ...(response.meta?.degraded_sections || []),
-          ...[indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
+          ...[indicatorsSection, effectiveCoverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
         ].length > 0,
         lazy_sections: ['earnings', 'fundamentals', 'scanner'],
         degraded_sections: [
           ...(response.meta?.degraded_sections || []),
-          ...[indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
+          ...[indicatorsSection, effectiveCoverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
         ],
         section_status: {
           ...(response.meta?.section_status || {}),
           indicators: { ok: indicatorsSection.ok, timed_out: indicatorsSection.timedOut, error: indicatorsSection.error, duration_ms: indicatorsSection.duration_ms },
-          coverage: { ok: coverageSection.ok, timed_out: coverageSection.timedOut, error: coverageSection.error, duration_ms: coverageSection.duration_ms },
+          coverage: { ok: effectiveCoverageSection.ok, timed_out: effectiveCoverageSection.timedOut, error: effectiveCoverageSection.error, duration_ms: effectiveCoverageSection.duration_ms },
           score: { ok: scoreRowsSection.ok, timed_out: scoreRowsSection.timedOut, error: scoreRowsSection.error, duration_ms: scoreRowsSection.duration_ms },
           scanner_sources: { ok: scannerSourcesSection.ok, timed_out: scannerSourcesSection.timedOut, error: scannerSourcesSection.error, duration_ms: scannerSourcesSection.duration_ms },
         },
@@ -1000,10 +1059,12 @@ router.get('/:symbol/full', async (req, res) => {
     };
   }
 
-  fullResponseCache.set(symbol, {
-    data: response,
-    timestamp: Date.now(),
-  });
+  if (shouldCacheFullResearchResponse(response)) {
+    fullResponseCache.set(symbol, {
+      data: response,
+      timestamp: Date.now(),
+    });
+  }
 
   return res.json(response);
 });
@@ -1064,24 +1125,21 @@ router.get('/:symbol', async (req, res) => {
   let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
   let effectiveCoverageSection = coverageSection;
   if (coverage.coverage_score === 0) {
-    const directCoverageBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
-    if (directCoverageBudgetMs > 0) {
-      const directCoverageSection = await loadResearchSection(
-        'coverage_direct',
-        () => loadDirectCoverageRow(symbol, Math.min(1500, directCoverageBudgetMs)),
-        null,
-        Math.min(1500, directCoverageBudgetMs),
-      );
+    const directCoverageSection = await loadResearchSection(
+      'coverage_direct',
+      () => loadDirectCoverageRow(symbol, 1500),
+      null,
+      1500,
+    );
 
-      if (directCoverageSection.value) {
-        effectiveCoverageSection = {
-          ...directCoverageSection,
-          section: 'coverage',
-          ok: true,
-          value: new Map([[symbol, directCoverageSection.value]]),
-        };
-        coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
-      }
+    if (directCoverageSection.value) {
+      effectiveCoverageSection = {
+        ...directCoverageSection,
+        section: 'coverage',
+        ok: true,
+        value: new Map([[symbol, directCoverageSection.value]]),
+      };
+      coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
     }
   }
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
@@ -1143,3 +1201,4 @@ router.get('/:symbol', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.clearResearchRouteCaches = clearResearchRouteCaches;

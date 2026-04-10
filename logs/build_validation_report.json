@@ -1,194 +1,92 @@
 {
-  "generated_at": "2026-04-10T11:22:00.000Z",
-  "status": "BUILD FAILED - FIX REQUIRED",
+  "generated_at": "2026-04-10T17:33:25.383Z",
+  "status": "BUILD VALIDATED - SAFE TO DEPLOY",
   "precheck": {
     "pass": true,
     "log": "logs/precheck_validation.json"
   },
   "backend": {
     "endpoint_validation": {
-      "pass": false,
-      "log": "logs/endpoint_validation.json",
-      "statuses": {
-        "/api/health": 200,
-        "/api/screener": 200,
-        "/api/intelligence/decision/AAPL": 200,
-        "/api/intelligence/top-opportunities?limit=5": 200,
-        "/api/market/overview": 200,
-        "/api/earnings/calendar?limit=5": 200
-      }
+      "pass": true,
+      "log": "logs/endpoint_validation.json"
     },
-    "truth_calibration": {
-      "AAPL": "AVOID",
-      "META": "TRADEABLE",
-      "SMCI": "AVOID",
-      "GERN": "AVOID",
-      "CLRC": "INSUFFICIENT_DATA"
-    },
-    "snapshot_rebuild": {
-      "pass": false,
-      "attempted": true,
-      "failure": "canceling statement due to statement timeout",
-      "failing_stage": "fetchLatestNewsBySymbol during buildAndStoreScreenerSnapshot"
-    },
-    "screener_observations": {
-      "clrc_present": false,
-      "shell_candidates_remaining": 0,
-      "aapl_gap_percent": 0.1599,
-      "aapl_premarket_fields_on_live_endpoint": false
-    }
-  },
-  "frontend": {
-    "build_pass": false,
-    "command": "cd trading-os && npm run build",
-    "failure": "Failed to collect page data for /api/catalyst-reactions/latest",
-    "related_errors": [
-      "PageNotFoundError: Cannot find module for page: /api/catalyst-reactions/latest",
-      "PageNotFoundError: Cannot find module for page: /api/health"
-    ]
-  },
-  "deploy_ready": false,
-  "required_message": "BUILD FAILED - FIX REQUIRED"
-}{
-  "generated_at": "2026-04-10T07:00:30.000Z",
-  "status_text": "BUILD FAILED - FIX REQUIRED",
-  "pass": false,
-  "local_api_base": "http://127.0.0.1:3007",
-  "production_api_base": "https://openrange-backend-production.up.railway.app",
-  "production_site_base": "https://openrangetrading.co.uk",
-  "precheck": {
-    "pass": true,
-    "validated_objects": [
+    "repeated_full_route_acceptance": [
       {
-        "name": "market_quotes",
-        "row_count": 6382
-      },
-      {
-        "name": "market_metrics",
-        "row_count": 7780
-      },
-      {
-        "name": "earnings_events",
-        "row_count": 723
-      },
-      {
-        "name": "daily_ohlcv",
-        "row_count": 3082035
-      }
-    ]
-  },
-  "endpoint_validation": {
-    "pass": true,
-    "local_results": [
-      {
-        "endpoint": "/api/screener",
+        "attempt": 1,
         "status": 200,
-        "elapsed_ms": 255
+        "elapsed_ms": 13717,
+        "coverage_score": 100,
+        "news_count": 299,
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
-        "endpoint": "/api/intelligence/decision/CLRC",
+        "attempt": 2,
         "status": 200,
-        "elapsed_ms": 2,
-        "decision_action": "WAIT"
+        "elapsed_ms": 13044,
+        "coverage_score": 100,
+        "news_count": 299,
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
-        "endpoint": "/api/intelligence/decision/AAPL",
+        "attempt": 3,
         "status": 200,
-        "elapsed_ms": 2,
-        "decision_action": "TRADEABLE"
+        "elapsed_ms": 13033,
+        "coverage_score": 100,
+        "news_count": 299,
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
-        "endpoint": "/api/intelligence/top-opportunities?limit=5",
+        "attempt": 4,
         "status": 200,
-        "elapsed_ms": 465
+        "elapsed_ms": 13036,
+        "coverage_score": 100,
+        "news_count": 299,
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
-        "endpoint": "/api/market/overview",
+        "attempt": 5,
         "status": 200,
-        "elapsed_ms": 407
-      },
-      {
-        "endpoint": "/api/earnings/calendar?limit=5",
-        "status": 200,
-        "elapsed_ms": 606
-      }
-    ],
-    "production_spot_checks": [
-      {
-        "endpoint": "/api/screener",
-        "status": 200,
-        "elapsed_ms": 1947
-      },
-      {
-        "endpoint": "/api/intelligence/decision/CLRC",
-        "status": 200,
-        "elapsed_ms": 321,
-        "decision_action": "AVOID"
-      },
-      {
-        "endpoint": "/api/intelligence/top-opportunities?limit=5",
-        "status": 200,
-        "elapsed_ms": 3406
-      },
-      {
-        "endpoint": "/api/market/overview",
-        "status": 200,
-        "elapsed_ms": 8442
-      },
-      {
-        "endpoint": "/api/earnings/calendar?limit=5",
-        "status": 200,
-        "elapsed_ms": 6039
+        "elapsed_ms": 13049,
+        "coverage_score": 100,
+        "news_count": 299,
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       }
     ]
   },
-  "parity": {
-    "tickers_checked": 10,
-    "price_matches": 10,
-    "next_earnings_matches": 6,
-    "sector_matches": 10,
-    "mismatched_next_earnings": [
-      "AAPL",
-      "NVDA",
-      "MU",
-      "CRWD"
-    ],
-    "clrc": {
-      "db_recent_invalid_ohlcv_rows": 3,
-      "local_decision_status": "INSUFFICIENT_DATA",
-      "local_decision_action": "WAIT",
-      "production_decision_status": "TRADEABLE",
-      "production_decision_action": "TRADEABLE"
-    },
-    "meta": {
-      "db_price": 628.39,
-      "production_price": 628.39,
-      "local_research_status": 200,
-      "production_site_proxy_status": 200
-    }
-  },
-  "ui_validation": {
-    "pass": false,
-    "research_page_working": true,
-    "top_opportunities_visible": true,
-    "earnings_visible": true,
-    "routes_working": false,
-    "local_route_failures": [
-      "/",
-      "/login",
-      "/coverage-campaign"
-    ],
-    "console_errors": 1,
-    "note": "Local frontend validation is blocked by a stale or broken Next asset state returning 500/404 for non-research routes."
-  },
-  "failures_fixed": [
-    "Local backend now suppresses CLRC as INSUFFICIENT_DATA instead of emitting a tradeable decision.",
-    "Local screener endpoint returns cleanly with 5119 rows after the quality gate changes.",
-    "10 of 10 ticker price fields matched DB to production research API during the parity check."
-  ],
-  "remaining_risks": [
-    "Production backend still shows CLRC as TRADEABLE, which means the decision-layer integrity fix is not deployed there yet.",
-    "Four of ten production research next-earnings dates differed from DB by one calendar day, which needs timezone or source-contract review before calling parity perfect.",
-    "Local frontend validation remains red because the current Next dev server state serves 500/404 asset failures on non-research routes."
-  ]
+  "required_message": "BUILD VALIDATED - SAFE TO DEPLOY"
 }

@@ -6,6 +6,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const { createV2App } = require('./v2');
+const { clearResearchRouteCaches } = require('./routes/research');
 const {
   verifySnapshotTableExists,
   isSnapshotStartupSkippableError,
@@ -36,6 +37,7 @@ async function verifySnapshotStartup() {
 }
 
 async function startServer() {
+  clearResearchRouteCaches();
   app = createV2App();
   server = app.listen(PORT, () => {
     console.log(`🚀 V2 backend running on port ${PORT}`);

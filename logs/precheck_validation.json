@@ -1,41 +1,66 @@
 {
-  "generated_at": "2026-04-10T09:56:40.811Z",
-  "pass": true,
-  "tables": {
-    "daily_ohlcv": {
+  "ok": true,
+  "checked_at": "2026-04-10T17:31:46.499Z",
+  "tables": [
+    {
+      "table": "news_articles",
       "exists": true,
-      "row_count": 3082035,
-      "missing_columns": []
+      "columns": {
+        "id": true,
+        "symbol": true,
+        "headline": true,
+        "published_at": true
+      },
+      "symbol_counts": {
+        "AAPL": 8421,
+        "INTC": 489,
+        "NVDA": 7800
+      }
     },
-    "intraday_1m": {
+    {
+      "table": "earnings_history",
       "exists": true,
-      "row_count": 3375290,
-      "missing_columns": []
+      "columns": {
+        "symbol": true,
+        "report_date": true,
+        "eps_actual": true,
+        "eps_estimate": true
+      },
+      "symbol_counts": {
+        "AAPL": 8,
+        "INTC": 8,
+        "NVDA": 8
+      }
     },
-    "market_quotes": {
+    {
+      "table": "daily_ohlcv",
       "exists": true,
-      "row_count": 6452,
-      "missing_columns": []
+      "columns": {
+        "symbol": true,
+        "date": true,
+        "close": true
+      },
+      "symbol_counts": {
+        "AAPL": 1287,
+        "INTC": 530,
+        "NVDA": 1287
+      }
     },
-    "market_metrics": {
+    {
+      "table": "data_coverage",
       "exists": true,
-      "row_count": 7843,
-      "missing_columns": []
-    },
-    "ticker_universe": {
-      "exists": true,
-      "row_count": 6019,
-      "missing_columns": []
-    },
-    "company_profiles": {
-      "exists": true,
-      "row_count": 3428,
-      "missing_columns": []
-    },
-    "screener_snapshots": {
-      "exists": true,
-      "row_count": 55,
-      "missing_columns": []
+      "columns": {
+        "symbol": true,
+        "coverage_score": true,
+        "has_news": true,
+        "has_earnings": true,
+        "has_technicals": true
+      },
+      "symbol_counts": {
+        "AAPL": 1,
+        "INTC": 1,
+        "NVDA": 1
+      }
     }
-  }
+  ]
 }
