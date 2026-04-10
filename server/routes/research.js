@@ -15,7 +15,6 @@ const {
 const { buildTruthDecisionFromPayload } = require('../services/truthEngine');
 const { buildEarningsEdge: buildEarningsEdgeEngine } = require('../engines/earningsEdgeEngine');
 const { getIndicators, getDailyTechnicalSummary, emptyIndicators } = require('../engines/indicatorEngine');
-const { getCoverageStatusBySymbols } = require('../v2/services/coverageEngine');
 const { getLatestScreenerPayload } = require('../v2/services/snapshotService');
 const { computeDataConfidence, applyDataConfidenceGuard } = require('../services/dataConfidenceService');
 const {
@@ -32,6 +31,7 @@ const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverage
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
 const RESEARCH_SECTION_TIMEOUT_MS = 5000;
 const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
+const RESEARCH_COVERAGE_TIMEOUT_MS = 15000;
 
 const EMPTY_SCANNER_PAYLOAD = {
   momentum_flow: {
@@ -357,19 +357,6 @@ async function loadDecisionSection(symbol, payload, dataConfidence, timeoutMs = 
   return section.value || buildResearchFallbackDecision(symbol, dataConfidence);
 }
 
-async function retryCoverageSection(symbol, section) {
-  if (section?.ok) {
-    return section;
-  }
-
-  return loadResearchSection(
-    'coverage',
-    () => getCoverageStatusBySymbols([symbol]),
-    null,
-    RESEARCH_SECTION_TIMEOUT_MS,
-  );
-}
-
 function buildDirectSupabaseUrl(dbUrl) {
   try {
     const parsed = new URL(dbUrl);
@@ -430,7 +417,7 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
   try {
     const client = await getDirectCoverageClient(timeoutMs);
     return await client.query(sql, [symbol]);
-  } catch (error) {
+  } catch (_error) {
     if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
       try {
         await global[DIRECT_COVERAGE_CLIENT_KEY].client.end();
@@ -449,70 +436,51 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
 }
 
 async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_TIMEOUT_MS) {
-  const directSection = await loadResearchSection(
-    'coverage_direct',
-    () => loadDirectCoverageRow(symbol, Math.min(1500, timeoutMs)),
-    null,
-    Math.min(1500, timeoutMs),
-  );
-
-  if (directSection.value) {
-    return {
-      ...directSection,
-      section: 'coverage',
-      ok: true,
-      value: new Map([[symbol, directSection.value]]),
-    };
-  }
-
-  const engineSection = await loadResearchSection(
+  const effectiveTimeoutMs = Math.max(RESEARCH_COVERAGE_TIMEOUT_MS, timeoutMs);
+  return loadResearchSection(
     'coverage',
-    () => getCoverageStatusBySymbols([symbol]),
+    async () => {
+      const row = await loadDirectCoverageRow(symbol, effectiveTimeoutMs);
+      return new Map([[symbol, row]]);
+    },
     null,
-    timeoutMs,
+    effectiveTimeoutMs,
   );
-
-  return retryCoverageSection(symbol, engineSection);
 }
 
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
-  const directTableSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count, last_news_at, last_earnings_at, coverage_score, last_checked
-     FROM data_coverage
-     WHERE UPPER(symbol) = UPPER($1)
-     LIMIT 1`;
-  const countFallbackSql = `SELECT
+  const countSql = `SELECT
        UPPER($1) AS symbol,
-       coverage.news_count,
-       coverage.earnings_count,
-       coverage.daily_count,
-       coverage.last_news_at,
-       coverage.last_earnings_at,
-       (coverage.news_count > 0) AS has_news,
-       (coverage.earnings_count > 0) AS has_earnings,
-       (coverage.daily_count > 0) AS has_technicals,
-       CASE
-         WHEN coverage.news_count > 0 AND coverage.earnings_count > 0 AND coverage.daily_count > 0 THEN 100
-         ELSE ((CASE WHEN coverage.news_count > 0 THEN 34 ELSE 0 END)
-           + (CASE WHEN coverage.earnings_count > 0 THEN 33 ELSE 0 END)
-           + (CASE WHEN coverage.daily_count > 0 THEN 33 ELSE 0 END))
-       END AS coverage_score,
-       NOW() AS last_checked
-     FROM (
-       SELECT
-         (SELECT COUNT(*)::int FROM news_articles WHERE UPPER(symbol) = UPPER($1)) AS news_count,
-         (SELECT COUNT(*)::int FROM earnings_history WHERE UPPER(symbol) = UPPER($1)) AS earnings_count,
-         (SELECT COUNT(*)::int FROM daily_ohlcv WHERE UPPER(symbol) = UPPER($1)) AS daily_count,
-         (SELECT MAX(published_at) FROM news_articles WHERE UPPER(symbol) = UPPER($1)) AS last_news_at,
-         (SELECT MAX(report_date) FROM earnings_history WHERE UPPER(symbol) = UPPER($1)) AS last_earnings_at
-     ) AS coverage`;
-  const directResult = await runDirectCoverageQuery(directTableSql, symbol, timeoutMs, 'research.coverage_direct_row');
-  if (directResult.rows?.[0]) {
-    return directResult.rows[0];
+  (SELECT COUNT(*)::int FROM news_articles WHERE symbol = $1) AS news_count,
+  (SELECT COUNT(*)::int FROM earnings_history WHERE symbol = $1) AS earnings_count,
+  (SELECT COUNT(*)::int FROM daily_ohlcv WHERE symbol = $1) AS daily_count`;
+  const result = await runDirectCoverageQuery(countSql, symbol, timeoutMs, 'research.coverage_counts');
+  const row = result.rows?.[0] || null;
+  if (!row) {
+    return null;
   }
 
-  const result = await runDirectCoverageQuery(countFallbackSql, symbol, timeoutMs, 'research.coverage_direct_counts');
+  const newsCount = Number(row.news_count || 0);
+  const earningsCount = Number(row.earnings_count || 0);
+  const dailyCount = Number(row.daily_count || 0);
+  const coverageScore = (newsCount > 0 ? 20 : 0)
+    + (earningsCount > 0 ? 20 : 0)
+    + (dailyCount > 0 ? 40 : 0)
+    + 20;
 
-  return result.rows?.[0] || null;
+  return {
+    symbol,
+    has_news: newsCount > 0,
+    has_earnings: earningsCount > 0,
+    has_technicals: dailyCount > 0,
+    news_count: newsCount,
+    earnings_count: earningsCount,
+    daily_count: dailyCount,
+    last_news_at: null,
+    last_earnings_at: null,
+    coverage_score: coverageScore,
+    last_checked: new Date().toISOString(),
+  };
 }
 
 function shouldCacheFullResearchResponse(response) {
@@ -1018,33 +986,14 @@ router.get('/:symbol/full', async (req, res) => {
   };
 
   try {
-    const [indicatorsSection, initialCoverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
+    const [indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
       indicatorsPromise,
       coveragePromise,
       scoreRowsPromise,
       scannerSourcesPromise,
     ]);
-    const coverageSection = initialCoverageSection;
-    let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
-    let effectiveCoverageSection = coverageSection;
-    if (coverage.coverage_score === 0) {
-      const directCoverageSection = await loadResearchSection(
-        'coverage_direct',
-        () => loadDirectCoverageRow(symbol, 1500),
-        null,
-        1500,
-      );
-
-      if (directCoverageSection.value) {
-        effectiveCoverageSection = {
-          ...directCoverageSection,
-          section: 'coverage',
-          ok: true,
-          value: new Map([[symbol, directCoverageSection.value]]),
-        };
-        coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
-      }
-    }
+    const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+    const effectiveCoverageSection = coverageSection;
     const enrichedHistory = calculateDrift(buildEarningsIntelligence(payload.earnings?.history || []));
     const earningsInsight = buildEarningsInsight({
       earnings: {
@@ -1186,7 +1135,7 @@ router.get('/:symbol', async (req, res) => {
   const emptyFundamentals = { symbol, trends: [], updated_at: null, source: 'empty' };
   const emptyOwnership = { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' };
   const emptyContext = { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null };
-  const initialCoverageSection = await loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
+  const coveragePromise = loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
   const priceSection = await loadResearchSection('price', () => getPriceData(symbol), emptyPrice, parallelSectionTimeoutMs);
   const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 750);
   const earningsSection = earningsBudgetMs > 0
@@ -1210,7 +1159,7 @@ router.get('/:symbol', async (req, res) => {
     context: { section: 'context', ok: false, timedOut: true, value: emptyContext, duration_ms: 0, error: 'deferred_for_snapshot' },
   };
   const payload = buildResearchPayloadFromSections(symbol, baseSections, startedAt);
-  const coverageSection = initialCoverageSection;
+  const coverageSection = await coveragePromise;
   const indicatorsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
   const indicatorsSection = indicatorsBudgetMs > 0
     ? await loadResearchSection(
@@ -1221,26 +1170,8 @@ router.get('/:symbol', async (req, res) => {
       )
     : { section: 'indicators', ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' };
 
-  let coverage = normalizeCoveragePayload(symbol, coverageSection.value);
-  let effectiveCoverageSection = coverageSection;
-  if (coverage.coverage_score === 0) {
-    const directCoverageSection = await loadResearchSection(
-      'coverage_direct',
-      () => loadDirectCoverageRow(symbol, 1500),
-      null,
-      1500,
-    );
-
-    if (directCoverageSection.value) {
-      effectiveCoverageSection = {
-        ...directCoverageSection,
-        section: 'coverage',
-        ok: true,
-        value: new Map([[symbol, directCoverageSection.value]]),
-      };
-      coverage = normalizeCoveragePayload(symbol, effectiveCoverageSection.value);
-    }
-  }
+  const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
+  const effectiveCoverageSection = coverageSection;
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
   const score = buildScorePayload({ scoreRow: null, coverage, dataConfidence });
   const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);

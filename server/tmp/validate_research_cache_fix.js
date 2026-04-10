@@ -59,10 +59,10 @@ async function readTableInfo(table, columns, symbolColumn) {
 
   const symbolCounts = symbolColumn && exists
     ? await queryWithTimeout(
-      `SELECT UPPER(${symbolColumn}) AS symbol, COUNT(*)::bigint AS count
+      `SELECT ${symbolColumn} AS symbol, COUNT(*)::bigint AS count
        FROM ${table}
-       WHERE UPPER(${symbolColumn}) = ANY($1::text[])
-       GROUP BY UPPER(${symbolColumn})`,
+       WHERE ${symbolColumn} = ANY($1::text[])
+       GROUP BY ${symbolColumn}`,
       [['AAPL', 'INTC', 'NVDA']],
       { timeoutMs: symbolCountTimeoutMs, label: `validation.symbol_counts.${table}`, maxRetries: 0 },
     )
