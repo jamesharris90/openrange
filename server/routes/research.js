@@ -29,6 +29,7 @@ const router = express.Router();
 const fullResponseCache = new Map();
 const coverageSnapshotCache = new Map();
 const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverageClient');
+const DIRECT_COVERAGE_DISABLED_KEY = Symbol.for('openrange.research.directCoverageDisabled');
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
 const RESEARCH_SECTION_TIMEOUT_MS = 5000;
 const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
@@ -378,6 +379,10 @@ function buildDirectSupabaseUrl(dbUrl) {
 }
 
 async function getDirectCoverageClient(timeoutMs) {
+  if (global[DIRECT_COVERAGE_DISABLED_KEY]) {
+    return null;
+  }
+
   if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
     return global[DIRECT_COVERAGE_CLIENT_KEY].client;
   }
@@ -418,8 +423,15 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
   const params = typeof symbol === 'undefined' ? [] : [symbol];
   try {
     const client = await getDirectCoverageClient(timeoutMs);
+    if (!client) {
+      throw new Error('direct_coverage_disabled');
+    }
     return await client.query(sql, params);
-  } catch (_error) {
+  } catch (error) {
+    if (String(error?.message || '').includes('ENETUNREACH')) {
+      global[DIRECT_COVERAGE_DISABLED_KEY] = true;
+    }
+
     if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
       try {
         await global[DIRECT_COVERAGE_CLIENT_KEY].client.end();
@@ -461,7 +473,11 @@ async function refreshCoverageSnapshotCache(timeoutMs = 10000) {
        CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
        last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage`;
-  const result = await runDirectCoverageQuery(snapshotCacheSql, undefined, timeoutMs, 'research.coverage_snapshot_cache');
+  const result = await queryWithTimeout(snapshotCacheSql, [], {
+    timeoutMs,
+    label: 'research.coverage_snapshot_cache',
+    maxRetries: 0,
+  });
   for (const row of result.rows || []) {
     cacheCoverageSnapshotRow(row);
   }
@@ -556,8 +572,19 @@ async function warmResearchRouteResources() {
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      const client = await getDirectCoverageClient(10000);
-      await client.query('SELECT 1');
+      try {
+        const client = await getDirectCoverageClient(10000);
+        if (client) {
+          await client.query('SELECT 1');
+        }
+      } catch (error) {
+        if (String(error?.message || '').includes('ENETUNREACH')) {
+          global[DIRECT_COVERAGE_DISABLED_KEY] = true;
+        } else {
+          throw error;
+        }
+      }
+
       await refreshCoverageSnapshotCache(30000);
       return;
     } catch (error) {
