@@ -508,6 +508,11 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
   (SELECT COUNT(*)::int FROM news_articles WHERE symbol = $1) AS news_count,
   (SELECT COUNT(*)::int FROM earnings_history WHERE symbol = $1) AS earnings_count,
   (SELECT COUNT(*)::int FROM daily_ohlcv WHERE symbol = $1) AS daily_count`;
+  const cachedRow = coverageSnapshotCache.get(symbol) || null;
+  if (cachedRow) {
+    return cachedRow;
+  }
+
   const primaryTimeoutMs = Math.max(5000, timeoutMs - 5000);
   const fallbackTimeoutMs = Math.max(2000, timeoutMs - primaryTimeoutMs);
   let row = null;

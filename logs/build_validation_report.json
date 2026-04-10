@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-10T19:11:27.035Z",
+  "generated_at": "2026-04-10T19:17:57.015Z",
   "status": "BUILD VALIDATED - SAFE TO DEPLOY",
   "precheck": {
     "pass": true,
@@ -14,9 +14,9 @@
       {
         "attempt": 1,
         "status": 200,
-        "elapsed_ms": 8005,
+        "elapsed_ms": 8004,
         "coverage_score": 100,
-        "news_count": 490,
+        "news_count": 299,
         "degraded_sections": [
           "price",
           "earnings",
@@ -29,9 +29,9 @@
       {
         "attempt": 2,
         "status": 200,
-        "elapsed_ms": 8005,
+        "elapsed_ms": 8006,
         "coverage_score": 100,
-        "news_count": 490,
+        "news_count": 299,
         "degraded_sections": [
           "price",
           "earnings",
@@ -46,7 +46,7 @@
         "status": 200,
         "elapsed_ms": 8004,
         "coverage_score": 100,
-        "news_count": 490,
+        "news_count": 299,
         "degraded_sections": [
           "price",
           "earnings",
@@ -59,26 +59,23 @@
       {
         "attempt": 4,
         "status": 200,
-        "elapsed_ms": 8005,
+        "elapsed_ms": 7760,
         "coverage_score": 100,
-        "news_count": 490,
+        "news_count": 299,
         "degraded_sections": [
           "price",
           "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
+          "context"
         ],
         "partial": true
       },
       {
         "attempt": 5,
         "status": 200,
-        "elapsed_ms": 7757,
+        "elapsed_ms": 7760,
         "coverage_score": 100,
-        "news_count": 490,
+        "news_count": 299,
         "degraded_sections": [
-          "price",
           "earnings",
           "context"
         ],
