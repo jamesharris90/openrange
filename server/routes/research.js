@@ -27,6 +27,7 @@ const {
 
 const router = express.Router();
 const fullResponseCache = new Map();
+const coverageSnapshotCache = new Map();
 const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverageClient');
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
 const RESEARCH_SECTION_TIMEOUT_MS = 5000;
@@ -414,9 +415,10 @@ async function getDirectCoverageClient(timeoutMs) {
 }
 
 async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
+  const params = typeof symbol === 'undefined' ? [] : [symbol];
   try {
     const client = await getDirectCoverageClient(timeoutMs);
-    return await client.query(sql, [symbol]);
+    return await client.query(sql, params);
   } catch (_error) {
     if (global[DIRECT_COVERAGE_CLIENT_KEY]?.client) {
       try {
@@ -427,11 +429,41 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
       global[DIRECT_COVERAGE_CLIENT_KEY] = null;
     }
 
-    return queryWithTimeout(sql, [symbol], {
+    return queryWithTimeout(sql, params, {
       timeoutMs,
       label,
       maxRetries: 0,
     });
+  }
+}
+
+function cacheCoverageSnapshotRow(row) {
+  const symbol = normalizeSymbol(row?.symbol);
+  if (!symbol) {
+    return;
+  }
+
+  coverageSnapshotCache.set(symbol, {
+    ...row,
+    symbol,
+    news_count: Number(row?.news_count || 0),
+    earnings_count: Number(row?.earnings_count || 0),
+    daily_count: Number(row?.daily_count || 0),
+    coverage_score: Number(row?.coverage_score || 0),
+    has_news: Boolean(row?.has_news),
+    has_earnings: Boolean(row?.has_earnings),
+    has_technicals: Boolean(row?.has_technicals),
+  });
+}
+
+async function refreshCoverageSnapshotCache(timeoutMs = 10000) {
+  const snapshotCacheSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
+       CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
+       last_news_at, last_earnings_at, coverage_score, last_checked
+     FROM data_coverage`;
+  const result = await runDirectCoverageQuery(snapshotCacheSql, undefined, timeoutMs, 'research.coverage_snapshot_cache');
+  for (const row of result.rows || []) {
+    cacheCoverageSnapshotRow(row);
   }
 }
 
@@ -477,8 +509,14 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
   }
 
   if (!row) {
+    row = coverageSnapshotCache.get(symbol) || null;
+  }
+
+  if (!row) {
     return null;
   }
+
+  cacheCoverageSnapshotRow(row);
 
   const newsCount = Number(row.news_count || 0);
   const earningsCount = Number(row.earnings_count || 0);
@@ -510,11 +548,13 @@ function shouldCacheFullResearchResponse(response) {
 
 function clearResearchRouteCaches() {
   fullResponseCache.clear();
+  coverageSnapshotCache.clear();
 }
 
 async function warmResearchRouteResources() {
   const client = await getDirectCoverageClient(5000);
   await client.query('SELECT 1');
+  await refreshCoverageSnapshotCache(10000);
 }
 
 function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {

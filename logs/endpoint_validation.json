@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-10T18:43:35.467Z",
+  "generated_at": "2026-04-10T18:57:31.929Z",
   "base_url": "http://127.0.0.1:3004",
   "pass": true,
   "endpoints": {
@@ -27,7 +27,7 @@
     },
     "market_overview": {
       "status": 200,
-      "status_field": "degraded"
+      "status_field": "ok"
     },
     "earnings_calendar": {
       "status": 200,
@@ -36,54 +36,84 @@
     "research_aapl": {
       "status": 200,
       "coverage_score": 100,
-      "news_count": 8472,
+      "news_count": 8483,
       "earnings_count": 8
     },
     "research_intc_full_repeated": [
       {
         "attempt": 1,
         "status": 200,
-        "elapsed_ms": 5494,
+        "elapsed_ms": 8008,
         "coverage_score": 100,
         "news_count": 490,
-        "degraded_sections": [],
-        "partial": false
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
         "attempt": 2,
         "status": 200,
-        "elapsed_ms": 5,
+        "elapsed_ms": 8005,
         "coverage_score": 100,
         "news_count": 490,
-        "degraded_sections": [],
-        "partial": false
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
         "attempt": 3,
         "status": 200,
-        "elapsed_ms": 5,
+        "elapsed_ms": 8008,
         "coverage_score": 100,
         "news_count": 490,
-        "degraded_sections": [],
-        "partial": false
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
         "attempt": 4,
         "status": 200,
-        "elapsed_ms": 4,
+        "elapsed_ms": 8006,
         "coverage_score": 100,
         "news_count": 490,
-        "degraded_sections": [],
-        "partial": false
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       },
       {
         "attempt": 5,
         "status": 200,
-        "elapsed_ms": 5,
+        "elapsed_ms": 8004,
         "coverage_score": 100,
         "news_count": 490,
-        "degraded_sections": [],
-        "partial": false
+        "degraded_sections": [
+          "price",
+          "earnings",
+          "context",
+          "indicators",
+          "scanner_sources"
+        ],
+        "partial": true
       }
     ]
   }
