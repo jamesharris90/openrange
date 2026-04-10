@@ -441,10 +441,6 @@ async function getNewsFeed(limitOrOptions = 250) {
     ...normalizeSourceRows(intelNewsResult.status === 'fulfilled' ? intelNewsResult.value.rows || [] : [], 'intel_news'),
   ];
 
-  if (mergedRows.length === 0) {
-    throw new Error('Failed to load recent news rows');
-  }
-
   mergedRows.sort((left, right) => {
     const leftTime = left.published_at ? Date.parse(left.published_at) : 0;
     const rightTime = right.published_at ? Date.parse(right.published_at) : 0;
@@ -530,6 +526,9 @@ async function getNewsFeed(limitOrOptions = 250) {
     counts,
     limit: safeLimit,
     offset,
+    degraded: sourceResults
+      .filter((sourceResult) => sourceResult.result.status === 'rejected')
+      .map((sourceResult) => sourceResult.table),
   };
 }
 

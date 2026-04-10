@@ -73,6 +73,38 @@ function keywordBias(headline) {
   return 'NEUTRAL';
 }
 
+function normalizeHeadlineText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function extractCompanyTokens(companyName) {
+  const ignored = new Set(['inc', 'corp', 'corporation', 'company', 'co', 'holdings', 'holding', 'group', 'plc', 'ltd', 'limited', 'class']);
+
+  return normalizeHeadlineText(companyName)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 4 && !ignored.has(token));
+}
+
+function headlineMatchesSymbolContext(symbol, companyName, headline) {
+  const normalizedHeadline = normalizeHeadlineText(headline);
+  if (!normalizedHeadline) {
+    return false;
+  }
+
+  const normalizedSymbol = normalizeSymbol(symbol).toLowerCase();
+  if (normalizedSymbol && normalizedHeadline.includes(normalizedSymbol)) {
+    return true;
+  }
+
+  const companyTokens = extractCompanyTokens(companyName);
+  if (!companyTokens.length) {
+    return false;
+  }
+
+  return companyTokens.some((token) => normalizedHeadline.includes(token));
+}
+
 function scoreHeadlineImpact(headline) {
   const text = String(headline || '').trim();
   if (!text) {
@@ -247,6 +279,8 @@ function nearestEarningsDriver(data) {
 }
 
 function highImpactNewsDriver(data) {
+  const symbol = normalizeSymbol(data?.symbol || data?.profile?.symbol);
+  const companyName = data?.profile?.company_name || null;
   const combined = [
     ...(Array.isArray(data?.catalysts) ? data.catalysts : []).map((item) => ({
       headline: item.headline,
@@ -254,6 +288,7 @@ function highImpactNewsDriver(data) {
       source: item.catalyst_type || 'catalyst',
       published_at: item.published_at,
       impact_score: scoreHeadlineImpact(item.headline) + 2,
+      relevant: headlineMatchesSymbolContext(symbol, companyName, item.headline),
     })),
     ...(Array.isArray(data?.news) ? data.news : []).map((item) => ({
       headline: item.headline,
@@ -261,9 +296,10 @@ function highImpactNewsDriver(data) {
       source: item.source || 'news',
       published_at: item.published_at,
       impact_score: Math.max(scoreHeadlineImpact(item.headline), Math.round((toNumber(item.news_score) || 0) * 3)),
+      relevant: headlineMatchesSymbolContext(symbol, companyName, item.headline),
     })),
   ]
-    .filter((item) => item.headline)
+    .filter((item) => item.headline && item.relevant)
     .sort((left, right) => {
       const leftScore = Number(left.impact_score || 0);
       const rightScore = Number(right.impact_score || 0);

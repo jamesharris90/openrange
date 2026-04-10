@@ -15,6 +15,7 @@ const OHLC_BATCH_SIZE = 50;
 const TECHNICAL_MIN_SCORE = 60;
 const DEFAULT_REPAIR_STRATEGY = 'priority';
 const RECENTLY_VIEWED_WINDOW_DAYS = 14;
+let coverageTableReadyPromise = null;
 
 function toNumber(value) {
   const parsed = Number(value);
@@ -263,6 +264,17 @@ async function ensureCoverageTable() {
   }
 }
 
+async function ensureCoverageTableReady() {
+  if (!coverageTableReadyPromise) {
+    coverageTableReadyPromise = ensureCoverageTable().catch((error) => {
+      coverageTableReadyPromise = null;
+      throw error;
+    });
+  }
+
+  return coverageTableReadyPromise;
+}
+
 async function buildCoverageRows() {
   const result = await queryWithTimeout(
     `WITH symbol_universe AS (
@@ -458,7 +470,7 @@ async function getCoverageStatusBySymbols(symbols) {
     return new Map();
   }
 
-  await ensureCoverageTable();
+  await ensureCoverageTableReady();
 
   const normalizedSymbols = symbols
     .map((symbol) => String(symbol || '').trim().toUpperCase())

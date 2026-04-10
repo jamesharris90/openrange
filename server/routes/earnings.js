@@ -539,7 +539,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(503).json(fallbackCalendarPayload({ message: 'schema_unavailable' }));
+      return res.status(200).json({
+        ...fallbackCalendarPayload({ message: 'schema_unavailable' }),
+        success: true,
+      });
     }
 
     const joinTables = ['earnings_events', 'decision_view', 'market_metrics', 'market_quotes'];
@@ -556,7 +559,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(503).json(fallbackCalendarPayload({ message: 'schema_lookup_failed' }));
+      return res.status(200).json({
+        ...fallbackCalendarPayload({ message: 'schema_lookup_failed' }),
+        success: true,
+      });
     }
 
     const hasDecisionView = hasColumn(schemaMap, 'decision_view', 'symbol');
@@ -642,7 +648,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
       if (fmpRows.length > 0) {
         return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
       }
-      return res.status(503).json(fallbackCalendarPayload({ message: 'db_query_failed' }));
+      return res.status(200).json({
+        ...fallbackCalendarPayload({ message: 'db_query_failed' }),
+        success: true,
+      });
     }
 
     const dbRowsAreFresh = dbRows.some((row) => isFreshTimestamp(row.updated_at));
@@ -779,11 +788,12 @@ router.get('/api/earnings/calendar', async (req, res) => {
       stack: err?.stack,
     });
 
-    return res.status(500).json(
-      fallbackCalendarPayload({
+    return res.status(200).json({
+      ...fallbackCalendarPayload({
         message: 'internal_error',
       }),
-    );
+      success: true,
+    });
   }
 });
 

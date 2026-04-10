@@ -277,11 +277,16 @@ function mapSnapshotToFullPayload(symbol, snapshot) {
       expectedMove: snapshot.data?.earnings?.expected_move ?? 0,
       tradeable: false,
     },
+    coverage: snapshot.data?.coverage ?? null,
+    score: snapshot.data?.score ?? null,
+    scanner: snapshot.data?.scanner ?? EMPTY_SCANNER,
     ownership: snapshot.data?.ownership ?? {},
     decision: snapshot.decision ?? null,
     why_moving: snapshot.why_moving ?? null,
     data_confidence: snapshot.data_confidence ?? snapshot.data?.data_confidence ?? null,
     data_confidence_label: snapshot.data_confidence_label ?? snapshot.data?.data_confidence_label ?? null,
+    freshness_score: snapshot.freshness_score ?? snapshot.data?.freshness_score ?? null,
+    source_quality: snapshot.source_quality ?? snapshot.data?.source_quality ?? null,
     context: snapshot.context ?? {},
     meta: {
       source,
@@ -289,6 +294,44 @@ function mapSnapshotToFullPayload(symbol, snapshot) {
       stale: Boolean(snapshot?.meta?.stale),
       updated_at: updatedAt,
     },
+  };
+}
+
+function mergeResearchPayloads(fullPayload, snapshotPayload) {
+  if (!fullPayload) {
+    return snapshotPayload;
+  }
+
+  if (!snapshotPayload) {
+    return fullPayload;
+  }
+
+  const fullCoverageScore = Number(fullPayload?.coverage?.coverage_score ?? 0);
+  const snapshotCoverageScore = Number(snapshotPayload?.coverage?.coverage_score ?? 0);
+  const shouldPreferSnapshotCoverage = Boolean(fullPayload?.meta?.partial) && snapshotCoverageScore > fullCoverageScore;
+  const shouldPreferSnapshotEarnings = Boolean(fullPayload?.meta?.partial)
+    && Boolean(snapshotPayload?.earnings?.next?.date)
+    && !fullPayload?.earnings?.next?.date;
+
+  return {
+    ...fullPayload,
+    coverage: shouldPreferSnapshotCoverage
+      ? snapshotPayload.coverage
+      : (fullPayload.coverage ?? snapshotPayload.coverage ?? null),
+    score: shouldPreferSnapshotCoverage
+      ? (snapshotPayload.score ?? fullPayload.score ?? null)
+      : (fullPayload.score ?? snapshotPayload.score ?? null),
+    earnings: shouldPreferSnapshotEarnings
+      ? snapshotPayload.earnings
+      : (fullPayload.earnings ?? snapshotPayload.earnings ?? null),
+    data_confidence: shouldPreferSnapshotCoverage
+      ? (snapshotPayload.data_confidence ?? fullPayload.data_confidence ?? null)
+      : (fullPayload.data_confidence ?? snapshotPayload.data_confidence ?? null),
+    data_confidence_label: shouldPreferSnapshotCoverage
+      ? (snapshotPayload.data_confidence_label ?? fullPayload.data_confidence_label ?? null)
+      : (fullPayload.data_confidence_label ?? snapshotPayload.data_confidence_label ?? null),
+    freshness_score: fullPayload.freshness_score ?? snapshotPayload.freshness_score ?? null,
+    source_quality: fullPayload.source_quality ?? snapshotPayload.source_quality ?? null,
   };
 }
 
@@ -315,7 +358,7 @@ export default function ResearchPage({ symbol }) {
 
   const fullPayload = fullQuery.data && fullQuery.data.success !== false ? fullQuery.data : null;
   const snapshotPayload = mapSnapshotToFullPayload(normalized, snapshotQuery.data && snapshotQuery.data.success ? snapshotQuery.data : null);
-  const payload = fullPayload ?? snapshotPayload;
+  const payload = mergeResearchPayloads(fullPayload, snapshotPayload);
   const fullDataPending = !fullPayload;
 
   if ((fullQuery.isLoading || fullQuery.isPending) && !payload && !snapshotQuery.data) {

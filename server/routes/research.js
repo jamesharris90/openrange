@@ -324,7 +324,24 @@ async function loadDecisionSection(symbol, payload, dataConfidence, timeoutMs = 
   return section.value || buildResearchFallbackDecision(symbol, dataConfidence);
 }
 
-function mapTerminalPayloadToSnapshot(symbol, payload) {
+async function retryCoverageSection(symbol, section) {
+  if (section?.ok) {
+    return section;
+  }
+
+  return loadResearchSection(
+    'coverage',
+    () => getCoverageStatusBySymbols([symbol]),
+    null,
+    RESEARCH_SECTION_TIMEOUT_MS,
+  );
+}
+
+function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {
+  const coverage = extras.coverage || null;
+  const score = extras.score || null;
+  const scanner = extras.scanner || null;
+
   return {
     symbol,
     overview: {
@@ -360,6 +377,9 @@ function mapTerminalPayloadToSnapshot(symbol, payload) {
       insider: payload?.ownership?.insider ?? null,
       etf: payload?.ownership?.etf ?? null,
     },
+    coverage,
+    score,
+    scanner,
   };
 }
 
@@ -766,6 +786,12 @@ router.get('/:symbol/full', async (req, res) => {
     return res.json(cachedResponse);
   }
 
+  const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
+  const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
+  const coveragePromise = loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
+  const scoreRowsPromise = loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), parallelSectionTimeoutMs);
+  const scannerSourcesPromise = loadResearchSection('scanner_sources', () => getResearchScannerSources(symbol), null, parallelSectionTimeoutMs);
+
   const { sections: baseSections, payload } = await loadResearchBaseSections(symbol);
   const initialCoverage = normalizeCoveragePayload(symbol, null);
   const initialConfidence = computeDataConfidence({ payload, indicators: emptyIndicators(), coverage: initialCoverage });
@@ -805,18 +831,13 @@ router.get('/:symbol/full', async (req, res) => {
   };
 
   try {
-    const remainingBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
-    if (remainingBudgetMs <= 0) {
-      fullResponseCache.set(symbol, { data: response, timestamp: Date.now() });
-      return res.json(response);
-    }
-
-    const [indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
-      loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
-      loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
-      loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
-      loadResearchSection('scanner_sources', () => getResearchScannerSources(symbol), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
+    const [indicatorsSection, initialCoverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
+      indicatorsPromise,
+      coveragePromise,
+      scoreRowsPromise,
+      scannerSourcesPromise,
     ]);
+    const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
 
     const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
     const enrichedHistory = calculateDrift(buildEarningsIntelligence(payload.earnings?.history || []));
@@ -951,20 +972,16 @@ router.get('/:symbol', async (req, res) => {
   }
 
   const startedAt = Date.now();
+  const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
+  const initialCoverageSection = await loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, parallelSectionTimeoutMs);
+  const indicatorsPromise = loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), parallelSectionTimeoutMs);
   const { sections: baseSections, payload } = await loadResearchBaseSections(symbol);
-  const remainingBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
-  const [indicatorsSection, coverageSection] = remainingBudgetMs > 0
-    ? await Promise.all([
-        loadResearchSection('indicators', () => getIndicators(symbol), emptyIndicators(), Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
-        loadResearchSection('coverage', () => getCoverageStatusBySymbols([symbol]), null, Math.min(RESEARCH_SECTION_TIMEOUT_MS, remainingBudgetMs)),
-      ])
-    : [
-        { ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' },
-        { ok: false, timedOut: true, value: null, duration_ms: 0, error: 'budget_exhausted' },
-      ];
+  const indicatorsSection = await indicatorsPromise;
+  const coverageSection = await retryCoverageSection(symbol, initialCoverageSection);
 
   const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
+  const score = buildScorePayload({ scoreRow: null, coverage, dataConfidence });
   const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
   const rawDecision = decisionBudgetMs > 0
     ? await loadDecisionSection(symbol, payload, dataConfidence, Math.min(RESEARCH_SECTION_TIMEOUT_MS, decisionBudgetMs))
@@ -975,14 +992,22 @@ router.get('/:symbol', async (req, res) => {
   return res.json({
     success: true,
     data: {
-      ...mapTerminalPayloadToSnapshot(symbol, payload),
+      ...mapTerminalPayloadToSnapshot(symbol, payload, {
+        coverage,
+        score,
+        scanner: EMPTY_SCANNER_PAYLOAD,
+      }),
       decision,
       why_moving: whyMoving,
       data_confidence: dataConfidence.data_confidence,
       data_confidence_label: dataConfidence.data_confidence_label,
+      freshness_score: dataConfidence.freshness_score,
+      source_quality: dataConfidence.source_quality,
     },
     data_confidence: dataConfidence.data_confidence,
     data_confidence_label: dataConfidence.data_confidence_label,
+    freshness_score: dataConfidence.freshness_score,
+    source_quality: dataConfidence.source_quality,
     decision,
     why_moving: whyMoving,
     context: payload.context || null,
