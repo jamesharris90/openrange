@@ -38,17 +38,20 @@ async function verifySnapshotStartup() {
 
 async function startServer() {
   clearResearchRouteCaches();
+  try {
+    await warmResearchRouteResources();
+  } catch (error) {
+    console.warn('[STARTUP] research coverage warmup skipped', {
+      error: error.message,
+    });
+  }
+
   app = createV2App();
   server = app.listen(PORT, () => {
     console.log(`🚀 V2 backend running on port ${PORT}`);
   });
 
   void verifySnapshotStartup();
-  void warmResearchRouteResources().catch((error) => {
-    console.warn('[STARTUP] research coverage warmup skipped', {
-      error: error.message,
-    });
-  });
 
   return { app, server };
 }

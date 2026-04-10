@@ -552,9 +552,21 @@ function clearResearchRouteCaches() {
 }
 
 async function warmResearchRouteResources() {
-  const client = await getDirectCoverageClient(5000);
-  await client.query('SELECT 1');
-  await refreshCoverageSnapshotCache(10000);
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const client = await getDirectCoverageClient(10000);
+      await client.query('SELECT 1');
+      await refreshCoverageSnapshotCache(30000);
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+
+  throw lastError || new Error('research coverage warmup failed');
 }
 
 function mapTerminalPayloadToSnapshot(symbol, payload, extras = {}) {
