@@ -519,7 +519,7 @@ export default function StockPage() {
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 bg-[var(--panel)] border-b border-[var(--border)]">
         <div className="px-6 pt-3 pb-0">
-          <Link href="/screener" className="inline-flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
+          <Link href="/screener-v2" className="inline-flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
             ← Screener
           </Link>
         </div>

@@ -893,12 +893,14 @@ async function fetchFmpEarnings(symbol) {
 }
 
 async function fetchDatabaseEarnings(symbol) {
+  const today = new Date().toISOString().slice(0, 10);
   const result = await supabaseAdmin
     .from('earnings_events')
     .select('report_date')
     .eq('symbol', symbol)
+    .gte('report_date', today)
     .not('report_date', 'is', null)
-    .order('report_date', { ascending: false })
+    .order('report_date', { ascending: true })
     .limit(1);
 
   if (result.error) {
@@ -1085,13 +1087,15 @@ async function fetchDbEarningsContext(symbols) {
     return earningsBySymbol;
   }
 
+  const today = new Date().toISOString().slice(0, 10);
   for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
     const result = await supabaseAdmin
       .from('earnings_events')
-      .select('symbol, earnings_date')
+      .select('symbol, report_date')
       .in('symbol', symbolBatch)
-      .not('earnings_date', 'is', null)
-      .order('earnings_date', { ascending: true });
+      .gte('report_date', today)
+      .not('report_date', 'is', null)
+      .order('report_date', { ascending: true });
 
     if (result.error) {
       throw new Error(result.error.message || 'Failed to load screener earnings context');
@@ -1099,13 +1103,13 @@ async function fetchDbEarningsContext(symbols) {
 
     for (const item of result.data || []) {
       const symbol = normalizeSymbol(item.symbol);
-      if (!symbol || !item.earnings_date) {
+      if (!symbol || !item.report_date) {
         continue;
       }
 
       earningsBySymbol.set(
         symbol,
-        resolveClosestDate(earningsBySymbol.get(symbol) || null, item.earnings_date)
+        resolveClosestDate(earningsBySymbol.get(symbol) || null, item.report_date)
       );
     }
   }
@@ -1116,6 +1120,7 @@ async function fetchDbEarningsContext(symbols) {
 async function fetchEarningsBySymbol(symbols) {
   const earningsBySymbol = new Map();
   let yahooLookups = 0;
+  const today = new Date().toISOString().slice(0, 10);
 
   if (!symbols.length) {
     return earningsBySymbol;
@@ -1140,8 +1145,9 @@ async function fetchEarningsBySymbol(symbols) {
       .from('earnings_events')
       .select('symbol, report_date')
       .in('symbol', symbolBatch)
+      .gte('report_date', today)
       .not('report_date', 'is', null)
-      .order('report_date', { ascending: false });
+      .order('report_date', { ascending: true });
 
     if (result.error) {
       throw new Error(result.error.message || 'Failed to load screener earnings_events');
@@ -1164,6 +1170,44 @@ async function fetchEarningsBySymbol(symbols) {
     });
   }
 
+  const historyRows = await fetchBatchedSupabaseRows(
+    remainingSymbols.filter((symbol) => !databaseBySymbol.has(symbol)),
+    SYMBOL_BATCH_SIZE,
+    async (symbolBatch) => {
+      if (symbolBatch.length === 0) {
+        return [];
+      }
+
+      const result = await supabaseAdmin
+        .from('earnings_history')
+        .select('symbol, report_date')
+        .in('symbol', symbolBatch)
+        .gte('report_date', today)
+        .not('report_date', 'is', null)
+        .order('report_date', { ascending: true });
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to load screener earnings_history');
+      }
+
+      return result.data || [];
+    }
+  );
+
+  const historyBySymbol = new Map();
+  for (const row of historyRows) {
+    const symbol = normalizeSymbol(row.symbol);
+    const reportDate = row.report_date || null;
+    if (!symbol || !reportDate || historyBySymbol.has(symbol)) {
+      continue;
+    }
+
+    historyBySymbol.set(symbol, {
+      earnings_date: String(reportDate).slice(0, 10),
+      earnings_source: 'database',
+    });
+  }
+
   for (const rawSymbol of remainingSymbols) {
     const symbol = normalizeSymbol(rawSymbol);
     if (!symbol) {
@@ -1174,6 +1218,13 @@ async function fetchEarningsBySymbol(symbols) {
     if (databaseResult) {
       setCachedEarningsLookup(symbol, databaseResult);
       earningsBySymbol.set(symbol, databaseResult);
+      continue;
+    }
+
+    const historyResult = historyBySymbol.get(symbol) || null;
+    if (historyResult) {
+      setCachedEarningsLookup(symbol, historyResult);
+      earningsBySymbol.set(symbol, historyResult);
       continue;
     }
 

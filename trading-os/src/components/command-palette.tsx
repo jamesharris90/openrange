@@ -9,7 +9,7 @@ import { useTickerStore } from "@/lib/store/ticker-store";
 
 const baseCommands = [
   { id: "dashboard", label: "Open Dashboard", run: (router: ReturnType<typeof useRouter>) => router.push("/dashboard") },
-  { id: "screener", label: "Open Screener", run: (router: ReturnType<typeof useRouter>) => router.push("/screener") },
+  { id: "screener", label: "Open Screener", run: (router: ReturnType<typeof useRouter>) => router.push("/screener-v2") },
   { id: "opportunities", label: "Open Opportunities", run: (router: ReturnType<typeof useRouter>) => router.push("/screener-v2") },
   { id: "markets", label: "Open Markets", run: (router: ReturnType<typeof useRouter>) => router.push("/markets") },
   { id: "research-home", label: "Open Research", run: (router: ReturnType<typeof useRouter>) => router.push("/research") },

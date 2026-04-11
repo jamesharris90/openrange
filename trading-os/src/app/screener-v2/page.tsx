@@ -988,7 +988,7 @@ function ScreenerV2PageContent() {
               </button>
               <button
                 type="button"
-                onClick={() => router.push("/screener")}
+                onClick={() => router.push("/screener-v2?view=all")}
                 className={cn(
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   "text-slate-300 hover:bg-slate-800 hover:text-white"

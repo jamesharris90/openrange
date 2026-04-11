@@ -2,7 +2,8 @@ const express = require('express');
 
 const { getCache } = require('../cache/memoryCache');
 const { buildNarrative } = require('../services/narrativeService');
-const { getResearchTerminalPayload, normalizeSymbol } = require('../../services/researchCacheService');
+const { normalizeSymbol } = require('../../services/researchCacheService');
+const { getResearchData } = require('../services/researchService');
 
 const router = express.Router();
 
@@ -207,7 +208,7 @@ function buildSyntheticScreenerRow(symbol, data) {
 router.get('/:symbol', async (req, res) => {
   const startedAt = Date.now();
   const symbol = normalizeSymbol(req.params.symbol);
-  console.log('RESEARCH ENDPOINT HIT:', symbol);
+  console.log('[V2 RESEARCH INPUT]', { symbol });
 
   if (!symbol) {
     return res.status(400).json({
@@ -217,8 +218,26 @@ router.get('/:symbol', async (req, res) => {
   }
 
   try {
-    const terminalPayload = await getResearchTerminalPayload(symbol);
-    const data = mapTerminalToResearchData(symbol, terminalPayload);
+    const data = await getResearchData(symbol);
+    console.log('[V2 RESEARCH MARKET]', {
+      symbol,
+      price: data.market?.price ?? null,
+      volume: data.market?.volume ?? null,
+      marketCap: data.market?.market_cap ?? null,
+    });
+    console.log('[V2 RESEARCH TECHNICALS]', {
+      symbol,
+      rsi: data.technicals?.rsi ?? null,
+      vwap: data.technicals?.vwap ?? null,
+      atr: data.technicals?.atr ?? null,
+    });
+    console.log('[V2 RESEARCH CHART]', {
+      symbol,
+      candle_count: (Array.isArray(data.chart?.intraday) ? data.chart.intraday.length : 0)
+        || (Array.isArray(data.chart?.daily) ? data.chart.daily.length : 0),
+      intraday_count: Array.isArray(data.chart?.intraday) ? data.chart.intraday.length : 0,
+      daily_count: Array.isArray(data.chart?.daily) ? data.chart.daily.length : 0,
+    });
 
     const cachedScreener = getCache('screener');
     const cachedRows = cachedScreener?.success && Array.isArray(cachedScreener.data)
@@ -237,6 +256,11 @@ router.get('/:symbol', async (req, res) => {
     } else {
       data.warnings = [...(data.warnings || []), 'synthetic_screener_row'];
     }
+    console.log('[V2 RESEARCH EARNINGS]', {
+      symbol,
+      next_date: data.earnings?.next?.report_date || null,
+      source: data.earnings?.next?.report_date || data.earnings?.latest?.report_date ? 'database_or_fallback' : 'none',
+    });
 
     return res.json({
       success: true,

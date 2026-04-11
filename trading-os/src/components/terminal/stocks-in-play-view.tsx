@@ -230,7 +230,7 @@ export function StocksInPlayView() {
             ? "Could not reach the backend — check your connection and try again."
             : "The scanner found no signals meeting minimum criteria. This typically resolves within the first 30 minutes of market open."}
         </div>
-        <Link href="/screener" className="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition">
+        <Link href="/screener-v2" className="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition">
           Open Screener →
         </Link>
       </div>

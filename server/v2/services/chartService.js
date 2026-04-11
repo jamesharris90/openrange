@@ -24,6 +24,11 @@ function toNumber(value, fallback = null) {
 }
 
 function toUnixTimestamp(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    return numeric > 10_000_000_000 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+  }
+
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value > 10_000_000_000 ? Math.floor(value / 1000) : Math.floor(value);
   }
@@ -178,11 +183,11 @@ async function fetchYahooDirect(symbol, timeframe) {
 }
 
 function logChartResult(symbol, payload) {
-  console.log('[V2_CHART]', {
+  console.log('[V2 CHART]', {
     symbol,
     source: payload.source,
-    timeframe: payload.timeframe,
-    candles: Array.isArray(payload.candles) ? payload.candles.length : 0,
+    interval: payload.timeframe,
+    rows_returned: Array.isArray(payload.candles) ? payload.candles.length : 0,
   });
 }
 
@@ -202,14 +207,14 @@ async function buildChartPayload(rawSymbol, rawTimeframe = '1m') {
   const attempts = timeframe === 'daily'
     ? [
         {
-          source: 'fmp',
-          timeframe,
-          load: () => fetchFmpDaily(symbol),
-        },
-        {
           source: 'db',
           timeframe,
           load: () => fetchDbDaily(symbol),
+        },
+        {
+          source: 'fmp',
+          timeframe,
+          load: () => fetchFmpDaily(symbol),
         },
       ]
     : [
@@ -271,6 +276,36 @@ async function buildChartPayload(rawSymbol, rawTimeframe = '1m') {
         return payload;
       }
     } catch (_error) {
+    }
+  }
+
+  if (timeframe !== 'daily') {
+    for (const fallbackAttempt of [
+      {
+        source: 'daily_fallback_db',
+        timeframe: 'daily',
+        load: () => fetchDbDaily(symbol),
+      },
+      {
+        source: 'daily_fallback_yahoo',
+        timeframe: 'daily',
+        load: () => fetchYahooDirect(symbol, 'daily'),
+      },
+    ]) {
+      try {
+        const candles = trimCandles(await fallbackAttempt.load(), 'daily');
+        if (candles.length > 0) {
+          const payload = {
+            candles,
+            timeframe: fallbackAttempt.timeframe,
+            source: fallbackAttempt.source,
+          };
+          setCache(cacheKey, payload, CHART_CACHE_TTL_MS);
+          logChartResult(symbol, payload);
+          return payload;
+        }
+      } catch (_error) {
+      }
     }
   }
 
