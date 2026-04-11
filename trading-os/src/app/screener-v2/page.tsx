@@ -14,6 +14,9 @@ type ScreenerRow = {
   price: number | null;
   change_percent: number | null;
   volume: number | null;
+  data_confidence?: number | null;
+  data_confidence_label?: "HIGH" | "MEDIUM" | "LOW" | null;
+  data_quality_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   rvol: number | null;
   gap_percent: number | null;
   trend: "BULLISH" | "BEARISH" | "NEUTRAL";
@@ -585,6 +588,28 @@ function formatConfidence(value: number) {
   return {
     label: "LOW",
     className: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+  };
+}
+
+function formatDataQualityBadge(label: ScreenerRow["data_quality_label"], score: number | null | undefined) {
+  const normalized = String(label || "LOW").toUpperCase();
+  if (normalized === "HIGH") {
+    return {
+      label: `HIGH ${Math.round(Number(score || 0))}`,
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    };
+  }
+
+  if (normalized === "MEDIUM") {
+    return {
+      label: `MEDIUM ${Math.round(Number(score || 0))}`,
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    };
+  }
+
+  return {
+    label: `LOW ${Math.round(Number(score || 0))}`,
+    className: "border-rose-500/30 bg-rose-500/10 text-rose-200",
   };
 }
 
@@ -1329,6 +1354,7 @@ function ScreenerV2PageContent() {
                 const catalyst = formatCatalyst(row.catalyst_type);
                 const driver = formatDriverType(row.driver_type);
                 const confidence = formatConfidence(row.confidence);
+                const dataQuality = formatDataQualityBadge(row.data_quality_label || row.data_confidence_label || "LOW", row.data_confidence);
                 const state = formatState(row.state);
                 const coverage = formatCoverageBadge(row.coverage_status);
                 const isFocusRow =
@@ -1363,6 +1389,12 @@ function ScreenerV2PageContent() {
                             className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", coverage.className)}
                           >
                             {row.coverage_detail || coverage.label}
+                          </span>
+                          <span
+                            title="Based on data completeness across price, volume, chart, and earnings"
+                            className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em]", dataQuality.className)}
+                          >
+                            {dataQuality.label}
                           </span>
                         </div>
                       </RowCellLink>

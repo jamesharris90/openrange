@@ -3,6 +3,11 @@ function toNumber(value) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
+function toFiniteNumberOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function parseTimestamp(value) {
   const parsed = Date.parse(String(value || ''));
   return Number.isFinite(parsed) ? parsed : null;
@@ -89,6 +94,60 @@ function labelDataConfidence(score) {
   return 'POOR';
 }
 
+function labelCompletenessConfidence(score) {
+  if (score >= 80) return 'HIGH';
+  if (score >= 50) return 'MEDIUM';
+  return 'LOW';
+}
+
+function hasCompleteTechnicals(technicals) {
+  return ['rsi', 'atr', 'vwap'].every((key) => toFiniteNumberOrNull(technicals?.[key]) !== null);
+}
+
+function hasChartCandles(chart) {
+  if (Array.isArray(chart?.candles)) {
+    return chart.candles.length > 0;
+  }
+
+  if (Array.isArray(chart?.intraday) && chart.intraday.length > 0) {
+    return true;
+  }
+
+  if (Array.isArray(chart?.daily) && chart.daily.length > 0) {
+    return true;
+  }
+
+  return Array.isArray(chart) && chart.length > 0;
+}
+
+function computeCompletenessConfidence(flags = {}) {
+  const normalizedFlags = {
+    has_price: Boolean(flags.has_price),
+    has_volume: Boolean(flags.has_volume),
+    has_chart_data: Boolean(flags.has_chart_data),
+    has_technicals: Boolean(flags.has_technicals),
+    has_earnings: Boolean(flags.has_earnings),
+  };
+
+  let score = 100;
+
+  if (!normalizedFlags.has_price) score -= 40;
+  if (!normalizedFlags.has_volume) score -= 20;
+  if (!normalizedFlags.has_chart_data) score -= 30;
+  if (!normalizedFlags.has_technicals) score -= 10;
+  if (!normalizedFlags.has_earnings) score -= 10;
+
+  const dataConfidence = Math.max(0, Math.min(100, score));
+  const dataQualityLabel = labelCompletenessConfidence(dataConfidence);
+
+  return {
+    data_confidence: dataConfidence,
+    data_confidence_label: dataQualityLabel,
+    data_quality_label: dataQualityLabel,
+    completeness: normalizedFlags,
+  };
+}
+
 function buildConfidencePayload({ coverage, freshnessScore, sourceQuality }) {
   const coverageScore = toNumber(coverage?.coverage_score);
   const rawScore = (coverageScore * 0.6) + (freshnessScore * 0.25) + (sourceQuality * 0.15);
@@ -153,9 +212,13 @@ function applyDataConfidenceGuard(decision, confidencePayload) {
 
 module.exports = {
   computeDataConfidence,
+  computeCompletenessConfidence,
   computeSummaryDataConfidence,
   computeFreshnessScore,
   computeSourceQuality,
   labelDataConfidence,
+  labelCompletenessConfidence,
+  hasChartCandles,
+  hasCompleteTechnicals,
   applyDataConfidenceGuard,
 };

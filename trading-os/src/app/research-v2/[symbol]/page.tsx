@@ -95,6 +95,9 @@ type ResearchData = {
   market?: MarketData;
   technicals?: TechnicalsData;
   chart?: { data?: unknown[] } | unknown[] | null;
+  data_confidence?: number | null;
+  data_confidence_label?: "HIGH" | "MEDIUM" | "LOW" | null;
+  data_quality_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   earnings?: {
     latest?: EarningsRecord | null;
     next?: EarningsRecord | null;
@@ -108,6 +111,9 @@ type ResearchResponse = {
   status?: string;
   source?: string;
   success?: boolean;
+  data_confidence?: number | null;
+  data_confidence_label?: "HIGH" | "MEDIUM" | "LOW" | null;
+  data_quality_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   data?: ResearchData;
   error?: string;
   meta?: {
@@ -232,6 +238,10 @@ function badgeTone(value: string | undefined) {
     default:
       return "border-slate-500/30 bg-slate-500/10 text-slate-200";
   }
+}
+
+function resolveDataQualityLabel(data: ResearchData | null, response: ResearchResponse | null) {
+  return data?.data_quality_label || data?.data_confidence_label || response?.data_quality_label || response?.data_confidence_label || "LOW";
 }
 
 function normalizeMcpSummary(value: string | undefined) {
@@ -468,6 +478,8 @@ function ResearchV2PageContent({ params }: Props) {
   const payload = data?.data || null;
   const researchMeta = data?.meta || null;
   const chartRows = useMemo(() => getChartRows(payload?.chart), [payload?.chart]);
+  const dataQualityLabel = resolveDataQualityLabel(payload, data);
+  const dataConfidence = Number(payload?.data_confidence ?? data?.data_confidence ?? 0);
 
   useEffect(() => {
     if (symbol) {
@@ -661,6 +673,17 @@ function ResearchV2PageContent({ params }: Props) {
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-400/80">Research</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{symbol}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span
+              title="Based on data completeness across price, volume, chart, and earnings"
+              className={cn("inline-flex items-center rounded-full border px-2.5 py-1 font-medium uppercase tracking-[0.18em]", badgeTone(dataQualityLabel))}
+            >
+              {dataQualityLabel} confidence
+            </span>
+            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+              {`${Math.round(dataConfidence)}/100`}
+            </span>
+          </div>
           <p className="mt-3 max-w-2xl text-sm text-slate-400">
             Parent-controlled research, chart, and news flow with no child-owned fetches.
           </p>

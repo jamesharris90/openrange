@@ -2,7 +2,7 @@ const axios = require('axios');
 const { queryWithTimeout } = require('../../db/pg');
 const { supabaseAdmin } = require('../../services/supabaseClient');
 const { fmpFetch } = require('../../services/fmpClient');
-const { computeSummaryDataConfidence } = require('../../services/dataConfidenceService');
+const { computeCompletenessConfidence } = require('../../services/dataConfidenceService');
 const { buildWhy } = require('../engines/whyEngine');
 const { buildMacroContext } = require('../engines/macroEngine');
 const { getCoverageStatusBySymbols } = require('./coverageEngine');
@@ -189,7 +189,8 @@ function normalizeScreenerRow(row) {
     final_score: toNumber(row.final_score) ?? 0,
     coverage_score: toNumber(row.coverage_score) ?? 0,
     data_confidence: toNumber(row.data_confidence) ?? 0,
-    data_confidence_label: row.data_confidence_label || 'POOR',
+    data_confidence_label: row.data_confidence_label || row.data_quality_label || 'LOW',
+    data_quality_label: row.data_quality_label || row.data_confidence_label || 'LOW',
     freshness_score: toNumber(row.freshness_score) ?? 0,
     source_quality: toNumber(row.source_quality) ?? 0,
     has_news: row.has_news !== undefined ? Boolean(row.has_news) : false,
@@ -1355,7 +1356,7 @@ async function getScreenerRows(options = {}) {
     fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
       const result = await supabaseAdmin
         .from('market_metrics')
-        .select('symbol, price, change_percent, volume, gap_percent, relative_volume, avg_volume_30d, updated_at, last_updated, vwap, previous_close')
+        .select('symbol, price, change_percent, volume, gap_percent, relative_volume, avg_volume_30d, updated_at, last_updated, vwap, atr, rsi, previous_close')
         .in('symbol', symbolBatch);
 
       if (result.error) {
@@ -1614,28 +1615,24 @@ async function getScreenerRows(options = {}) {
     };
 
     const tqi = calculateTQI(nextRow);
-    const confidencePayload = computeSummaryDataConfidence({
-      coverage: {
-        coverage_score: toNumber(nextRow.coverage_score) ?? 0,
-        has_news: Boolean(nextRow.has_news),
-        has_earnings: Boolean(nextRow.has_earnings),
-        has_technicals: Boolean(nextRow.has_technicals),
-      },
-      priceUpdatedAt: nextRow.updated_at,
-      dailyUpdatedAt: nextRow.latest_news_at || nextRow.earnings_date,
-      stale: false,
-      sources: [
-        nextRow.updated_at ? 'live' : null,
-        nextRow.news_source,
-        nextRow.earnings_source,
-      ],
+    const metrics = metricsBySymbol.get(nextRow.symbol) || {};
+    const hasChartData = intradayMetricsBySymbol.has(nextRow.symbol) || dailyTechnicalsBySymbol.has(nextRow.symbol);
+    const hasTechnicals = [metrics.rsi, metrics.atr, metrics.vwap].every((value) => toNumber(value) !== null);
+    const confidencePayload = computeCompletenessConfidence({
+      has_price: toNumber(nextRow.price) !== null,
+      has_volume: toNumber(nextRow.volume) !== null,
+      has_chart_data: hasChartData,
+      has_technicals: hasTechnicals,
+      has_earnings: Boolean(nextRow.earnings_date),
     });
     const finalScore = Number((tqi * (confidencePayload.data_confidence / 100)).toFixed(2));
 
     return {
       ...nextRow,
       ...confidencePayload,
-      tradeable: (toNumber(nextRow.coverage_score) ?? 0) >= 60 && confidencePayload.data_confidence >= 50,
+      has_chart_data: hasChartData,
+      has_technicals: hasTechnicals,
+      tradeable: (toNumber(nextRow.coverage_score) ?? 0) >= 60,
       tqi,
       tqi_label: resolveTqiLabel(tqi),
       final_score: finalScore,

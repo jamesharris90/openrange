@@ -266,6 +266,9 @@ router.get('/:symbol', async (req, res) => {
       success: true,
       status: 'ok',
       source: 'database',
+      data_confidence: data.data_confidence ?? 0,
+      data_confidence_label: data.data_confidence_label || 'LOW',
+      data_quality_label: data.data_quality_label || data.data_confidence_label || 'LOW',
       data: {
         ...emptyResearchData(symbol),
         ...data,
@@ -282,6 +285,9 @@ router.get('/:symbol', async (req, res) => {
       success: true,
       status: 'ok',
       source: 'database',
+      data_confidence: 0,
+      data_confidence_label: 'LOW',
+      data_quality_label: 'LOW',
       data: {
         ...emptyResearchData(symbol),
         screener: null,

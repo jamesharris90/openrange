@@ -1,6 +1,11 @@
 const axios = require('axios');
 
 const { queryWithTimeout } = require('../../db/pg');
+const {
+  computeCompletenessConfidence,
+  hasChartCandles,
+  hasCompleteTechnicals,
+} = require('../../services/dataConfidenceService');
 
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
@@ -69,6 +74,9 @@ function emptyResearchData(symbol) {
     },
     company: {},
     mcp: getDefaultMCP(symbol),
+    data_confidence: 0,
+    data_confidence_label: 'LOW',
+    data_quality_label: 'LOW',
     warnings: [],
   };
 }
@@ -1171,6 +1179,13 @@ async function getResearchData(symbol) {
   }
 
   payload.mcp = buildMCP(payload);
+  Object.assign(payload, computeCompletenessConfidence({
+    has_price: payload.market?.price !== null && payload.market?.price !== undefined,
+    has_volume: payload.market?.volume !== null && payload.market?.volume !== undefined,
+    has_chart_data: hasChartCandles(payload.chart),
+    has_technicals: hasCompleteTechnicals(payload.technicals),
+    has_earnings: Boolean(payload.earnings?.next?.report_date),
+  }));
 
   return payload;
 }
