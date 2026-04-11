@@ -114,10 +114,69 @@ type ResearchData = {
   warnings?: string[];
 };
 
+type TrustLevel = "COMPLETE" | "SUFFICIENT" | "LIMITED";
+
+type CoverageStatus =
+  | "HAS_DATA"
+  | "PARTIAL_NEWS"
+  | "PARTIAL_EARNINGS"
+  | "NO_NEWS"
+  | "NO_EARNINGS"
+  | "STRUCTURALLY_UNSUPPORTED"
+  | "LOW_QUALITY_TICKER"
+  | "INACTIVE";
+
+type DataTrustResponse = {
+  ok?: boolean;
+  trust?: {
+    has_price?: boolean;
+    has_daily?: boolean;
+    has_news?: boolean;
+    has_earnings?: boolean;
+    is_trustworthy?: boolean;
+    trust_level?: TrustLevel;
+    price?: {
+      source_label?: string | null;
+      last_updated_label?: string | null;
+    };
+    daily?: {
+      last_updated_label?: string | null;
+    };
+    news?: {
+      count_7d?: number | null;
+    };
+    earnings?: {
+      latest_report_date?: string | null;
+    };
+  };
+};
+
+type CoverageResponse = {
+  ok?: boolean;
+  coverage?: {
+    status?: CoverageStatus;
+    detail?: string;
+    explanation?: string;
+    metrics?: {
+      news_count_7d?: number | null;
+      news_count_30d?: number | null;
+      earnings_upcoming_count?: number | null;
+      earnings_history_count?: number | null;
+      latest_report_date?: string | null;
+      next_report_date?: string | null;
+    };
+  };
+};
+
 type ResearchResponse = {
   success?: boolean;
   data?: ResearchData;
   error?: string;
+  meta?: {
+    fallback?: boolean;
+    reason?: string | null;
+    response_ms?: number;
+  };
 };
 
 type ChartTimeframe = "1m" | "daily";
@@ -328,6 +387,56 @@ function confidenceBarTone(confidence: number) {
   return "bg-rose-400";
 }
 
+function getCoverageSummary(status: CoverageStatus | undefined) {
+  switch (status) {
+    case "HAS_DATA":
+      return {
+        label: "🟢 Full coverage",
+        tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      };
+    case "PARTIAL_NEWS":
+      return {
+        label: "🟡 Limited news coverage",
+        tone: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "PARTIAL_EARNINGS":
+      return {
+        label: "🟡 Partial earnings coverage",
+        tone: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "NO_NEWS":
+      return {
+        label: "🟡 No recent news coverage",
+        tone: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "NO_EARNINGS":
+      return {
+        label: "🔴 No earnings data available",
+        tone: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    case "STRUCTURALLY_UNSUPPORTED":
+      return {
+        label: "🔴 Structurally unsupported",
+        tone: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    case "LOW_QUALITY_TICKER":
+      return {
+        label: "🔴 Low market activity",
+        tone: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    case "INACTIVE":
+      return {
+        label: "⚪ Inactive coverage",
+        tone: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+      };
+    default:
+      return {
+        label: "🔴 Coverage unavailable",
+        tone: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+  }
+}
+
 function InfoPanel({
   title,
   value,
@@ -501,6 +610,9 @@ function ResearchChart({
 export default function ResearchV2SymbolPage({ params }: Props) {
   const symbol = params.symbol.toUpperCase();
   const [data, setData] = useState<ResearchData | null>(null);
+  const [trust, setTrust] = useState<DataTrustResponse["trust"] | null>(null);
+  const [coverage, setCoverage] = useState<CoverageResponse["coverage"] | null>(null);
+  const [researchMeta, setResearchMeta] = useState<ResearchResponse["meta"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -512,7 +624,7 @@ export default function ResearchV2SymbolPage({ params }: Props) {
       setError(null);
 
       try {
-        const response = await apiFetch(`/api/research/${encodeURIComponent(symbol)}`, {
+        const response = await apiFetch(`/api/v2/research/${encodeURIComponent(symbol)}`, {
           cache: "no-store",
         });
 
@@ -525,11 +637,13 @@ export default function ResearchV2SymbolPage({ params }: Props) {
 
         if (!cancelled) {
           setData(payload.data);
+          setResearchMeta(payload.meta || null);
         }
       } catch (fetchError) {
         if (!cancelled) {
           setError(fetchError instanceof Error ? fetchError.message : "Failed to load research");
           setData(null);
+          setResearchMeta(null);
         }
       } finally {
         if (!cancelled) {
@@ -539,6 +653,58 @@ export default function ResearchV2SymbolPage({ params }: Props) {
     }
 
     loadResearch();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCoverage() {
+      try {
+        const response = await apiFetch(`/api/system/data-coverage?symbol=${encodeURIComponent(symbol)}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as CoverageResponse;
+
+        if (!cancelled && response.ok) {
+          setCoverage(payload.coverage || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setCoverage(null);
+        }
+      }
+    }
+
+    loadCoverage();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTrust() {
+      try {
+        const response = await apiFetch(`/api/system/data-trust?symbol=${encodeURIComponent(symbol)}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as DataTrustResponse;
+
+        if (!cancelled && response.ok) {
+          setTrust(payload.trust || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setTrust(null);
+        }
+      }
+    }
+
+    loadTrust();
     return () => {
       cancelled = true;
     };
@@ -556,6 +722,9 @@ export default function ResearchV2SymbolPage({ params }: Props) {
   const expectedMovePercent = Number.isFinite(Number(mcp.expected_move?.percent)) ? Number(mcp.expected_move?.percent) : null;
   const rrValue = Number.isFinite(Number(mcp.risk?.rr)) ? Number(mcp.risk?.rr) : null;
   const normalizedSummary = normalizeMcpSummary(mcp.summary);
+  const coverageSummary = getCoverageSummary(coverage?.status);
+  const hasLimitedNewsCoverage = ["PARTIAL_NEWS", "NO_NEWS"].includes(String(coverage?.status || ""));
+  const dataAgeLabel = trust?.price?.last_updated_label || trust?.daily?.last_updated_label || "unknown";
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-950/80 p-8 text-slate-100 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
@@ -595,6 +764,12 @@ export default function ResearchV2SymbolPage({ params }: Props) {
       {error ? (
         <div className="mt-8 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-sm text-rose-200">
           {error}
+        </div>
+      ) : null}
+
+      {!loading && !error && researchMeta?.fallback ? (
+        <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          Some data is temporarily limited due to high load
         </div>
       ) : null}
 
@@ -649,6 +824,30 @@ export default function ResearchV2SymbolPage({ params }: Props) {
             <div className="space-y-4">
               <InfoPanel title="Why" value={mcp.why || "No catalyst identified yet"} />
               <InfoPanel title="Trade Plan" value={mcp.when || "Waiting for better conditions"} />
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Data Coverage Detail</p>
+                  <span
+                    title="This reflects data availability, not quality"
+                    className="cursor-help text-[10px] uppercase tracking-[0.18em] text-slate-500"
+                  >
+                    Coverage note
+                  </span>
+                </div>
+                <div className={cn("mt-3 rounded-xl border px-3 py-3 text-sm font-medium", coverageSummary.tone)}>
+                  {coverageSummary.label}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  {coverage?.explanation || "Coverage explanation unavailable."}
+                </p>
+                <div className="mt-3 space-y-2 text-sm text-slate-200">
+                  <div>Price: {trust?.has_price ? trust?.price?.source_label || "Available" : "Missing"}</div>
+                  <div>Data age: {dataAgeLabel}</div>
+                  <div>{trust?.has_daily ? "✅" : "❌"} Daily Data: {trust?.has_daily ? `Up to date · ${trust?.daily?.last_updated_label || "unknown"}` : "Stale or missing"}</div>
+                  <div>{trust?.has_news ? "✅" : "⚠️"} News: {Number(coverage?.metrics?.news_count_7d || 0) > 0 ? `${coverage?.metrics?.news_count_7d || 0} articles in 7d` : "No recent coverage"}</div>
+                  <div>{trust?.has_earnings ? "✅" : "❌"} Earnings: {coverage?.metrics?.next_report_date || coverage?.metrics?.latest_report_date ? `Next ${formatDate(coverage?.metrics?.next_report_date)} · Last ${formatDate(coverage?.metrics?.latest_report_date)}` : "No earnings data available"}</div>
+                </div>
+              </div>
               <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Improve</p>
                 <div className="mt-2 space-y-2 text-sm leading-6 text-slate-200">
@@ -708,6 +907,11 @@ export default function ResearchV2SymbolPage({ params }: Props) {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
             <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Latest News</p>
             <div className="mt-4 space-y-3">
+              {hasLimitedNewsCoverage ? (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+                  Limited recent news coverage for this ticker.
+                </div>
+              ) : null}
               {news.length ? news.map((item) => (
                 <div key={item.id || item.url || item.title} className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
                   <p className="text-sm font-medium text-slate-100">{item.title || "No data available"}</p>
@@ -718,7 +922,7 @@ export default function ResearchV2SymbolPage({ params }: Props) {
                   </div>
                 </div>
               )) : (
-                <p className="text-sm text-slate-500">No data available</p>
+                <p className="text-sm text-slate-500">Limited recent news coverage for this ticker.</p>
               )}
             </div>
           </div>

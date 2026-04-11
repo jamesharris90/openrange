@@ -2,6 +2,8 @@ const { pool, queryWithTimeout } = require('../../db/pg');
 const { getCache, setCache } = require('../cache/memoryCache');
 const { getScreenerRows } = require('./screenerService');
 const { buildOpportunitiesPayload } = require('./opportunitiesService');
+const { getCoverageSnapshotsBySymbols } = require('../../services/dataCoverageService');
+const { getCoverageStatusesBySymbols } = require('../../services/dataCoverageStatusService');
 
 const SNAPSHOT_CACHE_KEY = 'screener-v2-snapshot';
 const SNAPSHOT_CACHE_TTL_MS = 120000;
@@ -102,6 +104,111 @@ function chunkArray(items, size) {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
+}
+
+async function hydrateCoverageMetadata(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return [];
+  }
+
+  const symbols = Array.from(new Set(rows.map((row) => normalizeSymbol(row?.symbol)).filter(Boolean)));
+  if (symbols.length === 0) {
+    return rows;
+  }
+
+  const coverageBySymbol = await getCoverageSnapshotsBySymbols(symbols, { persist: true });
+  return rows.map((row) => {
+    const symbol = normalizeSymbol(row?.symbol);
+    if (!symbol) {
+      return row;
+    }
+
+    const coverage = coverageBySymbol.get(symbol) || null;
+    return {
+      ...row,
+      coverage_status: coverage?.status || 'NO_EARNINGS',
+      coverage_detail: coverage?.detail || 'No earnings data available',
+      coverage_explanation: coverage?.explanation || 'Coverage detail unavailable.',
+    };
+  });
+}
+
+function buildCoverageFallback(status) {
+  switch (String(status || '').toUpperCase()) {
+    case 'HAS_DATA':
+      return {
+        detail: 'Full coverage',
+        explanation: 'Core market coverage is available for this ticker, with usable price data plus at least one recent catalyst source.',
+      };
+    case 'PARTIAL_NEWS':
+      return {
+        detail: 'Limited news coverage',
+        explanation: 'Limited news coverage detected. Market data and earnings are present, but media activity is light.',
+      };
+    case 'PARTIAL_EARNINGS':
+      return {
+        detail: 'Partial earnings coverage',
+        explanation: 'Earnings coverage is incomplete even though the ticker still has usable market data.',
+      };
+    case 'NO_NEWS':
+      return {
+        detail: 'No recent news',
+        explanation: 'No recent news coverage was found for this ticker. Market and earnings data are still available.',
+      };
+    case 'STRUCTURALLY_UNSUPPORTED':
+      return {
+        detail: 'Structurally unsupported',
+        explanation: 'No earnings data is available for this listing type, which is structurally less likely to report standard earnings events.',
+      };
+    case 'LOW_QUALITY_TICKER':
+      return {
+        detail: 'Low market activity',
+        explanation: 'Ticker has low market activity, thin liquidity, and no recent news or earnings coverage.',
+      };
+    case 'INACTIVE':
+      return {
+        detail: 'Inactive',
+        explanation: 'Ticker is not currently active in the tracked universe.',
+      };
+    case 'NO_EARNINGS':
+    default:
+      return {
+        detail: 'No earnings data available',
+        explanation: 'No earnings data is available after fallback checks, and recent news coverage is also light.',
+      };
+  }
+}
+
+async function hydrateStoredCoverageMetadata(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0 || rows.every((row) => row?.coverage_status && row?.coverage_detail && row?.coverage_explanation)) {
+    return rows;
+  }
+
+  const symbols = Array.from(new Set(rows.map((row) => normalizeSymbol(row?.symbol)).filter(Boolean)));
+  if (symbols.length === 0) {
+    return rows;
+  }
+
+  const statusesBySymbol = await getCoverageStatusesBySymbols(symbols).catch(() => new Map());
+  return rows.map((row) => {
+    if (!row) {
+      return row;
+    }
+
+    if (row.coverage_status && row.coverage_detail && row.coverage_explanation) {
+      return row;
+    }
+
+    const symbol = normalizeSymbol(row.symbol);
+    const status = statusesBySymbol.get(symbol)?.status || row.coverage_status || 'NO_EARNINGS';
+    const fallback = buildCoverageFallback(status);
+    return {
+      ...row,
+      coverage_status: status,
+      coverage_detail: row.coverage_detail || fallback.detail,
+      coverage_explanation: row.coverage_explanation || fallback.explanation,
+    };
+  });
 }
 
 async function hydrateInstrumentTypes(rows = []) {
@@ -307,17 +414,18 @@ async function buildSnapshotPayload(previousSnapshot = null) {
     snapshotTimestamp: new Date().toISOString(),
     skipNewsEnrichment,
   });
+  const hydratedRows = await hydrateInstrumentTypes(await hydrateCoverageMetadata(screenerResult.rows));
   const screenerPayload = {
     success: true,
-    count: screenerResult.rows.length,
-    total: screenerResult.rows.length,
+    count: hydratedRows.length,
+    total: hydratedRows.length,
     fallbackUsed: screenerResult.fallbackUsed,
     macro_context: screenerResult.macroContext,
     meta: {
       ...(screenerResult.meta || {}),
       news_enrichment_skipped: skipNewsEnrichment,
     },
-    data: screenerResult.rows,
+    data: hydratedRows,
   };
 
   const opportunitiesResult = await buildOpportunitiesPayload({
@@ -392,7 +500,19 @@ async function getLatestScreenerPayload() {
   }
 
   if (Array.isArray(snapshot.data.screener.data)) {
-    snapshot.data.screener.data = await hydrateInstrumentTypes(snapshot.data.screener.data);
+    let rows = snapshot.data.screener.data;
+    if (rows.some((row) => !row?.coverage_status || !row?.coverage_detail || !row?.coverage_explanation)) {
+      rows = await hydrateStoredCoverageMetadata(rows);
+    }
+    if (rows.some((row) => !row?.instrument_type)) {
+      rows = await hydrateInstrumentTypes(rows);
+    }
+    snapshot.data.screener = {
+      ...snapshot.data.screener,
+      data: rows,
+      count: rows.length,
+      total: rows.length,
+    };
     setSnapshotCache(snapshot);
   }
 

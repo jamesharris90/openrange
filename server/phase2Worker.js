@@ -20,6 +20,7 @@ const JOB_NAME = 'phase2-backfill';
 const CHECKPOINT_REF = `database:${JOB_NAME}`;
 const HEARTBEAT_MS = Math.max(10000, Number(process.env.PHASE2_WORKER_HEARTBEAT_MS || 30000));
 const PROGRESS_EVENT_EVERY = Math.max(1, Number(process.env.PHASE2_WORKER_PROGRESS_EVENT_EVERY || 100));
+const STARTUP_TIMEOUT_MS = Math.max(10000, Number(process.env.PHASE2_WORKER_STARTUP_TIMEOUT_MS || 30000));
 const NIGHTLY_CRON = String(process.env.PHASE2_NIGHTLY_CRON || '15 6 * * 1-5').trim();
 const NIGHTLY_TIMEZONE = String(process.env.PHASE2_NIGHTLY_TIMEZONE || 'UTC').trim();
 
@@ -265,6 +266,56 @@ async function runNightlyCycle(trigger) {
   }
 }
 
+async function runStartupCycleWithTimeout() {
+  let settled = false;
+  let startupTimer = null;
+
+  const startupPromise = runHistoricalCycle('startup')
+    .then(() => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(startupTimer);
+      }
+      return { timedOut: false };
+    })
+    .catch(async (error) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(startupTimer);
+        throw error;
+      }
+
+      await appendEvent('historical_failed', 'Historical backfill failed after startup timeout', { error: formatError(error) }).catch(() => null);
+      await writeStatus({
+        status: 'failed',
+        currentRun: null,
+        failedAt: new Date().toISOString(),
+        error: formatError(error),
+      }).catch(() => null);
+
+      return { timedOut: true };
+    });
+
+  const timeoutPromise = new Promise((resolve) => {
+    startupTimer = setTimeout(async () => {
+      settled = true;
+      console.error(`[PHASE2-WORKER] Startup timed out after ${Math.round(STARTUP_TIMEOUT_MS / 1000)}s — will retry on next cron cycle`);
+      await appendEvent('startup_timeout', 'Phase 2 worker startup timed out', {
+        timeoutMs: STARTUP_TIMEOUT_MS,
+      }).catch(() => null);
+      await writeStatus({
+        status: 'idle',
+        currentRun: null,
+        startupTimeoutAt: new Date().toISOString(),
+        error: `Startup timed out after ${STARTUP_TIMEOUT_MS}ms`,
+      }).catch(() => null);
+      resolve({ timedOut: true });
+    }, STARTUP_TIMEOUT_MS);
+  });
+
+  return Promise.race([startupPromise, timeoutPromise]);
+}
+
 async function startPhase2Worker() {
   await ensurePhase2BackfillStateTable();
 
@@ -312,7 +363,7 @@ async function startPhase2Worker() {
     void shutdown('SIGINT');
   });
 
-  await runHistoricalCycle('startup');
+  await runStartupCycleWithTimeout();
 
   if (!envFlag('PHASE2_ENABLE_NIGHTLY', true)) {
     await appendEvent('worker_ready', 'Phase 2 worker finished historical backfill and is idling', {});

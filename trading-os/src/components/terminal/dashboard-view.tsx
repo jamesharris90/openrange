@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 import { apiGet, apiPost } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,20 @@ type Briefing = {
   generatedAt?: string;
 };
 
+type DataCoverageHealth = {
+  ok?: boolean;
+  checked_at?: string;
+  total_tickers?: number;
+  full_coverage_tickers?: number;
+  partial_coverage_tickers?: number;
+  unsupported_coverage_tickers?: number;
+  low_quality_tickers?: number;
+  percent_full_coverage?: number;
+  percent_partial_coverage?: number;
+  percent_unsupported_coverage?: number;
+  percent_low_quality?: number;
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtPct(n: number, digits = 2): string {
@@ -95,6 +110,22 @@ function timeAgo(iso: string | null | undefined): string {
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   return `${Math.floor(diff / 86_400_000)}d ago`;
+}
+
+function formatGeneratedAt(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed)) return String(iso);
+  return new Date(parsed).toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  });
 }
 
 function pctColor(v: number, inverted = false): string {
@@ -171,6 +202,17 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
+function ResearchTickerLink({ symbol, className }: { symbol: string; className?: string }) {
+  return (
+    <Link
+      href={`/research/${encodeURIComponent(symbol)}`}
+      className={cn("font-mono font-semibold text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline", className)}
+    >
+      {symbol}
+    </Link>
+  );
+}
+
 function StockTable({
   rows,
   label,
@@ -213,9 +255,7 @@ function StockTable({
               >
                 <td className="py-1.5 pr-3 text-slate-600">{i + 1}</td>
                 <td className="py-1.5 pr-3">
-                  <span className="font-semibold text-slate-200 font-mono text-[11px]">
-                    {row.symbol}
-                  </span>
+                  <ResearchTickerLink symbol={row.symbol} className="text-[11px]" />
                   {row.name && (
                     <span className="ml-2 text-slate-600 hidden sm:inline truncate max-w-[100px]">
                       {row.name.slice(0, 20)}
@@ -286,15 +326,16 @@ function EarningsGroup({
       </p>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {items.map((e) => (
-          <div
+          <Link
             key={e.symbol}
+            href={`/research/${encodeURIComponent(e.symbol)}`}
             className="rounded border border-border bg-slate-800/30 px-2 py-1 text-[11px]"
           >
-            <span className="font-mono font-semibold text-slate-200">{e.symbol}</span>
+            <span className="font-mono font-semibold text-cyan-300 transition hover:text-cyan-200">{e.symbol}</span>
             {e.epsEstimated !== null && (
               <span className="ml-1.5 text-slate-500">EPS est {e.epsEstimated.toFixed(2)}</span>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -308,11 +349,12 @@ function DeclinersRow({ losers }: { losers: StockRow[] }) {
       <SectionHeader label="Notable Decliners" />
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {losers.slice(0, 8).map((row) => (
-          <div
+          <Link
             key={row.symbol}
+            href={`/research/${encodeURIComponent(row.symbol)}`}
             className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-center"
           >
-            <div className="font-mono font-bold text-slate-200 text-sm">{row.symbol}</div>
+            <div className="font-mono font-bold text-cyan-300 text-sm transition hover:text-cyan-200">{row.symbol}</div>
             <div className="font-mono font-semibold text-rose-400 text-base mt-0.5">
               {fmtPct(row.changesPercentage)}
             </div>
@@ -320,7 +362,7 @@ function DeclinersRow({ losers }: { losers: StockRow[] }) {
               <div className="text-[10px] text-slate-500 mt-0.5">{fmtVol(row.volume)} vol</div>
             )}
             <div className="text-[10px] text-slate-400 font-mono">{fmtPrice(row.price)}</div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -383,9 +425,11 @@ const SECTION_ORDER = [
 function BriefingCard({
   briefing,
   isLoading,
+  sessionLabel,
 }: {
   briefing: Briefing | undefined;
   isLoading: boolean;
+  sessionLabel: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -411,6 +455,7 @@ function BriefingCard({
   );
   const previewBullet = summarySection?.bullets?.[0] || null;
   const ago = briefing?.generatedAt ? timeAgo(briefing.generatedAt) : null;
+  const generatedAt = briefing?.generatedAt ? formatGeneratedAt(briefing.generatedAt) : null;
 
   return (
     <div className="rounded-lg border border-border bg-panel shadow-sm">
@@ -424,6 +469,13 @@ function BriefingCard({
       </div>
 
       <div className="p-4 space-y-3">
+        {(generatedAt || sessionLabel) && (
+          <div className="rounded-lg border border-border/40 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-500">
+            {generatedAt ? `Generated at: ${generatedAt}` : "Generated at: unavailable"}
+            {sessionLabel ? ` | Session: ${sessionLabel}` : ""}
+          </div>
+        )}
+
         {/* Loading state */}
         {isLoading && !briefing && (
           <div className="space-y-3">
@@ -543,6 +595,67 @@ function IndexCard({ row }: { row: IndexRow }) {
   );
 }
 
+function DataCoverageCard({ health, isLoading }: { health: DataCoverageHealth | undefined; isLoading: boolean }) {
+  const items = [
+    {
+      label: "Full coverage",
+      value: health?.percent_full_coverage,
+      count: health?.full_coverage_tickers,
+      tone: "text-emerald-300",
+    },
+    {
+      label: "Partial",
+      value: health?.percent_partial_coverage,
+      count: health?.partial_coverage_tickers,
+      tone: "text-amber-300",
+    },
+    {
+      label: "Unsupported",
+      value: health?.percent_unsupported_coverage,
+      count: health?.unsupported_coverage_tickers,
+      tone: "text-rose-300",
+    },
+    {
+      label: "Low-quality",
+      value: health?.percent_low_quality,
+      count: health?.low_quality_tickers,
+      tone: "text-rose-200",
+    },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-panel p-4">
+      <div className="flex items-center justify-between gap-3">
+        <SectionHeader label="Global Data Coverage" />
+        <span className="text-[10px] text-slate-600">
+          {health?.total_tickers ? `${health.total_tickers.toLocaleString()} tickers` : "Universe loading"}
+        </span>
+      </div>
+      {isLoading ? (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Pulse key={index} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {items.map((item) => (
+            <div key={item.label} className="rounded-lg border border-border/60 bg-slate-900/40 p-3">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">{item.label}</p>
+              <p className={cn("mt-2 text-2xl font-semibold", item.tone)}>
+                {Number.isFinite(Number(item.value)) ? `${Number(item.value).toFixed(2)}%` : "--"}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {Number.isFinite(Number(item.count)) ? `${Number(item.count).toLocaleString()} symbols` : "No data"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 
 export function DashboardView() {
@@ -583,6 +696,15 @@ export function DashboardView() {
   });
 
   const briefing = briefingQuery.data;
+
+  const trustHealthQuery = useQuery<DataCoverageHealth>({
+    queryKey: ["dashboard", "data-coverage"],
+    queryFn: () => apiGet<DataCoverageHealth>("/api/system/data-coverage"),
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  const trustHealth = trustHealthQuery.data;
 
   // ── Earnings grouping ───────────────────────────────────────────────────────
   const earnings = snapshot?.earnings ?? [];
@@ -669,7 +791,7 @@ export function DashboardView() {
       )}
 
       {/* ── Indices ─────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
         {isLoading
           ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
           : (snapshot?.indices ?? []).map((row) => (
@@ -677,10 +799,16 @@ export function DashboardView() {
             ))}
       </div>
 
+      <DataCoverageCard
+        health={trustHealth}
+        isLoading={trustHealthQuery.isLoading}
+      />
+
       {/* ── AI Analyst Briefing ──────────────────────────────────────────────── */}
       <BriefingCard
         briefing={briefing}
         isLoading={briefingQuery.isLoading || (snapshotQuery.isLoading && !briefing)}
+        sessionLabel={session.label}
       />
 
       {/* ── Main data grid ───────────────────────────────────────────────────── */}

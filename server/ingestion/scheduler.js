@@ -61,7 +61,7 @@ const JOB_SCHEDULES = {
   stock_news: '*/15 * * * *',
   tracked_universe_cleanup: '0 * * * *',
   build_morning_universe: '0 8 * * 1-5',
-  daily_ohlc: '5 0 * * *',
+  daily_ohlc: '35 21,22 * * 1-5',
   earnings_events: '0 */6 * * *',
   analyst_enrichment: '30 */6 * * *',
   ipo_calendar: '0 6 * * 1-5',
@@ -80,31 +80,34 @@ const JOB_SCHEDULES = {
   nightly_strategy_backtest: '30 21 * * 1-5',
 };
 
-function safeRun(name, fn) {
+function safeRun(name, fn, options = {}) {
+  const lockKey = options.lockKey || name;
   return async () => {
-    if (inFlightJobs.has(name)) {
-      logger.warn('Skipping ingestion run; previous run still in flight', { job: name });
+    if (inFlightJobs.has(lockKey)) {
+      logger.warn('Skipping ingestion run; previous run still in flight', { job: name, lockKey });
       return;
     }
 
-    inFlightJobs.add(name);
+    inFlightJobs.add(lockKey);
     const startedAt = Date.now();
-    logger.info('scheduler job start', { job: name });
+    logger.info('scheduler job start', { job: name, lockKey });
     try {
       const result = await fn();
       logger.info('scheduler job success', {
         job: name,
+        lockKey,
         durationMs: Date.now() - startedAt,
         inserted: result?.inserted ?? 0,
       });
     } catch (err) {
       logger.error('scheduler job failure', {
         job: name,
+        lockKey,
         durationMs: Date.now() - startedAt,
         error: err.message,
       });
     } finally {
-      inFlightJobs.delete(name);
+      inFlightJobs.delete(lockKey);
     }
   };
 }
@@ -144,21 +147,21 @@ function startIngestionScheduler() {
 
   void (async () => {
     const startupJobs = [
-      ['live_quotes_startup', runLiveQuotesIngestion],
-      ['earnings_events_startup', runEarningsIngestion],
-      ['earnings_actuals_startup', runEarningsActuals],
-      ['intraday_1m_startup', runIntradayIngestion],
-      ['stock_news_startup', runStockNewsIngestion],
-      ['ipo_calendar_startup', () => refreshIpoCalendar(4)],
-      ['analyst_enrichment_startup', runAnalystEnrichmentIngestion],
-      ['earnings_transcripts_startup', runTranscriptsIngestion],
-      ['ticker_universe_startup', runUniverseIngestion],
-      ['baseline_cache_startup', runBaselineEngine],
-      ['news_enrichment_startup', runNewsEnrichmentEngine],
-      ['catalyst_backfill_startup', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })],
-      ['signal_evaluation_startup', runSignalEvaluation],
-      ['perf_cache_startup', refreshPerformanceCache],
-      ['regime_capture_startup', runRegimeCapture],
+      ['live_quotes_startup', 'live_quotes', runLiveQuotesIngestion],
+      ['earnings_events_startup', 'earnings_events', runEarningsIngestion],
+      ['earnings_actuals_startup', 'earnings_actuals', runEarningsActuals],
+      ['intraday_1m_startup', 'intraday_1m', runIntradayIngestion],
+      ['stock_news_startup', 'stock_news', runStockNewsIngestion],
+      ['ipo_calendar_startup', 'ipo_calendar', () => refreshIpoCalendar(4)],
+      ['analyst_enrichment_startup', 'analyst_enrichment', runAnalystEnrichmentIngestion],
+      ['earnings_transcripts_startup', 'earnings_transcripts', runTranscriptsIngestion],
+      ['ticker_universe_startup', 'ticker_universe', runUniverseIngestion],
+      ['baseline_cache_startup', 'baseline_cache', runBaselineEngine],
+      ['news_enrichment_startup', 'news_enrichment', runNewsEnrichmentEngine],
+      ['catalyst_backfill_startup', 'catalyst_backfill', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })],
+      ['signal_evaluation_startup', 'signal_evaluation', runSignalEvaluation],
+      ['perf_cache_startup', 'perf_cache_refresh', refreshPerformanceCache],
+      ['regime_capture_startup', 'regime_capture', runRegimeCapture],
     ];
 
     if (startupInitialDelayMs > 0) {
@@ -169,8 +172,8 @@ function startIngestionScheduler() {
       await sleep(startupInitialDelayMs);
     }
 
-    for (const [name, fn] of startupJobs) {
-      await safeRun(name, fn)();
+    for (const [name, lockKey, fn] of startupJobs) {
+      await safeRun(name, fn, { lockKey })();
       if (startupStaggerMs > 0) {
         await sleep(startupStaggerMs);
       }

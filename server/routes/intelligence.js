@@ -28,6 +28,7 @@ const { getSessionContext, applySessionGating, applySessionWeighting } = require
 const { buildFinalTradeObject } = require('../engines/finalTradeBuilder');
 const { validateTrade } = require('../utils/validateTrade');
 const { buildEarningsIntelligence, calculateDrift } = require('../services/earningsIntelligence');
+const { getLatestOpportunitiesPayload } = require('../v2/services/snapshotService');
 
 const router = express.Router();
 const whyMovingCache = new Map();
@@ -119,6 +120,63 @@ function setCachedDecision(symbol, value) {
   decisionCache.set(symbol, {
     value,
     expiresAt: Date.now() + DECISION_CACHE_TTL_MS,
+  });
+}
+
+async function sendDecisionResponse(symbol, res) {
+  console.log('[DECISION ROUTE HIT]', symbol);
+  const cached = getCachedDecision(symbol);
+  let decision = cached;
+
+  if (!decision) {
+    try {
+      decision = await withTimeout(
+        buildTruthDecisionForSymbol(symbol, {
+          allowRemoteNarrative: false,
+        }),
+        1800,
+        `Decision build timed out for ${symbol}`
+      );
+      setCachedDecision(symbol, decision);
+    } catch (error) {
+      const fallbackDecision = {
+        symbol,
+        tradeable: false,
+        setup: 'INSUFFICIENT_DATA',
+        driver: 'UNKNOWN',
+        risk_flags: ['TIMEOUT'],
+        action: 'AVOID',
+        trade_class: 'UNTRADEABLE',
+        degraded: true,
+        source: 'route_fallback',
+        why_moving: 'Decision unavailable within the response budget.',
+        how_to_trade: 'No trade. Re-run after the intelligence engines refresh.',
+        data_quality: 'insufficient',
+      };
+
+      logResponseShape('/api/intelligence/decision', [fallbackDecision], ['symbol', 'tradeable', 'setup', 'driver', 'risk_flags']);
+      return res.json({
+        ok: true,
+        status: 'degraded',
+        source: fallbackDecision.source,
+        data: [fallbackDecision],
+        decision: fallbackDecision,
+        meta: {
+          fallback: true,
+          reason: 'timeout',
+        },
+      });
+    }
+  }
+
+  logResponseShape('/api/intelligence/decision', [decision], ['symbol', 'tradeable', 'setup', 'driver', 'risk_flags']);
+  const responseStatus = decision?.degraded ? 'degraded' : 'ok';
+  return res.json({
+    ok: true,
+    status: responseStatus,
+    source: decision?.source || 'truth_engine',
+    data: [decision],
+    decision,
   });
 }
 
@@ -231,6 +289,25 @@ async function runWithConcurrency(items, worker, concurrency = 8) {
 
   await Promise.all(Array.from({ length: maxConcurrency }, () => runNext()));
   return out;
+}
+
+async function getSnapshotTopOpportunitiesFallback(limit) {
+  try {
+    const payload = await withTimeout(getLatestOpportunitiesPayload(), 1200, 'top-opportunities snapshot timeout');
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    return rows
+      .map((row) => ({
+        symbol: String(row?.symbol || '').trim().toUpperCase(),
+        why: String(row?.why || row?.why_moving || '').trim(),
+        how: String(row?.how || row?.how_to_trade || '').trim(),
+        confidence: Number(row?.confidence ?? 0),
+        expected_move: Number(row?.expected_move ?? row?.expected_move_percent),
+      }))
+      .filter((row) => row.symbol && row.why && row.how && Number.isFinite(row.expected_move))
+      .slice(0, limit);
+  } catch (_error) {
+    return [];
+  }
 }
 
 function withTimeout(promise, timeoutMs, timeoutMessage) {
@@ -1611,7 +1688,7 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       modeWhereClause = `source = 'real' AND updated_at >= NOW() - INTERVAL '24 hours'`;
     }
 
-    const queryTimeoutMs = mode === 'live' ? 3000 : 10000;
+    const queryTimeoutMs = mode === 'live' ? 1800 : 2500;
 
     let rawRows = [];
     try {
@@ -1637,42 +1714,14 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
     console.log('DEBUG RAW ROW COUNT:', rawRows.length);
     console.log('DEBUG SAMPLE ROW:', rawRows[0]);
 
-    const normalizedRows = await Promise.all(rawRows.map(async (baseRow) => {
+    const normalizedRows = rawRows.map((baseRow) => {
       const normalized = normalizeRow(baseRow);
-      if (normalized.why && normalized.how) return normalized;
-
-      const setupResult = await queryWithTimeout(
-        `SELECT setup
-         FROM trade_setups
-         WHERE symbol = $1
-         ORDER BY COALESCE(updated_at, detected_at, created_at) DESC
-         LIMIT 1`,
-        [normalized.symbol],
-        {
-          timeoutMs: 2000,
-          maxRetries: 0,
-          slowQueryMs: 700,
-          label: 'api.intelligence.top_opportunities.setup_enrichment',
-        }
-      ).catch(() => ({ rows: [] }));
-
-      const payload = setupResult.rows?.[0]?.setup;
-      let setupObj = payload && typeof payload === 'object' ? payload : null;
-      if (!setupObj && typeof payload === 'string') {
-        try {
-          const parsed = JSON.parse(payload);
-          setupObj = parsed && typeof parsed === 'object' ? parsed : null;
-        } catch {
-          setupObj = null;
-        }
-      }
-
       return {
         ...normalized,
-        why: normalized.why || String(setupObj?.why || setupObj?.why_moving || '').trim(),
-        how: normalized.how || String(setupObj?.how || setupObj?.how_to_trade || '').trim(),
+        why: normalized.why || `${normalized.symbol} remains active in the live opportunity stream.`,
+        how: normalized.how || 'Wait for confirmation at key intraday levels before entering.',
       };
-    }));
+    });
 
     const validRows = normalizedRows.filter((row) => isValidRow(row, mode));
     const quickContractRows = validRows.map(toContractRow).filter(Boolean);
@@ -1685,13 +1734,28 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       : quickFinalRows.length > 0;
 
     if (!modePass) {
+      const snapshotFallbackRows = await getSnapshotTopOpportunitiesFallback(hardResultLimit);
+      if (snapshotFallbackRows.length > 0) {
+        return res.json({
+          success: true,
+          source: 'snapshot_fallback',
+          mode,
+          count: snapshotFallbackRows.length,
+          data: snapshotFallbackRows,
+          meta: {
+            fallback: true,
+            reason: 'no_data',
+          },
+        });
+      }
+
       // FMP movers fallback — build synthetic opportunity rows from live gainers
       try {
         const axios = require('axios');
         const fmpKey = process.env.FMP_API_KEY;
         const [gainersResp, activesResp] = await Promise.all([
-          axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${fmpKey}`, { timeout: 6000 }).catch(() => ({ data: [] })),
-          axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${fmpKey}`, { timeout: 6000 }).catch(() => ({ data: [] })),
+          axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${fmpKey}`, { timeout: 800 }).catch(() => ({ data: [] })),
+          axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${fmpKey}`, { timeout: 800 }).catch(() => ({ data: [] })),
         ]);
         const seen = new Set();
         const fmpMerged = [...(gainersResp.data || []), ...(activesResp.data || [])].filter((r) => {
@@ -1721,12 +1785,30 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
         }).filter((r) => r.symbol);
 
         if (fmpOpps.length > 0) {
-          return res.json({ success: true, source: 'fmp_direct', mode, count: fmpOpps.length, data: fmpOpps });
+          return res.json({
+            success: true,
+            source: 'fmp_direct',
+            mode,
+            count: fmpOpps.length,
+            data: fmpOpps,
+            meta: {
+              fallback: true,
+              reason: 'no_data',
+            },
+          });
         }
       } catch (_fmpErr) {
         // fall through
       }
-      return res.json({ success: false, error: 'NO_REAL_DATA', mode });
+      return res.json({
+        success: false,
+        error: 'NO_REAL_DATA',
+        mode,
+        meta: {
+          fallback: true,
+          reason: 'no_data',
+        },
+      });
     }
 
     return res.json({
@@ -2360,6 +2442,10 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       success: false,
       error: 'NO_REAL_DATA',
       mode,
+      meta: {
+        fallback: true,
+        reason: 'no_data',
+      },
     });
   }
 });
@@ -2647,30 +2733,49 @@ router.get('/api/intelligence/diagnostics', async (req, res) => {
   }
 });
 
+router.get('/api/intelligence/decision', async (req, res) => {
+  const symbol = String(req.query.symbol || '').trim().toUpperCase();
+  if (!symbol) {
+    return res.json({
+      ok: true,
+      status: 'fallback',
+      source: 'route',
+      data: [],
+      decision: null,
+      message: 'Provide a symbol via /api/intelligence/decision/:symbol or ?symbol=AAPL',
+    });
+  }
+
+  try {
+    return await sendDecisionResponse(symbol, res);
+  } catch (error) {
+    console.error('[intelligence] decision error:', error.message);
+    return res.status(500).json({
+      ok: false,
+      status: 'error',
+      source: 'truth_engine',
+      data: [],
+      error: error.message || 'Failed to build intelligence decision',
+    });
+  }
+});
+
 router.get('/api/intelligence/decision/:symbol', async (req, res) => {
   const symbol = String(req.params.symbol || '').trim().toUpperCase();
   console.log('Decision request:', symbol);
   if (!symbol) {
-    return res.status(400).json({ ok: false, error: 'symbol is required' });
+    return res.json({
+      ok: true,
+      status: 'fallback',
+      source: 'route',
+      data: [],
+      decision: null,
+      message: 'symbol is required',
+    });
   }
 
   try {
-    const cached = getCachedDecision(symbol);
-    const decision = cached || await buildTruthDecisionForSymbol(symbol, {
-      allowRemoteNarrative: false,
-    });
-    if (!cached) {
-      setCachedDecision(symbol, decision);
-    }
-    logResponseShape('/api/intelligence/decision/:symbol', [decision], ['symbol', 'tradeable', 'setup', 'driver', 'risk_flags']);
-    const responseStatus = decision?.degraded ? 'degraded' : 'ok';
-    return res.json({
-      ok: true,
-      status: responseStatus,
-      source: decision?.source || 'truth_engine',
-      data: [decision],
-      decision,
-    });
+    return await sendDecisionResponse(symbol, res);
   } catch (error) {
     console.error('[intelligence] decision error:', error.message);
     return res.status(500).json({

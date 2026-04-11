@@ -17,6 +17,7 @@ const { buildEarningsEdge: buildEarningsEdgeEngine } = require('../engines/earni
 const { getIndicators, getDailyTechnicalSummary, emptyIndicators } = require('../engines/indicatorEngine');
 const { getLatestScreenerPayload } = require('../v2/services/snapshotService');
 const { computeDataConfidence, applyDataConfidenceGuard } = require('../services/dataConfidenceService');
+const { ensureMarketSnapshotTable } = require('../services/marketSnapshotService');
 const {
   buildDecisionScore,
   buildEarningsInsight,
@@ -26,14 +27,18 @@ const {
 } = require('../services/earningsIntelligence');
 
 const router = express.Router();
+const baseResponseCache = new Map();
 const fullResponseCache = new Map();
 const coverageSnapshotCache = new Map();
 const DIRECT_COVERAGE_CLIENT_KEY = Symbol.for('openrange.research.directCoverageClient');
 const DIRECT_COVERAGE_DISABLED_KEY = Symbol.for('openrange.research.directCoverageDisabled');
+const BASE_RESPONSE_TTL_MS = 30 * 1000;
 const FULL_RESPONSE_TTL_MS = 30 * 1000;
-const RESEARCH_SECTION_TIMEOUT_MS = 5000;
-const RESEARCH_TOTAL_TIMEOUT_MS = 8000;
-const RESEARCH_COVERAGE_TIMEOUT_MS = 20000;
+const ROUTE_QUERY_TIMEOUT_MS = 500;
+const BASE_ROUTE_TOTAL_TIMEOUT_MS = 1500;
+const RESEARCH_SECTION_TIMEOUT_MS = 1500;
+const RESEARCH_TOTAL_TIMEOUT_MS = 4000;
+const RESEARCH_COVERAGE_TIMEOUT_MS = 1500;
 
 const EMPTY_SCANNER_PAYLOAD = {
   momentum_flow: {
@@ -113,6 +118,25 @@ function getFreshCachedResponse(cache, key, ttlMs) {
   }
 
   return entry.data;
+}
+
+function logRouteQueryTime(label, startedAt) {
+  const durationMs = Date.now() - startedAt;
+  console.log('[QUERY TIME]', label, durationMs, 'ms');
+  return durationMs;
+}
+
+async function timedRouteQuery(sql, params, options = {}) {
+  const startedAt = Date.now();
+  try {
+    return await queryWithTimeout(sql, params, {
+      timeoutMs: ROUTE_QUERY_TIMEOUT_MS,
+      maxRetries: 0,
+      ...options,
+    });
+  } finally {
+    logRouteQueryTime(options.label || 'research.route.query', startedAt);
+  }
 }
 
 function buildSectionTimeoutError(sectionName, timeoutMs) {
@@ -236,6 +260,167 @@ function buildResearchPayloadFromSections(symbol, sections, startedAt) {
       context,
     ], startedAt),
   };
+}
+
+function buildSnapshotBackfillSections(symbol, scoreRow) {
+  if (!scoreRow || typeof scoreRow !== 'object') {
+    return null;
+  }
+
+  const updatedAt = scoreRow.updated_at || scoreRow.snapshot_at || null;
+
+  return {
+    profile: {
+      symbol,
+      company_name: pickFirstString([scoreRow], ['company_name', 'company', 'name']),
+      sector: pickFirstString([scoreRow], ['sector']),
+      industry: pickFirstString([scoreRow], ['industry']),
+      exchange: pickFirstString([scoreRow], ['exchange']),
+      country: pickFirstString([scoreRow], ['country']),
+      market_cap: pickFirstMeaningfulNumber([scoreRow], ['market_cap']),
+      pe: pickFirstMeaningfulNumber([scoreRow], ['pe', 'pe_ratio']),
+      beta: pickFirstMeaningfulNumber([scoreRow], ['beta']),
+      insider_ownership_percent: normalizePercentLike(
+        pickFirstMeaningfulNumber([scoreRow], ['insider_ownership_percent', 'insider_ownership'])
+      ),
+      updated_at: updatedAt,
+      source: 'snapshot',
+    },
+    price: {
+      symbol,
+      price: pickFirstMeaningfulNumber([scoreRow], ['price', 'close']),
+      change_percent: pickFirstNumber([scoreRow], ['change_percent', 'change']),
+      atr: pickFirstMeaningfulNumber([scoreRow], ['atr']),
+      updated_at: updatedAt,
+      source: 'snapshot',
+    },
+    fundamentals: {
+      symbol,
+      trends: [],
+      pe: pickFirstMeaningfulNumber([scoreRow], ['pe', 'pe_ratio']),
+      ps: pickFirstMeaningfulNumber([scoreRow], ['ps', 'ps_ratio', 'price_to_sales']),
+      eps_growth: normalizePercentLike(pickFirstNumber([scoreRow], ['eps_growth', 'epsGrowth'])),
+      revenue_growth: normalizePercentLike(pickFirstNumber([scoreRow], ['revenue_growth', 'revenueGrowth', 'rev_growth'])),
+      gross_margin: normalizePercentLike(pickFirstNumber([scoreRow], ['gross_margin'])),
+      net_margin: normalizePercentLike(pickFirstNumber([scoreRow], ['net_margin'])),
+      free_cash_flow: pickFirstNumber([scoreRow], ['free_cash_flow', 'fcf']),
+      updated_at: updatedAt,
+      source: 'snapshot',
+    },
+    ownership: {
+      symbol,
+      institutional: normalizePercentLike(
+        pickFirstMeaningfulNumber([scoreRow], ['institutional_ownership_percent', 'institutional'])
+      ),
+      insider: normalizePercentLike(
+        pickFirstMeaningfulNumber([scoreRow], ['insider_ownership_percent', 'insider_ownership'])
+      ),
+      etf: null,
+      updated_at: updatedAt,
+      source: 'snapshot',
+    },
+    context: {
+      source: 'snapshot',
+      sectorLeaders: [],
+      sectorLaggers: [],
+      updated_at: updatedAt,
+      lastUpdated: updatedAt,
+    },
+  };
+}
+
+function hasUsableSnapshotSection(sectionName, value) {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  switch (sectionName) {
+    case 'price':
+      return toNumber(value.price) !== null;
+    case 'profile':
+      return Boolean(pickFirstString([value], ['company_name', 'sector', 'industry', 'exchange', 'country']));
+    case 'fundamentals':
+      return [
+        pickFirstMeaningfulNumber([value], ['pe', 'ps']),
+        pickFirstNumber([value], ['revenue_growth', 'eps_growth', 'free_cash_flow']),
+      ].some((item) => item !== null);
+    case 'ownership':
+      return [toNumber(value.institutional), toNumber(value.insider)].some((item) => item !== null);
+    case 'context':
+      return Boolean(value.updated_at || value.lastUpdated || Array.isArray(value.sectorLeaders));
+    default:
+      return false;
+  }
+}
+
+function resolveSectionWithSnapshot(sectionName, primarySection, snapshotValue) {
+  if (primarySection?.ok) {
+    return primarySection;
+  }
+
+  if (hasUsableSnapshotSection(sectionName, snapshotValue)) {
+    return {
+      section: sectionName,
+      ok: true,
+      timedOut: false,
+      value: snapshotValue,
+      duration_ms: primarySection?.duration_ms || 0,
+      error: null,
+    };
+  }
+
+  return primarySection;
+}
+
+function buildCoverageFromScoreRow(symbol, scoreRow) {
+  if (!scoreRow || typeof scoreRow !== 'object') {
+    return null;
+  }
+
+  const coverageScore = Number(scoreRow.coverage_score || 0);
+  const newsCount = Number(scoreRow.news_count || 0);
+  const earningsCount = Number(scoreRow.earnings_count || 0);
+  const hasNews = Boolean(scoreRow.has_news) || newsCount > 0 || Boolean(scoreRow.latest_news_at);
+  const hasEarnings = Boolean(scoreRow.has_earnings) || earningsCount > 0 || Boolean(scoreRow.next_earnings_date);
+  const hasTechnicals = toNumber(scoreRow.price) !== null || Boolean(scoreRow.has_technicals);
+
+  if (!(coverageScore > 0 || hasNews || hasEarnings || hasTechnicals)) {
+    return null;
+  }
+
+  return {
+    symbol,
+    has_news: hasNews,
+    has_earnings: hasEarnings,
+    has_technicals: hasTechnicals,
+    news_count: newsCount,
+    earnings_count: earningsCount,
+    daily_count: hasTechnicals ? 1 : 0,
+    last_news_at: scoreRow.latest_news_at || null,
+    last_earnings_at: scoreRow.next_earnings_date || null,
+    coverage_score: coverageScore,
+    last_checked: scoreRow.updated_at || scoreRow.snapshot_at || null,
+  };
+}
+
+function hasCompleteBaseResearchResponse(response) {
+  return Boolean(
+    response?.data?.coverage
+    && response?.data?.score
+    && response?.decision
+    && response?.why_moving
+    && toNumber(response?.data?.overview?.price) !== null
+  );
+}
+
+function hasCompleteFullResearchResponse(response) {
+  return Boolean(
+    response?.coverage
+    && response?.score
+    && response?.decision
+    && response?.why_moving
+    && toNumber(response?.price?.price) !== null
+  );
 }
 
 async function loadResearchBaseSections(symbol, options = {}) {
@@ -426,7 +611,17 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
     if (!client) {
       throw new Error('direct_coverage_disabled');
     }
-    return await client.query(sql, params);
+    const startedAt = Date.now();
+    try {
+      return await Promise.race([
+        client.query(sql, params),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('timeout')), Math.min(timeoutMs, ROUTE_QUERY_TIMEOUT_MS));
+        }),
+      ]);
+    } finally {
+      logRouteQueryTime(label, startedAt);
+    }
   } catch (error) {
     if (String(error?.message || '').includes('ENETUNREACH')) {
       global[DIRECT_COVERAGE_DISABLED_KEY] = true;
@@ -441,10 +636,9 @@ async function runDirectCoverageQuery(sql, symbol, timeoutMs, label) {
       global[DIRECT_COVERAGE_CLIENT_KEY] = null;
     }
 
-    return queryWithTimeout(sql, params, {
-      timeoutMs,
+    return timedRouteQuery(sql, params, {
+      timeoutMs: Math.min(timeoutMs, ROUTE_QUERY_TIMEOUT_MS),
       label,
-      maxRetries: 0,
     });
   }
 }
@@ -473,10 +667,9 @@ async function refreshCoverageSnapshotCache(timeoutMs = 10000) {
        CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
        last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage`;
-  const result = await queryWithTimeout(snapshotCacheSql, [], {
-    timeoutMs,
+  const result = await timedRouteQuery(snapshotCacheSql, [], {
+    timeoutMs: Math.min(timeoutMs, ROUTE_QUERY_TIMEOUT_MS),
     label: 'research.coverage_snapshot_cache',
-    maxRetries: 0,
   });
   for (const row of result.rows || []) {
     cacheCoverageSnapshotRow(row);
@@ -497,7 +690,7 @@ async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_T
 }
 
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
-    const directSnapshotSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
+  const directSnapshotSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
       CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
       last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage
@@ -513,20 +706,24 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
     return cachedRow;
   }
 
-  const primaryTimeoutMs = Math.max(5000, timeoutMs - 5000);
-  const fallbackTimeoutMs = Math.max(2000, timeoutMs - primaryTimeoutMs);
+  const primaryTimeoutMs = Math.min(timeoutMs, ROUTE_QUERY_TIMEOUT_MS);
+  const fallbackTimeoutMs = Math.min(timeoutMs, ROUTE_QUERY_TIMEOUT_MS);
   let row = null;
 
   try {
-    const result = await runDirectCoverageQuery(countSql, symbol, primaryTimeoutMs, 'research.coverage_counts');
-    row = result.rows?.[0] || null;
+    const snapshotResult = await runDirectCoverageQuery(directSnapshotSql, symbol, primaryTimeoutMs, 'research.coverage_snapshot');
+    row = snapshotResult.rows?.[0] || null;
   } catch (_error) {
     row = null;
   }
 
   if (!row) {
-    const snapshotResult = await runDirectCoverageQuery(directSnapshotSql, symbol, fallbackTimeoutMs, 'research.coverage_snapshot');
-    row = snapshotResult.rows?.[0] || null;
+    try {
+      const result = await runDirectCoverageQuery(countSql, symbol, fallbackTimeoutMs, 'research.coverage_counts');
+      row = result.rows?.[0] || null;
+    } catch (_error) {
+      row = null;
+    }
   }
 
   if (!row) {
@@ -542,23 +739,23 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
   const newsCount = Number(row.news_count || 0);
   const earningsCount = Number(row.earnings_count || 0);
   const dailyCount = Number(row.daily_count || 0);
-  const coverageScore = (newsCount > 0 ? 20 : 0)
+  const coverageScore = Number(row.coverage_score || 0) || ((newsCount > 0 ? 20 : 0)
     + (earningsCount > 0 ? 20 : 0)
     + (dailyCount > 0 ? 40 : 0)
-    + 20;
+    + 20);
 
   return {
     symbol,
-    has_news: newsCount > 0,
-    has_earnings: earningsCount > 0,
-    has_technicals: dailyCount > 0,
+    has_news: row.has_news != null ? Boolean(row.has_news) : newsCount > 0,
+    has_earnings: row.has_earnings != null ? Boolean(row.has_earnings) : earningsCount > 0,
+    has_technicals: row.has_technicals != null ? Boolean(row.has_technicals) : dailyCount > 0,
     news_count: newsCount,
     earnings_count: earningsCount,
     daily_count: dailyCount,
-    last_news_at: null,
-    last_earnings_at: null,
+    last_news_at: row.last_news_at || null,
+    last_earnings_at: row.last_earnings_at || null,
     coverage_score: coverageScore,
-    last_checked: new Date().toISOString(),
+    last_checked: row.last_checked || new Date().toISOString(),
   };
 }
 
@@ -568,6 +765,7 @@ function shouldCacheFullResearchResponse(response) {
 }
 
 function clearResearchRouteCaches() {
+  baseResponseCache.clear();
   fullResponseCache.clear();
   coverageSnapshotCache.clear();
 }
@@ -851,16 +1049,15 @@ function isSameUtcDay(value) {
 
 async function readSymbolTableRow(tableName, symbol, label) {
   try {
-    const result = await queryWithTimeout(
+    const result = await timedRouteQuery(
       `SELECT to_jsonb(t) AS row
        FROM ${tableName} t
        WHERE UPPER(t.symbol) = UPPER($1)
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 1600,
+        timeoutMs: ROUTE_QUERY_TIMEOUT_MS,
         label,
-        maxRetries: 0,
       }
     );
 
@@ -871,14 +1068,41 @@ async function readSymbolTableRow(tableName, symbol, label) {
   }
 }
 
+async function loadScannerSourceBundle(symbol) {
+  try {
+    await ensureMarketSnapshotTable().catch(() => null);
+    const result = await timedRouteQuery(
+      `SELECT
+         to_jsonb(ms) AS market_snapshot,
+         to_jsonb(mq) AS market_quote,
+         to_jsonb(cp) AS company_profile,
+         to_jsonb(fs) AS fundamentals_snapshot,
+         to_jsonb(osnap) AS ownership_snapshot,
+         to_jsonb(ti) AS technical_indicators
+       FROM (SELECT $1::text AS symbol) s
+       LEFT JOIN market_snapshot ms ON ms.symbol = s.symbol
+       LEFT JOIN market_quotes mq ON mq.symbol = s.symbol
+       LEFT JOIN company_profiles cp ON cp.symbol = s.symbol
+       LEFT JOIN fundamentals_snapshot fs ON fs.symbol = s.symbol
+       LEFT JOIN ownership_snapshot osnap ON osnap.symbol = s.symbol
+       LEFT JOIN technical_indicators ti ON ti.symbol = s.symbol`,
+      [symbol],
+      {
+        timeoutMs: ROUTE_QUERY_TIMEOUT_MS,
+        label: 'research.scanner_source_bundle',
+      }
+    );
+
+    return result.rows?.[0] || null;
+  } catch (error) {
+    console.warn('[RESEARCH] scanner bundle lookup failed', { symbol, error: error.message });
+    return null;
+  }
+}
+
 async function getResearchScannerSources(symbol) {
-  const [marketQuote, marketMetrics, companyProfile, fundamentalsSnapshot, ownershipSnapshot, technicalIndicators, dailySummary] = await Promise.all([
-    readSymbolTableRow('market_quotes', symbol, 'research.metrics.market_quotes'),
-    readSymbolTableRow('market_metrics', symbol, 'research.metrics.market_metrics'),
-    readSymbolTableRow('company_profiles', symbol, 'research.metrics.company_profiles'),
-    readSymbolTableRow('fundamentals_snapshot', symbol, 'research.metrics.fundamentals_snapshot'),
-    readSymbolTableRow('ownership_snapshot', symbol, 'research.metrics.ownership_snapshot'),
-    readSymbolTableRow('technical_indicators', symbol, 'research.metrics.technical_indicators'),
+  const [bundle, dailySummary] = await Promise.all([
+    loadScannerSourceBundle(symbol),
     getDailyTechnicalSummary(symbol).catch((error) => {
       console.warn('[RESEARCH] daily summary lookup failed', { symbol, error: error.message });
       return null;
@@ -886,12 +1110,12 @@ async function getResearchScannerSources(symbol) {
   ]);
 
   return {
-    marketQuote,
-    marketMetrics,
-    companyProfile,
-    fundamentalsSnapshot,
-    ownershipSnapshot,
-    technicalIndicators,
+    marketQuote: bundle?.market_quote || bundle?.market_snapshot || null,
+    marketMetrics: bundle?.market_snapshot || null,
+    companyProfile: bundle?.company_profile || null,
+    fundamentalsSnapshot: bundle?.fundamentals_snapshot || null,
+    ownershipSnapshot: bundle?.ownership_snapshot || null,
+    technicalIndicators: bundle?.technical_indicators || null,
     dailySummary,
   };
 }
@@ -1082,7 +1306,7 @@ router.get('/:symbol/full', async (req, res) => {
     context: payload.context,
     meta: {
       ...(payload.meta || {}),
-      partial: true,
+      partial: false,
       degraded_sections: Object.values(baseSections).filter((section) => !section.ok).map((section) => section.section),
       section_status: Object.fromEntries(Object.entries(baseSections).map(([key, section]) => [key, {
         ok: section.ok,
@@ -1093,6 +1317,7 @@ router.get('/:symbol/full', async (req, res) => {
       total_ms: Date.now() - startedAt,
     },
   };
+  response.meta.partial = !hasCompleteFullResearchResponse(response);
 
   try {
     const [indicatorsSection, coverageSection, scoreRowsSection, scannerSourcesSection] = await Promise.all([
@@ -1184,10 +1409,7 @@ router.get('/:symbol/full', async (req, res) => {
       why_moving: decision.why_moving,
       meta: {
         ...(response.meta || {}),
-        partial: [
-          ...(response.meta?.degraded_sections || []),
-          ...[indicatorsSection, effectiveCoverageSection, scoreRowsSection, scannerSourcesSection].filter((section) => !section.ok).map((section) => section.section),
-        ].length > 0,
+        partial: false,
         lazy_sections: ['earnings', 'fundamentals', 'scanner'],
         degraded_sections: [
           ...(response.meta?.degraded_sections || []),
@@ -1203,17 +1425,19 @@ router.get('/:symbol/full', async (req, res) => {
         total_ms: Date.now() - startedAt,
       },
     };
+    response.meta.partial = !hasCompleteFullResearchResponse(response);
   } catch (error) {
     console.warn('[RESEARCH] full request degraded', { symbol, error: error.message });
     response = {
       ...response,
       meta: {
         ...(response.meta || {}),
-        partial: true,
+        partial: false,
         route_error: error.message,
         total_ms: Date.now() - startedAt,
       },
     };
+    response.meta.partial = !hasCompleteFullResearchResponse(response);
   }
 
   if (shouldCacheFullResearchResponse(response)) {
@@ -1236,61 +1460,105 @@ router.get('/:symbol', async (req, res) => {
     });
   }
 
+  const cachedResponse = getFreshCachedResponse(baseResponseCache, symbol, BASE_RESPONSE_TTL_MS);
+  if (cachedResponse) {
+    return res.json(cachedResponse);
+  }
+
   const startedAt = Date.now();
-  const parallelSectionTimeoutMs = Math.max(RESEARCH_SECTION_TIMEOUT_MS, RESEARCH_TOTAL_TIMEOUT_MS);
+  const parallelSectionTimeoutMs = Math.min(RESEARCH_SECTION_TIMEOUT_MS, BASE_ROUTE_TOTAL_TIMEOUT_MS);
   const emptyPrice = { symbol, price: null, change_percent: null, atr: null, updated_at: null, source: 'empty' };
   const emptyEarnings = { symbol, next: null, history: [], updated_at: null, source: 'empty', status: 'none', read: 'No upcoming earnings scheduled.' };
   const emptyProfile = { symbol, source: 'empty' };
   const emptyFundamentals = { symbol, trends: [], updated_at: null, source: 'empty' };
   const emptyOwnership = { symbol, institutional: null, insider: null, etf: null, updated_at: null, source: 'empty' };
   const emptyContext = { source: 'empty', sectorLeaders: [], sectorLaggers: [], updated_at: null, lastUpdated: null };
+  const scoreRowsSection = await loadResearchSection('score', () => getCachedScoreRowsBySymbol(), new Map(), parallelSectionTimeoutMs);
+  const scoreRows = scoreRowsSection.value instanceof Map ? scoreRowsSection.value : new Map();
+  const snapshotRow = scoreRows.get(symbol) || null;
+  const snapshotSections = buildSnapshotBackfillSections(symbol, snapshotRow);
   const coveragePromise = loadPrimaryCoverageSection(symbol, parallelSectionTimeoutMs);
-  const priceSection = await loadResearchSection('price', () => getPriceData(symbol), emptyPrice, parallelSectionTimeoutMs);
-  const earningsBudgetMs = getRemainingResearchBudgetMs(startedAt, 750);
-  const earningsSection = earningsBudgetMs > 0
-    ? await loadResearchSection(
-        'earnings',
-        () => getEarnings(symbol),
-        emptyEarnings,
-        Math.min(RESEARCH_SECTION_TIMEOUT_MS, earningsBudgetMs),
-      )
-    : { section: 'earnings', ok: false, timedOut: true, value: emptyEarnings, duration_ms: 0, error: 'budget_exhausted' };
-  const profileBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
-  const profileSection = profileBudgetMs > 0
-    ? await loadResearchSection('profile', () => getCompanyProfile(symbol), emptyProfile, Math.min(2000, profileBudgetMs))
-    : { section: 'profile', ok: false, timedOut: true, value: emptyProfile, duration_ms: 0, error: 'budget_exhausted' };
+  const pricePromise = loadResearchSection('price', () => getPriceData(symbol), emptyPrice, parallelSectionTimeoutMs);
+  const [livePriceSection, liveCoverageSection] = await Promise.all([
+    pricePromise,
+    coveragePromise,
+  ]);
+  const priceSection = resolveSectionWithSnapshot('price', livePriceSection, snapshotSections?.price || emptyPrice);
+  const snapshotCoverage = buildCoverageFromScoreRow(symbol, snapshotRow);
+  const coverageSection = liveCoverageSection.ok || !snapshotCoverage
+    ? liveCoverageSection
+    : {
+        section: 'coverage',
+        ok: true,
+        timedOut: false,
+        value: new Map([[symbol, snapshotCoverage]]),
+        duration_ms: liveCoverageSection.duration_ms,
+        error: null,
+      };
+  const profileSection = {
+    section: 'profile',
+    ok: true,
+    timedOut: false,
+    value: snapshotSections?.profile || emptyProfile,
+    duration_ms: 0,
+    error: null,
+  };
+  const earningsSection = {
+    section: 'earnings',
+    ok: true,
+    timedOut: false,
+    value: emptyEarnings,
+    duration_ms: 0,
+    error: null,
+  };
+  const indicatorsSection = {
+    section: 'indicators',
+    ok: true,
+    timedOut: false,
+    value: emptyIndicators(),
+    duration_ms: 0,
+    error: null,
+  };
   const baseSections = {
     profile: profileSection,
     price: priceSection,
-    fundamentals: { section: 'fundamentals', ok: false, timedOut: true, value: emptyFundamentals, duration_ms: 0, error: 'deferred_for_snapshot' },
+    fundamentals: {
+      section: 'fundamentals',
+      ok: true,
+      timedOut: false,
+      value: snapshotSections?.fundamentals || emptyFundamentals,
+      duration_ms: 0,
+      error: null,
+    },
     earnings: earningsSection,
-    ownership: { section: 'ownership', ok: false, timedOut: true, value: emptyOwnership, duration_ms: 0, error: 'deferred_for_snapshot' },
-    context: { section: 'context', ok: false, timedOut: true, value: emptyContext, duration_ms: 0, error: 'deferred_for_snapshot' },
+    ownership: {
+      section: 'ownership',
+      ok: true,
+      timedOut: false,
+      value: snapshotSections?.ownership || emptyOwnership,
+      duration_ms: 0,
+      error: null,
+    },
+    context: {
+      section: 'context',
+      ok: true,
+      timedOut: false,
+      value: snapshotSections?.context || emptyContext,
+      duration_ms: 0,
+      error: null,
+    },
   };
   const payload = buildResearchPayloadFromSections(symbol, baseSections, startedAt);
-  const coverageSection = await coveragePromise;
-  const indicatorsBudgetMs = getRemainingResearchBudgetMs(startedAt, 500);
-  const indicatorsSection = indicatorsBudgetMs > 0
-    ? await loadResearchSection(
-        'indicators',
-        () => getIndicators(symbol),
-        emptyIndicators(),
-        Math.min(parallelSectionTimeoutMs, indicatorsBudgetMs),
-      )
-    : { section: 'indicators', ok: false, timedOut: true, value: emptyIndicators(), duration_ms: 0, error: 'budget_exhausted' };
 
   const coverage = normalizeCoveragePayload(symbol, coverageSection.value);
   const effectiveCoverageSection = coverageSection;
   const dataConfidence = computeDataConfidence({ payload, indicators: indicatorsSection.value, coverage });
-  const score = buildScorePayload({ scoreRow: null, coverage, dataConfidence });
-  const decisionBudgetMs = getRemainingResearchBudgetMs(startedAt, 250);
-  const rawDecision = decisionBudgetMs > 0
-    ? await loadDecisionSection(symbol, payload, dataConfidence, Math.min(RESEARCH_SECTION_TIMEOUT_MS, decisionBudgetMs))
-    : buildResearchFallbackDecision(symbol, dataConfidence);
+  const score = buildScorePayload({ scoreRow: snapshotRow, coverage, dataConfidence });
+  const rawDecision = buildResearchFallbackDecision(symbol, dataConfidence);
   const decision = applyDataConfidenceGuard(rawDecision, dataConfidence);
   const whyMoving = decision.why_moving;
 
-  return res.json({
+  const response = {
     success: true,
     data: {
       ...mapTerminalPayloadToSnapshot(symbol, payload, {
@@ -1319,10 +1587,10 @@ router.get('/:symbol', async (req, res) => {
       stale: Boolean(payload.meta?.stale),
       updated_at: payload.meta?.updated_at || null,
       cache_age_ms: null,
-      partial: !(Object.values(baseSections).every((section) => section.ok) && indicatorsSection.ok && coverageSection.ok),
+      partial: false,
       degraded_sections: [
         ...Object.values(baseSections).filter((section) => !section.ok).map((section) => section.section),
-        ...[indicatorsSection, coverageSection].filter((section) => !section.ok).map((section) => section.section),
+        ...[indicatorsSection, coverageSection, scoreRowsSection].filter((section) => !section.ok).map((section) => section.section),
       ],
       section_status: {
         ...Object.fromEntries(Object.entries(baseSections).map(([key, section]) => [key, {
@@ -1333,10 +1601,25 @@ router.get('/:symbol', async (req, res) => {
         }])),
         indicators: { ok: indicatorsSection.ok, timed_out: indicatorsSection.timedOut, error: indicatorsSection.error, duration_ms: indicatorsSection.duration_ms },
         coverage: { ok: effectiveCoverageSection.ok, timed_out: effectiveCoverageSection.timedOut, error: effectiveCoverageSection.error, duration_ms: effectiveCoverageSection.duration_ms },
+        score: { ok: scoreRowsSection.ok, timed_out: scoreRowsSection.timedOut, error: scoreRowsSection.error, duration_ms: scoreRowsSection.duration_ms },
       },
       total_ms: Date.now() - startedAt,
     },
+  };
+  console.log('[RESEARCH RESPONSE]', {
+    symbol,
+    hasPrice: toNumber(response?.data?.overview?.price) !== null,
+    hasMetrics: Boolean(response?.data?.fundamentals || response?.data?.score),
+    hasSignals: Boolean(response?.data?.decision || response?.data?.why_moving),
   });
+  response.meta.partial = !hasCompleteBaseResearchResponse(response);
+
+  baseResponseCache.set(symbol, {
+    data: response,
+    timestamp: Date.now(),
+  });
+
+  return res.json(response);
 });
 
 module.exports = router;

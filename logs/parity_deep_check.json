@@ -1,0 +1,1438 @@
+{
+  "checked_at": "2026-04-11T08:37:38.102Z",
+  "local_base": "http://localhost:3007",
+  "production_base": "https://openrangetrading.co.uk",
+  "symbol": "AAPL",
+  "results": [
+    {
+      "endpoint": "screener",
+      "route": "/api/screener",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 459,
+        "error": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 2444,
+        "error": null
+      },
+      "comparison": {
+        "local_count": 4801,
+        "production_count": 4812,
+        "row_count_delta": -11,
+        "missing_in_local": [
+          "SPY",
+          "QQQ",
+          "MGN",
+          "SOHO",
+          "FUSE",
+          "RCC",
+          "ZXZZT",
+          "BIPJ",
+          "ARTCU",
+          "GAING",
+          "YCY-UN"
+        ],
+        "missing_in_production": [],
+        "mismatched_values": [
+          {
+            "symbol": "CREG",
+            "local": {
+              "price": 0.6315,
+              "volume": 437857778,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 0.3406,
+              "volume": 395147,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NVDA",
+            "local": {
+              "price": 188.63,
+              "volume": 159395820,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 183.91,
+              "volume": 115699740,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PLTR",
+            "local": {
+              "price": 128.06,
+              "volume": 115890353,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 130.49,
+              "volume": 90818765,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "HOLX",
+            "local": {
+              "price": 76.01,
+              "volume": 101956189,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 76.01,
+              "volume": 101956189,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "INTC",
+            "local": {
+              "price": 62.38,
+              "volume": 98094030,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 61.72,
+              "volume": 154727306,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NOK",
+            "local": {
+              "price": 9.46,
+              "volume": 80963851,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.55,
+              "volume": 87828554,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CRWV",
+            "local": {
+              "price": 102,
+              "volume": 78675753,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 92,
+              "volume": 65044075,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PLUG",
+            "local": {
+              "price": 2.74,
+              "volume": 60361214,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 2.74,
+              "volume": 76458033,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NIO",
+            "local": {
+              "price": 6.5,
+              "volume": 58526246,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.07,
+              "volume": 68462177,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NOW",
+            "local": {
+              "price": 83,
+              "volume": 58407404,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 89.81,
+              "volume": 38348898,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AMZN",
+            "local": {
+              "price": 238.38,
+              "volume": 56515959,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 233.65,
+              "volume": 65490764,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "EOSE",
+            "local": {
+              "price": 5.62,
+              "volume": 55395386,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 5.95,
+              "volume": 61404036,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "TSLA",
+            "local": {
+              "price": 348.95,
+              "volume": 50310339,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 345.62,
+              "volume": 61134264,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "UCAR",
+            "local": {
+              "price": 2.33,
+              "volume": 49742694,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.64,
+              "volume": 52322876,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SQFT",
+            "local": {
+              "price": 3.89,
+              "volume": 48529444,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 2.82,
+              "volume": 13935,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SNAP",
+            "local": {
+              "price": 4.82,
+              "volume": 48014952,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.95,
+              "volume": 51677149,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "GRAB",
+            "local": {
+              "price": 3.68,
+              "volume": 47089847,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 3.68,
+              "volume": 51834874,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ZNTL",
+            "local": {
+              "price": 6.61,
+              "volume": 46116463,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.42,
+              "volume": 13353252,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "IOVA",
+            "local": {
+              "price": 3.7,
+              "volume": 43964581,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.01,
+              "volume": 26266273,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "BBD",
+            "local": {
+              "price": 4.03,
+              "volume": 43671689,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 3.96,
+              "volume": 38537057,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SMCI",
+            "local": {
+              "price": 25.26,
+              "volume": 43418049,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 23.22,
+              "volume": 28590592,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "MRVL",
+            "local": {
+              "price": 128.49,
+              "volume": 41109666,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 119.93,
+              "volume": 32309456,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "FSLY",
+            "local": {
+              "price": 23.07,
+              "volume": 38307257,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 29.46,
+              "volume": 23774731,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "VALE",
+            "local": {
+              "price": 16.96,
+              "volume": 38122263,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 16.65,
+              "volume": 20496516,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "OGN",
+            "local": {
+              "price": 8.83,
+              "volume": 38055722,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.91,
+              "volume": 9998522,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "MU",
+            "local": {
+              "price": 420.59,
+              "volume": 36212702,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 421.51,
+              "volume": 41948527,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "MARA",
+            "local": {
+              "price": 9.54,
+              "volume": 36125663,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.67,
+              "volume": 50047455,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AMD",
+            "local": {
+              "price": 245.04,
+              "volume": 35893173,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 236.64,
+              "volume": 26922527,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "IREN",
+            "local": {
+              "price": 39.32,
+              "volume": 34865861,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 37.06,
+              "volume": 26647654,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "WULF",
+            "local": {
+              "price": 18.87,
+              "volume": 33170226,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 19.03,
+              "volume": 44490558,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ONDS",
+            "local": {
+              "price": 9.13,
+              "volume": 32446039,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.14,
+              "volume": 37513475,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "T",
+            "local": {
+              "price": 26.475,
+              "volume": 31960640,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 26.84,
+              "volume": 33546937,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ABEV",
+            "local": {
+              "price": 3.19,
+              "volume": 31531406,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 3.15,
+              "volume": 36540711,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AAL",
+            "local": {
+              "price": 11.32,
+              "volume": 31477801,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 11.37,
+              "volume": 36156539,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SOFI",
+            "local": {
+              "price": 16.22,
+              "volume": 31337982,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 16.27,
+              "volume": 43224357,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AMC",
+            "local": {
+              "price": 1.35,
+              "volume": 30623713,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.35,
+              "volume": 25462889,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NU",
+            "local": {
+              "price": 14.96,
+              "volume": 30136865,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 14.87,
+              "volume": 51480472,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AVGO",
+            "local": {
+              "price": 371.55,
+              "volume": 29100641,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 354.91,
+              "volume": 19305774,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AAPL",
+            "local": {
+              "price": 260.48,
+              "volume": 28217892,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 260.49,
+              "volume": 26229474,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "MSFT",
+            "local": {
+              "price": 370.87,
+              "volume": 27933678,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 373.07,
+              "volume": 28422375,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PATH",
+            "local": {
+              "price": 9.38,
+              "volume": 27813310,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.94,
+              "volume": 31249832,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PBR",
+            "local": {
+              "price": 21.51,
+              "volume": 27473900,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 20.69,
+              "volume": 29187431,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ORBS",
+            "local": {
+              "price": 0.8442,
+              "volume": 26437290,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 0.8761,
+              "volume": 21395011,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ORCL",
+            "local": {
+              "price": 138.11,
+              "volume": 26013685,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 137.84,
+              "volume": 27816582,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "APLD",
+            "local": {
+              "price": 26.26,
+              "volume": 25926941,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 25.57,
+              "volume": 35625918,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "OPEN",
+            "local": {
+              "price": 4.32,
+              "volume": 25770700,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.31,
+              "volume": 30575920,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NBIS",
+            "local": {
+              "price": 144.97,
+              "volume": 25714393,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 136.33,
+              "volume": 19762774,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NFLX",
+            "local": {
+              "price": 103.01,
+              "volume": 25439222,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 102.05,
+              "volume": 34025893,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "VG",
+            "local": {
+              "price": 12.97,
+              "volume": 24736375,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 12.99,
+              "volume": 39226539,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "F",
+            "local": {
+              "price": 12.1225,
+              "volume": 23631799,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 12.24,
+              "volume": 28170516,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CIFR",
+            "local": {
+              "price": 16.53,
+              "volume": 23120290,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 16.36,
+              "volume": 30763692,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PFE",
+            "local": {
+              "price": 26.91,
+              "volume": 22839600,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 27.205,
+              "volume": 20729098,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "NKE",
+            "local": {
+              "price": 42.62,
+              "volume": 22832880,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 44,
+              "volume": 23652674,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "HOOD",
+            "local": {
+              "price": 69.19,
+              "volume": 22779264,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 70.12,
+              "volume": 25213263,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "LNKS",
+            "local": {
+              "price": 2.17,
+              "volume": 22477146,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.96,
+              "volume": 328373,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SNOW",
+            "local": {
+              "price": 121.11,
+              "volume": 22134700,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 132.24,
+              "volume": 14150187,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "AAOI",
+            "local": {
+              "price": 150.6,
+              "volume": 21783708,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 133.3,
+              "volume": 16783931,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "EXAS",
+            "local": {
+              "price": 104.91,
+              "volume": 21562141,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 104.91,
+              "volume": 21562141,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "GGB",
+            "local": {
+              "price": 4.23,
+              "volume": 20676119,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.18,
+              "volume": 27961621,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "RIG",
+            "local": {
+              "price": 6.52,
+              "volume": 20623182,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.56,
+              "volume": 20493742,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ARAI",
+            "local": {
+              "price": 0.81,
+              "volume": 20569557,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.03,
+              "volume": 351105818,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "VZ",
+            "local": {
+              "price": 46.04,
+              "volume": 19944373,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 47.78,
+              "volume": 23938877,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "STLA",
+            "local": {
+              "price": 8.04,
+              "volume": 19709827,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 7.93,
+              "volume": 26731892,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "BB",
+            "local": {
+              "price": 3.84,
+              "volume": 19591286,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 3.82,
+              "volume": 23194433,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "EB",
+            "local": {
+              "price": 4.51,
+              "volume": 19512320,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.51,
+              "volume": 19512320,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "RIVN",
+            "local": {
+              "price": 15.43,
+              "volume": 19083424,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 15.24,
+              "volume": 16416505,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "GOOGL",
+            "local": {
+              "price": 317.24,
+              "volume": 18914274,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 318.49,
+              "volume": 23608698,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "RKT",
+            "local": {
+              "price": 14.85,
+              "volume": 18858715,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 15.02,
+              "volume": 31192785,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "KOS",
+            "local": {
+              "price": 2.57,
+              "volume": 18703835,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 2.545,
+              "volume": 26696323,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "RKLB",
+            "local": {
+              "price": 68.05,
+              "volume": 18532374,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 66.74,
+              "volume": 17142159,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CRM",
+            "local": {
+              "price": 164.96,
+              "volume": 17947878,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 170.85,
+              "volume": 16353421,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "POET",
+            "local": {
+              "price": 7.04,
+              "volume": 17923731,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.08,
+              "volume": 6767518,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SVC",
+            "local": {
+              "price": 1.26,
+              "volume": 17872627,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.29,
+              "volume": 19990852,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "BBAI",
+            "local": {
+              "price": 3.32,
+              "volume": 17827717,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 3.29,
+              "volume": 21537698,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SMR",
+            "local": {
+              "price": 9.22,
+              "volume": 17706576,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.315,
+              "volume": 17916656,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CSCO",
+            "local": {
+              "price": 82.22,
+              "volume": 17562980,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 83.17,
+              "volume": 16378607,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "ITUB",
+            "local": {
+              "price": 9.16,
+              "volume": 17512454,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 9.01,
+              "volume": 15115637,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CMCSA",
+            "local": {
+              "price": 27.93,
+              "volume": 17304640,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 28.31,
+              "volume": 23100367,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "RGTI",
+            "local": {
+              "price": 14.68,
+              "volume": 17263595,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 14.31,
+              "volume": 20805708,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "SOUN",
+            "local": {
+              "price": 6.43,
+              "volume": 17248170,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.55,
+              "volume": 14064917,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "INFY",
+            "local": {
+              "price": 13.29,
+              "volume": 17110246,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 13.76,
+              "volume": 21081002,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "OWL",
+            "local": {
+              "price": 8.23,
+              "volume": 17023900,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 8.28,
+              "volume": 16370547,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "INHD",
+            "local": {
+              "price": 0.196,
+              "volume": 16900761,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 0.1908,
+              "volume": 51312044,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CLSK",
+            "local": {
+              "price": 10.02,
+              "volume": 16867020,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 10.2,
+              "volume": 21601232,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CCL",
+            "local": {
+              "price": 27.98,
+              "volume": 16862013,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 27.85,
+              "volume": 23500664,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "BAC",
+            "local": {
+              "price": 52.54,
+              "volume": 16787886,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 52.71,
+              "volume": 30887164,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "IVVD",
+            "local": {
+              "price": 1.76,
+              "volume": 16624181,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.78,
+              "volume": 12901863,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "GERN",
+            "local": {
+              "price": 1.67,
+              "volume": 16567642,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.76,
+              "volume": 17943115,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "GTM",
+            "local": {
+              "price": 5.23,
+              "volume": 16488921,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 5.4,
+              "volume": 13774408,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "FIG",
+            "local": {
+              "price": 18.16,
+              "volume": 16488709,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 19.08,
+              "volume": 15076918,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "CORZ",
+            "local": {
+              "price": 18.32,
+              "volume": 16416834,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 17.98,
+              "volume": 12751467,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "HTZ",
+            "local": {
+              "price": 6.32,
+              "volume": 16298265,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 6.57,
+              "volume": 16909994,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "JOBY",
+            "local": {
+              "price": 8.34,
+              "volume": 16192635,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 8.28,
+              "volume": 14814573,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "LYG",
+            "local": {
+              "price": 5.49,
+              "volume": 16163749,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 5.6,
+              "volume": 14813527,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "JBLU",
+            "local": {
+              "price": 4.74,
+              "volume": 16162313,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.93,
+              "volume": 17433237,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "TE",
+            "local": {
+              "price": 4.69,
+              "volume": 16035885,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 4.18,
+              "volume": 13563063,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "PANW",
+            "local": {
+              "price": 155.73,
+              "volume": 15562722,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 166.99,
+              "volume": 10184090,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "XOM",
+            "local": {
+              "price": 152.3,
+              "volume": 15534954,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 155.02,
+              "volume": 18849221,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "BTBT",
+            "local": {
+              "price": 1.37,
+              "volume": 15457846,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 1.34,
+              "volume": 16384865,
+              "coverage_status": null
+            }
+          },
+          {
+            "symbol": "WBD",
+            "local": {
+              "price": 27.44,
+              "volume": 15363223,
+              "coverage_status": "HAS_DATA"
+            },
+            "production": {
+              "price": 27.53,
+              "volume": 14005716,
+              "coverage_status": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "endpoint": "earnings",
+      "route": "/api/earnings",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 1199,
+        "error": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 695,
+        "error": null
+      },
+      "comparison": {
+        "local_count": 100,
+        "production_count": 100,
+        "row_count_delta": 0,
+        "missing_in_local": [],
+        "missing_in_production": [],
+        "mismatched_values": []
+      }
+    },
+    {
+      "endpoint": "news",
+      "route": "/api/news?symbol=AAPL",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 441,
+        "error": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 2244,
+        "error": null
+      },
+      "comparison": {
+        "local_count": 5,
+        "production_count": 5,
+        "row_count_delta": 0,
+        "missing_in_local": [
+          "AAPL::2026-04-11T04:11:29.000Z::Gogo: Incoming Growth Catalysts From MilGov And Galileo Adoption (Rating Upgrade)",
+          "AAPL::2026-04-11T03:50:00.000Z::Got $1,000? The Best Cybersecurity Growth Stock to Buy as Agentic AI Expands the Attack Surface.",
+          "AAPL::2026-04-11T03:39:00.000Z::These Industrial Stocks Don't Come on Sale Often. Now Is the Time to Buy.",
+          "AAPL::2026-04-11T03:15:59.000Z::W.W. Grainger Proved Me Wrong. I Wish I Bought It Sooner",
+          "AAPL::2026-04-11T03:07:38.000Z::CEF Market Weekly Review: GAB Restrikes Its Rights Offering"
+        ],
+        "missing_in_production": [
+          "AAPL::2026-04-11T03:11:29.000Z::Gogo: Incoming Growth Catalysts From MilGov And Galileo Adoption (Rating Upgrade)",
+          "AAPL::2026-04-11T02:50:00.000Z::Got $1,000? The Best Cybersecurity Growth Stock to Buy as Agentic AI Expands the Attack Surface.",
+          "AAPL::2026-04-11T02:39:00.000Z::These Industrial Stocks Don't Come on Sale Often. Now Is the Time to Buy.",
+          "AAPL::2026-04-11T02:15:59.000Z::W.W. Grainger Proved Me Wrong. I Wish I Bought It Sooner",
+          "AAPL::2026-04-11T02:07:38.000Z::CEF Market Weekly Review: GAB Restrikes Its Rights Offering"
+        ],
+        "mismatched_values": []
+      }
+    },
+    {
+      "endpoint": "research",
+      "route": "/api/v2/research/AAPL",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 2523,
+        "error": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 3718,
+        "error": null
+      },
+      "comparison": {
+        "symbol": "AAPL",
+        "mismatched_values": {
+          "price": {
+            "local": 260.48,
+            "production": 260.48
+          },
+          "news_count": {
+            "local": 0,
+            "production": 0
+          },
+          "coverage_score": {
+            "local": null,
+            "production": null
+          }
+        }
+      }
+    }
+  ]
+}

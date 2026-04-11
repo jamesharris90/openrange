@@ -148,15 +148,6 @@ async function fetchLatestDates() {
   };
 }
 
-async function fetchSymbolsForTable(table) {
-  const result = await queryWithTimeout(
-    `SELECT DISTINCT symbol FROM ${table} ORDER BY symbol`,
-    [],
-    { timeoutMs: 30000, label: `backtester.engine.symbols.${table}`, maxRetries: 0 }
-  );
-  return (result.rows || []).map((row) => row.symbol);
-}
-
 async function fetchBarsPaged({ table, symbol, columns, orderColumn, pageSize = DEFAULT_PAGE_SIZE, labelPrefix }) {
   const rows = [];
   let offset = 0;
@@ -226,27 +217,20 @@ function maybeRunGc(processedSymbols) {
 }
 
 async function buildSharedDataCaches() {
-  const [universeMetadata, marketRegime, latestDates, dailySymbols, intradaySymbols] = await Promise.all([
+  const [universeMetadata, marketRegime, latestDates] = await Promise.all([
     fetchUniverseMetadata(),
     fetchLatestMarketRegime(),
     fetchLatestDates(),
-    fetchSymbolsForTable('daily_ohlcv'),
-    fetchSymbolsForTable('intraday_1m'),
   ]);
-
-  const dailySet = new Set(dailySymbols);
-  const intradaySet = new Set(intradaySymbols);
+  const universeSymbols = Array.from(universeMetadata.keys()).sort();
 
   return {
     universeMetadata,
     marketRegime,
     latestDailyDate: latestDates.latestDailyDate,
     latestIntradayDate: latestDates.latestIntradayDate,
-    symbolsByDataRequirement(dataRequired) {
-      const normalized = String(dataRequired || '').toLowerCase();
-      if (normalized === 'intraday_1m') return intradaySymbols;
-      if (normalized === 'daily_ohlcv') return dailySymbols;
-      return dailySymbols.filter((symbol) => intradaySet.has(symbol));
+    symbolsByDataRequirement() {
+      return universeSymbols;
     },
     buildContext(symbol, dataset, extra = {}) {
       const meta = universeMetadata.get(symbol) || { symbol };
@@ -268,10 +252,10 @@ async function buildSharedDataCaches() {
       return strategy.timeframe === 'intraday' ? (dataset.intradayBars || []) : (dataset.dailyBars || []);
     },
     hasDaily(symbol) {
-      return dailySet.has(symbol);
+      return universeMetadata.has(symbol);
     },
     hasIntraday(symbol) {
-      return intradaySet.has(symbol);
+      return universeMetadata.has(symbol);
     },
   };
 }

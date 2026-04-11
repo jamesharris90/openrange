@@ -24,6 +24,10 @@ function normalizeNewsRow(row, scope) {
     return null;
   }
 
+  const publishedAt = row?.published_at instanceof Date
+    ? row.published_at.toISOString()
+    : (row?.published_at ? new Date(String(row.published_at)).toISOString() : null);
+
   return {
     id: row?.id || `${scope}-${headline}`,
     symbol: String(row?.symbol || '').trim().toUpperCase() || null,
@@ -33,8 +37,8 @@ function normalizeNewsRow(row, scope) {
     headline,
     source: String(row?.source || 'News').trim() || 'News',
     url: String(row?.url || '').trim() || null,
-    published_at: row?.published_at || null,
-    publishedAt: row?.published_at || null,
+    published_at: publishedAt,
+    publishedAt: publishedAt,
     summary: String(row?.summary || '').trim() || null,
     context_scope: scope,
   };
@@ -83,7 +87,7 @@ async function fetchDirectNews(symbolInput, limit, cutoffIso) {
      ORDER BY published_at DESC
      LIMIT $3`,
     [symbol, cutoffIso, limit],
-    { timeoutMs: 1800, label: 'news.direct_only', maxRetries: 0 }
+    { timeoutMs: 3000, label: 'news.direct_only', maxRetries: 0 }
   ).catch(() => ({ rows: [] }));
 
   return dedupeRows((result.rows || []).map((row) => normalizeNewsRow(row, 'DIRECT')).filter(Boolean));

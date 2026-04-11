@@ -10,6 +10,7 @@ const { getChartMarketData, computeEMA, computeRSI, computeATR } = require('../s
 const { enrichWithIntraday } = require('../services/intradayEnrichmentService.ts');
 const { detectStructures } = require('../services/strategyDetectionEngineV1.ts');
 const { applyDepthPolicy } = require('../utils/candleDepthPolicy.ts');
+const { getMarketSession } = require('../utils/marketSession');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -73,6 +74,47 @@ async function readIntraday1mFromDB(symbol) {
   } catch (_err) {
     return [];
   }
+}
+
+async function readClosedSessionDailyFallback(symbol) {
+  try {
+    const { rows } = await queryWithTimeout(
+      `SELECT date::text AS d, open, high, low, close, volume
+       FROM (
+         SELECT *
+         FROM daily_ohlcv
+         WHERE symbol = $1
+         ORDER BY date DESC
+         LIMIT 30
+       ) recent_daily
+       ORDER BY date ASC`,
+      [symbol],
+      { timeoutMs: 5000, label: `chart_v5.closed_fallback.${symbol}`, maxRetries: 0 },
+    );
+    return rows.map((r) => ({
+      time: Math.floor(new Date(r.d + 'T00:00:00Z').getTime() / 1000),
+      open: Number(r.open),
+      high: Number(r.high),
+      low: Number(r.low),
+      close: Number(r.close),
+      volume: Number(r.volume),
+    }));
+  } catch (_err) {
+    return [];
+  }
+}
+
+function hasRecentIntradayData(candles) {
+  if (!Array.isArray(candles) || candles.length === 0) {
+    return false;
+  }
+
+  const latestTime = Number(candles[candles.length - 1]?.time);
+  if (!Number.isFinite(latestTime)) {
+    return false;
+  }
+
+  return ((Date.now() / 1000) - latestTime) <= (18 * 60 * 60);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -748,6 +790,7 @@ router.put('/drawings', async (req, res) => {
 
 async function loadRawPayload(symbol, interval) {
   const needsIntraday = interval !== '1day' && interval !== '1week';
+  const marketSession = getMarketSession();
 
   // ── DB-first path ───────────────────────────────────────────────────────────
   const [dbDaily, dbIntraday1m] = await Promise.all([
@@ -756,7 +799,11 @@ async function loadRawPayload(symbol, interval) {
   ]);
 
   if (dbDaily.length > 0) {
-    const intraday1m  = sanitizeSeries(dbIntraday1m, { type: 'candle' });
+    const intradayFallback = needsIntraday && marketSession === 'CLOSED' && !hasRecentIntradayData(dbIntraday1m)
+      ? await readClosedSessionDailyFallback(symbol)
+      : [];
+    const intradaySeries = dbIntraday1m.length > 0 ? dbIntraday1m : intradayFallback;
+    const intraday1m  = sanitizeSeries(intradaySeries, { type: 'candle' });
     const intraday3m  = sanitizeSeries(aggregateCandlesDB(intraday1m, 3), { type: 'candle' });
     const intraday5m  = sanitizeSeries(aggregateCandlesDB(intraday1m, 5), { type: 'candle' });
     const intraday15m = sanitizeSeries(aggregateCandlesDB(intraday1m, 15), { type: 'candle' });

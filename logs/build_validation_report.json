@@ -1,87 +1,33 @@
 {
-  "generated_at": "2026-04-10T19:17:57.015Z",
-  "status": "BUILD VALIDATED - SAFE TO DEPLOY",
+  "generated_at": "2026-04-11T09:21:32.247Z",
+  "status": "BUILD FAILED - FIX REQUIRED",
   "precheck": {
     "pass": true,
     "log": "logs/precheck_validation.json"
   },
   "backend": {
     "endpoint_validation": {
-      "pass": true,
+      "pass": false,
       "log": "logs/endpoint_validation.json"
     },
-    "repeated_full_route_acceptance": [
-      {
-        "attempt": 1,
-        "status": 200,
-        "elapsed_ms": 8004,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 2,
-        "status": 200,
-        "elapsed_ms": 8006,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 3,
-        "status": 200,
-        "elapsed_ms": 8004,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 4,
-        "status": 200,
-        "elapsed_ms": 7760,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 5,
-        "status": 200,
-        "elapsed_ms": 7760,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "earnings",
-          "context"
-        ],
-        "partial": true
-      }
+    "parity": {
+      "screener_row_delta": 0,
+      "earnings_row_delta": 0,
+      "news_row_delta": 0,
+      "news_first_timestamp_match": true,
+      "research_status_match": true
+    },
+    "deployment": {
+      "active_runtime_patched": true,
+      "active_runtime_restarted": true,
+      "live_public_news_status": 200,
+      "live_public_news_count": 5,
+      "live_public_news_first_timestamp": "2026-04-11T04:33:16.000Z"
+    },
+    "changed_files": [
+      "server/db/pool.js",
+      "server/v2/routes/news.js"
     ]
   },
-  "required_message": "BUILD VALIDATED - SAFE TO DEPLOY"
+  "required_message": "BUILD FAILED - FIX REQUIRED"
 }

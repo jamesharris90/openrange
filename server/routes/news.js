@@ -19,12 +19,16 @@ router.get('/api/news', async (req, res) => {
       cutoffIso: cutoff,
     });
 
-    const payload = rows.map((item) => ({
+    const payload = rows
+      .sort((left, right) => Date.parse(String(right.published_at || '')) - Date.parse(String(left.published_at || '')))
+      .map((item) => ({
       symbol: item.symbol,
       headline: item.headline || '',
+      title: item.headline || '',
       summary: '',
       source: item.source || 'FMP',
       url: item.url || null,
+      published_at: item.published_at,
       publishedAt: item.published_at,
       newsScore: null,
     }));

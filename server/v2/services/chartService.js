@@ -11,6 +11,13 @@ const DAILY_LIMIT = 260;
 const CHART_CACHE_TTL_MS = 2 * 60 * 1000;
 const DIRECT_FETCH_CACHE_TTL_MS = 5 * 60 * 1000;
 
+function normalizeTimeframe(value) {
+  const raw = String(value || '1m').trim().toLowerCase();
+  if (raw === '1d' || raw === '1day' || raw === 'daily') return 'daily';
+  if (raw === '5m' || raw === '5min') return '5m';
+  return '1m';
+}
+
 function toNumber(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -71,8 +78,45 @@ function dedupeAndSortCandles(rows) {
 }
 
 function trimCandles(candles, timeframe) {
-  const limit = timeframe === '1m' ? INTRADAY_LIMIT : DAILY_LIMIT;
+  const limit = timeframe === 'daily' ? DAILY_LIMIT : INTRADAY_LIMIT;
   return candles.slice(-limit);
+}
+
+function aggregateCandles(candles, minutes) {
+  if (!Array.isArray(candles) || candles.length === 0 || minutes <= 1) {
+    return Array.isArray(candles) ? candles : [];
+  }
+
+  const bucketSize = minutes * 60;
+  const buckets = new Map();
+
+  for (const candle of candles) {
+    const time = Number(candle?.time);
+    if (!Number.isFinite(time)) {
+      continue;
+    }
+
+    const bucket = Math.floor(time / bucketSize) * bucketSize;
+    const existing = buckets.get(bucket);
+    if (!existing) {
+      buckets.set(bucket, {
+        time: bucket,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+      });
+      continue;
+    }
+
+    existing.high = Math.max(existing.high, candle.high);
+    existing.low = Math.min(existing.low, candle.low);
+    existing.close = candle.close;
+    existing.volume += Number(candle.volume || 0);
+  }
+
+  return [...buckets.values()].sort((left, right) => left.time - right.time);
 }
 
 async function fetchFmpIntraday(symbol) {
@@ -115,17 +159,22 @@ async function fetchDbDaily(symbol) {
 
 async function fetchYahooDirect(symbol, timeframe) {
   const now = new Date();
-  const period1 = timeframe === '1m'
+  const normalizedTimeframe = normalizeTimeframe(timeframe);
+  const period1 = normalizedTimeframe === '1m' || normalizedTimeframe === '5m'
     ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
     : new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
   const payload = await yahooFinance.chart(symbol, {
     period1,
     period2: now,
-    interval: timeframe === '1m' ? '1m' : '1d',
+    interval: normalizedTimeframe === 'daily' ? '1d' : normalizedTimeframe,
   });
 
-  return trimCandles(dedupeAndSortCandles(asArray(payload)), timeframe);
+  const candles = dedupeAndSortCandles(asArray(payload));
+  const normalized = normalizedTimeframe === '5m'
+    ? aggregateCandles(candles, 5)
+    : candles;
+  return trimCandles(normalized, normalizedTimeframe);
 }
 
 function logChartResult(symbol, payload) {
@@ -137,40 +186,50 @@ function logChartResult(symbol, payload) {
   });
 }
 
-async function buildChartPayload(rawSymbol) {
+async function buildChartPayload(rawSymbol, rawTimeframe = '1m') {
   const symbol = mapFromProviderSymbol(normalizeSymbol(rawSymbol));
+  const timeframe = normalizeTimeframe(rawTimeframe);
   if (!symbol) {
     throw new Error('symbol_required');
   }
 
-  const cacheKey = `v2-chart:${symbol}`;
+  const cacheKey = `v2-chart:${symbol}:${timeframe}`;
   const cached = getCache(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const attempts = [
-    {
-      source: 'fmp',
-      timeframe: '1m',
-      load: () => fetchFmpIntraday(symbol),
-    },
-    {
-      source: 'fmp',
-      timeframe: 'daily',
-      load: () => fetchFmpDaily(symbol),
-    },
-    {
-      source: 'db',
-      timeframe: '1m',
-      load: () => fetchDbIntraday(symbol),
-    },
-    {
-      source: 'db',
-      timeframe: 'daily',
-      load: () => fetchDbDaily(symbol),
-    },
-  ];
+  const attempts = timeframe === 'daily'
+    ? [
+        {
+          source: 'fmp',
+          timeframe,
+          load: () => fetchFmpDaily(symbol),
+        },
+        {
+          source: 'db',
+          timeframe,
+          load: () => fetchDbDaily(symbol),
+        },
+      ]
+    : [
+        {
+          source: 'fmp',
+          timeframe,
+          load: async () => {
+            const candles = await fetchFmpIntraday(symbol);
+            return timeframe === '5m' ? aggregateCandles(candles, 5) : candles;
+          },
+        },
+        {
+          source: 'db',
+          timeframe,
+          load: async () => {
+            const candles = await fetchDbIntraday(symbol);
+            return timeframe === '5m' ? aggregateCandles(candles, 5) : candles;
+          },
+        },
+      ];
 
   for (const attempt of attempts) {
     try {
@@ -189,7 +248,7 @@ async function buildChartPayload(rawSymbol) {
     }
   }
 
-  const directCacheKey = `v2-chart-direct:${symbol}`;
+  const directCacheKey = `v2-chart-direct:${symbol}:${timeframe}`;
   const directCached = getCache(directCacheKey);
   if (directCached) {
     setCache(cacheKey, directCached, CHART_CACHE_TTL_MS);
@@ -197,13 +256,13 @@ async function buildChartPayload(rawSymbol) {
     return directCached;
   }
 
-  for (const timeframe of ['1m', 'daily']) {
+  for (const candidateTimeframe of [timeframe]) {
     try {
-      const candles = await fetchYahooDirect(symbol, timeframe);
+      const candles = await fetchYahooDirect(symbol, candidateTimeframe);
       if (candles.length > 0) {
         const payload = {
           candles,
-          timeframe,
+          timeframe: candidateTimeframe,
           source: 'fallback',
         };
         setCache(directCacheKey, payload, DIRECT_FETCH_CACHE_TTL_MS);

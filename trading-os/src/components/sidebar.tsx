@@ -37,7 +37,13 @@ const adminNavItems = [
   { href: "/admin/data-health", label: "Data Health", icon: Globe },
 ];
 
-export function Sidebar() {
+type SidebarProps = {
+  mobile?: boolean;
+  open?: boolean;
+  onNavigate?: () => void;
+};
+
+export function Sidebar({ mobile = false, open = false, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
@@ -57,17 +63,11 @@ export function Sidebar() {
     event.preventDefault();
   };
 
-  return (
-    <aside
-      className={cn(
-        "hidden shrink-0 border-r border-slate-800 bg-[#0d1117] p-3 lg:flex lg:flex-col",
-        collapsed ? "w-[60px]" : "w-56"
-      )}
-      aria-label="Primary navigation"
-    >
+  const navItems = (
+    <>
       {/* Brand + collapse */}
       <div className="mb-5 flex items-center justify-between">
-        {!collapsed && (
+        {(!collapsed || mobile) && (
           <div className="flex items-center gap-2">
             <div className="flex size-6 items-center justify-center rounded bg-emerald-500/20">
               <Gauge className="size-3.5 text-emerald-400" />
@@ -75,15 +75,27 @@ export function Sidebar() {
             <span className="text-sm font-semibold tracking-wide text-slate-100">OpenRange</span>
           </div>
         )}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setCollapsed((v) => !v)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn("ml-auto text-slate-500 hover:text-slate-200", collapsed && "mx-auto")}
-        >
-          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
-        </Button>
+        {mobile ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onNavigate}
+            aria-label="Close navigation"
+            className="ml-auto text-slate-500 hover:text-slate-200"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={cn("ml-auto text-slate-500 hover:text-slate-200", collapsed && "mx-auto")}
+          >
+            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </Button>
+        )}
       </div>
 
       {/* Nav */}
@@ -105,6 +117,7 @@ export function Sidebar() {
               href={item.href}
               data-nav-item="true"
               title={collapsed ? item.label : undefined}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium outline-none transition",
                 "focus-visible:ring-2 focus-visible:ring-emerald-500/50",
@@ -115,7 +128,7 @@ export function Sidebar() {
               aria-current={isActive ? "page" : undefined}
             >
               <Icon className="size-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {(!collapsed || mobile) && <span>{item.label}</span>}
             </Link>
           );
         })}
@@ -137,6 +150,7 @@ export function Sidebar() {
                     href={item.href}
                     data-nav-item="true"
                     title={collapsed ? item.label : undefined}
+                    onClick={onNavigate}
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium outline-none transition",
                       "focus-visible:ring-2 focus-visible:ring-amber-500/50",
@@ -147,7 +161,7 @@ export function Sidebar() {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <Icon className="size-4 shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
+                    {(!collapsed || mobile) && <span>{item.label}</span>}
                   </Link>
                 );
               })}
@@ -155,6 +169,33 @@ export function Sidebar() {
           </div>
         ) : null}
       </nav>
+    </>
+  );
+
+  if (mobile) {
+    return (
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-slate-800 bg-[#0d1117] p-3 transition-transform duration-200 md:hidden",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+        aria-label="Primary navigation"
+        aria-hidden={!open}
+      >
+        {navItems}
+      </aside>
+    );
+  }
+
+  return (
+    <aside
+      className={cn(
+        "hidden shrink-0 border-r border-slate-800 bg-[#0d1117] p-3 md:flex md:flex-col",
+        collapsed ? "md:w-[60px]" : "md:w-56"
+      )}
+      aria-label="Primary navigation"
+    >
+      {navItems}
     </aside>
   );
 }

@@ -248,6 +248,8 @@ router.get('/:symbol', async (req, res) => {
       },
       meta: {
         response_ms: Date.now() - startedAt,
+        fallback: false,
+        reason: null,
       },
     });
   } catch (error) {
@@ -264,6 +266,8 @@ router.get('/:symbol', async (req, res) => {
       },
       meta: {
         response_ms: Date.now() - startedAt,
+        fallback: true,
+        reason: 'timeout',
       },
     });
   }

@@ -16,6 +16,7 @@ const newsletterRoute = require('../routes/newsletter');
 const marketRoute = require('../routes/market');
 const legacyEarningsRoute = require('../routes/earnings');
 const intelligenceRoute = require('../routes/intelligence');
+const adminCoverageRoute = require('../routes/adminCoverage');
 const researchRoute = require('../routes/research');
 const truthAuditRoute = require('../routes/truthAudit');
 const userRoutes = require('../users/routes');
@@ -45,7 +46,7 @@ const chartV5Route = express.Router();
 
 chartRoute.get('/:symbol', async (req, res) => {
   try {
-    const payload = await buildChartPayload(req.params.symbol);
+    const payload = await buildChartPayload(req.params.symbol, req.query.interval || req.query.timeframe);
     return res.json(payload);
   } catch (error) {
     const message = error?.message || 'chart_fetch_failed';
@@ -63,7 +64,7 @@ chartRoute.get('/:symbol', async (req, res) => {
 
 chartV5Route.get('/chart', async (req, res) => {
   try {
-    const payload = await buildChartPayload(req.query.symbol);
+    const payload = await buildChartPayload(req.query.symbol, req.query.interval || req.query.timeframe);
     return res.json(payload);
   } catch (error) {
     const message = error?.message || 'chart_fetch_failed';
@@ -332,6 +333,7 @@ function createV2App() {
   app.use('/api/system', systemRoute);
   app.use('/api/validation', validationRoute);
   app.use('/api/admin', adminRoute);
+  app.use('/api/admin', adminCoverageRoute);
   app.use('/api/dashboard', dashboardRoute);
   app.use('/api/users', userRoutes);
   app.use('/', newsletterRoute);

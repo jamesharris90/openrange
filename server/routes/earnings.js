@@ -23,6 +23,16 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function withTimeout(promise, timeoutMs, fallbackValue) {
+  const ms = Number(timeoutMs) || 1800;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallbackValue), ms);
+    }),
+  ]);
+}
+
 function parseTimestamp(value) {
   const parsed = Date.parse(String(value || ''));
   return Number.isFinite(parsed) ? parsed : null;
@@ -73,6 +83,10 @@ function buildSymbolEnvelope(symbol, row, source) {
     status: deriveEventStatus(data),
     source,
     data,
+    meta: {
+      fallback: source === 'fallback',
+      reason: source === 'fallback' ? 'no_data' : null,
+    },
   };
 }
 
@@ -159,6 +173,10 @@ function fallbackCalendarPayload(extra = {}) {
     status: 'unavailable',
     source: 'earnings_calendar',
     error: 'backend_unavailable',
+    meta: {
+      fallback: true,
+      reason: 'no_data',
+    },
     ...extra,
   };
 }
@@ -170,6 +188,10 @@ function emptyHistoryPayload(extra = {}) {
     count: 0,
     status: 'no_data',
     source: 'earnings_history',
+    meta: {
+      fallback: true,
+      reason: 'no_data',
+    },
     ...extra,
   };
 }
@@ -405,6 +427,10 @@ router.get('/api/earnings', async (req, res) => {
           count: fmpRows.length,
           data: fmpRows.slice(0, limit),
           message: 'Required earnings history tables are unavailable. Returning live calendar fallback.',
+          meta: {
+            fallback: true,
+            reason: 'no_data',
+          },
         };
 
         earningsHistoryCache.set(cacheKey, {
@@ -508,6 +534,119 @@ router.get('/api/earnings', async (req, res) => {
   }
 });
 
+router.get('/api/earnings/history/:symbol', async (req, res) => {
+  try {
+    const symbol = String(req.params.symbol || '').trim().toUpperCase();
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        symbol: null,
+        next: null,
+        history: [],
+        error: 'symbol_required',
+      });
+    }
+
+    const hasRequiredSchema = await ensureRequiredSchema().catch(() => false);
+    if (!hasRequiredSchema) {
+      return res.json({
+        success: true,
+        symbol,
+        next: null,
+        history: [],
+        message: 'No recent earnings data available',
+        meta: {
+          fallback: true,
+          reason: 'no_data',
+        },
+      });
+    }
+
+    const schemaMap = await getSchemaMap(['earnings_history', 'earnings_events', 'ticker_universe']);
+    const historyReportTimeExpr = hasColumn(schemaMap, 'earnings_history', 'report_time')
+      ? "COALESCE(NULLIF(e.report_time, ''), 'TBD')"
+      : "'TBD'";
+    const eventReportTimeExpr = hasColumn(schemaMap, 'earnings_events', 'report_time')
+      ? 'NULLIF(e.report_time, \'\')'
+      : 'NULL';
+    const eventFallbackTimeExpr = hasColumn(schemaMap, 'earnings_events', 'time')
+      ? 'NULLIF(e.time, \'\')'
+      : 'NULL';
+
+    const [historyResult, nextResult] = await Promise.all([
+      pool.query(
+        `SELECT
+           e.symbol,
+           tu.company_name,
+           e.report_date::text AS report_date,
+           ${historyReportTimeExpr} AS report_time,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'eps_estimate')} AS eps_estimate,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'eps_actual')} AS eps_actual,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'eps_surprise_pct')} AS surprise_percent,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'revenue_estimate')} AS revenue_estimate,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'revenue_actual')} AS revenue_actual,
+           ${selectColumn(schemaMap, 'earnings_history', 'e', 'expected_move_percent')} AS expected_move_percent,
+           COALESCE(e.updated_at, e.created_at, e.report_date) AS updated_at
+         FROM earnings_history e
+         LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+         WHERE UPPER(e.symbol) = $1
+         ORDER BY e.report_date DESC
+         LIMIT 4`,
+        [symbol]
+      ).catch(() => ({ rows: [] })),
+      pool.query(
+        `SELECT
+           e.symbol,
+           COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'company_name')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'company')}, tu.company_name) AS company_name,
+           e.report_date::text AS report_date,
+           COALESCE(${eventReportTimeExpr}, ${eventFallbackTimeExpr}, 'TBD') AS report_time,
+           ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_estimate')} AS eps_estimate,
+           COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_estimate')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_estimate')}) AS revenue_estimate,
+           COALESCE(e.updated_at, e.created_at, e.report_date) AS updated_at
+         FROM earnings_events e
+         LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+         WHERE UPPER(e.symbol) = $1
+           AND e.report_date::date >= CURRENT_DATE
+         ORDER BY e.report_date ASC
+         LIMIT 1`,
+        [symbol]
+      ).catch(() => ({ rows: [] })),
+    ]);
+
+    const history = historyResult.rows || [];
+    const next = nextResult.rows?.[0] || null;
+
+    return res.json({
+      success: true,
+      symbol,
+      next,
+      history,
+      message: history.length === 0 ? 'No recent earnings data available' : null,
+      meta: history.length === 0
+        ? {
+            fallback: true,
+            reason: 'no_data',
+          }
+        : {
+            fallback: false,
+          },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      symbol: String(req.params.symbol || '').trim().toUpperCase() || null,
+      next: null,
+      history: [],
+      error: error.message || 'earnings_history_failed',
+      message: 'No recent earnings data available',
+      meta: {
+        fallback: true,
+        reason: 'no_data',
+      },
+    });
+  }
+});
+
 router.get('/api/earnings/calendar', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 400, 600));
@@ -537,7 +676,17 @@ router.get('/api/earnings/calendar', async (req, res) => {
       console.warn('[EARNINGS] schema unavailable — using FMP fallback');
       const fmpRows = await fmpEarningsFallback(from, to);
       if (fmpRows.length > 0) {
-        return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
+        return res.status(200).json({
+          success: true,
+          data: fmpRows,
+          count: fmpRows.length,
+          source: 'fmp_direct',
+          rows: fmpRows,
+          meta: {
+            fallback: true,
+            reason: 'no_data',
+          },
+        });
       }
       return res.status(200).json({
         ...fallbackCalendarPayload({ message: 'schema_unavailable' }),
@@ -557,7 +706,17 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
       const fmpRows = await fmpEarningsFallback(from, to);
       if (fmpRows.length > 0) {
-        return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
+        return res.status(200).json({
+          success: true,
+          data: fmpRows,
+          count: fmpRows.length,
+          source: 'fmp_direct',
+          rows: fmpRows,
+          meta: {
+            fallback: true,
+            reason: 'no_data',
+          },
+        });
       }
       return res.status(200).json({
         ...fallbackCalendarPayload({ message: 'schema_lookup_failed' }),

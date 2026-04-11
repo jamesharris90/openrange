@@ -7,6 +7,8 @@ const { queryWithTimeout } = require('../../db/pg');
 const { getDataHealth } = require('../../system/dataHealthEngine');
 const { getDataIntegrityHealth } = require('../../engines/dataIntegrityEngine');
 const { readCoverageCampaignState } = require('../../services/coverageCampaignStateStore');
+const { getDataTrustSnapshot, getGlobalDataTrustHealth } = require('../../services/dataTrustService');
+const { getCoverageExplanation, getGlobalCoverageHealth } = require('../../services/dataCoverageService');
 
 const router = express.Router();
 const cronLogPath = path.resolve(__dirname, '../../logs/cron.log');
@@ -246,6 +248,64 @@ router.get('/data-integrity', async (_req, res) => {
         status: 'down',
         symbols: [],
       },
+    });
+  }
+});
+
+router.get('/data-trust', async (req, res) => {
+  try {
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    if (symbol) {
+      const trust = await getDataTrustSnapshot(symbol);
+      return res.json({
+        ok: true,
+        symbol,
+        trust,
+        checked_at: new Date().toISOString(),
+      });
+    }
+
+    const health = await getGlobalDataTrustHealth();
+    return res.json({
+      ok: true,
+      checked_at: new Date().toISOString(),
+      ...health,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message || 'data_trust_failed',
+      checked_at: new Date().toISOString(),
+    });
+  }
+});
+
+router.get('/data-coverage', async (req, res) => {
+  try {
+    const symbol = String(req.query.symbol || '').trim().toUpperCase();
+
+    if (symbol) {
+      const coverage = await getCoverageExplanation(symbol);
+      return res.json({
+        ok: true,
+        symbol,
+        coverage,
+        checked_at: new Date().toISOString(),
+      });
+    }
+
+    const health = await getGlobalCoverageHealth();
+    return res.json({
+      ok: true,
+      checked_at: new Date().toISOString(),
+      ...health,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message || 'data_coverage_failed',
+      checked_at: new Date().toISOString(),
     });
   }
 });

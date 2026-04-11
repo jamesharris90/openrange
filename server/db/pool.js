@@ -1,6 +1,22 @@
 const pg = require('pg');
 const { resolveDatabaseUrl } = require('./connectionConfig');
 
+const PG_TIMESTAMP_OID = 1114;
+
+function parseUtcTimestamp(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+
+  const normalized = String(value).includes('T')
+    ? String(value)
+    : String(value).replace(' ', 'T');
+  const parsed = new Date(`${normalized}Z`);
+  return Number.isNaN(parsed.getTime()) ? new Date(value) : parsed;
+}
+
+pg.types.setTypeParser(PG_TIMESTAMP_OID, parseUtcTimestamp);
+
 const RawPool = pg.Pool;
 const RawClient = pg.Client;
 const SINGLETON_KEY = Symbol.for('openrange.db.pool.singleton');

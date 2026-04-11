@@ -6,7 +6,7 @@ const { fetchBenzingaNews } = require('../tools/benzinga_news');
 const { fetchAlphaVantageNews } = require('../tools/alpha_vantage_news');
 const { promoteNewsSymbol } = require('../services/trackedUniverseService');
 const logger = require('../utils/logger');
-const { ensureNewsStorageSchema, insertNormalizedNewsArticle } = require('../services/newsStorage');
+const { ensureNewsStorageSchema, insertNormalizedNewsArticleWithRetention } = require('../services/newsStorage');
 
 const parser = new Parser({ timeout: 15000 });
 const DOW_JONES_FEED_URL = 'https://feeds.content.dowjones.io/public/rss/mw_topstories';
@@ -37,6 +37,15 @@ function markProvider(provider, ok) {
   providerHealthState.checked_at = new Date().toISOString();
 }
 
+function normalizePublishedAt(value) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 function normalizeFmpRows(payload, symbol) {
   const rows = Array.isArray(payload) ? payload : [];
   return rows
@@ -46,7 +55,7 @@ function normalizeFmpRows(payload, symbol) {
       source: row.site || row.source || 'FMP',
       provider: 'fmp',
       url: row.url || null,
-      published_at: row.publishedDate || row.published_at || row.date || null,
+      published_at: normalizePublishedAt(row.publishedDate || row.published_at || row.date || null),
       sentiment: row.sentiment || 'neutral',
       summary: row.text || row.summary || null,
       raw_payload: row,
@@ -63,7 +72,7 @@ function normalizeFinnhubRows(payload, symbol) {
       source: row.source || 'Finnhub',
       provider: 'finnhub',
       url: row.url || null,
-      published_at: row.datetime ? new Date(Number(row.datetime) * 1000).toISOString() : null,
+      published_at: row.datetime ? normalizePublishedAt(new Date(Number(row.datetime) * 1000).toISOString()) : null,
       sentiment: 'neutral',
       summary: row.summary || null,
       raw_payload: row,
@@ -83,7 +92,7 @@ async function fetchYahooRssRows(symbol) {
         source: 'Yahoo Finance',
         provider: 'yahoo',
         url: item.link || item.guid || null,
-        published_at: item.isoDate || item.pubDate || null,
+        published_at: normalizePublishedAt(item.isoDate || item.pubDate || null),
         sentiment: 'neutral',
         summary: item.contentSnippet || item.content || null,
         raw_payload: item,
@@ -106,7 +115,7 @@ async function fetchDowJonesRssRows(symbol) {
         source: 'Dow Jones',
         provider: 'dowjones',
         url: item.link || item.guid || null,
-        published_at: item.isoDate || item.pubDate || null,
+        published_at: normalizePublishedAt(item.isoDate || item.pubDate || null),
         sentiment: 'neutral',
         summary: item.contentSnippet || item.content || null,
         raw_payload: item,
@@ -127,7 +136,7 @@ function normalizeBenzingaRows(payload, symbol) {
       source: row.source || 'Benzinga',
       provider: 'benzinga',
       url: row.url || row.link || row.article_url || null,
-      published_at: row.created || row.updated || row.published || row.published_at || row.date || null,
+      published_at: normalizePublishedAt(row.created || row.updated || row.published || row.published_at || row.date || null),
       sentiment: 'neutral',
       summary: row.teaser || row.summary || row.text || null,
       raw_payload: row,
@@ -155,9 +164,9 @@ function normalizeAlphaVantageRows(payload, symbol) {
       const value = String(row.published_at || '');
       if (/^\d{8}T\d{6}$/.test(value)) {
         const iso = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
-        return { ...row, published_at: iso };
+        return { ...row, published_at: normalizePublishedAt(iso) };
       }
-      return row;
+      return { ...row, published_at: normalizePublishedAt(row.published_at) };
     });
 }
 
@@ -227,6 +236,7 @@ async function runNewsIngestion(symbols = symbolsFromEnv(), options = {}) {
       alpha_vantage: 0,
       yahoo: 0,
       dowjones: 0,
+      finnhub: 0,
     },
   };
 
@@ -246,7 +256,7 @@ async function runNewsIngestion(symbols = symbolsFromEnv(), options = {}) {
 
     for (const article of rowsToInsert) {
       stats.attempted += 1;
-      const result = await insertNormalizedNewsArticle(article);
+      const result = await insertNormalizedNewsArticleWithRetention(article, maxArticlesPerSymbol || 20);
       if (result.inserted) {
         stats.inserted += 1;
         const provider = article.provider || 'fmp';

@@ -23,6 +23,7 @@ type NewsItem = {
   provider?: string | null;
   url?: string | null;
   published_at?: string | null;
+  publishedAt?: string | null;
   sentiment?: string | null;
   catalyst_type?: string | null;
   sector?: string | null;
@@ -56,6 +57,17 @@ function timeAgo(iso: string | null | undefined) {
 function fmtTime(iso: string | null | undefined) {
   if (!iso) return "Unknown time";
   return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function fmtDateTime(iso: string | null | undefined) {
+  if (!iso) return "Unknown time";
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function cleanSource(src: string | null | undefined) {
@@ -152,7 +164,7 @@ export function NewsView() {
             symbols: normalizedSymbols,
             headline: item.headline ?? item.title ?? null,
             title: item.title ?? item.headline ?? null,
-            published_at: item.published_at ?? null,
+            published_at: item.published_at ?? item.publishedAt ?? null,
           };
         })
         .sort((left, right) => {
@@ -396,6 +408,10 @@ export function NewsView() {
                     {item.summary}
                   </p>
                 )}
+                <div className="mt-2 text-[10px] text-[var(--muted-foreground)]/70">
+                  {fmtDateTime(item.published_at)}
+                  {item.published_at ? ` · Last updated ${timeAgo(item.published_at)}` : ""}
+                </div>
               </div>
 
               {/* Source */}

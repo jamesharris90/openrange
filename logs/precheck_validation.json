@@ -1,66 +1,14 @@
 {
   "ok": true,
-  "checked_at": "2026-04-10T19:15:53.822Z",
-  "tables": [
-    {
-      "table": "news_articles",
+  "checked_at": "2026-04-11T09:21:32.247Z",
+  "tables": {
+    "news_articles": {
       "exists": true,
-      "columns": {
-        "id": true,
-        "symbol": true,
-        "headline": true,
-        "published_at": true
-      },
-      "symbol_counts": {
-        "AAPL": 8483,
-        "INTC": 495,
-        "NVDA": 7808
-      }
-    },
-    {
-      "table": "earnings_history",
-      "exists": true,
-      "columns": {
-        "symbol": true,
-        "report_date": true,
-        "eps_actual": true,
-        "eps_estimate": true
-      },
-      "symbol_counts": {
-        "AAPL": 8,
-        "INTC": 8,
-        "NVDA": 8
-      }
-    },
-    {
-      "table": "daily_ohlcv",
-      "exists": true,
-      "columns": {
-        "symbol": true,
-        "date": true,
-        "close": true
-      },
-      "symbol_counts": {
-        "AAPL": 1287,
-        "INTC": 530,
-        "NVDA": 1287
-      }
-    },
-    {
-      "table": "data_coverage",
-      "exists": true,
-      "columns": {
-        "symbol": true,
-        "coverage_score": true,
-        "has_news": true,
-        "has_earnings": true,
-        "has_technicals": true
-      },
-      "symbol_counts": {
-        "AAPL": 1,
-        "INTC": 1,
-        "NVDA": 1
-      }
+      "row_count": 202608,
+      "columns_ok": true,
+      "missing_columns": [],
+      "published_at_type": "timestamp without time zone",
+      "latest_aapl_published_at_utc": "2026-04-11T04:33:16.000Z"
     }
-  ]
+  }
 }

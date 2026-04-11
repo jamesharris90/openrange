@@ -5,6 +5,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const { queryWithTimeout } = require('../db/pg');
 const { fetchBatchQuotes } = require('../services/quotesBatchService');
+const { refreshMarketSnapshot } = require('../services/marketSnapshotService');
 const { symbolsFromEnv } = require('./_helpers');
 const logger = require('../utils/logger');
 
@@ -265,6 +266,7 @@ async function runLiveQuotesIngestion(symbols) {
   }
 
   await persistQuotes(normalizedRows);
+  await refreshMarketSnapshot(normalizedRows.map((row) => row.symbol)).catch(() => null);
 
   logger.info('ingestion done', {
     jobName: 'fmp_live_quotes_ingest',

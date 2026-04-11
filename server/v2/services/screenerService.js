@@ -6,6 +6,7 @@ const { computeSummaryDataConfidence } = require('../../services/dataConfidenceS
 const { buildWhy } = require('../engines/whyEngine');
 const { buildMacroContext } = require('../engines/macroEngine');
 const { getCoverageStatusBySymbols } = require('./coverageEngine');
+const { getCoverageStatusesBySymbols } = require('../../services/dataCoverageStatusService');
 
 const earningsLookupCache = new Map();
 const EARNINGS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -1299,7 +1300,7 @@ async function getScreenerRows(options = {}) {
 
   const symbols = quoteRows.map((row) => row.symbol).filter(Boolean);
 
-  const [metricsRows, sipRows, universeRows, profileRows, dailyTechnicalRows, coverageStatusBySymbol] = await Promise.all([
+  const [metricsRows, sipRows, universeRows, profileRows, dailyTechnicalRows, coverageStatusBySymbol, coverageClassificationBySymbol] = await Promise.all([
     fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
       const result = await supabaseAdmin
         .from('market_metrics')
@@ -1350,6 +1351,7 @@ async function getScreenerRows(options = {}) {
     }),
     fetchDailyTechnicalRows(symbols),
     getCoverageStatusBySymbols(symbols),
+    getCoverageStatusesBySymbols(symbols),
   ]);
 
   const intradayCandidateSymbols = quoteRows
@@ -1388,6 +1390,7 @@ async function getScreenerRows(options = {}) {
       const intradayMetrics = intradayMetricsBySymbol.get(symbol) || {};
       const dailyTechnicals = dailyTechnicalsBySymbol.get(symbol) || {};
       const coverageStatus = coverageStatusBySymbol.get(symbol) || {};
+      const coverageClassification = coverageClassificationBySymbol.get(symbol) || {};
       const price = quote.price ?? metrics.price ?? null;
       const vwap = metrics.vwap ?? intradayMetrics.vwap ?? null;
       const trend = resolveTrend(price, dailyTechnicals);
@@ -1411,6 +1414,10 @@ async function getScreenerRows(options = {}) {
       const preMarketVolume = premarketActive
         ? (quote.premarket_volume ?? quote.volume ?? metrics.volume ?? null)
         : null;
+
+      if (String(coverageClassification.status || '').toUpperCase() !== 'HAS_DATA') {
+        return null;
+      }
 
       if (!passesScreenerQualityGate({
         price,

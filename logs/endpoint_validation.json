@@ -1,115 +1,321 @@
 {
-  "generated_at": "2026-04-10T19:17:57.014Z",
-  "base_url": "http://127.0.0.1:3004",
-  "pass": true,
-  "endpoints": {
-    "health": {
-      "status": 200,
-      "scheduler_flags": {
-        "ingestionSchedulerEnabled": false,
-        "backgroundServicesEnabled": false,
-        "nonEssentialEnginesEnabled": false,
-        "screenerSnapshotEnabled": false
+  "ok": false,
+  "checked_at": "2026-04-11T09:21:32.247Z",
+  "local_base": "http://127.0.0.1:3007",
+  "production_base": "https://openrangetrading.co.uk",
+  "live_public_base": "https://openrange-backend-production.up.railway.app",
+  "endpoints": [
+    {
+      "name": "screener",
+      "route": "/api/screener",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 386,
+        "keys": [
+          "data",
+          "meta",
+          "count",
+          "total",
+          "success",
+          "fallbackUsed",
+          "macro_context",
+          "snapshot_at"
+        ],
+        "count": 4801,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 2647,
+        "keys": [
+          "data",
+          "meta",
+          "count",
+          "total",
+          "success",
+          "fallbackUsed",
+          "macro_context",
+          "snapshot_at"
+        ],
+        "count": 4801,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
       }
     },
-    "screener": {
-      "status": 200,
-      "count": 4812
-    },
-    "decision_aapl": {
-      "status": 200,
-      "source": "truth_engine",
-      "ok": true
-    },
-    "top_opportunities": {
-      "status": 200,
-      "count": 10
-    },
-    "market_overview": {
-      "status": 200,
-      "status_field": "degraded"
-    },
-    "earnings_calendar": {
-      "status": 200,
-      "count": 22
-    },
-    "research_aapl": {
-      "status": 200,
-      "coverage_score": 100,
-      "news_count": 4468,
-      "earnings_count": 8
-    },
-    "research_intc_full_repeated": [
-      {
-        "attempt": 1,
+    {
+      "name": "decision",
+      "route": "/api/intelligence/decision?symbol=AAPL",
+      "local": {
+        "ok": true,
         "status": 200,
-        "elapsed_ms": 8004,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
+        "elapsed_ms": 1806,
+        "keys": [
+          "ok",
+          "status",
+          "source",
+          "data",
+          "decision",
+          "meta"
         ],
-        "partial": true
+        "count": 1,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
       },
-      {
-        "attempt": 2,
-        "status": 200,
-        "elapsed_ms": 8006,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 3,
-        "status": 200,
-        "elapsed_ms": 8004,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context",
-          "indicators",
-          "scanner_sources"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 4,
-        "status": 200,
-        "elapsed_ms": 7760,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "price",
-          "earnings",
-          "context"
-        ],
-        "partial": true
-      },
-      {
-        "attempt": 5,
-        "status": 200,
-        "elapsed_ms": 7760,
-        "coverage_score": 100,
-        "news_count": 299,
-        "degraded_sections": [
-          "earnings",
-          "context"
-        ],
-        "partial": true
+      "production": {
+        "ok": false,
+        "status": 404,
+        "elapsed_ms": 407,
+        "keys": [],
+        "count": null,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /api/intelligence/decision</pre>\n</body>\n</html>\n"
       }
-    ]
+    },
+    {
+      "name": "top_opportunities",
+      "route": "/api/intelligence/top-opportunities",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 483,
+        "keys": [
+          "success",
+          "source",
+          "mode",
+          "count",
+          "data",
+          "meta"
+        ],
+        "count": 20,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 1664,
+        "keys": [
+          "success",
+          "data",
+          "count",
+          "last_updated",
+          "source",
+          "rejected_count",
+          "raw_count"
+        ],
+        "count": 20,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      }
+    },
+    {
+      "name": "market_overview",
+      "route": "/api/market/overview",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 173,
+        "keys": [
+          "status",
+          "data",
+          "meta"
+        ],
+        "count": null,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 1583,
+        "keys": [
+          "status",
+          "data"
+        ],
+        "count": null,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      }
+    },
+    {
+      "name": "earnings",
+      "route": "/api/earnings",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 3,
+        "keys": [
+          "success",
+          "status",
+          "source",
+          "count",
+          "data"
+        ],
+        "count": 100,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 520,
+        "keys": [
+          "success",
+          "status",
+          "source",
+          "count",
+          "data"
+        ],
+        "count": 100,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      }
+    },
+    {
+      "name": "news",
+      "route": "/api/news?symbol=AAPL&limit=5",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 31,
+        "keys": [
+          "success",
+          "symbol",
+          "status",
+          "count",
+          "direct_count",
+          "fallback_applied",
+          "context_source",
+          "data",
+          "coverage",
+          "message"
+        ],
+        "count": 5,
+        "sample_timestamp": "2026-04-11T04:33:16.000Z",
+        "context_source": "DIRECT",
+        "direct_count": 5,
+        "fallback_applied": false,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 486,
+        "keys": [
+          "success",
+          "symbol",
+          "status",
+          "count",
+          "direct_count",
+          "fallback_applied",
+          "context_source",
+          "data",
+          "coverage",
+          "message"
+        ],
+        "count": 5,
+        "sample_timestamp": "2026-04-11T04:33:16.000Z",
+        "context_source": "DIRECT",
+        "direct_count": 5,
+        "fallback_applied": false,
+        "preview": null
+      }
+    },
+    {
+      "name": "research",
+      "route": "/api/v2/research/AAPL",
+      "local": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 85,
+        "keys": [
+          "success",
+          "status",
+          "source",
+          "data",
+          "meta"
+        ],
+        "count": null,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      },
+      "production": {
+        "ok": true,
+        "status": 200,
+        "elapsed_ms": 1286,
+        "keys": [
+          "success",
+          "status",
+          "source",
+          "data",
+          "meta"
+        ],
+        "count": null,
+        "sample_timestamp": null,
+        "context_source": null,
+        "direct_count": null,
+        "fallback_applied": null,
+        "preview": null
+      }
+    }
+  ],
+  "live_public_news": {
+    "ok": true,
+    "status": 200,
+    "elapsed_ms": 456,
+    "keys": [
+      "success",
+      "symbol",
+      "status",
+      "count",
+      "direct_count",
+      "fallback_applied",
+      "context_source",
+      "data",
+      "coverage",
+      "message"
+    ],
+    "count": 5,
+    "sample_timestamp": "2026-04-11T04:33:16.000Z",
+    "context_source": "DIRECT",
+    "direct_count": 5,
+    "fallback_applied": false,
+    "preview": null
   }
 }

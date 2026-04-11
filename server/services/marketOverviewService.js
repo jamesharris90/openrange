@@ -337,6 +337,7 @@ async function getMarketOverview() {
 }
 
 module.exports = {
+  emptyOverview,
   getMarketOverview,
   REQUIRED_TABLES,
 };

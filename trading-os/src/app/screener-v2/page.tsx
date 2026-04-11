@@ -39,6 +39,9 @@ type ScreenerRow = {
   time_since_first_seen: number | null;
   state: "FORMING" | "CONFIRMED" | "EXTENDED" | "DEAD";
   early_signal: boolean;
+  coverage_status?: "HAS_DATA" | "PARTIAL_NEWS" | "PARTIAL_EARNINGS" | "NO_NEWS" | "NO_EARNINGS" | "STRUCTURALLY_UNSUPPORTED" | "LOW_QUALITY_TICKER" | "INACTIVE";
+  coverage_detail?: string | null;
+  coverage_explanation?: string | null;
 };
 
 type ScreenerResponse = {
@@ -175,6 +178,9 @@ type ScreenerFilters = {
   sector: string;
   instrumentType: "" | ScreenerRow["instrument_type"];
   catalyst: "ALL" | "NEWS" | "EARNINGS" | "TECHNICAL";
+  hideLowQuality: boolean;
+  showOnlyFullCoverage: boolean;
+  includeLimitedCoverage: boolean;
 };
 
 type ViewMode = "all" | "focus";
@@ -186,6 +192,9 @@ const DEFAULT_FILTERS: ScreenerFilters = {
   sector: "",
   instrumentType: "",
   catalyst: "ALL",
+  hideLowQuality: false,
+  showOnlyFullCoverage: false,
+  includeLimitedCoverage: true,
 };
 
 const INSTRUMENT_TYPE_LABELS: Record<ScreenerRow["instrument_type"], string> = {
@@ -571,6 +580,59 @@ function formatConfidence(value: number) {
   };
 }
 
+function isLimitedCoverageStatus(status: ScreenerRow["coverage_status"]) {
+  return status === "PARTIAL_NEWS"
+    || status === "PARTIAL_EARNINGS"
+    || status === "NO_NEWS"
+    || status === "NO_EARNINGS"
+    || status === "STRUCTURALLY_UNSUPPORTED";
+}
+
+function formatCoverageBadge(status: ScreenerRow["coverage_status"]) {
+  switch (status) {
+    case "HAS_DATA":
+      return {
+        label: "Full coverage",
+        className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+      };
+    case "PARTIAL_NEWS":
+      return {
+        label: "Limited news",
+        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "PARTIAL_EARNINGS":
+      return {
+        label: "Partial earnings",
+        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "NO_NEWS":
+      return {
+        label: "No news",
+        className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+      };
+    case "NO_EARNINGS":
+      return {
+        label: "No earnings",
+        className: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    case "STRUCTURALLY_UNSUPPORTED":
+      return {
+        label: "Unsupported",
+        className: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    case "LOW_QUALITY_TICKER":
+      return {
+        label: "Low quality",
+        className: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+      };
+    default:
+      return {
+        label: "Coverage pending",
+        className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+      };
+  }
+}
+
 function formatRegime(regime: MacroContext["regime"]) {
   if (regime === "risk_on") {
     return {
@@ -599,7 +661,8 @@ function resolveViewModeParam(value: string | null): ViewMode {
 function SkeletonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.4)]">
-      <table className="min-w-full divide-y divide-slate-800 text-sm">
+      <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+      <table className="min-w-[1260px] w-full divide-y divide-slate-800 text-sm">
         <thead className="bg-slate-950/90 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
           <tr>
             {[
@@ -635,6 +698,7 @@ function SkeletonTable() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -839,21 +903,33 @@ function ScreenerV2PageContent() {
         return false;
       }
 
-      if (filters.catalyst === "NEWS") {
-        return row.catalyst_type === "NEWS" || row.catalyst_type === "RECENT_NEWS";
+      if (filters.catalyst === "NEWS" && !(row.catalyst_type === "NEWS" || row.catalyst_type === "RECENT_NEWS")) {
+        return false;
       }
 
-      if (filters.catalyst === "EARNINGS") {
-        return row.catalyst_type === "EARNINGS";
+      if (filters.catalyst === "EARNINGS" && row.catalyst_type !== "EARNINGS") {
+        return false;
       }
 
-      if (filters.catalyst === "TECHNICAL") {
-        return row.catalyst_type === "TECHNICAL";
+      if (filters.catalyst === "TECHNICAL" && row.catalyst_type !== "TECHNICAL") {
+        return false;
+      }
+
+      if (filters.hideLowQuality && row.coverage_status === "LOW_QUALITY_TICKER") {
+        return false;
+      }
+
+      if (filters.showOnlyFullCoverage && row.coverage_status !== "HAS_DATA") {
+        return false;
+      }
+
+      if (!filters.showOnlyFullCoverage && !filters.includeLimitedCoverage && isLimitedCoverageStatus(row.coverage_status)) {
+        return false;
       }
 
       return true;
     });
-  }, [data, filters.catalyst, filters.instrumentType, filters.minRvol, filters.minVolume, filters.sector, screenMode, viewMode]);
+  }, [data, filters.catalyst, filters.hideLowQuality, filters.includeLimitedCoverage, filters.instrumentType, filters.minRvol, filters.minVolume, filters.sector, filters.showOnlyFullCoverage, screenMode, viewMode]);
 
   const sortedRows = useMemo(() => {
     return sortRows(filteredRows, sortKey, sortDirection);
@@ -1013,7 +1089,34 @@ function ScreenerV2PageContent() {
           <option value="EARNINGS">Earnings</option>
           <option value="TECHNICAL">Technical</option>
         </select>
-        {(filters.minVolume || filters.minRvol || filters.sector || filters.instrumentType || filters.catalyst !== DEFAULT_FILTERS.catalyst) ? (
+        <label className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200">
+          <input
+            type="checkbox"
+            checked={filters.hideLowQuality}
+            onChange={(event) => setFilters({ hideLowQuality: event.target.checked })}
+            className="rounded border-slate-600 bg-slate-950 text-emerald-400"
+          />
+          <span>Hide low-quality tickers</span>
+        </label>
+        <label className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200">
+          <input
+            type="checkbox"
+            checked={filters.showOnlyFullCoverage}
+            onChange={(event) => setFilters({ showOnlyFullCoverage: event.target.checked })}
+            className="rounded border-slate-600 bg-slate-950 text-emerald-400"
+          />
+          <span>Show only full coverage</span>
+        </label>
+        <label className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200">
+          <input
+            type="checkbox"
+            checked={filters.includeLimitedCoverage}
+            onChange={(event) => setFilters({ includeLimitedCoverage: event.target.checked })}
+            className="rounded border-slate-600 bg-slate-950 text-emerald-400"
+          />
+          <span>Include limited coverage</span>
+        </label>
+        {(filters.minVolume || filters.minRvol || filters.sector || filters.instrumentType || filters.catalyst !== DEFAULT_FILTERS.catalyst || filters.hideLowQuality !== DEFAULT_FILTERS.hideLowQuality || filters.showOnlyFullCoverage !== DEFAULT_FILTERS.showOnlyFullCoverage || filters.includeLimitedCoverage !== DEFAULT_FILTERS.includeLimitedCoverage) ? (
           <button
             type="button"
             onClick={() => resetFilters()}
@@ -1189,7 +1292,8 @@ function ScreenerV2PageContent() {
             </div>
           ) : null}
           <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.35)]">
-          <table className="min-w-full divide-y divide-slate-800 text-sm">
+          <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+          <table className="min-w-[1260px] w-full divide-y divide-slate-800 text-sm">
             <thead className="sticky top-0 z-10 bg-slate-950/95 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Symbol</th>
@@ -1225,6 +1329,7 @@ function ScreenerV2PageContent() {
                 const driver = formatDriverType(row.driver_type);
                 const confidence = formatConfidence(row.confidence);
                 const state = formatState(row.state);
+                const coverage = formatCoverageBadge(row.coverage_status);
                 const isFocusRow =
                   viewMode === "focus" &&
                   (row.state === "FORMING" || row.state === "CONFIRMED") &&
@@ -1255,6 +1360,12 @@ function ScreenerV2PageContent() {
                             Tradeable Now
                           </span>
                         ) : null}
+                        <span
+                          title={row.coverage_explanation || row.coverage_detail || coverage.label}
+                          className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", coverage.className)}
+                        >
+                          {row.coverage_detail || coverage.label}
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-200">{formatPrice(row.price)}</td>
@@ -1325,6 +1436,7 @@ function ScreenerV2PageContent() {
               })}
             </tbody>
           </table>
+          </div>
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/95 px-4 py-3 text-xs text-slate-400">
             <button
               type="button"

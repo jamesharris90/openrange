@@ -4,7 +4,10 @@ const { pool } = require('../db/pg');
 function normalizeProvider(provider) {
   const value = String(provider || '').trim().toLowerCase();
   if (value.includes('finnhub')) return 'finnhub';
+  if (value.includes('benzinga')) return 'benzinga';
+  if (value.includes('alpha')) return 'alpha_vantage';
   if (value.includes('yahoo')) return 'yahoo';
+  if (value.includes('dow')) return 'dowjones';
   return 'fmp';
 }
 
@@ -13,6 +16,15 @@ function normalizeSentiment(value) {
   if (sentiment === 'positive' || sentiment === 'bullish') return 'positive';
   if (sentiment === 'negative' || sentiment === 'bearish') return 'negative';
   return 'neutral';
+}
+
+function normalizePublishedAtUtc(value) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 async function ensureNewsStorageSchema() {
@@ -29,24 +41,46 @@ async function ensureNewsStorageSchema() {
 async function isDuplicateNewsArticle({ symbol, headline, publishedAt }) {
   if (!headline || !publishedAt) return false;
 
+  const normalizedPublishedAt = normalizePublishedAtUtc(publishedAt);
+  if (!normalizedPublishedAt) return false;
+
   const { rows } = await pool.query(
     `SELECT EXISTS (
        SELECT 1
        FROM news_articles
        WHERE COALESCE(symbol, '') = COALESCE($1, '')
          AND LOWER(COALESCE(headline, '')) = LOWER($2)
-         AND date_trunc('minute', published_at) = date_trunc('minute', $3::timestamp)
+         AND date_trunc('minute', published_at) = date_trunc('minute', ($3::timestamptz AT TIME ZONE 'UTC'))
      ) AS exists`,
-    [symbol || null, headline, publishedAt]
+    [symbol || null, headline, normalizedPublishedAt]
   );
 
   return Boolean(rows[0]?.exists);
 }
 
+async function pruneNewsArticlesForSymbol(symbol, keepLimit = 20) {
+  if (!symbol) {
+    return;
+  }
+
+  await pool.query(
+    `DELETE FROM news_articles
+     WHERE symbol = $1
+       AND id IN (
+         SELECT id
+         FROM news_articles
+         WHERE symbol = $1
+         ORDER BY published_at DESC NULLS LAST, created_at DESC NULLS LAST
+         OFFSET $2
+       )`,
+    [symbol, keepLimit]
+  );
+}
+
 async function insertNormalizedNewsArticle(article) {
   const symbol = String(article.symbol || '').trim().toUpperCase() || null;
   const headline = String(article.headline || '').trim();
-  const publishedAt = article.published_at || article.publishedAt || null;
+  const publishedAt = normalizePublishedAtUtc(article.published_at || article.publishedAt || null);
   if (!headline || !publishedAt) return { inserted: false, reason: 'missing_required_fields' };
 
   const isDuplicate = await isDuplicateNewsArticle({ symbol, headline, publishedAt });
@@ -85,7 +119,7 @@ async function insertNormalizedNewsArticle(article) {
        $5,
        $6,
        $7,
-       $8::timestamp,
+      ($8::timestamptz AT TIME ZONE 'UTC'),
        $9,
        $10,
        $11,
@@ -119,8 +153,21 @@ async function insertNormalizedNewsArticle(article) {
   };
 }
 
+async function insertNormalizedNewsArticleWithRetention(article, keepLimit = 20) {
+  const result = await insertNormalizedNewsArticle(article);
+  if (result.inserted) {
+    const symbol = String(article.symbol || '').trim().toUpperCase() || null;
+    await pruneNewsArticlesForSymbol(symbol, keepLimit);
+  }
+
+  return result;
+}
+
 module.exports = {
   ensureNewsStorageSchema,
   insertNormalizedNewsArticle,
+  insertNormalizedNewsArticleWithRetention,
+  normalizePublishedAtUtc,
   normalizeProvider,
+  pruneNewsArticlesForSymbol,
 };

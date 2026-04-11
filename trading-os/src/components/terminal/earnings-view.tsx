@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 import { useTableControls } from "@/hooks/useTableControls";
+import { apiFetch } from "@/lib/api/client";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,21 @@ type ApiResponse = {
   rows?: EarningsRow[];
   ok?: boolean;
   items?: EarningsRow[];
+};
+
+type EarningsHistoryDetail = {
+  report_date?: string | null;
+  report_time?: string | null;
+  eps_estimate?: number | null;
+  eps_actual?: number | null;
+};
+
+type EarningsHistoryResponse = {
+  success?: boolean;
+  symbol?: string;
+  next?: EarningsHistoryDetail | null;
+  history?: EarningsHistoryDetail[];
+  message?: string | null;
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -89,6 +105,8 @@ const TIME_PILL: Record<string, string> = {
   TBD: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
 };
 
+const EARNINGS_GAP_MESSAGE = "Earnings data is not available for this ticker. This is common for smaller or international listings.";
+
 type EarningsDayFilter = "Selected Day" | "Today" | "Tomorrow" | "This Week";
 type EarningsTimeFilter = "All" | "BMO" | "AMC";
 
@@ -112,6 +130,9 @@ export function EarningsView() {
   const router = useRouter();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<EarningsHistoryResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [rows, setRows] = useState<EarningsRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +234,47 @@ export function EarningsView() {
       setPage(totalPages);
     }
   }, [page, setPage, totalPages]);
+
+  useEffect(() => {
+    if (!selectedSymbol || !filteredRows.some((row) => row.symbol === selectedSymbol)) {
+      setSelectedSymbol(filteredRows[0]?.symbol || null);
+    }
+  }, [filteredRows, selectedSymbol]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSelectedDetail() {
+      if (!selectedSymbol) {
+        setSelectedDetail(null);
+        return;
+      }
+
+      setDetailLoading(true);
+      try {
+        const response = await apiFetch(`/api/earnings/history/${encodeURIComponent(selectedSymbol)}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as EarningsHistoryResponse;
+        if (!cancelled) {
+          setSelectedDetail(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedDetail({ success: false, symbol: selectedSymbol, history: [], next: null, message: "No recent earnings data available" });
+        }
+      } finally {
+        if (!cancelled) {
+          setDetailLoading(false);
+        }
+      }
+    }
+
+    loadSelectedDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSymbol]);
 
   const selectedDayLabel = useMemo(() => {
     if (filters.day === "Today") return "Today";
@@ -321,6 +383,58 @@ export function EarningsView() {
         ) : null}
       </div>
 
+      <div className="border-b border-[var(--border)] bg-[var(--panel)] px-4 py-4 shrink-0">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--background)]/60 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">Selected Earnings Detail</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{selectedSymbol || "No symbol selected"}</p>
+            </div>
+            {selectedSymbol ? (
+              <button
+                type="button"
+                onClick={() => router.push(`/research/${selectedSymbol}`)}
+                className="rounded border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Open research
+              </button>
+            ) : null}
+          </div>
+          {detailLoading ? (
+            <div className="mt-3 text-sm text-[var(--muted-foreground)]">Loading earnings detail…</div>
+          ) : (
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">Future Earnings</p>
+                {selectedDetail?.next ? (
+                  <div className="mt-2 space-y-1 text-sm text-[var(--foreground)]">
+                    <div>{selectedDetail.next.report_date || "No date"}</div>
+                    <div className="text-[var(--muted-foreground)]">{selectedDetail.next.report_time || "TBD"}</div>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{EARNINGS_GAP_MESSAGE}</div>
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">Last 4 Quarters</p>
+                {selectedDetail?.history && selectedDetail.history.length > 0 ? (
+                  <div className="mt-2 space-y-2 text-sm text-[var(--foreground)]">
+                    {selectedDetail.history.slice(0, 4).map((entry) => (
+                      <div key={`${selectedSymbol}-${entry.report_date}`} className="flex items-center justify-between gap-3 rounded border border-[var(--border)] px-3 py-2">
+                        <span>{entry.report_date || "No date"}</span>
+                        <span className="text-[var(--muted-foreground)]">EPS {fmtEps(entry.eps_actual ?? entry.eps_estimate ?? null)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{EARNINGS_GAP_MESSAGE}</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ── Table ── */}
       <div className="flex-1 overflow-auto">
         {loading && (
@@ -360,7 +474,7 @@ export function EarningsView() {
                   const expMove = row.expected_move_percent != null ? `±${Number(row.expected_move_percent).toFixed(1)}%` : "—";
                   return (
                     <tr key={`${row.symbol}-${i}`}
-                      onClick={() => router.push(`/research/${row.symbol}`)}
+                      onClick={() => setSelectedSymbol(row.symbol)}
                       className={`border-b border-[var(--border)] transition-colors cursor-pointer ${i % 2 !== 0 ? "bg-[var(--muted)]/30" : ""} hover:bg-[var(--muted)]`}>
                       <td className="px-3 py-2.5 font-semibold text-blue-500 text-xs tracking-wide whitespace-nowrap">
                         {row.symbol}

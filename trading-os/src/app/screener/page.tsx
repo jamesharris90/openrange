@@ -720,7 +720,8 @@ function getEarningsLabel(earningsDate: string | null | undefined) {
 function SkeletonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.4)]">
-      <table className="min-w-full divide-y divide-slate-800 text-sm">
+      <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+      <table className="min-w-[1100px] w-full divide-y divide-slate-800 text-sm">
         <thead className="bg-slate-950/90 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
           <tr>
             {[
@@ -754,6 +755,7 @@ function SkeletonTable() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -1107,7 +1109,8 @@ export default function ScreenerPage() {
             </div>
           ) : null}
           <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70 shadow-[0_0_0_1px_rgba(15,23,42,0.35)]">
-          <table className="min-w-full divide-y divide-slate-800 text-sm">
+          <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+          <table className="min-w-[1100px] w-full divide-y divide-slate-800 text-sm">
             <thead className="sticky top-0 z-10 bg-slate-950/95 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">
@@ -1201,6 +1204,7 @@ export default function ScreenerPage() {
               })}
             </tbody>
           </table>
+          </div>
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/95 px-4 py-3 text-xs text-slate-400">
             <button
               type="button"

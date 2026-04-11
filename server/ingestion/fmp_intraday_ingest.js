@@ -1,9 +1,10 @@
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
 const { fmpFetch } = require('../services/fmpClient');
+const { getMarketSession } = require('../utils/marketSession');
 const { normalizeSymbol, mapFromProviderSymbol, mapToProviderSymbol } = require('../utils/symbolMap');
 
-const MAX_SYMBOLS_PER_CYCLE = 10;
+const MAX_SYMBOLS_PER_CYCLE = Math.max(10, Number(process.env.INTRADAY_MAX_SYMBOLS_PER_CYCLE) || 25);
 const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
 let ingestionCursor = 0;
 
@@ -30,6 +31,7 @@ async function insertIntradayRows(rows) {
       FROM json_to_recordset($1::json) AS x(
         symbol text,
         timestamp timestamptz,
+        session text,
         open double precision,
         high double precision,
         low double precision,
@@ -37,8 +39,8 @@ async function insertIntradayRows(rows) {
         volume bigint
       )
     ), inserted AS (
-      INSERT INTO intraday_1m (symbol, timestamp, open, high, low, close, volume)
-      SELECT symbol, timestamp, open, high, low, close, COALESCE(volume, 0)
+      INSERT INTO intraday_1m (symbol, timestamp, session, open, high, low, close, volume)
+      SELECT symbol, timestamp, session, open, high, low, close, COALESCE(volume, 0)
       FROM payload
       ON CONFLICT (symbol, timestamp) DO NOTHING
       RETURNING 1
@@ -65,8 +67,11 @@ async function loadPrioritySymbols() {
   const fallbackUniverse = await dbRead(`
     SELECT symbol
     FROM ticker_universe
-    ORDER BY last_updated DESC NULLS LAST
-    LIMIT 500
+    WHERE COALESCE(is_active, true) = true
+      AND symbol IS NOT NULL
+      AND symbol <> ''
+    ORDER BY market_cap DESC NULLS LAST, symbol ASC
+    LIMIT 1000
   `, 'intraday_ingest.fallback_universe');
 
   console.log('[INTRADAY] active signals:', activeSignals.rowCount);
@@ -170,9 +175,11 @@ function normalizeIntraday(payload, symbol) {
       const low = Number(row.low ?? close);
       const volumeRaw = Number(row.volume);
       const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.trunc(volumeRaw)) : 0;
+      const session = timestamp ? getMarketSession(new Date(timestamp)) : 'CLOSED';
       return {
         symbol,
         timestamp,
+        session,
         open,
         high,
         low,
@@ -184,6 +191,7 @@ function normalizeIntraday(payload, symbol) {
 }
 
 async function runIntradayIngestion() {
+  console.log('[INTRADAY WORKER] Starting run...', { session: getMarketSession() });
   const ingestSymbols = await loadPrioritySymbols();
   if (!Array.isArray(ingestSymbols) || ingestSymbols.length === 0) {
     logger.warn('intraday ingestion skipped: no symbols selected');
