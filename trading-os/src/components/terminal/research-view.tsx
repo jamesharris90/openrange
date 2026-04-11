@@ -281,7 +281,7 @@ export function ResearchView({ ticker }: { ticker: string }) {
             className="rounded-xl border border-[#1F2937] px-3 py-2 text-xs text-gray-400"
             onClick={() => {
               const target = search.trim().toUpperCase();
-              if (target) router.push(`/research/${target}`);
+              if (target) router.push(`/research-v2/${target}`);
             }}
           >
             Load

@@ -1,12 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { memo, useMemo } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WARMING_COPY, isNullDisplay } from "@/components/research/formatters";
-import { apiGet } from "@/lib/api/client";
-import { QUERY_POLICY } from "@/lib/queries/policy";
 
 function normalizeNewsItems(payload) {
   const rows = Array.isArray(payload)
@@ -77,17 +74,26 @@ function sourceTone(source) {
   return 'border-slate-700 bg-slate-900/70 text-slate-300';
 }
 
-export default function CatalystPanel({ symbol }) {
-  const newsQuery = useQuery({
-    queryKey: ["slow", "researchCatalystNews", symbol],
-    queryFn: () => apiGet(`/api/news?symbol=${encodeURIComponent(symbol)}&limit=5`),
-    enabled: Boolean(symbol),
-    ...QUERY_POLICY.fast,
-  });
-
-  const items = useMemo(() => normalizeNewsItems(newsQuery.data), [newsQuery.data]);
-  const directCount = Number(newsQuery.data?.direct_count || 0);
-  const noData = String(newsQuery.data?.status || '').toLowerCase() === 'no_data' || directCount === 0;
+/**
+ * @param {{
+ *   symbol: string,
+ *   news?: Array<{
+ *     id?: string | null,
+ *     title?: string | null,
+ *     headline?: string | null,
+ *     summary?: string | null,
+ *     source?: string | null,
+ *     url?: string | null,
+ *     publishedAt?: string | null,
+ *     published_at?: string | null,
+ *     contextScope?: string | null,
+ *     context_scope?: string | null,
+ *   }>,
+ * }} props
+ */
+function CatalystPanel({ symbol, news = [] }) {
+  const items = useMemo(() => normalizeNewsItems(news), [news]);
+  const noData = items.length === 0;
   const description = noData
     ? `No symbol-specific catalyst articles found for ${symbol}.`
     : `Top headlines directly linked to ${symbol}.`;
@@ -99,13 +105,7 @@ export default function CatalystPanel({ symbol }) {
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="max-h-[70vh] overflow-y-auto pr-1">
-        {newsQuery.isLoading && items.length === 0 ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-20 animate-pulse rounded-2xl border border-slate-800/70 bg-slate-900/50" />
-            ))}
-          </div>
-        ) : items.length > 0 ? (
+        {items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item, index) => {
               const publishedAt = formatTimestamp(item.publishedAt);
@@ -146,3 +146,5 @@ export default function CatalystPanel({ symbol }) {
     </Card>
   );
 }
+
+export default memo(CatalystPanel);

@@ -47,7 +47,7 @@ export function CommandPalette() {
         {
           id: "research",
           label: `Open Research: ${ticker}`,
-          run: (nextRouter: ReturnType<typeof useRouter>) => nextRouter.push(`/research/${ticker}`),
+          run: (nextRouter: ReturnType<typeof useRouter>) => nextRouter.push(`/research-v2/${ticker}`),
         },
         {
           id: "watchlist",

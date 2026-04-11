@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import {
   ColorType,
   createChart,
@@ -10,11 +9,9 @@ import {
   type IChartApi,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
-import { getMarketChart } from "@/lib/api/markets";
 import { toFixedSafe } from "@/lib/number";
-import { QUERY_POLICY, queryKeys } from "@/lib/queries/policy";
 import { useTickerStore } from "@/lib/store/ticker-store";
 import type { PricePoint } from "@/lib/types";
 
@@ -57,7 +54,29 @@ function vwap(points: PricePoint[]) {
   });
 }
 
-export function ChartEngine({
+function normalizeChartPayload(payload: unknown): PricePoint[] {
+  if (Array.isArray(payload)) {
+    return payload as PricePoint[];
+  }
+
+  if (Array.isArray((payload as { data?: unknown[] })?.data)) {
+    return (payload as { data: PricePoint[] }).data;
+  }
+
+  return [];
+}
+
+function buildChartUrl(ticker: string, timeframe: "daily" | "5m" | "1m") {
+  const symbol = encodeURIComponent(ticker);
+
+  if (timeframe === "daily") {
+    return `/api/v2/chart/${symbol}?interval=1day`;
+  }
+
+  return `/api/v5/chart?symbol=${symbol}&interval=${encodeURIComponent(timeframe)}`;
+}
+
+export const ChartEngine = memo(function ChartEngine({
   ticker,
   timeframe,
   height = 260,
@@ -72,8 +91,11 @@ export function ChartEngine({
 }) {
   const liveQuote = useTickerStore((state) => state.quotes[ticker.toUpperCase()]);
   const [themeTick, setThemeTick] = useState(0);
+  const [data, setData] = useState<PricePoint[]>([]);
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const hasFetched = useRef(false);
+  const fetchKeyRef = useRef("");
   const seriesRef = useRef<{
     candles: ReturnType<IChartApi["addSeries"]> | null;
     vwap: ReturnType<IChartApi["addSeries"]> | null;
@@ -94,11 +116,50 @@ export function ChartEngine({
     gamma: null,
   });
 
-  const { data = [] } = useQuery({
-    queryKey: queryKeys.chart(ticker, timeframe),
-    queryFn: () => getMarketChart(ticker, timeframe),
-    ...QUERY_POLICY.fast,
-  });
+  useEffect(() => {
+    const key = `${ticker.toUpperCase()}:${timeframe}`;
+    if (fetchKeyRef.current !== key) {
+      fetchKeyRef.current = key;
+      hasFetched.current = false;
+    }
+
+    if (hasFetched.current) {
+      return;
+    }
+
+    hasFetched.current = true;
+    let mounted = true;
+    const controller = new AbortController();
+
+    async function fetchChart() {
+      try {
+        const response = await fetch(buildChartUrl(ticker, timeframe), {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error("chart_fetch_failed");
+        }
+
+        if (mounted) {
+          setData(normalizeChartPayload(payload));
+        }
+      } catch {
+        if (mounted) {
+          setData([]);
+        }
+      }
+    }
+
+    void fetchChart();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, [ticker, timeframe]);
 
   const normalized = useMemo(() => {
     return data;
@@ -339,4 +400,4 @@ export function ChartEngine({
       {normalized.length === 0 && <div className="px-2 pb-2 text-xs text-slate-500">No data available</div>}
     </div>
   );
-}
+});

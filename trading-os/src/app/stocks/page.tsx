@@ -62,7 +62,7 @@ export default function StocksPage() {
     : rows;
 
   const handleSymbol = (symbol: string) => {
-    router.push(`/research/${encodeURIComponent(symbol)}`);
+    router.push(`/research-v2/${encodeURIComponent(symbol)}`);
   };
 
   return (

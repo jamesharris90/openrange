@@ -292,7 +292,7 @@ export function StocksInPlayView() {
           return (
             <Link
               key={`${symbol}-${String(row.strategy || "")}-${String(row.quote?.updated_at || row.updated_at || row.created_at || "")}`}
-              href={`/research/${symbol}`}
+              href={`/research-v2/${symbol}`}
               onContextMenu={(event) => {
                 event.preventDefault();
                 setContextMenu({ symbol, x: event.clientX, y: event.clientY });
@@ -383,7 +383,7 @@ export function StocksInPlayView() {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(event) => event.stopPropagation()}
         >
-          <button type="button" className="w-full rounded px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800" onClick={() => router.push(`/research/${contextMenu.symbol}`)}>Open in Research</button>
+          <button type="button" className="w-full rounded px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800" onClick={() => router.push(`/research-v2/${contextMenu.symbol}`)}>Open in Research</button>
           <button type="button" className="w-full rounded px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800" onClick={() => router.push(`/alerts?ticker=${contextMenu.symbol}`)}>Add Alert</button>
           <button type="button" className="w-full rounded px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800" onClick={() => addWatch(contextMenu.symbol)}>Add to Watchlist</button>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -208,6 +208,14 @@ const INSTRUMENT_TYPE_LABELS: Record<ScreenerRow["instrument_type"], string> = {
 
 type SortKey = "composite" | "rvol" | "trend" | "momentum" | "gap";
 type SortDirection = "asc" | "desc";
+
+function RowCellLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={cn("block", className)}>
+      {children}
+    </Link>
+  );
+}
 
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, index) => index);
 
@@ -514,10 +522,10 @@ function getNewsFreshness(publishedAt: string | null | undefined) {
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
-  if (!earningsDate) return "No data";
+  if (!earningsDate) return "-";
 
   const target = new Date(`${earningsDate}T00:00:00Z`);
-  if (Number.isNaN(target.getTime())) return "No data";
+  if (Number.isNaN(target.getTime())) return "-";
 
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -730,27 +738,20 @@ function ScreenerV2PageContent() {
     setPage,
     pageSize,
   } = useTableControls<ScreenerRow, ScreenerFilters>(data, DEFAULT_FILTERS, { pageSize: 25 });
-
   const opportunitiesQuery = useMemo(() => {
-    const params = new URLSearchParams();
     const asOf = searchParams.get("as_of") || searchParams.get("asOf");
     const sessionOverride = searchParams.get("session_override") || searchParams.get("sessionOverride");
 
     if (asOf) {
-      params.set("as_of", asOf);
+      return `/api/intelligence/top-opportunities?as_of=${encodeURIComponent(asOf)}`;
     }
 
     if (sessionOverride) {
-      params.set("session_override", sessionOverride);
+      return `/api/intelligence/top-opportunities?session_override=${encodeURIComponent(sessionOverride)}`;
     }
 
-    const query = params.toString();
-    return `/api/opportunities/next-session${query ? `?${query}` : ""}`;
+    return "/api/intelligence/top-opportunities";
   }, [searchParams]);
-
-  useEffect(() => {
-    setViewMode(requestedViewMode);
-  }, [requestedViewMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1170,7 +1171,7 @@ function ScreenerV2PageContent() {
               <div key={row.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-4 text-sm shadow-[0_0_0_1px_rgba(15,23,42,0.3)]">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Top 3 Focus Today</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <Link href={`/research/${encodeURIComponent(row.symbol)}`} className="text-base font-semibold text-white underline-offset-4 hover:text-emerald-300 hover:underline">
+                  <Link href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="text-base font-semibold text-white underline-offset-4 hover:text-emerald-300 hover:underline">
                     {row.symbol}
                   </Link>
                   <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">AI</span>
@@ -1217,7 +1218,7 @@ function ScreenerV2PageContent() {
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Upcoming Earnings</p>
                 <div className="mt-3 space-y-3">
                   {nextSessionData?.earnings.length ? nextSessionData.earnings.map((row) => (
-                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-emerald-500/30 hover:bg-slate-900">
+                    <Link key={row.symbol} href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-emerald-500/30 hover:bg-slate-900">
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-semibold text-white">{row.symbol}</span>
                         <span className="text-xs text-slate-400">{row.earnings_date}</span>
@@ -1235,7 +1236,7 @@ function ScreenerV2PageContent() {
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Catalyst Watchlist</p>
                 <div className="mt-3 space-y-3">
                   {nextSessionData?.catalysts.length ? nextSessionData.catalysts.map((row) => (
-                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-sky-500/30 hover:bg-slate-900">
+                    <Link key={row.symbol} href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-sky-500/30 hover:bg-slate-900">
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-semibold text-white">{row.symbol}</span>
                         <span className="text-xs text-slate-400">{formatRvol(row.relative_volume)}</span>
@@ -1250,7 +1251,7 @@ function ScreenerV2PageContent() {
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Momentum Carry</p>
                 <div className="mt-3 space-y-3">
                   {nextSessionData?.momentum.length ? nextSessionData.momentum.map((row) => (
-                    <Link key={row.symbol} href={`/research/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-fuchsia-500/30 hover:bg-slate-900">
+                    <Link key={row.symbol} href={`/research-v2/${encodeURIComponent(row.symbol)}`} className="block rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 hover:border-fuchsia-500/30 hover:bg-slate-900">
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-semibold text-white">{row.symbol}</span>
                         <span className="text-xs text-slate-400">{formatPercent(row.change_percent)}</span>
@@ -1336,39 +1337,37 @@ function ScreenerV2PageContent() {
                   (row.volume ?? 0) >= 5_000_000 &&
                   (row.rvol ?? 0) >= 2 &&
                   row.catalyst_type !== "NONE";
+                const href = `/research-v2/${encodeURIComponent(row.symbol || "")}`;
 
                 return (
                   <tr
                     key={row.symbol}
-                    onClick={() => router.push(`/research/${encodeURIComponent(row.symbol || "")}`)}
                     className={cn(
-                      "cursor-pointer border-t border-slate-900/80 transition hover:bg-slate-900/60",
+                      "border-t border-slate-900/80 transition hover:bg-white/5",
                       isFocusRow && "bg-emerald-500/5 shadow-[inset_3px_0_0_0_rgba(52,211,153,0.8)]"
                     )}
                   >
                     <td className="px-4 py-3">
-                      <div className="space-y-1">
-                        <Link
-                          href={`/research/${encodeURIComponent(row.symbol || "")}`}
-                          onClick={(event) => event.stopPropagation()}
-                          className="font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-emerald-300 hover:underline"
-                        >
-                          {row.symbol || "—"}
-                        </Link>
-                        {isFocusRow ? (
-                          <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-200">
-                            Tradeable Now
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <div className="space-y-1">
+                          <span className="font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-emerald-300 hover:underline">
+                            {row.symbol || "—"}
                           </span>
-                        ) : null}
-                        <span
-                          title={row.coverage_explanation || row.coverage_detail || coverage.label}
-                          className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", coverage.className)}
-                        >
-                          {row.coverage_detail || coverage.label}
-                        </span>
-                      </div>
+                          {isFocusRow ? (
+                            <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-200">
+                              Tradeable Now
+                            </span>
+                          ) : null}
+                          <span
+                            title={row.coverage_explanation || row.coverage_detail || coverage.label}
+                            className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", coverage.className)}
+                          >
+                            {row.coverage_detail || coverage.label}
+                          </span>
+                        </div>
+                      </RowCellLink>
                     </td>
-                    <td className="px-4 py-3 text-slate-200">{formatPrice(row.price)}</td>
+                    <td className="px-4 py-3 text-slate-200"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatPrice(row.price)}</RowCellLink></td>
                     <td
                       className={cn(
                         "px-4 py-3 font-medium",
@@ -1377,60 +1376,65 @@ function ScreenerV2PageContent() {
                         row.change_percent === 0 && "text-slate-300"
                       )}
                     >
-                      {formatPercent(row.change_percent)}
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatPercent(row.change_percent)}</RowCellLink>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{formatVolume(row.volume)}</td>
-                    <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}>{formatRvol(row.rvol)}</td>
-                    <td className="px-4 py-3 text-slate-300">{formatGap(row.gap_percent)}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getTrendTone(row.trend))}>{row.trend}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getVwapTone(row.vwap_position))}>{row.vwap_position}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getMomentumTone(row.momentum))}>{row.momentum}</td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatVolume(row.volume)}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatRvol(row.rvol)}</RowCellLink></td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatGap(row.gap_percent)}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getTrendTone(row.trend))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.trend}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getVwapTone(row.vwap_position))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.vwap_position}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getMomentumTone(row.momentum))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.momentum}</RowCellLink></td>
                     <td className="px-4 py-3 text-slate-300">
-                      <div className="space-y-1.5">
-                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", state.className)}>
-                          {state.label}
-                        </span>
-                        <p className="text-[11px] text-slate-400">
-                          Seen {formatTimeSinceFirstSeen(row.time_since_first_seen)}
-                        </p>
-                        {row.early_signal ? (
-                          <p className="text-[11px] uppercase tracking-[0.16em] text-fuchsia-300">Early signal</p>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300">
-                      <span className="mr-2">{catalyst.icon}</span>
-                      <span>{catalyst.label}</span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300">
-                      <div className="space-y-1.5">
-                        <div className="flex flex-wrap gap-2">
-                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", driver.className)}>
-                            {driver.label}
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <div className="space-y-1.5">
+                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", state.className)}>
+                            {state.label}
                           </span>
-                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", confidence.className)}>
-                            {confidence.label}
-                          </span>
+                          <p className="text-[11px] text-slate-400">
+                            Seen {formatTimeSinceFirstSeen(row.time_since_first_seen)}
+                          </p>
+                          {row.early_signal ? (
+                            <p className="text-[11px] uppercase tracking-[0.16em] text-fuchsia-300">Early signal</p>
+                          ) : null}
                         </div>
-                        <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{cleanReason(row.why)}</p>
-                      </div>
+                      </RowCellLink>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3"><span className="mr-2">{catalyst.icon}</span><span>{catalyst.label}</span></RowCellLink></td>
+                    <td className="px-4 py-3 text-slate-300">
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap gap-2">
+                            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", driver.className)}>
+                              {driver.label}
+                            </span>
+                            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]", confidence.className)}>
+                              {confidence.label}
+                            </span>
+                          </div>
+                          <p className="max-w-[18rem] text-xs leading-5 text-slate-300">{cleanReason(row.why)}</p>
+                        </div>
+                      </RowCellLink>
                     </td>
                     <td className={cn("px-4 py-3", news.tone)} title={news.label}>
-                      <span>{news.label}</span>
-                      {row.latest_news_at && row.news_source === "database" ? (
-                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
-                      ) : null}
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <span>{news.label}</span>
+                        {row.latest_news_at && row.news_source === "database" ? (
+                          <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
+                        ) : null}
+                      </RowCellLink>
                     </td>
                     <td className="px-4 py-3 text-slate-300">
-                      <span>{earningsLabel}</span>
-                      {row.earnings_date && row.earnings_source === "database" ? (
-                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
-                      ) : null}
-                      {row.earnings_date && row.earnings_source === "yahoo" ? (
-                        <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">Yahoo</span>
-                      ) : null}
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <span>{earningsLabel}</span>
+                        {row.earnings_date && row.earnings_source === "database" ? (
+                          <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">DB</span>
+                        ) : null}
+                        {row.earnings_date && row.earnings_source === "yahoo" ? (
+                          <span className="ml-2 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">Yahoo</span>
+                        ) : null}
+                      </RowCellLink>
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{row.sector || "—"}</td>
+                    <td className="px-4 py-3 text-slate-400"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.sector || "—"}</RowCellLink></td>
                   </tr>
                 );
               })}

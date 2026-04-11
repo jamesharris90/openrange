@@ -29,6 +29,14 @@ const OVERLAY_DEFAULTS = {
   ema20: true,
 };
 
+function EmptyState({ message }) {
+  return (
+    <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-950/45 px-4 py-10 text-center text-sm text-slate-400">
+      {message}
+    </div>
+  );
+}
+
 function buildOffsetPath(values, width, plotHeight, min, max, offsetY) {
   if (!values.length) {
     return "";
@@ -272,6 +280,10 @@ async function fetchChartWithFallback(symbol, interval) {
 
   if (primaryDaily.length > 0) {
     return { points: primaryDaily.slice(-60), fallbackMode: true, source: "sparkline" };
+  }
+
+  if (interval === "1day") {
+    return { points: [], fallbackMode: true, source: "empty" };
   }
 
   const daily = await apiGet(`/api/v5/chart?symbol=${encodeURIComponent(symbol)}&interval=1day`).catch(() => null);
@@ -598,15 +610,21 @@ export default function ResearchChartPanel({ symbol, indicators = null, showPane
   const dailyChartQuery = useQuery({
     queryKey: ["slow", "researchTerminalChart", symbol, "1day", "metrics"],
     queryFn: () => fetchChartWithFallback(symbol, "1day"),
-    enabled: Boolean(symbol),
+    enabled: Boolean(symbol) && interval !== "1day",
     ...QUERY_POLICY.fast,
   });
 
-  const points = Array.isArray(chartQuery.data?.points) ? chartQuery.data.points : [];
+  const points = useMemo(
+    () => (Array.isArray(chartQuery.data?.points) ? chartQuery.data.points : []),
+    [chartQuery.data?.points]
+  );
+  const safePoints = points;
   const normalizedDaily = useMemo(() => {
-    const dailyPoints = Array.isArray(dailyChartQuery.data?.points) ? dailyChartQuery.data.points : [];
+    const dailyPoints = interval === "1day"
+      ? safePoints
+      : (Array.isArray(dailyChartQuery.data?.points) ? dailyChartQuery.data.points : []);
     return normalizeChartPoints(dailyPoints);
-  }, [dailyChartQuery.data?.points]);
+  }, [dailyChartQuery.data?.points, interval, safePoints]);
   const indicatorRows = Array.isArray(indicators?.panels?.[interval]) ? indicators.panels[interval] : [];
 
   const chartStats = useMemo(() => {
@@ -703,12 +721,12 @@ export default function ResearchChartPanel({ symbol, indicators = null, showPane
         </div>
       </CardHeader>
       <CardContent>
-        {chartQuery.isLoading && points.length === 0 ? (
+        {chartQuery.isLoading && safePoints?.length === 0 ? (
           <div className="h-[360px] animate-pulse rounded-3xl border border-slate-800/70 bg-slate-900/50" />
-        ) : points.length > 0 ? (
+        ) : safePoints?.length > 0 ? (
           <div className="space-y-4">
             <InteractiveChart
-              points={points}
+              points={safePoints}
               indicatorRows={indicatorRows}
               overlays={effectiveOverlays}
               interval={interval}
@@ -730,9 +748,7 @@ export default function ResearchChartPanel({ symbol, indicators = null, showPane
             ) : null}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-950/45 px-4 py-10 text-center text-sm text-slate-400">
-            Decision view is showing only cached fundamentals while the chart cache rebuilds.
-          </div>
+          <EmptyState message="No chart data available" />
         )}
       </CardContent>
     </Card>

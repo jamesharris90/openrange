@@ -654,7 +654,7 @@ export default function ResearchPage({ symbol }) {
             <ResearchDecisionPanel payload={safe.decision} currentPrice={terminal.price?.price} context={context} />
           </div>
           <div className="space-y-4 xl:sticky xl:top-28 xl:self-start">
-            <CatalystPanel symbol={normalized} />
+            <CatalystPanel symbol={normalized} news={Array.isArray(payload?.news) ? payload.news : []} />
           </div>
         </div>
 

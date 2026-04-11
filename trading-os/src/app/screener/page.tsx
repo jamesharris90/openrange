@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import ScreenerFilterPanel from "@/components/screener/ScreenerFilterPanel";
 import { useTableControls } from "@/hooks/useTableControls";
@@ -135,6 +134,14 @@ type ScreenerResponse = {
 type WarmingUpResponse = {
   status: "warming_up";
 };
+
+function RowCellLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={cn("block", className)}>
+      {children}
+    </Link>
+  );
+}
 
 type ScreenerFilters = {
   minVolume: string;
@@ -702,10 +709,10 @@ function getNewsFreshness(publishedAt: string | null | undefined) {
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
-  if (!earningsDate) return "No data";
+  if (!earningsDate) return "-";
 
   const target = new Date(`${earningsDate}T00:00:00Z`);
-  if (Number.isNaN(target.getTime())) return "No data";
+  if (Number.isNaN(target.getTime())) return "-";
 
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -761,7 +768,6 @@ function SkeletonTable() {
 }
 
 export default function ScreenerPage() {
-  const router = useRouter();
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [macroContext, setMacroContext] = useState<MacroContext | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1159,23 +1165,16 @@ export default function ScreenerPage() {
                 const news = getNewsFreshness(row.latest_news_at);
                 const earningsLabel = getEarningsLabel(row.earnings_date);
                 const catalyst = formatCatalyst(row.catalyst_type);
+                const href = `/research-v2/${encodeURIComponent(row.symbol || "")}`;
 
                 return (
-                  <tr
-                    key={row.symbol}
-                    onClick={() => router.push(`/research/${encodeURIComponent(row.symbol || "")}`)}
-                    className="cursor-pointer border-t border-slate-900/80 transition hover:bg-slate-900/60"
-                  >
+                  <tr key={row.symbol} className="border-t border-slate-900/80 transition hover:bg-white/5">
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/research/${encodeURIComponent(row.symbol || "")}`}
-                        onClick={(event) => event.stopPropagation()}
-                        className="font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-sky-300 hover:underline"
-                      >
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3 font-semibold tracking-wide text-slate-100 underline-offset-4 hover:text-sky-300 hover:underline">
                         {row.symbol || "—"}
-                      </Link>
+                      </RowCellLink>
                     </td>
-                    <td className="px-4 py-3 text-slate-200">{formatPrice(row.price)}</td>
+                    <td className="px-4 py-3 text-slate-200"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatPrice(row.price)}</RowCellLink></td>
                     <td
                       className={cn(
                         "px-4 py-3 font-medium",
@@ -1184,21 +1183,23 @@ export default function ScreenerPage() {
                         row.change_percent === 0 && "text-slate-300"
                       )}
                     >
-                      {formatPercent(row.change_percent)}
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatPercent(row.change_percent)}</RowCellLink>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{formatVolume(row.volume)}</td>
-                    <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}>{formatRvol(row.rvol)}</td>
-                    <td className="px-4 py-3 text-slate-300">{formatGap(row.gap_percent)}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getTrendTone(row.trend))}>{row.trend}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getVwapTone(row.vwap_position))}>{row.vwap_position}</td>
-                    <td className={cn("px-4 py-3 font-semibold", getMomentumTone(row.momentum))}>{row.momentum}</td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatVolume(row.volume)}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 text-slate-300", (row.rvol ?? 0) > 2 && "font-semibold text-amber-300")}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatRvol(row.rvol)}</RowCellLink></td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{formatGap(row.gap_percent)}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getTrendTone(row.trend))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.trend}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getVwapTone(row.vwap_position))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.vwap_position}</RowCellLink></td>
+                    <td className={cn("px-4 py-3 font-semibold", getMomentumTone(row.momentum))}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.momentum}</RowCellLink></td>
                     <td className="px-4 py-3 text-slate-300">
-                      <span className="mr-2">{catalyst.icon}</span>
-                      <span>{catalyst.label}</span>
+                      <RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">
+                        <span className="mr-2">{catalyst.icon}</span>
+                        <span>{catalyst.label}</span>
+                      </RowCellLink>
                     </td>
-                    <td className={cn("px-4 py-3", news.tone)}>{news.label}</td>
-                    <td className="px-4 py-3 text-slate-300">{earningsLabel}</td>
-                    <td className="px-4 py-3 text-slate-400">{row.sector || "—"}</td>
+                    <td className={cn("px-4 py-3", news.tone)}><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{news.label}</RowCellLink></td>
+                    <td className="px-4 py-3 text-slate-300"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{earningsLabel}</RowCellLink></td>
+                    <td className="px-4 py-3 text-slate-400"><RowCellLink href={href} className="-mx-4 -my-3 px-4 py-3">{row.sector || "—"}</RowCellLink></td>
                   </tr>
                 );
               })}

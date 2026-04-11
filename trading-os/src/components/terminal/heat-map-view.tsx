@@ -150,7 +150,7 @@ export function HeatMapView() {
               <button
                 key={row.symbol}
                 type="button"
-                onClick={() => router.push(`/research/${row.symbol}`)}
+                onClick={() => router.push(`/research-v2/${row.symbol}`)}
                 onContextMenu={(event) => {
                   event.preventDefault();
                   setContextMenu({ symbol: row.symbol, x: event.clientX, y: event.clientY });
@@ -174,7 +174,7 @@ export function HeatMapView() {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(event) => event.stopPropagation()}
         >
-          <button type="button" className="w-full rounded px-3 py-2 text-left text-xs hover:bg-[var(--muted)]" onClick={() => router.push(`/research/${contextMenu.symbol}`)}>Open in Research</button>
+          <button type="button" className="w-full rounded px-3 py-2 text-left text-xs hover:bg-[var(--muted)]" onClick={() => router.push(`/research-v2/${contextMenu.symbol}`)}>Open in Research</button>
           <button type="button" className="w-full rounded px-3 py-2 text-left text-xs hover:bg-[var(--muted)]" onClick={() => router.push(`/alerts?ticker=${contextMenu.symbol}`)}>Add Alert</button>
           <button type="button" className="w-full rounded px-3 py-2 text-left text-xs hover:bg-[var(--muted)]" onClick={() => addWatch(contextMenu.symbol)}>Add to Watchlist</button>
         </div>

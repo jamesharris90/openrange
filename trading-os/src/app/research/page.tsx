@@ -18,7 +18,7 @@ export default function ResearchIndexPage() {
           {WATCHLIST.map((ticker) => (
             <Link
               key={ticker}
-              href={`/research/${ticker}`}
+              href={`/research-v2/${ticker}`}
               className="rounded-[1.75rem] border border-slate-800/80 bg-slate-950/45 p-6 transition hover:border-cyan-500/40 hover:bg-slate-900/70"
             >
               <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open Snapshot</div>

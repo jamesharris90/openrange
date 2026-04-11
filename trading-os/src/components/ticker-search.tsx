@@ -23,7 +23,7 @@ export function TickerSearch() {
 
   const goToTicker = (ticker: string) => {
     setTicker(ticker);
-    router.push(`/research/${encodeURIComponent(ticker)}`);
+    router.push(`/research-v2/${encodeURIComponent(ticker)}`);
     setQuery("");
   };
 

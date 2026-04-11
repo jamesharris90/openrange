@@ -348,7 +348,7 @@ export function NewsView() {
               key={item.id ?? `${item.symbol}-${i}`}
               onClick={() => {
                 if (isResearchRow) {
-                  router.push(`/research/${encodeURIComponent(displaySymbols[0])}`);
+                  router.push(`/research-v2/${encodeURIComponent(displaySymbols[0])}`);
                 }
               }}
               className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)] ${i % 2 !== 0 ? "bg-[var(--muted)]/20" : ""} ${isResearchRow ? "cursor-pointer" : ""}`}
@@ -377,7 +377,7 @@ export function NewsView() {
                     <span
                       key={symbol}
                       className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border bg-blue-500/15 text-blue-500 border-blue-500/30 tracking-wide cursor-pointer hover:bg-blue-500/30 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); router.push(`/research/${symbol}`); }}
+                      onClick={(e) => { e.stopPropagation(); router.push(`/research-v2/${symbol}`); }}
                     >
                       {symbol}
                     </span>

@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { getPlaybookTier, playbookLabel, TIER_STYLE, TIER_ORDER, type PlaybookTier } from "@/lib/playbook";
+
+function RowCellLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 // ── Screener tab type ─────────────────────────────────────────────────────────
 
@@ -59,7 +67,7 @@ function Sparkline({ symbol }: { symbol: string }) {
 
   if (status === "loading") return <span className="text-[10px] text-slate-600">…</span>;
   if (status === "no_data" || !points || points.length < 2) {
-    return <span className="text-[10px] text-slate-600">NO_INTRADAY_DATA</span>;
+    return <span className="text-[10px] text-slate-600">Awaiting bars</span>;
   }
 
   const min = Math.min(...points);
@@ -91,7 +99,6 @@ const LIFECYCLE_STYLE: Record<string, string> = {
 };
 
 function InPlayView() {
-  const router = useRouter();
   const [rows, setRows] = useState<InPlayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,35 +162,31 @@ function InPlayView() {
             {pageRows.map((row, i) => {
               const lifecycleCls = LIFECYCLE_STYLE[row.lifecycle_stage] || LIFECYCLE_STYLE.UNKNOWN;
               const confCls = row.confidence >= 70 ? "text-emerald-400" : row.confidence >= 40 ? "text-amber-400" : "text-slate-500";
+              const href = `/research-v2/${encodeURIComponent(row.symbol)}`;
               return (
                 <tr
                   key={row.symbol}
-                  onClick={() => router.push(`/research/${row.symbol}`)}
                   className={[
-                    "border-b border-[var(--border)] cursor-pointer transition-colors hover:bg-[var(--muted)]",
+                    "border-b border-[var(--border)] transition-colors hover:bg-[var(--muted)]",
                     i % 2 !== 0 ? "bg-[var(--muted)]/20" : "",
                   ].join(" ")}
                 >
-                  <td className="px-3 py-2 font-semibold text-blue-400 text-xs">{row.symbol}</td>
-                  <td className="px-3 py-2">
-                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border ${lifecycleCls}`}>
-                      {row.lifecycle_stage}
-                    </span>
-                  </td>
-                  <td className={`px-3 py-2 font-mono text-xs font-bold ${confCls}`}>{row.confidence}</td>
+                  <td className="px-3 py-2 font-semibold text-blue-400 text-xs"><RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.symbol}</RowCellLink></td>
+                  <td className="px-3 py-2"><RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2"><span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border ${lifecycleCls}`}>{row.lifecycle_stage}</span></RowCellLink></td>
+                  <td className={`px-3 py-2 font-mono text-xs font-bold ${confCls}`}><RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.confidence}</RowCellLink></td>
                   <td className="px-3 py-2 font-mono text-xs text-right">
-                    {row.gap_percent != null ? `${row.gap_percent > 0 ? "+" : ""}${row.gap_percent.toFixed(1)}%` : "—"}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.gap_percent != null ? `${row.gap_percent > 0 ? "+" : ""}${row.gap_percent.toFixed(1)}%` : "—"}</RowCellLink>
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-right">
-                    {row.rvol != null ? `${row.rvol.toFixed(2)}x` : "—"}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.rvol != null ? `${row.rvol.toFixed(2)}x` : "—"}</RowCellLink>
                   </td>
                   <td className={`px-3 py-2 font-mono text-xs text-right ${(row.change_percent ?? 0) >= 0 ? "text-[var(--bull)]" : "text-[var(--bear)]"}`}>
-                    {row.change_percent != null ? `${row.change_percent > 0 ? "+" : ""}${row.change_percent.toFixed(2)}%` : "—"}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.change_percent != null ? `${row.change_percent > 0 ? "+" : ""}${row.change_percent.toFixed(2)}%` : "—"}</RowCellLink>
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-400">{row.news_count_72h ?? 0}</td>
-                  <td className="px-3 py-2"><Sparkline symbol={row.symbol} /></td>
+                  <td className="px-3 py-2 text-xs text-slate-400"><RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.news_count_72h ?? 0}</RowCellLink></td>
+                  <td className="px-3 py-2"><RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2"><Sparkline symbol={row.symbol} /></RowCellLink></td>
                   <td className="px-3 py-2 text-xs text-slate-400 max-w-[200px] truncate" title={row.catalyst_summary}>
-                    {row.catalyst_summary}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.catalyst_summary}</RowCellLink>
                   </td>
                 </tr>
               );
@@ -360,8 +363,6 @@ const CATALYSTS = ["All", "NEWS", "EARNINGS", "UNUSUAL_VOLUME", "UNKNOWN"];
 // ── main component ────────────────────────────────────────────────────────────
 
 export function ScreenerView() {
-  const router = useRouter();
-
   const [activeTab, setActiveTab] = useState<ScreenerTab>("ALL");
   const [mounted,      setMounted]      = useState(false);
   const [rows,         setRows]         = useState<ScreenerRow[]>([]);
@@ -632,12 +633,12 @@ export function ScreenerView() {
               const pos    = row.change_percent >= 0;
               const status = stageToStatus(row.stage);
               const score  = row.score ?? 0;
+              const href = `/research-v2/${encodeURIComponent(row.symbol)}`;
               return (
                 <tr
                   key={row.symbol}
-                  onClick={() => router.push(`/research/${row.symbol}`)}
                   className={[
-                    "border-b border-[var(--border)] transition-colors cursor-pointer",
+                    "border-b border-[var(--border)] transition-colors",
                     i % 2 !== 0 ? "bg-[var(--muted)]/30" : "",
                     "hover:bg-[var(--muted)]",
                     status === "READY" ? "hover:bg-emerald-950/20" : "",
@@ -645,45 +646,47 @@ export function ScreenerView() {
                 >
                   {/* Playbook tier + score */}
                   <td className="px-3 py-2 min-w-[140px]">
-                    {(() => {
-                      const t  = getPlaybookTier(score, score, false) as PlaybookTier;
-                      const ts = TIER_STYLE[t];
-                      return (
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`inline-block w-fit px-1.5 py-0.5 rounded text-[10px] font-bold border ${ts.badge}`}>
-                            {playbookLabel(t)}
-                          </span>
-                          <span className="text-[10px] text-[var(--muted-foreground)]">{score > 0 ? `${score}/100` : "—"}</span>
-                        </div>
-                      );
-                    })()}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">
+                      {(() => {
+                        const t  = getPlaybookTier(score, score, false) as PlaybookTier;
+                        const ts = TIER_STYLE[t];
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`inline-block w-fit px-1.5 py-0.5 rounded text-[10px] font-bold border ${ts.badge}`}>
+                              {playbookLabel(t)}
+                            </span>
+                            <span className="text-[10px] text-[var(--muted-foreground)]">{score > 0 ? `${score}/100` : "—"}</span>
+                          </div>
+                        );
+                      })()}
+                    </RowCellLink>
                   </td>
                   <td className="px-3 py-2 font-semibold tracking-wide text-xs whitespace-nowrap">
-                    <span className="text-blue-400">{row.symbol}</span>
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2"><span className="text-blue-400">{row.symbol}</span></RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-[var(--foreground)] text-xs tabular-nums">
-                    {fmtPrice(row.price)}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{fmtPrice(row.price)}</RowCellLink>
                   </td>
                   <td className={`px-3 py-2 text-right font-mono font-semibold text-xs tabular-nums ${pos ? "text-[var(--bull)]" : "text-[var(--bear)]"}`}>
-                    {pos ? "+" : ""}{row.change_percent.toFixed(2)}%
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{pos ? "+" : ""}{row.change_percent.toFixed(2)}%</RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-right text-[var(--foreground)] text-xs tabular-nums">
-                    {fmtVol(row.volume)}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{fmtVol(row.volume)}</RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <RvolCell rvol={row.relative_volume} />
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2"><RvolCell rvol={row.relative_volume} /></RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-right text-[var(--muted-foreground)] text-xs tabular-nums">
-                    {fmtVol(row.avg_volume_30d)}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{fmtVol(row.avg_volume_30d)}</RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-right text-[var(--foreground)] text-xs tabular-nums">
-                    {fmtMcap(row.market_cap)}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{fmtMcap(row.market_cap)}</RowCellLink>
                   </td>
                   <td className="px-3 py-2 text-[var(--muted-foreground)] text-xs max-w-[130px] truncate">
-                    {row.sector}
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2">{row.sector}</RowCellLink>
                   </td>
                   <td className="px-3 py-2">
-                    <CatalystBadge type={row.catalyst_type} />
+                    <RowCellLink href={href} className="block -mx-3 -my-2 px-3 py-2"><CatalystBadge type={row.catalyst_type} /></RowCellLink>
                   </td>
                 </tr>
               );

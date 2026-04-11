@@ -205,7 +205,7 @@ function SectionHeader({ label }: { label: string }) {
 function ResearchTickerLink({ symbol, className }: { symbol: string; className?: string }) {
   return (
     <Link
-      href={`/research/${encodeURIComponent(symbol)}`}
+          href={`/research-v2/${encodeURIComponent(symbol)}`}
       className={cn("font-mono font-semibold text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline", className)}
     >
       {symbol}
@@ -326,9 +326,9 @@ function EarningsGroup({
       </p>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {items.map((e) => (
-          <Link
-            key={e.symbol}
-            href={`/research/${encodeURIComponent(e.symbol)}`}
+              <Link
+                key={e.symbol}
+                href={`/research-v2/${encodeURIComponent(e.symbol)}`}
             className="rounded border border-border bg-slate-800/30 px-2 py-1 text-[11px]"
           >
             <span className="font-mono font-semibold text-cyan-300 transition hover:text-cyan-200">{e.symbol}</span>
@@ -351,7 +351,7 @@ function DeclinersRow({ losers }: { losers: StockRow[] }) {
         {losers.slice(0, 8).map((row) => (
           <Link
             key={row.symbol}
-            href={`/research/${encodeURIComponent(row.symbol)}`}
+                href={`/research-v2/${encodeURIComponent(row.symbol)}`}
             className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-center"
           >
             <div className="font-mono font-bold text-cyan-300 text-sm transition hover:text-cyan-200">{row.symbol}</div>

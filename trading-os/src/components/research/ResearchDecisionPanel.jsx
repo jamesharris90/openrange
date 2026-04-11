@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { formatCurrency } from "@/components/research/formatters";
@@ -90,7 +92,7 @@ function HowLadder({ payload, currentPrice }) {
   );
 }
 
-export default function ResearchDecisionPanel({ payload, currentPrice, context }) {
+function ResearchDecisionPanel({ payload, currentPrice, context }) {
   const safe = payload || {
     symbol: null,
     tradeable: false,
@@ -198,3 +200,5 @@ export default function ResearchDecisionPanel({ payload, currentPrice, context }
     </Card>
   );
 }
+
+export default memo(ResearchDecisionPanel);

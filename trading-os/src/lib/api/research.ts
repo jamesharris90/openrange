@@ -517,10 +517,10 @@ export type ResearchFullResponse = {
 
 export async function getResearchSnapshot(symbol: string): Promise<ResearchResponse> {
   const normalized = String(symbol || "").trim().toUpperCase();
-  return apiGet<ResearchResponse>(`/api/research/${encodeURIComponent(normalized)}`);
+  return apiGet<ResearchResponse>(`/api/v2/research/${encodeURIComponent(normalized)}`);
 }
 
 export async function getResearchFullSnapshot(symbol: string): Promise<ResearchFullResponse> {
   const normalized = String(symbol || "").trim().toUpperCase();
-  return apiGet<ResearchFullResponse>(`/api/research/${encodeURIComponent(normalized)}/full`);
+  return apiGet<ResearchFullResponse>(`/api/v2/research/${encodeURIComponent(normalized)}`);
 }

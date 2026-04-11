@@ -43,6 +43,14 @@ type EarningsHistoryResponse = {
   next?: EarningsHistoryDetail | null;
   history?: EarningsHistoryDetail[];
   message?: string | null;
+  meta?: {
+    fallback?: boolean;
+    reason?: string | null;
+    unsupported?: boolean;
+    coverage_status?: string | null;
+    coverage_detail?: string | null;
+    coverage_explanation?: string | null;
+  };
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -105,7 +113,17 @@ const TIME_PILL: Record<string, string> = {
   TBD: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
 };
 
-const EARNINGS_GAP_MESSAGE = "Earnings data is not available for this ticker. This is common for smaller or international listings.";
+const EARNINGS_GAP_MESSAGE = "Earnings coverage is currently unavailable for this ticker.";
+
+function getEarningsGapCopy(detail: EarningsHistoryResponse | null) {
+  if (detail?.meta?.coverage_explanation) {
+    return detail.meta.coverage_explanation;
+  }
+  if (detail?.message) {
+    return detail.message;
+  }
+  return EARNINGS_GAP_MESSAGE;
+}
 
 type EarningsDayFilter = "Selected Day" | "Today" | "Tomorrow" | "This Week";
 type EarningsTimeFilter = "All" | "BMO" | "AMC";
@@ -261,7 +279,7 @@ export function EarningsView() {
         }
       } catch {
         if (!cancelled) {
-          setSelectedDetail({ success: false, symbol: selectedSymbol, history: [], next: null, message: "No recent earnings data available" });
+          setSelectedDetail({ success: false, symbol: selectedSymbol, history: [], next: null, message: EARNINGS_GAP_MESSAGE });
         }
       } finally {
         if (!cancelled) {
@@ -393,7 +411,7 @@ export function EarningsView() {
             {selectedSymbol ? (
               <button
                 type="button"
-                onClick={() => router.push(`/research/${selectedSymbol}`)}
+                onClick={() => router.push(`/research-v2/${selectedSymbol}`)}
                 className="rounded border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 Open research
@@ -412,7 +430,7 @@ export function EarningsView() {
                     <div className="text-[var(--muted-foreground)]">{selectedDetail.next.report_time || "TBD"}</div>
                   </div>
                 ) : (
-                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{EARNINGS_GAP_MESSAGE}</div>
+                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{getEarningsGapCopy(selectedDetail)}</div>
                 )}
               </div>
               <div>
@@ -427,7 +445,7 @@ export function EarningsView() {
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{EARNINGS_GAP_MESSAGE}</div>
+                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">{getEarningsGapCopy(selectedDetail)}</div>
                 )}
               </div>
             </div>
