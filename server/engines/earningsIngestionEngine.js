@@ -3,7 +3,7 @@ const { normalizeReportTime: normalizeCanonicalReportTime } = require('../servic
 const { fmpFetch } = require('../services/fmpClient');
 const logger = require('../utils/logger');
 
-const UPCOMING_WINDOW_DAYS = 14;
+const UPCOMING_WINDOW_DAYS = Math.max(30, Number(process.env.EARNINGS_INGEST_UPCOMING_WINDOW_DAYS) || 180);
 const NEXT_EVENT_LOOKAHEAD_DAYS = 180;
 const HISTORY_LIMIT = 8;
 const DEFAULT_SYMBOL_LIMIT = 10000;
@@ -53,6 +53,104 @@ function normalizeReportTime(value) {
   if (!text) return 'TBD';
   if (/^(tbd|n\/a|na|unknown|none|--|null)$/i.test(text)) return 'TBD';
   return text.toUpperCase();
+}
+
+function parseIsoDate(value) {
+  const normalized = normalizeReportDate(value);
+  if (!normalized) {
+    return null;
+  }
+
+  return new Date(`${normalized}T00:00:00.000Z`);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function inferCadenceDays(rows = []) {
+  const reportDates = rows
+    .map((row) => normalizeReportDate(row?.report_date || row?.date))
+    .filter(Boolean)
+    .map((value) => parseIsoDate(value)?.getTime())
+    .filter(Number.isFinite)
+    .sort((left, right) => right - left);
+
+  const gaps = [];
+  for (let index = 0; index < reportDates.length - 1; index += 1) {
+    const diffDays = Math.round((reportDates[index] - reportDates[index + 1]) / 86400000);
+    if (diffDays >= 60 && diffDays <= 130) {
+      gaps.push(diffDays);
+    }
+  }
+
+  if (gaps.length === 0) {
+    return 90;
+  }
+
+  const ordered = [...gaps].sort((left, right) => left - right);
+  return clamp(ordered[Math.floor(ordered.length / 2)] || 90, 75, 105);
+}
+
+function buildProjectedUpcomingEvent(symbol, rows = [], enrichment = {}, fromDate, toDate) {
+  if (!symbol || rows.length < 2) {
+    return null;
+  }
+
+  const orderedRows = [...rows]
+    .map((row) => ({
+      ...row,
+      report_date: normalizeReportDate(row?.report_date || row?.date),
+    }))
+    .filter((row) => row.report_date)
+    .sort((left, right) => right.report_date.localeCompare(left.report_date));
+
+  if (orderedRows.length < 2) {
+    return null;
+  }
+
+  const cadenceDays = inferCadenceDays(orderedRows);
+  const minDate = parseIsoDate(fromDate);
+  const maxDate = parseIsoDate(toDate);
+  let nextDate = parseIsoDate(orderedRows[0].report_date);
+  if (!nextDate || !minDate || !maxDate) {
+    return null;
+  }
+
+  do {
+    nextDate = addUtcDays(nextDate, cadenceDays);
+  } while (nextDate < minDate);
+
+  if (nextDate > maxDate) {
+    return null;
+  }
+
+  const latestRow = orderedRows[0];
+  return {
+    symbol,
+    report_date: formatIsoDate(nextDate),
+    report_time: normalizeReportTime(latestRow.report_time),
+    eps_estimate: toNumber(latestRow.eps_estimate),
+    eps_actual: null,
+    rev_estimate: toNumber(latestRow.rev_estimate ?? latestRow.revenue_estimate),
+    rev_actual: null,
+    revenue_estimate: toNumber(latestRow.revenue_estimate ?? latestRow.rev_estimate),
+    revenue_actual: null,
+    eps_surprise_pct: null,
+    price: enrichment.price ?? null,
+    market_cap: enrichment.market_cap ?? null,
+    expected_move_percent: enrichment.expected_move_percent ?? null,
+    avg_volume: enrichment.avg_volume ?? null,
+    current_volume: enrichment.current_volume ?? null,
+    rvol: enrichment.relative_volume ?? null,
+    atr: enrichment.atr ?? null,
+    company: enrichment.company || null,
+    sector: enrichment.sector || null,
+    industry: enrichment.industry || null,
+    exchange: enrichment.exchange || null,
+    source: 'projected_history_cadence',
+    updated_at: new Date().toISOString(),
+  };
 }
 
 function toNonEmptyString(value, fallback = null) {
@@ -134,7 +232,7 @@ async function ensureEarningsSchema() {
        SET report_time = 'TBD'
      WHERE report_time IS NULL OR NULLIF(BTRIM(report_time), '') IS NULL`,
     `DELETE FROM earnings_events
-     WHERE report_date IS NULL OR eps_estimate IS NULL`,
+     WHERE report_date IS NULL`,
     `DELETE FROM earnings_history
      WHERE report_date IS NULL OR eps_actual IS NULL`
   ];
@@ -285,7 +383,7 @@ function normalizeUpcomingEvents(payload, symbolSet, enrichmentBySymbol, fromDat
 
     const reportDate = normalizeReportDate(row?.date || row?.reportDate || row?.report_date);
     const epsEstimate = toNumber(row?.epsEstimated ?? row?.epsEstimate ?? row?.estimatedEps ?? row?.eps_estimate);
-    if (!reportDate || epsEstimate === null) {
+    if (!reportDate) {
       droppedMissingFields += 1;
       continue;
     }
@@ -443,7 +541,6 @@ async function replaceUpcomingEvents(symbols, rows, fromDate, toDate) {
          updated_at
        FROM payload
        WHERE report_date IS NOT NULL
-         AND eps_estimate IS NOT NULL
        ON CONFLICT (symbol, report_date)
        DO UPDATE SET
          report_time = EXCLUDED.report_time,
@@ -474,6 +571,108 @@ async function replaceUpcomingEvents(symbols, rows, fromDate, toDate) {
     {
       timeoutMs: 30000,
       label: 'earnings_ingestion.upsert_upcoming',
+      maxRetries: 0,
+      poolType: 'write',
+    }
+  );
+
+  return Number(result.rows?.[0]?.inserted || 0);
+}
+
+async function upsertProjectedUpcomingEvents(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return 0;
+  }
+
+  const result = await queryWithTimeout(
+    `WITH payload AS (
+       SELECT *
+       FROM json_to_recordset($1::json) AS x(
+         symbol text,
+         report_date date,
+         report_time text,
+         eps_estimate numeric,
+         eps_actual numeric,
+         rev_estimate numeric,
+         rev_actual numeric,
+         revenue_estimate numeric,
+         revenue_actual numeric,
+         eps_surprise_pct numeric,
+         price numeric,
+         market_cap numeric,
+         expected_move_percent numeric,
+         avg_volume numeric,
+         current_volume numeric,
+         rvol numeric,
+         atr numeric,
+         company text,
+         sector text,
+         industry text,
+         exchange text,
+         source text,
+         updated_at timestamptz
+       )
+     ), inserted AS (
+       INSERT INTO earnings_events (
+         symbol,
+         report_date,
+         report_time,
+         eps_estimate,
+         eps_actual,
+         rev_estimate,
+         rev_actual,
+         revenue_estimate,
+         revenue_actual,
+         eps_surprise_pct,
+         price,
+         market_cap,
+         expected_move_percent,
+         avg_volume,
+         current_volume,
+         rvol,
+         atr,
+         company,
+         sector,
+         industry,
+         exchange,
+         source,
+         updated_at
+       )
+       SELECT
+         symbol,
+         report_date,
+         report_time,
+         eps_estimate,
+         eps_actual,
+         rev_estimate,
+         rev_actual,
+         revenue_estimate,
+         revenue_actual,
+         eps_surprise_pct,
+         price,
+         market_cap,
+         expected_move_percent,
+         avg_volume,
+         current_volume,
+         rvol,
+         atr,
+         company,
+         sector,
+         industry,
+         exchange,
+         source,
+         updated_at
+       FROM payload
+       WHERE report_date IS NOT NULL
+       ON CONFLICT (symbol, report_date)
+       DO NOTHING
+       RETURNING 1
+     )
+     SELECT COUNT(*)::int AS inserted FROM inserted`,
+    [JSON.stringify(rows)],
+    {
+      timeoutMs: 30000,
+      label: 'earnings_ingestion.upsert_projected',
       maxRetries: 0,
       poolType: 'write',
     }
@@ -839,6 +1038,18 @@ async function runEarningsIngestionEngine(options = {}) {
     };
   });
   const insertedHistory = await replaceHistoryRows(successfulHistory);
+  const eventSymbols = new Set(eventRows.map((row) => row.symbol));
+  const projectedUpcomingRows = successfulHistory
+    .filter((entry) => entry.rows.length >= 2 && !eventSymbols.has(entry.symbol))
+    .map((entry) => buildProjectedUpcomingEvent(
+      entry.symbol,
+      entry.rows,
+      marketEnrichment.get(entry.symbol) || {},
+      fromDate,
+      toDate
+    ))
+    .filter(Boolean);
+  const projectedEventsInserted = await upsertProjectedUpcomingEvents(projectedUpcomingRows);
   const fullHistorySymbols = successfulHistory.filter((entry) => entry.rows.length >= HISTORY_LIMIT).map((entry) => entry.symbol);
   const partialHistorySymbols = successfulHistory.filter((entry) => entry.rows.length > 0 && entry.rows.length < HISTORY_LIMIT).map((entry) => entry.symbol);
   const noHistorySymbols = successfulHistory.filter((entry) => entry.rows.length === 0).map((entry) => entry.symbol);
@@ -857,6 +1068,7 @@ async function runEarningsIngestionEngine(options = {}) {
     events_fetched: Array.isArray(calendarPayload) ? calendarPayload.length : 0,
     history_events_fetched: Array.isArray(historicalCalendarPayload) ? historicalCalendarPayload.length : 0,
     events_ingested: insertedEvents,
+    projected_events_ingested: projectedEventsInserted,
     history_ingested: insertedHistory,
     symbols_with_full_history: symbolsWithFullHistory,
     symbols_with_partial_history: symbolsWithPartialHistory,

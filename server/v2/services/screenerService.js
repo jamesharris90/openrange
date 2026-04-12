@@ -878,7 +878,7 @@ async function fetchFmpEarnings(symbol) {
       to: to.toISOString().slice(0, 10),
     });
     const rows = Array.isArray(payload) ? payload : payload ? [payload] : [];
-    const firstRow = rows.find((row) => row?.date || row?.earningsDate || row?.reportedDate);
+    const firstRow = rows.find((row) => normalizeSymbol(row?.symbol) === symbol && (row?.date || row?.earningsDate || row?.reportedDate));
     const earningsDate = firstRow?.date || firstRow?.earningsDate || firstRow?.reportedDate || null;
 
     if (earningsDate) {
@@ -891,6 +891,158 @@ async function fetchFmpEarnings(symbol) {
   }
 
   return null;
+}
+
+function parseIsoDate(value) {
+  const text = String(value || '').trim();
+  if (!text) {
+    return null;
+  }
+
+  const parsed = new Date(`${text.slice(0, 10)}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+function inferCadenceDays(rows = []) {
+  const dates = rows
+    .map((row) => parseIsoDate(row.report_date))
+    .filter(Boolean)
+    .map((value) => value.getTime())
+    .sort((left, right) => right - left);
+
+  const gaps = [];
+  for (let index = 0; index < dates.length - 1; index += 1) {
+    const diffDays = Math.round((dates[index] - dates[index + 1]) / 86400000);
+    if (diffDays >= 60 && diffDays <= 130) {
+      gaps.push(diffDays);
+    }
+  }
+
+  if (gaps.length === 0) {
+    return 90;
+  }
+
+  gaps.sort((left, right) => left - right);
+  return gaps[Math.floor(gaps.length / 2)] || 90;
+}
+
+function projectNextEarningsDate(rows = [], referenceDate = new Date()) {
+  if (rows.length < 2) {
+    return null;
+  }
+
+  const orderedRows = [...rows]
+    .filter((row) => row.report_date)
+    .sort((left, right) => String(right.report_date).localeCompare(String(left.report_date)));
+  if (orderedRows.length < 2) {
+    return null;
+  }
+
+  const cadenceDays = inferCadenceDays(orderedRows);
+  let nextDate = parseIsoDate(orderedRows[0].report_date);
+  const floorDate = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth(), referenceDate.getUTCDate()));
+  if (!nextDate) {
+    return null;
+  }
+
+  do {
+    nextDate.setUTCDate(nextDate.getUTCDate() + cadenceDays);
+  } while (nextDate < floorDate);
+
+  return nextDate.toISOString().slice(0, 10);
+}
+
+async function fetchBulkFmpUpcomingEarnings(symbols) {
+  const normalizedSymbols = Array.from(new Set((symbols || []).map((symbol) => normalizeSymbol(symbol)).filter(Boolean)));
+  const earningsBySymbol = new Map();
+  if (!normalizedSymbols.length) {
+    return earningsBySymbol;
+  }
+
+  try {
+    const today = new Date();
+    const to = new Date(today);
+    to.setUTCDate(to.getUTCDate() + 180);
+    const payload = await fmpFetch('/earnings-calendar', {
+      from: today.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    });
+    const rows = Array.isArray(payload) ? payload : payload ? [payload] : [];
+    const allowed = new Set(normalizedSymbols);
+
+    for (const row of rows) {
+      const symbol = normalizeSymbol(row?.symbol);
+      const earningsDate = row?.date || row?.earningsDate || row?.reportedDate || null;
+      if (!symbol || !allowed.has(symbol) || earningsBySymbol.has(symbol) || !earningsDate) {
+        continue;
+      }
+
+      earningsBySymbol.set(symbol, {
+        earnings_date: String(earningsDate).slice(0, 10),
+        earnings_source: 'fmp',
+      });
+    }
+  } catch (_error) {
+  }
+
+  return earningsBySymbol;
+}
+
+async function fetchProjectedEarningsBySymbol(symbols) {
+  const projectedBySymbol = new Map();
+  if (!symbols.length) {
+    return projectedBySymbol;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const historyRows = await fetchBatchedSupabaseRows(symbols, SYMBOL_BATCH_SIZE, async (symbolBatch) => {
+    const result = await supabaseAdmin
+      .from('earnings_history')
+      .select('symbol, report_date, report_time')
+      .in('symbol', symbolBatch)
+      .lt('report_date', today)
+      .not('report_date', 'is', null)
+      .order('report_date', { ascending: false });
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to load projected screener earnings history');
+    }
+
+    return result.data || [];
+  });
+
+  const historyBySymbol = new Map();
+  for (const row of historyRows) {
+    const symbol = normalizeSymbol(row.symbol);
+    if (!symbol) {
+      continue;
+    }
+
+    const currentRows = historyBySymbol.get(symbol) || [];
+    if (currentRows.length >= 4) {
+      continue;
+    }
+
+    currentRows.push({
+      report_date: String(row.report_date).slice(0, 10),
+      report_time: row.report_time || null,
+    });
+    historyBySymbol.set(symbol, currentRows);
+  }
+
+  for (const symbol of symbols) {
+    const projectedDate = projectNextEarningsDate(historyBySymbol.get(symbol) || []);
+    if (!projectedDate) {
+      continue;
+    }
+
+    projectedBySymbol.set(symbol, {
+      earnings_date: projectedDate,
+      earnings_source: 'projected',
+    });
+  }
+
+  return projectedBySymbol;
 }
 
 async function fetchDatabaseEarnings(symbol) {
@@ -1209,6 +1361,14 @@ async function fetchEarningsBySymbol(symbols) {
     });
   }
 
+  const fmpBySymbol = await fetchBulkFmpUpcomingEarnings(
+    remainingSymbols.filter((symbol) => !databaseBySymbol.has(symbol) && !historyBySymbol.has(symbol))
+  );
+
+  const projectedBySymbol = await fetchProjectedEarningsBySymbol(
+    remainingSymbols.filter((symbol) => !databaseBySymbol.has(symbol) && !historyBySymbol.has(symbol) && !fmpBySymbol.has(symbol))
+  );
+
   for (const rawSymbol of remainingSymbols) {
     const symbol = normalizeSymbol(rawSymbol);
     if (!symbol) {
@@ -1226,6 +1386,20 @@ async function fetchEarningsBySymbol(symbols) {
     if (historyResult) {
       setCachedEarningsLookup(symbol, historyResult);
       earningsBySymbol.set(symbol, historyResult);
+      continue;
+    }
+
+    const fmpResult = fmpBySymbol.get(symbol) || null;
+    if (fmpResult) {
+      setCachedEarningsLookup(symbol, fmpResult);
+      earningsBySymbol.set(symbol, fmpResult);
+      continue;
+    }
+
+    const projectedResult = projectedBySymbol.get(symbol) || null;
+    if (projectedResult) {
+      setCachedEarningsLookup(symbol, projectedResult);
+      earningsBySymbol.set(symbol, projectedResult);
       continue;
     }
 

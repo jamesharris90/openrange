@@ -24,6 +24,7 @@ const REQUIRED_TABLES = [
   'daily_ohlc',
   'news_articles',
   'earnings_events',
+  'earnings_history',
   'company_profiles',
 ];
 
@@ -695,6 +696,74 @@ function parseDate(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseIsoDate(value) {
+  const parsed = parseDate(value);
+  return parsed === null ? null : new Date(parsed);
+}
+
+function inferEarningsCadenceDays(rows = []) {
+  const dates = rows
+    .map((row) => parseDate(row?.report_date))
+    .filter((value) => value !== null)
+    .sort((left, right) => right - left);
+
+  const gaps = [];
+  for (let index = 0; index < dates.length - 1; index += 1) {
+    const diffDays = Math.round((dates[index] - dates[index + 1]) / 86400000);
+    if (diffDays >= 60 && diffDays <= 130) {
+      gaps.push(diffDays);
+    }
+  }
+
+  if (gaps.length === 0) {
+    return 90;
+  }
+
+  gaps.sort((left, right) => left - right);
+  return Math.max(75, Math.min(105, gaps[Math.floor(gaps.length / 2)] || 90));
+}
+
+function projectNextEarningsFromHistory(symbol, rows = []) {
+  if (rows.length < 2) {
+    return null;
+  }
+
+  const orderedRows = [...rows]
+    .map((row) => normalizeEarningsRecord({ ...row, symbol }))
+    .filter(Boolean)
+    .filter((row) => row.report_date)
+    .sort((left, right) => parseDate(right.report_date) - parseDate(left.report_date));
+
+  if (orderedRows.length < 2) {
+    return null;
+  }
+
+  const cadenceDays = inferEarningsCadenceDays(orderedRows);
+  let nextDate = parseIsoDate(orderedRows[0].report_date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (!nextDate) {
+    return null;
+  }
+
+  do {
+    nextDate.setUTCDate(nextDate.getUTCDate() + cadenceDays);
+  } while (nextDate < today);
+
+  return {
+    symbol,
+    report_date: nextDate.toISOString().slice(0, 10),
+    report_time: orderedRows[0].report_time || null,
+    eps_estimate: orderedRows[0].eps_estimate ?? null,
+    eps_actual: null,
+    revenue_estimate: orderedRows[0].revenue_estimate ?? null,
+    revenue_actual: null,
+    market_cap: orderedRows[0].market_cap ?? null,
+    sector: orderedRows[0].sector ?? null,
+    industry: orderedRows[0].industry ?? null,
+  };
+}
+
 function hasRecentNews(news) {
   const now = Date.now();
   return toArray(news).some((item) => {
@@ -1130,6 +1199,24 @@ async function getResearchData(symbol) {
     ),
   ]);
 
+  const projectedEarningsRows = await safeQuery(
+    existingTables,
+    'earnings_history',
+    `SELECT report_date, report_time, eps_estimate, eps_actual, revenue_estimate, revenue_actual
+     FROM earnings_history
+     WHERE symbol = $1
+       AND report_date < CURRENT_DATE
+     ORDER BY report_date DESC
+     LIMIT 4`,
+    [normalizedSymbol],
+    {
+      timeoutMs: 1000,
+      label: 'research.earnings.projected_history',
+    },
+    warnings,
+    []
+  );
+
   const marketRow = marketRows[0] || { quote: {}, metrics: {} };
   payload.market = normalizeMarketRow(marketRow);
   payload.technicals = normalizeTechnicalsRow(marketRow);
@@ -1161,6 +1248,17 @@ async function getResearchData(symbol) {
 
     if ((hasRecentEarningsRows || hasEarningsData(payload.earnings)) && isStale) {
       scheduleBackgroundEarningsRefresh(normalizedSymbol);
+    }
+  }
+
+  if (!payload.earnings.next) {
+    const projectedNext = projectNextEarningsFromHistory(normalizedSymbol, projectedEarningsRows);
+    if (projectedNext) {
+      payload.earnings = {
+        ...payload.earnings,
+        next: projectedNext,
+      };
+      warnings.push('earnings_projected_from_history');
     }
   }
 
