@@ -38,8 +38,63 @@ async function readDailyFromDB(symbol) {
       [symbol, cutoffStr],
       { timeoutMs: 8000, label: `chart_v5.daily.${symbol}`, maxRetries: 0 },
     );
-    return rows.map((r) => ({
+    const dailyRows = rows.map((r) => ({
       time: Math.floor(new Date(r.d + 'T00:00:00Z').getTime() / 1000),
+      open: Number(r.open),
+      high: Number(r.high),
+      low: Number(r.low),
+      close: Number(r.close),
+      volume: Number(r.volume),
+    }));
+
+    const repairedRows = await readDerivedDailyFromIntraday(symbol, dailyRows[dailyRows.length - 1]?.time || null, cutoffStr);
+    return mergeDailyCandles(dailyRows, repairedRows);
+  } catch (_err) {
+    return [];
+  }
+}
+
+async function readDerivedDailyFromIntraday(symbol, lastDailyUnixTime = null, cutoffDate = null) {
+  try {
+    const { rows } = await queryWithTimeout(
+      `WITH last_daily AS (
+         SELECT $2::date AS last_daily_date
+       ), quote_context AS (
+         SELECT CASE EXTRACT(ISODOW FROM timezone('America/New_York', MAX(updated_at)))
+                  WHEN 6 THEN (timezone('America/New_York', MAX(updated_at))::date - 1)
+                  WHEN 7 THEN (timezone('America/New_York', MAX(updated_at))::date - 2)
+                  ELSE timezone('America/New_York', MAX(updated_at))::date
+                END AS quote_date
+         FROM market_quotes
+         WHERE symbol = $1
+       ), aggregated AS (
+         SELECT DATE(i.timestamp)::text AS d,
+                (ARRAY_AGG(i.open ORDER BY i.timestamp ASC))[1]::numeric AS open,
+                MAX(i.high)::numeric AS high,
+                MIN(i.low)::numeric AS low,
+                (ARRAY_AGG(i.close ORDER BY i.timestamp DESC))[1]::numeric AS close,
+                SUM(COALESCE(i.volume, 0))::bigint AS volume,
+                COUNT(*)::int AS bar_count
+         FROM intraday_1m i
+         CROSS JOIN last_daily ld
+         CROSS JOIN quote_context qc
+         WHERE i.symbol = $1
+           AND DATE(i.timestamp) > COALESCE(ld.last_daily_date, DATE '1900-01-01')
+           AND DATE(i.timestamp) >= $3::date
+           AND DATE(i.timestamp) <= COALESCE(qc.quote_date, DATE(i.timestamp))
+           AND COALESCE(NULLIF(UPPER(i.session), ''), 'OPEN') IN ('OPEN', 'REGULAR')
+         GROUP BY DATE(i.timestamp)
+       )
+       SELECT d, open, high, low, close, volume
+       FROM aggregated
+       WHERE bar_count > 0
+       ORDER BY d ASC`,
+      [symbol, lastDailyUnixTime ? new Date(lastDailyUnixTime * 1000).toISOString().slice(0, 10) : null, cutoffDate || '1900-01-01'],
+      { timeoutMs: 8000, label: `chart_v5.daily_intraday_repair.${symbol}`, maxRetries: 0 },
+    );
+
+    return rows.map((r) => ({
+      time: Math.floor(new Date(`${r.d}T00:00:00Z`).getTime() / 1000),
       open: Number(r.open),
       high: Number(r.high),
       low: Number(r.low),
@@ -51,12 +106,25 @@ async function readDailyFromDB(symbol) {
   }
 }
 
+function mergeDailyCandles(baseRows, repairRows) {
+  if (!Array.isArray(repairRows) || repairRows.length === 0) {
+    return baseRows;
+  }
+
+  const byTime = new Map((Array.isArray(baseRows) ? baseRows : []).map((row) => [row.time, row]));
+  for (const row of repairRows) {
+    byTime.set(row.time, row);
+  }
+
+  return Array.from(byTime.values()).sort((left, right) => left.time - right.time);
+}
+
 async function readIntraday1mFromDB(symbol) {
   try {
     const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const { rows } = await queryWithTimeout(
       `SELECT EXTRACT(EPOCH FROM "timestamp")::bigint AS ts_unix,
-              open, high, low, close, volume
+              session, open, high, low, close, volume
        FROM intraday_1m
        WHERE symbol = $1 AND "timestamp" >= $2
        ORDER BY "timestamp" ASC`,
@@ -65,6 +133,7 @@ async function readIntraday1mFromDB(symbol) {
     );
     return rows.map((r) => ({
       time: Number(r.ts_unix),
+      session: normalizeIntradaySession(r.session),
       open: Number(r.open),
       high: Number(r.high),
       low: Number(r.low),
@@ -74,6 +143,15 @@ async function readIntraday1mFromDB(symbol) {
   } catch (_err) {
     return [];
   }
+}
+
+function normalizeIntradaySession(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (!normalized) return null;
+  if (normalized === 'REGULAR') return 'OPEN';
+  if (normalized === 'PRE') return 'PREMARKET';
+  if (normalized === 'POST') return 'POSTMARKET';
+  return normalized;
 }
 
 async function readClosedSessionDailyFallback(symbol) {
@@ -129,7 +207,15 @@ function aggregateCandlesDB(candles1m, minutes) {
     const bucket = Math.floor(c.time / bucketSec) * bucketSec;
     const ex = buckets.get(bucket);
     if (!ex) {
-      buckets.set(bucket, { time: bucket, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume });
+      buckets.set(bucket, {
+        time: bucket,
+        session: c.session || null,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume,
+      });
     } else {
       ex.high = Math.max(ex.high, c.high);
       ex.low = Math.min(ex.low, c.low);
@@ -229,6 +315,7 @@ function sanitizeSeries(data, options = {}) {
 
       const normalized = {
         time,
+        session: normalizeIntradaySession(row?.session),
         open,
         high: Math.max(high, open, close),
         low: Math.min(low, open, close),

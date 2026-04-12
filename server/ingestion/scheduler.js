@@ -62,6 +62,7 @@ const JOB_SCHEDULES = {
   tracked_universe_cleanup: '0 * * * *',
   build_morning_universe: '0 8 * * 1-5',
   daily_ohlc: '35 21,22 * * 1-5',
+  daily_ohlc_premarket: '10 8 * * 1-5',
   earnings_events: '0 */6 * * *',
   analyst_enrichment: '30 */6 * * *',
   ipo_calendar: '0 6 * * 1-5',
@@ -123,6 +124,7 @@ function startIngestionScheduler() {
   cron.schedule(JOB_SCHEDULES.tracked_universe_cleanup, safeRun('tracked_universe_cleanup', cleanupTrackedUniverse));
   cron.schedule(JOB_SCHEDULES.build_morning_universe, safeRun('build_morning_universe', buildMorningUniverse));
   cron.schedule(JOB_SCHEDULES.daily_ohlc, safeRun('daily_ohlc', runPricesIngestion));
+  cron.schedule(JOB_SCHEDULES.daily_ohlc_premarket, safeRun('daily_ohlc_premarket', runPricesIngestion, { lockKey: 'daily_ohlc' }));
   cron.schedule(JOB_SCHEDULES.earnings_events, safeRun('earnings_events', runEarningsIngestion));
   cron.schedule(JOB_SCHEDULES.analyst_enrichment, safeRun('analyst_enrichment', runAnalystEnrichmentIngestion));
   cron.schedule(JOB_SCHEDULES.ipo_calendar, safeRun('ipo_calendar', () => refreshIpoCalendar(4)));
@@ -148,6 +150,7 @@ function startIngestionScheduler() {
   void (async () => {
     const startupJobs = [
       ['live_quotes_startup', 'live_quotes', runLiveQuotesIngestion],
+      ['daily_ohlc_startup', 'daily_ohlc', runPricesIngestion],
       ['earnings_events_startup', 'earnings_events', runEarningsIngestion],
       ['earnings_actuals_startup', 'earnings_actuals', runEarningsActuals],
       ['intraday_1m_startup', 'intraday_1m', runIntradayIngestion],

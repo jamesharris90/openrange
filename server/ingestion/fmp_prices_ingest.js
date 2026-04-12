@@ -166,6 +166,205 @@ async function verifyLatestDailyCompletion(expectedUniverseSize) {
   };
 }
 
+async function loadStaleDailyTargets() {
+  const result = await queryWithTimeout(
+    `WITH latest_quote AS (
+       SELECT symbol,
+              CASE EXTRACT(ISODOW FROM timezone('America/New_York', MAX(updated_at)))
+                WHEN 6 THEN (timezone('America/New_York', MAX(updated_at))::date - 1)
+                WHEN 7 THEN (timezone('America/New_York', MAX(updated_at))::date - 2)
+                ELSE timezone('America/New_York', MAX(updated_at))::date
+              END AS quote_date
+       FROM market_quotes
+       GROUP BY symbol
+     ), latest_candle AS (
+       SELECT symbol, MAX(date) AS candle_date
+       FROM daily_ohlc
+       GROUP BY symbol
+     )
+     SELECT lq.symbol,
+            lq.quote_date::text AS quote_date,
+            lc.candle_date::text AS candle_date,
+            (lq.quote_date - lc.candle_date) AS gap_days
+     FROM latest_quote lq
+     JOIN latest_candle lc USING (symbol)
+     WHERE lq.quote_date > lc.candle_date
+     ORDER BY gap_days DESC, lq.symbol ASC`,
+    [],
+    {
+      timeoutMs: 20000,
+      label: 'fmp_prices_ingest.load_stale_daily_targets',
+      maxRetries: 0,
+      poolType: 'read',
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row) => ({
+    symbol: String(row.symbol || '').trim().toUpperCase(),
+    quote_date: String(row.quote_date || '').slice(0, 10),
+    candle_date: String(row.candle_date || '').slice(0, 10),
+    gap_days: Number(row.gap_days || 0),
+  })).filter((row) => row.symbol && row.quote_date);
+}
+
+async function buildQuoteFallbackRows(targets = []) {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return [];
+  }
+
+  const result = await queryWithTimeout(
+    `WITH target_dates AS (
+       SELECT *
+       FROM json_to_recordset($1::json) AS x(
+         symbol text,
+         quote_date date
+       )
+     )
+     SELECT q.symbol,
+            t.quote_date::text AS date,
+            q.price::numeric AS open,
+            q.price::numeric AS high,
+            q.price::numeric AS low,
+            q.price::numeric AS close,
+            COALESCE(q.volume, 0)::bigint AS volume
+     FROM market_quotes q
+     JOIN target_dates t
+       ON t.symbol = q.symbol
+     WHERE q.price IS NOT NULL
+       AND q.price > 0`,
+    [JSON.stringify(targets)],
+    {
+      timeoutMs: 30000,
+      label: 'fmp_prices_ingest.build_quote_fallbacks',
+      maxRetries: 0,
+      poolType: 'read',
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row) => ({
+    symbol: String(row.symbol || '').trim().toUpperCase(),
+    date: String(row.date || '').slice(0, 10),
+    open: Number(row.open),
+    high: Number(row.high),
+    low: Number(row.low),
+    close: Number(row.close),
+    volume: Math.max(0, Math.trunc(Number(row.volume) || 0)),
+  })).filter((row) => row.symbol && row.date && [row.open, row.high, row.low, row.close].every(Number.isFinite));
+}
+
+async function buildIntradayRepairRows(targets = []) {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return [];
+  }
+
+  const result = await queryWithTimeout(
+    `WITH target_dates AS (
+       SELECT *
+       FROM json_to_recordset($1::json) AS x(
+         symbol text,
+         quote_date date
+       )
+     ), aggregated AS (
+       SELECT i.symbol,
+              DATE(i.timestamp)::text AS date,
+              (ARRAY_AGG(i.open ORDER BY i.timestamp ASC))[1]::numeric AS open,
+              MAX(i.high)::numeric AS high,
+              MIN(i.low)::numeric AS low,
+              (ARRAY_AGG(i.close ORDER BY i.timestamp DESC))[1]::numeric AS close,
+              SUM(COALESCE(i.volume, 0))::bigint AS volume,
+              COUNT(*)::int AS bar_count
+       FROM intraday_1m i
+       JOIN target_dates t
+         ON t.symbol = i.symbol
+        AND DATE(i.timestamp) = t.quote_date
+       WHERE COALESCE(NULLIF(UPPER(i.session), ''), 'OPEN') IN ('OPEN', 'REGULAR')
+       GROUP BY i.symbol, DATE(i.timestamp)
+     )
+     SELECT symbol, date, open, high, low, close, volume, bar_count
+     FROM aggregated
+     WHERE bar_count > 0`,
+    [JSON.stringify(targets)],
+    {
+      timeoutMs: 30000,
+      label: 'fmp_prices_ingest.build_intraday_repairs',
+      maxRetries: 0,
+      poolType: 'read',
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row) => ({
+    symbol: String(row.symbol || '').trim().toUpperCase(),
+    date: String(row.date || '').slice(0, 10),
+    open: Number(row.open),
+    high: Number(row.high),
+    low: Number(row.low),
+    close: Number(row.close),
+    volume: Math.max(0, Math.trunc(Number(row.volume) || 0)),
+  })).filter((row) => row.symbol && row.date && [row.open, row.high, row.low, row.close].every(Number.isFinite));
+}
+
+async function repairStaleDailyRows() {
+  const staleTargetsBefore = await loadStaleDailyTargets();
+  if (staleTargetsBefore.length === 0) {
+    return {
+      staleBefore: 0,
+      repairedRows: 0,
+      repairedByTable: {},
+      staleAfter: 0,
+      unresolved: [],
+    };
+  }
+
+  const repairedRows = await buildIntradayRepairRows(staleTargetsBefore);
+  const repairedByTable = {};
+  let quoteFallbackRows = [];
+
+  if (repairedRows.length > 0) {
+    for (const table of TARGET_TABLES) {
+      const result = await batchInsert({
+        supabase: supabaseAdmin,
+        table,
+        rows: repairedRows,
+        conflictTarget: 'symbol,date',
+        batchSize: 500,
+      });
+      repairedByTable[table] = result.inserted;
+    }
+  }
+
+  let staleTargetsAfter = await loadStaleDailyTargets();
+  if (staleTargetsAfter.length > 0) {
+    quoteFallbackRows = buildDedupedQuoteFallbackRows(await buildQuoteFallbackRows(staleTargetsAfter), repairedRows);
+    if (quoteFallbackRows.length > 0) {
+      for (const table of TARGET_TABLES) {
+        const result = await batchInsert({
+          supabase: supabaseAdmin,
+          table,
+          rows: quoteFallbackRows,
+          conflictTarget: 'symbol,date',
+          batchSize: 500,
+        });
+        repairedByTable[table] = (repairedByTable[table] || 0) + result.inserted;
+      }
+    }
+    staleTargetsAfter = await loadStaleDailyTargets();
+  }
+
+  return {
+    staleBefore: staleTargetsBefore.length,
+    repairedRows: repairedRows.length,
+    quoteFallbackRows: quoteFallbackRows.length,
+    repairedByTable,
+    staleAfter: staleTargetsAfter.length,
+    unresolved: staleTargetsAfter.slice(0, 25),
+  };
+}
+
+function buildDedupedQuoteFallbackRows(rows, existingRows = []) {
+  const existingKeys = new Set((existingRows || []).map((row) => `${row.symbol}::${row.date}`));
+  return (rows || []).filter((row) => !existingKeys.has(`${row.symbol}::${row.date}`));
+}
+
 function normalizeDailyRows(payload, symbol, fromDate) {
   const rawRows = Array.isArray(payload) ? payload : [];
   if (rawRows.length > 0 && !hasLoggedRawDailySample) {
@@ -264,6 +463,16 @@ function normalizePricesFromFourHour(payload, symbol, fromDate) {
   return Array.from(byDate.values()).map(({ firstTimestamp, lastTimestamp, ...row }) => row);
 }
 
+function shiftIsoDate(value, days) {
+  const parsed = new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime())) {
+    return null;
+  }
+
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
+}
+
 async function fetchPriceRows(symbol, fromDate) {
   const providerSymbol = mapToProviderSymbol(normalizeSymbol(symbol));
   const toDate = new Date().toISOString().slice(0, 10);
@@ -353,12 +562,19 @@ async function runPricesIngestion(symbols, options = {}) {
       ? await loadFullHistoryStartDate()
       : await loadIncrementalStartDate());
     const startedAt = Date.now();
+    const staleTargets = await loadStaleDailyTargets();
+    const staleFromDateBySymbol = new Map(
+      staleTargets
+        .filter((target) => target.symbol && target.candle_date)
+        .map((target) => [target.symbol, shiftIsoDate(target.candle_date, -1) || target.candle_date])
+    );
 
     logger.info('ingestion start', {
       jobName: 'fmp_prices_ingest',
       tables: TARGET_TABLES,
       symbols: targetSymbols.length,
       fromDate,
+      staleSymbols: staleTargets.length,
       fullHistory,
     });
 
@@ -368,7 +584,10 @@ async function runPricesIngestion(symbols, options = {}) {
         if (INGEST_DELAY_MS > 0) {
           await new Promise((resolve) => setTimeout(resolve, INGEST_DELAY_MS));
         }
-        const { rows, sourceEndpoint } = await fetchPriceRows(canonicalSymbol, fromDate);
+        const effectiveFromDate = options.symbolFromDateMap?.[canonicalSymbol]
+          || staleFromDateBySymbol.get(canonicalSymbol)
+          || fromDate;
+        const { rows, sourceEndpoint } = await fetchPriceRows(canonicalSymbol, effectiveFromDate);
         return { symbol: canonicalSymbol, rows, sourceEndpoint, error: null };
       } catch (error) {
         failed += 1;
@@ -453,6 +672,11 @@ async function runPricesIngestion(symbols, options = {}) {
       unsupported: coverageCounts.UNSUPPORTED,
     });
 
+    const staleRepair = await repairStaleDailyRows();
+    if (staleRepair.staleBefore > 0) {
+      console.log('[DAILY STALE REPAIR]', staleRepair);
+    }
+
     const completionCheck = await verifyLatestDailyCompletion(totalSymbols);
     const durationMs = Date.now() - startedAt;
     logger.info('ingestion done', {
@@ -464,6 +688,7 @@ async function runPricesIngestion(symbols, options = {}) {
       failures: failures.length,
       noDataSymbols: noDataSymbols.length,
       endpointUsage,
+      staleRepair,
       completionCheck,
       durationMs,
     });
@@ -478,6 +703,7 @@ async function runPricesIngestion(symbols, options = {}) {
       failures,
       noDataSymbols,
       endpointUsage,
+      staleRepair,
       completionCheck,
       fromDate,
       durationMs,
