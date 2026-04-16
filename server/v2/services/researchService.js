@@ -290,7 +290,7 @@ async function ensureEarningsSchema() {
        ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'unknown'`,
     [],
     {
-      timeoutMs: 1500,
+      timeoutMs: 3000,
       label: 'research.earnings.ensure_columns',
       maxRetries: 0,
       poolType: 'write',
@@ -311,7 +311,7 @@ async function ensureEarningsSchema() {
      END$$`,
     [],
     {
-      timeoutMs: 1500,
+      timeoutMs: 3000,
       label: 'research.earnings.ensure_unique',
       maxRetries: 0,
       poolType: 'write',
@@ -1069,7 +1069,7 @@ async function getResearchData(symbol) {
          COALESCE((SELECT to_jsonb(m) FROM market_metrics m WHERE m.symbol = $1 LIMIT 1), '{}'::jsonb) AS metrics`,
       [normalizedSymbol],
       {
-        timeoutMs: 1000,
+        timeoutMs: 3000,
         label: 'research.market',
       },
       warnings,
@@ -1091,7 +1091,7 @@ async function getResearchData(symbol) {
        LIMIT 100`,
       [normalizedSymbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'research.chart.intraday',
       },
       warnings,
@@ -1113,7 +1113,7 @@ async function getResearchData(symbol) {
        LIMIT 100`,
       [normalizedSymbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'research.chart.daily',
       },
       warnings,
@@ -1137,7 +1137,7 @@ async function getResearchData(symbol) {
        LIMIT 20`,
       [normalizedSymbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 3000,
         label: 'research.news',
       },
       warnings,
@@ -1176,7 +1176,7 @@ async function getResearchData(symbol) {
          ) AS last_updated_at`,
       [normalizedSymbol],
       {
-        timeoutMs: 1000,
+        timeoutMs: 3000,
         label: 'research.earnings',
       },
       warnings,
@@ -1191,7 +1191,7 @@ async function getResearchData(symbol) {
        LIMIT 1`,
       [normalizedSymbol],
       {
-        timeoutMs: 1000,
+        timeoutMs: 3000,
         label: 'research.company',
       },
       warnings,
@@ -1210,7 +1210,7 @@ async function getResearchData(symbol) {
      LIMIT 4`,
     [normalizedSymbol],
     {
-      timeoutMs: 1000,
+        timeoutMs: 3000,
       label: 'research.earnings.projected_history',
     },
     warnings,

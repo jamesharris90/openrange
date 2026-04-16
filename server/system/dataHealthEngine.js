@@ -18,20 +18,15 @@ const TABLES = [
 
 const EXACT_COUNT_FALLBACKS = ['daily_ohlcv'];
 
-async function loadExactCountFallbacks(currentEstimates) {
-  const fallbackTargets = EXACT_COUNT_FALLBACKS.filter((name) => Number(currentEstimates[name] || 0) === 0);
-  if (fallbackTargets.length === 0) {
-    return {};
-  }
-
+async function loadExactCounts(tableNames, timeoutMs = 5000) {
   const counts = {};
 
-  for (const name of fallbackTargets) {
+  for (const name of tableNames) {
     try {
       const result = await queryWithTimeout(
         `SELECT COUNT(*)::bigint AS row_count FROM ${name}`,
         [],
-        { timeoutMs: 5000, label: `system.data_health.exact_count.${name}`, maxRetries: 0 }
+        { timeoutMs, label: `system.data_health.exact_count.${name}`, maxRetries: 0 }
       );
       counts[name] = Number(result.rows?.[0]?.row_count || 0);
     } catch (_error) {
@@ -40,6 +35,15 @@ async function loadExactCountFallbacks(currentEstimates) {
   }
 
   return counts;
+}
+
+async function loadExactCountFallbacks(currentEstimates) {
+  const fallbackTargets = EXACT_COUNT_FALLBACKS.filter((name) => Number(currentEstimates[name] || 0) === 0);
+  if (fallbackTargets.length === 0) {
+    return {};
+  }
+
+  return loadExactCounts(fallbackTargets, 15000);
 }
 
 async function loadTableRowEstimates() {
@@ -70,11 +74,16 @@ async function loadTableRowEstimates() {
       ])
     );
 
+    const allZero = TABLES.every((name) => Number(estimates[name] || 0) === 0);
+    if (allZero) {
+      return await loadExactCounts(TABLES, 8000);
+    }
+
     const fallbackCounts = await loadExactCountFallbacks(estimates);
     return { ...estimates, ...fallbackCounts };
   } catch (_error) {
     logger.error('[ENGINE ERROR] data_health table estimates failed');
-    return Object.fromEntries(TABLES.map((name) => [name, 0]));
+    return loadExactCounts(TABLES, 8000);
   }
 }
 
