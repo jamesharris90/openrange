@@ -82,7 +82,17 @@ async function fetchDirectNews(symbolInput, limit, cutoffIso) {
        url,
        published_at
      FROM news_articles
-     WHERE UPPER(COALESCE(symbol, '')) = $1
+     WHERE (
+       UPPER(COALESCE(symbol, '')) = $1
+       OR (
+         COALESCE(symbol, '') = ''
+         AND EXISTS (
+           SELECT 1
+           FROM unnest(COALESCE(symbols, ARRAY[]::text[])) AS symbol_ref(symbol)
+           WHERE UPPER(symbol_ref.symbol) = $1
+         )
+       )
+     )
        AND published_at >= $2
      ORDER BY published_at DESC
      LIMIT $3`,
@@ -97,28 +107,52 @@ async function buildContextNewsPayload(symbolInput, limitInput) {
   const symbol = normalizeSymbol(symbolInput);
   const limit = Math.max(1, Math.min(Number(limitInput) || 5, 12));
   const cutoffIso = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-  const cacheKey = `news-v2-direct:v1:${symbol}:${limit}`;
+  const cacheKey = `news-v2-direct:v2:${symbol}:${limit}`;
   const cached = getCache(cacheKey);
   if (cached) {
     return cached;
   }
 
   const directRows = await fetchDirectNews(symbol, limit, cutoffIso);
+  const feedFallback = directRows.length >= limit
+    ? []
+    : ((await getNewsFeed({
+        limit: Math.max(limit * 4, 20),
+        offset: 0,
+        cutoffHours: 20 * 24,
+        symbol,
+        typeFilter: 'stocks',
+      }).catch(() => ({ raw_articles: [] }))).raw_articles || [])
+        .map((row) => ({
+          id: row?.id || row?.source_id || `${symbol}-${row?.headline || row?.title || row?.url || 'news'}`,
+          symbol: String(row?.symbol || '').trim().toUpperCase() || symbol,
+          symbols: Array.isArray(row?.symbols)
+            ? row.symbols.map((entry) => String(entry || '').trim().toUpperCase()).filter(Boolean)
+            : [symbol],
+          headline: String(row?.headline || row?.title || '').trim(),
+          source: String(row?.source || 'News').trim() || 'News',
+          url: String(row?.url || '').trim() || null,
+          published_at: row?.published_at || null,
+          summary: null,
+          context_scope: 'FEED',
+        }))
+        .filter((row) => row.headline);
+  const mergedRows = dedupeRows([...directRows, ...feedFallback]).slice(0, limit);
   const directCount = directRows.length;
   const payload = {
     success: true,
     symbol,
-    status: directCount > 0 ? 'ok' : 'no_data',
-    count: directRows.length,
+    status: mergedRows.length > 0 ? 'ok' : 'no_data',
+    count: mergedRows.length,
     direct_count: directCount,
-    fallback_applied: false,
-    context_source: directCount > 0 ? 'DIRECT' : 'NONE',
-    data: directRows,
+    fallback_applied: mergedRows.length > directCount,
+    context_source: directCount > 0 ? 'DIRECT' : mergedRows.length > 0 ? 'FEED' : 'NONE',
+    data: mergedRows,
     coverage: {
       direct: directRows.length,
-      total: directRows.length,
+      total: mergedRows.length,
     },
-    message: directCount === 0 ? 'No symbol-specific news available.' : null,
+    message: mergedRows.length === 0 ? 'No symbol-specific news available.' : null,
   };
 
   setCache(cacheKey, payload, 60000);

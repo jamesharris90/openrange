@@ -2,6 +2,7 @@ const express = require('express');
 
 const { buildNarrative } = require('../services/narrativeService');
 const { normalizeSymbol } = require('../../services/researchCacheService');
+const { queryWithTimeout } = require('../../db/pg');
 const { computeCompletenessConfidence, hasChartCandles, hasCompleteTechnicals } = require('../../services/dataConfidenceService');
 const { getLatestScreenerPayload } = require('../services/snapshotService');
 const { buildMCP, getResearchData } = require('../services/researchService');
@@ -219,6 +220,66 @@ async function getSnapshotScreenerRow(symbol) {
   }
 }
 
+async function enrichResearchDataFromDb(symbol, data) {
+  if (data?.market?.market_cap != null && hasCompleteTechnicals(data?.technicals)) {
+    return data;
+  }
+
+  try {
+    const result = await queryWithTimeout(
+      `SELECT
+         q.price,
+         q.volume,
+         q.market_cap,
+         q.relative_volume,
+         q.updated_at,
+         m.atr,
+         m.rsi,
+         m.vwap,
+         m.avg_volume_30d,
+         m.relative_volume AS metrics_relative_volume
+       FROM market_quotes q
+       LEFT JOIN market_metrics m ON m.symbol = q.symbol
+       WHERE q.symbol = $1
+       ORDER BY q.updated_at DESC NULLS LAST
+       LIMIT 1`,
+      [symbol],
+      {
+        timeoutMs: 6000,
+        label: 'research.route.market_technical_backfill',
+        maxRetries: 1,
+      }
+    );
+
+    const row = result.rows?.[0] || null;
+    if (!row) {
+      return data;
+    }
+
+    return {
+      ...data,
+      market: {
+        ...(data.market || {}),
+        price: data.market?.price ?? row.price ?? null,
+        volume: data.market?.volume ?? row.volume ?? null,
+        market_cap: data.market?.market_cap ?? row.market_cap ?? null,
+        relative_volume: data.market?.relative_volume ?? row.relative_volume ?? row.metrics_relative_volume ?? null,
+        updated_at: data.market?.updated_at || row.updated_at || null,
+      },
+      technicals: {
+        ...(data.technicals || {}),
+        atr: data.technicals?.atr ?? row.atr ?? null,
+        rsi: data.technicals?.rsi ?? row.rsi ?? null,
+        vwap: data.technicals?.vwap ?? row.vwap ?? null,
+        relative_volume: data.technicals?.relative_volume ?? row.metrics_relative_volume ?? row.relative_volume ?? null,
+        avg_volume_30d: data.technicals?.avg_volume_30d ?? row.avg_volume_30d ?? null,
+      },
+    };
+  } catch (_error) {
+    return data;
+  }
+}
+
 function enrichResearchDataFromScreener(symbol, data, screenerRow) {
   if (!screenerRow) {
     return data;
@@ -246,10 +307,19 @@ function enrichResearchDataFromScreener(symbol, data, screenerRow) {
     market: {
       ...(data.market || {}),
       price: data.market?.price ?? screenerRow.price ?? null,
+      market_cap: data.market?.market_cap ?? screenerRow.market_cap ?? null,
       change_percent: data.market?.change_percent ?? screenerRow.change_percent ?? null,
       volume: data.market?.volume ?? screenerRow.volume ?? null,
       relative_volume: data.market?.relative_volume ?? screenerRow.rvol ?? null,
       updated_at: data.market?.updated_at || screenerRow.updated_at || null,
+    },
+    technicals: {
+      ...(data.technicals || {}),
+      atr: data.technicals?.atr ?? screenerRow.atr ?? null,
+      rsi: data.technicals?.rsi ?? screenerRow.rsi ?? null,
+      vwap: data.technicals?.vwap ?? screenerRow.vwap ?? null,
+      relative_volume: data.technicals?.relative_volume ?? screenerRow.rvol ?? null,
+      avg_volume_30d: data.technicals?.avg_volume_30d ?? screenerRow.avg_volume_30d ?? null,
     },
     company: {
       ...(data.company || {}),
@@ -292,9 +362,10 @@ router.get('/:symbol', async (req, res) => {
 
   try {
     const data = await getResearchData(symbol);
+    const dbBackfilledData = await enrichResearchDataFromDb(symbol, data);
     const snapshotScreenerRow = await getSnapshotScreenerRow(symbol);
-    const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, data);
-    const researchData = enrichResearchDataFromScreener(symbol, data, snapshotScreenerRow);
+    const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, dbBackfilledData);
+    const researchData = enrichResearchDataFromScreener(symbol, dbBackfilledData, snapshotScreenerRow);
     console.log('[V2 RESEARCH MARKET]', {
       symbol,
       price: researchData.market?.price ?? null,
@@ -323,7 +394,13 @@ router.get('/:symbol', async (req, res) => {
         sector: researchData.company?.sector || screenerRow.sector || null,
       };
       if (
-        (data.market?.price == null || data.market?.volume == null || !data.earnings?.next?.report_date)
+        (
+          data.market?.price == null
+          || data.market?.volume == null
+          || data.market?.market_cap == null
+          || !hasCompleteTechnicals(data.technicals)
+          || !data.earnings?.next?.report_date
+        )
         && !(researchData.warnings || []).includes('snapshot_screener_backfill')
       ) {
         researchData.warnings = [...(researchData.warnings || []), 'snapshot_screener_backfill'];

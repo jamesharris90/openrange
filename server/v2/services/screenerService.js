@@ -153,9 +153,14 @@ function normalizeScreenerRow(row) {
     company_name: row.company_name || row.name || null,
     industry: row.industry || null,
     price: toNumber(row.price),
+    market_cap: toNumber(row.market_cap),
     change_percent: toNumber(row.change_percent),
     volume: toNumber(row.volume),
     rvol: toNumber(row.rvol),
+    atr: toNumber(row.atr),
+    rsi: toNumber(row.rsi),
+    vwap: toNumber(row.vwap),
+    avg_volume_30d: toNumber(row.avg_volume_30d),
     gap_percent: toNumber(row.gap_percent),
     gapPercent: toNumber(row.gapPercent ?? row.gap_percent),
     preMarketPrice: toNumber(row.preMarketPrice),
@@ -301,7 +306,7 @@ async function fetchAllMarketQuotes() {
   while (true) {
     const result = await supabaseAdmin
       .from('market_quotes')
-      .select('symbol, price, change_percent, volume, relative_volume, sector, updated_at, premarket_volume, previous_close')
+      .select('symbol, price, market_cap, change_percent, volume, relative_volume, sector, updated_at, premarket_volume, previous_close')
       .gt('price', 0)
       .gt('volume', 0)
       .order('volume', { ascending: false })
@@ -1493,6 +1498,7 @@ async function getScreenerRows(options = {}) {
   const quoteRows = dedupeBySymbol((rawQuoteUniverse || []).map((row) => ({
     symbol: row.symbol,
     price: row.price,
+    market_cap: row.market_cap,
     change_percent: row.change_percent,
     volume: row.volume,
     relative_volume: row.relative_volume,
@@ -1671,9 +1677,14 @@ async function getScreenerRows(options = {}) {
         company_name: companyName,
         industry,
         price,
+        market_cap: quote.market_cap ?? null,
         change_percent: quote.change_percent ?? metrics.change_percent ?? null,
         volume: quote.volume ?? metrics.volume ?? null,
         rvol: quote.relative_volume ?? stocksInPlay.rvol ?? metrics.relative_volume ?? null,
+        atr: metrics.atr ?? null,
+        rsi: metrics.rsi ?? null,
+        vwap,
+        avg_volume_30d: avgVolume30d,
         gap_percent: effectiveGapPercent,
         gapPercent: effectiveGapPercent,
         preMarketPrice,

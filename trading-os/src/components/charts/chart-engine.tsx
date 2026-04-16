@@ -59,6 +59,10 @@ function normalizeChartPayload(payload: unknown): PricePoint[] {
     return payload as PricePoint[];
   }
 
+  if (Array.isArray((payload as { candles?: unknown[] })?.candles)) {
+    return (payload as { candles: PricePoint[] }).candles;
+  }
+
   if (Array.isArray((payload as { data?: unknown[] })?.data)) {
     return (payload as { data: PricePoint[] }).data;
   }
@@ -68,12 +72,7 @@ function normalizeChartPayload(payload: unknown): PricePoint[] {
 
 function buildChartUrl(ticker: string, timeframe: "daily" | "5m" | "1m") {
   const symbol = encodeURIComponent(ticker);
-
-  if (timeframe === "daily") {
-    return `/api/v2/chart/${symbol}?interval=1day`;
-  }
-
-  return `/api/v5/chart?symbol=${symbol}&interval=${encodeURIComponent(timeframe)}`;
+  return `/api/chart?symbol=${symbol}&timeframe=${encodeURIComponent(timeframe)}`;
 }
 
 export const ChartEngine = memo(function ChartEngine({

@@ -182,6 +182,7 @@ type ScreenerFilters = {
   sector: string;
   instrumentType: "" | ScreenerRow["instrument_type"];
   catalyst: "ALL" | "NEWS" | "EARNINGS" | "TECHNICAL";
+  newsFreshness: "" | "1h" | "24h" | "7d";
   hideLowQuality: boolean;
   showOnlyFullCoverage: boolean;
   includeLimitedCoverage: boolean;
@@ -196,6 +197,7 @@ const DEFAULT_FILTERS: ScreenerFilters = {
   sector: "",
   instrumentType: "",
   catalyst: "ALL",
+  newsFreshness: "",
   hideLowQuality: false,
   showOnlyFullCoverage: false,
   includeLimitedCoverage: true,
@@ -210,8 +212,10 @@ const INSTRUMENT_TYPE_LABELS: Record<ScreenerRow["instrument_type"], string> = {
   OTHER: "Other",
 };
 
-type SortKey = "composite" | "rvol" | "trend" | "momentum" | "gap";
+type SortKey = "composite" | "price" | "change" | "volume" | "rvol" | "trend" | "momentum" | "gap" | "news" | "earnings";
 type SortDirection = "asc" | "desc";
+
+type PresetKey = "high-rvol" | "recent-news" | "earnings" | "full-coverage";
 
 function RowCellLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   return (
@@ -306,6 +310,21 @@ function normalizeNextSessionPayload(payload: NextSessionPayload | null): NextSe
 
 function sortRows(rows: ScreenerRow[], sortKey: SortKey = "composite", sortDirection: SortDirection = "desc") {
   return [...rows].sort((left, right) => {
+    if (sortKey === "price") {
+      const result = compareNullableNumbers(left.price, right.price, sortDirection);
+      if (result !== 0) return result;
+    }
+
+    if (sortKey === "change") {
+      const result = compareNullableNumbers(left.change_percent, right.change_percent, sortDirection);
+      if (result !== 0) return result;
+    }
+
+    if (sortKey === "volume") {
+      const result = compareNullableNumbers(left.volume, right.volume, sortDirection);
+      if (result !== 0) return result;
+    }
+
     if (sortKey === "rvol") {
       const result = compareNullableNumbers(left.rvol, right.rvol, sortDirection);
       if (result !== 0) return result;
@@ -330,6 +349,22 @@ function sortRows(rows: ScreenerRow[], sortKey: SortKey = "composite", sortDirec
     if (sortKey === "gap") {
       const result = compareNullableNumbers(left.gap_percent, right.gap_percent, sortDirection);
       if (result !== 0) return result;
+    }
+
+    if (sortKey === "news") {
+      const leftTime = Date.parse(left.latest_news_at || "") || 0;
+      const rightTime = Date.parse(right.latest_news_at || "") || 0;
+      if (leftTime !== rightTime) {
+        return sortDirection === "asc" ? leftTime - rightTime : rightTime - leftTime;
+      }
+    }
+
+    if (sortKey === "earnings") {
+      const leftTime = Date.parse(left.earnings_date || "") || Number.POSITIVE_INFINITY;
+      const rightTime = Date.parse(right.earnings_date || "") || Number.POSITIVE_INFINITY;
+      if (leftTime !== rightTime) {
+        return sortDirection === "asc" ? leftTime - rightTime : rightTime - leftTime;
+      }
     }
 
     const statePriority = { FORMING: 0, CONFIRMED: 1, EXTENDED: 2, DEAD: 3 } as const;
@@ -523,6 +558,15 @@ function getNewsFreshness(publishedAt: string | null | undefined) {
   if (minutes < 1440) return { tone: "text-emerald-400", label: `${Math.floor(minutes / 60)}h` };
   if (minutes < 10080) return { tone: "text-amber-300", label: `${Math.floor(minutes / 1440)}d` };
   return { tone: "text-slate-400", label: `${Math.floor(minutes / 1440)}d` };
+}
+
+function getNewsAgeMinutes(publishedAt: string | null | undefined) {
+  if (!publishedAt) return null;
+
+  const publishedTime = Date.parse(publishedAt);
+  if (Number.isNaN(publishedTime)) return null;
+
+  return Math.max(0, Math.floor((Date.now() - publishedTime) / 60000));
 }
 
 function getEarningsLabel(earningsDate: string | null | undefined) {
@@ -949,6 +993,25 @@ function ScreenerV2PageContent() {
         return false;
       }
 
+      if (filters.newsFreshness) {
+        const ageMinutes = getNewsAgeMinutes(row.latest_news_at);
+        if (ageMinutes === null) {
+          return false;
+        }
+
+        if (filters.newsFreshness === "1h" && ageMinutes > 60) {
+          return false;
+        }
+
+        if (filters.newsFreshness === "24h" && ageMinutes > 1440) {
+          return false;
+        }
+
+        if (filters.newsFreshness === "7d" && ageMinutes > 10080) {
+          return false;
+        }
+      }
+
       if (filters.hideLowQuality && row.coverage_status === "LOW_QUALITY_TICKER") {
         return false;
       }
@@ -963,7 +1026,7 @@ function ScreenerV2PageContent() {
 
       return true;
     });
-  }, [data, filters.catalyst, filters.hideLowQuality, filters.includeLimitedCoverage, filters.instrumentType, filters.minRvol, filters.minVolume, filters.sector, filters.showOnlyFullCoverage, screenMode, viewMode]);
+  }, [data, filters.catalyst, filters.hideLowQuality, filters.includeLimitedCoverage, filters.instrumentType, filters.minRvol, filters.minVolume, filters.newsFreshness, filters.sector, filters.showOnlyFullCoverage, screenMode, viewMode]);
 
   const sortedRows = useMemo(() => {
     return sortRows(filteredRows, sortKey, sortDirection);
@@ -997,6 +1060,33 @@ function ScreenerV2PageContent() {
     }
 
     setSortKey(nextSortKey);
+    setSortDirection("desc");
+  }
+
+  function applyPreset(preset: PresetKey) {
+    if (preset === "high-rvol") {
+      setFilters({ minVolume: "5000000", minRvol: "2", catalyst: "ALL", newsFreshness: "", showOnlyFullCoverage: false, includeLimitedCoverage: true });
+      setSortKey("rvol");
+      setSortDirection("desc");
+      return;
+    }
+
+    if (preset === "recent-news") {
+      setFilters({ minVolume: "", minRvol: "", catalyst: "NEWS", newsFreshness: "24h", showOnlyFullCoverage: false, includeLimitedCoverage: true });
+      setSortKey("news");
+      setSortDirection("desc");
+      return;
+    }
+
+    if (preset === "earnings") {
+      setFilters({ minVolume: "", minRvol: "", catalyst: "EARNINGS", newsFreshness: "", showOnlyFullCoverage: false, includeLimitedCoverage: true });
+      setSortKey("earnings");
+      setSortDirection("asc");
+      return;
+    }
+
+    setFilters({ minVolume: "", minRvol: "", catalyst: "ALL", newsFreshness: "", showOnlyFullCoverage: true, includeLimitedCoverage: true });
+    setSortKey("composite");
     setSortDirection("desc");
   }
 
@@ -1071,6 +1161,10 @@ function ScreenerV2PageContent() {
               Tradeable Now
             </span>
           ) : null}
+          <button type="button" onClick={() => applyPreset("high-rvol")} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300 transition-colors hover:border-emerald-500/30 hover:text-white">High RVOL</button>
+          <button type="button" onClick={() => applyPreset("recent-news")} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300 transition-colors hover:border-emerald-500/30 hover:text-white">Recent News</button>
+          <button type="button" onClick={() => applyPreset("earnings")} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300 transition-colors hover:border-emerald-500/30 hover:text-white">Earnings Soon</button>
+          <button type="button" onClick={() => applyPreset("full-coverage")} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300 transition-colors hover:border-emerald-500/30 hover:text-white">Full Coverage</button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
         <input
@@ -1123,6 +1217,16 @@ function ScreenerV2PageContent() {
           <option value="EARNINGS">Earnings</option>
           <option value="TECHNICAL">Technical</option>
         </select>
+        <select
+          value={filters.newsFreshness}
+          onChange={(event) => setFilters({ newsFreshness: event.target.value as ScreenerFilters["newsFreshness"] })}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none"
+        >
+          <option value="">Any News Freshness</option>
+          <option value="1h">Last 1h</option>
+          <option value="24h">Last 24h</option>
+          <option value="7d">Last 7d</option>
+        </select>
         <label className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200">
           <input
             type="checkbox"
@@ -1150,7 +1254,7 @@ function ScreenerV2PageContent() {
           />
           <span>Include limited coverage</span>
         </label>
-        {(filters.minVolume || filters.minRvol || filters.sector || filters.instrumentType || filters.catalyst !== DEFAULT_FILTERS.catalyst || filters.hideLowQuality !== DEFAULT_FILTERS.hideLowQuality || filters.showOnlyFullCoverage !== DEFAULT_FILTERS.showOnlyFullCoverage || filters.includeLimitedCoverage !== DEFAULT_FILTERS.includeLimitedCoverage) ? (
+        {(filters.minVolume || filters.minRvol || filters.sector || filters.instrumentType || filters.catalyst !== DEFAULT_FILTERS.catalyst || filters.newsFreshness !== DEFAULT_FILTERS.newsFreshness || filters.hideLowQuality !== DEFAULT_FILTERS.hideLowQuality || filters.showOnlyFullCoverage !== DEFAULT_FILTERS.showOnlyFullCoverage || filters.includeLimitedCoverage !== DEFAULT_FILTERS.includeLimitedCoverage) ? (
           <button
             type="button"
             onClick={() => resetFilters()}
@@ -1331,9 +1435,15 @@ function ScreenerV2PageContent() {
             <thead className="sticky top-0 z-10 bg-slate-950/95 text-left text-[11px] uppercase tracking-[0.18em] text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Symbol</th>
-                <th className="px-4 py-3 font-medium">Price</th>
-                <th className="px-4 py-3 font-medium">% Change</th>
-                <th className="px-4 py-3 font-medium">Volume</th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Price" sortKey="price" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="% Change" sortKey="change" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Volume" sortKey="volume" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
                 <th className="px-4 py-3 font-medium">
                   <SortHeader label="RVOL" sortKey="rvol" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
                 </th>
@@ -1350,8 +1460,12 @@ function ScreenerV2PageContent() {
                 <th className="px-4 py-3 font-medium">State</th>
                 <th className="px-4 py-3 font-medium">Catalyst</th>
                 <th className="px-4 py-3 font-medium">Why</th>
-                <th className="px-4 py-3 font-medium">News</th>
-                <th className="px-4 py-3 font-medium">Earnings</th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="News" sortKey="news" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <SortHeader label="Earnings" sortKey="earnings" activeSortKey={sortKey} activeSortDirection={sortDirection} onSort={handleSort} />
+                </th>
                 <th className="px-4 py-3 font-medium">Sector</th>
               </tr>
             </thead>

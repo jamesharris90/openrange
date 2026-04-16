@@ -33,10 +33,11 @@ function responseHeaders(response: Response): HeadersInit {
 export async function backendRequest(
   request: NextRequest,
   path: string,
-  method = request.method
+  method = request.method,
+  options: { timeoutMs?: number } = {}
 ): Promise<NextResponse> {
   const target = `${API_BASE}${withQuery(path, request)}`;
-  const timeoutMs = 20000;
+  const timeoutMs = Number(options.timeoutMs) || 20000;
   const headers = buildHeaders(request);
   const init: RequestInit = {
     method,
@@ -78,8 +79,12 @@ export async function backendRequest(
   }
 }
 
-export async function backendGet(request: NextRequest, path: string): Promise<NextResponse> {
-  return backendRequest(request, path, "GET");
+export async function backendGet(
+  request: NextRequest,
+  path: string,
+  options: { timeoutMs?: number } = {}
+): Promise<NextResponse> {
+  return backendRequest(request, path, "GET", options);
 }
 
 export async function backendPost(request: NextRequest, path: string): Promise<NextResponse> {

@@ -4,5 +4,5 @@ import { backendGet } from "@/app/api/_lib/proxy";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  return backendGet(request, "/api/earnings/calendar");
+  return backendGet(request, "/api/earnings/calendar", { timeoutMs: 45000 });
 }
