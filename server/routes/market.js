@@ -18,7 +18,7 @@ router.get('/overview', async (_req, res) => {
   try {
     const data = await withTimeout(
       getMarketOverview(),
-      4000,
+      10000,
       {
         ...emptyOverview(),
         degraded: true,

@@ -14,8 +14,21 @@ function toApiPath(path: string[] = []): string {
   return `/api/${path.join("/")}`;
 }
 
+function timeoutForPath(path: string) {
+  if (path.startsWith("/api/v2/research/")) {
+    return 30000;
+  }
+
+  if (path === "/api/market/overview") {
+    return 15000;
+  }
+
+  return undefined;
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
-  return backendRequest(request, toApiPath(context.params.path), "GET");
+  const path = toApiPath(context.params.path);
+  return backendRequest(request, path, "GET", { timeoutMs: timeoutForPath(path) });
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {

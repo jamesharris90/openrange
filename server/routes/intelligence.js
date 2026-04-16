@@ -134,7 +134,7 @@ async function sendDecisionResponse(symbol, res) {
         buildTruthDecisionForSymbol(symbol, {
           allowRemoteNarrative: false,
         }),
-          20000,
+          45000,
         `Decision build timed out for ${symbol}`
       );
       setCachedDecision(symbol, decision);
