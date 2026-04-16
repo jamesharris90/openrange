@@ -220,6 +220,14 @@ function getChartRows(chart: ResearchData["chart"] | undefined) {
     return chart.data;
   }
 
+  if (Array.isArray((chart as { daily?: unknown[] } | undefined)?.daily)) {
+    return (chart as { daily: unknown[] }).daily;
+  }
+
+  if (Array.isArray((chart as { intraday?: unknown[] } | undefined)?.intraday)) {
+    return (chart as { intraday: unknown[] }).intraday;
+  }
+
   return [];
 }
 

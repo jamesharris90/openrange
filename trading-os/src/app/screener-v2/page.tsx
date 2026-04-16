@@ -907,8 +907,13 @@ function ScreenerV2PageContent() {
         const hasRequiredVolume = (row.volume ?? 0) >= 5_000_000;
         const hasRequiredRvol = (row.rvol ?? 0) >= 2;
         const hasCatalyst = row.catalyst_type !== "NONE";
+        const isTradeableFallback = row.tradeable === true || Number(row.confidence ?? 0) >= 0.55;
 
-        if (!isActionableState || !hasRequiredVolume || !hasRequiredRvol || !hasCatalyst) {
+        if (!hasRequiredVolume || !hasRequiredRvol || !hasCatalyst) {
+          return false;
+        }
+
+        if (!isActionableState && !isTradeableFallback) {
           return false;
         }
       }
