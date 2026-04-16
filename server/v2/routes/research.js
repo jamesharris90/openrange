@@ -1,9 +1,10 @@
 const express = require('express');
 
-const { getCache } = require('../cache/memoryCache');
 const { buildNarrative } = require('../services/narrativeService');
 const { normalizeSymbol } = require('../../services/researchCacheService');
-const { getResearchData } = require('../services/researchService');
+const { computeCompletenessConfidence, hasChartCandles, hasCompleteTechnicals } = require('../../services/dataConfidenceService');
+const { getLatestScreenerPayload } = require('../services/snapshotService');
+const { buildMCP, getResearchData } = require('../services/researchService');
 
 const router = express.Router();
 
@@ -205,6 +206,78 @@ function buildSyntheticScreenerRow(symbol, data) {
   };
 }
 
+async function getSnapshotScreenerRow(symbol) {
+  try {
+    const screenerPayload = await getLatestScreenerPayload();
+    const rows = screenerPayload?.success && Array.isArray(screenerPayload.data)
+      ? screenerPayload.data
+      : [];
+
+    return rows.find((row) => normalizeSymbol(row?.symbol) === symbol) || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function enrichResearchDataFromScreener(symbol, data, screenerRow) {
+  if (!screenerRow) {
+    return data;
+  }
+
+  const nextEarnings = data.earnings?.next?.report_date
+    ? data.earnings.next
+    : screenerRow.earnings_date
+      ? {
+          symbol,
+          report_date: screenerRow.earnings_date,
+          report_time: null,
+          eps_estimate: null,
+          eps_actual: null,
+          revenue_estimate: null,
+          revenue_actual: null,
+          market_cap: data.market?.market_cap ?? null,
+          sector: data.company?.sector || screenerRow.sector || null,
+          industry: data.company?.industry || screenerRow.industry || null,
+        }
+      : null;
+
+  const nextData = {
+    ...data,
+    market: {
+      ...(data.market || {}),
+      price: data.market?.price ?? screenerRow.price ?? null,
+      change_percent: data.market?.change_percent ?? screenerRow.change_percent ?? null,
+      volume: data.market?.volume ?? screenerRow.volume ?? null,
+      relative_volume: data.market?.relative_volume ?? screenerRow.rvol ?? null,
+      updated_at: data.market?.updated_at || screenerRow.updated_at || null,
+    },
+    company: {
+      ...(data.company || {}),
+      company_name: data.company?.company_name || screenerRow.company_name || screenerRow.name || symbol,
+      sector: data.company?.sector || screenerRow.sector || null,
+      industry: data.company?.industry || screenerRow.industry || null,
+      exchange: data.company?.exchange || screenerRow.exchange || null,
+    },
+    earnings: {
+      ...(data.earnings || {}),
+      next: nextEarnings,
+    },
+  };
+
+  nextData.mcp = buildMCP(nextData);
+
+  return {
+    ...nextData,
+    ...computeCompletenessConfidence({
+      has_price: nextData.market?.price !== null && nextData.market?.price !== undefined,
+      has_volume: nextData.market?.volume !== null && nextData.market?.volume !== undefined,
+      has_chart_data: hasChartCandles(nextData.chart),
+      has_technicals: hasCompleteTechnicals(nextData.technicals),
+      has_earnings: Boolean(nextData.earnings?.next?.report_date),
+    }),
+  };
+}
+
 router.get('/:symbol', async (req, res) => {
   const startedAt = Date.now();
   const symbol = normalizeSymbol(req.params.symbol);
@@ -219,59 +292,61 @@ router.get('/:symbol', async (req, res) => {
 
   try {
     const data = await getResearchData(symbol);
+    const snapshotScreenerRow = await getSnapshotScreenerRow(symbol);
+    const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, data);
+    const researchData = enrichResearchDataFromScreener(symbol, data, snapshotScreenerRow);
     console.log('[V2 RESEARCH MARKET]', {
       symbol,
-      price: data.market?.price ?? null,
-      volume: data.market?.volume ?? null,
-      marketCap: data.market?.market_cap ?? null,
+      price: researchData.market?.price ?? null,
+      volume: researchData.market?.volume ?? null,
+      marketCap: researchData.market?.market_cap ?? null,
     });
     console.log('[V2 RESEARCH TECHNICALS]', {
       symbol,
-      rsi: data.technicals?.rsi ?? null,
-      vwap: data.technicals?.vwap ?? null,
-      atr: data.technicals?.atr ?? null,
+      rsi: researchData.technicals?.rsi ?? null,
+      vwap: researchData.technicals?.vwap ?? null,
+      atr: researchData.technicals?.atr ?? null,
     });
     console.log('[V2 RESEARCH CHART]', {
       symbol,
-      candle_count: (Array.isArray(data.chart?.intraday) ? data.chart.intraday.length : 0)
-        || (Array.isArray(data.chart?.daily) ? data.chart.daily.length : 0),
-      intraday_count: Array.isArray(data.chart?.intraday) ? data.chart.intraday.length : 0,
-      daily_count: Array.isArray(data.chart?.daily) ? data.chart.daily.length : 0,
+      candle_count: (Array.isArray(researchData.chart?.intraday) ? researchData.chart.intraday.length : 0)
+        || (Array.isArray(researchData.chart?.daily) ? researchData.chart.daily.length : 0),
+      intraday_count: Array.isArray(researchData.chart?.intraday) ? researchData.chart.intraday.length : 0,
+      daily_count: Array.isArray(researchData.chart?.daily) ? researchData.chart.daily.length : 0,
     });
 
-    const cachedScreener = getCache('screener');
-    const cachedRows = cachedScreener?.success && Array.isArray(cachedScreener.data)
-      ? cachedScreener.data
-      : [];
-    const cachedScreenerRow = cachedRows.find((row) => normalizeSymbol(row?.symbol) === symbol);
-    const screenerRow = cachedScreenerRow || buildSyntheticScreenerRow(symbol, data);
-
-    data.screener = screenerRow;
-    data.narrative = await buildFastNarrative(symbol, data.mcp, screenerRow);
-    if (cachedScreenerRow) {
-      data.company = {
-        ...data.company,
-        sector: data.company?.sector || screenerRow.sector || null,
+    researchData.screener = screenerRow;
+    researchData.narrative = await buildFastNarrative(symbol, researchData.mcp, screenerRow);
+    if (snapshotScreenerRow) {
+      researchData.company = {
+        ...researchData.company,
+        sector: researchData.company?.sector || screenerRow.sector || null,
       };
+      if (
+        (data.market?.price == null || data.market?.volume == null || !data.earnings?.next?.report_date)
+        && !(researchData.warnings || []).includes('snapshot_screener_backfill')
+      ) {
+        researchData.warnings = [...(researchData.warnings || []), 'snapshot_screener_backfill'];
+      }
     } else {
-      data.warnings = [...(data.warnings || []), 'synthetic_screener_row'];
+      researchData.warnings = [...(researchData.warnings || []), 'synthetic_screener_row'];
     }
     console.log('[V2 RESEARCH EARNINGS]', {
       symbol,
-      next_date: data.earnings?.next?.report_date || null,
-      source: data.earnings?.next?.report_date || data.earnings?.latest?.report_date ? 'database_or_fallback' : 'none',
+      next_date: researchData.earnings?.next?.report_date || null,
+      source: researchData.earnings?.next?.report_date || researchData.earnings?.latest?.report_date ? 'database_or_fallback' : 'none',
     });
 
     return res.json({
       success: true,
       status: 'ok',
       source: 'database',
-      data_confidence: data.data_confidence ?? 0,
-      data_confidence_label: data.data_confidence_label || 'LOW',
-      data_quality_label: data.data_quality_label || data.data_confidence_label || 'LOW',
+      data_confidence: researchData.data_confidence ?? 0,
+      data_confidence_label: researchData.data_confidence_label || 'LOW',
+      data_quality_label: researchData.data_quality_label || researchData.data_confidence_label || 'LOW',
       data: {
         ...emptyResearchData(symbol),
-        ...data,
+        ...researchData,
       },
       meta: {
         response_ms: Date.now() - startedAt,
