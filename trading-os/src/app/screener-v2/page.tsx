@@ -14,6 +14,7 @@ type ScreenerRow = {
   price: number | null;
   change_percent: number | null;
   volume: number | null;
+  tradeable?: boolean;
   data_confidence?: number | null;
   data_confidence_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   data_quality_label?: "HIGH" | "MEDIUM" | "LOW" | null;
@@ -32,7 +33,7 @@ type ScreenerRow = {
   updated_at: string | null;
   why: string;
   driver_type: "MACRO" | "SECTOR" | "NEWS" | "EARNINGS" | "TECHNICAL";
-  confidence: number;
+  confidence?: number;
   linked_symbols: string[];
   volume_last_5m: number | null;
   avg_5m_volume: number | null;
@@ -570,15 +571,17 @@ function formatDriverType(type: ScreenerRow["driver_type"]) {
   }
 }
 
-function formatConfidence(value: number) {
-  if (value >= 0.8) {
+function formatConfidence(value: number | null | undefined) {
+  const normalized = Number(value ?? 0);
+
+  if (normalized >= 0.8) {
     return {
       label: "HIGH",
       className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
     };
   }
 
-  if (value >= 0.4) {
+  if (normalized >= 0.4) {
     return {
       label: "MED",
       className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
