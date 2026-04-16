@@ -12,5 +12,5 @@ type RouteContext = {
 
 export async function GET(request: NextRequest, { params }: RouteContext) {
   const symbol = encodeURIComponent(String(params.symbol || "").toUpperCase());
-  return backendGet(request, `/api/v2/research/${symbol}`);
+  return backendGet(request, `/api/v2/research/${symbol}`, { timeoutMs: 30000 });
 }
