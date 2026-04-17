@@ -1,6 +1,6 @@
 const YahooFinance = require('yahoo-finance2').default;
 
-const pool = require('../../pg');
+const { queryWithTimeout } = require('../../db/pg');
 const { fmpFetch } = require('../../services/fmpClient');
 const { mapToProviderSymbol, mapFromProviderSymbol, normalizeSymbol } = require('../../utils/symbolMap');
 const { getCache, setCache } = require('../cache/memoryCache');
@@ -10,6 +10,7 @@ const INTRADAY_LIMIT = 390;
 const DAILY_LIMIT = 260;
 const CHART_CACHE_TTL_MS = 2 * 60 * 1000;
 const DIRECT_FETCH_CACHE_TTL_MS = 5 * 60 * 1000;
+const DB_CHART_TIMEOUT_MS = 6000;
 
 function normalizeTimeframe(value) {
   const raw = String(value || '1m').trim().toLowerCase();
@@ -137,26 +138,36 @@ async function fetchFmpDaily(symbol) {
 }
 
 async function fetchDbIntraday(symbol) {
-  const { rows } = await pool.query(
+  const { rows } = await queryWithTimeout(
     `SELECT EXTRACT(EPOCH FROM timestamp)::bigint AS time, open, high, low, close, volume
      FROM intraday_1m
      WHERE symbol = $1
      ORDER BY timestamp DESC
      LIMIT $2`,
-    [symbol, INTRADAY_LIMIT]
+    [symbol, INTRADAY_LIMIT],
+    {
+      timeoutMs: DB_CHART_TIMEOUT_MS,
+      label: 'chart.db.intraday',
+      maxRetries: 0,
+    }
   );
 
   return dedupeAndSortCandles(rows);
 }
 
 async function fetchDbDaily(symbol) {
-  const { rows } = await pool.query(
+  const { rows } = await queryWithTimeout(
     `SELECT EXTRACT(EPOCH FROM date::timestamp)::bigint AS time, open, high, low, close, volume
      FROM daily_ohlc
      WHERE symbol = $1
      ORDER BY date DESC
      LIMIT $2`,
-    [symbol, DAILY_LIMIT]
+    [symbol, DAILY_LIMIT],
+    {
+      timeoutMs: DB_CHART_TIMEOUT_MS,
+      label: 'chart.db.daily',
+      maxRetries: 0,
+    }
   );
 
   return dedupeAndSortCandles(rows);

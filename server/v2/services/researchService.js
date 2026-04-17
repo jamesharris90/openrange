@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const { queryWithTimeout } = require('../../db/pg');
+const { buildChartPayload } = require('./chartService');
 const {
   computeCompletenessConfidence,
   hasChartCandles,
@@ -13,6 +14,7 @@ const FMP_TIMEOUT_MS = 450;
 const EARNINGS_CACHE_WINDOW_DAYS = 90;
 const EARNINGS_STALE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPANY_PROFILE_TIMEOUT_MS = 650;
+const CHART_SECTION_TIMEOUT_MS = 10000;
 
 let ensureEarningsSchemaPromise = null;
 const earningsRefreshInFlight = new Map();
@@ -211,6 +213,38 @@ function normalizeNewsRows(rows) {
       };
     })
     .filter((item) => item.title || item.summary || item.url);
+}
+
+async function backfillMissingCharts(symbol, chart, warnings) {
+  const nextChart = {
+    intraday: toArray(chart?.intraday),
+    daily: toArray(chart?.daily),
+  };
+
+  if (!nextChart.daily.length) {
+    try {
+      const payload = await buildChartPayload(symbol, '1day');
+      nextChart.daily = normalizeCandleRows(payload?.candles);
+    } catch (error) {
+      warnings.push(`chart_daily_fallback: ${error.message}`);
+    }
+  }
+
+  if (!nextChart.intraday.length) {
+    try {
+      const payload = await buildChartPayload(symbol, '1m');
+      const candles = normalizeCandleRows(payload?.candles);
+      if (payload?.timeframe === '1m') {
+        nextChart.intraday = candles;
+      } else if (!nextChart.daily.length) {
+        nextChart.daily = candles;
+      }
+    } catch (error) {
+      warnings.push(`chart_intraday_fallback: ${error.message}`);
+    }
+  }
+
+  return nextChart;
 }
 
 function normalizeEarningsRecord(data) {
@@ -1091,7 +1125,7 @@ async function getResearchData(symbol) {
        LIMIT 100`,
       [normalizedSymbol],
       {
-        timeoutMs: 4000,
+        timeoutMs: CHART_SECTION_TIMEOUT_MS,
         label: 'research.chart.intraday',
       },
       warnings,
@@ -1113,7 +1147,7 @@ async function getResearchData(symbol) {
        LIMIT 100`,
       [normalizedSymbol],
       {
-        timeoutMs: 4000,
+        timeoutMs: CHART_SECTION_TIMEOUT_MS,
         label: 'research.chart.daily',
       },
       warnings,
@@ -1222,6 +1256,9 @@ async function getResearchData(symbol) {
   payload.technicals = normalizeTechnicalsRow(marketRow);
   payload.chart.intraday = normalizeCandleRows(intradayRows);
   payload.chart.daily = normalizeCandleRows(dailyRows);
+  if (!hasChartCandles(payload.chart)) {
+    payload.chart = await backfillMissingCharts(normalizedSymbol, payload.chart, warnings);
+  }
   payload.news = normalizeNewsRows(newsRows);
   payload.earnings = buildEarningsPayload([
     earningsRows[0]?.latest,
