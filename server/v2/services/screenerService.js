@@ -1106,11 +1106,12 @@ async function fetchYahooEarnings(symbol) {
 
 async function fetchLatestNewsBySymbol(symbols) {
   const latestNewsBySymbol = new Map();
-  const pageSize = 1000;
 
   if (!symbols.length) {
     return latestNewsBySymbol;
   }
+
+  const cutoffIso = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
 
   const newsPasses = [
     {
@@ -1125,50 +1126,67 @@ async function fetchLatestNewsBySymbol(symbols) {
 
   for (const pass of newsPasses) {
     for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
-      let offset = 0;
+      const allowedSymbols = new Set(symbolBatch);
+      const result = await queryWithTimeout(
+        `SELECT
+           UPPER(COALESCE(symbol, '')) AS symbol,
+           COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+           headline,
+           COALESCE(published_at, published_date, created_at) AS published_at,
+           source_type
+         FROM news_articles
+         WHERE COALESCE(published_at, published_date, created_at) IS NOT NULL
+           AND COALESCE(published_at, published_date, created_at) >= $2
+           AND headline IS NOT NULL
+           AND BTRIM(headline) <> ''
+           AND (
+             UPPER(COALESCE(symbol, '')) = ANY($1::text[])
+             OR EXISTS (
+               SELECT 1
+               FROM unnest(COALESCE(symbols, ARRAY[]::text[])) AS symbol_ref(symbol)
+               WHERE UPPER(symbol_ref.symbol) = ANY($1::text[])
+             )
+           )
+           ${pass.applySourceType ? "AND UPPER(COALESCE(source_type, '')) = 'FMP'" : ''}
+         ORDER BY COALESCE(published_at, published_date, created_at) DESC`,
+        [symbolBatch, cutoffIso],
+        {
+          timeoutMs: 12000,
+          label: `screener.latest_news.${pass.sourceLabel}`,
+          maxRetries: 0,
+          poolType: 'read',
+        }
+      );
 
-      while (latestNewsBySymbol.size < symbols.length) {
-        let query = supabaseAdmin
-          .from('news_articles')
-          .select('symbol, headline, published_at, source_type')
-          .in('symbol', symbolBatch)
-          .not('published_at', 'is', null)
-          .not('headline', 'is', null)
-          .order('published_at', { ascending: false })
-          .range(offset, offset + pageSize - 1);
-
-        if (pass.applySourceType) {
-          query = query.eq('source_type', 'FMP');
+      for (const row of result.rows || []) {
+        const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
+        if (!row.published_at || !headline) {
+          continue;
         }
 
-        const result = await query;
-        if (result.error) {
-          throw new Error(result.error.message || 'Failed to load screener news_articles');
+        const matchedSymbols = new Set();
+        const directSymbol = normalizeSymbol(row.symbol);
+        if (directSymbol && allowedSymbols.has(directSymbol)) {
+          matchedSymbols.add(directSymbol);
         }
 
-        const batch = Array.isArray(result.data) ? result.data : [];
-        if (batch.length === 0) {
-          break;
+        for (const entry of Array.isArray(row.symbols) ? row.symbols : []) {
+          const relatedSymbol = normalizeSymbol(entry);
+          if (relatedSymbol && allowedSymbols.has(relatedSymbol)) {
+            matchedSymbols.add(relatedSymbol);
+          }
         }
 
-        for (const row of batch) {
-          const symbol = normalizeSymbol(row.symbol);
-          const headline = typeof row.headline === 'string' ? row.headline.trim() : '';
-          if (!symbol || latestNewsBySymbol.has(symbol) || !row.published_at || !headline) {
+        for (const matchedSymbol of matchedSymbols) {
+          if (latestNewsBySymbol.has(matchedSymbol)) {
             continue;
           }
 
-          latestNewsBySymbol.set(symbol, {
+          latestNewsBySymbol.set(matchedSymbol, {
             latest_news_at: row.published_at,
             news_source: pass.sourceLabel,
           });
         }
-
-        if (batch.length < pageSize) {
-          break;
-        }
-
-        offset += pageSize;
       }
     }
   }
@@ -1178,7 +1196,6 @@ async function fetchLatestNewsBySymbol(symbols) {
 
 async function fetchRecentNewsContext(symbols) {
   const recentNewsBySymbol = new Map();
-  const pageSize = 1000;
 
   if (!symbols.length) {
     return recentNewsBySymbol;
@@ -1186,36 +1203,56 @@ async function fetchRecentNewsContext(symbols) {
 
   const cutoffIso = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
   for (const symbolBatch of chunkArray(symbols, SYMBOL_BATCH_SIZE)) {
-    let offset = 0;
+    const allowedSymbols = new Set(symbolBatch);
+    const result = await queryWithTimeout(
+      `SELECT
+         UPPER(COALESCE(symbol, '')) AS symbol,
+         COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+         headline,
+         COALESCE(published_at, published_date, created_at) AS published_at
+       FROM news_articles
+       WHERE COALESCE(published_at, published_date, created_at) >= $2
+         AND headline IS NOT NULL
+         AND BTRIM(headline) <> ''
+         AND (
+           UPPER(COALESCE(symbol, '')) = ANY($1::text[])
+           OR EXISTS (
+             SELECT 1
+             FROM unnest(COALESCE(symbols, ARRAY[]::text[])) AS symbol_ref(symbol)
+             WHERE UPPER(symbol_ref.symbol) = ANY($1::text[])
+           )
+         )
+       ORDER BY COALESCE(published_at, published_date, created_at) DESC`,
+      [symbolBatch, cutoffIso],
+      {
+        timeoutMs: 12000,
+        label: 'screener.recent_news_context',
+        maxRetries: 0,
+        poolType: 'read',
+      }
+    );
 
-    while (true) {
-      const result = await supabaseAdmin
-        .from('news_articles')
-        .select('symbol, headline, published_at')
-        .in('symbol', symbolBatch)
-        .gte('published_at', cutoffIso)
-        .not('published_at', 'is', null)
-        .not('headline', 'is', null)
-        .order('published_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      if (result.error) {
-        throw new Error(result.error.message || 'Failed to load recent screener news context');
+    for (const item of result.rows || []) {
+      const headline = typeof item.headline === 'string' ? item.headline.trim() : '';
+      if (!headline || !item.published_at) {
+        continue;
       }
 
-      const batch = Array.isArray(result.data) ? result.data : [];
-      if (batch.length === 0) {
-        break;
+      const matchedSymbols = new Set();
+      const directSymbol = normalizeSymbol(item.symbol);
+      if (directSymbol && allowedSymbols.has(directSymbol)) {
+        matchedSymbols.add(directSymbol);
       }
 
-      for (const item of batch) {
-        const symbol = normalizeSymbol(item.symbol);
-        const headline = typeof item.headline === 'string' ? item.headline.trim() : '';
-        if (!symbol || !headline || !item.published_at) {
-          continue;
+      for (const entry of Array.isArray(item.symbols) ? item.symbols : []) {
+        const relatedSymbol = normalizeSymbol(entry);
+        if (relatedSymbol && allowedSymbols.has(relatedSymbol)) {
+          matchedSymbols.add(relatedSymbol);
         }
+      }
 
-        const currentItems = recentNewsBySymbol.get(symbol) || [];
+      for (const matchedSymbol of matchedSymbols) {
+        const currentItems = recentNewsBySymbol.get(matchedSymbol) || [];
         if (currentItems.length >= 3) {
           continue;
         }
@@ -1224,14 +1261,8 @@ async function fetchRecentNewsContext(symbols) {
           headline,
           published_at: item.published_at,
         });
-        recentNewsBySymbol.set(symbol, currentItems);
+        recentNewsBySymbol.set(matchedSymbol, currentItems);
       }
-
-      if (batch.length < pageSize) {
-        break;
-      }
-
-      offset += pageSize;
     }
   }
 
@@ -1741,16 +1772,24 @@ async function getScreenerRows(options = {}) {
       return row;
     }
 
+    const latestNews = latestNewsBySymbol.get(row.symbol) || null;
+    const resolvedEarningsDate = earningsBySymbol.get(row.symbol)?.earnings_date || dbEarningsBySymbol.get(row.symbol) || null;
+    const resolvedEarningsSource = earningsBySymbol.get(row.symbol)?.earnings_source && earningsBySymbol.get(row.symbol)?.earnings_source !== 'none'
+      ? earningsBySymbol.get(row.symbol).earnings_source
+      : (resolvedEarningsDate ? 'database' : 'none');
+
     const enrichedRow = {
       ...row,
-      latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
-      news_source: latestNewsBySymbol.get(row.symbol)?.news_source || 'none',
-      earnings_date: earningsBySymbol.get(row.symbol)?.earnings_date || null,
-      earnings_source: earningsBySymbol.get(row.symbol)?.earnings_source || 'none',
+      has_news: row.has_news || Boolean(latestNews?.latest_news_at),
+      latest_news_at: latestNews?.latest_news_at || null,
+      news_source: latestNews?.news_source || 'none',
+      has_earnings: row.has_earnings || Boolean(resolvedEarningsDate),
+      earnings_date: resolvedEarningsDate,
+      earnings_source: resolvedEarningsSource,
       catalyst_type: resolveCatalystType({
         ...row,
-        latest_news_at: latestNewsBySymbol.get(row.symbol)?.latest_news_at || null,
-        earnings_date: earningsBySymbol.get(row.symbol)?.earnings_date || null,
+        latest_news_at: latestNews?.latest_news_at || null,
+        earnings_date: resolvedEarningsDate,
       }),
     };
 
