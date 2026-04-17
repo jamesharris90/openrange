@@ -8,6 +8,7 @@ const {
   buildExecutionPlan,
   deriveBias,
 } = require('../intelligence/earningsClassifier');
+const { getCachedEarningsCalendarPayload } = require('../v2/services/experienceSnapshotService');
 const { evaluateTradeTruth } = require('../services/truthEngine');
 const { buildFinalTradeObject } = require('../engines/finalTradeBuilder');
 const { validateTrade } = require('../utils/validateTrade');
@@ -708,6 +709,17 @@ router.get('/api/earnings/calendar', async (req, res) => {
       limit,
       class_filter: classFilter || null,
     });
+
+    const snapshotPayload = await getCachedEarningsCalendarPayload({
+      from,
+      to,
+      limit,
+      class: classFilter,
+    }).catch(() => null);
+
+    if (snapshotPayload) {
+      return res.status(200).json(snapshotPayload);
+    }
 
     let hasRequiredSchema = false;
     try {

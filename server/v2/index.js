@@ -21,6 +21,7 @@ const researchRoute = require('../routes/research');
 const truthAuditRoute = require('../routes/truthAudit');
 const userRoutes = require('../users/routes');
 const { buildChartPayload } = require('./services/chartService');
+const { startExperienceSnapshotSchedulers } = require('./services/experienceSnapshotService');
 const { buildAndStoreScreenerSnapshot } = require('./services/snapshotService');
 const { runYahooNewsIngest } = require('./ingestion/yahooNewsIngest');
 const { runNewsBackfill } = require('./ingestion/newsBackfill');
@@ -251,6 +252,7 @@ function createV2App() {
 
   app.use(cors());
   app.use(express.json());
+  startExperienceSnapshotSchedulers();
 
   console.log('🚫 LEGACY SYSTEM DISABLED — V2 MODE ACTIVE');
   console.log('[SCHEDULERS] runtime flags', schedulerFlags);

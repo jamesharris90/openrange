@@ -539,32 +539,32 @@ function ResearchV2PageContent({ params }: Props) {
 
     let isMounted = true;
 
-    async function loadResearch() {
+    async function loadFastResearch() {
       try {
         setLoading(true);
         setError(false);
-        console.log("[RESEARCH FETCH START]", symbol);
+        console.log("[RESEARCH FAST FETCH START]", symbol);
 
-        const res = await fetch(`/api/v2/research/${encodeURIComponent(symbol)}`, {
+        const res = await fetch(`/api/v2/research/${encodeURIComponent(symbol)}?fast=true`, {
           cache: "no-store",
         });
-        console.log("[RESEARCH FETCH RESPONSE STATUS]", res.status);
+        console.log("[RESEARCH FAST FETCH RESPONSE STATUS]", res.status);
 
         const json = (await res.json()) as ResearchResponse;
-        console.log("[RESEARCH FETCH JSON RAW]", json);
-        console.log("[RESEARCH FETCH SUCCESS]", json);
+        console.log("[RESEARCH FAST FETCH JSON RAW]", json);
+        console.log("[RESEARCH FAST FETCH SUCCESS]", json);
 
         if (!res.ok || !json?.data) {
           throw new Error(json?.error || `Failed to load research for ${symbol}`);
         }
 
         if (isMounted) {
-          console.log("[RESEARCH SET DATA]", json);
+          console.log("[RESEARCH FAST SET DATA]", json);
           setData(json);
           setLoading(false);
         }
       } catch (err) {
-        console.error("[RESEARCH FETCH ERROR]", err);
+        console.error("[RESEARCH FAST FETCH ERROR]", err);
         if (isMounted) {
           setData(null);
           setError(true);
@@ -573,11 +573,62 @@ function ResearchV2PageContent({ params }: Props) {
       }
     }
 
-    void loadResearch();
+    void loadFastResearch();
 
     return () => {
       console.log("[RESEARCH CLEANUP]", symbol);
       isMounted = false;
+    };
+  }, [hasSymbol, symbol, reloadKey]);
+
+  useEffect(() => {
+    if (!hasSymbol) {
+      return undefined;
+    }
+
+    let mounted = true;
+    const controller = new AbortController();
+
+    async function loadFullResearch() {
+      try {
+        const response = await fetch(`/api/v2/research/${encodeURIComponent(symbol)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const json = (await response.json()) as ResearchResponse;
+        if (!mounted || !response.ok || !json?.data) {
+          return;
+        }
+
+        setData((previous) => {
+          const mergedData: ResearchData = {
+            symbol,
+            ...(previous?.data || {}),
+            ...(json.data || {}),
+          };
+
+          return {
+            ...(previous || {}),
+            ...json,
+            data: mergedData,
+            meta: {
+              ...(previous?.meta || {}),
+              ...(json.meta || {}),
+            },
+          };
+        });
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("[RESEARCH FULL FETCH ERROR]", error);
+        }
+      }
+    }
+
+    void loadFullResearch();
+
+    return () => {
+      mounted = false;
+      controller.abort();
     };
   }, [hasSymbol, symbol, reloadKey]);
 

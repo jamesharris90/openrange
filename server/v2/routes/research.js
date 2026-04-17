@@ -1,13 +1,18 @@
 const express = require('express');
 
 const { buildNarrative } = require('../services/narrativeService');
+const { getCache, setCache } = require('../cache/memoryCache');
 const { normalizeSymbol } = require('../../services/researchCacheService');
 const { queryWithTimeout } = require('../../db/pg');
 const { computeCompletenessConfidence, hasChartCandles, hasCompleteTechnicals } = require('../../services/dataConfidenceService');
 const { getLatestScreenerPayload } = require('../services/snapshotService');
 const { buildMCP, getResearchData } = require('../services/researchService');
+const { buildFastResearchSnapshot } = require('../services/experienceSnapshotService');
 
 const router = express.Router();
+const FULL_RESEARCH_CACHE_TTL_MS = 120000;
+const FULL_RESEARCH_BUDGET_MS = 2500;
+const fullResearchRefreshInFlight = new Map();
 
 function getDefaultMCP(symbol) {
   return {
@@ -207,6 +212,98 @@ function buildSyntheticScreenerRow(symbol, data) {
   };
 }
 
+function buildResponse(symbol, data, meta, source = 'snapshot') {
+  const responseMeta = {
+    response_ms: Number(meta?.response_ms || 0),
+    fallback: Boolean(meta?.fallback),
+    reason: meta?.reason || null,
+    phase: meta?.phase || 'full',
+    source: meta?.source || source,
+  };
+
+  return {
+    success: true,
+    status: 'ok',
+    source,
+    data_confidence: data?.data_confidence ?? 0,
+    data_confidence_label: data?.data_confidence_label || 'LOW',
+    data_quality_label: data?.data_quality_label || data?.data_confidence_label || 'LOW',
+    data: {
+      ...emptyResearchData(symbol),
+      ...data,
+      meta: responseMeta,
+    },
+    meta: responseMeta,
+  };
+}
+
+function fullResearchCacheKey(symbol) {
+  return `research:full:${symbol}`;
+}
+
+async function buildFullResearchPayload(symbol) {
+  const startedAt = Date.now();
+  const data = await getResearchData(symbol);
+  const dbBackfilledData = await enrichResearchDataFromDb(symbol, data);
+  const snapshotScreenerRow = await getSnapshotScreenerRow(symbol);
+  const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, dbBackfilledData);
+  const researchData = enrichResearchDataFromScreener(symbol, dbBackfilledData, snapshotScreenerRow);
+
+  researchData.screener = screenerRow;
+  researchData.narrative = await buildFastNarrative(symbol, researchData.mcp, screenerRow);
+
+  if (snapshotScreenerRow) {
+    researchData.company = {
+      ...researchData.company,
+      sector: researchData.company?.sector || screenerRow.sector || null,
+    };
+    if (
+      (
+        data.market?.price == null
+        || data.market?.volume == null
+        || data.market?.market_cap == null
+        || !hasCompleteTechnicals(data.technicals)
+        || !data.earnings?.next?.report_date
+      )
+      && !(researchData.warnings || []).includes('snapshot_screener_backfill')
+    ) {
+      researchData.warnings = [...(researchData.warnings || []), 'snapshot_screener_backfill'];
+    }
+  } else {
+    researchData.warnings = [...(researchData.warnings || []), 'synthetic_screener_row'];
+  }
+
+  return buildResponse(symbol, researchData, {
+    response_ms: Date.now() - startedAt,
+    fallback: false,
+    reason: null,
+    phase: 'full',
+    source: 'database',
+  }, 'database');
+}
+
+function getCachedFullResearchPayload(symbol) {
+  return getCache(fullResearchCacheKey(symbol));
+}
+
+async function refreshFullResearchPayload(symbol) {
+  if (fullResearchRefreshInFlight.has(symbol)) {
+    return fullResearchRefreshInFlight.get(symbol);
+  }
+
+  const promise = buildFullResearchPayload(symbol)
+    .then((payload) => {
+      setCache(fullResearchCacheKey(symbol), payload, FULL_RESEARCH_CACHE_TTL_MS);
+      return payload;
+    })
+    .finally(() => {
+      fullResearchRefreshInFlight.delete(symbol);
+    });
+
+  fullResearchRefreshInFlight.set(symbol, promise);
+  return promise;
+}
+
 async function getSnapshotScreenerRow(symbol) {
   try {
     const screenerPayload = await getLatestScreenerPayload();
@@ -360,96 +457,74 @@ router.get('/:symbol', async (req, res) => {
     });
   }
 
-  try {
-    const data = await getResearchData(symbol);
-    const dbBackfilledData = await enrichResearchDataFromDb(symbol, data);
-    const snapshotScreenerRow = await getSnapshotScreenerRow(symbol);
-    const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, dbBackfilledData);
-    const researchData = enrichResearchDataFromScreener(symbol, dbBackfilledData, snapshotScreenerRow);
-    console.log('[V2 RESEARCH MARKET]', {
-      symbol,
-      price: researchData.market?.price ?? null,
-      volume: researchData.market?.volume ?? null,
-      marketCap: researchData.market?.market_cap ?? null,
-    });
-    console.log('[V2 RESEARCH TECHNICALS]', {
-      symbol,
-      rsi: researchData.technicals?.rsi ?? null,
-      vwap: researchData.technicals?.vwap ?? null,
-      atr: researchData.technicals?.atr ?? null,
-    });
-    console.log('[V2 RESEARCH CHART]', {
-      symbol,
-      candle_count: (Array.isArray(researchData.chart?.intraday) ? researchData.chart.intraday.length : 0)
-        || (Array.isArray(researchData.chart?.daily) ? researchData.chart.daily.length : 0),
-      intraday_count: Array.isArray(researchData.chart?.intraday) ? researchData.chart.intraday.length : 0,
-      daily_count: Array.isArray(researchData.chart?.daily) ? researchData.chart.daily.length : 0,
-    });
+  const fastSnapshot = await buildFastResearchSnapshot(symbol).catch(() => null);
+  const fastResponse = buildResponse(
+    symbol,
+    fastSnapshot?.data || emptyResearchData(symbol),
+    {
+      response_ms: fastSnapshot?.meta?.response_ms || (Date.now() - startedAt),
+      fallback: false,
+      reason: null,
+      phase: 'fast',
+      source: fastSnapshot?.meta?.source || 'snapshot',
+    },
+    fastSnapshot?.meta?.source || 'snapshot'
+  );
 
-    researchData.screener = screenerRow;
-    researchData.narrative = await buildFastNarrative(symbol, researchData.mcp, screenerRow);
-    if (snapshotScreenerRow) {
-      researchData.company = {
-        ...researchData.company,
-        sector: researchData.company?.sector || screenerRow.sector || null,
-      };
-      if (
-        (
-          data.market?.price == null
-          || data.market?.volume == null
-          || data.market?.market_cap == null
-          || !hasCompleteTechnicals(data.technicals)
-          || !data.earnings?.next?.report_date
-        )
-        && !(researchData.warnings || []).includes('snapshot_screener_backfill')
-      ) {
-        researchData.warnings = [...(researchData.warnings || []), 'snapshot_screener_backfill'];
-      }
-    } else {
-      researchData.warnings = [...(researchData.warnings || []), 'synthetic_screener_row'];
-    }
-    console.log('[V2 RESEARCH EARNINGS]', {
-      symbol,
-      next_date: researchData.earnings?.next?.report_date || null,
-      source: researchData.earnings?.next?.report_date || researchData.earnings?.latest?.report_date ? 'database_or_fallback' : 'none',
-    });
+  if (String(req.query.fast || '').trim().toLowerCase() === 'true') {
+    return res.json(fastResponse);
+  }
 
+  const cachedFull = getCachedFullResearchPayload(symbol);
+  if (cachedFull?.data) {
     return res.json({
-      success: true,
-      status: 'ok',
-      source: 'database',
-      data_confidence: researchData.data_confidence ?? 0,
-      data_confidence_label: researchData.data_confidence_label || 'LOW',
-      data_quality_label: researchData.data_quality_label || researchData.data_confidence_label || 'LOW',
-      data: {
-        ...emptyResearchData(symbol),
-        ...researchData,
-      },
+      ...cachedFull,
       meta: {
+        ...cachedFull.meta,
         response_ms: Date.now() - startedAt,
-        fallback: false,
-        reason: null,
+        phase: 'full_cache',
+      },
+      data: {
+        ...cachedFull.data,
+        meta: {
+          ...(cachedFull.data?.meta || {}),
+          response_ms: Date.now() - startedAt,
+          phase: 'full_cache',
+        },
       },
     });
+  }
+
+  try {
+    const fullPayload = await Promise.race([
+      refreshFullResearchPayload(symbol),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('full_research_timeout')), FULL_RESEARCH_BUDGET_MS);
+      }),
+    ]);
+
+    return res.json(fullPayload);
   } catch (error) {
-    console.warn('[RESEARCH] route failure', { symbol, error: error.message });
+    console.warn('[RESEARCH] route fallback', { symbol, error: error.message });
+    void refreshFullResearchPayload(symbol).catch(() => {});
     return res.json({
-      success: true,
-      status: 'ok',
-      source: 'database',
-      data_confidence: 0,
-      data_confidence_label: 'LOW',
-      data_quality_label: 'LOW',
-      data: {
-        ...emptyResearchData(symbol),
-        screener: null,
-        narrative: null,
-        warnings: ['route_failure'],
-      },
+      ...fastResponse,
       meta: {
+        ...fastResponse.meta,
         response_ms: Date.now() - startedAt,
         fallback: true,
-        reason: 'timeout',
+        reason: error.message || 'timeout',
+        phase: 'fast_fallback',
+      },
+      data: {
+        ...fastResponse.data,
+        meta: {
+          ...(fastResponse.data?.meta || {}),
+          response_ms: Date.now() - startedAt,
+          fallback: true,
+          reason: error.message || 'timeout',
+          phase: 'fast_fallback',
+        },
       },
     });
   }

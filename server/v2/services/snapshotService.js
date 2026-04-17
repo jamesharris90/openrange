@@ -519,6 +519,15 @@ async function getLatestScreenerPayload() {
   return withSnapshotTimestamp(snapshot.data.screener, snapshot.created_at);
 }
 
+function getCachedScreenerPayload() {
+  const snapshot = getSnapshotFromCache();
+  if (!snapshot?.data?.screener) {
+    return null;
+  }
+
+  return withSnapshotTimestamp(snapshot.data.screener, snapshot.created_at);
+}
+
 async function getLatestOpportunitiesPayload() {
   const snapshot = await getLatestSnapshotRecord();
   if (!snapshot?.data?.opportunities) {
@@ -554,6 +563,7 @@ async function getSnapshotStatus() {
 
 module.exports = {
   buildAndStoreScreenerSnapshot,
+  getCachedScreenerPayload,
   getLatestScreenerPayload,
   getLatestOpportunitiesPayload,
   getSnapshotStatus,
