@@ -164,7 +164,7 @@ function normalizeNewsPayload(payload: unknown): NewsItem[] {
     }, []).slice(0, 5);
 }
 
-function formatPercent(value: number | null | undefined) {
+function formatPercent(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") {
     return "No data available";
   }
@@ -178,7 +178,7 @@ function formatPercent(value: number | null | undefined) {
   return `${sign}${numeric.toFixed(2)}%`;
 }
 
-function formatCurrency(value: number | null | undefined) {
+function formatCurrency(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") {
     return "No data available";
   }
@@ -195,7 +195,7 @@ function formatCurrency(value: number | null | undefined) {
   }).format(numeric);
 }
 
-function formatLargeNumber(value: number | null | undefined) {
+function formatLargeNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") {
     return "No data available";
   }
@@ -211,7 +211,7 @@ function formatLargeNumber(value: number | null | undefined) {
   }).format(numeric);
 }
 
-function toDisplayNumber(value: number | null | undefined) {
+function toDisplayNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -298,7 +298,7 @@ function normalizeMcpSummary(value: string | undefined) {
   return summary || "No trade — insufficient edge";
 }
 
-function formatMetricNumber(value: number | null | undefined, digits = 1) {
+function formatMetricNumber(value: number | string | null | undefined, digits = 1) {
   const numeric = toDisplayNumber(value);
   if (numeric === null) {
     return "--";
@@ -307,7 +307,7 @@ function formatMetricNumber(value: number | null | undefined, digits = 1) {
   return numeric.toFixed(digits);
 }
 
-function formatRatio(value: number | null | undefined) {
+function formatRatio(value: number | string | null | undefined) {
   const numeric = toDisplayNumber(value);
   if (numeric === null) {
     return "--";
