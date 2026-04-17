@@ -5,7 +5,7 @@ if (!process.env.DATABASE_URL) {
   require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 }
 
-const { createV2App } = require('./v2');
+const { createV2App, startV2BackgroundServices } = require('./v2');
 const { clearResearchRouteCaches, warmResearchRouteResources } = require('./routes/research');
 const {
   verifySnapshotTableExists,
@@ -38,20 +38,25 @@ async function verifySnapshotStartup() {
 
 async function startServer() {
   clearResearchRouteCaches();
-  try {
-    await warmResearchRouteResources();
-  } catch (error) {
-    console.warn('[STARTUP] research coverage warmup skipped', {
-      error: error.message,
-    });
-  }
 
   app = createV2App();
   server = app.listen(PORT, () => {
     console.log(`🚀 V2 backend running on port ${PORT}`);
   });
 
-  void verifySnapshotStartup();
+  startV2BackgroundServices(app, {
+    async startResearchWarmup() {
+      try {
+        await warmResearchRouteResources();
+      } catch (error) {
+        console.warn('[STARTUP] research coverage warmup skipped', {
+          error: error.message,
+        });
+      }
+
+      await verifySnapshotStartup();
+    },
+  });
 
   return { app, server };
 }

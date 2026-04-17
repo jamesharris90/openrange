@@ -21,7 +21,10 @@ const researchRoute = require('../routes/research');
 const truthAuditRoute = require('../routes/truthAudit');
 const userRoutes = require('../users/routes');
 const { buildChartPayload } = require('./services/chartService');
-const { startExperienceSnapshotSchedulers } = require('./services/experienceSnapshotService');
+const {
+  startNewsSnapshotScheduler,
+  startEarningsSnapshotScheduler,
+} = require('./services/experienceSnapshotService');
 const { buildAndStoreScreenerSnapshot } = require('./services/snapshotService');
 const { runYahooNewsIngest } = require('./ingestion/yahooNewsIngest');
 const { runNewsBackfill } = require('./ingestion/newsBackfill');
@@ -87,8 +90,22 @@ const isRailwayRuntime = Boolean(
   || process.env.RAILWAY_SERVICE_ID
 );
 const railwayServiceRole = String(process.env.OPENRANGE_SERVICE_ROLE || '').trim().toLowerCase();
-const screenerSnapshotStartupDelayMs = Number(process.env.SCREENER_SNAPSHOT_STARTUP_DELAY_MS || (isRailwayRuntime ? 120000 : 0));
+const screenerSnapshotStartupDelayMs = Number(process.env.SCREENER_SNAPSHOT_STARTUP_DELAY_MS || 0);
 let screenerSnapshotReadyAt = 0;
+
+const STARTUP_DELAYS_MS = {
+  screenerSnapshot: Number(process.env.STARTUP_DELAY_SCREENER_SNAPSHOT_MS || 10_000),
+  newsSnapshot: Number(process.env.STARTUP_DELAY_NEWS_SNAPSHOT_MS || 20_000),
+  earningsSnapshot: Number(process.env.STARTUP_DELAY_EARNINGS_SNAPSHOT_MS || 30_000),
+  researchWarmup: Number(process.env.STARTUP_DELAY_RESEARCH_WARMUP_MS || 40_000),
+  ingestion: Number(process.env.STARTUP_DELAY_INGESTION_MS || 50_000),
+  backgroundServices: Number(process.env.STARTUP_DELAY_BACKGROUND_SERVICES_MS || 60_000),
+  nonEssential: Number(process.env.STARTUP_DELAY_NON_ESSENTIAL_MS || 70_000),
+};
+const HEALTH_TIMEOUTS_MS = {
+  dataHealth: Number(process.env.HEALTH_DATA_TIMEOUT_MS || 1500),
+  telemetry: Number(process.env.HEALTH_TELEMETRY_TIMEOUT_MS || 1000),
+};
 
 function envFlag(name, defaultValue = true) {
   const raw = process.env[name];
@@ -246,54 +263,101 @@ function ensureIntelligencePipelineScheduler() {
   startIntelligencePipelineScheduler();
 }
 
+async function runStartupTask(name, task) {
+  try {
+    await task();
+    console.log('[STARTUP] task complete', { name });
+  } catch (error) {
+    console.warn('[STARTUP] task failed', {
+      name,
+      error: error.message,
+    });
+  }
+}
+
+function scheduleStartupTask(name, delayMs, task) {
+  console.log('[STARTUP] task scheduled', { name, delayMs });
+
+  const timer = setTimeout(() => {
+    void runStartupTask(name, task);
+  }, Math.max(0, Number(delayMs) || 0));
+
+  if (typeof timer.unref === 'function') {
+    timer.unref();
+  }
+}
+
+function withDeadline(name, promiseFactory, timeoutMs, fallbackValue) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      console.warn('[HEALTH] diagnostic timed out', { name, timeoutMs });
+      resolve(fallbackValue);
+    }, timeoutMs);
+
+    if (typeof timer.unref === 'function') {
+      timer.unref();
+    }
+
+    Promise.resolve()
+      .then(promiseFactory)
+      .then((value) => {
+        if (settled) {
+          return;
+        }
+
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        if (settled) {
+          return;
+        }
+
+        clearTimeout(timer);
+        resolve(fallbackValue);
+      });
+  });
+}
+
 function createV2App() {
   const app = express();
   const schedulerFlags = resolveSchedulerFlags();
 
   app.use(cors());
   app.use(express.json());
-  startExperienceSnapshotSchedulers();
+  app.locals.schedulerFlags = schedulerFlags;
 
   console.log('🚫 LEGACY SYSTEM DISABLED — V2 MODE ACTIVE');
   console.log('[SCHEDULERS] runtime flags', schedulerFlags);
-
-  if (schedulerFlags.ingestionSchedulerEnabled) {
-    startIngestionScheduler();
-    startRetentionJobs();
-  } else {
-    console.log('[SCHEDULERS] ingestion scheduler disabled');
-  }
-
-  if (schedulerFlags.backgroundServicesEnabled) {
-    startBacktestScheduler();
-    startTradeOutcomeScheduler();
-    startDataHealthMonitor();
-  } else {
-    console.log('[SCHEDULERS] background services disabled');
-  }
-
-  if (schedulerFlags.nonEssentialEnginesEnabled) {
-    ensureYahooNewsScheduler();
-    ensureNewsBackfillScheduler();
-    ensureIntelligencePipelineScheduler();
-    registerEmailIntelligenceSchedules();
-  } else {
-    console.log('[SCHEDULERS] non-essential schedulers disabled');
-  }
-
-  if (schedulerFlags.screenerSnapshotEnabled) {
-    ensureScreenerSnapshotScheduler();
-  } else {
-    console.log('[SCHEDULERS] screener snapshot scheduler disabled');
-  }
 
   app.get('/api/health', async (_req, res) => {
     const integrity = getDataIntegrityHealth();
     const data_integrity_engine = resolveIntegrityStatus(integrity);
 
     const [dataHealth, telemetry] = await Promise.all([
-      getDataHealth().catch((error) => ({ status: 'warning', error: error.message, tables: {} })),
-      getTelemetry().catch(() => ({})),
+      withDeadline(
+        'data_health',
+        () => getDataHealth().catch((error) => ({ status: 'warning', error: error.message, tables: {} })),
+        HEALTH_TIMEOUTS_MS.dataHealth,
+        {
+          status: 'warning',
+          error: 'timeout',
+          timeout: true,
+          tables: {},
+        }
+      ),
+      withDeadline(
+        'telemetry',
+        () => getTelemetry().catch(() => ({})),
+        HEALTH_TIMEOUTS_MS.telemetry,
+        {
+          timeout: true,
+          last_update: null,
+          integrity_runtime: null,
+        }
+      ),
     ]);
 
     return res.json({
@@ -344,6 +408,69 @@ function createV2App() {
   return app;
 }
 
+function startV2BackgroundServices(app, options = {}) {
+  const schedulerFlags = options.schedulerFlags || app?.locals?.schedulerFlags || resolveSchedulerFlags();
+  const hooks = {
+    startResearchWarmup: options.startResearchWarmup,
+  };
+
+  console.log('[STARTUP] staging background services', {
+    delays_ms: STARTUP_DELAYS_MS,
+    schedulerFlags,
+  });
+
+  if (schedulerFlags.screenerSnapshotEnabled) {
+    scheduleStartupTask('screener_snapshot_scheduler', STARTUP_DELAYS_MS.screenerSnapshot, async () => {
+      ensureScreenerSnapshotScheduler();
+    });
+  } else {
+    console.log('[SCHEDULERS] screener snapshot scheduler disabled');
+  }
+
+  scheduleStartupTask('news_snapshot_scheduler', STARTUP_DELAYS_MS.newsSnapshot, async () => {
+    startNewsSnapshotScheduler();
+  });
+
+  scheduleStartupTask('earnings_snapshot_scheduler', STARTUP_DELAYS_MS.earningsSnapshot, async () => {
+    startEarningsSnapshotScheduler();
+  });
+
+  if (typeof hooks.startResearchWarmup === 'function') {
+    scheduleStartupTask('research_warmup', STARTUP_DELAYS_MS.researchWarmup, hooks.startResearchWarmup);
+  }
+
+  if (schedulerFlags.ingestionSchedulerEnabled) {
+    scheduleStartupTask('ingestion_scheduler', STARTUP_DELAYS_MS.ingestion, async () => {
+      startIngestionScheduler();
+      startRetentionJobs();
+    });
+  } else {
+    console.log('[SCHEDULERS] ingestion scheduler disabled');
+  }
+
+  if (schedulerFlags.backgroundServicesEnabled) {
+    scheduleStartupTask('background_services', STARTUP_DELAYS_MS.backgroundServices, async () => {
+      startBacktestScheduler();
+      startTradeOutcomeScheduler();
+      startDataHealthMonitor();
+    });
+  } else {
+    console.log('[SCHEDULERS] background services disabled');
+  }
+
+  if (schedulerFlags.nonEssentialEnginesEnabled) {
+    scheduleStartupTask('non_essential_schedulers', STARTUP_DELAYS_MS.nonEssential, async () => {
+      ensureYahooNewsScheduler();
+      ensureNewsBackfillScheduler();
+      ensureIntelligencePipelineScheduler();
+      registerEmailIntelligenceSchedules();
+    });
+  } else {
+    console.log('[SCHEDULERS] non-essential schedulers disabled');
+  }
+}
+
 module.exports = {
   createV2App,
+  startV2BackgroundServices,
 };

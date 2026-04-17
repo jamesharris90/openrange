@@ -13,7 +13,8 @@ const EARNINGS_SNAPSHOT_LIMIT = 5000;
 
 let newsRefreshPromise = null;
 let earningsRefreshPromise = null;
-let schedulersStarted = false;
+let newsSchedulerStarted = false;
+let earningsSchedulerStarted = false;
 
 function toNullableNumber(value) {
   if (value === null || value === undefined || value === '') {
@@ -790,22 +791,42 @@ async function buildFastResearchSnapshot(symbolInput) {
 }
 
 function scheduleRecurringRefresh(callback, intervalMs) {
-  setInterval(() => {
+  const timer = setInterval(() => {
     void callback().catch(() => {});
   }, intervalMs);
+
+  if (typeof timer.unref === 'function') {
+    timer.unref();
+  }
+
+  return timer;
 }
 
-function startExperienceSnapshotSchedulers() {
-  if (schedulersStarted) {
+function startNewsSnapshotScheduler() {
+  if (newsSchedulerStarted) {
     return;
   }
 
-  schedulersStarted = true;
+  newsSchedulerStarted = true;
   void refreshNewsSnapshot().catch(() => {});
-  void refreshEarningsSnapshot().catch(() => {});
   scheduleRecurringRefresh(refreshNewsSnapshot, NEWS_SNAPSHOT_TTL_MS);
+  console.log('[EXPERIENCE_SNAPSHOTS] news scheduler active (60s)');
+}
+
+function startEarningsSnapshotScheduler() {
+  if (earningsSchedulerStarted) {
+    return;
+  }
+
+  earningsSchedulerStarted = true;
+  void refreshEarningsSnapshot().catch(() => {});
   scheduleRecurringRefresh(refreshEarningsSnapshot, EARNINGS_SNAPSHOT_TTL_MS);
-  console.log('[EXPERIENCE_SNAPSHOTS] schedulers active (news 60s, earnings 60s)');
+  console.log('[EXPERIENCE_SNAPSHOTS] earnings scheduler active (60s)');
+}
+
+function startExperienceSnapshotSchedulers() {
+  startNewsSnapshotScheduler();
+  startEarningsSnapshotScheduler();
 }
 
 module.exports = {
@@ -813,5 +834,7 @@ module.exports = {
   getCachedEarningsCalendarPayload,
   getCachedNewsFeedPayload,
   getCachedSymbolNewsPayload,
+  startEarningsSnapshotScheduler,
   startExperienceSnapshotSchedulers,
+  startNewsSnapshotScheduler,
 };
