@@ -15,6 +15,7 @@ const EARNINGS_CACHE_WINDOW_DAYS = 90;
 const EARNINGS_STALE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPANY_PROFILE_TIMEOUT_MS = 650;
 const CHART_SECTION_TIMEOUT_MS = 10000;
+const RESEARCH_SECTION_TIMEOUT_MS = 6000;
 
 let ensureEarningsSchemaPromise = null;
 const earningsRefreshInFlight = new Map();
@@ -74,6 +75,7 @@ function emptyResearchData(symbol) {
     earnings: {
       latest: null,
       next: null,
+      history: [],
     },
     company: {},
     mcp: getDefaultMCP(symbol),
@@ -1103,7 +1105,7 @@ async function getResearchData(symbol) {
          COALESCE((SELECT to_jsonb(m) FROM market_metrics m WHERE m.symbol = $1 LIMIT 1), '{}'::jsonb) AS metrics`,
       [normalizedSymbol],
       {
-        timeoutMs: 3000,
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
         label: 'research.market',
       },
       warnings,
@@ -1171,7 +1173,7 @@ async function getResearchData(symbol) {
        LIMIT 20`,
       [normalizedSymbol],
       {
-        timeoutMs: 3000,
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
         label: 'research.news',
       },
       warnings,
@@ -1210,7 +1212,7 @@ async function getResearchData(symbol) {
          ) AS last_updated_at`,
       [normalizedSymbol],
       {
-        timeoutMs: 3000,
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
         label: 'research.earnings',
       },
       warnings,
@@ -1225,7 +1227,7 @@ async function getResearchData(symbol) {
        LIMIT 1`,
       [normalizedSymbol],
       {
-        timeoutMs: 3000,
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
         label: 'research.company',
       },
       warnings,
@@ -1244,12 +1246,16 @@ async function getResearchData(symbol) {
      LIMIT 4`,
     [normalizedSymbol],
     {
-        timeoutMs: 3000,
+      timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
       label: 'research.earnings.projected_history',
     },
     warnings,
     []
   );
+
+  const earningsHistory = projectedEarningsRows
+    .map((row) => normalizeEarningsRecord({ ...row, symbol: normalizedSymbol }))
+    .filter(Boolean);
 
   const marketRow = marketRows[0] || { quote: {}, metrics: {} };
   payload.market = normalizeMarketRow(marketRow);
@@ -1263,6 +1269,7 @@ async function getResearchData(symbol) {
   payload.earnings = buildEarningsPayload([
     earningsRows[0]?.latest,
     earningsRows[0]?.next,
+    ...earningsHistory,
   ]);
 
   const hasRecentEarningsRows = Boolean(earningsRows[0]?.has_recent_rows);
@@ -1298,6 +1305,11 @@ async function getResearchData(symbol) {
       warnings.push('earnings_projected_from_history');
     }
   }
+
+  payload.earnings = {
+    ...payload.earnings,
+    history: earningsHistory,
+  };
 
   payload.company = normalizeCompanyRecord(companyRows[0]?.data, normalizedSymbol);
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/screener", "/screener-v2", "/coverage-campaign", "/sw.js"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/screener", "/screener-v2", "/news-feed", "/earnings", "/coverage-campaign", "/sw.js"]);
 const PUBLIC_ROUTES = ["/research/", "/research-v2/"];
 const ADMIN_PREFIX = "/admin";
 

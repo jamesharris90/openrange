@@ -2,6 +2,7 @@ const express = require('express');
 const { pool } = require('../db/pg');
 const { fmpFetch } = require('../services/fmpClient');
 const { fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
+const { getCoverageContext, getCoverageExplanation, hasStructuralEarningsGap } = require('../services/dataCoverageService');
 const {
   classifyEarningsTrade,
   buildExecutionPlan,
@@ -196,6 +197,25 @@ function emptyHistoryPayload(extra = {}) {
   };
 }
 
+function buildCoverageAwareMessage(symbol, coverage, hasNextEvent, structurallyUnsupported = false) {
+  switch (true) {
+    case structurallyUnsupported:
+      return 'Earnings are not expected for this listing type.';
+    case coverage?.status === 'LOW_QUALITY_TICKER':
+      return 'Earnings coverage is currently unavailable for this low-liquidity ticker.';
+    case coverage?.status === 'PARTIAL_EARNINGS':
+      return hasNextEvent
+        ? `Upcoming earnings are scheduled for ${symbol}, but historical quarters are still backfilling.`
+        : `Historical earnings for ${symbol} are only partially available right now.`;
+    case coverage?.status === 'NO_EARNINGS':
+      return `No recent earnings history has been published for ${symbol}.`;
+    default:
+      return hasNextEvent
+        ? `Upcoming earnings are scheduled for ${symbol}, but recent history is still unavailable.`
+        : 'No recent earnings data available.';
+  }
+}
+
 async function fmpEarningsFallback(from, to) {
   try {
     const rows = await fmpFetch('/earnings-calendar', { from, to }).catch(() => []);
@@ -322,6 +342,10 @@ function addUtcDays(date, days) {
 
 function isoDate(date) {
   return date.toISOString().slice(0, 10);
+}
+
+function limitRows(rows, limit) {
+  return Array.isArray(rows) ? rows.slice(0, limit) : [];
 }
 
 function toUtcMidnight(dateInput) {
@@ -615,20 +639,39 @@ router.get('/api/earnings/history/:symbol', async (req, res) => {
 
     const history = historyResult.rows || [];
     const next = nextResult.rows?.[0] || null;
+    const coverage = await withTimeout(getCoverageExplanation(symbol).catch(() => null), 500, null);
+    const coverageContext = await withTimeout(getCoverageContext(symbol).catch(() => null), 500, null);
+    const structurallyUnsupported = hasStructuralEarningsGap(coverageContext || {});
+    const noHistory = history.length === 0;
+    const message = noHistory ? buildCoverageAwareMessage(symbol, coverage, Boolean(next), structurallyUnsupported) : null;
 
     return res.json({
       success: true,
       symbol,
       next,
       history,
-      message: history.length === 0 ? 'No recent earnings data available' : null,
-      meta: history.length === 0
+      message,
+      meta: noHistory
         ? {
             fallback: true,
-            reason: 'no_data',
+            reason: structurallyUnsupported
+              ? 'structurally_unsupported'
+              : coverage?.status === 'LOW_QUALITY_TICKER'
+                ? 'low_quality_ticker'
+                : 'no_data',
+            unsupported: structurallyUnsupported || ['STRUCTURALLY_UNSUPPORTED', 'LOW_QUALITY_TICKER'].includes(String(coverage?.status || '')),
+            coverage_status: coverage?.status || null,
+            coverage_detail: coverage?.detail || null,
+            coverage_explanation: coverage?.explanation || null,
+            instrument_type_unsupported: structurallyUnsupported,
           }
         : {
             fallback: false,
+            unsupported: structurallyUnsupported,
+            coverage_status: coverage?.status || null,
+            coverage_detail: coverage?.detail || null,
+            coverage_explanation: coverage?.explanation || null,
+            instrument_type_unsupported: structurallyUnsupported,
           },
     });
   } catch (error) {
@@ -676,12 +719,13 @@ router.get('/api/earnings/calendar', async (req, res) => {
       console.warn('[EARNINGS] schema unavailable — using FMP fallback');
       const fmpRows = await fmpEarningsFallback(from, to);
       if (fmpRows.length > 0) {
+        const limitedRows = limitRows(fmpRows, limit);
         return res.status(200).json({
           success: true,
-          data: fmpRows,
-          count: fmpRows.length,
+          data: limitedRows,
+          count: limitedRows.length,
           source: 'fmp_direct',
-          rows: fmpRows,
+          rows: limitedRows,
           meta: {
             fallback: true,
             reason: 'no_data',
@@ -706,12 +750,13 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
       const fmpRows = await fmpEarningsFallback(from, to);
       if (fmpRows.length > 0) {
+        const limitedRows = limitRows(fmpRows, limit);
         return res.status(200).json({
           success: true,
-          data: fmpRows,
-          count: fmpRows.length,
+          data: limitedRows,
+          count: limitedRows.length,
           source: 'fmp_direct',
-          rows: fmpRows,
+          rows: limitedRows,
           meta: {
             fallback: true,
             reason: 'no_data',
@@ -805,7 +850,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
     } catch {
       const fmpRows = await fmpEarningsFallback(from, to);
       if (fmpRows.length > 0) {
-        return res.status(200).json({ success: true, data: fmpRows, count: fmpRows.length, source: 'fmp_direct', rows: fmpRows });
+        const limitedRows = limitRows(fmpRows, limit);
+        return res.status(200).json({ success: true, data: limitedRows, count: limitedRows.length, source: 'fmp_direct', rows: limitedRows });
       }
       return res.status(200).json({
         ...fallbackCalendarPayload({ message: 'db_query_failed' }),
@@ -815,8 +861,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
 
     const dbRowsAreFresh = dbRows.some((row) => isFreshTimestamp(row.updated_at));
     const fmpRows = !dbRows.length || !dbRowsAreFresh ? await fmpEarningsFallback(from, to) : [];
+    const limitedFmpRows = limitRows(fmpRows, limit);
     const responseSource = dbRows.length && dbRowsAreFresh ? 'db' : fmpRows.length ? 'fmp' : dbRows.length ? 'fallback' : 'fallback';
-    const responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? fmpRows : dbRows;
+    const responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? limitedFmpRows : dbRows;
 
     let enriched = responseRows.map((row) => {
 

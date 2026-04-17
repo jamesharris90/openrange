@@ -95,12 +95,14 @@ type ResearchData = {
   market?: MarketData;
   technicals?: TechnicalsData;
   chart?: { data?: unknown[] } | unknown[] | null;
+  news?: NewsItem[];
   data_confidence?: number | null;
   data_confidence_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   data_quality_label?: "HIGH" | "MEDIUM" | "LOW" | null;
   earnings?: {
     latest?: EarningsRecord | null;
     next?: EarningsRecord | null;
+    history?: EarningsRecord[];
   };
   company?: CompanyData;
   mcp?: MCPData;
@@ -425,6 +427,7 @@ const DecisionPanel = memo(function DecisionPanel({ data }: { data: ResearchData
 const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: ResearchData | null; symbol: string }) {
   const company = data?.company || {};
   const earnings = data?.earnings || {};
+  const earningsHistory = Array.isArray(earnings.history) ? earnings.history : [];
 
   return (
     <div className="space-y-4">
@@ -447,6 +450,19 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
           <InfoPanel title="EPS Estimate" value={Number.isFinite(Number(earnings.next?.eps_estimate)) ? Number(earnings.next?.eps_estimate).toFixed(2) : "No data available"} muted />
           <InfoPanel title="Revenue Estimate" value={formatLargeNumber(earnings.next?.revenue_estimate ?? null)} muted />
         </div>
+        {earningsHistory.length ? (
+          <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Last 4 Quarters</p>
+            <div className="mt-3 space-y-2">
+              {earningsHistory.slice(0, 4).map((entry) => (
+                <div key={`${symbol}-${entry.report_date || 'na'}`} className="flex items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2 text-sm text-slate-200">
+                  <span>{formatDate(entry.report_date)}</span>
+                  <span className="text-slate-400">EPS {Number.isFinite(Number(entry.eps_actual ?? entry.eps_estimate)) ? Number(entry.eps_actual ?? entry.eps_estimate).toFixed(2) : "--"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -486,6 +502,13 @@ function ResearchV2PageContent({ params }: Props) {
   const payload = data?.data || null;
   const researchMeta = data?.meta || null;
   const chartRows = useMemo(() => getChartRows(payload?.chart), [payload?.chart]);
+  const catalystNews = useMemo(() => {
+    if (Array.isArray(news) && news.length > 0) {
+      return news;
+    }
+
+    return normalizeNewsPayload(payload?.news);
+  }, [news, payload?.news]);
   const dataQualityLabel = resolveDataQualityLabel(payload, data);
   const dataConfidence = Number(payload?.data_confidence ?? data?.data_confidence ?? 0);
 
@@ -736,7 +759,7 @@ function ResearchV2PageContent({ params }: Props) {
               <ChartEngine ticker={symbol} timeframe="daily" height={340} />
               {!chartRows?.length ? <EmptyState message="No chart data available" compact /> : null}
             </div>
-            <CatalystPanel symbol={symbol} news={news ?? ([] as NewsItem[])} />
+            <CatalystPanel symbol={symbol} news={catalystNews} />
           </div>
 
           <FundamentalsPanel data={payload} />
