@@ -15,6 +15,126 @@ let newsRefreshPromise = null;
 let earningsRefreshPromise = null;
 let schedulersStarted = false;
 
+function toNullableNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toNullableString(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function normalizeFastHistoryRow(symbol, row) {
+  const reportDate = row?.report_date ? String(row.report_date).slice(0, 10) : null;
+  if (!reportDate) {
+    return null;
+  }
+
+  return {
+    symbol,
+    report_date: reportDate,
+    report_time: String(row?.report_time || 'TBD').trim() || 'TBD',
+    eps_estimate: toNullableNumber(row?.eps_estimate),
+    eps_actual: toNullableNumber(row?.eps_actual),
+    revenue_estimate: toNullableNumber(row?.revenue_estimate),
+    revenue_actual: toNullableNumber(row?.revenue_actual),
+    market_cap: toNullableNumber(row?.market_cap),
+    sector: toNullableString(row?.sector),
+    industry: toNullableString(row?.industry),
+  };
+}
+
+async function loadFastResearchSupplements(symbol) {
+  const [companyResult, nextResult, historyResult] = await Promise.all([
+    queryWithTimeout(
+      `SELECT
+         COALESCE(cp.company_name, tu.company_name) AS company_name,
+         COALESCE(cp.sector, tu.sector) AS sector,
+         COALESCE(cp.industry, tu.industry) AS industry,
+         cp.description,
+         COALESCE(cp.exchange, tu.exchange) AS exchange,
+         cp.country,
+         cp.website
+       FROM ticker_universe tu
+       FULL OUTER JOIN company_profiles cp ON UPPER(cp.symbol) = UPPER(tu.symbol)
+       WHERE UPPER(COALESCE(cp.symbol, tu.symbol)) = $1
+       LIMIT 1`,
+      [symbol],
+      {
+        timeoutMs: 2000,
+        label: 'experience.research.company_supplement',
+        maxRetries: 0,
+      }
+    ).catch(() => ({ rows: [] })),
+    queryWithTimeout(
+      `SELECT
+         symbol,
+         report_date::text AS report_date,
+         COALESCE(NULLIF(report_time, ''), NULLIF(time, ''), 'TBD') AS report_time,
+         eps_estimate,
+         COALESCE(revenue_estimate, rev_estimate) AS revenue_estimate,
+         market_cap,
+         sector,
+         industry
+       FROM earnings_events
+       WHERE UPPER(symbol) = $1
+         AND report_date >= CURRENT_DATE
+       ORDER BY report_date ASC
+       LIMIT 1`,
+      [symbol],
+      {
+        timeoutMs: 2000,
+        label: 'experience.research.next_earnings',
+        maxRetries: 0,
+      }
+    ).catch(() => ({ rows: [] })),
+    queryWithTimeout(
+      `SELECT
+         report_date::text AS report_date,
+         COALESCE(NULLIF(report_time, ''), 'TBD') AS report_time,
+         eps_estimate,
+         eps_actual,
+         revenue_estimate,
+         revenue_actual
+       FROM earnings_history
+       WHERE UPPER(symbol) = $1
+       ORDER BY report_date DESC
+       LIMIT 4`,
+      [symbol],
+      {
+        timeoutMs: 2000,
+        label: 'experience.research.history',
+        maxRetries: 0,
+      }
+    ).catch(() => ({ rows: [] })),
+  ]);
+
+  const company = companyResult.rows?.[0] || {};
+  const nextEarningsRow = nextResult.rows?.[0] || null;
+  const history = (historyResult.rows || [])
+    .map((row) => normalizeFastHistoryRow(symbol, row))
+    .filter(Boolean);
+
+  return {
+    company: {
+      company_name: toNullableString(company.company_name),
+      sector: toNullableString(company.sector),
+      industry: toNullableString(company.industry),
+      exchange: toNullableString(company.exchange),
+      country: toNullableString(company.country),
+      website: toNullableString(company.website),
+      description: toNullableString(company.description),
+    },
+    next: nextEarningsRow ? normalizeFastHistoryRow(symbol, nextEarningsRow) : null,
+    history,
+  };
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -404,8 +524,14 @@ async function buildFastResearchSnapshot(symbolInput) {
   const screenerPayload = getCachedScreenerPayload();
   const screenerRows = Array.isArray(screenerPayload?.data) ? screenerPayload.data : [];
   const screenerRow = screenerRows.find((row) => String(row?.symbol || '').trim().toUpperCase() === symbol) || null;
+  const supplementsPromise = loadFastResearchSupplements(symbol).catch(() => ({
+    company: {},
+    next: null,
+    history: [],
+  }));
 
   if (screenerRow) {
+    const supplements = await supplementsPromise;
     const fastData = {
       ...base,
       market: {
@@ -424,17 +550,17 @@ async function buildFastResearchSnapshot(symbolInput) {
         avg_volume_30d: screenerRow.avg_volume_30d ?? null,
       },
       company: {
-        company_name: screenerRow.company_name || screenerRow.name || symbol,
-        sector: screenerRow.sector || null,
-        industry: screenerRow.industry || null,
-        exchange: screenerRow.exchange || null,
-        country: null,
-        website: null,
-        description: null,
+        company_name: supplements.company.company_name || screenerRow.company_name || screenerRow.name || symbol,
+        sector: supplements.company.sector || screenerRow.sector || null,
+        industry: supplements.company.industry || screenerRow.industry || null,
+        exchange: supplements.company.exchange || screenerRow.exchange || null,
+        country: supplements.company.country || null,
+        website: supplements.company.website || null,
+        description: supplements.company.description || null,
       },
       earnings: {
-        latest: null,
-        next: screenerRow.earnings_date ? {
+        latest: supplements.history[0] || null,
+        next: supplements.next || (screenerRow.earnings_date ? {
           symbol,
           report_date: screenerRow.earnings_date,
           report_time: null,
@@ -445,8 +571,8 @@ async function buildFastResearchSnapshot(symbolInput) {
           market_cap: screenerRow.market_cap ?? null,
           sector: screenerRow.sector || null,
           industry: screenerRow.industry || null,
-        } : null,
-        history: [],
+        } : null),
+        history: supplements.history,
       },
       screener: screenerRow,
       news_count: screenerRow.has_news ? 1 : 0,

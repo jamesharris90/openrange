@@ -243,11 +243,37 @@ function fullResearchCacheKey(symbol) {
 
 async function buildFullResearchPayload(symbol) {
   const startedAt = Date.now();
+  const fastSnapshot = await buildFastResearchSnapshot(symbol).catch(() => null);
+  const fastData = fastSnapshot?.data || null;
   const data = await getResearchData(symbol);
   const dbBackfilledData = await enrichResearchDataFromDb(symbol, data);
   const snapshotScreenerRow = await getSnapshotScreenerRow(symbol);
   const screenerRow = snapshotScreenerRow || buildSyntheticScreenerRow(symbol, dbBackfilledData);
   const researchData = enrichResearchDataFromScreener(symbol, dbBackfilledData, snapshotScreenerRow);
+
+  if (fastData) {
+    researchData.company = {
+      ...(fastData.company || {}),
+      ...(researchData.company || {}),
+      company_name: researchData.company?.company_name || fastData.company?.company_name || symbol,
+      sector: researchData.company?.sector || fastData.company?.sector || null,
+      industry: researchData.company?.industry || fastData.company?.industry || null,
+      exchange: researchData.company?.exchange || fastData.company?.exchange || null,
+      country: researchData.company?.country || fastData.company?.country || null,
+      website: researchData.company?.website || fastData.company?.website || null,
+      description: researchData.company?.description || fastData.company?.description || null,
+    };
+
+    researchData.earnings = {
+      ...(fastData.earnings || {}),
+      ...(researchData.earnings || {}),
+      latest: researchData.earnings?.latest || fastData.earnings?.latest || null,
+      next: researchData.earnings?.next?.report_date ? researchData.earnings.next : (fastData.earnings?.next || null),
+      history: Array.isArray(researchData.earnings?.history) && researchData.earnings.history.length
+        ? researchData.earnings.history
+        : (Array.isArray(fastData.earnings?.history) ? fastData.earnings.history : []),
+    };
+  }
 
   researchData.screener = screenerRow;
   researchData.narrative = await buildFastNarrative(symbol, researchData.mcp, screenerRow);

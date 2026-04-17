@@ -18,6 +18,7 @@ const CHART_SECTION_TIMEOUT_MS = 10000;
 const RESEARCH_SECTION_TIMEOUT_MS = 6000;
 
 let ensureEarningsSchemaPromise = null;
+let earningsSchemaVerified = false;
 const earningsRefreshInFlight = new Map();
 
 const REQUIRED_TABLES = [
@@ -320,6 +321,42 @@ function buildEarningsPayload(rows) {
 }
 
 async function ensureEarningsSchema() {
+  const columnResult = await queryWithTimeout(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_name = 'earnings_events'
+       AND column_name = ANY($1::text[])`,
+    [['updated_at', 'source']],
+    {
+      timeoutMs: 1000,
+      label: 'research.earnings.check_columns',
+      maxRetries: 0,
+    }
+  );
+
+  const existingColumns = new Set((columnResult.rows || []).map((row) => String(row.column_name || '').trim()));
+  const hasRequiredColumns = existingColumns.has('updated_at') && existingColumns.has('source');
+
+  const constraintResult = await queryWithTimeout(
+    `SELECT 1
+     FROM pg_constraint
+     WHERE conname = 'earnings_events_symbol_report_date_key'
+       AND conrelid = 'earnings_events'::regclass
+     LIMIT 1`,
+    [],
+    {
+      timeoutMs: 1000,
+      label: 'research.earnings.check_unique',
+      maxRetries: 0,
+    }
+  );
+
+  const hasUniqueConstraint = Boolean(constraintResult.rows?.[0]);
+  if (hasRequiredColumns && hasUniqueConstraint) {
+    earningsSchemaVerified = true;
+    return;
+  }
+
   await queryWithTimeout(
     `ALTER TABLE earnings_events
        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -353,10 +390,16 @@ async function ensureEarningsSchema() {
       poolType: 'write',
     }
   );
+
+  earningsSchemaVerified = true;
 }
 
 async function ensureEarningsSchemaReady(existingTables) {
   if (!existingTables?.has('earnings_events')) {
+    return;
+  }
+
+  if (earningsSchemaVerified) {
     return;
   }
 
@@ -1089,12 +1132,6 @@ async function getResearchData(symbol) {
   const payload = emptyResearchData(normalizedSymbol);
   const existingTables = new Set(REQUIRED_TABLES);
   const warnings = payload.warnings;
-
-  try {
-    await ensureEarningsSchemaReady(existingTables);
-  } catch (error) {
-    warnings.push(`earnings_events: ${error.message}`);
-  }
 
   const [marketRows, intradayRows, dailyRows, newsRows, earningsRows, companyRows] = await Promise.all([
     safeQuery(
