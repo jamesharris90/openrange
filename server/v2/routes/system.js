@@ -17,43 +17,93 @@ const DEFAULT_TIMESTAMP_COLUMNS = ['updated_at', 'created_at', 'timestamp', 'pub
 
 const TABLE_CONFIG = [
   { alias: 'intraday_1m', table: 'intraday_1m', timestampColumns: ['timestamp', 'updated_at', 'created_at'] },
-  { alias: 'daily_ohlcv', table: 'daily_ohlcv', timestampColumns: ['date', 'updated_at', 'created_at'], thresholdMinutes: 2880 },
-  { alias: 'ticker_universe', table: 'ticker_universe', timestampColumns: ['last_updated', 'updated_at', 'created_at'], thresholdMinutes: 10080 },
+  { alias: 'daily_ohlc', table: 'daily_ohlc', timestampColumns: ['date', 'updated_at', 'created_at'], thresholdMinutes: 2880 },
+  { alias: 'ticker_universe', table: 'ticker_universe', timestampColumns: ['last_updated', 'created_at'], thresholdMinutes: 10080 },
   { alias: 'catalyst_signals', table: 'catalyst_signals', timestampColumns: ['created_at', 'updated_at'], thresholdMinutes: 120 },
   { alias: 'trade_outcomes', table: 'trade_outcomes', timestampColumns: ['evaluated_at', 'created_at'], thresholdMinutes: 10080 },
-  { alias: 'technical_data', table: 'trade_setups', timestampColumns: ['updated_at', 'created_at'] },
-  { alias: 'news_articles', table: 'news_articles', timestampColumns: ['published_at', 'updated_at', 'created_at'] },
+  { alias: 'technical_data', table: 'trade_setups', timestampColumns: ['updated_at', 'detected_at', 'created_at'] },
+  { alias: 'news_articles', table: 'news_articles', timestampColumns: ['published_at', 'ingested_at', 'created_at'] },
   { alias: 'earnings_events', table: 'earnings_events', timestampColumns: ['report_date', 'updated_at', 'created_at'] },
   { alias: 'opportunity_stream', table: 'opportunity_stream', timestampColumns: ['updated_at', 'created_at'] },
 ];
 
-async function tableExists(tableName) {
+async function loadTableMetadata(tableNames) {
   const result = await queryWithTimeout(
-    'SELECT to_regclass($1) AS name',
-    [`public.${tableName}`],
-    { timeoutMs: 3000, label: `v2.system.table_exists.${tableName}`, maxRetries: 0 }
-  ).catch(() => ({ rows: [{ name: null }] }));
-
-  return Boolean(result.rows?.[0]?.name);
-}
-
-async function findTimestampColumn(tableName, candidates = DEFAULT_TIMESTAMP_COLUMNS) {
-  const result = await queryWithTimeout(
-    `SELECT column_name
-     FROM information_schema.columns
-     WHERE table_schema = 'public'
-       AND table_name = $1`,
-    [tableName],
-    { timeoutMs: 3000, label: `v2.system.columns.${tableName}`, maxRetries: 0 }
+    `SELECT src.name,
+            CASE WHEN ns.oid IS NULL THEN FALSE ELSE cls.oid IS NOT NULL END AS exists,
+            GREATEST(0, ROUND(COALESCE(stats.n_live_tup, cls.reltuples, 0)))::bigint AS row_estimate
+     FROM unnest($1::text[]) AS src(name)
+     LEFT JOIN pg_class AS cls
+       ON cls.relname = src.name
+      AND cls.relkind = 'r'
+     LEFT JOIN pg_namespace AS ns
+       ON ns.oid = cls.relnamespace
+      AND ns.nspname = 'public'
+     LEFT JOIN pg_stat_user_tables AS stats
+       ON stats.relid = cls.oid`,
+    [tableNames],
+    { timeoutMs: 4000, label: 'v2.system.table_metadata', maxRetries: 0 }
   ).catch(() => ({ rows: [] }));
 
-  const available = new Set((result.rows || []).map((row) => String(row.column_name || '').toLowerCase()));
-  return candidates.find((column) => available.has(column.toLowerCase())) || null;
+  return new Map(
+    (result.rows || []).map((row) => [
+      String(row.name || ''),
+      {
+        exists: Boolean(row.exists),
+        rowEstimate: Number(row.row_estimate || 0),
+      },
+    ])
+  );
 }
 
-async function getTableSnapshot(config) {
-  const exists = await tableExists(config.table);
-  if (!exists) {
+async function loadTableColumns(tableNames) {
+  const result = await queryWithTimeout(
+    `SELECT table_name, column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = ANY($1::text[])`,
+    [tableNames],
+    { timeoutMs: 4000, label: 'v2.system.table_columns', maxRetries: 0 }
+  ).catch(() => ({ rows: [] }));
+
+  const columnsByTable = new Map();
+  for (const row of result.rows || []) {
+    const tableName = String(row.table_name || '');
+    const columnName = String(row.column_name || '').toLowerCase();
+    if (!columnsByTable.has(tableName)) {
+      columnsByTable.set(tableName, new Set());
+    }
+    columnsByTable.get(tableName).add(columnName);
+  }
+  return columnsByTable;
+}
+
+function resolveTimestampColumn(config, columnsByTable) {
+  const available = columnsByTable.get(config.table) || new Set();
+  return (config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS).find((column) => available.has(String(column).toLowerCase())) || null;
+}
+
+async function loadLatestTimestamp(tableName, timestampColumn) {
+  if (!timestampColumn) {
+    return null;
+  }
+
+  const result = await queryWithTimeout(
+    `SELECT ${timestampColumn}::text AS latest_timestamp
+     FROM ${tableName}
+     WHERE ${timestampColumn} IS NOT NULL
+     ORDER BY ${timestampColumn} DESC
+     LIMIT 1`,
+    [],
+    { timeoutMs: 4000, label: `v2.system.latest.${tableName}`, maxRetries: 0 }
+  ).catch(() => ({ rows: [{ latest_timestamp: null }] }));
+
+  return result.rows?.[0]?.latest_timestamp || null;
+}
+
+async function getTableSnapshot(config, metadataByTable, columnsByTable) {
+  const metadata = metadataByTable.get(config.table) || { exists: false, rowEstimate: 0 };
+  if (!metadata.exists) {
     return {
       table: config.alias,
       source_table: config.table,
@@ -65,25 +115,9 @@ async function getTableSnapshot(config) {
     };
   }
 
-  const countResult = await queryWithTimeout(
-    `SELECT COUNT(*)::int AS count FROM ${config.table}`,
-    [],
-    { timeoutMs: 4000, label: `v2.system.count.${config.table}`, maxRetries: 0 }
-  ).catch(() => ({ rows: [{ count: 0 }] }));
-
-  const timestampColumn = await findTimestampColumn(config.table, config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS);
-  let latestTimestamp = null;
-
-  if (timestampColumn) {
-    const latestResult = await queryWithTimeout(
-      `SELECT MAX(${timestampColumn})::text AS latest_timestamp FROM ${config.table}`,
-      [],
-      { timeoutMs: 4000, label: `v2.system.latest.${config.table}`, maxRetries: 0 }
-    ).catch(() => ({ rows: [{ latest_timestamp: null }] }));
-    latestTimestamp = latestResult.rows?.[0]?.latest_timestamp || null;
-  }
-
-  const rowCount = Number(countResult.rows?.[0]?.count || 0);
+  const timestampColumn = resolveTimestampColumn(config, columnsByTable);
+  const latestTimestamp = await loadLatestTimestamp(config.table, timestampColumn);
+  const rowCount = Number(metadata.rowEstimate || 0);
   const parsedTs = latestTimestamp ? Date.parse(latestTimestamp) : NaN;
   const lagMinutes = Number.isFinite(parsedTs)
     ? Math.max(0, Math.round((Date.now() - parsedTs) / 60000))
@@ -195,10 +229,16 @@ router.get('/cron-status', async (_req, res) => {
 
 router.get('/data-integrity', async (_req, res) => {
   try {
-    const [tableSnapshots, integrityHealth] = await Promise.all([
-      Promise.all(TABLE_CONFIG.map((config) => getTableSnapshot(config))),
+    const tableNames = TABLE_CONFIG.map((config) => config.table);
+    const [metadataByTable, columnsByTable, integrityHealth] = await Promise.all([
+      loadTableMetadata(tableNames),
+      loadTableColumns(tableNames),
       Promise.resolve(getDataIntegrityHealth()).catch(() => ({ status: 'idle', issues: [], last_run: null })),
     ]);
+
+    const tableSnapshots = await Promise.all(
+      TABLE_CONFIG.map((config) => getTableSnapshot(config, metadataByTable, columnsByTable))
+    );
 
     const issues = Array.isArray(integrityHealth?.issues)
       ? integrityHealth.issues.map(normalizeIntegrityIssue)

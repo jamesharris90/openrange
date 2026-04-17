@@ -1,10 +1,11 @@
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../logger');
 
+let lastHealthySnapshot = null;
+
 const TABLES = [
   'intraday_1m',
   'daily_ohlc',
-  'daily_ohlcv',
   'ticker_universe',
   'market_quotes',
   'news_articles',
@@ -16,7 +17,7 @@ const TABLES = [
   'trade_outcomes',
 ];
 
-const EXACT_COUNT_FALLBACKS = ['daily_ohlcv'];
+const EXACT_COUNT_FALLBACKS = [];
 
 async function loadExactCounts(tableNames, timeoutMs = 5000) {
   const counts = {};
@@ -47,57 +48,65 @@ async function loadExactCountFallbacks(currentEstimates) {
 }
 
 async function loadTableRowEstimates() {
-  try {
-    const result = await queryWithTimeout(
-      `SELECT src.name,
-              CASE
-                WHEN cls.oid IS NULL THEN 0
-                ELSE GREATEST(0, ROUND(COALESCE(stats.n_live_tup, cls.reltuples, 0)))::bigint
-              END AS row_estimate
-       FROM unnest($1::text[]) AS src(name)
-       LEFT JOIN pg_class AS cls
-         ON cls.relname = src.name
-        AND cls.relkind = 'r'
-       LEFT JOIN pg_namespace AS ns
-         ON ns.oid = cls.relnamespace
-        AND ns.nspname = 'public'
-       LEFT JOIN pg_stat_user_tables AS stats
-         ON stats.relid = cls.oid`,
-      [TABLES],
-      { timeoutMs: 3000, label: 'system.data_health.row_estimates', maxRetries: 0 }
-    );
+  const result = await queryWithTimeout(
+    `SELECT src.name,
+            CASE
+              WHEN ns.oid IS NULL THEN 0
+              ELSE GREATEST(0, ROUND(COALESCE(stats.n_live_tup, cls.reltuples, 0)))::bigint
+            END AS row_estimate
+     FROM unnest($1::text[]) AS src(name)
+     LEFT JOIN pg_class AS cls
+       ON cls.relname = src.name
+      AND cls.relkind = 'r'
+     LEFT JOIN pg_namespace AS ns
+       ON ns.oid = cls.relnamespace
+      AND ns.nspname = 'public'
+     LEFT JOIN pg_stat_user_tables AS stats
+       ON stats.relid = cls.oid`,
+    [TABLES],
+    { timeoutMs: 3000, label: 'system.data_health.row_estimates', maxRetries: 0 }
+  );
 
-    const estimates = Object.fromEntries(
-      (result.rows || []).map((row) => [
-        String(row.name || ''),
-        Number(row.row_estimate || 0),
-      ])
-    );
+  const estimates = Object.fromEntries(
+    TABLES.map((name) => [name, 0])
+  );
 
-    const allZero = TABLES.every((name) => Number(estimates[name] || 0) === 0);
-    if (allZero) {
-      return await loadExactCounts(TABLES, 8000);
-    }
-
-    const fallbackCounts = await loadExactCountFallbacks(estimates);
-    return { ...estimates, ...fallbackCounts };
-  } catch (_error) {
-    logger.error('[ENGINE ERROR] data_health table estimates failed');
-    return loadExactCounts(TABLES, 8000);
+  for (const row of result.rows || []) {
+    estimates[String(row.name || '')] = Number(row.row_estimate || 0);
   }
+
+  const fallbackCounts = await loadExactCountFallbacks(estimates);
+  return { ...estimates, ...fallbackCounts };
 }
 
 async function getDataHealth() {
   try {
     const tables = await loadTableRowEstimates();
+    tables.daily_ohlcv = Number(tables.daily_ohlc || 0);
     const hasZero = Object.values(tables).some((value) => Number(value || 0) === 0);
 
-    return {
+    const payload = {
       status: hasZero ? 'warning' : 'ok',
       tables,
     };
+
+    if (!hasZero) {
+      lastHealthySnapshot = payload;
+    }
+
+    return payload;
   } catch (error) {
     logger.error('[ENGINE ERROR] data_health run failed', { error: error.message });
+
+    if (lastHealthySnapshot) {
+      return {
+        ...lastHealthySnapshot,
+        status: 'warning',
+        error: error.message,
+        stale: true,
+      };
+    }
+
     return {
       status: 'warning',
       tables: Object.fromEntries(TABLES.map((name) => [name, 0])),
