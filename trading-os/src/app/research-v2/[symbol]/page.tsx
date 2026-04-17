@@ -122,6 +122,7 @@ type ResearchResponse = {
     fallback?: boolean;
     reason?: string | null;
     response_ms?: number;
+    warnings?: string[];
   };
 };
 
@@ -164,17 +165,26 @@ function normalizeNewsPayload(payload: unknown): NewsItem[] {
 }
 
 function formatPercent(value: number | null | undefined) {
-  if (!Number.isFinite(Number(value))) {
+  if (value === null || value === undefined || value === "") {
     return "No data available";
   }
 
   const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "No data available";
+  }
+
   const sign = numeric > 0 ? "+" : "";
   return `${sign}${numeric.toFixed(2)}%`;
 }
 
 function formatCurrency(value: number | null | undefined) {
-  if (!Number.isFinite(Number(value))) {
+  if (value === null || value === undefined || value === "") {
+    return "No data available";
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
     return "No data available";
   }
 
@@ -182,18 +192,32 @@ function formatCurrency(value: number | null | undefined) {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
-  }).format(Number(value));
+  }).format(numeric);
 }
 
 function formatLargeNumber(value: number | null | undefined) {
-  if (!Number.isFinite(Number(value))) {
+  if (value === null || value === undefined || value === "") {
+    return "No data available";
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
     return "No data available";
   }
 
   return new Intl.NumberFormat("en-US", {
     notation: "compact",
     maximumFractionDigits: 2,
-  }).format(Number(value));
+  }).format(numeric);
+}
+
+function toDisplayNumber(value: number | null | undefined) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -275,19 +299,21 @@ function normalizeMcpSummary(value: string | undefined) {
 }
 
 function formatMetricNumber(value: number | null | undefined, digits = 1) {
-  if (!Number.isFinite(Number(value))) {
+  const numeric = toDisplayNumber(value);
+  if (numeric === null) {
     return "--";
   }
 
-  return Number(value).toFixed(digits);
+  return numeric.toFixed(digits);
 }
 
 function formatRatio(value: number | null | undefined) {
-  if (!Number.isFinite(Number(value))) {
+  const numeric = toDisplayNumber(value);
+  if (numeric === null) {
     return "--";
   }
 
-  return `${Number(value).toFixed(1)}R`;
+  return `${numeric.toFixed(1)}R`;
 }
 
 function confidenceBarTone(confidence: number) {
@@ -376,10 +402,10 @@ class ResearchErrorBoundary extends Component<ResearchErrorBoundaryProps, Resear
 const DecisionPanel = memo(function DecisionPanel({ data }: { data: ResearchData | null }) {
   const mcp = data?.mcp || {};
   const market = data?.market || {};
-  const confidenceValue = Number.isFinite(Number(mcp.confidence)) ? Number(mcp.confidence) : 0;
-  const tradeScoreValue = Number.isFinite(Number(mcp.trade_score)) ? Number(mcp.trade_score) : 0;
-  const expectedMovePercent = Number.isFinite(Number(mcp.expected_move?.percent)) ? Number(mcp.expected_move?.percent) : null;
-  const rrValue = Number.isFinite(Number(mcp.risk?.rr)) ? Number(mcp.risk?.rr) : null;
+  const confidenceValue = toDisplayNumber(mcp.confidence);
+  const tradeScoreValue = toDisplayNumber(mcp.trade_score);
+  const expectedMovePercent = toDisplayNumber(mcp.expected_move?.percent);
+  const rrValue = toDisplayNumber(mcp.risk?.rr);
 
   return (
     <div className="rounded-2xl border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_45%),rgba(2,6,23,0.82)] p-5">
@@ -391,7 +417,7 @@ const DecisionPanel = memo(function DecisionPanel({ data }: { data: ResearchData
         </div>
         <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
           <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Trade Score</p>
-          <p className="mt-2 text-3xl font-semibold">{Math.round(tradeScoreValue)}</p>
+          <p className="mt-2 text-3xl font-semibold">{tradeScoreValue === null ? "--" : Math.round(tradeScoreValue)}</p>
         </div>
         <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
           <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Expected Move</p>
@@ -415,9 +441,9 @@ const DecisionPanel = memo(function DecisionPanel({ data }: { data: ResearchData
       </div>
       <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
         <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Confidence</p>
-        <p className="mt-2 text-sm leading-6 text-slate-200">{`${confidenceValue}% — ${mcp.confidence_reason || "Moderate conviction"}`}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-200">{confidenceValue === null ? "No data available" : `${confidenceValue}% — ${mcp.confidence_reason || "Moderate conviction"}`}</p>
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-          <div className={cn("h-full rounded-full transition-all", confidenceBarTone(confidenceValue))} style={{ width: `${Math.max(0, Math.min(100, confidenceValue))}%` }} />
+          <div className={cn("h-full rounded-full transition-all", confidenceBarTone(confidenceValue ?? 0))} style={{ width: `${Math.max(0, Math.min(100, confidenceValue ?? 0))}%` }} />
         </div>
       </div>
     </div>
@@ -447,7 +473,7 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <InfoPanel title="Next Report" value={formatDate(earnings.next?.report_date)} muted />
           <InfoPanel title="Report Time" value={earnings.next?.report_time || "No data available"} muted />
-          <InfoPanel title="EPS Estimate" value={Number.isFinite(Number(earnings.next?.eps_estimate)) ? Number(earnings.next?.eps_estimate).toFixed(2) : "No data available"} muted />
+          <InfoPanel title="EPS Estimate" value={formatMetricNumber(earnings.next?.eps_estimate ?? null, 2)} muted />
           <InfoPanel title="Revenue Estimate" value={formatLargeNumber(earnings.next?.revenue_estimate ?? null)} muted />
         </div>
         {earningsHistory.length ? (
@@ -457,7 +483,7 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
               {earningsHistory.slice(0, 4).map((entry) => (
                 <div key={`${symbol}-${entry.report_date || 'na'}`} className="flex items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2 text-sm text-slate-200">
                   <span>{formatDate(entry.report_date)}</span>
-                  <span className="text-slate-400">EPS {Number.isFinite(Number(entry.eps_actual ?? entry.eps_estimate)) ? Number(entry.eps_actual ?? entry.eps_estimate).toFixed(2) : "--"}</span>
+                  <span className="text-slate-400">EPS {formatMetricNumber(entry.eps_actual ?? entry.eps_estimate ?? null, 2)}</span>
                 </div>
               ))}
             </div>
@@ -478,10 +504,10 @@ const FundamentalsPanel = memo(function FundamentalsPanel({ data }: { data: Rese
       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Fundamentals</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <InfoPanel title="Price" value={formatCurrency(market.price ?? null)} muted />
-        <InfoPanel title="Relative Volume" value={Number.isFinite(Number(market.relative_volume ?? technicals.relative_volume)) ? Number(market.relative_volume ?? technicals.relative_volume).toFixed(2) : "No data available"} muted />
+        <InfoPanel title="Relative Volume" value={formatMetricNumber(market.relative_volume ?? technicals.relative_volume ?? null, 2)} muted />
         <InfoPanel title="Volume" value={formatLargeNumber(market.volume ?? null)} muted />
         <InfoPanel title="Market Cap" value={formatLargeNumber(market.market_cap ?? null)} muted />
-        <InfoPanel title="RSI" value={Number.isFinite(Number(technicals.rsi)) ? Number(technicals.rsi).toFixed(2) : "No data available"} muted />
+        <InfoPanel title="RSI" value={formatMetricNumber(technicals.rsi ?? null, 2)} muted />
         <InfoPanel title="VWAP" value={formatCurrency(technicals.vwap ?? null)} muted />
         <InfoPanel title="ATR" value={formatCurrency(technicals.atr ?? null)} muted />
         <InfoPanel title="Where" value={mcp.where || "Key levels still forming"} muted />
@@ -501,6 +527,12 @@ function ResearchV2PageContent({ params }: Props) {
   const [reloadKey, setReloadKey] = useState(0);
   const payload = data?.data || null;
   const researchMeta = data?.meta || null;
+  const responseWarnings = useMemo(() => {
+    return Array.from(new Set([
+      ...(Array.isArray(payload?.warnings) ? payload.warnings : []),
+      ...(Array.isArray(researchMeta?.warnings) ? researchMeta.warnings : []),
+    ]));
+  }, [payload?.warnings, researchMeta?.warnings]);
   const chartRows = useMemo(() => getChartRows(payload?.chart), [payload?.chart]);
   const catalystNews = useMemo(() => {
     if (Array.isArray(news) && news.length > 0) {
@@ -510,7 +542,7 @@ function ResearchV2PageContent({ params }: Props) {
     return normalizeNewsPayload(payload?.news);
   }, [news, payload?.news]);
   const dataQualityLabel = resolveDataQualityLabel(payload, data);
-  const dataConfidence = Number(payload?.data_confidence ?? data?.data_confidence ?? 0);
+  const dataConfidence = toDisplayNumber(payload?.data_confidence ?? data?.data_confidence ?? null);
 
   useEffect(() => {
     if (symbol) {
@@ -763,7 +795,7 @@ function ResearchV2PageContent({ params }: Props) {
               {dataQualityLabel} confidence
             </span>
             <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
-              {`${Math.round(dataConfidence)}/100`}
+              {dataConfidence === null ? "No data available" : `${Math.round(dataConfidence)}/100`}
             </span>
           </div>
           <p className="mt-3 max-w-2xl text-sm text-slate-400">
@@ -792,7 +824,7 @@ function ResearchV2PageContent({ params }: Props) {
         </div>
       ) : null}
 
-      {researchMeta?.fallback ? (
+      {researchMeta?.fallback || responseWarnings.length > 0 ? (
         <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
           Some data is temporarily limited due to high load
         </div>

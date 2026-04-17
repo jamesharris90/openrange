@@ -51,6 +51,13 @@ function normalizeFastHistoryRow(symbol, row) {
 }
 
 async function loadFastResearchSupplements(symbol) {
+  const warnings = [];
+  const pushWarning = (warning) => {
+    if (!warnings.includes(warning)) {
+      warnings.push(warning);
+    }
+  };
+
   const [companyResult, nextResult, historyResult] = await Promise.all([
     queryWithTimeout(
       `SELECT
@@ -67,11 +74,14 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 2000,
+        timeoutMs: 4000,
         label: 'experience.research.company_supplement',
         maxRetries: 0,
       }
-    ).catch(() => ({ rows: [] })),
+    ).catch(() => {
+      pushWarning('company_data_timeout');
+      return { rows: [] };
+    }),
     queryWithTimeout(
       `SELECT
          symbol,
@@ -89,11 +99,14 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 2000,
+        timeoutMs: 4000,
         label: 'experience.research.next_earnings',
         maxRetries: 0,
       }
-    ).catch(() => ({ rows: [] })),
+    ).catch(() => {
+      pushWarning('earnings_supplement_timeout');
+      return { rows: [] };
+    }),
     queryWithTimeout(
       `SELECT
          report_date::text AS report_date,
@@ -108,11 +121,14 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 4`,
       [symbol],
       {
-        timeoutMs: 2000,
+        timeoutMs: 4000,
         label: 'experience.research.history',
         maxRetries: 0,
       }
-    ).catch(() => ({ rows: [] })),
+    ).catch(() => {
+      pushWarning('earnings_supplement_timeout');
+      return { rows: [] };
+    }),
   ]);
 
   const company = companyResult.rows?.[0] || {};
@@ -133,6 +149,7 @@ async function loadFastResearchSupplements(symbol) {
     },
     next: nextEarningsRow ? normalizeFastHistoryRow(symbol, nextEarningsRow) : null,
     history,
+    warnings,
   };
 }
 
@@ -529,10 +546,12 @@ async function buildFastResearchSnapshot(symbolInput) {
     company: {},
     next: null,
     history: [],
+    warnings: ['research_supplement_unavailable'],
   }));
 
   if (screenerRow) {
     const supplements = await supplementsPromise;
+    const warnings = Array.isArray(supplements.warnings) ? supplements.warnings : [];
     const fastData = {
       ...base,
       market: {
@@ -580,6 +599,7 @@ async function buildFastResearchSnapshot(symbolInput) {
       data_confidence: Number(screenerRow.data_confidence || 0),
       data_confidence_label: screenerRow.data_confidence_label || 'LOW',
       data_quality_label: screenerRow.data_quality_label || screenerRow.data_confidence_label || 'LOW',
+      warnings,
     };
 
     fastData.mcp = buildMCP(fastData);
@@ -592,6 +612,7 @@ async function buildFastResearchSnapshot(symbolInput) {
         reason: null,
         phase: 'fast',
         source: 'snapshot',
+        warnings,
       },
       snapshot_at: screenerPayload?.snapshot_at || null,
     };
@@ -608,7 +629,7 @@ async function buildFastResearchSnapshot(symbolInput) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'experience.research.profile',
         maxRetries: 0,
       }
@@ -631,7 +652,7 @@ async function buildFastResearchSnapshot(symbolInput) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'experience.research.market',
         maxRetries: 0,
       }
@@ -653,7 +674,7 @@ async function buildFastResearchSnapshot(symbolInput) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'experience.research.next_earnings',
         maxRetries: 0,
       }
@@ -672,7 +693,7 @@ async function buildFastResearchSnapshot(symbolInput) {
        LIMIT 4`,
       [symbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'experience.research.history',
         maxRetries: 0,
       }
@@ -694,7 +715,7 @@ async function buildFastResearchSnapshot(symbolInput) {
          AND COALESCE(published_at, published_date, created_at) >= NOW() - INTERVAL '7 days'`,
       [symbol],
       {
-        timeoutMs: 1500,
+        timeoutMs: 4000,
         label: 'experience.research.news_count',
         maxRetries: 0,
       }

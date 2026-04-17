@@ -213,12 +213,18 @@ function buildSyntheticScreenerRow(symbol, data) {
 }
 
 function buildResponse(symbol, data, meta, source = 'snapshot') {
+  const warnings = Array.from(new Set([
+    ...(Array.isArray(data?.warnings) ? data.warnings : []),
+    ...(Array.isArray(meta?.warnings) ? meta.warnings : []),
+  ]));
+
   const responseMeta = {
     response_ms: Number(meta?.response_ms || 0),
     fallback: Boolean(meta?.fallback),
     reason: meta?.reason || null,
     phase: meta?.phase || 'full',
     source: meta?.source || source,
+    warnings,
   };
 
   return {
