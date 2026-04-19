@@ -7,6 +7,7 @@ const { queryWithTimeout } = require('../db/pg');
 const { fetchBatchQuotes } = require('../services/quotesBatchService');
 const { refreshMarketSnapshot } = require('../services/marketSnapshotService');
 const { symbolsFromEnv } = require('./_helpers');
+const { getMarketSession } = require('../utils/marketSession');
 const logger = require('../utils/logger');
 
 const BATCH_SIZE = Math.max(1, Number(process.env.LIVE_QUOTES_BATCH_SIZE) || 200);
@@ -243,6 +244,23 @@ async function persistQuotes(rows) {
 }
 
 async function runLiveQuotesIngestion(symbols) {
+  const session = getMarketSession();
+  if (session === 'CLOSED') {
+    logger.info('live quotes ingestion skipped while market is closed', {
+      jobName: 'fmp_live_quotes_ingest',
+      session,
+    });
+    return {
+      jobName: 'fmp_live_quotes_ingest',
+      inserted: 0,
+      fetched: 0,
+      durationMs: 0,
+      skipped: true,
+      reason: 'market_closed',
+      session,
+    };
+  }
+
   const targetSymbols = Array.isArray(symbols) && symbols.length > 0
     ? symbols
     : await loadUniverseSymbols();

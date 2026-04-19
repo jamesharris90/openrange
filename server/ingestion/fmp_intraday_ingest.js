@@ -124,7 +124,7 @@ async function ingestSymbol(symbol) {
     console.log('[FMP REQUEST]', `/historical-chart/1min?symbol=${providerSymbol}`);
     console.log('[INTRADAY] writing bars for', canonicalSymbol);
 
-    const data = await fmpFetch('/historical-chart/1min', { symbol: providerSymbol });
+    const data = await fmpFetch('/historical-chart/1min', { symbol: providerSymbol, extended: true });
     console.log('[FMP BARS]', canonicalSymbol, Array.isArray(data) ? data.length : 0);
 
     const normalized = normalizeIntraday(data, canonicalSymbol);
@@ -163,6 +163,29 @@ async function ingestSymbol(symbol) {
   }
 }
 
+function getProviderSession(timestamp) {
+  const text = String(timestamp || '').trim();
+  const match = text.match(/(?:T|\s)(\d{2}):(\d{2})/);
+  if (match) {
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const totalMinutes = (hours * 60) + minutes;
+
+    if (totalMinutes >= 4 * 60 && totalMinutes < (9 * 60) + 30) {
+      return 'PREMARKET';
+    }
+    if (totalMinutes >= (9 * 60) + 30 && totalMinutes < 16 * 60) {
+      return 'OPEN';
+    }
+    if (totalMinutes >= 16 * 60 && totalMinutes < 20 * 60) {
+      return 'POSTMARKET';
+    }
+    return 'CLOSED';
+  }
+
+  return getMarketSession(new Date(timestamp));
+}
+
 function normalizeIntraday(payload, symbol) {
   const data = Array.isArray(payload) ? payload : [];
 
@@ -175,7 +198,7 @@ function normalizeIntraday(payload, symbol) {
       const low = Number(row.low ?? close);
       const volumeRaw = Number(row.volume);
       const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.trunc(volumeRaw)) : 0;
-      const session = timestamp ? getMarketSession(new Date(timestamp)) : 'CLOSED';
+      const session = timestamp ? getProviderSession(timestamp) : 'CLOSED';
       return {
         symbol,
         timestamp,
@@ -191,7 +214,27 @@ function normalizeIntraday(payload, symbol) {
 }
 
 async function runIntradayIngestion() {
-  console.log('[INTRADAY WORKER] Starting run...', { session: getMarketSession() });
+  const session = getMarketSession();
+  console.log('[INTRADAY WORKER] Starting run...', { session });
+  if (session === 'CLOSED') {
+    logger.info('intraday ingestion skipped while market is closed', {
+      jobName: 'fmp_intraday_ingest',
+      session,
+    });
+    return {
+      jobName: 'fmp_intraday_ingest',
+      table: 'intraday_1m',
+      fetched: 0,
+      deduped: 0,
+      inserted: 0,
+      failures: 0,
+      durationMs: 0,
+      skipped: true,
+      reason: 'market_closed',
+      session,
+    };
+  }
+
   const ingestSymbols = await loadPrioritySymbols();
   if (!Array.isArray(ingestSymbols) || ingestSymbols.length === 0) {
     logger.warn('intraday ingestion skipped: no symbols selected');

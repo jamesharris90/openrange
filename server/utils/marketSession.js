@@ -1,20 +1,52 @@
+function getEasternTimeParts(now = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(now)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+  return {
+    weekday: parts.weekday || 'Mon',
+    hour: Number(parts.hour || 0),
+    minute: Number(parts.minute || 0),
+  };
+}
+
 function getMarketSession(now = new Date()) {
-  const utc = new Date(now);
-  const hours = utc.getUTCHours();
-  const minutes = utc.getUTCMinutes();
+  const { weekday, hour, minute } = getEasternTimeParts(now);
+  if (weekday === 'Sat' || weekday === 'Sun') {
+    return 'CLOSED';
+  }
 
-  const total = hours * 60 + minutes;
+  const totalMinutes = (hour * 60) + minute;
+  const premarketStart = 4 * 60;
+  const marketOpen = (9 * 60) + 30;
+  const marketClose = 16 * 60;
+  const afterHoursEnd = 20 * 60;
 
-  const premarketStart = 9 * 60;
-  const marketOpen = 13 * 60 + 30;
-  const marketClose = 20 * 60;
-  const afterHoursEnd = 24 * 60;
-
-  if (total >= premarketStart && total < marketOpen) return 'PREMARKET';
-  if (total >= marketOpen && total < marketClose) return 'OPEN';
-  if (total >= marketClose && total < afterHoursEnd) return 'POSTMARKET';
+  if (totalMinutes >= premarketStart && totalMinutes < marketOpen) {
+    return 'PREMARKET';
+  }
+  if (totalMinutes >= marketOpen && totalMinutes < marketClose) {
+    return 'OPEN';
+  }
+  if (totalMinutes >= marketClose && totalMinutes < afterHoursEnd) {
+    return 'POSTMARKET';
+  }
 
   return 'CLOSED';
 }
 
-module.exports = { getMarketSession };
+module.exports = {
+  getEasternTimeParts,
+  getMarketSession,
+};
