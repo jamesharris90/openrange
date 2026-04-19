@@ -1817,6 +1817,18 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       });
     }
 
+    const stocksInPlayRows = await getStocksInPlayTopOpportunities(hardResultLimit);
+    if (stocksInPlayRows.length > 0) {
+      logResponseShape('/api/intelligence/top-opportunities', stocksInPlayRows, ['symbol', 'why', 'how', 'confidence', 'expected_move']);
+      return res.json({
+        success: true,
+        source: 'real',
+        mode,
+        count: stocksInPlayRows.length,
+        data: stocksInPlayRows.slice(0, hardResultLimit),
+      });
+    }
+
     const { rows } = await pool.query(
       `SELECT UPPER(symbol) AS symbol
        FROM decision_view
@@ -2373,18 +2385,6 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
     const finalRows = contractRows.slice(0, hardResultLimit);
 
     if (!finalRows.length) {
-      const stocksInPlayRows = await getStocksInPlayTopOpportunities(hardResultLimit);
-      if (stocksInPlayRows.length > 0) {
-        logResponseShape('/api/intelligence/top-opportunities', stocksInPlayRows, ['symbol', 'why', 'how', 'confidence', 'expected_move']);
-        return res.json({
-          success: true,
-          source: 'real',
-          mode,
-          count: stocksInPlayRows.length,
-          data: stocksInPlayRows.slice(0, hardResultLimit),
-        });
-      }
-
       return res.json({
         success: false,
         error: 'NO_REAL_DATA',
