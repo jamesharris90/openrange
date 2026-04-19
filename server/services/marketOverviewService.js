@@ -7,6 +7,32 @@ const REQUIRED_TABLES = [
   'market_quotes',
 ];
 
+const SECTION_TIMEOUT_MS = {
+  overnight: 2500,
+  today_earnings: 2500,
+  today_macro: 2500,
+  earnings_week: 2500,
+  macro_week: 3000,
+  themes: 3000,
+  watchlist: 2500,
+};
+
+const TABLE_CACHE_TTL_MS = 5 * 60 * 1000;
+const OVERVIEW_CACHE_TTL_MS = 60 * 1000;
+
+let availableTablesCache = {
+  expiresAt: 0,
+  tables: null,
+};
+
+let overviewCache = {
+  expiresAt: 0,
+  cachedAt: null,
+  data: null,
+};
+
+let overviewRefreshPromise = null;
+
 function emptyOverview() {
   return {
     overnight: { headlines: [] },
@@ -21,7 +47,77 @@ function emptyOverview() {
   };
 }
 
+function cloneOverview(value) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function decorateOverviewCacheMeta(overview, cacheMeta = {}) {
+  const cloned = cloneOverview(overview);
+  cloned.meta = {
+    ...(cloned.meta || {}),
+    cache: {
+      hit: Boolean(cacheMeta.hit),
+      stale: Boolean(cacheMeta.stale),
+      cached_at: cacheMeta.cachedAt || null,
+    },
+  };
+
+  if (cacheMeta.refreshError) {
+    cloned.meta.refresh_error = cacheMeta.refreshError;
+  }
+
+  return cloned;
+}
+
+function createSectionTimeoutError(sectionName, timeoutMs) {
+  const error = new Error(`Market overview section timeout after ${timeoutMs}ms (${sectionName})`);
+  error.code = 'SECTION_TIMEOUT';
+  return error;
+}
+
+function withDeadline(promiseFactory, timeoutMs, sectionName) {
+  return Promise.race([
+    Promise.resolve().then(promiseFactory),
+    new Promise((_, reject) => {
+      const timer = setTimeout(() => reject(createSectionTimeoutError(sectionName, timeoutMs)), timeoutMs);
+      timer.unref?.();
+    }),
+  ]);
+}
+
+async function loadOverviewSection(sectionName, promiseFactory, fallbackValue, timeoutMs) {
+  const startedAt = Date.now();
+
+  try {
+    const value = await withDeadline(promiseFactory, timeoutMs, sectionName);
+    return {
+      section: sectionName,
+      ok: true,
+      timedOut: false,
+      error: null,
+      duration_ms: Date.now() - startedAt,
+      value,
+    };
+  } catch (error) {
+    return {
+      section: sectionName,
+      ok: false,
+      timedOut: error?.code === 'SECTION_TIMEOUT',
+      error: error?.message || 'section_failed',
+      duration_ms: Date.now() - startedAt,
+      value: fallbackValue,
+    };
+  }
+}
+
 async function getAvailableTables() {
+  if (availableTablesCache.tables && availableTablesCache.expiresAt > Date.now()) {
+    return new Set(availableTablesCache.tables);
+  }
+
   const result = await queryWithTimeout(
     `SELECT c.relname AS table_name
      FROM pg_class c
@@ -38,7 +134,13 @@ async function getAvailableTables() {
     }
   );
 
-  return new Set((result.rows || []).map((row) => String(row.table_name || '')));
+  const tables = (result.rows || []).map((row) => String(row.table_name || ''));
+  availableTablesCache = {
+    expiresAt: Date.now() + TABLE_CACHE_TTL_MS,
+    tables,
+  };
+
+  return new Set(tables);
 }
 
 async function getOvernight(existingTables) {
@@ -76,12 +178,7 @@ async function getOvernight(existingTables) {
   };
 }
 
-async function getToday(existingTables) {
-  const today = {
-    earnings: [],
-    macro: [],
-  };
-
+async function getTodayEarnings(existingTables) {
   if (existingTables.has('earnings_events')) {
     const earningsResult = await queryWithTimeout(
       `SELECT
@@ -100,7 +197,7 @@ async function getToday(existingTables) {
       }
     );
 
-    today.earnings = (earningsResult.rows || []).map((row) => ({
+    return (earningsResult.rows || []).map((row) => ({
       symbol: row.symbol || null,
       time: row.time || null,
       estimated_eps: row.estimated_eps ?? null,
@@ -108,6 +205,10 @@ async function getToday(existingTables) {
     }));
   }
 
+  return [];
+}
+
+async function getTodayMacro(existingTables) {
   if (existingTables.has('news_articles')) {
     const macroResult = await queryWithTimeout(
       `SELECT
@@ -137,7 +238,7 @@ async function getToday(existingTables) {
       }
     );
 
-    today.macro = (macroResult.rows || []).map((row) => ({
+    return (macroResult.rows || []).map((row) => ({
       title: row.title || null,
       source: row.source || null,
       published_at: row.published_at || null,
@@ -146,7 +247,7 @@ async function getToday(existingTables) {
     }));
   }
 
-  return today;
+  return [];
 }
 
 async function getEarningsWeek(existingTables) {
@@ -308,32 +409,115 @@ async function getWatchlist(existingTables) {
   }));
 }
 
-async function getMarketOverview() {
+async function buildMarketOverview() {
   const overview = emptyOverview();
+
+  let existingTables = new Set(REQUIRED_TABLES);
+  let tableMetadataError = null;
+
   try {
-    const existingTables = await getAvailableTables();
-
-    const [overnight, today, earningsWeek, macroWeek, themes, watchlist] = await Promise.all([
-      getOvernight(existingTables),
-      getToday(existingTables),
-      getEarningsWeek(existingTables),
-      getMacroWeek(existingTables),
-      getThemes(existingTables),
-      getWatchlist(existingTables),
-    ]);
-
-    overview.overnight = overnight;
-    overview.today = today;
-    overview.earnings_week = earningsWeek;
-    overview.macro_week = macroWeek;
-    overview.themes = themes;
-    overview.watchlist = watchlist;
+    existingTables = await getAvailableTables();
   } catch (error) {
-    overview.degraded = true;
-    overview.error = String(error?.message || 'market overview unavailable');
+    tableMetadataError = String(error?.message || 'table_metadata_failed');
   }
 
+  const [overnight, todayEarnings, todayMacro, earningsWeek, macroWeek, themes, watchlist] = await Promise.all([
+    loadOverviewSection('overnight', () => getOvernight(existingTables), { headlines: [] }, SECTION_TIMEOUT_MS.overnight),
+    loadOverviewSection('today_earnings', () => getTodayEarnings(existingTables), [], SECTION_TIMEOUT_MS.today_earnings),
+    loadOverviewSection('today_macro', () => getTodayMacro(existingTables), [], SECTION_TIMEOUT_MS.today_macro),
+    loadOverviewSection('earnings_week', () => getEarningsWeek(existingTables), [], SECTION_TIMEOUT_MS.earnings_week),
+    loadOverviewSection('macro_week', () => getMacroWeek(existingTables), { headlines: [] }, SECTION_TIMEOUT_MS.macro_week),
+    loadOverviewSection('themes', () => getThemes(existingTables), [], SECTION_TIMEOUT_MS.themes),
+    loadOverviewSection('watchlist', () => getWatchlist(existingTables), [], SECTION_TIMEOUT_MS.watchlist),
+  ]);
+
+  overview.overnight = overnight.value;
+  overview.today = {
+    earnings: todayEarnings.value,
+    macro: todayMacro.value,
+  };
+  overview.earnings_week = earningsWeek.value;
+  overview.macro_week = macroWeek.value;
+  overview.themes = themes.value;
+  overview.watchlist = watchlist.value;
+
+  const sectionResults = [overnight, todayEarnings, todayMacro, earningsWeek, macroWeek, themes, watchlist];
+  const degradedSections = sectionResults.filter((section) => !section.ok).map((section) => section.section);
+
+  overview.partial = Boolean(tableMetadataError) || degradedSections.length > 0;
+  overview.degraded = degradedSections.length === sectionResults.length;
+
+  overview.meta = {
+    table_metadata_error: tableMetadataError,
+    degraded_sections: degradedSections,
+    section_status: Object.fromEntries(
+      sectionResults.map((section) => [
+        section.section,
+        {
+          ok: section.ok,
+          timed_out: section.timedOut,
+          error: section.error,
+          duration_ms: section.duration_ms,
+        },
+      ])
+    ),
+  };
+
   return overview;
+}
+
+async function getMarketOverview() {
+  const now = Date.now();
+  if (overviewCache.data && overviewCache.expiresAt > now) {
+    return decorateOverviewCacheMeta(overviewCache.data, {
+      hit: true,
+      stale: false,
+      cachedAt: overviewCache.cachedAt,
+    });
+  }
+
+  if (overviewRefreshPromise) {
+    if (overviewCache.data) {
+      return decorateOverviewCacheMeta(overviewCache.data, {
+        hit: true,
+        stale: true,
+        cachedAt: overviewCache.cachedAt,
+      });
+    }
+
+    return overviewRefreshPromise;
+  }
+
+  overviewRefreshPromise = (async () => {
+    const overview = await buildMarketOverview();
+
+    if (!overview.degraded) {
+      overviewCache = {
+        expiresAt: Date.now() + OVERVIEW_CACHE_TTL_MS,
+        cachedAt: new Date().toISOString(),
+        data: cloneOverview(overview),
+      };
+    }
+
+    if (overview.degraded && overviewCache.data) {
+      return decorateOverviewCacheMeta(overviewCache.data, {
+        hit: true,
+        stale: true,
+        cachedAt: overviewCache.cachedAt,
+        refreshError: overview?.meta?.degraded_sections?.join(',') || overview?.meta?.table_metadata_error || 'refresh_failed',
+      });
+    }
+
+    return decorateOverviewCacheMeta(overview, {
+      hit: false,
+      stale: false,
+      cachedAt: overviewCache.cachedAt,
+    });
+  })().finally(() => {
+    overviewRefreshPromise = null;
+  });
+
+  return overviewRefreshPromise;
 }
 
 module.exports = {

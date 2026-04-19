@@ -4,33 +4,24 @@ const { getMarketOverview, emptyOverview } = require('../services/marketOverview
 
 const router = express.Router();
 
-function withTimeout(promise, timeoutMs, fallbackValue) {
-  const ms = Number(timeoutMs) || 1800;
-  return Promise.race([
-    promise,
-    new Promise((resolve) => {
-      setTimeout(() => resolve(fallbackValue), ms);
-    }),
-  ]);
-}
-
 router.get('/overview', async (_req, res) => {
   try {
-    const data = await withTimeout(
-      getMarketOverview(),
-      10000,
-      {
-        ...emptyOverview(),
-        degraded: true,
-        source: 'timeout_fallback',
-      }
-    );
+    const data = await getMarketOverview();
     return res.json({
       status: data?.degraded ? 'degraded' : 'ok',
       data,
-      meta: data?.degraded
-        ? { fallback: true, reason: 'timeout' }
-        : { fallback: false },
+      meta: {
+        fallback: false,
+        partial: Boolean(data?.partial),
+        reason: data?.degraded
+          ? 'degraded_sections'
+          : data?.partial
+            ? 'partial_data'
+            : null,
+        degraded_sections: data?.meta?.degraded_sections || [],
+        section_status: data?.meta?.section_status || {},
+        table_metadata_error: data?.meta?.table_metadata_error || null,
+      },
     });
   } catch (error) {
     return res.json({

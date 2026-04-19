@@ -13,6 +13,7 @@
     "refresh-daily": "node server/scripts/refreshDailyMetrics.ts",
     "check:system": "node scripts/runSystemCheck.js",
     "validate:build": "node server/system/runSystemCheck.js",
+    "validate:runtime-endpoints": "node server/system/checkRuntimeEndpoints.js",
     "validate:ui": "node scripts/uiValidation.js",
     "check:tqi": "node scripts/runTqiParityCheck.js",
     "validate:system": "node scripts/systemValidation.js",
