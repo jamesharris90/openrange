@@ -8,6 +8,9 @@ const EARNINGS_SNAPSHOT_KEY = 'experience:earnings:snapshot:v1';
 const NEWS_SNAPSHOT_TTL_MS = 60_000;
 const EARNINGS_SNAPSHOT_TTL_MS = 60_000;
 const RESEARCH_FAST_TTL_MS = 120_000;
+const FAST_RESEARCH_SUPPLEMENT_TTL_MS = 15 * 60 * 1000;
+const FAST_RESEARCH_SUPPLEMENT_STALE_TTL_MS = 6 * 60 * 60 * 1000;
+const FAST_RESEARCH_SUPPLEMENT_TIMEOUT_MS = 1500;
 const NEWS_SNAPSHOT_LIMIT = 1000;
 const EARNINGS_SNAPSHOT_LIMIT = 5000;
 
@@ -15,6 +18,11 @@ let newsRefreshPromise = null;
 let earningsRefreshPromise = null;
 let newsSchedulerStarted = false;
 let earningsSchedulerStarted = false;
+let lastSuccessfulNewsSnapshot = null;
+let lastSuccessfulEarningsSnapshot = null;
+
+const fastResearchSupplementCache = new Map();
+const fastResearchSupplementRefreshInFlight = new Map();
 
 function toNullableNumber(value) {
   if (value === null || value === undefined || value === '') {
@@ -74,7 +82,7 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 4000,
+        timeoutMs: FAST_RESEARCH_SUPPLEMENT_TIMEOUT_MS,
         label: 'experience.research.company_supplement',
         maxRetries: 0,
       }
@@ -99,7 +107,7 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 1`,
       [symbol],
       {
-        timeoutMs: 4000,
+        timeoutMs: FAST_RESEARCH_SUPPLEMENT_TIMEOUT_MS,
         label: 'experience.research.next_earnings',
         maxRetries: 0,
       }
@@ -121,7 +129,7 @@ async function loadFastResearchSupplements(symbol) {
        LIMIT 4`,
       [symbol],
       {
-        timeoutMs: 4000,
+        timeoutMs: FAST_RESEARCH_SUPPLEMENT_TIMEOUT_MS,
         label: 'experience.research.history',
         maxRetries: 0,
       }
@@ -151,6 +159,53 @@ async function loadFastResearchSupplements(symbol) {
     history,
     warnings,
   };
+}
+
+function getImmediateNewsSnapshot() {
+  return getCache(NEWS_SNAPSHOT_KEY) || lastSuccessfulNewsSnapshot;
+}
+
+function getImmediateEarningsSnapshot() {
+  return getCache(EARNINGS_SNAPSHOT_KEY) || lastSuccessfulEarningsSnapshot;
+}
+
+function getFastResearchSupplementSnapshot(symbol) {
+  const entry = fastResearchSupplementCache.get(symbol);
+  if (!entry) {
+    return { data: null, freshness: 'missing' };
+  }
+
+  const ageMs = Date.now() - entry.timestamp;
+  if (ageMs <= FAST_RESEARCH_SUPPLEMENT_TTL_MS) {
+    return { data: entry.data, freshness: 'fresh' };
+  }
+  if (ageMs <= FAST_RESEARCH_SUPPLEMENT_STALE_TTL_MS) {
+    return { data: entry.data, freshness: 'stale' };
+  }
+
+  fastResearchSupplementCache.delete(symbol);
+  return { data: null, freshness: 'missing' };
+}
+
+async function refreshFastResearchSupplements(symbol) {
+  if (fastResearchSupplementRefreshInFlight.has(symbol)) {
+    return fastResearchSupplementRefreshInFlight.get(symbol);
+  }
+
+  const promise = loadFastResearchSupplements(symbol)
+    .then((data) => {
+      fastResearchSupplementCache.set(symbol, {
+        data,
+        timestamp: Date.now(),
+      });
+      return data;
+    })
+    .finally(() => {
+      fastResearchSupplementRefreshInFlight.delete(symbol);
+    });
+
+  fastResearchSupplementRefreshInFlight.set(symbol, promise);
+  return promise;
 }
 
 function clamp(value, min, max) {
@@ -262,6 +317,69 @@ function dedupeNewsRows(rows) {
   }
 
   return deduped;
+}
+
+function getSymbolNewsRowsFromSnapshot(snapshot, symbol, limit = 5) {
+  if (!snapshot?.data) {
+    return [];
+  }
+
+  return (snapshot.data || [])
+    .filter((row) => {
+      const symbols = Array.isArray(row?.symbols) ? row.symbols : [];
+      return row?.symbol === symbol || symbols.includes(symbol);
+    })
+    .slice(0, limit);
+}
+
+function getNextEarningsRowFromSnapshot(snapshot, symbol) {
+  if (!snapshot?.data) {
+    return null;
+  }
+
+  return (snapshot.data || []).find((row) => row?.symbol === symbol && row?.report_date) || null;
+}
+
+async function buildDirectNewsFallbackSnapshot(limit, cutoffIso) {
+  const rows = await loadDirectLatestNewsRows(limit, cutoffIso).catch(() => []);
+  return {
+    created_at: new Date().toISOString(),
+    data: rows,
+  };
+}
+
+async function loadEarningsSnapshotRows(limit, timeoutMs = 6000) {
+  const result = await queryWithTimeout(
+    `SELECT
+       e.symbol,
+       COALESCE(e.company, tu.company_name) AS company_name,
+       e.report_date::text AS report_date,
+       COALESCE(NULLIF(e.report_time, ''), NULLIF(e.time, ''), 'TBD') AS time,
+       e.eps_estimate,
+       e.eps_actual,
+       COALESCE(e.revenue_estimate, e.rev_estimate) AS revenue_estimate,
+       COALESCE(e.revenue_actual, e.rev_actual) AS revenue_actual,
+       e.expected_move_percent,
+       e.market_cap,
+       COALESCE(e.sector, tu.sector) AS sector,
+       tu.industry,
+       e.score,
+       COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
+       COALESCE(e.source, 'db') AS source
+     FROM earnings_events e
+     LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+     WHERE e.report_date::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE + INTERVAL '45 days'
+     ORDER BY e.report_date ASC, e.symbol ASC
+     LIMIT $1`,
+    [limit],
+    {
+      timeoutMs,
+      label: 'experience.earnings.snapshot',
+      maxRetries: timeoutMs >= 6000 ? 1 : 0,
+    }
+  );
+
+  return (result.rows || []).map((row) => normalizeEarningsRow(row)).filter(Boolean);
 }
 
 async function loadNewsSnapshotRows(cutoffIso, limit) {
@@ -509,8 +627,9 @@ async function buildNewsSnapshot() {
     data: rows,
   };
 
+  lastSuccessfulNewsSnapshot = snapshot;
   setCache(NEWS_SNAPSHOT_KEY, snapshot, NEWS_SNAPSHOT_TTL_MS * 3);
-    return snapshot;
+  return snapshot;
 }
 
 async function refreshNewsSnapshot() {
@@ -540,6 +659,11 @@ async function getNewsSnapshot() {
     return cached;
   }
 
+  if (lastSuccessfulNewsSnapshot?.data) {
+    void refreshNewsSnapshot().catch(() => {});
+    return lastSuccessfulNewsSnapshot;
+  }
+
   return refreshNewsSnapshot();
 }
 
@@ -553,18 +677,15 @@ async function getCachedNewsFeedPayload(options = {}) {
   const type = String(options.type || 'all').trim().toLowerCase();
   const cutoffIso = new Date(Date.now() - (cutoffHours * 60 * 60 * 1000)).toISOString();
 
-  let snapshot;
-  let source = 'snapshot';
+  let snapshot = getImmediateNewsSnapshot();
+  let source = snapshot === lastSuccessfulNewsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  try {
-    snapshot = await getNewsSnapshot();
-  } catch (_error) {
-    const directRows = await loadDirectLatestNewsRows(Math.max(limit * 3, 50), cutoffIso);
-    snapshot = {
-      created_at: new Date().toISOString(),
-      data: directRows,
-    };
+  if (snapshot?.data) {
+    void refreshNewsSnapshot().catch(() => {});
+  } else {
+    snapshot = await buildDirectNewsFallbackSnapshot(Math.max(limit * 3, 50), cutoffIso);
     source = 'direct_fallback';
+    void refreshNewsSnapshot().catch(() => {});
   }
 
   const baseRows = filterNewsRows(snapshot.data || [], {
@@ -610,17 +731,18 @@ async function getCachedNewsFeedPayload(options = {}) {
 async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
   const symbol = normalizeSymbol(symbolInput);
   const limit = clamp(Number(limitInput) || 5, 1, 20);
-  let snapshot;
-  let source = 'snapshot';
+  let snapshot = getImmediateNewsSnapshot();
+  let source = snapshot === lastSuccessfulNewsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  try {
-    snapshot = await getNewsSnapshot();
-  } catch (_error) {
+  if (snapshot?.data) {
+    void refreshNewsSnapshot().catch(() => {});
+  } else {
     snapshot = {
       created_at: new Date().toISOString(),
       data: [],
     };
     source = 'direct_fallback';
+    void refreshNewsSnapshot().catch(() => {});
   }
 
   const snapshotRows = (snapshot.data || [])
@@ -657,42 +779,13 @@ async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
 }
 
 async function buildEarningsSnapshot() {
-  const result = await queryWithTimeout(
-    `SELECT
-       e.symbol,
-       COALESCE(e.company, tu.company_name) AS company_name,
-       e.report_date::text AS report_date,
-       COALESCE(NULLIF(e.report_time, ''), NULLIF(e.time, ''), 'TBD') AS time,
-       e.eps_estimate,
-       e.eps_actual,
-       COALESCE(e.revenue_estimate, e.rev_estimate) AS revenue_estimate,
-       COALESCE(e.revenue_actual, e.rev_actual) AS revenue_actual,
-       e.expected_move_percent,
-       e.market_cap,
-       COALESCE(e.sector, tu.sector) AS sector,
-       tu.industry,
-       e.score,
-       COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
-       COALESCE(e.source, 'db') AS source
-     FROM earnings_events e
-     LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
-     WHERE e.report_date::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE + INTERVAL '45 days'
-     ORDER BY e.report_date ASC, e.symbol ASC
-     LIMIT $1`,
-    [EARNINGS_SNAPSHOT_LIMIT],
-    {
-      timeoutMs: 6000,
-      label: 'experience.earnings.snapshot',
-      maxRetries: 1,
-    }
-  );
-
-  const rows = (result.rows || []).map((row) => normalizeEarningsRow(row)).filter(Boolean);
+  const rows = await loadEarningsSnapshotRows(EARNINGS_SNAPSHOT_LIMIT, 6000);
   const snapshot = {
     created_at: new Date().toISOString(),
     data: rows,
   };
 
+  lastSuccessfulEarningsSnapshot = snapshot;
   setCache(EARNINGS_SNAPSHOT_KEY, snapshot, EARNINGS_SNAPSHOT_TTL_MS * 3);
   return snapshot;
 }
@@ -716,15 +809,34 @@ async function getEarningsSnapshot() {
     return cached;
   }
 
+  if (lastSuccessfulEarningsSnapshot?.data) {
+    void refreshEarningsSnapshot().catch(() => {});
+    return lastSuccessfulEarningsSnapshot;
+  }
+
   return refreshEarningsSnapshot();
 }
 
 async function getCachedEarningsCalendarPayload(options = {}) {
-  const snapshot = await getEarningsSnapshot();
   const from = String(options.from || options.startDate || '').trim() || new Date().toISOString().slice(0, 10);
   const to = String(options.to || options.endDate || '').trim() || new Date(Date.now() + (7 * 86400000)).toISOString().slice(0, 10);
   const limit = clamp(Number(options.limit) || 100, 1, 600);
   const classFilter = String(options.class || '').trim().toUpperCase();
+  let snapshot = getImmediateEarningsSnapshot();
+  let source = snapshot === lastSuccessfulEarningsSnapshot ? 'snapshot_stale' : 'snapshot';
+
+  if (snapshot?.data) {
+    void refreshEarningsSnapshot().catch(() => {});
+  } else {
+    const rows = await loadEarningsSnapshotRows(Math.max(limit * 5, 250), 1500).catch(() => []);
+    snapshot = {
+      created_at: new Date().toISOString(),
+      data: rows,
+    };
+    source = 'direct_fallback';
+    void refreshEarningsSnapshot().catch(() => {});
+  }
+
   let rows = (snapshot.data || []).filter((row) => row.report_date >= from && row.report_date <= to);
 
   if (classFilter) {
@@ -739,7 +851,7 @@ async function getCachedEarningsCalendarPayload(options = {}) {
     window_end: to,
     count: data.length,
     status: data.length ? 'partial' : 'none',
-    source: 'snapshot',
+    source,
     data,
     rows: data,
     events: data,
@@ -761,16 +873,28 @@ async function buildFastResearchSnapshot(symbolInput) {
   const screenerPayload = getCachedScreenerPayload();
   const screenerRows = Array.isArray(screenerPayload?.data) ? screenerPayload.data : [];
   const screenerRow = screenerRows.find((row) => String(row?.symbol || '').trim().toUpperCase() === symbol) || null;
-  const supplementsPromise = loadFastResearchSupplements(symbol).catch(() => ({
+  const newsSnapshot = getImmediateNewsSnapshot();
+  const earningsSnapshot = getImmediateEarningsSnapshot();
+  const symbolNews = getSymbolNewsRowsFromSnapshot(newsSnapshot, symbol, 5);
+  const snapshotNextEarnings = getNextEarningsRowFromSnapshot(earningsSnapshot, symbol);
+  const supplementSnapshot = getFastResearchSupplementSnapshot(symbol);
+  const supplements = supplementSnapshot.data || {
     company: {},
     next: null,
     history: [],
-    warnings: ['research_supplement_unavailable'],
-  }));
+    warnings: [],
+  };
+
+  if (supplementSnapshot.freshness !== 'fresh') {
+    void refreshFastResearchSupplements(symbol).catch(() => {});
+  }
 
   if (screenerRow) {
-    const supplements = await supplementsPromise;
-    const warnings = Array.isArray(supplements.warnings) ? supplements.warnings : [];
+    const warnings = Array.from(new Set([
+      ...(Array.isArray(supplements.warnings) ? supplements.warnings : []),
+      ...(supplementSnapshot.freshness === 'stale' ? ['research_supplement_stale'] : []),
+      ...(supplementSnapshot.freshness === 'missing' ? ['research_supplement_pending'] : []),
+    ]));
     const fastData = {
       ...base,
       market: {
@@ -799,7 +923,7 @@ async function buildFastResearchSnapshot(symbolInput) {
       },
       earnings: {
         latest: supplements.history[0] || null,
-        next: supplements.next || (screenerRow.earnings_date ? {
+        next: supplements.next || snapshotNextEarnings || (screenerRow.earnings_date ? {
           symbol,
           report_date: screenerRow.earnings_date,
           report_time: null,
@@ -813,8 +937,9 @@ async function buildFastResearchSnapshot(symbolInput) {
         } : null),
         history: supplements.history,
       },
+      news: symbolNews,
       screener: screenerRow,
-      news_count: screenerRow.has_news ? 1 : 0,
+      news_count: Math.max(symbolNews.length, screenerRow.has_news ? 1 : 0),
       data_confidence: Number(screenerRow.data_confidence || 0),
       data_confidence_label: screenerRow.data_confidence_label || 'LOW',
       data_quality_label: screenerRow.data_quality_label || screenerRow.data_confidence_label || 'LOW',
@@ -838,6 +963,11 @@ async function buildFastResearchSnapshot(symbolInput) {
 
     setCache(cacheKey, snapshotPayload, RESEARCH_FAST_TTL_MS);
     return snapshotPayload;
+  }
+
+  const cachedSupplementData = supplementSnapshot.data;
+  if (!cachedSupplementData) {
+    void refreshFastResearchSupplements(symbol).catch(() => {});
   }
 
   const [profileResult, marketResult, nextResult, historyResult, newsCountResult] = await Promise.all([
@@ -980,8 +1110,8 @@ async function buildFastResearchSnapshot(symbolInput) {
       description: null,
     },
     earnings: {
-      latest: history[0] || null,
-      next: nextEarnings ? {
+      latest: cachedSupplementData?.history?.[0] || history[0] || null,
+      next: cachedSupplementData?.next || snapshotNextEarnings || (nextEarnings ? {
         symbol,
         report_date: nextEarnings.report_date || screenerRow?.earnings_date || null,
         report_time: nextEarnings.report_time || null,
@@ -1003,11 +1133,12 @@ async function buildFastResearchSnapshot(symbolInput) {
         market_cap: screenerRow.market_cap ?? null,
         sector: screenerRow.sector || profile.sector || null,
         industry: screenerRow.industry || profile.industry || null,
-      } : null),
-      history,
+      } : null)),
+      history: cachedSupplementData?.history?.length ? cachedSupplementData.history : history,
     },
     screener: screenerRow,
-    news_count: Number(newsCountResult.rows?.[0]?.cnt || 0),
+    news: symbolNews,
+    news_count: Math.max(symbolNews.length, Number(newsCountResult.rows?.[0]?.cnt || 0)),
     data_confidence: Number(screenerRow?.data_confidence || 0),
     data_confidence_label: screenerRow?.data_confidence_label || 'LOW',
     data_quality_label: screenerRow?.data_quality_label || screenerRow?.data_confidence_label || 'LOW',

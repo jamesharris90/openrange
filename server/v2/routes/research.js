@@ -243,6 +243,45 @@ function buildResponse(symbol, data, meta, source = 'snapshot') {
   };
 }
 
+function buildSeededFullPayload(symbol, fastSnapshot, reason, startedAt) {
+  const fastData = fastSnapshot?.data || emptyResearchData(symbol);
+  const screenerRow = fastData?.screener || buildSyntheticScreenerRow(symbol, fastData);
+  const seededData = {
+    ...emptyResearchData(symbol),
+    ...fastData,
+    screener: screenerRow,
+    narrative: buildDeterministicNarrative(symbol, screenerRow),
+    company: {
+      ...(fastData?.company || {}),
+      company_name: fastData?.company?.company_name || screenerRow?.company_name || screenerRow?.name || symbol,
+      sector: fastData?.company?.sector || screenerRow?.sector || null,
+      industry: fastData?.company?.industry || screenerRow?.industry || null,
+      exchange: fastData?.company?.exchange || screenerRow?.exchange || null,
+    },
+    earnings: {
+      ...(fastData?.earnings || {}),
+      next: fastData?.earnings?.next || (screenerRow?.earnings_date ? {
+        symbol,
+        report_date: screenerRow.earnings_date,
+        report_time: null,
+        eps_estimate: null,
+        eps_actual: null,
+      } : null),
+    },
+  };
+
+  seededData.mcp = seededData.mcp || getDefaultMCP(symbol);
+
+  return buildResponse(symbol, seededData, {
+    response_ms: Date.now() - startedAt,
+    fallback: false,
+    reason,
+    phase: 'full_seeded',
+    source: `seeded:${fastSnapshot?.meta?.source || 'snapshot'}`,
+    warnings: reason ? [reason] : [],
+  }, fastSnapshot?.meta?.source || 'snapshot');
+}
+
 function fullResearchCacheKey(symbol) {
   return `research:full:${symbol}`;
 }
@@ -527,9 +566,11 @@ router.get('/:symbol', async (req, res) => {
     });
   }
 
+  const fullRefreshPromise = refreshFullResearchPayload(symbol);
+
   try {
     const fullPayload = await Promise.race([
-      refreshFullResearchPayload(symbol),
+      fullRefreshPromise,
       new Promise((_, reject) => {
         setTimeout(() => reject(new Error('full_research_timeout')), FULL_RESEARCH_BUDGET_MS);
       }),
@@ -537,8 +578,15 @@ router.get('/:symbol', async (req, res) => {
 
     return res.json(fullPayload);
   } catch (error) {
-    console.warn('[RESEARCH] route fallback', { symbol, error: error.message });
-    void refreshFullResearchPayload(symbol).catch(() => {});
+    console.warn('[RESEARCH] route seeded response', { symbol, error: error.message });
+    void fullRefreshPromise.catch(() => {});
+
+    if (fastSnapshot?.data) {
+      const seededPayload = buildSeededFullPayload(symbol, fastSnapshot, error.message || 'full_research_timeout', startedAt);
+      setCache(fullResearchCacheKey(symbol), seededPayload, Math.min(FULL_RESEARCH_CACHE_TTL_MS, 30_000));
+      return res.json(seededPayload);
+    }
+
     return res.json({
       ...fastResponse,
       meta: {

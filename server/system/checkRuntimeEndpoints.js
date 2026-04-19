@@ -78,6 +78,29 @@ async function main() {
       && payload?.meta?.reason !== 'timeout';
   }));
 
+  results.push(await checkEndpoint('api.news', `${baseUrl}/api/news?limit=10`, (payload) => {
+    return payload
+      && payload?.success === true
+      && Array.isArray(payload?.data)
+      && payload.data.length > 0;
+  }));
+
+  results.push(await checkEndpoint('api.earnings.calendar', `${baseUrl}/api/earnings/calendar?limit=20`, (payload) => {
+    return payload
+      && payload?.success === true
+      && Array.isArray(payload?.data)
+      && payload.data.length > 0;
+  }));
+
+  results.push(await checkEndpoint('api.v2.research.fast', `${baseUrl}/api/v2/research/TSLA?fast=true`, (payload) => {
+    return payload
+      && payload?.success === true
+      && payload?.data
+      && payload?.data?.company?.company_name
+      && payload?.data?.earnings?.next?.report_date
+      && Array.isArray(payload?.data?.news);
+  }));
+
   const failures = results.filter((result) => !result.ok);
   console.log(JSON.stringify({
     generated_at: new Date().toISOString(),
