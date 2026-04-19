@@ -85,7 +85,7 @@ async function main() {
       && payload.data.length > 0;
   }));
 
-  results.push(await checkEndpoint('api.earnings.calendar', `${baseUrl}/api/earnings/calendar?limit=20`, (payload) => {
+  results.push(await checkEndpoint('api.earnings.calendar', `${baseUrl}/api/earnings/calendar?from=2026-04-19&to=2026-05-31&limit=20`, (payload) => {
     return payload
       && payload?.success === true
       && Array.isArray(payload?.data)

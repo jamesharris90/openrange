@@ -169,6 +169,10 @@ function getImmediateEarningsSnapshot() {
   return getCache(EARNINGS_SNAPSHOT_KEY) || lastSuccessfulEarningsSnapshot;
 }
 
+function hasSnapshotRows(snapshot) {
+  return Array.isArray(snapshot?.data) && snapshot.data.length > 0;
+}
+
 function getFastResearchSupplementSnapshot(symbol) {
   const entry = fastResearchSupplementCache.get(symbol);
   if (!entry) {
@@ -785,9 +789,13 @@ async function buildEarningsSnapshot() {
     data: rows,
   };
 
-  lastSuccessfulEarningsSnapshot = snapshot;
-  setCache(EARNINGS_SNAPSHOT_KEY, snapshot, EARNINGS_SNAPSHOT_TTL_MS * 3);
-  return snapshot;
+  if (rows.length > 0) {
+    lastSuccessfulEarningsSnapshot = snapshot;
+    setCache(EARNINGS_SNAPSHOT_KEY, snapshot, EARNINGS_SNAPSHOT_TTL_MS * 3);
+    return snapshot;
+  }
+
+  return lastSuccessfulEarningsSnapshot || snapshot;
 }
 
 async function refreshEarningsSnapshot() {
@@ -825,15 +833,24 @@ async function getCachedEarningsCalendarPayload(options = {}) {
   let snapshot = getImmediateEarningsSnapshot();
   let source = snapshot === lastSuccessfulEarningsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  if (snapshot?.data) {
+  if (hasSnapshotRows(snapshot)) {
     void refreshEarningsSnapshot().catch(() => {});
   } else {
-    const rows = await loadEarningsSnapshotRows(Math.max(limit * 5, 250), 1500).catch(() => []);
+    const rows = await loadEarningsSnapshotRows(Math.max(limit * 5, 250), 4000).catch(() => []);
     snapshot = {
       created_at: new Date().toISOString(),
       data: rows,
     };
-    source = 'direct_fallback';
+    if (rows.length > 0) {
+      lastSuccessfulEarningsSnapshot = snapshot;
+      setCache(EARNINGS_SNAPSHOT_KEY, snapshot, EARNINGS_SNAPSHOT_TTL_MS * 3);
+      source = 'direct_fallback';
+    } else if (hasSnapshotRows(lastSuccessfulEarningsSnapshot)) {
+      snapshot = lastSuccessfulEarningsSnapshot;
+      source = 'snapshot_stale';
+    } else {
+      source = 'direct_fallback';
+    }
     void refreshEarningsSnapshot().catch(() => {});
   }
 
