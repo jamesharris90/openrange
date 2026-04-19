@@ -8,7 +8,7 @@ const EARNINGS_SNAPSHOT_KEY = 'experience:earnings:snapshot:v1';
 const NEWS_SNAPSHOT_TTL_MS = 60_000;
 const EARNINGS_SNAPSHOT_TTL_MS = 60_000;
 const RESEARCH_FAST_TTL_MS = 120_000;
-const NEWS_SNAPSHOT_LIMIT = 2000;
+const NEWS_SNAPSHOT_LIMIT = 1000;
 const EARNINGS_SNAPSHOT_LIMIT = 5000;
 
 let newsRefreshPromise = null;
@@ -243,6 +243,177 @@ function normalizeEarningsRow(row) {
   };
 }
 
+function dedupeNewsRows(rows) {
+  const seen = new Set();
+  const deduped = [];
+
+  for (const row of rows) {
+    if (!row) {
+      continue;
+    }
+
+    const key = String(row.id || `${row.url || ''}-${row.published_at || ''}-${row.title || ''}`);
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    deduped.push(row);
+  }
+
+  return deduped;
+}
+
+async function loadNewsSnapshotRows(cutoffIso, limit) {
+  const rows = [];
+
+  const publishedAtResult = await queryWithTimeout(
+    `SELECT
+       id,
+       UPPER(COALESCE(symbol, '')) AS symbol,
+       COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+       COALESCE(title, headline) AS title,
+       headline,
+       summary,
+       COALESCE(source, publisher, provider, 'News') AS source,
+       publisher,
+       provider,
+       url,
+       published_at,
+       sentiment,
+       catalyst_type,
+       sector,
+       news_score,
+       source_type,
+       created_at
+     FROM news_articles
+     WHERE published_at >= $1
+     ORDER BY published_at DESC
+     LIMIT $2`,
+    [cutoffIso, limit],
+    {
+      timeoutMs: 5000,
+      label: 'experience.news.snapshot.published_at',
+      maxRetries: 1,
+    }
+  );
+
+  rows.push(...(publishedAtResult.rows || []));
+
+  const remainingAfterPublishedAt = Math.max(0, limit - rows.length);
+  if (remainingAfterPublishedAt > 0) {
+    const publishedDateResult = await queryWithTimeout(
+      `SELECT
+         id,
+         UPPER(COALESCE(symbol, '')) AS symbol,
+         COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+         COALESCE(title, headline) AS title,
+         headline,
+         summary,
+         COALESCE(source, publisher, provider, 'News') AS source,
+         publisher,
+         provider,
+         url,
+         COALESCE(published_date::timestamp, created_at) AS published_at,
+         sentiment,
+         catalyst_type,
+         sector,
+         news_score,
+         source_type,
+         created_at
+       FROM news_articles
+       WHERE published_at IS NULL
+         AND published_date >= $1::date
+       ORDER BY published_date DESC
+       LIMIT $2`,
+      [cutoffIso, remainingAfterPublishedAt],
+      {
+        timeoutMs: 5000,
+        label: 'experience.news.snapshot.published_date',
+        maxRetries: 1,
+      }
+    ).catch(() => ({ rows: [] }));
+
+    rows.push(...(publishedDateResult.rows || []));
+  }
+
+  const remainingAfterPublishedDate = Math.max(0, limit - rows.length);
+  if (remainingAfterPublishedDate > 0) {
+    const createdAtResult = await queryWithTimeout(
+      `SELECT
+         id,
+         UPPER(COALESCE(symbol, '')) AS symbol,
+         COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+         COALESCE(title, headline) AS title,
+         headline,
+         summary,
+         COALESCE(source, publisher, provider, 'News') AS source,
+         publisher,
+         provider,
+         url,
+         created_at AS published_at,
+         sentiment,
+         catalyst_type,
+         sector,
+         news_score,
+         source_type,
+         created_at
+       FROM news_articles
+       WHERE published_at IS NULL
+         AND published_date IS NULL
+         AND created_at >= $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [cutoffIso, remainingAfterPublishedDate],
+      {
+        timeoutMs: 4000,
+        label: 'experience.news.snapshot.created_at',
+        maxRetries: 0,
+      }
+    ).catch(() => ({ rows: [] }));
+
+    rows.push(...(createdAtResult.rows || []));
+  }
+
+  return rows;
+}
+
+async function loadDirectSymbolNewsRows(symbol, limit) {
+  const result = await queryWithTimeout(
+    `SELECT
+       id,
+       UPPER(COALESCE(symbol, '')) AS symbol,
+       COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+       COALESCE(title, headline) AS title,
+       headline,
+       summary,
+       COALESCE(source, publisher, provider, 'News') AS source,
+       publisher,
+       provider,
+       url,
+       COALESCE(published_at, published_date::timestamp, created_at) AS published_at,
+       sentiment,
+       catalyst_type,
+       sector,
+       news_score,
+       source_type,
+       created_at
+     FROM news_articles
+     WHERE UPPER(COALESCE(symbol, '')) = $1
+        OR $1 = ANY(COALESCE(symbols, ARRAY[]::text[]))
+     ORDER BY published_at DESC NULLS LAST, published_date DESC NULLS LAST, created_at DESC
+     LIMIT $2`,
+    [symbol, limit],
+    {
+      timeoutMs: 5000,
+      label: 'experience.news.symbol_direct',
+      maxRetries: 0,
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row) => normalizeNewsArticle(row)).filter(Boolean);
+}
+
 function filterNewsRows(rows, { cutoffHours, search, symbol, typeFilter }) {
   const cutoffTs = Date.now() - (cutoffHours * 60 * 60 * 1000);
   const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -290,40 +461,11 @@ function filterNewsRows(rows, { cutoffHours, search, symbol, typeFilter }) {
 
 async function buildNewsSnapshot() {
   const cutoffIso = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
-  const result = await queryWithTimeout(
-    `SELECT
-       id,
-       UPPER(COALESCE(symbol, '')) AS symbol,
-       COALESCE(symbols, ARRAY[]::text[]) AS symbols,
-       COALESCE(title, headline) AS title,
-       headline,
-       summary,
-       COALESCE(source, publisher, provider, 'News') AS source,
-       publisher,
-       provider,
-       url,
-       COALESCE(published_at, published_date, created_at) AS published_at,
-       sentiment,
-       catalyst_type,
-       sector,
-       news_score,
-       source_type,
-       created_at
-     FROM news_articles
-     WHERE COALESCE(published_at, published_date, created_at) >= $1
-     ORDER BY COALESCE(published_at, published_date, created_at) DESC
-     LIMIT $2`,
-    [cutoffIso, NEWS_SNAPSHOT_LIMIT],
-    {
-      timeoutMs: 8000,
-      label: 'experience.news.snapshot',
-      maxRetries: 1,
-    }
-  );
+  const resultRows = await loadNewsSnapshotRows(cutoffIso, NEWS_SNAPSHOT_LIMIT);
 
-  const rows = (result.rows || [])
+  const rows = dedupeNewsRows(resultRows
     .map((row) => normalizeNewsArticle(row))
-    .filter(Boolean)
+    .filter(Boolean))
     .sort((left, right) => Date.parse(String(right.published_at || 0)) - Date.parse(String(left.published_at || 0)));
 
   const snapshot = {
@@ -340,9 +482,17 @@ async function refreshNewsSnapshot() {
     return newsRefreshPromise;
   }
 
-  newsRefreshPromise = buildNewsSnapshot().finally(() => {
-    newsRefreshPromise = null;
-  });
+  newsRefreshPromise = buildNewsSnapshot()
+    .catch((error) => {
+      const cached = getCache(NEWS_SNAPSHOT_KEY);
+      if (cached?.data) {
+        return cached;
+      }
+      throw error;
+    })
+    .finally(() => {
+      newsRefreshPromise = null;
+    });
 
   return newsRefreshPromise;
 }
@@ -410,12 +560,18 @@ async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
   const symbol = normalizeSymbol(symbolInput);
   const limit = clamp(Number(limitInput) || 5, 1, 20);
   const snapshot = await getNewsSnapshot();
-  const directRows = (snapshot.data || [])
+  const snapshotRows = (snapshot.data || [])
     .filter((row) => {
       const symbols = Array.isArray(row.symbols) ? row.symbols : [];
       return row.symbol === symbol || symbols.includes(symbol);
     })
     .slice(0, limit);
+
+  const fallbackRows = snapshotRows.length >= limit
+    ? []
+    : await loadDirectSymbolNewsRows(symbol, limit);
+
+  const directRows = dedupeNewsRows([...snapshotRows, ...fallbackRows]).slice(0, limit);
 
   return {
     success: true,
