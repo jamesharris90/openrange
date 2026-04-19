@@ -1,6 +1,9 @@
 function getEasternTimeParts(now = new Date()) {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     weekday: 'short',
     hour: '2-digit',
     minute: '2-digit',
@@ -15,6 +18,9 @@ function getEasternTimeParts(now = new Date()) {
   );
 
   return {
+    year: Number(parts.year || 0),
+    month: String(parts.month || '01'),
+    day: String(parts.day || '01'),
     weekday: parts.weekday || 'Mon',
     hour: Number(parts.hour || 0),
     minute: Number(parts.minute || 0),

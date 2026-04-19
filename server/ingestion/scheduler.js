@@ -29,6 +29,40 @@ const isRailwayRuntime = Boolean(
 );
 const startupInitialDelayMs = Number(process.env.STARTUP_JOB_INITIAL_DELAY_MS || (isRailwayRuntime ? 30000 : 0));
 const startupStaggerMs = Number(process.env.STARTUP_JOB_STAGGER_MS || (isRailwayRuntime ? 15000 : 0));
+const scheduledStartupGraceMs = Number(process.env.SCHEDULED_JOB_STARTUP_GRACE_MS || (isRailwayRuntime ? 300000 : 0));
+const RAILWAY_STARTUP_DISABLED_LOCK_KEYS = new Set([
+  'daily_ohlc',
+  'stock_news',
+  'analyst_enrichment',
+  'earnings_transcripts',
+  'company_profiles',
+  'ticker_universe',
+  'news_enrichment',
+  'catalyst_backfill',
+]);
+const STARTUP_GRACE_LOCK_KEYS = new Set([
+  'daily_ohlc',
+  'news_articles',
+  'stock_news',
+  'news_enrichment',
+  'catalyst_backfill',
+]);
+
+function readBooleanEnv(name, defaultValue) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || raw === '') {
+    return defaultValue;
+  }
+
+  const normalized = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+  return defaultValue;
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,6 +87,7 @@ async function bridgeStrategySignals() {
 }
 
 let started = false;
+let schedulerStartedAt = 0;
 const inFlightJobs = new Set();
 const JOB_SCHEDULES = {
   intraday_1m: '*/1 * * * *',
@@ -84,6 +119,19 @@ const JOB_SCHEDULES = {
 function safeRun(name, fn, options = {}) {
   const lockKey = options.lockKey || name;
   return async () => {
+    if (Number(options.startupGraceMs || 0) > 0) {
+      const elapsedMs = Date.now() - schedulerStartedAt;
+      if (elapsedMs >= 0 && elapsedMs < Number(options.startupGraceMs)) {
+        logger.info('scheduler job skipped during startup grace window', {
+          job: name,
+          lockKey,
+          elapsedMs,
+          startupGraceMs: Number(options.startupGraceMs),
+        });
+        return;
+      }
+    }
+
     if (inFlightJobs.has(lockKey)) {
       logger.warn('Skipping ingestion run; previous run still in flight', { job: name, lockKey });
       return;
@@ -113,34 +161,53 @@ function safeRun(name, fn, options = {}) {
   };
 }
 
+function getScheduledJobOptions(lockKey) {
+  if (isRailwayRuntime && STARTUP_GRACE_LOCK_KEYS.has(lockKey) && scheduledStartupGraceMs > 0) {
+    return { startupGraceMs: scheduledStartupGraceMs };
+  }
+
+  return {};
+}
+
+function shouldRunStartupJob(lockKey) {
+  if (!isRailwayRuntime) {
+    return true;
+  }
+
+  const envName = `ENABLE_${String(lockKey || '').trim().toUpperCase()}_STARTUP`;
+  const defaultValue = !RAILWAY_STARTUP_DISABLED_LOCK_KEYS.has(lockKey);
+  return readBooleanEnv(envName, defaultValue);
+}
+
 function startIngestionScheduler() {
   if (started) return;
   started = true;
+  schedulerStartedAt = Date.now();
 
-  cron.schedule(JOB_SCHEDULES.intraday_1m, safeRun('intraday_1m', runIntradayIngestion));
-  cron.schedule(JOB_SCHEDULES.live_quotes, safeRun('live_quotes', runLiveQuotesIngestion));
-  cron.schedule(JOB_SCHEDULES.news_articles, safeRun('news_articles', runNewsIngestion));
-  cron.schedule(JOB_SCHEDULES.stock_news, safeRun('stock_news', runStockNewsIngestion));
-  cron.schedule(JOB_SCHEDULES.tracked_universe_cleanup, safeRun('tracked_universe_cleanup', cleanupTrackedUniverse));
-  cron.schedule(JOB_SCHEDULES.build_morning_universe, safeRun('build_morning_universe', buildMorningUniverse));
-  cron.schedule(JOB_SCHEDULES.daily_ohlc, safeRun('daily_ohlc', runPricesIngestion));
-  cron.schedule(JOB_SCHEDULES.daily_ohlc_premarket, safeRun('daily_ohlc_premarket', runPricesIngestion, { lockKey: 'daily_ohlc' }));
-  cron.schedule(JOB_SCHEDULES.earnings_events, safeRun('earnings_events', runEarningsIngestion));
-  cron.schedule(JOB_SCHEDULES.analyst_enrichment, safeRun('analyst_enrichment', runAnalystEnrichmentIngestion));
-  cron.schedule(JOB_SCHEDULES.ipo_calendar, safeRun('ipo_calendar', () => refreshIpoCalendar(4)));
-  cron.schedule(JOB_SCHEDULES.earnings_actuals, safeRun('earnings_actuals', runEarningsActuals));
-  cron.schedule(JOB_SCHEDULES.earnings_transcripts, safeRun('earnings_transcripts', runTranscriptsIngestion));
-  cron.schedule(JOB_SCHEDULES.company_profiles, safeRun('company_profiles', runProfilesIngestion));
-  cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion));
-  cron.schedule(JOB_SCHEDULES.narrative_engine, safeRun('narrative_engine', runNarrativeEngine));
-  cron.schedule(JOB_SCHEDULES.regime_capture, safeRun('regime_capture', runRegimeCapture));
-  cron.schedule(JOB_SCHEDULES.news_enrichment, safeRun('news_enrichment', runNewsEnrichmentEngine));
-  cron.schedule(JOB_SCHEDULES.catalyst_backfill, safeRun('catalyst_backfill', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 })));
-  cron.schedule(JOB_SCHEDULES.signal_evaluation, safeRun('signal_evaluation', runSignalEvaluation));
-  cron.schedule(JOB_SCHEDULES.signal_bridge, safeRun('signal_bridge', bridgeStrategySignals));
-  cron.schedule(JOB_SCHEDULES.baseline_cache, safeRun('baseline_cache', runBaselineEngine));
-  cron.schedule(JOB_SCHEDULES.perf_cache_refresh, safeRun('perf_cache_refresh', refreshPerformanceCache));
-  cron.schedule(JOB_SCHEDULES.nightly_strategy_backtest, safeRun('nightly_strategy_backtest', runNightlyIncrementalBacktest));
+  cron.schedule(JOB_SCHEDULES.intraday_1m, safeRun('intraday_1m', runIntradayIngestion, getScheduledJobOptions('intraday_1m')));
+  cron.schedule(JOB_SCHEDULES.live_quotes, safeRun('live_quotes', runLiveQuotesIngestion, getScheduledJobOptions('live_quotes')));
+  cron.schedule(JOB_SCHEDULES.news_articles, safeRun('news_articles', runNewsIngestion, getScheduledJobOptions('news_articles')));
+  cron.schedule(JOB_SCHEDULES.stock_news, safeRun('stock_news', runStockNewsIngestion, getScheduledJobOptions('stock_news')));
+  cron.schedule(JOB_SCHEDULES.tracked_universe_cleanup, safeRun('tracked_universe_cleanup', cleanupTrackedUniverse, getScheduledJobOptions('tracked_universe_cleanup')));
+  cron.schedule(JOB_SCHEDULES.build_morning_universe, safeRun('build_morning_universe', buildMorningUniverse, getScheduledJobOptions('build_morning_universe')));
+  cron.schedule(JOB_SCHEDULES.daily_ohlc, safeRun('daily_ohlc', runPricesIngestion, getScheduledJobOptions('daily_ohlc')));
+  cron.schedule(JOB_SCHEDULES.daily_ohlc_premarket, safeRun('daily_ohlc_premarket', runPricesIngestion, { lockKey: 'daily_ohlc', ...getScheduledJobOptions('daily_ohlc') }));
+  cron.schedule(JOB_SCHEDULES.earnings_events, safeRun('earnings_events', runEarningsIngestion, getScheduledJobOptions('earnings_events')));
+  cron.schedule(JOB_SCHEDULES.analyst_enrichment, safeRun('analyst_enrichment', runAnalystEnrichmentIngestion, getScheduledJobOptions('analyst_enrichment')));
+  cron.schedule(JOB_SCHEDULES.ipo_calendar, safeRun('ipo_calendar', () => refreshIpoCalendar(4), getScheduledJobOptions('ipo_calendar')));
+  cron.schedule(JOB_SCHEDULES.earnings_actuals, safeRun('earnings_actuals', runEarningsActuals, getScheduledJobOptions('earnings_actuals')));
+  cron.schedule(JOB_SCHEDULES.earnings_transcripts, safeRun('earnings_transcripts', runTranscriptsIngestion, getScheduledJobOptions('earnings_transcripts')));
+  cron.schedule(JOB_SCHEDULES.company_profiles, safeRun('company_profiles', runProfilesIngestion, getScheduledJobOptions('company_profiles')));
+  cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion, getScheduledJobOptions('ticker_universe')));
+  cron.schedule(JOB_SCHEDULES.narrative_engine, safeRun('narrative_engine', runNarrativeEngine, getScheduledJobOptions('narrative_engine')));
+  cron.schedule(JOB_SCHEDULES.regime_capture, safeRun('regime_capture', runRegimeCapture, getScheduledJobOptions('regime_capture')));
+  cron.schedule(JOB_SCHEDULES.news_enrichment, safeRun('news_enrichment', runNewsEnrichmentEngine, getScheduledJobOptions('news_enrichment')));
+  cron.schedule(JOB_SCHEDULES.catalyst_backfill, safeRun('catalyst_backfill', () => runCatalystBackfill({ batchSize: 250, maxBatches: 4 }), getScheduledJobOptions('catalyst_backfill')));
+  cron.schedule(JOB_SCHEDULES.signal_evaluation, safeRun('signal_evaluation', runSignalEvaluation, getScheduledJobOptions('signal_evaluation')));
+  cron.schedule(JOB_SCHEDULES.signal_bridge, safeRun('signal_bridge', bridgeStrategySignals, getScheduledJobOptions('signal_bridge')));
+  cron.schedule(JOB_SCHEDULES.baseline_cache, safeRun('baseline_cache', runBaselineEngine, getScheduledJobOptions('baseline_cache')));
+  cron.schedule(JOB_SCHEDULES.perf_cache_refresh, safeRun('perf_cache_refresh', refreshPerformanceCache, getScheduledJobOptions('perf_cache_refresh')));
+  cron.schedule(JOB_SCHEDULES.nightly_strategy_backtest, safeRun('nightly_strategy_backtest', runNightlyIncrementalBacktest, getScheduledJobOptions('nightly_strategy_backtest')));
 
   logger.info('[SCHEDULER] Started. Jobs: ' + JSON.stringify(JOB_SCHEDULES));
   logger.info('[SCHEDULER STARTED] ingestion scheduler active', {
@@ -176,6 +243,14 @@ function startIngestionScheduler() {
     }
 
     for (const [name, lockKey, fn] of startupJobs) {
+      if (!shouldRunStartupJob(lockKey)) {
+        logger.info('[SCHEDULER] startup job skipped by deployment policy', {
+          job: name,
+          lockKey,
+        });
+        continue;
+      }
+
       await safeRun(name, fn, { lockKey })();
       if (startupStaggerMs > 0) {
         await sleep(startupStaggerMs);

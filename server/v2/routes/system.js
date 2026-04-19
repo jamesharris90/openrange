@@ -9,15 +9,18 @@ const { getDataIntegrityHealth } = require('../../engines/dataIntegrityEngine');
 const { readCoverageCampaignState } = require('../../services/coverageCampaignStateStore');
 const { getDataTrustSnapshot, getGlobalDataTrustHealth } = require('../../services/dataTrustService');
 const { getCoverageExplanation, getGlobalCoverageHealth } = require('../../services/dataCoverageService');
+const { getEasternTimeParts, getMarketSession } = require('../../utils/marketSession');
 
 const router = express.Router();
 const cronLogPath = path.resolve(__dirname, '../../logs/cron.log');
 
 const DEFAULT_TIMESTAMP_COLUMNS = ['updated_at', 'created_at', 'timestamp', 'published_at', 'report_date', 'as_of_date'];
+const MARKET_OPEN_MINUTES = (9 * 60) + 30;
+const AFTER_HOURS_END_MINUTES = 20 * 60;
 
 const TABLE_CONFIG = [
-  { alias: 'intraday_1m', table: 'intraday_1m', timestampColumns: ['timestamp', 'updated_at', 'created_at'] },
-  { alias: 'daily_ohlc', table: 'daily_ohlc', timestampColumns: ['date', 'updated_at', 'created_at'], thresholdMinutes: 2880 },
+  { alias: 'intraday_1m', table: 'intraday_1m', timestampColumns: ['timestamp', 'updated_at', 'created_at'], marketFreshness: 'intraday' },
+  { alias: 'daily_ohlc', table: 'daily_ohlc', timestampColumns: ['date', 'updated_at', 'created_at'], thresholdMinutes: 2880, marketFreshness: 'daily_close' },
   { alias: 'ticker_universe', table: 'ticker_universe', timestampColumns: ['last_updated', 'created_at'], thresholdMinutes: 10080 },
   { alias: 'catalyst_signals', table: 'catalyst_signals', timestampColumns: ['created_at', 'updated_at'], thresholdMinutes: 120 },
   { alias: 'trade_outcomes', table: 'trade_outcomes', timestampColumns: ['evaluated_at', 'created_at'], thresholdMinutes: 10080 },
@@ -58,6 +61,118 @@ async function loadTableMetadata(tableNames) {
 
 function resolveTimestampColumn(config) {
   return (config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS)[0] || null;
+}
+
+function formatEasternDateKey(parts) {
+  return `${String(parts.year || 0).padStart(4, '0')}-${String(parts.month || '01')}-${String(parts.day || '01')}`;
+}
+
+function shiftDateKey(dateKey, deltaDays) {
+  const base = new Date(`${dateKey}T00:00:00Z`);
+  if (!Number.isFinite(base.getTime())) {
+    return null;
+  }
+
+  base.setUTCDate(base.getUTCDate() + deltaDays);
+  return base.toISOString().slice(0, 10);
+}
+
+function getPreviousTradingDateKey(dateKey) {
+  let candidate = dateKey;
+  while (candidate) {
+    candidate = shiftDateKey(candidate, -1);
+    if (!candidate) {
+      return null;
+    }
+
+    const dayOfWeek = new Date(`${candidate}T00:00:00Z`).getUTCDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function extractLatestMarketDateKey(value) {
+  const text = String(value || '').trim();
+  if (!text) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
+
+  const parsed = new Date(text);
+  if (!Number.isFinite(parsed.getTime())) {
+    return null;
+  }
+
+  return formatEasternDateKey(getEasternTimeParts(parsed));
+}
+
+function getExpectedMarketDateKey(mode, now = new Date()) {
+  const parts = getEasternTimeParts(now);
+  const currentDateKey = formatEasternDateKey(parts);
+  const session = getMarketSession(now);
+  const totalMinutes = (parts.hour * 60) + parts.minute;
+
+  if (parts.weekday === 'Sat' || parts.weekday === 'Sun') {
+    return getPreviousTradingDateKey(currentDateKey);
+  }
+
+  if (mode === 'intraday') {
+    if (totalMinutes < MARKET_OPEN_MINUTES) {
+      return getPreviousTradingDateKey(currentDateKey);
+    }
+    return currentDateKey;
+  }
+
+  if (mode === 'daily_close') {
+    if (session !== 'CLOSED' || totalMinutes < AFTER_HOURS_END_MINUTES) {
+      return getPreviousTradingDateKey(currentDateKey);
+    }
+    return currentDateKey;
+  }
+
+  return currentDateKey;
+}
+
+function shouldOverrideMarketFreshness(config, latestTimestamp, currentStatus) {
+  if (config.marketFreshness == null || currentStatus !== 'degraded') {
+    return null;
+  }
+
+  const latestMarketDateKey = extractLatestMarketDateKey(latestTimestamp);
+  const expectedMarketDateKey = getExpectedMarketDateKey(config.marketFreshness);
+  if (!latestMarketDateKey || !expectedMarketDateKey) {
+    return null;
+  }
+
+  const session = getMarketSession();
+  const canUseDateOnlyFreshness = config.marketFreshness === 'daily_close'
+    || session === 'CLOSED';
+
+  if (!canUseDateOnlyFreshness) {
+    return {
+      latestMarketDateKey,
+      expectedMarketDateKey,
+    };
+  }
+
+  if (latestMarketDateKey >= expectedMarketDateKey) {
+    return {
+      status: 'ok',
+      latestMarketDateKey,
+      expectedMarketDateKey,
+    };
+  }
+
+  return {
+    latestMarketDateKey,
+    expectedMarketDateKey,
+  };
 }
 
 async function loadLatestTimestamp(tableName, timestampColumn) {
@@ -108,11 +223,18 @@ async function getTableSnapshot(config, metadataByTable) {
     status = 'degraded';
   }
 
+  const marketFreshness = shouldOverrideMarketFreshness(config, latestTimestamp, status);
+  if (marketFreshness?.status) {
+    status = marketFreshness.status;
+  }
+
   return {
     table: config.alias,
     source_table: config.table,
     row_count: rowCount,
     latest_timestamp: latestTimestamp,
+    latest_market_date: marketFreshness?.latestMarketDateKey || null,
+    expected_market_date: marketFreshness?.expectedMarketDateKey || null,
     lag_minutes: lagMinutes,
     freshness_threshold_minutes: thresholdMinutes,
     status,
