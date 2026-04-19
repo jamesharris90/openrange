@@ -103,7 +103,7 @@ const STARTUP_DELAYS_MS = {
   nonEssential: Number(process.env.STARTUP_DELAY_NON_ESSENTIAL_MS || 70_000),
 };
 const HEALTH_TIMEOUTS_MS = {
-  dataHealth: Number(process.env.HEALTH_DATA_TIMEOUT_MS || 1500),
+  dataHealth: Number(process.env.HEALTH_DATA_TIMEOUT_MS || 4000),
   telemetry: Number(process.env.HEALTH_TELEMETRY_TIMEOUT_MS || 1000),
 };
 

@@ -59,6 +59,57 @@ async function loadTableMetadata(tableNames) {
   );
 }
 
+function buildLatestTimestampQuery(configs) {
+  const statements = [];
+
+  for (const config of configs) {
+    const timestampColumn = resolveTimestampColumn(config);
+    if (!timestampColumn) {
+      continue;
+    }
+
+    statements.push(
+      `SELECT '${config.alias}'::text AS alias,
+              '${config.table}'::text AS table_name,
+              MAX(${timestampColumn})::text AS latest_timestamp
+       FROM ${config.table}
+       WHERE ${timestampColumn} IS NOT NULL`
+    );
+  }
+
+  return statements.join('\nUNION ALL\n');
+}
+
+async function loadLatestTimestamps(configs) {
+  const query = buildLatestTimestampQuery(configs);
+  if (!query) {
+    return new Map();
+  }
+
+  const result = await queryWithTimeout(query, [], {
+    timeoutMs: 5000,
+    label: 'v2.system.latest_timestamps',
+    maxRetries: 0,
+  }).catch((error) => ({ rows: [], error }));
+
+  const latestByAlias = new Map();
+  for (const config of configs) {
+    latestByAlias.set(config.alias, {
+      latestTimestamp: null,
+      error: result.error?.message || null,
+    });
+  }
+
+  for (const row of result.rows || []) {
+    latestByAlias.set(String(row.alias || ''), {
+      latestTimestamp: row.latest_timestamp || null,
+      error: null,
+    });
+  }
+
+  return latestByAlias;
+}
+
 function resolveTimestampColumn(config) {
   return (config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS)[0] || null;
 }
@@ -175,25 +226,7 @@ function shouldOverrideMarketFreshness(config, latestTimestamp, currentStatus) {
   };
 }
 
-async function loadLatestTimestamp(tableName, timestampColumn) {
-  if (!timestampColumn) {
-    return null;
-  }
-
-  const result = await queryWithTimeout(
-    `SELECT ${timestampColumn}::text AS latest_timestamp
-     FROM ${tableName}
-     WHERE ${timestampColumn} IS NOT NULL
-     ORDER BY ${timestampColumn} DESC
-     LIMIT 1`,
-    [],
-    { timeoutMs: 4000, label: `v2.system.latest.${tableName}`, maxRetries: 0 }
-  ).catch(() => ({ rows: [{ latest_timestamp: null }] }));
-
-  return result.rows?.[0]?.latest_timestamp || null;
-}
-
-async function getTableSnapshot(config, metadataByTable) {
+async function getTableSnapshot(config, metadataByTable, latestByAlias) {
   const metadata = metadataByTable.get(config.table) || { exists: false, rowEstimate: 0 };
   if (!metadata.exists) {
     return {
@@ -207,8 +240,11 @@ async function getTableSnapshot(config, metadataByTable) {
     };
   }
 
-  const timestampColumn = resolveTimestampColumn(config);
-  const latestTimestamp = await loadLatestTimestamp(config.table, timestampColumn);
+  const latestTimestampState = latestByAlias.get(config.alias) || {
+    latestTimestamp: null,
+    error: null,
+  };
+  const latestTimestamp = latestTimestampState.latestTimestamp;
   const rowCount = Number(metadata.rowEstimate || 0);
   const parsedTs = latestTimestamp ? Date.parse(latestTimestamp) : NaN;
   const lagMinutes = Number.isFinite(parsedTs)
@@ -218,6 +254,8 @@ async function getTableSnapshot(config, metadataByTable) {
 
   let status = 'ok';
   if (rowCount === 0) {
+    status = 'warning';
+  } else if (!latestTimestamp) {
     status = 'warning';
   } else if (lagMinutes != null && lagMinutes > thresholdMinutes) {
     status = 'degraded';
@@ -233,6 +271,7 @@ async function getTableSnapshot(config, metadataByTable) {
     source_table: config.table,
     row_count: rowCount,
     latest_timestamp: latestTimestamp,
+    latest_timestamp_error: latestTimestampState.error,
     latest_market_date: marketFreshness?.latestMarketDateKey || null,
     expected_market_date: marketFreshness?.expectedMarketDateKey || null,
     lag_minutes: lagMinutes,
@@ -329,13 +368,14 @@ router.get('/cron-status', async (_req, res) => {
 router.get('/data-integrity', async (_req, res) => {
   try {
     const tableNames = TABLE_CONFIG.map((config) => config.table);
-    const [metadataByTable, integrityHealth] = await Promise.all([
+    const [metadataByTable, latestByAlias, integrityHealth] = await Promise.all([
       loadTableMetadata(tableNames),
+      loadLatestTimestamps(TABLE_CONFIG),
       Promise.resolve(getDataIntegrityHealth()).catch(() => ({ status: 'idle', issues: [], last_run: null })),
     ]);
 
     const tableSnapshots = await Promise.all(
-      TABLE_CONFIG.map((config) => getTableSnapshot(config, metadataByTable))
+      TABLE_CONFIG.map((config) => getTableSnapshot(config, metadataByTable, latestByAlias))
     );
 
     const issues = Array.isArray(integrityHealth?.issues)
