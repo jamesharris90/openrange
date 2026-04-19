@@ -35,6 +35,7 @@ const whyMovingCache = new Map();
 const WHY_MOVING_CACHE_TTL_MS = 30 * 1000;
 const decisionCache = new Map();
 const DECISION_CACHE_TTL_MS = 5 * 60 * 1000;
+const DECISION_ROUTE_TIMEOUT_MS = 60 * 1000;
 
 const INTEL_KEY = process.env.INTEL_INGEST_KEY;
 
@@ -144,7 +145,7 @@ async function sendDecisionResponse(symbol, res) {
         buildTruthDecisionForSymbol(symbol, {
           allowRemoteNarrative: false,
         }),
-        45000,
+        DECISION_ROUTE_TIMEOUT_MS,
         `Decision build timed out for ${symbol}`
       );
       if (!decision?.degraded) {
