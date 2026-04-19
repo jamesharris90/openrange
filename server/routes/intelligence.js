@@ -328,6 +328,62 @@ async function getSnapshotTopOpportunitiesFallback(limit) {
   }
 }
 
+async function getStocksInPlayTopOpportunities(limit) {
+  const result = await queryWithTimeout(
+    `WITH dedup AS (
+       SELECT DISTINCT ON (UPPER(symbol))
+              UPPER(symbol) AS symbol,
+              score,
+              gap_percent,
+              COALESCE(relative_volume, rvol) AS relative_volume,
+              catalyst,
+              updated_at
+       FROM stocks_in_play_filtered
+       WHERE symbol IS NOT NULL
+         AND TRIM(symbol) <> ''
+       ORDER BY UPPER(symbol), score DESC NULLS LAST
+     )
+     SELECT *
+     FROM dedup
+     ORDER BY score DESC NULLS LAST, ABS(COALESCE(gap_percent, 0)) DESC NULLS LAST
+     LIMIT $1`,
+    [Math.max(limit, 20)],
+    {
+      timeoutMs: 1500,
+      maxRetries: 0,
+      slowQueryMs: 1000,
+      label: 'api.intelligence.top_opportunities.stocks_in_play',
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row, index) => {
+    const symbol = String(row.symbol || '').trim().toUpperCase();
+    const gapPercent = Number(row.gap_percent || 0);
+    const relativeVolume = Number(row.relative_volume || 0);
+    const catalyst = String(row.catalyst || '').trim();
+    const confidence = Number.isFinite(Number(row.score))
+      ? Math.max(25, Math.min(99, Number(row.score)))
+      : Math.max(25, 80 - index * 2);
+    const expectedMove = Number.isFinite(gapPercent) && gapPercent !== 0
+      ? Math.abs(gapPercent)
+      : Number.isFinite(relativeVolume) && relativeVolume > 0
+        ? Number((relativeVolume * 2).toFixed(2))
+        : 1;
+
+    return {
+      symbol,
+      why: catalyst
+        ? `${symbol} remains active in stocks in play with ${catalyst}.`
+        : `${symbol} remains active in stocks in play with a ${gapPercent.toFixed(2)}% gap and ${relativeVolume.toFixed(2)}x relative volume.`,
+      how: relativeVolume >= 3
+        ? 'Monitor for continuation through VWAP and intraday highs before entering.'
+        : 'Wait for confirmation at key intraday levels before entering.',
+      confidence,
+      expected_move: expectedMove,
+    };
+  }).filter((row) => row.symbol && Number.isFinite(row.expected_move));
+}
+
 function withTimeout(promise, timeoutMs, timeoutMessage) {
   if (!Number.isFinite(Number(timeoutMs)) || Number(timeoutMs) <= 0) {
     return promise;
@@ -2317,6 +2373,18 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
     const finalRows = contractRows.slice(0, hardResultLimit);
 
     if (!finalRows.length) {
+      const stocksInPlayRows = await getStocksInPlayTopOpportunities(hardResultLimit);
+      if (stocksInPlayRows.length > 0) {
+        logResponseShape('/api/intelligence/top-opportunities', stocksInPlayRows, ['symbol', 'why', 'how', 'confidence', 'expected_move']);
+        return res.json({
+          success: true,
+          source: 'real',
+          mode,
+          count: stocksInPlayRows.length,
+          data: stocksInPlayRows.slice(0, hardResultLimit),
+        });
+      }
+
       return res.json({
         success: false,
         error: 'NO_REAL_DATA',
