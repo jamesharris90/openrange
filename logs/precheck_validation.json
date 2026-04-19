@@ -1,14 +1,137 @@
 {
-  "ok": true,
-  "checked_at": "2026-04-11T09:21:32.247Z",
-  "tables": {
-    "news_articles": {
-      "exists": true,
-      "row_count": 202608,
-      "columns_ok": true,
-      "missing_columns": [],
-      "published_at_type": "timestamp without time zone",
-      "latest_aapl_published_at_utc": "2026-04-11T04:33:16.000Z"
+  "status": "ok",
+  "generated_at": "2026-04-19T17:16:33.578Z",
+  "checks": [
+    {
+      "check": "source_tables_and_counts",
+      "rows": [
+        {
+          "table_name": "strategy_backtest_signals",
+          "row_count": 90707
+        },
+        {
+          "table_name": "strategy_scores",
+          "row_count": 44
+        },
+        {
+          "table_name": "morning_picks",
+          "row_count": 0
+        }
+      ]
+    },
+    {
+      "check": "nightly_tables_present",
+      "rows": [
+        {
+          "table_name": "beacon_nightly_runs",
+          "exists": true
+        },
+        {
+          "table_name": "beacon_pick_outcomes",
+          "exists": true
+        },
+        {
+          "table_name": "beacon_strategy_params",
+          "exists": true
+        },
+        {
+          "table_name": "beacon_strategy_params_history",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "check": "nightly_columns_present",
+      "rows": [
+        {
+          "table_name": "beacon_nightly_runs",
+          "columns": [
+            "id",
+            "run_type",
+            "status",
+            "started_at",
+            "completed_at",
+            "evaluated_pick_count",
+            "tuned_strategy_count",
+            "generated_pick_count",
+            "score_rows",
+            "signal_rows",
+            "error",
+            "created_at",
+            "updated_at",
+            "metadata"
+          ]
+        },
+        {
+          "table_name": "beacon_pick_outcomes",
+          "columns": [
+            "pick_id",
+            "pick_date",
+            "strategy_id",
+            "symbol",
+            "evaluation_status",
+            "entry_triggered",
+            "actual_entry_price",
+            "exit_price",
+            "actual_pnl_r",
+            "bars_held",
+            "exit_reason",
+            "evaluated_at",
+            "created_at",
+            "updated_at",
+            "metadata"
+          ]
+        },
+        {
+          "table_name": "beacon_strategy_params",
+          "columns": [
+            "strategy_id",
+            "enabled",
+            "min_grade_score",
+            "min_win_rate",
+            "min_profit_factor",
+            "confidence_multiplier",
+            "max_picks_per_run",
+            "hold_days",
+            "evaluation_lookback",
+            "updated_at",
+            "metadata"
+          ]
+        },
+        {
+          "table_name": "beacon_strategy_params_history",
+          "columns": [
+            "id",
+            "strategy_id",
+            "reason",
+            "source_run_id",
+            "previous_params",
+            "next_params",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "check": "nightly_table_row_counts",
+      "rows": [
+        {
+          "table_name": "beacon_pick_outcomes",
+          "row_count": 0
+        },
+        {
+          "table_name": "beacon_strategy_params",
+          "row_count": 15
+        },
+        {
+          "table_name": "beacon_strategy_params_history",
+          "row_count": 0
+        },
+        {
+          "table_name": "beacon_nightly_runs",
+          "row_count": 1
+        }
+      ]
     }
-  }
+  ]
 }

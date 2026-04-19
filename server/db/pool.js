@@ -21,6 +21,7 @@ const RawPool = pg.Pool;
 const RawClient = pg.Client;
 const SINGLETON_KEY = Symbol.for('openrange.db.pool.singleton');
 const isTestRuntime = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
+const serviceRole = String(process.env.OPENRANGE_SERVICE_ROLE || '').trim().toLowerCase();
 const isRailwayRuntime = Boolean(
   process.env.RAILWAY_PROJECT_ID
   || process.env.RAILWAY_ENVIRONMENT_ID
@@ -31,6 +32,7 @@ const isRailwayRuntime = Boolean(
   || process.env.RAILWAY_PRIVATE_DOMAIN
 );
 const isHostedProductionRuntime = isRailwayRuntime || process.env.NODE_ENV === 'production';
+const isBeaconNightlyWorkerRuntime = serviceRole === 'beacon-nightly-worker';
 
 function isDirectFallbackEnabled() {
   if (process.env.PG_DIRECT_FALLBACK === 'true') {
@@ -127,9 +129,10 @@ function createLimiter(maxConcurrent) {
   });
 }
 
-const defaultMaxConnections = isRailwayRuntime ? 3 : 10;
+const defaultMaxConnections = isBeaconNightlyWorkerRuntime ? 1 : (isRailwayRuntime ? 3 : 10);
 const configuredMaxConnections = Math.max(1, Number(process.env.PG_POOL_MAX || defaultMaxConnections) || defaultMaxConnections);
-const hostedPoolCap = Math.max(1, Number(process.env.PG_HOSTED_POOL_CAP || 3) || 3);
+const hostedPoolCapDefault = isBeaconNightlyWorkerRuntime ? 1 : 3;
+const hostedPoolCap = Math.max(1, Number(process.env.PG_HOSTED_POOL_CAP || hostedPoolCapDefault) || hostedPoolCapDefault);
 const maxConnections = isHostedProductionRuntime
   ? Math.min(configuredMaxConnections, hostedPoolCap)
   : configuredMaxConnections;
@@ -196,7 +199,11 @@ function createRawPool(state, options = {}) {
     idleTimeoutMillis: idleTimeoutMs,
     connectionTimeoutMillis: connectionTimeoutMs,
     statement_timeout: Number.isFinite(statementTimeoutMs) && statementTimeoutMs > 0 ? statementTimeoutMs : 10000,
-    application_name: process.env.PG_APP_NAME || (directFallback ? 'openrange-v2-direct-fallback' : 'openrange-v2-manual'),
+    application_name: process.env.PG_APP_NAME || (
+      directFallback
+        ? 'openrange-v2-direct-fallback'
+        : (isBeaconNightlyWorkerRuntime ? 'openrange-beacon-nightly-worker' : 'openrange-v2-manual')
+    ),
   });
 
   state.rawPool = rawPool;

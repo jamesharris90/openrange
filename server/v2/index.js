@@ -11,6 +11,7 @@ const systemRoute = require('./routes/system');
 const validationRoute = require('./routes/validation');
 const adminRoute = require('./routes/admin');
 const devRoute = require('./routes/dev');
+const beaconRoute = require('./routes/beacon');
 const dashboardRoute = require('../routes/dashboard');
 const newsletterRoute = require('../routes/newsletter');
 const marketRoute = require('../routes/market');
@@ -125,7 +126,9 @@ function envFlag(name, defaultValue = true) {
 
 function resolveSchedulerFlags() {
   const safeModeEnabled = envFlag('SAFE_MODE', false);
-  const railwayMainServiceEnabled = railwayServiceRole !== 'coverage-worker' && railwayServiceRole !== 'phase2-worker';
+  const railwayMainServiceEnabled = railwayServiceRole !== 'coverage-worker'
+    && railwayServiceRole !== 'phase2-worker'
+    && railwayServiceRole !== 'beacon-nightly-worker';
   const backgroundServicesDefault = isRailwayRuntime ? false : true;
   const backgroundServicesEnabled = envFlag('ENABLE_BACKGROUND_SERVICES', backgroundServicesDefault) && !safeModeEnabled;
   const nonEssentialDefault = isRailwayRuntime ? false : true;
@@ -394,6 +397,7 @@ function createV2App() {
   app.use('/api/news', newsRoute);
   app.use('/api/v2/news', newsRoute);
   app.use('/api/v2/earnings', earningsV2Route);
+  app.use('/api/v2/beacon', beaconRoute);
   app.use('/', legacyEarningsRoute);
   app.use('/api/market', marketRoute);
   app.use('/api/system', systemRoute);

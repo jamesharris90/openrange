@@ -3,6 +3,7 @@ const { loadStrategyModules } = require('./strategyLoader');
 const { buildSharedDataCaches, loadSymbolDataset } = require('./engine');
 const { GRADE_SCORES } = require('./scorer');
 const { toDateKey, upsertRows } = require('./utils');
+const { getStrategyParamsMap } = require('../beacon-nightly/paramsCache');
 
 function nextWeekday(dateValue) {
   const current = new Date(dateValue);
@@ -13,31 +14,61 @@ function nextWeekday(dateValue) {
   return next.toISOString().slice(0, 10);
 }
 
-function computeConfidenceScore(scoreRow) {
+function computeConfidenceScore(scoreRow, strategyParams = null) {
   const winComponent = Number(scoreRow.win_rate || 0) * 100 * 0.4;
   const profitFactor = Math.min(Number(scoreRow.profit_factor || 0), 3);
   const pfComponent = (profitFactor / 3) * 100 * 0.3;
   const gradeComponent = (GRADE_SCORES[String(scoreRow.grade || 'D').toUpperCase()] || 50) * 0.3;
-  return winComponent + pfComponent + gradeComponent;
+  const multiplier = Number(strategyParams?.confidence_multiplier || 1);
+  return (winComponent + pfComponent + gradeComponent) * multiplier;
+}
+
+function satisfiesStrategyParams(scoreRow, strategyParams) {
+  if (!strategyParams || strategyParams.enabled === false) {
+    return false;
+  }
+
+  const gradeScore = GRADE_SCORES[String(scoreRow.grade || 'D').toUpperCase()] || 0;
+  if (gradeScore < Number(strategyParams.min_grade_score || 0)) {
+    return false;
+  }
+
+  const minWinRate = Number(strategyParams.min_win_rate);
+  if (Number.isFinite(minWinRate) && Number(scoreRow.win_rate || 0) < minWinRate) {
+    return false;
+  }
+
+  const minProfitFactor = Number(strategyParams.min_profit_factor);
+  if (Number.isFinite(minProfitFactor) && Number(scoreRow.profit_factor || 0) < minProfitFactor) {
+    return false;
+  }
+
+  return true;
 }
 
 async function generateMorningPicks(options = {}) {
   const scoreDate = toDateKey(options.scoreDate || new Date());
   const pickDate = toDateKey(options.pickDate || nextWeekday(scoreDate));
+  const strategyParamsMap = await getStrategyParamsMap();
   const latestScoreResult = await queryWithTimeout(
-    `SELECT *
-     FROM strategy_scores
-     WHERE score_date = (
-       SELECT MAX(score_date) FROM strategy_scores WHERE lookback_days = 30
+    `WITH ranked_scores AS (
+       SELECT *,
+              ROW_NUMBER() OVER (
+                PARTITION BY strategy_id
+                ORDER BY score_date DESC, created_at DESC
+              ) AS rn
+       FROM strategy_scores
+       WHERE lookback_days = 30
      )
-       AND lookback_days = 30
-       AND grade IN ('A', 'B')
+     SELECT *
+     FROM ranked_scores
+     WHERE rn = 1
      ORDER BY win_rate DESC, profit_factor DESC`,
     [],
     { timeoutMs: 20000, label: 'backtester.picks.latest_scores', maxRetries: 0 }
   );
 
-  const scoreRows = latestScoreResult.rows || [];
+  const scoreRows = (latestScoreResult.rows || []).filter((scoreRow) => satisfiesStrategyParams(scoreRow, strategyParamsMap.get(scoreRow.strategy_id)));
   if (!scoreRows.length) {
     return { pickDate, picksInserted: 0, picks: [] };
   }
@@ -48,6 +79,7 @@ async function generateMorningPicks(options = {}) {
 
   for (const scoreRow of scoreRows) {
     const strategy = strategyMap.get(scoreRow.strategy_id);
+    const strategyParams = strategyParamsMap.get(scoreRow.strategy_id);
     if (!strategy) continue;
 
     const symbols = sharedData.symbolsByDataRequirement(strategy.dataRequired);
@@ -73,7 +105,7 @@ async function generateMorningPicks(options = {}) {
         entry_price: latestSignal.entryPrice,
         stop_price: latestSignal.stopPrice,
         target_price: latestSignal.targetPrice,
-        confidence_score: computeConfidenceScore(scoreRow),
+        confidence_score: computeConfidenceScore(scoreRow, strategyParams),
         strategy_win_rate: Number(scoreRow.win_rate || 0),
         strategy_grade: scoreRow.grade,
         rank: 0,
@@ -89,16 +121,30 @@ async function generateMorningPicks(options = {}) {
             profit_factor: Number(scoreRow.profit_factor || 0),
             grade: scoreRow.grade,
           },
+          strategy_params: strategyParams || null,
           signal_metadata: latestSignal.metadata || {},
         },
       });
     }
   }
 
-  const ranked = picks
-    .sort((left, right) => Number(right.confidence_score || 0) - Number(left.confidence_score || 0))
-    .slice(0, 25)
-    .map((row, index) => ({ ...row, rank: index + 1 }));
+  const ranked = [];
+  const perStrategyCounts = new Map();
+  const sortedPicks = picks.sort((left, right) => Number(right.confidence_score || 0) - Number(left.confidence_score || 0));
+
+  for (const row of sortedPicks) {
+    const params = strategyParamsMap.get(row.strategy_id);
+    const currentCount = perStrategyCounts.get(row.strategy_id) || 0;
+    const maxPicks = Math.max(1, Number(params?.max_picks_per_run || 2));
+    if (currentCount >= maxPicks) {
+      continue;
+    }
+    ranked.push({ ...row, rank: ranked.length + 1 });
+    perStrategyCounts.set(row.strategy_id, currentCount + 1);
+    if (ranked.length >= 25) {
+      break;
+    }
+  }
 
   await upsertRows(
     'morning_picks',

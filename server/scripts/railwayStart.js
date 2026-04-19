@@ -29,6 +29,7 @@ const commandMap = {
   backend: ['node', ['index.js']],
   'coverage-worker': ['node', coverageWorkerArgs],
   'phase2-worker': ['node', ['scripts/runPhase2Worker.js']],
+  'beacon-nightly-worker': ['node', ['beaconNightlyWorker.js']],
 };
 
 const selected = commandMap[role] || commandMap.backend;

@@ -25,6 +25,7 @@ const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/screener-v2", label: "Screener", icon: Radar },
   { href: "/screener-v2?view=focus", label: "Opportunities", icon: Globe },
+  { href: "/beacon", label: "Beacon", icon: Radar },
   { href: "/research", label: "Research", icon: TrendingUp },
   { href: "/news-feed", label: "News", icon: Newspaper },
   { href: "/earnings", label: "Earnings", icon: Calendar },
