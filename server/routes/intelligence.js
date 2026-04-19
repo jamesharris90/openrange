@@ -2284,9 +2284,9 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       return !row.strategy || !row.why_moving || !row.execution_plan || !row.execution_plan.entry || !row.execution_plan.stop || !row.execution_plan.target;
     }).length;
     const executionLayerPass = validatedTop.length >= 10 && criticalMissing === 0;
-    const realRows = results.filter((row) => String(row?.source || '').toLowerCase() === 'real');
+    const candidateRows = results.filter((row) => row?.symbol);
 
-    const enrichedRows = await Promise.all(realRows.map(async (row) => {
+    const enrichedRows = await Promise.all(candidateRows.map(async (row) => {
       const hasWhy = Boolean(String(row?.why || row?.why_moving || '').trim());
       const hasHow = Boolean(String(row?.how || row?.how_to_trade || '').trim());
       if (hasWhy && hasHow) return row;
@@ -2330,7 +2330,7 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
 
     console.log('[TOP-OPPORTUNITIES SOURCE CHECK]', {
       rows: finalRows.length,
-      all_real: true,
+      internal_rows: candidateRows.length,
       response_source: 'real',
     });
 
