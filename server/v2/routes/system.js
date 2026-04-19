@@ -42,8 +42,8 @@ async function loadTableMetadata(tableNames) {
      LEFT JOIN pg_stat_user_tables AS stats
        ON stats.relid = cls.oid`,
     [tableNames],
-    { timeoutMs: 4000, label: 'v2.system.table_metadata', maxRetries: 0 }
-  ).catch(() => ({ rows: [] }));
+    { timeoutMs: 7000, label: 'v2.system.table_metadata', maxRetries: 0 }
+  );
 
   return new Map(
     (result.rows || []).map((row) => [
@@ -56,31 +56,8 @@ async function loadTableMetadata(tableNames) {
   );
 }
 
-async function loadTableColumns(tableNames) {
-  const result = await queryWithTimeout(
-    `SELECT table_name, column_name
-     FROM information_schema.columns
-     WHERE table_schema = 'public'
-       AND table_name = ANY($1::text[])`,
-    [tableNames],
-    { timeoutMs: 4000, label: 'v2.system.table_columns', maxRetries: 0 }
-  ).catch(() => ({ rows: [] }));
-
-  const columnsByTable = new Map();
-  for (const row of result.rows || []) {
-    const tableName = String(row.table_name || '');
-    const columnName = String(row.column_name || '').toLowerCase();
-    if (!columnsByTable.has(tableName)) {
-      columnsByTable.set(tableName, new Set());
-    }
-    columnsByTable.get(tableName).add(columnName);
-  }
-  return columnsByTable;
-}
-
-function resolveTimestampColumn(config, columnsByTable) {
-  const available = columnsByTable.get(config.table) || new Set();
-  return (config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS).find((column) => available.has(String(column).toLowerCase())) || null;
+function resolveTimestampColumn(config) {
+  return (config.timestampColumns || DEFAULT_TIMESTAMP_COLUMNS)[0] || null;
 }
 
 async function loadLatestTimestamp(tableName, timestampColumn) {
@@ -101,7 +78,7 @@ async function loadLatestTimestamp(tableName, timestampColumn) {
   return result.rows?.[0]?.latest_timestamp || null;
 }
 
-async function getTableSnapshot(config, metadataByTable, columnsByTable) {
+async function getTableSnapshot(config, metadataByTable) {
   const metadata = metadataByTable.get(config.table) || { exists: false, rowEstimate: 0 };
   if (!metadata.exists) {
     return {
@@ -115,7 +92,7 @@ async function getTableSnapshot(config, metadataByTable, columnsByTable) {
     };
   }
 
-  const timestampColumn = resolveTimestampColumn(config, columnsByTable);
+  const timestampColumn = resolveTimestampColumn(config);
   const latestTimestamp = await loadLatestTimestamp(config.table, timestampColumn);
   const rowCount = Number(metadata.rowEstimate || 0);
   const parsedTs = latestTimestamp ? Date.parse(latestTimestamp) : NaN;
@@ -230,14 +207,13 @@ router.get('/cron-status', async (_req, res) => {
 router.get('/data-integrity', async (_req, res) => {
   try {
     const tableNames = TABLE_CONFIG.map((config) => config.table);
-    const [metadataByTable, columnsByTable, integrityHealth] = await Promise.all([
+    const [metadataByTable, integrityHealth] = await Promise.all([
       loadTableMetadata(tableNames),
-      loadTableColumns(tableNames),
       Promise.resolve(getDataIntegrityHealth()).catch(() => ({ status: 'idle', issues: [], last_run: null })),
     ]);
 
     const tableSnapshots = await Promise.all(
-      TABLE_CONFIG.map((config) => getTableSnapshot(config, metadataByTable, columnsByTable))
+      TABLE_CONFIG.map((config) => getTableSnapshot(config, metadataByTable))
     );
 
     const issues = Array.isArray(integrityHealth?.issues)
@@ -270,8 +246,8 @@ router.get('/data-integrity', async (_req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 'down',
+    return res.status(200).json({
+      status: 'degraded',
       checked_at: new Date().toISOString(),
       issues: [
         {
@@ -285,7 +261,7 @@ router.get('/data-integrity', async (_req, res) => {
       pipelines: [],
       data_quality: [],
       parity: {
-        status: 'down',
+        status: 'degraded',
         symbols: [],
       },
     });

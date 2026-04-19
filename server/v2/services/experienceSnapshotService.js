@@ -294,7 +294,7 @@ async function loadNewsSnapshotRows(cutoffIso, limit) {
     {
       timeoutMs: 5000,
       label: 'experience.news.snapshot.published_at',
-      maxRetries: 1,
+      maxRetries: 0,
     }
   );
 
@@ -330,7 +330,7 @@ async function loadNewsSnapshotRows(cutoffIso, limit) {
       {
         timeoutMs: 5000,
         label: 'experience.news.snapshot.published_date',
-        maxRetries: 1,
+        maxRetries: 0,
       }
     ).catch(() => ({ rows: [] }));
 
@@ -414,6 +414,42 @@ async function loadDirectSymbolNewsRows(symbol, limit) {
   return (result.rows || []).map((row) => normalizeNewsArticle(row)).filter(Boolean);
 }
 
+async function loadDirectLatestNewsRows(limit, cutoffIso) {
+  const result = await queryWithTimeout(
+    `SELECT
+       id,
+       UPPER(COALESCE(symbol, '')) AS symbol,
+       COALESCE(symbols, ARRAY[]::text[]) AS symbols,
+       COALESCE(title, headline) AS title,
+       headline,
+       summary,
+       COALESCE(source, publisher, provider, 'News') AS source,
+       publisher,
+       provider,
+       url,
+       published_at,
+       sentiment,
+       catalyst_type,
+       sector,
+       news_score,
+       source_type,
+       created_at
+     FROM news_articles
+     WHERE published_at IS NOT NULL
+       AND published_at >= $1
+     ORDER BY published_at DESC
+     LIMIT $2`,
+    [cutoffIso, limit],
+    {
+      timeoutMs: 3000,
+      label: 'experience.news.direct_latest',
+      maxRetries: 0,
+    }
+  ).catch(() => ({ rows: [] }));
+
+  return (result.rows || []).map((row) => normalizeNewsArticle(row)).filter(Boolean);
+}
+
 function filterNewsRows(rows, { cutoffHours, search, symbol, typeFilter }) {
   const cutoffTs = Date.now() - (cutoffHours * 60 * 60 * 1000);
   const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -474,7 +510,7 @@ async function buildNewsSnapshot() {
   };
 
   setCache(NEWS_SNAPSHOT_KEY, snapshot, NEWS_SNAPSHOT_TTL_MS * 3);
-  return snapshot;
+    return snapshot;
 }
 
 async function refreshNewsSnapshot() {
@@ -508,7 +544,6 @@ async function getNewsSnapshot() {
 }
 
 async function getCachedNewsFeedPayload(options = {}) {
-  const snapshot = await getNewsSnapshot();
   const limit = clamp(Number(options.limit) || 50, 1, 200);
   const page = Math.max(1, Number(options.page) || 1);
   const offset = Math.max(0, Number(options.offset) || ((page - 1) * limit));
@@ -516,6 +551,22 @@ async function getCachedNewsFeedPayload(options = {}) {
   const search = String(options.search || options.q || '').trim();
   const symbol = String(options.filterSymbol || options.filter_symbol || '').trim().toUpperCase();
   const type = String(options.type || 'all').trim().toLowerCase();
+  const cutoffIso = new Date(Date.now() - (cutoffHours * 60 * 60 * 1000)).toISOString();
+
+  let snapshot;
+  let source = 'snapshot';
+
+  try {
+    snapshot = await getNewsSnapshot();
+  } catch (_error) {
+    const directRows = await loadDirectLatestNewsRows(Math.max(limit * 3, 50), cutoffIso);
+    snapshot = {
+      created_at: new Date().toISOString(),
+      data: directRows,
+    };
+    source = 'direct_fallback';
+  }
+
   const baseRows = filterNewsRows(snapshot.data || [], {
     cutoffHours,
     search,
@@ -552,14 +603,26 @@ async function getCachedNewsFeedPayload(options = {}) {
     articles: data,
     themes: [],
     snapshot_at: snapshot.created_at,
-    source: 'snapshot',
+    source,
   };
 }
 
 async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
   const symbol = normalizeSymbol(symbolInput);
   const limit = clamp(Number(limitInput) || 5, 1, 20);
-  const snapshot = await getNewsSnapshot();
+  let snapshot;
+  let source = 'snapshot';
+
+  try {
+    snapshot = await getNewsSnapshot();
+  } catch (_error) {
+    snapshot = {
+      created_at: new Date().toISOString(),
+      data: [],
+    };
+    source = 'direct_fallback';
+  }
+
   const snapshotRows = (snapshot.data || [])
     .filter((row) => {
       const symbols = Array.isArray(row.symbols) ? row.symbols : [];
@@ -589,7 +652,7 @@ async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
     },
     message: directRows.length === 0 ? 'No symbol-specific news available.' : null,
     snapshot_at: snapshot.created_at,
-    source: 'snapshot',
+    source,
   };
 }
 
