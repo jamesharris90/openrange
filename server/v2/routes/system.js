@@ -31,22 +31,26 @@ const TABLE_CONFIG = [
 ];
 
 async function loadTableMetadata(tableNames) {
+  const primaryQuery = `SELECT src.name,
+                               to_regclass(format('public.%I', src.name)) IS NOT NULL AS exists,
+                               GREATEST(0, ROUND(COALESCE(stats.n_live_tup, 0)))::bigint AS row_estimate
+                        FROM unnest($1::text[]) AS src(name)
+                        LEFT JOIN pg_stat_user_tables AS stats
+                          ON stats.relname = src.name`;
+  const fallbackQuery = `SELECT src.name,
+                                to_regclass(format('public.%I', src.name)) IS NOT NULL AS exists,
+                                1::bigint AS row_estimate
+                         FROM unnest($1::text[]) AS src(name)`;
+
   const result = await queryWithTimeout(
-    `SELECT src.name,
-            CASE WHEN ns.oid IS NULL THEN FALSE ELSE cls.oid IS NOT NULL END AS exists,
-            GREATEST(0, ROUND(COALESCE(stats.n_live_tup, cls.reltuples, 0)))::bigint AS row_estimate
-     FROM unnest($1::text[]) AS src(name)
-     LEFT JOIN pg_class AS cls
-       ON cls.relname = src.name
-      AND cls.relkind = 'r'
-     LEFT JOIN pg_namespace AS ns
-       ON ns.oid = cls.relnamespace
-      AND ns.nspname = 'public'
-     LEFT JOIN pg_stat_user_tables AS stats
-       ON stats.relid = cls.oid`,
+    primaryQuery,
     [tableNames],
     { timeoutMs: 7000, label: 'v2.system.table_metadata', maxRetries: 0 }
-  );
+  ).catch(() => queryWithTimeout(
+    fallbackQuery,
+    [tableNames],
+    { timeoutMs: 2500, label: 'v2.system.table_metadata_fallback', maxRetries: 0 }
+  ));
 
   return new Map(
     (result.rows || []).map((row) => [
