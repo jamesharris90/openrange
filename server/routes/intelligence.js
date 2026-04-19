@@ -116,6 +116,15 @@ function getCachedDecision(symbol) {
   return cached.value;
 }
 
+function getStaleCachedDecision(symbol) {
+  const cached = decisionCache.get(symbol);
+  if (!cached) {
+    return null;
+  }
+
+  return cached.value;
+}
+
 function setCachedDecision(symbol, value) {
   decisionCache.set(symbol, {
     value,
@@ -126,19 +135,27 @@ function setCachedDecision(symbol, value) {
 async function sendDecisionResponse(symbol, res) {
   console.log('[DECISION ROUTE HIT]', symbol);
   const cached = getCachedDecision(symbol);
+  const staleCached = cached || getStaleCachedDecision(symbol);
   let decision = cached;
 
   if (!decision) {
     try {
-        decision = await withTimeout(
+      decision = await withTimeout(
         buildTruthDecisionForSymbol(symbol, {
           allowRemoteNarrative: false,
         }),
-          45000,
+        45000,
         `Decision build timed out for ${symbol}`
       );
-      setCachedDecision(symbol, decision);
+      if (!decision?.degraded) {
+        setCachedDecision(symbol, decision);
+      } else if (staleCached && !staleCached.degraded) {
+        decision = staleCached;
+      }
     } catch (error) {
+      if (staleCached && !staleCached.degraded) {
+        decision = staleCached;
+      } else {
       const fallbackDecision = {
         symbol,
         tradeable: false,
@@ -166,6 +183,7 @@ async function sendDecisionResponse(symbol, res) {
           reason: 'timeout',
         },
       });
+      }
     }
   }
 
@@ -1733,91 +1751,15 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       ? quickFinalRows.length > 5
       : quickFinalRows.length > 0;
 
-    if (!modePass) {
-      const snapshotFallbackRows = await getSnapshotTopOpportunitiesFallback(hardResultLimit);
-      if (snapshotFallbackRows.length > 0) {
-        return res.json({
-          success: true,
-          source: 'snapshot_fallback',
-          mode,
-          count: snapshotFallbackRows.length,
-          data: snapshotFallbackRows,
-          meta: {
-            fallback: true,
-            reason: 'no_data',
-          },
-        });
-      }
-
-      // FMP movers fallback — build synthetic opportunity rows from live gainers
-      try {
-        const axios = require('axios');
-        const fmpKey = process.env.FMP_API_KEY;
-        const [gainersResp, activesResp] = await Promise.all([
-          axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${fmpKey}`, { timeout: 800 }).catch(() => ({ data: [] })),
-          axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${fmpKey}`, { timeout: 800 }).catch(() => ({ data: [] })),
-        ]);
-        const seen = new Set();
-        const fmpMerged = [...(gainersResp.data || []), ...(activesResp.data || [])].filter((r) => {
-          const s = String(r.symbol || '').toUpperCase();
-          if (!s || seen.has(s)) return false;
-          seen.add(s);
-          return true;
-        });
-        const fmpOpps = fmpMerged.slice(0, hardResultLimit).map((r, i) => {
-          const chg = Number(r.changesPercentage || r.changePercentage || 0);
-          const direction = chg >= 0 ? 'up' : 'down';
-          return {
-            symbol: String(r.symbol || '').toUpperCase(),
-            why: `${r.name || r.symbol} ${direction} ${Math.abs(chg).toFixed(1)}% on elevated volume`,
-            how: 'Monitor for continuation past premarket range. Wait for open-range break confirmation.',
-            confidence: Math.max(30, 80 - i * 3),
-            expected_move: Math.abs(chg),
-            expected_move_percent: Math.abs(chg),
-            price: Number(r.price) || 0,
-            change_percent: chg,
-            volume: Number(r.volume) || 0,
-            source: 'fmp_direct',
-            trade_class: chg >= 2 ? 'A' : chg >= 0.5 ? 'B' : 'C',
-            strategy: chg >= 0 ? 'BREAKOUT' : 'BREAKDOWN',
-            updated_at: new Date().toISOString(),
-          };
-        }).filter((r) => r.symbol);
-
-        if (fmpOpps.length > 0) {
-          return res.json({
-            success: true,
-            source: 'fmp_direct',
-            mode,
-            count: fmpOpps.length,
-            data: fmpOpps,
-            meta: {
-              fallback: true,
-              reason: 'no_data',
-            },
-          });
-        }
-      } catch (_fmpErr) {
-        // fall through
-      }
+    if (modePass) {
       return res.json({
-        success: false,
-        error: 'NO_REAL_DATA',
+        success: true,
+        source: 'real',
         mode,
-        meta: {
-          fallback: true,
-          reason: 'no_data',
-        },
+        count: quickFinalRows.length,
+        data: quickFinalRows,
       });
     }
-
-    return res.json({
-      success: true,
-      source: 'real',
-      mode,
-      count: quickFinalRows.length,
-      data: quickFinalRows,
-    });
 
     const { rows } = await pool.query(
       `SELECT UPPER(symbol) AS symbol
@@ -2375,50 +2317,14 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
     const finalRows = contractRows.slice(0, hardResultLimit);
 
     if (!finalRows.length) {
-      // FMP movers fallback — build synthetic opportunity rows from live gainers
-      try {
-        const axios = require('axios');
-        const fmpKey = process.env.FMP_API_KEY;
-        const [gainersResp, activesResp] = await Promise.all([
-          axios.get(`https://financialmodelingprep.com/stable/biggest-gainers?apikey=${fmpKey}`, { timeout: 6000 }).catch(() => ({ data: [] })),
-          axios.get(`https://financialmodelingprep.com/stable/most-actives?apikey=${fmpKey}`, { timeout: 6000 }).catch(() => ({ data: [] })),
-        ]);
-        const seen = new Set();
-        const fmpMerged = [...(gainersResp.data || []), ...(activesResp.data || [])].filter((r) => {
-          const s = String(r.symbol || '').toUpperCase();
-          if (!s || seen.has(s)) return false;
-          seen.add(s);
-          return true;
-        });
-        const fmpOpps = fmpMerged.slice(0, hardResultLimit).map((r, i) => {
-          const chg = Number(r.changesPercentage || r.changePercentage || 0);
-          const direction = chg >= 0 ? 'up' : 'down';
-          return {
-            symbol: String(r.symbol || '').toUpperCase(),
-            why: `${r.name || r.symbol} ${direction} ${Math.abs(chg).toFixed(1)}% on elevated volume`,
-            how: 'Monitor for continuation past premarket range. Wait for open-range break confirmation.',
-            confidence: Math.max(30, 80 - i * 3),
-            expected_move: Math.abs(chg),
-            expected_move_percent: Math.abs(chg),
-            price: Number(r.price) || 0,
-            change_percent: chg,
-            volume: Number(r.volume) || 0,
-            source: 'fmp_direct',
-            trade_class: chg >= 2 ? 'A' : chg >= 0.5 ? 'B' : 'C',
-            strategy: chg >= 0 ? 'BREAKOUT' : 'BREAKDOWN',
-            updated_at: new Date().toISOString(),
-          };
-        }).filter((r) => r.symbol);
-
-        if (fmpOpps.length > 0) {
-          return res.json({ success: true, source: 'fmp_direct', count: fmpOpps.length, data: fmpOpps });
-        }
-      } catch (_fmpErr) {
-        // fall through to original NO_REAL_DATA response
-      }
       return res.json({
         success: false,
         error: 'NO_REAL_DATA',
+        mode,
+        meta: {
+          fallback: false,
+          reason: 'no_real_data',
+        },
       });
     }
 
@@ -2433,6 +2339,7 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
     return res.json({
       success: true,
       source: 'real',
+      mode,
       count: finalRows.length,
       data: finalRows,
     });
@@ -2443,8 +2350,8 @@ router.get('/api/intelligence/top-opportunities', async (req, res) => {
       error: 'NO_REAL_DATA',
       mode,
       meta: {
-        fallback: true,
-        reason: 'no_data',
+        fallback: false,
+        reason: 'no_real_data',
       },
     });
   }

@@ -3,7 +3,7 @@ const { fmpFetch } = require('./fmpClient');
 const { generateNarrative } = require('./gptService');
 const { getMarketRegime } = require('./marketRegime');
 const { normalizeReportTime } = require('./earningsIntelligence');
-const { ensureEarningsSchema, fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
+const { ensureEarningsSchemaCached, fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
 
 const PROFILE_TTL_MS = 15 * 60 * 1000;
 const PRICE_TTL_MARKET_HOURS_MS = 30 * 1000;
@@ -16,8 +16,11 @@ const EARNINGS_SOON_DAYS = 7;
 const MARKET_CONTEXT_TTL_MARKET_HOURS_MS = 5 * 60 * 1000;
 const MARKET_CONTEXT_TTL_OFF_HOURS_MS = 15 * 60 * 1000;
 const DEFAULT_SECTOR_GROUPS = ['Technology', 'Healthcare', 'Financials', 'Energy', 'Consumer'];
+const SCHEMA_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
 
 let schemaReadyPromise = null;
+let schemaReady = false;
+let lastSchemaEnsureAttemptAt = 0;
 
 function normalizeSymbol(value) {
   return String(value || '').trim().toUpperCase();
@@ -422,12 +425,22 @@ async function safeQuery(sql, params, options) {
 }
 
 async function ensureResearchCacheSchema() {
+  if (schemaReady) {
+    return true;
+  }
+
   if (schemaReadyPromise) {
     return schemaReadyPromise;
   }
 
+  if ((Date.now() - lastSchemaEnsureAttemptAt) < SCHEMA_RETRY_COOLDOWN_MS) {
+    return false;
+  }
+
+  lastSchemaEnsureAttemptAt = Date.now();
+
   schemaReadyPromise = (async () => {
-    await ensureEarningsSchema();
+    await ensureEarningsSchemaCached();
 
     const statements = [
       `CREATE TABLE IF NOT EXISTS public.company_profiles (
@@ -556,9 +569,13 @@ async function ensureResearchCacheSchema() {
         poolType: 'write',
       });
     }
+    schemaReady = true;
+    return true;
   })().catch((error) => {
+    console.warn('[research_cache] schema bootstrap degraded:', error.message);
+    return false;
+  }).finally(() => {
     schemaReadyPromise = null;
-    throw error;
   });
 
   return schemaReadyPromise;
