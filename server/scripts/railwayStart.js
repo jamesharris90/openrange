@@ -41,6 +41,17 @@ const child = spawn(command, args, {
   env: process.env,
 });
 
+console.log(`[launcher] Role: ${role} -> Spawning: ${command} ${args.join(' ')}`);
+console.log(`[launcher] Working Directory: ${path.resolve(__dirname, '..')}`);
+
+child.on('spawn', () => {
+  console.log(`[launcher] Child process successfully spawned (PID: ${child.pid})`);
+});
+
+child.on('error', (err) => {
+  console.error('[launcher] FATAL: Failed to spawn child process:', err);
+});
+
 child.on('exit', (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);
