@@ -5,6 +5,109 @@ const { evaluatePendingPickOutcomes } = require('./outcomeEvaluator');
 const { RUNS_TABLE, ensureBeaconNightlyTables, seedDefaultStrategyParams } = require('./paramsCache');
 
 const LOCK_KEY = 947321;
+const ZOMBIE_RUN_MAX_AGE = '2 hours';
+
+async function cleanupZombieRuns() {
+  const result = await runWithDbPool('write', () => queryWithTimeout(
+    `UPDATE ${RUNS_TABLE}
+     SET status = 'failed',
+         completed_at = NOW(),
+         error = 'Auto-marked failed: run was stuck in running state beyond max duration. Likely interrupted by worker restart.'
+     WHERE status = 'running'
+       AND started_at < NOW() - INTERVAL '${ZOMBIE_RUN_MAX_AGE}'
+     RETURNING id`,
+    [],
+    {
+      timeoutMs: 10000,
+      label: 'beacon_nightly.zombie_cleanup',
+      maxRetries: 1,
+      poolType: 'write',
+    }
+  ));
+
+  const count = Array.isArray(result.rows) ? result.rows.length : 0;
+  console.log(`[NIGHTLY] Zombie cleanup: marked ${count} prior runs as failed.`);
+  return result.rows || [];
+}
+
+async function heartbeat(runId, step, meta = {}) {
+  const payload = {
+    last_step: step,
+    last_step_at: new Date().toISOString(),
+    ...meta,
+  };
+
+  await runWithDbPool('write', () => queryWithTimeout(
+    `UPDATE ${RUNS_TABLE}
+     SET updated_at = NOW(),
+         metadata = metadata || $2::jsonb
+     WHERE id = $1`,
+    [runId, JSON.stringify(payload)],
+    {
+      timeoutMs: 10000,
+      label: `beacon_nightly.heartbeat.${runId}.${step}`,
+      maxRetries: 1,
+      poolType: 'write',
+    }
+  ));
+}
+
+async function resolveBacktestUniverse() {
+  const windows = [
+    {
+      label: '30d',
+      sql: `SELECT DISTINCT symbol
+            FROM strategy_backtest_signals
+            WHERE signal_date >= CURRENT_DATE - INTERVAL '30 days'
+            ORDER BY symbol`,
+      queryLabel: 'beacon_nightly.universe.30d',
+    },
+    {
+      label: '60d fallback',
+      sql: `SELECT DISTINCT symbol
+            FROM strategy_backtest_signals
+            WHERE signal_date >= CURRENT_DATE - INTERVAL '60 days'
+            ORDER BY symbol`,
+      queryLabel: 'beacon_nightly.universe.60d',
+    },
+  ];
+
+  let resolved = [];
+  let selectedWindow = windows[0].label;
+
+  for (const window of windows) {
+    const result = await queryWithTimeout(
+      window.sql,
+      [],
+      {
+        timeoutMs: 30000,
+        label: window.queryLabel,
+        maxRetries: 0,
+      }
+    );
+
+    resolved = (result.rows || [])
+      .map((row) => String(row.symbol || '').trim().toUpperCase())
+      .filter(Boolean);
+    selectedWindow = window.label;
+
+    if (resolved.length >= 10 || window.label === '60d fallback') {
+      break;
+    }
+  }
+
+  console.log(`[NIGHTLY] Universe resolved: ${resolved.length} symbols (window=${selectedWindow})`);
+  if (resolved.length > 2000) {
+    const error = new Error(`Universe too large: ${resolved.length} symbols`);
+    error.code = 'BEACON_UNIVERSE_TOO_LARGE';
+    throw error;
+  }
+  if (resolved.length > 1500) {
+    console.warn(`[NIGHTLY] WARN: Universe unusually large (${resolved.length} symbols), expect long runtime`);
+  }
+
+  return { symbols: resolved, window: selectedWindow };
+}
 
 async function acquireLock() {
   const result = await runWithDbPool('write', () => queryWithTimeout(
@@ -89,6 +192,7 @@ async function updateRun(runId, patch = {}) {
 async function runBeaconNightlyCycle(options = {}) {
   await ensureBeaconNightlyTables();
   await seedDefaultStrategyParams();
+  await cleanupZombieRuns();
 
   const locked = await acquireLock();
   if (!locked) {
@@ -110,28 +214,58 @@ async function runBeaconNightlyCycle(options = {}) {
   });
 
   try {
+    const explicitSymbols = Array.isArray(options.symbols) && options.symbols.length
+      ? options.symbols
+      : null;
+    const universe = explicitSymbols
+      ? {
+          symbols: explicitSymbols,
+          window: 'manual_override',
+        }
+      : await resolveBacktestUniverse();
+
+    await heartbeat(run.id, 'universe_resolved', {
+      symbols_count: universe.symbols.length,
+      universe_window: universe.window,
+    });
+
     const outcomeSummary = options.skipOutcomeEvaluation === true
       ? { evaluated_pick_count: 0, wins: 0, losses: 0, flats: 0, missed: 0, no_data: 0, invalid: 0, results: [] }
       : await evaluatePendingPickOutcomes({ runId: run.id });
+
+    await heartbeat(run.id, 'outcomes_done', {
+      evaluated: Number(outcomeSummary.evaluated_pick_count || 0),
+    });
 
     const tuningSummary = options.skipAdaptiveTuning === true
       ? { tuned_strategy_count: 0, changes: [] }
       : await tuneStrategyParams({ runId: run.id });
 
+    await heartbeat(run.id, 'tuning_done', {
+      tuned: Number(tuningSummary.tuned_strategy_count || 0),
+    });
+
     const backtestSummary = options.skipBacktest === true
       ? { generatedSignals: 0, scoreRows: 0, pickRows: 0 }
       : await runNightlyIncrementalBacktest({
         strategyIds: options.strategyIds,
-        symbols: options.symbols,
+        symbols: explicitSymbols || universe.symbols,
         skipScoring: false,
         skipPickGeneration: false,
         useCheckpoint: false,
       });
 
+    await heartbeat(run.id, 'backtest_done', {
+      signals: Number(backtestSummary.generatedSignals || 0),
+      symbols_count: (explicitSymbols || universe.symbols).length,
+    });
+
     const summary = {
       run_id: run.id,
       started_at: run.started_at ? new Date(run.started_at).toISOString() : null,
       completed_at: new Date().toISOString(),
+      symbols_count: (explicitSymbols || universe.symbols).length,
+      universe_window: universe.window,
       outcome_evaluation: outcomeSummary,
       adaptive_tuning: tuningSummary,
       nightly_backtest: backtestSummary,
