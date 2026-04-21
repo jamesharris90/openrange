@@ -18,7 +18,7 @@ const router = express.Router();
 
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
 const FMP_KEY = process.env.FMP_API_KEY;
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 // ── In-memory cache ──────────────────────────────────────────────────────────
 
@@ -204,8 +204,30 @@ router.get('/snapshot', async (_req, res) => {
 // ── POST /api/dashboard/briefing ─────────────────────────────────────────────
 
 function getOpenAIClient() {
-  if (!OPENAI_KEY) return null;
-  return new OpenAI({ apiKey: OPENAI_KEY });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  return new OpenAI({ apiKey });
+}
+
+function parseNarrativeResponse(content) {
+  const text = String(content || '').trim();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(text.slice(start, end + 1));
+      } catch (_innerError) {
+        return null;
+      }
+    }
+  }
+
+  return null;
 }
 
 function buildPrompt(session, snapshot, conditions) {
@@ -343,15 +365,15 @@ router.post('/briefing', async (req, res) => {
     const prompt = buildPrompt(session, snapshot, conditions);
 
     const completion = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model: OPENAI_MODEL,
       max_tokens: 1200,
       temperature: 0.65,
+      response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     });
 
     const raw = completion.choices[0]?.message?.content || '';
-    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const parsed = parseNarrativeResponse(raw);
 
     if (!parsed.sections || !Array.isArray(parsed.sections)) {
       throw new Error('Invalid narrative structure from OpenAI');
