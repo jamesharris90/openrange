@@ -1,5 +1,5 @@
 const express = require('express');
-const { pool } = require('../db/pg');
+const { pool, queryWithTimeout } = require('../db/pg');
 const { fmpFetch } = require('../services/fmpClient');
 const { fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
 const { getCoverageContext, getCoverageExplanation, hasStructuralEarningsGap } = require('../services/dataCoverageService');
@@ -20,6 +20,7 @@ const EARNINGS_FRESH_TTL_MS = 24 * 60 * 60 * 1000;
 const EARNINGS_REQUIRED_COLUMNS = {
   earnings_history: ['symbol', 'report_date', 'eps_actual'],
 };
+const EARNINGS_LIST_TIMEOUT_MS = 3000;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -413,6 +414,55 @@ router.get('/api/earnings', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
     const rawSymbol = String(req.query.symbol || '').trim().toUpperCase();
+    const tradingWeek = computeTradingWeekWindow(new Date());
+
+    async function buildCalendarFallbackResponse(reason) {
+      const snapshotPayload = await getCachedEarningsCalendarPayload({
+        from: tradingWeek.from,
+        to: tradingWeek.to,
+        limit,
+      }).catch(() => null);
+
+      if (snapshotPayload?.success && Array.isArray(snapshotPayload.data) && snapshotPayload.data.length > 0) {
+        return {
+          success: true,
+          status: 'fallback',
+          source: snapshotPayload.source || 'earnings_calendar_snapshot',
+          count: Math.min(snapshotPayload.data.length, limit),
+          data: snapshotPayload.data.slice(0, limit),
+          message: 'Returning earnings calendar snapshot fallback.',
+          meta: {
+            fallback: true,
+            reason,
+          },
+        };
+      }
+
+      const fmpRows = await fmpEarningsFallback(tradingWeek.from, tradingWeek.to);
+      if (fmpRows.length > 0) {
+        return {
+          success: true,
+          status: 'fallback',
+          source: 'fmp_direct',
+          count: Math.min(fmpRows.length, limit),
+          data: fmpRows.slice(0, limit),
+          message: 'Returning live calendar fallback.',
+          meta: {
+            fallback: true,
+            reason,
+          },
+        };
+      }
+
+      return {
+        ...emptyHistoryPayload(),
+        message: 'No historical earnings data is available.',
+        meta: {
+          fallback: true,
+          reason,
+        },
+      };
+    }
 
     if (rawSymbol) {
       const dbRow = await readUpcomingDbEvent(rawSymbol).catch(() => null);
@@ -442,37 +492,14 @@ router.get('/api/earnings', async (req, res) => {
     const hasRequiredSchema = await ensureRequiredSchema().catch(() => false);
 
     if (!hasRequiredSchema) {
-      const tradingWeek = computeTradingWeekWindow(new Date());
-      const fmpRows = await fmpEarningsFallback(tradingWeek.from, tradingWeek.to);
-      if (fmpRows.length > 0) {
-        const response = {
-          success: true,
-          status: 'fallback',
-          source: 'fmp_direct',
-          count: fmpRows.length,
-          data: fmpRows.slice(0, limit),
-          message: 'Required earnings history tables are unavailable. Returning live calendar fallback.',
-          meta: {
-            fallback: true,
-            reason: 'no_data',
-          },
-        };
+      const response = await buildCalendarFallbackResponse('no_data');
 
-        earningsHistoryCache.set(cacheKey, {
-          data: response,
-          timestamp: Date.now(),
-        });
-
-        return res.json(response);
-      }
-
-      return res.status(503).json({
-        ...emptyHistoryPayload(),
-        success: false,
-        status: 'unavailable',
-        error: 'schema_unavailable',
-        message: 'Required earnings history tables are unavailable.',
+      earningsHistoryCache.set(cacheKey, {
+        data: response,
+        timestamp: Date.now(),
       });
+
+      return res.json(response);
     }
 
     const schemaMap = await getSchemaMap(['earnings_history', 'ticker_universe']);
@@ -497,7 +524,7 @@ router.get('/api/earnings', async (req, res) => {
 
     params.push(limit);
 
-    const result = await pool.query(
+    const result = await queryWithTimeout(
       `SELECT
          e.symbol,
          tu.company_name,
@@ -522,7 +549,21 @@ router.get('/api/earnings', async (req, res) => {
        ORDER BY e.report_date DESC, e.symbol ASC
        LIMIT $${params.length}`,
       params,
-    );
+      {
+        timeoutMs: EARNINGS_LIST_TIMEOUT_MS,
+        maxRetries: 0,
+        label: 'earnings.history.list',
+        poolType: 'read',
+      }
+    ).catch(async () => ({ rows: null, fallback: await buildCalendarFallbackResponse('query_timeout') }));
+
+    if (result.rows === null && result.fallback) {
+      earningsHistoryCache.set(cacheKey, {
+        data: result.fallback,
+        timestamp: Date.now(),
+      });
+      return res.json(result.fallback);
+    }
 
     if (result.rows.length === 0) {
       return res.json({
@@ -717,7 +758,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
       class: classFilter,
     }).catch(() => null);
 
-    if (snapshotPayload) {
+    if (snapshotPayload && snapshotPayload.source !== 'snapshot_stale') {
       return res.status(200).json(snapshotPayload);
     }
 

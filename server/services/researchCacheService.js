@@ -4,6 +4,7 @@ const { generateNarrative } = require('./gptService');
 const { getMarketRegime } = require('./marketRegime');
 const { normalizeReportTime } = require('./earningsIntelligence');
 const { ensureEarningsSchemaCached, fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
+const { getMarketSession } = require('../utils/marketSession');
 
 const PROFILE_TTL_MS = 15 * 60 * 1000;
 const PRICE_TTL_MARKET_HOURS_MS = 30 * 1000;
@@ -123,6 +124,27 @@ function hasSectorTailwind(profileSector, leaders) {
 function parseTimestamp(value) {
   const parsed = Date.parse(String(value || ''));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toProviderTimestampIso(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  const timestampMs = numeric < 10_000_000_000 ? numeric * 1000 : numeric;
+  const date = new Date(timestampMs);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
+
+function midpoint(bid, ask) {
+  const bidNumber = toNumber(bid);
+  const askNumber = toNumber(ask);
+  if (bidNumber === null || askNumber === null || bidNumber <= 0 || askNumber <= 0) {
+    return null;
+  }
+
+  return Number(((bidNumber + askNumber) / 2).toFixed(6));
 }
 
 function daysUntilIsoDate(value) {
@@ -581,8 +603,32 @@ async function ensureResearchCacheSchema() {
   return schemaReadyPromise;
 }
 
-async function readCompanyProfileCache(symbol) {
-  await ensureResearchCacheSchema();
+function buildEmptyMarketContext() {
+  return {
+    spy_trend: 'neutral',
+    qqq_trend: 'neutral',
+    vix_level: null,
+    spy: { price: null, change: null },
+    qqq: { price: null, change: null },
+    vix: { level: null },
+    regime: 'balanced',
+    regimeBias: getRegimeBias('balanced'),
+    sectorTailwind: false,
+    sector_strength_json: {},
+    sectorLeaders: [],
+    sectorLaggers: [],
+    narrative: null,
+    updated_at: null,
+    lastUpdated: null,
+    stale: true,
+    source: 'empty',
+  };
+}
+
+async function readCompanyProfileCache(symbol, options = {}) {
+  if (!options.skipSchemaEnsure) {
+    await ensureResearchCacheSchema();
+  }
   const result = await safeQuery(
     `SELECT symbol, company_name, sector, industry, exchange, country, website, description, market_cap, beta, pe, insider_ownership_percent, updated_at
      FROM company_profiles
@@ -681,9 +727,9 @@ async function fetchCompanyProfileFromFmp(symbol) {
   return normalized;
 }
 
-async function getCompanyProfile(symbolInput) {
+async function getCompanyProfile(symbolInput, options = {}) {
   const symbol = normalizeSymbol(symbolInput);
-  const cached = await readCompanyProfileCache(symbol);
+  const cached = await readCompanyProfileCache(symbol, { skipSchemaEnsure: options.cacheOnly === true });
   const hasExtendedProfile = [cached?.beta, cached?.pe, cached?.insider_ownership_percent]
     .some((value) => value !== null && value !== undefined && Number(value) !== 0);
   const isComplete = Boolean(cached?.sector && cached?.industry && cached?.exchange && cached?.country && hasExtendedProfile);
@@ -704,6 +750,25 @@ async function getCompanyProfile(symbolInput) {
       insider_ownership_percent: toNumber(cached.insider_ownership_percent),
       updated_at: cached.updated_at || null,
       source: 'cache',
+    };
+  }
+
+  if (options.cacheOnly) {
+    return {
+      symbol,
+      company_name: toStringValue(cached?.company_name),
+      sector: toStringValue(cached?.sector),
+      industry: toStringValue(cached?.industry),
+      exchange: toStringValue(cached?.exchange),
+      country: toStringValue(cached?.country),
+      website: toStringValue(cached?.website),
+      description: toStringValue(cached?.description),
+      market_cap: toNumber(cached?.market_cap),
+      beta: toNumber(cached?.beta),
+      pe: toNumber(cached?.pe),
+      insider_ownership_percent: toNumber(cached?.insider_ownership_percent),
+      updated_at: cached?.updated_at || null,
+      source: cached ? 'cache_stale' : 'empty',
     };
   }
 
@@ -838,9 +903,44 @@ async function fetchDailyCandlesForAtr(symbol) {
 }
 
 async function fetchPriceFromFmp(symbol, profile) {
+  const session = getMarketSession();
   const quote = firstRow(await fmpFetch('/quote', { symbol }).catch(() => null));
+  let resolvedPrice = toNumber(quote?.price);
+  let resolvedUpdatedAt = toProviderTimestampIso(quote?.timestamp) || new Date().toISOString();
+  let resolvedSource = 'fmp_quote';
+
+  if (session === 'PREMARKET' || session === 'POSTMARKET') {
+    const [aftermarketTradePayload, aftermarketQuotePayload] = await Promise.all([
+      fmpFetch('/aftermarket-trade', { symbol }).catch(() => null),
+      fmpFetch('/aftermarket-quote', { symbol }).catch(() => null),
+    ]);
+
+    const aftermarketTrade = firstRow(aftermarketTradePayload);
+    const aftermarketQuote = firstRow(aftermarketQuotePayload);
+    const tradePrice = toNumber(aftermarketTrade?.price);
+    const quoteMidpoint = midpoint(aftermarketQuote?.bidPrice, aftermarketQuote?.askPrice);
+    const quoteBid = toNumber(aftermarketQuote?.bidPrice);
+    const quoteAsk = toNumber(aftermarketQuote?.askPrice);
+
+    resolvedPrice = tradePrice
+      ?? quoteMidpoint
+      ?? quoteBid
+      ?? quoteAsk
+      ?? resolvedPrice;
+
+    resolvedUpdatedAt = toProviderTimestampIso(aftermarketTrade?.timestamp)
+      ?? toProviderTimestampIso(aftermarketQuote?.timestamp)
+      ?? resolvedUpdatedAt;
+
+    if (tradePrice !== null) {
+      resolvedSource = session === 'PREMARKET' ? 'fmp_premarket_trade' : 'fmp_postmarket_trade';
+    } else if (quoteMidpoint !== null || quoteBid !== null || quoteAsk !== null) {
+      resolvedSource = session === 'PREMARKET' ? 'fmp_premarket_quote' : 'fmp_postmarket_quote';
+    }
+  }
+
   const candles = await fetchDailyCandlesForAtr(symbol);
-  const price = toNumber(quote?.price);
+  const price = resolvedPrice;
   const changePercent = toNumber(quote?.changesPercentage)
     ?? toNumber(quote?.changePercentage)
     ?? computePercentChange(price, quote?.previousClose);
@@ -850,24 +950,27 @@ async function fetchPriceFromFmp(symbol, profile) {
     price,
     change_percent: changePercent,
     atr: computeAtrFromCandles(candles),
-    updated_at: new Date().toISOString(),
-    source: 'fmp',
+    updated_at: resolvedUpdatedAt,
+    source: resolvedSource,
   };
 
   await persistPriceCaches(normalized, profile);
   return normalized;
 }
 
-async function getPriceData(symbolInput) {
+async function getPriceData(symbolInput, options = {}) {
   const symbol = normalizeSymbol(symbolInput);
   const cached = await readPriceFromDb(symbol);
+  const marketSession = getMarketSession();
 
   if (cached && cached.price != null) {
     const updatedAt = Number(cached.freshness_unix) > 0
       ? new Date(Number(cached.freshness_unix) * 1000).toISOString()
       : null;
 
-    if (updatedAt && isFresh(updatedAt, getPriceTtlMs())) {
+    const shouldTrustCache = marketSession !== 'PREMARKET' && marketSession !== 'POSTMARKET';
+
+    if (shouldTrustCache && updatedAt && isFresh(updatedAt, getPriceTtlMs())) {
       return {
         symbol,
         price: toNumber(cached.price),
@@ -877,6 +980,17 @@ async function getPriceData(symbolInput) {
         source: 'cache',
       };
     }
+  }
+
+  if (options.cacheOnly) {
+    return {
+      symbol,
+      price: toNumber(cached?.price),
+      change_percent: toNumber(cached?.change_percent),
+      atr: toNumber(cached?.atr),
+      updated_at: cached?.freshness_unix ? new Date(Number(cached.freshness_unix) * 1000).toISOString() : null,
+      source: cached ? 'cache_stale' : 'empty',
+    };
   }
 
   const fresh = await fetchPriceFromFmp(symbol, null).catch(() => null);
@@ -894,8 +1008,10 @@ async function getPriceData(symbolInput) {
   };
 }
 
-async function readFundamentalsCache(symbol) {
-  await ensureResearchCacheSchema();
+async function readFundamentalsCache(symbol, options = {}) {
+  if (!options.skipSchemaEnsure) {
+    await ensureResearchCacheSchema();
+  }
   const result = await safeQuery(
     `SELECT symbol, revenue_growth, eps_growth, gross_margin, net_margin, free_cash_flow,
             pe, ps, pb, debt_to_equity, roe_percent, fcf_yield_percent, dividend_yield_percent,
@@ -1021,9 +1137,9 @@ async function fetchFundamentalsFromFmp(symbol) {
   return fundamentals;
 }
 
-async function getFundamentals(symbolInput) {
+async function getFundamentals(symbolInput, options = {}) {
   const symbol = normalizeSymbol(symbolInput);
-  const cached = await readFundamentalsCache(symbol);
+  const cached = await readFundamentalsCache(symbol, { skipSchemaEnsure: options.cacheOnly === true });
   const trendRows = parseJsonValue(cached?.quarterly_trends_json, []);
   const hasCachedData = Boolean(
     cached && [
@@ -1077,6 +1193,30 @@ async function getFundamentals(symbolInput) {
     };
   }
 
+  if (options.cacheOnly) {
+    return {
+      symbol,
+      revenue_growth: toNumber(cached?.revenue_growth),
+      eps_growth: toNumber(cached?.eps_growth),
+      gross_margin: toNumber(cached?.gross_margin),
+      net_margin: toNumber(cached?.net_margin),
+      free_cash_flow: toNumber(cached?.free_cash_flow),
+      pe: toNumber(cached?.pe),
+      ps: toNumber(cached?.ps),
+      pb: toNumber(cached?.pb),
+      debt_to_equity: toNumber(cached?.debt_to_equity),
+      roe_percent: toNumber(cached?.roe_percent),
+      fcf_yield_percent: toNumber(cached?.fcf_yield_percent),
+      dividend_yield_percent: toNumber(cached?.dividend_yield_percent),
+      earnings_yield_percent: toNumber(cached?.earnings_yield_percent),
+      altman_z_score: toNumber(cached?.altman_z_score),
+      piotroski_score: toNumber(cached?.piotroski_score),
+      trends: parseJsonValue(cached?.quarterly_trends_json, []),
+      updated_at: cached?.updated_at || null,
+      source: cached ? 'cache_stale' : 'empty',
+    };
+  }
+
   const fresh = await fetchFundamentalsFromFmp(symbol).catch(() => null);
   if (fresh) {
     return fresh;
@@ -1105,8 +1245,10 @@ async function getFundamentals(symbolInput) {
   };
 }
 
-async function readOwnershipCache(symbol) {
-  await ensureResearchCacheSchema();
+async function readOwnershipCache(symbol, options = {}) {
+  if (!options.skipSchemaEnsure) {
+    await ensureResearchCacheSchema();
+  }
   const result = await safeQuery(
     `SELECT symbol, institutional_ownership_percent, insider_trend, etf_exposure,
             investors_holding, total_invested, new_positions, increased_positions,
@@ -1295,9 +1437,9 @@ async function fetchOwnershipFromFmp(symbol) {
   return ownership;
 }
 
-async function getOwnership(symbolInput) {
+async function getOwnership(symbolInput, options = {}) {
   const symbol = normalizeSymbol(symbolInput);
-  const cached = await readOwnershipCache(symbol);
+  const cached = await readOwnershipCache(symbol, { skipSchemaEnsure: options.cacheOnly === true });
   const hasCachedData = Boolean(
     cached && [
       cached.institutional,
@@ -1310,6 +1452,17 @@ async function getOwnership(symbolInput) {
 
   if (hasCachedData && isFresh(cached.updated_at, OWNERSHIP_TTL_MS)) {
     return cached;
+  }
+
+  if (options.cacheOnly) {
+    return cached || {
+      symbol,
+      institutional: null,
+      insider: null,
+      etf: null,
+      updated_at: null,
+      source: 'empty',
+    };
   }
 
   const fresh = await fetchOwnershipFromFmp(symbol).catch(() => null);
@@ -1658,7 +1811,7 @@ async function fetchEarningsFromFmp(symbol, priceData) {
   return normalized;
 }
 
-async function getEarnings(symbolInput) {
+async function getEarnings(symbolInput, options = {}) {
   const symbol = normalizeSymbol(symbolInput);
   const cached = await readEarningsFromDb(symbol);
   let derivedExpectedPercent = null;
@@ -1705,6 +1858,19 @@ async function getEarnings(symbolInput) {
       source: 'cache',
       status: cachedStatus,
       read: buildUpcomingRead(cachedStatus, next),
+    };
+  }
+
+  if (options.cacheOnly) {
+    const fallbackStatus = classifyUpcomingStatus(next);
+    return {
+      symbol,
+      next,
+      history,
+      updated_at: cached?.updated_at || null,
+      source: cached ? 'cache_stale' : 'none',
+      status: fallbackStatus,
+      read: buildUpcomingRead(fallbackStatus, next),
     };
   }
 
@@ -1895,8 +2061,10 @@ function normalizeSectorStrengthPayload(payload) {
   };
 }
 
-async function readCachedMarketContext() {
-  await ensureResearchCacheSchema();
+async function readCachedMarketContext(options = {}) {
+  if (!options.skipSchemaEnsure) {
+    await ensureResearchCacheSchema();
+  }
   const result = await safeQuery(
     `SELECT id, spy_trend, qqq_trend, vix_level, sector_strength_json, updated_at
      FROM macro_snapshot
@@ -1942,8 +2110,10 @@ async function persistMarketContext(context) {
   ).catch(() => null);
 }
 
-async function readCachedNarrative(regime) {
-  await ensureResearchCacheSchema();
+async function readCachedNarrative(regime, options = {}) {
+  if (!options.skipSchemaEnsure) {
+    await ensureResearchCacheSchema();
+  }
   const result = await safeQuery(
     `SELECT narrative, created_at
      FROM market_narratives
@@ -1981,15 +2151,17 @@ async function persistNarrative(regime, narrative) {
   ).catch(() => null);
 }
 
-async function getMarketContext() {
-  await ensureResearchCacheSchema();
-  const cached = await readCachedMarketContext();
+async function getMarketContext(options = {}) {
+  if (!options.cacheOnly) {
+    await ensureResearchCacheSchema();
+  }
+  const cached = await readCachedMarketContext({ skipSchemaEnsure: options.cacheOnly === true });
   const ttlMs = getMarketContextTtlMs();
 
   const buildCachedContext = async (sourceLabel, stale = false) => {
     const sectorStrength = normalizeSectorStrengthPayload(cached.sector_strength_json);
     const cachedRegime = classifyRegimeFromContext(cached?.spy_trend, cached?.qqq_trend, cached?.vix_level);
-    const cachedNarrative = await readCachedNarrative(cachedRegime);
+    const cachedNarrative = await readCachedNarrative(cachedRegime, { skipSchemaEnsure: options.cacheOnly === true });
 
     return {
       spy_trend: cached?.spy_trend || 'neutral',
@@ -2014,6 +2186,14 @@ async function getMarketContext() {
 
   if (cached && isFresh(cached.updated_at, ttlMs) && toNumber(cached.vix_level) !== null && Number(cached.vix_level) > 0) {
     return buildCachedContext('cache', false);
+  }
+
+  if (options.cacheOnly) {
+    if (cached) {
+      return buildCachedContext('cache_stale', true);
+    }
+
+    return buildEmptyMarketContext();
   }
 
   try {
@@ -2095,19 +2275,21 @@ function deriveMeta(parts, startedAt) {
   };
 }
 
-async function getResearchTerminalPayload(symbolInput) {
+async function getResearchTerminalPayload(symbolInput, options = {}) {
   const startedAt = Date.now();
   const symbol = normalizeSymbol(symbolInput);
 
-  await ensureResearchCacheSchema();
+  if (!options.cacheOnly) {
+    await ensureResearchCacheSchema();
+  }
 
   const [profile, price, fundamentals, earningsRaw, ownership, context] = await Promise.all([
-    getCompanyProfile(symbol),
-    getPriceData(symbol),
-    getFundamentals(symbol),
-    getEarnings(symbol),
-    getOwnership(symbol),
-    getMarketContext(),
+    getCompanyProfile(symbol, options),
+    getPriceData(symbol, options),
+    getFundamentals(symbol, options),
+    getEarnings(symbol, options),
+    getOwnership(symbol, options),
+    getMarketContext(options),
   ]);
 
   const earningsHistory = normalizeEarningsRows(earningsRaw.history);

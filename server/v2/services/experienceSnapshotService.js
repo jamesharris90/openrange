@@ -7,6 +7,8 @@ const NEWS_SNAPSHOT_KEY = 'experience:news:snapshot:v1';
 const EARNINGS_SNAPSHOT_KEY = 'experience:earnings:snapshot:v1';
 const NEWS_SNAPSHOT_TTL_MS = 60_000;
 const EARNINGS_SNAPSHOT_TTL_MS = 60_000;
+const NEWS_MAX_STALE_MS = 5 * 60 * 1000;
+const EARNINGS_MAX_STALE_MS = 10 * 60 * 1000;
 const RESEARCH_FAST_TTL_MS = 120_000;
 const FAST_RESEARCH_SUPPLEMENT_TTL_MS = 15 * 60 * 1000;
 const FAST_RESEARCH_SUPPLEMENT_STALE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -171,6 +173,24 @@ function getImmediateEarningsSnapshot() {
 
 function hasSnapshotRows(snapshot) {
   return Array.isArray(snapshot?.data) && snapshot.data.length > 0;
+}
+
+function getSnapshotAgeMs(snapshot) {
+  const createdAt = snapshot?.created_at ? Date.parse(String(snapshot.created_at)) : Number.NaN;
+  if (Number.isNaN(createdAt)) {
+    return null;
+  }
+
+  return Math.max(0, Date.now() - createdAt);
+}
+
+function isSnapshotExpired(snapshot, maxAgeMs) {
+  if (!hasSnapshotRows(snapshot)) {
+    return true;
+  }
+
+  const ageMs = getSnapshotAgeMs(snapshot);
+  return ageMs === null || ageMs > maxAgeMs;
 }
 
 function getFastResearchSupplementSnapshot(symbol) {
@@ -684,13 +704,23 @@ async function getCachedNewsFeedPayload(options = {}) {
   let snapshot = getImmediateNewsSnapshot();
   let source = snapshot === lastSuccessfulNewsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  if (snapshot?.data) {
-    void refreshNewsSnapshot().catch(() => {});
-  } else {
-    snapshot = await buildDirectNewsFallbackSnapshot(Math.max(limit * 3, 50), cutoffIso);
-    source = 'direct_fallback';
-    void refreshNewsSnapshot().catch(() => {});
+  if (!hasSnapshotRows(snapshot) || isSnapshotExpired(snapshot, NEWS_MAX_STALE_MS)) {
+    const directSnapshot = await buildDirectNewsFallbackSnapshot(Math.max(limit * 3, 50), cutoffIso);
+    if (hasSnapshotRows(directSnapshot)) {
+      snapshot = directSnapshot;
+      source = 'direct_fallback';
+      lastSuccessfulNewsSnapshot = directSnapshot;
+      setCache(NEWS_SNAPSHOT_KEY, directSnapshot, NEWS_SNAPSHOT_TTL_MS * 3);
+    } else if (!snapshot?.data) {
+      snapshot = {
+        created_at: new Date().toISOString(),
+        data: [],
+      };
+      source = 'direct_fallback';
+    }
   }
+
+  void refreshNewsSnapshot().catch(() => {});
 
   const baseRows = filterNewsRows(snapshot.data || [], {
     cutoffHours,
@@ -738,15 +768,12 @@ async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
   let snapshot = getImmediateNewsSnapshot();
   let source = snapshot === lastSuccessfulNewsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  if (snapshot?.data) {
-    void refreshNewsSnapshot().catch(() => {});
-  } else {
+  if (!snapshot?.data) {
     snapshot = {
       created_at: new Date().toISOString(),
       data: [],
     };
     source = 'direct_fallback';
-    void refreshNewsSnapshot().catch(() => {});
   }
 
   const snapshotRows = (snapshot.data || [])
@@ -756,11 +783,17 @@ async function getCachedSymbolNewsPayload(symbolInput, limitInput) {
     })
     .slice(0, limit);
 
-  const fallbackRows = snapshotRows.length >= limit
+  const fallbackRows = snapshotRows.length >= limit && !isSnapshotExpired(snapshot, NEWS_MAX_STALE_MS)
     ? []
     : await loadDirectSymbolNewsRows(symbol, limit);
 
   const directRows = dedupeNewsRows([...snapshotRows, ...fallbackRows]).slice(0, limit);
+
+  if (fallbackRows.length > 0 && (source === 'snapshot_stale' || snapshotRows.length === 0)) {
+    source = 'direct_fallback';
+  }
+
+  void refreshNewsSnapshot().catch(() => {});
 
   return {
     success: true,
@@ -833,15 +866,13 @@ async function getCachedEarningsCalendarPayload(options = {}) {
   let snapshot = getImmediateEarningsSnapshot();
   let source = snapshot === lastSuccessfulEarningsSnapshot ? 'snapshot_stale' : 'snapshot';
 
-  if (hasSnapshotRows(snapshot)) {
-    void refreshEarningsSnapshot().catch(() => {});
-  } else {
+  if (!hasSnapshotRows(snapshot) || isSnapshotExpired(snapshot, EARNINGS_MAX_STALE_MS)) {
     const rows = await loadEarningsSnapshotRows(Math.max(limit * 5, 250), 4000).catch(() => []);
-    snapshot = {
-      created_at: new Date().toISOString(),
-      data: rows,
-    };
     if (rows.length > 0) {
+      snapshot = {
+        created_at: new Date().toISOString(),
+        data: rows,
+      };
       lastSuccessfulEarningsSnapshot = snapshot;
       setCache(EARNINGS_SNAPSHOT_KEY, snapshot, EARNINGS_SNAPSHOT_TTL_MS * 3);
       source = 'direct_fallback';
@@ -851,8 +882,9 @@ async function getCachedEarningsCalendarPayload(options = {}) {
     } else {
       source = 'direct_fallback';
     }
-    void refreshEarningsSnapshot().catch(() => {});
   }
+
+  void refreshEarningsSnapshot().catch(() => {});
 
   let rows = (snapshot.data || []).filter((row) => row.report_date >= from && row.report_date <= to);
 

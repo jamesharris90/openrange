@@ -8,12 +8,19 @@ const MAX_SYMBOLS_PER_CYCLE = Math.max(10, Number(process.env.INTRADAY_MAX_SYMBO
 const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
 let ingestionCursor = 0;
 
-function dbRead(sql, label) {
-  return queryWithTimeout(sql, [], {
+function dbRead(sql, label, params = []) {
+  return queryWithTimeout(sql, params, {
     timeoutMs: 30000,
     label,
     maxRetries: 0,
   });
+}
+
+function normalizePriorityRows(rows) {
+  return rows
+    .map((row) => String(row.symbol || '').trim().toUpperCase())
+    .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
+    .filter(Boolean);
 }
 
 function sleep(ms) {
@@ -64,6 +71,58 @@ async function loadPrioritySymbols() {
     WHERE created_at > NOW() - INTERVAL '2 hours'
   `, 'intraday_ingest.active_signals');
 
+  const recentNewsArticles = await dbRead(`
+    SELECT UPPER(symbol) AS symbol
+    FROM (
+      SELECT
+        UNNEST(
+          CASE
+            WHEN COALESCE(array_length(symbols, 1), 0) > 0 THEN symbols
+            WHEN symbol IS NOT NULL AND symbol <> '' THEN ARRAY[symbol]
+            ELSE ARRAY[]::text[]
+          END
+        ) AS symbol,
+        published_at
+      FROM news_articles
+      WHERE published_at > NOW() - INTERVAL '24 hours'
+    ) news_symbols
+    WHERE symbol IS NOT NULL AND symbol <> ''
+    GROUP BY UPPER(symbol)
+    ORDER BY MAX(published_at) DESC
+    LIMIT 500
+  `, 'intraday_ingest.recent_news_articles');
+
+  const recentNormalizedNews = await dbRead(`
+    SELECT UPPER(symbol) AS symbol
+    FROM (
+      SELECT
+        UNNEST(
+          CASE
+            WHEN COALESCE(array_length(symbols, 1), 0) > 0 THEN symbols
+            WHEN symbol IS NOT NULL AND symbol <> '' THEN ARRAY[symbol]
+            ELSE ARRAY[]::text[]
+          END
+        ) AS symbol,
+        published_at
+      FROM normalized_news
+      WHERE published_at > NOW() - INTERVAL '24 hours'
+    ) news_symbols
+    WHERE symbol IS NOT NULL AND symbol <> ''
+    GROUP BY UPPER(symbol)
+    ORDER BY MAX(published_at) DESC
+    LIMIT 500
+  `, 'intraday_ingest.recent_normalized_news');
+
+  const upcomingEarnings = await dbRead(`
+    SELECT DISTINCT symbol
+    FROM earnings_events
+    WHERE symbol IS NOT NULL
+      AND symbol <> ''
+      AND report_date BETWEEN CURRENT_DATE - INTERVAL '1 day' AND CURRENT_DATE + INTERVAL '7 days'
+    ORDER BY symbol ASC
+    LIMIT 500
+  `, 'intraday_ingest.upcoming_earnings');
+
   const fallbackUniverse = await dbRead(`
     SELECT symbol
     FROM ticker_universe
@@ -75,14 +134,19 @@ async function loadPrioritySymbols() {
   `, 'intraday_ingest.fallback_universe');
 
   console.log('[INTRADAY] active signals:', activeSignals.rowCount);
+  console.log('[INTRADAY] recent news articles:', recentNewsArticles.rowCount);
+  console.log('[INTRADAY] recent normalized news:', recentNormalizedNews.rowCount);
+  console.log('[INTRADAY] upcoming earnings:', upcomingEarnings.rowCount);
   console.log('[INTRADAY] fallback symbols:', fallbackUniverse.rowCount);
 
   const symbols = [
     ...PINNED_INTRADAY_SYMBOLS,
-    ...activeSignals.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
-    ...fallbackUniverse.rows.map((r) => String(r.symbol || '').trim().toUpperCase()),
+    ...normalizePriorityRows(activeSignals.rows),
+    ...normalizePriorityRows(recentNewsArticles.rows),
+    ...normalizePriorityRows(recentNormalizedNews.rows),
+    ...normalizePriorityRows(upcomingEarnings.rows),
+    ...normalizePriorityRows(fallbackUniverse.rows),
   ]
-    .map((symbol) => mapFromProviderSymbol(normalizeSymbol(symbol)))
     .filter(Boolean);
 
   const seen = new Set();

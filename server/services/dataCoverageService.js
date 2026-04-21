@@ -310,6 +310,11 @@ async function loadCoverageContexts(symbols) {
   return result.rows || [];
 }
 
+async function getCoverageContext(symbol) {
+  const contexts = await loadCoverageContexts([symbol]);
+  return contexts[0] || null;
+}
+
 async function computeCoverageSnapshots(symbols, options = {}) {
   const contexts = await loadCoverageContexts(symbols);
   const snapshots = contexts.map((context) => classifyCoverageContext(context));
@@ -441,8 +446,11 @@ module.exports = {
   classifyCoverageContext,
   computeCoverageSnapshots,
   getCoverageSnapshotsBySymbols,
+  getCoverageContext,
   getCoverageExplanation,
   getGlobalCoverageHealth,
   getActiveUniverseSymbols,
+  hasStructuralEarningsGap,
+  loadCoverageContexts,
   refreshCoverageUniverse,
 };

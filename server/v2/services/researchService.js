@@ -1195,18 +1195,31 @@ async function getResearchData(symbol) {
     safeQuery(
       existingTables,
       'news_articles',
-      `SELECT to_jsonb(n) AS data
-       FROM news_articles n
-       WHERE UPPER(COALESCE(n.symbol, '')) = $1
-          OR (
-            COALESCE(n.symbol, '') = ''
-            AND EXISTS (
-              SELECT 1
-              FROM unnest(COALESCE(n.symbols, ARRAY[]::text[])) AS symbol_ref(symbol)
-              WHERE UPPER(symbol_ref.symbol) = $1
-            )
-          )
-       ORDER BY n.published_at DESC
+      `WITH direct_symbol AS (
+         SELECT
+           to_jsonb(n) AS data,
+           COALESCE(n.published_at, n.published_date::timestamp, n.created_at) AS sort_ts
+         FROM news_articles n
+         WHERE UPPER(TRIM(COALESCE(n.symbol, ''))) = $1
+         ORDER BY COALESCE(n.published_at, n.published_date::timestamp, n.created_at) DESC
+         LIMIT 20
+       ), related_symbols AS (
+         SELECT
+           to_jsonb(n) AS data,
+           COALESCE(n.published_at, n.published_date::timestamp, n.created_at) AS sort_ts
+         FROM news_articles n
+         WHERE COALESCE(n.symbols, ARRAY[]::text[]) @> ARRAY[$1]::text[]
+           AND UPPER(TRIM(COALESCE(n.symbol, ''))) <> $1
+         ORDER BY COALESCE(n.published_at, n.published_date::timestamp, n.created_at) DESC
+         LIMIT 20
+       )
+       SELECT data
+       FROM (
+         SELECT data, sort_ts FROM direct_symbol
+         UNION ALL
+         SELECT data, sort_ts FROM related_symbols
+       ) ranked
+       ORDER BY sort_ts DESC
        LIMIT 20`,
       [normalizedSymbol],
       {
