@@ -304,7 +304,7 @@ async function fetchAllMarketQuotes() {
     `SELECT q.symbol, q.price, q.market_cap, q.change_percent, q.volume, q.relative_volume,
             q.sector, q.updated_at, q.premarket_volume, q.previous_close
      FROM market_quotes q
-     WHERE q.price > 0
+     WHERE q.price >= 1.00
        AND q.volume > 0
        AND EXISTS (
          SELECT 1
