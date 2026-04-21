@@ -1,6 +1,9 @@
 const axios = require('axios');
+const { getMarketSession } = require('../utils/marketSession');
 
 const FMP_BATCH_QUOTE_URL = 'https://financialmodelingprep.com/stable/batch-quote';
+const FMP_BATCH_AFTERMARKET_TRADE_URL = 'https://financialmodelingprep.com/stable/batch-aftermarket-trade';
+const FMP_BATCH_AFTERMARKET_QUOTE_URL = 'https://financialmodelingprep.com/stable/batch-aftermarket-quote';
 const CACHE_TTL_MS = 3_000;
 
 const batchCache = new Map();
@@ -43,6 +46,63 @@ function normalizeQuoteRow(row) {
   };
 }
 
+function midpoint(bidPrice, askPrice) {
+  const bid = toNumber(bidPrice);
+  const ask = toNumber(askPrice);
+  if (bid === null && ask === null) return null;
+  if (bid === null) return ask;
+  if (ask === null) return bid;
+  return (bid + ask) / 2;
+}
+
+function mergeExtendedQuoteData(baseQuotes, extendedTrades, extendedQuotes, session) {
+  if (session !== 'PREMARKET' && session !== 'POSTMARKET') {
+    return baseQuotes;
+  }
+
+  const tradeBySymbol = new Map(
+    (extendedTrades || [])
+      .filter((row) => row?.symbol)
+      .map((row) => [String(row.symbol).trim().toUpperCase(), row])
+  );
+  const quoteBySymbol = new Map(
+    (extendedQuotes || [])
+      .filter((row) => row?.symbol)
+      .map((row) => [String(row.symbol).trim().toUpperCase(), row])
+  );
+
+  return baseQuotes.map((quote) => {
+    const symbol = String(quote?.symbol || '').trim().toUpperCase();
+    const trade = tradeBySymbol.get(symbol);
+    const extendedQuote = quoteBySymbol.get(symbol);
+    const tradePrice = toNumber(trade?.price);
+    const quoteMidpoint = midpoint(extendedQuote?.bidPrice, extendedQuote?.askPrice);
+    const bidPrice = toNumber(extendedQuote?.bidPrice);
+    const askPrice = toNumber(extendedQuote?.askPrice);
+    const extendedPrice = tradePrice ?? quoteMidpoint ?? bidPrice ?? askPrice;
+    const extendedTimestamp = trade?.timestamp ?? extendedQuote?.timestamp ?? null;
+    const extendedVolume = toNumber(extendedQuote?.volume);
+    const previousClose = toNumber(quote?.previousClose) ?? toNumber(quote?.close) ?? toNumber(quote?.price);
+
+    if (extendedPrice === null || extendedTimestamp === null) {
+      return quote;
+    }
+
+    const changePercent = previousClose && previousClose > 0
+      ? ((extendedPrice - previousClose) / previousClose) * 100
+      : quote.percent;
+
+    return {
+      ...quote,
+      price: extendedPrice,
+      changePercentage: changePercent,
+      changesPercentage: changePercent,
+      volume: extendedVolume ?? quote.volume,
+      timestamp: extendedTimestamp,
+    };
+  });
+}
+
 function getCachedQuotes(cacheKey) {
   const cached = batchCache.get(cacheKey);
   if (!cached) return null;
@@ -74,7 +134,8 @@ function normalizeSymbols(symbols) {
 
 async function fetchBatchQuotes(symbolsString) {
   const normalizedSymbols = normalizeSymbols(symbolsString);
-  const cacheKey = normalizedSymbols;
+  const session = getMarketSession();
+  const cacheKey = `${session}:${normalizedSymbols}`;
   if (!cacheKey) {
     return [];
   }
@@ -87,21 +148,43 @@ async function fetchBatchQuotes(symbolsString) {
     throw new Error('FMP_API_KEY missing');
   }
 
-  const response = await axios.get(FMP_BATCH_QUOTE_URL, {
+  const requestConfig = {
     params: {
       symbols: normalizedSymbols,
       apikey: apiKey,
     },
     timeout: 15000,
     validateStatus: () => true,
-  });
+  };
 
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`FMP batch quote failed with status ${response.status}`);
+  const [quoteResponse, extendedTradeResponse, extendedQuoteResponse] = await Promise.all([
+    axios.get(FMP_BATCH_QUOTE_URL, requestConfig),
+    session === 'PREMARKET' || session === 'POSTMARKET'
+      ? axios.get(FMP_BATCH_AFTERMARKET_TRADE_URL, requestConfig).catch(() => ({ status: 0, data: [] }))
+      : Promise.resolve({ status: 0, data: [] }),
+    session === 'PREMARKET' || session === 'POSTMARKET'
+      ? axios.get(FMP_BATCH_AFTERMARKET_QUOTE_URL, requestConfig).catch(() => ({ status: 0, data: [] }))
+      : Promise.resolve({ status: 0, data: [] }),
+  ]);
+
+  if (quoteResponse.status < 200 || quoteResponse.status >= 300) {
+    throw new Error(`FMP batch quote failed with status ${quoteResponse.status}`);
   }
 
-  const rows = Array.isArray(response.data) ? response.data : [];
-  const normalized = rows
+  const baseRows = Array.isArray(quoteResponse.data) ? quoteResponse.data : [];
+  const extendedTradeRows = extendedTradeResponse.status >= 200 && extendedTradeResponse.status < 300 && Array.isArray(extendedTradeResponse.data)
+    ? extendedTradeResponse.data
+    : [];
+  const extendedQuoteRows = extendedQuoteResponse.status >= 200 && extendedQuoteResponse.status < 300 && Array.isArray(extendedQuoteResponse.data)
+    ? extendedQuoteResponse.data
+    : [];
+
+  const normalized = mergeExtendedQuoteData(
+    baseRows,
+    extendedTradeRows,
+    extendedQuoteRows,
+    session
+  )
     .map(normalizeQuoteRow)
     .filter((quote) => quote.symbol.length > 0);
 
