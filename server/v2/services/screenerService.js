@@ -300,37 +300,25 @@ function shouldSkipNewsEnrichment(options = {}) {
 }
 
 async function fetchAllMarketQuotes() {
-  const rows = [];
-  let offset = 0;
+  const result = await queryWithTimeout(
+    `SELECT q.symbol, q.price, q.market_cap, q.change_percent, q.volume, q.relative_volume,
+            q.sector, q.updated_at, q.premarket_volume, q.previous_close
+     FROM market_quotes q
+     WHERE q.price > 0
+       AND q.volume > 0
+       AND EXISTS (
+         SELECT 1
+         FROM daily_ohlc d
+         WHERE d.symbol = q.symbol
+           AND d.date = (SELECT MAX(date) FROM daily_ohlc WHERE symbol = q.symbol)
+           AND d.close >= 1.00
+       )
+     ORDER BY q.volume DESC`,
+    [],
+    { timeoutMs: 20000, label: 'screener.market_quotes_universe', maxRetries: 0, poolType: 'read' }
+  );
 
-  while (true) {
-    const result = await supabaseAdmin
-      .from('market_quotes')
-      .select('symbol, price, market_cap, change_percent, volume, relative_volume, sector, updated_at, premarket_volume, previous_close')
-      .gt('price', 0)
-      .gt('volume', 0)
-      .order('volume', { ascending: false })
-      .range(offset, offset + UNIVERSE_PAGE_SIZE - 1);
-
-    if (result.error) {
-      throw new Error(result.error.message || 'Failed to load market quotes');
-    }
-
-    const batch = Array.isArray(result.data) ? result.data : [];
-    if (batch.length === 0) {
-      break;
-    }
-
-    rows.push(...batch);
-
-    if (batch.length < UNIVERSE_PAGE_SIZE) {
-      break;
-    }
-
-    offset += UNIVERSE_PAGE_SIZE;
-  }
-
-  return rows;
+  return Array.isArray(result?.rows) ? result.rows : [];
 }
 
 async function fetchBatchedSupabaseRows(symbols, batchSize, loadBatch) {
