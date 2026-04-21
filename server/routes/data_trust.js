@@ -61,34 +61,31 @@ async function buildSummary() {
   const client = dbClient();
   await client.connect();
   try {
-    const [liveQuotes, intraday, daily, news, earnings, catalysts] = await Promise.all([
-      safeQuery(client, `WITH active AS (SELECT symbol FROM ticker_universe WHERE is_active = true)
+    const liveQuotes = await safeQuery(client, `WITH active AS (SELECT symbol FROM ticker_universe WHERE is_active = true)
         SELECT (SELECT COUNT(*) FROM active)::int AS active_universe,
                COUNT(mq.symbol)::int AS covered_total,
                COUNT(mq.symbol) FILTER (WHERE mq.updated_at >= NOW() - INTERVAL '5 minutes')::int AS fresh_5m,
                MAX(mq.updated_at) AS latest
-        FROM active a LEFT JOIN market_quotes mq ON mq.symbol = a.symbol`),
-      safeQuery(client, `SELECT COUNT(DISTINCT i.symbol) FILTER (WHERE i.timestamp >= NOW() - INTERVAL '10 minutes')::int AS symbols_10m,
+        FROM active a LEFT JOIN market_quotes mq ON mq.symbol = a.symbol`);
+    const intraday = await safeQuery(client, `SELECT COUNT(DISTINCT i.symbol) FILTER (WHERE i.timestamp >= NOW() - INTERVAL '10 minutes')::int AS symbols_10m,
                COUNT(DISTINCT i.symbol) FILTER (WHERE i.timestamp >= NOW() - INTERVAL '24 hours')::int AS symbols_24h,
                MAX(i.timestamp) AS latest
-        FROM intraday_1m i JOIN ticker_universe tu ON tu.symbol = i.symbol AND tu.is_active = true`),
-      safeQuery(client, `WITH active AS (SELECT symbol FROM ticker_universe WHERE is_active = true)
+        FROM intraday_1m i JOIN ticker_universe tu ON tu.symbol = i.symbol AND tu.is_active = true`);
+    const daily = await safeQuery(client, `WITH active AS (SELECT symbol FROM ticker_universe WHERE is_active = true)
         SELECT (SELECT COUNT(*) FROM active)::int AS active_universe,
                COUNT(DISTINCT d.symbol) FILTER (WHERE d.date >= CURRENT_DATE - INTERVAL '1 day')::int AS symbols_yesterday,
                MAX(d.date) AS latest_date
-        FROM daily_ohlc d JOIN active a ON a.symbol = d.symbol`),
-      safeQuery(client, `SELECT COUNT(*) FILTER (WHERE published_at >= NOW() - INTERVAL '24 hours')::int AS last_24h,
+        FROM daily_ohlc d JOIN active a ON a.symbol = d.symbol`);
+    const news = await safeQuery(client, `SELECT COUNT(*) FILTER (WHERE published_at >= NOW() - INTERVAL '24 hours')::int AS last_24h,
                MAX(published_at) AS latest
-        FROM news_articles`),
-      safeQuery(client, `SELECT COUNT(*)::int AS total,
-               COUNT(eh.symbol)::int AS with_est
-        FROM earnings_calendar ec
-        LEFT JOIN earnings_history eh ON eh.symbol = ec.symbol AND eh.report_date = ec.report_date
-        WHERE ec.report_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days'`),
-      safeQuery(client, `SELECT COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 hour')::int AS last_1h,
+        FROM news_articles`);
+    const earnings = await safeQuery(client, `SELECT COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE eps_estimate IS NOT NULL)::int AS with_est
+        FROM earnings_events
+        WHERE report_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days'`);
+    const catalysts = await safeQuery(client, `SELECT COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 hour')::int AS last_1h,
                MAX(created_at) AS latest
-        FROM catalyst_signals`),
-    ]);
+        FROM catalyst_signals`);
 
     const slas = {};
     if (session === 'CLOSED') {
