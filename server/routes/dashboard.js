@@ -18,7 +18,7 @@ const router = express.Router();
 
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
 const FMP_KEY = process.env.FMP_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 
 // ── In-memory cache ──────────────────────────────────────────────────────────
 
@@ -239,205 +239,276 @@ function getIndex(snapshot, symbol) {
   return (snapshot?.indices || []).find((item) => item.symbol === symbol) || null;
 }
 
-function buildRuleBasedBriefing(session, snapshot, conditions) {
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizePhase(session = {}) {
+  const raw = String(session?.phase || session?.label || '').trim().toLowerCase();
+  if (raw.includes('pre')) return 'pre_market';
+  if (raw.includes('open') || raw.includes('morning')) return 'open';
+  if (raw.includes('mid') || raw.includes('lunch') || raw.includes('noon')) return 'mid_day';
+  if (raw.includes('close') || raw.includes('power')) return 'close';
+  return 'open';
+}
+
+function nextPsychologicalLevel(price) {
+  const value = toNumber(price, 0);
+  if (value <= 0) return 'N/A';
+
+  let step = 0.1;
+  if (value >= 1 && value < 5) step = 0.25;
+  else if (value >= 5 && value < 20) step = 0.5;
+  else if (value >= 20 && value < 100) step = 1;
+  else if (value >= 100) step = 5;
+
+  const target = Math.ceil((value + Number.EPSILON) / step) * step;
+  return `$${target.toFixed(step >= 1 ? 0 : 2).replace(/\.00$/, '')}`;
+}
+
+function deriveSpyTrend(snapshot) {
   const spy = getIndex(snapshot, 'SPY');
-  const qqq = getIndex(snapshot, 'QQQ');
-  const iwm = getIndex(snapshot, 'IWM');
+  const change = toNumber(spy?.changesPercentage, 0);
+  if (change >= 0.5) return 'bullish drive';
+  if (change > 0) return 'constructive grind';
+  if (change <= -0.5) return 'risk-off pressure';
+  return 'mixed / flat tape';
+}
+
+function buildGuardrail(snapshot, conditions = []) {
   const vix = getIndex(snapshot, 'VIX');
-  const fear = snapshot?.fear || null;
-  const gainers = (snapshot?.gainers || []).slice(0, 3);
-  const losers = (snapshot?.losers || []).slice(0, 3);
-  const actives = (snapshot?.active || []).slice(0, 3);
-  const earnings = (snapshot?.earnings || []).slice(0, 6);
-  const sectors = (snapshot?.sectors || []).slice(0, 3);
-  const headlines = (snapshot?.news || []).slice(0, 4);
-  const conditionsList = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
+  const vixPrice = toNumber(vix?.price, 0);
+  const vixChange = toNumber(vix?.changesPercentage, 0);
+  const joinedConditions = Array.isArray(conditions) ? conditions.join(' ').toLowerCase() : '';
+  const hasEventRisk = /(fomc|cpi|powell|fed|jobs|nfp|red folder)/.test(joinedConditions);
+
+  if (vixPrice >= 25 || vixChange >= 5 || hasEventRisk) {
+    return 'GUARDRAIL: No-Trade Zone active.';
+  }
+
+  return null;
+}
+
+function deriveTickerScenario(phase, row) {
+  const move = Math.abs(toNumber(row?.changesPercentage, 0));
+  const volume = toNumber(row?.volume, 0);
+  if (phase === 'open' || phase === 'close') {
+    return move >= 8 || volume >= 2_000_000 ? 'Intraday' : 'Scalp';
+  }
+  return volume >= 1_500_000 ? 'Intraday' : 'Scalp';
+}
+
+function deriveConfidence(row) {
+  const move = Math.abs(toNumber(row?.changesPercentage, 0));
+  const volumeMillions = toNumber(row?.volume, 0) / 1_000_000;
+  const score = 50 + Math.min(move * 2, 20) + Math.min(volumeMillions * 4, 20);
+  return Math.max(45, Math.min(Math.round(score), 92));
+}
+
+function buildTickerEvidence(row, phase) {
+  const move = formatPct(row?.changesPercentage);
+  const volumeMillions = (toNumber(row?.volume, 0) / 1_000_000).toFixed(1);
+  const target = nextPsychologicalLevel(row?.price);
+  const phaseText = phase === 'pre_market'
+    ? 'Gap quality matters more than open-drive follow-through here.'
+    : phase === 'mid_day'
+      ? 'Mid-day participation must hold or the move risks degrading into chop.'
+      : phase === 'close'
+        ? 'Late-session flow matters most because squeezes and hedging can accelerate into the bell.'
+        : 'Open-drive follow-through is the key read because early commitment separates real leaders from noise.';
+
+  return [
+    `${row.symbol} is ${move} on ${volumeMillions}M shares at ${fmtPrice(row.price)}, which is enough expansion to keep it on the tape-reader shortlist.`,
+    `${phaseText} Next psychological level is ${target}.`,
+  ];
+}
+
+function toQuickLookSections(quickLook) {
+  const bullets = (quickLook?.in_play || []).map((item) => {
+    const evidenceText = Array.isArray(item.evidence) ? item.evidence.join(' ') : '';
+    return `${item.ticker} | ${item.scenario} | ${item.target} | ${item.confidence}% confidence. ${evidenceText}`.trim();
+  });
 
   const sections = [
     {
-      title: 'LAST TRADING SESSION',
-      bullets: [
-        `SPY is at ${fmtPrice(spy?.price)} with ${formatPct(spy?.changesPercentage)}, while QQQ is at ${fmtPrice(qqq?.price)} with ${formatPct(qqq?.changesPercentage)}.`,
-        `Russell 2000 is at ${fmtPrice(iwm?.price)} with ${formatPct(iwm?.changesPercentage)}, which keeps small caps in the active intraday conversation.`,
-        actives.length > 0
-          ? `Most active names are ${actives.map((row) => `${row.symbol} ${formatPct(row.changesPercentage)} on ${(Number(row.volume || 0) / 1e6).toFixed(1)}M shares`).join(', ')}.`
-          : 'Most-active tape is thin enough that traders should verify participation before trusting any breakout.',
-        gainers.length > 0
-          ? `Leaders are ${gainers.map((row) => `${row.symbol} at ${fmtPrice(row.price)} (${formatPct(row.changesPercentage)})`).join(', ')}.`
-          : 'No strong upside leadership is standing out in the live dashboard snapshot.',
-      ],
+      title: 'MARKET TEMPERATURE',
+      bullets: [quickLook?.market_temperature || 'No market temperature available.'],
     },
     {
-      title: 'LATEST NEWS',
-      bullets: headlines.length > 0
-        ? headlines.map((item) => `${item.symbol || 'MKT'}: ${item.title}`)
-        : ['Headline flow is light in the current snapshot, so price action is likely being driven more by tape and positioning than fresh news.'],
-    },
-    {
-      title: 'WEEKLY TRENDS',
-      bullets: [
-        `SPY ${formatPct(spy?.changesPercentage)} and QQQ ${formatPct(qqq?.changesPercentage)} imply a mixed large-cap tone rather than a clean one-way trend day.`,
-        sectors.length > 0
-          ? `Top sector tone is ${sectors.map((item) => `${item.sector} ${formatPct(item.changesPercentage)}`).join(', ')}.`
-          : 'Sector breadth is not populated in the current snapshot, so weekly leadership should be confirmed from price rather than inferred.',
-        losers.length > 0
-          ? `Weak pockets include ${losers.map((row) => `${row.symbol} ${formatPct(row.changesPercentage)}`).join(', ')}, which suggests rotation is still selective.`
-          : 'There is no concentrated downside basket in the snapshot, which points to a fragmented rather than broad risk-off tape.',
-      ],
-    },
-    {
-      title: 'RISK ASSESSMENT',
-      bullets: [
-        `VIX is ${fmtPrice(vix?.price)} with ${formatPct(vix?.changesPercentage)}, which keeps intraday volatility elevated enough to punish late entries.`,
-        fear
-          ? `Fear and Greed reads ${Number(fear.value) || 0} (${fear.valueClassification || 'Neutral'}), so overall sentiment is not at an extreme yet.`
-          : 'Sentiment data is unavailable in the snapshot, so risk should be framed from price and volatility first.',
-        `Current session is ${session?.label || String(session?.phase || 'unknown').toUpperCase()}, and active windows can increase false breaks as liquidity shifts.`,
-      ],
-    },
-    {
-      title: 'CONDITIONS & SETUPS',
-      bullets: [
-        conditionsList.length > 0
-          ? `Detected conditions are ${conditionsList.join(', ')}, so setup selection should match the live tape instead of forcing a single playbook.`
-          : 'No explicit system conditions were passed, so execution should stay reactive to the tape rather than predictive.',
-        gainers.length > 0
-          ? `Momentum attention will stay on ${gainers.map((row) => row.symbol).join(', ')}, but only if volume expansion continues after the open rotation.`
-          : 'Without clear gainers, continuation setups need stronger confirmation than usual.',
-        losers.length > 0
-          ? `Fade and mean-reversion interest may cluster around ${losers.map((row) => row.symbol).join(', ')}, especially if they fail to reclaim VWAP.`
-          : 'If laggards do not separate from the pack, mean-reversion opportunities will likely stay stock-specific.',
-        earnings.length > 0
-          ? `Earnings names in focus include ${earnings.slice(0, 4).map((row) => `${row.symbol} ${row.time || 'TBC'}`).join(', ')}, which can distort normal intraday behaviour.`
-          : 'With no earnings concentration, sector and index flows should matter more than event risk.',
-      ],
-    },
-    {
-      title: 'SUMMARY',
-      bullets: [
-        `This looks like a ${Number(vix?.price) >= 20 ? 'higher-volatility' : 'moderate-volatility'} session with mixed index leadership and selective single-name movement.`,
-        `Key dashboard anchors are SPY ${fmtPrice(spy?.price)}, QQQ ${fmtPrice(qqq?.price)}, and VIX ${fmtPrice(vix?.price)}.`,
-        'The next 1-4 hours should favor traders who wait for confirmation around VWAP, opening range levels, and volume follow-through rather than chasing first prints.',
-      ],
+      title: 'IN PLAY',
+      bullets: bullets.length > 0 ? bullets : ['No tickers met the evidence threshold in the current snapshot.'],
     },
   ];
 
-  return {
-    sections,
+  if (quickLook?.guardrail) {
+    sections.push({
+      title: 'GUARDRAIL',
+      bullets: [quickLook.guardrail],
+    });
+  }
+
+  return sections;
+}
+
+function normalizeQuickLookResponse(parsed, session, snapshot, conditions) {
+  if (!parsed || typeof parsed !== 'object') {
+    return null;
+  }
+
+  const marketTemperature = String(parsed.market_temperature || '').trim();
+  const inPlay = Array.isArray(parsed.in_play) ? parsed.in_play.slice(0, 3) : [];
+  if (!marketTemperature || inPlay.length === 0) {
+    return null;
+  }
+
+  const normalizedInPlay = inPlay
+    .map((item) => {
+      const ticker = String(item?.ticker || '').trim().toUpperCase();
+      const scenario = String(item?.scenario || '').trim() || 'Intraday';
+      const target = String(item?.target || '').trim() || 'N/A';
+      const confidence = Math.max(0, Math.min(100, Math.round(toNumber(item?.confidence, 0))));
+      const evidence = Array.isArray(item?.evidence)
+        ? item.evidence.map((entry) => String(entry || '').trim()).filter(Boolean)
+        : [];
+      if (!ticker || !target || evidence.length === 0) {
+        return null;
+      }
+      return { ticker, scenario, target, confidence, evidence };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (normalizedInPlay.length === 0) {
+    return null;
+  }
+
+  const result = {
+    market_temperature: marketTemperature,
+    in_play: normalizedInPlay,
+    guardrail: typeof parsed.guardrail === 'string' && parsed.guardrail.trim() ? parsed.guardrail.trim() : buildGuardrail(snapshot, conditions),
+    generatedAt: new Date().toISOString(),
+    source: 'openai',
+  };
+
+  result.sections = toQuickLookSections(result);
+  result.phase = normalizePhase(session);
+  return result;
+}
+
+function buildRuleBasedBriefing(session, snapshot, conditions) {
+  const spy = getIndex(snapshot, 'SPY');
+  const vix = getIndex(snapshot, 'VIX');
+  const phase = normalizePhase(session);
+  const gainers = (snapshot?.gainers || []).slice(0, 3);
+  const spyTrend = deriveSpyTrend(snapshot);
+  const vixText = `${fmtPrice(vix?.price)} (${formatPct(vix?.changesPercentage)})`;
+  const guardrail = buildGuardrail(snapshot, conditions);
+  const marketTemperature = phase === 'pre_market'
+    ? `Pre-market temperature is ${spyTrend}; VIX is ${vixText}, so the tape should be judged on whether gaps hold with real participation rather than on headline excitement alone.`
+    : phase === 'mid_day'
+      ? `Mid-day temperature is ${spyTrend}; VIX is ${vixText}, so the base case is chop unless leaders keep volume and hold key levels.`
+      : phase === 'close'
+        ? `Power-hour temperature is ${spyTrend}; VIX is ${vixText}, so late positioning and squeeze risk matter more than early range noise.`
+        : `Open-drive temperature is ${spyTrend}; VIX is ${vixText}, so the key read is whether opening range commitment holds or fades.`;
+
+  const inPlay = gainers.map((row) => ({
+    ticker: row.symbol,
+    scenario: deriveTickerScenario(phase, row),
+    target: nextPsychologicalLevel(row.price),
+    confidence: deriveConfidence(row),
+    evidence: buildTickerEvidence(row, phase),
+  }));
+
+  const result = {
+    market_temperature: marketTemperature,
+    in_play: inPlay,
+    guardrail,
     fallback: true,
     message: 'OpenAI narrative unavailable; generated from live market data.',
     generatedAt: new Date().toISOString(),
+    source: 'fallback',
+    phase,
   };
+
+  result.sections = toQuickLookSections(result);
+  return result;
 }
 
 function buildPrompt(session, snapshot, conditions) {
   const sp = (snapshot?.indices || []).find((i) => i.symbol === 'SPY');
   const vix = (snapshot?.indices || []).find((i) => i.symbol === 'VIX');
 
-  const fearText = snapshot?.fear
-    ? `${snapshot.fear.value} (${snapshot.fear.valueClassification})`
-    : 'N/A';
+  const topGainers = (snapshot?.gainers || []).slice(0, 8).map((row) => ({
+    symbol: row.symbol,
+    price: toNumber(row.price, 0),
+    changesPercentage: toNumber(row.changesPercentage, 0),
+    volume: toNumber(row.volume, 0),
+  }));
+  const phase = normalizePhase(session);
+  const conditionsText = Array.isArray(conditions) ? conditions.filter(Boolean).join(', ') : '';
+  const context = {
+    current_time_ET: session?.et || 'N/A',
+    market_phase: phase,
+    top_gainers_json: topGainers,
+    vix_index: {
+      price: toNumber(vix?.price, 0),
+      changesPercentage: toNumber(vix?.changesPercentage, 0),
+    },
+    spy_trend: {
+      price: toNumber(sp?.price, 0),
+      changesPercentage: toNumber(sp?.changesPercentage, 0),
+      description: deriveSpyTrend(snapshot),
+    },
+    conditions: conditionsText,
+    headlines: (snapshot?.news || []).slice(0, 6).map((item) => ({
+      symbol: item.symbol || 'MKT',
+      title: item.title,
+    })),
+  };
 
-  const indicesText = (snapshot?.indices || [])
-    .map((i) => `${i.label}: $${Number(i.price).toFixed(2)} (${formatPct(i.changesPercentage)})`)
-    .join(' | ');
+  return `Role: Expert US Equities Tape Reader & Risk Manager.
+Objective: Provide a Quick Look analysis of US market data based on the current trading phase.
 
-  const sectorsText = (snapshot?.sectors || [])
-    .slice(0, 8)
-    .map((s) => `${s.sector}: ${formatPct(s.changesPercentage)}`)
-    .join(' | ');
+STRICT INPUT DATA:
+${JSON.stringify(context, null, 2)}
 
-  const gainersText = (snapshot?.gainers || [])
-    .slice(0, 6)
-    .map(
-      (g) =>
-        `${g.symbol} ${formatPct(g.changesPercentage)} vol:${(Number(g.volume) / 1e6).toFixed(1)}M @$${Number(g.price).toFixed(2)}`
-    )
-    .join(', ');
+NARRATIVE GUIDELINES:
+1. The So What: do not repeat the price without inference. Explain what the tape implies.
+2. Phase-Specific Logic:
+   - Pre-Market: focus on the Catalyst. Why is it moving? Is the gap holding or fading?
+   - Open/Drive: focus on the Commitment. Which sector is leading? What is the ORB status?
+   - Mid-Day: focus on the Trap. Identify chop vs consolidation.
+   - Power Hour: focus on the Close. Who is squeezing into the bell?
+3. The Move Forecast:
+   - How Far: identify the next major psychological level or daily resistance.
+   - Probability: assign a Likelihood Score as Low, Med, or High based on volume alignment.
+4. Rule Book Filter:
+   - If VIX is spiking or if conditions imply a Red Folder event within 30 minutes, explicitly state: GUARDRAIL: No-Trade Zone active.
+5. Everything added needs evidence from the supplied input. If evidence is weak, say so.
+6. Do not recommend buying or selling. This is market analysis, not trade advice.
 
-  const losersText = (snapshot?.losers || [])
-    .slice(0, 4)
-    .map((l) => `${l.symbol} ${formatPct(l.changesPercentage)}`)
-    .join(', ');
-
-  const activesText = (snapshot?.active || [])
-    .slice(0, 6)
-    .map(
-      (a) =>
-        `${a.symbol} vol:${(Number(a.volume) / 1e6).toFixed(1)}M ${formatPct(a.changesPercentage)}`
-    )
-    .join(', ');
-
-  const allEarnings = snapshot?.earnings || [];
-  const earningsBMO = allEarnings
-    .filter(
-      (e) =>
-        e.time?.toUpperCase().includes('BMO') || e.time?.toLowerCase().includes('pre')
-    )
-    .map((e) => e.symbol)
-    .join(', ') || 'None';
-  const earningsAMC = allEarnings
-    .filter(
-      (e) =>
-        e.time?.toUpperCase().includes('AMC') || e.time?.toLowerCase().includes('after')
-    )
-    .map((e) => e.symbol)
-    .join(', ') || 'None';
-
-  const newsText = (snapshot?.news || [])
-    .slice(0, 8)
-    .map((n) => `[${n.symbol || 'MKT'}] ${n.title}`)
-    .join('\n');
-
-  const conditionsText = Array.isArray(conditions) ? conditions.join(', ') : '';
-  const orbLine = session?.orbWindow ? '\n⚡ OPENING RANGE WINDOW IS LIVE' : '';
-  const ukLine = session?.ukWindow ? '\n🇬🇧 UK PRIME TRADING WINDOW ACTIVE (2:30-4:00 PM)' : '';
-
-  return `You are the market intelligence engine for OpenRange Terminal, a US equity trading platform. Your job is to produce a structured market briefing in JSON format.
-
-IMPORTANT: You do NOT prescribe strategies. You describe CONDITIONS and let the trader decide. The user trades multiple approaches — ORB, VWAP reversion, mean reversion, swing trades, momentum, gap plays, sector rotation — the data determines what is favourable, not you.
-
-CURRENT SESSION: ${session?.label || String(session?.phase || 'unknown').toUpperCase()} (Phase: ${session?.phase || 'unknown'})
-ET: ${session?.et || 'N/A'} | UK: ${session?.uk || 'N/A'} | ${session?.date || ''}
-Next event: ${session?.nextEvent || 'N/A'} in ${session?.countdown || 'N/A'}${orbLine}${ukLine}
-
-━━ LIVE DATA ━━
-INDICES: ${indicesText}
-VIX: ${vix ? `$${Number(vix.price).toFixed(2)} (${formatPct(vix.changesPercentage)})` : 'N/A'}
-FEAR & GREED: ${fearText}
-SECTORS: ${sectorsText}
-TOP GAINERS: ${gainersText}
-TOP LOSERS: ${losersText}
-MOST ACTIVE: ${activesText}
-EARNINGS TODAY: ${allEarnings.length} total | Before Open: ${earningsBMO} | After Close: ${earningsAMC}
-
-━━ SYSTEM CONDITIONS DETECTED ━━
-${conditionsText}
-
-━━ HEADLINES ━━
-${newsText}
-
-Respond with ONLY valid JSON (no markdown fences, no preamble) using this exact structure:
-
+Respond with ONLY valid JSON using this exact shape:
 {
-  "sections": [
+  "market_temperature": "one sentence",
+  "in_play": [
     {
-      "title": "SECTION_TITLE",
-      "bullets": ["bullet 1", "bullet 2", ...]
+      "ticker": "ABC",
+      "scenario": "Scalp or Intraday",
+      "target": "$12.50",
+      "confidence": 72,
+      "evidence": ["evidence sentence 1", "evidence sentence 2"]
     }
-  ]
+  ],
+  "guardrail": "GUARDRAIL: No-Trade Zone active." 
 }
 
-Generate EXACTLY these 6 sections in this order. Each bullet is a single standalone insight in clear, accessible language with specific numbers, tickers, prices.
-
-1. LAST TRADING SESSION (4-5 bullets) — Price action, range, open vs close, volume, key intraday moves, moving average context.
-2. LATEST NEWS (4-5 bullets) — Most important stories driving the market. Connect headlines to specific tickers and sectors.
-3. WEEKLY TRENDS (3-4 bullets) — Zoom out: what has the market done over the past week? Trend forming or breaking? Key weekly levels?
-4. RISK ASSESSMENT (3-4 bullets) — VIX level and direction, Fear & Greed, volatility regime, position sizing implications. Specific numbers.
-5. CONDITIONS & SETUPS (4-5 bullets) — What is the environment telling you? What types of setups do these conditions historically favour? Tie to specific tickers. DO NOT tell the trader what to buy or sell.
-6. SUMMARY (3-4 bullets) — Overall market character. Key levels to watch. What the next 1-4 hours could bring. Overall risk posture (risk-on, risk-off, mixed/neutral).
-
-TOTAL: Under 500 words. Each bullet 1-2 sentences max. Plain English.`;
+Rules for output:
+- Return exactly 3 in_play tickers.
+- market_temperature must be one sentence.
+- confidence must be an integer percentage.
+- evidence must be concrete and reference volume, phase, VIX, SPY trend, headlines, or conditions when relevant.
+- If no guardrail is active, set guardrail to an empty string.`;
 }
 
 router.post('/briefing', async (req, res) => {
@@ -470,14 +541,10 @@ router.post('/briefing', async (req, res) => {
     const raw = completion.choices[0]?.message?.content || '';
     const parsed = parseNarrativeResponse(raw);
 
-    if (!parsed.sections || !Array.isArray(parsed.sections)) {
-      throw new Error('Invalid narrative structure from OpenAI');
+    const result = normalizeQuickLookResponse(parsed, session, snapshot, conditions);
+    if (!result) {
+      throw new Error('Invalid quick look structure from OpenAI');
     }
-
-    const result = {
-      sections: parsed.sections,
-      generatedAt: new Date().toISOString(),
-    };
 
     setCache(cacheKey, result);
     return res.json(result);
