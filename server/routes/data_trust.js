@@ -1,5 +1,6 @@
 const express = require('express');
 const { Client } = require('pg');
+const { resolveDatabaseUrl } = require('../db/connectionConfig');
 const { getMarketSession } = require('../utils/marketSession');
 
 const router = express.Router();
@@ -7,8 +8,9 @@ const CACHE_TTL_MS = 60_000;
 const cache = new Map();
 
 function dbClient() {
+  const { dbUrl } = resolveDatabaseUrl();
   return new Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbUrl,
     ssl: { rejectUnauthorized: false },
     statement_timeout: 10_000,
     query_timeout: 10_000,
@@ -173,6 +175,7 @@ router.get('/summary', async (_req, res) => {
   try {
     return await respondCached(res, 'summary', buildSummary);
   } catch (error) {
+    console.error('[data_trust] summary failed', { message: error?.message, stack: error?.stack });
     return res.status(500).json({ as_of: new Date().toISOString(), health: 'FAIL', error: 'data_trust_summary_failed' });
   }
 });
@@ -181,6 +184,7 @@ router.get('/sla', async (_req, res) => {
   try {
     return await respondCached(res, 'summary', buildSummary, (data) => ({ as_of: data.as_of, session: data.session, health: data.health, slas: data.slas }));
   } catch (error) {
+    console.error('[data_trust] sla failed', { message: error?.message, stack: error?.stack });
     return res.status(500).json({ as_of: new Date().toISOString(), health: 'FAIL', error: 'data_trust_sla_failed' });
   }
 });
@@ -191,6 +195,7 @@ router.get('/symbol/:symbol', async (req, res) => {
   try {
     return await respondCached(res, `symbol:${symbol}`, () => buildSymbol(symbol));
   } catch (error) {
+    console.error('[data_trust] symbol failed', { symbol, message: error?.message, stack: error?.stack });
     return res.status(500).json({ as_of: new Date().toISOString(), health: 'FAIL', error: 'data_trust_symbol_failed' });
   }
 });
