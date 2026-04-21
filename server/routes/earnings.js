@@ -914,10 +914,12 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
     }
 
+    const requestedWindowEndsBeforeToday = toUtcMidnight(to) < toUtcMidnight(new Date());
     const dbRowsAreFresh = dbRows.some((row) => isFreshTimestamp(row.updated_at));
-    const fmpRows = !dbRows.length || !dbRowsAreFresh ? await fmpEarningsFallback(from, to) : [];
+    const shouldUseDbRows = dbRows.length > 0 && (requestedWindowEndsBeforeToday || dbRowsAreFresh);
+    const fmpRows = shouldUseDbRows ? [] : await fmpEarningsFallback(from, to);
     const limitedFmpRows = limitRows(fmpRows, limit);
-    const responseSource = dbRows.length && dbRowsAreFresh ? 'db' : fmpRows.length ? 'fmp' : dbRows.length ? 'fallback' : 'fallback';
+    const responseSource = shouldUseDbRows ? 'db' : fmpRows.length ? 'fmp' : dbRows.length ? 'fallback' : 'fallback';
     const responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? limitedFmpRows : dbRows;
 
     let enriched = responseRows.map((row) => {
