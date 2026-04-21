@@ -230,6 +230,106 @@ function parseNarrativeResponse(content) {
   return null;
 }
 
+function fmtPrice(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? `$${num.toFixed(2)}` : 'N/A';
+}
+
+function getIndex(snapshot, symbol) {
+  return (snapshot?.indices || []).find((item) => item.symbol === symbol) || null;
+}
+
+function buildRuleBasedBriefing(session, snapshot, conditions) {
+  const spy = getIndex(snapshot, 'SPY');
+  const qqq = getIndex(snapshot, 'QQQ');
+  const iwm = getIndex(snapshot, 'IWM');
+  const vix = getIndex(snapshot, 'VIX');
+  const fear = snapshot?.fear || null;
+  const gainers = (snapshot?.gainers || []).slice(0, 3);
+  const losers = (snapshot?.losers || []).slice(0, 3);
+  const actives = (snapshot?.active || []).slice(0, 3);
+  const earnings = (snapshot?.earnings || []).slice(0, 6);
+  const sectors = (snapshot?.sectors || []).slice(0, 3);
+  const headlines = (snapshot?.news || []).slice(0, 4);
+  const conditionsList = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
+
+  const sections = [
+    {
+      title: 'LAST TRADING SESSION',
+      bullets: [
+        `SPY is at ${fmtPrice(spy?.price)} with ${formatPct(spy?.changesPercentage)}, while QQQ is at ${fmtPrice(qqq?.price)} with ${formatPct(qqq?.changesPercentage)}.`,
+        `Russell 2000 is at ${fmtPrice(iwm?.price)} with ${formatPct(iwm?.changesPercentage)}, which keeps small caps in the active intraday conversation.`,
+        actives.length > 0
+          ? `Most active names are ${actives.map((row) => `${row.symbol} ${formatPct(row.changesPercentage)} on ${(Number(row.volume || 0) / 1e6).toFixed(1)}M shares`).join(', ')}.`
+          : 'Most-active tape is thin enough that traders should verify participation before trusting any breakout.',
+        gainers.length > 0
+          ? `Leaders are ${gainers.map((row) => `${row.symbol} at ${fmtPrice(row.price)} (${formatPct(row.changesPercentage)})`).join(', ')}.`
+          : 'No strong upside leadership is standing out in the live dashboard snapshot.',
+      ],
+    },
+    {
+      title: 'LATEST NEWS',
+      bullets: headlines.length > 0
+        ? headlines.map((item) => `${item.symbol || 'MKT'}: ${item.title}`)
+        : ['Headline flow is light in the current snapshot, so price action is likely being driven more by tape and positioning than fresh news.'],
+    },
+    {
+      title: 'WEEKLY TRENDS',
+      bullets: [
+        `SPY ${formatPct(spy?.changesPercentage)} and QQQ ${formatPct(qqq?.changesPercentage)} imply a mixed large-cap tone rather than a clean one-way trend day.`,
+        sectors.length > 0
+          ? `Top sector tone is ${sectors.map((item) => `${item.sector} ${formatPct(item.changesPercentage)}`).join(', ')}.`
+          : 'Sector breadth is not populated in the current snapshot, so weekly leadership should be confirmed from price rather than inferred.',
+        losers.length > 0
+          ? `Weak pockets include ${losers.map((row) => `${row.symbol} ${formatPct(row.changesPercentage)}`).join(', ')}, which suggests rotation is still selective.`
+          : 'There is no concentrated downside basket in the snapshot, which points to a fragmented rather than broad risk-off tape.',
+      ],
+    },
+    {
+      title: 'RISK ASSESSMENT',
+      bullets: [
+        `VIX is ${fmtPrice(vix?.price)} with ${formatPct(vix?.changesPercentage)}, which keeps intraday volatility elevated enough to punish late entries.`,
+        fear
+          ? `Fear and Greed reads ${Number(fear.value) || 0} (${fear.valueClassification || 'Neutral'}), so overall sentiment is not at an extreme yet.`
+          : 'Sentiment data is unavailable in the snapshot, so risk should be framed from price and volatility first.',
+        `Current session is ${session?.label || String(session?.phase || 'unknown').toUpperCase()}, and active windows can increase false breaks as liquidity shifts.`,
+      ],
+    },
+    {
+      title: 'CONDITIONS & SETUPS',
+      bullets: [
+        conditionsList.length > 0
+          ? `Detected conditions are ${conditionsList.join(', ')}, so setup selection should match the live tape instead of forcing a single playbook.`
+          : 'No explicit system conditions were passed, so execution should stay reactive to the tape rather than predictive.',
+        gainers.length > 0
+          ? `Momentum attention will stay on ${gainers.map((row) => row.symbol).join(', ')}, but only if volume expansion continues after the open rotation.`
+          : 'Without clear gainers, continuation setups need stronger confirmation than usual.',
+        losers.length > 0
+          ? `Fade and mean-reversion interest may cluster around ${losers.map((row) => row.symbol).join(', ')}, especially if they fail to reclaim VWAP.`
+          : 'If laggards do not separate from the pack, mean-reversion opportunities will likely stay stock-specific.',
+        earnings.length > 0
+          ? `Earnings names in focus include ${earnings.slice(0, 4).map((row) => `${row.symbol} ${row.time || 'TBC'}`).join(', ')}, which can distort normal intraday behaviour.`
+          : 'With no earnings concentration, sector and index flows should matter more than event risk.',
+      ],
+    },
+    {
+      title: 'SUMMARY',
+      bullets: [
+        `This looks like a ${Number(vix?.price) >= 20 ? 'higher-volatility' : 'moderate-volatility'} session with mixed index leadership and selective single-name movement.`,
+        `Key dashboard anchors are SPY ${fmtPrice(spy?.price)}, QQQ ${fmtPrice(qqq?.price)}, and VIX ${fmtPrice(vix?.price)}.`,
+        'The next 1-4 hours should favor traders who wait for confirmation around VWAP, opening range levels, and volume follow-through rather than chasing first prints.',
+      ],
+    },
+  ];
+
+  return {
+    sections,
+    fallback: true,
+    message: 'OpenAI narrative unavailable; generated from live market data.',
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 function buildPrompt(session, snapshot, conditions) {
   const sp = (snapshot?.indices || []).find((i) => i.symbol === 'SPY');
   const vix = (snapshot?.indices || []).find((i) => i.symbol === 'VIX');
@@ -352,12 +452,7 @@ router.post('/briefing', async (req, res) => {
   const client = getOpenAIClient();
 
   if (!client) {
-    const fallback = {
-      sections: [],
-      fallback: true,
-      message: 'AI narrative engine requires OpenAI API key. All market data is live below.',
-      generatedAt: new Date().toISOString(),
-    };
+    const fallback = buildRuleBasedBriefing(session, snapshot, conditions);
     return res.json(fallback);
   }
 
@@ -388,12 +483,7 @@ router.post('/briefing', async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('[DASHBOARD_BRIEFING] error:', err.message);
-    const fallback = {
-      sections: [],
-      fallback: true,
-      message: `AI narrative generation failed. All market data is live below.`,
-      generatedAt: new Date().toISOString(),
-    };
+    const fallback = buildRuleBasedBriefing(session, snapshot, conditions);
     return res.json(fallback);
   }
 });
