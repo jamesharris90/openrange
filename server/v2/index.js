@@ -401,6 +401,7 @@ function createV2App() {
   app.use('/', legacyEarningsRoute);
   app.use('/api/market', marketRoute);
   app.use('/api/system', systemRoute);
+  app.use('/api/data/trust', require('../routes/data_trust'));
   app.use('/api/validation', validationRoute);
   app.use('/api/admin', adminRoute);
   app.use('/api/admin', adminCoverageRoute);
