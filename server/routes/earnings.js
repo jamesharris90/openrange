@@ -791,7 +791,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
     }
 
-    const joinTables = ['earnings_events', 'decision_view', 'market_metrics', 'market_quotes'];
+    const joinTables = ['earnings_events', 'earnings_history', 'decision_view', 'market_metrics', 'market_quotes'];
     let schemaMap;
     try {
       schemaMap = await getSchemaMap(joinTables);
@@ -823,6 +823,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
     }
 
     const hasDecisionView = hasColumn(schemaMap, 'decision_view', 'symbol');
+    const hasEarningsHistory = hasColumn(schemaMap, 'earnings_history', 'symbol');
     const hasMarketMetrics = hasColumn(schemaMap, 'market_metrics', 'symbol');
     const hasMarketQuotes = hasColumn(schemaMap, 'market_quotes', 'symbol');
 
@@ -840,10 +841,10 @@ router.get('/api/earnings/calendar', async (req, res) => {
         e.report_date::text AS report_date,
         COALESCE(${reportTimeExpr}, ${fallbackTimeExpr}, 'UNKNOWN') AS report_time,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_estimate')} AS eps_estimate,
-        ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_actual')} AS eps_actual,
-        ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_surprise_pct')} AS eps_surprise_pct,
+        COALESCE(${hasEarningsHistory ? selectColumn(schemaMap, 'earnings_history', 'eh', 'eps_actual') : 'NULL'}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_actual')}) AS eps_actual,
+        COALESCE(${hasEarningsHistory ? selectColumn(schemaMap, 'earnings_history', 'eh', 'eps_surprise_pct') : 'NULL'}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_surprise_pct')}) AS eps_surprise_pct,
         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_estimate')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_estimate')}) AS revenue_estimate,
-        COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_actual')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_actual')}) AS revenue_actual,
+        COALESCE(${hasEarningsHistory ? selectColumn(schemaMap, 'earnings_history', 'eh', 'revenue_actual') : 'NULL'}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'revenue_actual')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'rev_actual')}) AS revenue_actual,
         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'sector')}, ${hasMarketQuotes && hasColumn(schemaMap, 'market_quotes', 'sector') ? 'q.sector' : 'NULL'}, tu.sector) AS sector,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'score')} AS earnings_score,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'expected_move_percent')} AS expected_move_from_earnings,
@@ -859,6 +860,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
         COALESCE(e.source, 'db') AS source
       FROM earnings_events e
       LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+      ${hasEarningsHistory ? 'LEFT JOIN earnings_history eh ON UPPER(eh.symbol) = UPPER(e.symbol) AND eh.report_date::date = e.report_date::date' : ''}
       ${hasDecisionView ? 'LEFT JOIN decision_view d ON UPPER(e.symbol) = UPPER(d.symbol)' : ''}
       ${hasMarketMetrics ? 'LEFT JOIN market_metrics m ON UPPER(e.symbol) = UPPER(m.symbol)' : ''}
       ${hasMarketQuotes ? 'LEFT JOIN market_quotes q ON UPPER(e.symbol) = UPPER(q.symbol)' : ''}
