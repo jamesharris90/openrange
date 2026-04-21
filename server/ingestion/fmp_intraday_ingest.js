@@ -4,7 +4,7 @@ const { fmpFetch } = require('../services/fmpClient');
 const { getMarketSession } = require('../utils/marketSession');
 const { normalizeSymbol, mapFromProviderSymbol, mapToProviderSymbol } = require('../utils/symbolMap');
 
-const MAX_SYMBOLS_PER_CYCLE = Math.max(10, Number(process.env.INTRADAY_MAX_SYMBOLS_PER_CYCLE) || 25);
+const MAX_SYMBOLS_PER_CYCLE = Math.max(10, Number(process.env.INTRADAY_MAX_SYMBOLS_PER_CYCLE) || 50);
 const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
 let ingestionCursor = 0;
 
@@ -124,13 +124,24 @@ async function loadPrioritySymbols() {
   `, 'intraday_ingest.upcoming_earnings');
 
   const fallbackUniverse = await dbRead(`
-    SELECT symbol
-    FROM ticker_universe
-    WHERE COALESCE(is_active, true) = true
-      AND symbol IS NOT NULL
-      AND symbol <> ''
-    ORDER BY market_cap DESC NULLS LAST, symbol ASC
-    LIMIT 1000
+    SELECT tu.symbol
+    FROM ticker_universe tu
+    WHERE COALESCE(tu.is_active, true) = true
+      AND tu.symbol IS NOT NULL
+      AND tu.symbol <> ''
+      AND EXISTS (
+        SELECT 1
+        FROM daily_ohlc d
+        WHERE d.symbol = tu.symbol
+          AND d.date >= CURRENT_DATE - INTERVAL '7 days'
+        LIMIT 1
+      )
+      AND (tu.industry IS NULL OR tu.industry <> 'Shell Companies')
+      AND LOWER(COALESCE(tu.company_name, '')) NOT LIKE '%acquisition corp%'
+      AND LOWER(COALESCE(tu.company_name, '')) NOT LIKE '% spac%'
+      AND LOWER(COALESCE(tu.company_name, '')) NOT LIKE '% etf%'
+      AND LOWER(COALESCE(tu.company_name, '')) NOT LIKE '% fund%'
+    ORDER BY tu.market_cap DESC NULLS LAST, tu.symbol ASC
   `, 'intraday_ingest.fallback_universe');
 
   console.log('[INTRADAY] active signals:', activeSignals.rowCount);
