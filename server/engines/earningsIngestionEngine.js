@@ -723,15 +723,42 @@ async function fetchCalendarWindows(fromDate, toDate, windowDays, fetchConcurren
   return rows;
 }
 
-function normalizeHistoryRows(symbol, payload, eventLookup, enrichment) {
+async function fetchHistoricalEarningsBySymbol(symbols, fetchConcurrency = DEFAULT_HISTORY_FETCH_CONCURRENCY) {
+  const bySymbol = new Map();
+
+  for (let index = 0; index < symbols.length; index += fetchConcurrency) {
+    const group = symbols.slice(index, index + fetchConcurrency);
+    const payloads = await Promise.all(
+      group.map((symbol) => fmpFetch('/earnings', { symbol }).catch(() => []))
+    );
+
+    for (let payloadIndex = 0; payloadIndex < group.length; payloadIndex += 1) {
+      bySymbol.set(group[payloadIndex], Array.isArray(payloads[payloadIndex]) ? payloads[payloadIndex] : []);
+    }
+  }
+
+  return bySymbol;
+}
+
+function normalizeHistoricalEarningsRows(symbol, payload, eventLookup, enrichment, asOfDate) {
   const deduped = new Map();
   let droppedMissingFields = 0;
+  const historicalRows = (Array.isArray(payload) ? payload : [])
+    .map((row) => {
+      const reportDate = normalizeReportDate(
+        row?.date || row?.reportDate || row?.report_date || row?.reportedDate || row?.fiscalDateEnding
+      );
 
-  for (const row of Array.isArray(payload) ? payload : []) {
-    const reportDate = normalizeReportDate(
-      row?.date || row?.reportDate || row?.report_date || row?.reportedDate || row?.fiscalDateEnding
-    );
-    const epsActual = toNumber(row?.epsActual ?? row?.actualEps ?? row?.eps ?? row?.eps_actual);
+      return {
+        row,
+        reportDate,
+        epsActual: toNumber(row?.epsActual ?? row?.actualEps ?? row?.eps ?? row?.eps_actual),
+      };
+    })
+    .filter(({ reportDate }) => reportDate && reportDate <= asOfDate)
+    .sort((left, right) => right.reportDate.localeCompare(left.reportDate));
+
+  for (const { row, reportDate, epsActual } of historicalRows) {
 
     if (!reportDate || epsActual === null) {
       droppedMissingFields += 1;
@@ -1003,32 +1030,15 @@ async function runEarningsIngestionEngine(options = {}) {
   const eventRows = upcoming.rows;
   const insertedEvents = await replaceUpcomingEvents(requestedSymbols, eventRows, fromDate, toDate);
   const eventLookup = buildEventLookup(eventRows);
-  const historyFromDate = formatIsoDate(addUtcDays(today, -900));
-  const historicalCalendarPayload = await fetchCalendarWindows(
-    historyFromDate,
-    fromDate,
-    historyWindowDays,
-    historyFetchConcurrency
-  );
-  const historyRowsBySymbol = new Map();
-
-  for (const row of Array.isArray(historicalCalendarPayload) ? historicalCalendarPayload : []) {
-    const symbol = normalizeSymbol(row?.symbol);
-    if (!symbolSet.has(symbol)) {
-      continue;
-    }
-    if (!historyRowsBySymbol.has(symbol)) {
-      historyRowsBySymbol.set(symbol, []);
-    }
-    historyRowsBySymbol.get(symbol).push(row);
-  }
+  const historicalRowsBySymbol = await fetchHistoricalEarningsBySymbol(requestedSymbols, historyFetchConcurrency);
 
   const successfulHistory = requestedSymbols.map((symbol) => {
-    const normalized = normalizeHistoryRows(
+    const normalized = normalizeHistoricalEarningsRows(
       symbol,
-      historyRowsBySymbol.get(symbol) || [],
+      historicalRowsBySymbol.get(symbol) || [],
       eventLookup.get(symbol),
-      marketEnrichment.get(symbol) || {}
+      marketEnrichment.get(symbol) || {},
+      fromDate
     );
     return {
       symbol,
@@ -1066,7 +1076,7 @@ async function runEarningsIngestionEngine(options = {}) {
     history_fetch_concurrency: historyFetchConcurrency,
     history_quarters_requested: HISTORY_LIMIT,
     events_fetched: Array.isArray(calendarPayload) ? calendarPayload.length : 0,
-    history_events_fetched: Array.isArray(historicalCalendarPayload) ? historicalCalendarPayload.length : 0,
+    history_events_fetched: Array.from(historicalRowsBySymbol.values()).reduce((sum, rows) => sum + rows.length, 0),
     events_ingested: insertedEvents,
     projected_events_ingested: projectedEventsInserted,
     history_ingested: insertedHistory,
@@ -1079,7 +1089,7 @@ async function runEarningsIngestionEngine(options = {}) {
     duration_ms: Date.now() - startedAt,
     from: fromDate,
     to: toDate,
-    history_from: historyFromDate,
+    history_from: null,
   };
 
   if (options.returnSymbolHistoryBreakdown) {
