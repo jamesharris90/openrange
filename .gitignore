@@ -52,3 +52,7 @@ build/
 *.pdf
 __pycache__/
 server/server.pid
+
+# Generated validation logs
+logs/*validation*.json
+logs/critical_data_precheck_latest.json
