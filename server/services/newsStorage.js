@@ -42,17 +42,29 @@ async function isDuplicateNewsArticle({ symbol, headline, publishedAt }) {
   if (!headline || !publishedAt) return false;
 
   const normalizedPublishedAt = normalizePublishedAtUtc(publishedAt);
-  if (!normalizedPublishedAt) return false;
+  if (!symbol || !normalizedPublishedAt) return false;
 
   const { rows } = await pool.query(
-    `SELECT EXISTS (
+    `-- Uses unique index news_articles_symbol_published_date_title_key
+     -- Previous query used LOWER(headline) + date_trunc('minute', published_at)
+     -- which caused full table scans - see Phase 32 fix 2026-04-24
+     /*
+     SELECT EXISTS (
        SELECT 1
        FROM news_articles
        WHERE COALESCE(symbol, '') = COALESCE($1, '')
          AND LOWER(COALESCE(headline, '')) = LOWER($2)
          AND date_trunc('minute', published_at) = date_trunc('minute', ($3::timestamptz AT TIME ZONE 'UTC'))
+     ) AS exists
+     */
+     SELECT EXISTS (
+       SELECT 1
+       FROM news_articles
+       WHERE symbol = $1
+         AND published_date = $2::timestamptz
+         AND title = $3
      ) AS exists`,
-    [symbol || null, headline, normalizedPublishedAt]
+    [symbol, normalizedPublishedAt, headline]
   );
 
   return Boolean(rows[0]?.exists);
