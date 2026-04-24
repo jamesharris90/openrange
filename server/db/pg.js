@@ -1,5 +1,8 @@
+const pg = require('pg');
 const sharedQuery = require('./pool');
 const { AsyncLocalStorage } = require('async_hooks');
+
+const SINGLETON_KEY = Symbol.for('openrange.db.pool.singleton');
 
 function createPoolFacade() {
   return {
@@ -80,6 +83,49 @@ function createTimeoutError(timeoutMs, label) {
   return error;
 }
 
+function getSharedPoolState() {
+  sharedQuery.getStats();
+  return global[SINGLETON_KEY] || null;
+}
+
+function getRawPoolHandle() {
+  const state = getSharedPoolState();
+  if (!state?.rawPool || typeof state.rawPool.connect !== 'function') {
+    throw new Error('Shared DB raw pool is unavailable');
+  }
+  return { state, rawPool: state.rawPool };
+}
+
+async function cancelRunningQuery(pid, label) {
+  if (!pid) {
+    return;
+  }
+
+  const state = getSharedPoolState();
+  const connectionString = state?.dbUrl;
+  if (!connectionString) {
+    throw new Error('Shared DB state is missing an active connection string');
+  }
+
+  const previousAllowDirectClient = Boolean(state.allowDirectClient);
+  state.allowDirectClient = true;
+
+  const cancelClient = new pg.Client({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    await cancelClient.connect();
+    await cancelClient.query('SELECT pg_cancel_backend($1)', [pid]);
+  } catch (error) {
+    console.error('[pg] cancel failed:', label, error.message);
+  } finally {
+    state.allowDirectClient = previousAllowDirectClient;
+    await cancelClient.end().catch(() => {});
+  }
+}
+
 async function queryWithTimeout(sql, params = [], options = {}, attempt = 0) {
   const timeoutMs = Number(options.timeoutMs) || 5000;
   const slowQueryMs = Number(options.slowQueryMs) || 1000;
@@ -90,16 +136,45 @@ async function queryWithTimeout(sql, params = [], options = {}, attempt = 0) {
   const startedAt = Date.now();
 
   let timeoutHandle;
+  let client = null;
+  let didTimeout = false;
+  let timeoutError = null;
+  let cancelPromise = null;
 
   try {
+    const { rawPool } = getRawPoolHandle();
+
     const timeoutPromise = new Promise((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        reject(createTimeoutError(timeoutMs, label));
+        didTimeout = true;
+        timeoutError = createTimeoutError(timeoutMs, label);
+        cancelPromise = client?.processID
+          ? cancelRunningQuery(client.processID, label)
+          : Promise.resolve();
+        reject(timeoutError);
       }, timeoutMs);
     });
 
+    const queryPromise = (async () => {
+      client = await rawPool.connect();
+
+      if (didTimeout) {
+        throw timeoutError || createTimeoutError(timeoutMs, label);
+      }
+
+      try {
+        return await client.query(sql, params);
+      } catch (error) {
+        if (didTimeout) {
+          throw timeoutError || createTimeoutError(timeoutMs, label);
+        }
+        console.error('DB query failed:', error.message, `(${label})`);
+        throw error;
+      }
+    })();
+
     const result = await Promise.race([
-      runQuery(sql, params, label, poolType),
+      queryPromise,
       timeoutPromise,
     ]);
     const durationMs = Date.now() - startedAt;
@@ -120,6 +195,22 @@ async function queryWithTimeout(sql, params = [], options = {}, attempt = 0) {
     throw err;
   } finally {
     clearTimeout(timeoutHandle);
+
+    if (cancelPromise) {
+      await cancelPromise.catch(() => {});
+    }
+
+    if (client) {
+      try {
+        if (didTimeout) {
+          client.release(timeoutError || createTimeoutError(timeoutMs, label));
+        } else {
+          client.release();
+        }
+      } catch (_error) {
+        // Ignore release failures after timeout/cancel.
+      }
+    }
   }
 }
 
