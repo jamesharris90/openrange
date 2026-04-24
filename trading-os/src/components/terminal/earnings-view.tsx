@@ -99,19 +99,23 @@ function fmtSurprise(v: number | null | undefined) {
 }
 
 function normaliseTime(t: unknown) {
-  const s = String(t || "").toUpperCase();
+  const s = String(t || "").trim().toUpperCase();
+  if (!s || s === "TBD" || s === "UNKNOWN" || s === "N/A" || s === "NA" || s === "NONE" || s === "NULL" || s === "--") return null;
   if (s.includes("BMO") || s.includes("PRE") || s.includes("BEFORE")) return "BMO";
   if (s.includes("AMC") || s.includes("AFTER")) return "AMC";
-  if (s.includes("TNS") || s.includes("TNS")) return "TNS";
-  return "TBD";
+  if (s.includes("TNS") || s.includes("DURING")) return "TNS";
+  return null;
 }
 
 const TIME_PILL: Record<string, string> = {
   BMO: "bg-amber-500/15 text-amber-500 border-amber-500/30",
   AMC: "bg-blue-500/15 text-blue-500 border-blue-500/30",
   TNS: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
-  TBD: "bg-slate-500/15 text-[var(--muted-foreground)] border-[var(--border)]",
 };
+
+function fmtCallTime(value: unknown) {
+  return normaliseTime(value) ?? "—";
+}
 
 const EARNINGS_GAP_MESSAGE = "Earnings coverage is currently unavailable for this ticker.";
 
@@ -135,12 +139,120 @@ type EarningsFilters = {
   sector: string;
 };
 
+type SortDirection = "asc" | "desc";
+type SortKey = "symbol" | "company" | "sector" | "time" | "eps_estimate" | "eps_actual" | "surprise" | "expected_move_percent" | "market_cap" | "score";
+
+type SortState = {
+  key: SortKey;
+  direction: SortDirection;
+};
+
 const DEFAULT_FILTERS: EarningsFilters = {
   search: "",
   day: "Selected Day",
   time: "All",
   sector: "",
 };
+
+const DEFAULT_SORT: SortState = {
+  key: "market_cap",
+  direction: "desc",
+};
+
+const TIME_SORT_ORDER: Record<string, number> = {
+  BMO: 0,
+  TNS: 1,
+  AMC: 2,
+  MISSING: 3,
+};
+
+const SORTABLE_COLUMNS: Array<{ key: SortKey; label: string; align?: "left" | "right" }> = [
+  { key: "symbol", label: "Symbol" },
+  { key: "company", label: "Company" },
+  { key: "sector", label: "Sector" },
+  { key: "time", label: "Call Time" },
+  { key: "eps_estimate", label: "EPS Est", align: "right" },
+  { key: "eps_actual", label: "Reported EPS", align: "right" },
+  { key: "surprise", label: "Surprise", align: "right" },
+  { key: "expected_move_percent", label: "Exp Move", align: "right" },
+  { key: "market_cap", label: "Mkt Cap", align: "right" },
+  { key: "score", label: "Score", align: "right" },
+];
+
+function toNullableNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function compareNullableNumbers(left: unknown, right: unknown, direction: SortDirection) {
+  const leftNumber = toNullableNumber(left);
+  const rightNumber = toNullableNumber(right);
+
+  if (leftNumber === null && rightNumber === null) return 0;
+  if (leftNumber === null) return 1;
+  if (rightNumber === null) return -1;
+
+  return direction === "asc" ? leftNumber - rightNumber : rightNumber - leftNumber;
+}
+
+function compareNullableStrings(left: unknown, right: unknown, direction: SortDirection) {
+  const leftText = String(left || "").trim();
+  const rightText = String(right || "").trim();
+
+  if (!leftText && !rightText) return 0;
+  if (!leftText) return 1;
+  if (!rightText) return -1;
+
+  const comparison = leftText.localeCompare(rightText, undefined, { sensitivity: "base" });
+  return direction === "asc" ? comparison : -comparison;
+}
+
+function compareCallTimes(left: unknown, right: unknown, direction: SortDirection) {
+  const leftTime = normaliseTime(left);
+  const rightTime = normaliseTime(right);
+  const leftRank = TIME_SORT_ORDER[leftTime ?? "MISSING"] ?? TIME_SORT_ORDER.MISSING;
+  const rightRank = TIME_SORT_ORDER[rightTime ?? "MISSING"] ?? TIME_SORT_ORDER.MISSING;
+
+  if (leftRank !== rightRank) {
+    return direction === "asc" ? leftRank - rightRank : rightRank - leftRank;
+  }
+
+  return compareNullableStrings(leftTime ?? "", rightTime ?? "", direction);
+}
+
+function compareEarningsRows(left: EarningsRow, right: EarningsRow, sort: SortState) {
+  switch (sort.key) {
+    case "symbol":
+      return compareNullableStrings(left.symbol, right.symbol, sort.direction);
+    case "company":
+      return compareNullableStrings(left.company_name, right.company_name, sort.direction);
+    case "sector":
+      return compareNullableStrings(left.sector, right.sector, sort.direction);
+    case "time":
+      return compareCallTimes(left.time, right.time, sort.direction);
+    case "eps_estimate":
+      return compareNullableNumbers(left.eps_estimate, right.eps_estimate, sort.direction);
+    case "eps_actual":
+      return compareNullableNumbers(left.eps_actual, right.eps_actual, sort.direction);
+    case "surprise":
+      return compareNullableNumbers(left.surprise, right.surprise, sort.direction);
+    case "expected_move_percent":
+      return compareNullableNumbers(left.expected_move_percent, right.expected_move_percent, sort.direction);
+    case "market_cap":
+      return compareNullableNumbers(left.market_cap, right.market_cap, sort.direction);
+    case "score":
+      return compareNullableNumbers(left.score, right.score, sort.direction);
+    default:
+      return 0;
+  }
+}
+
+function sortIndicator(direction: SortDirection | null) {
+  if (direction === "asc") return "↑";
+  if (direction === "desc") return "↓";
+  return "↕";
+}
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -154,6 +266,7 @@ export function EarningsView() {
   const [rows, setRows] = useState<EarningsRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortState, setSortState] = useState<SortState | null>(null);
   const {
     filters,
     setFilters,
@@ -236,16 +349,27 @@ export function EarningsView() {
       })
       .filter((row) => filters.time === "All" || normaliseTime(row.time) === filters.time)
       .filter((row) => !filters.sector || String(row.sector || "") === filters.sector)
-      .filter((row) => !q || String(row.symbol || "").toUpperCase().includes(q) || String(row.sector || "").toUpperCase().includes(q) || String(row.company_name || "").toUpperCase().includes(q))
-      .sort((a, b) => (Number(b.market_cap) || 0) - (Number(a.market_cap) || 0));
+      .filter((row) => !q || String(row.symbol || "").toUpperCase().includes(q) || String(row.sector || "").toUpperCase().includes(q) || String(row.company_name || "").toUpperCase().includes(q));
   }, [filters.day, filters.search, filters.sector, filters.time, rows, selectedDay, todayIso, tomorrowIso, weekDays]);
 
-  const totalCount = filteredRows.length;
+  const effectiveSort = sortState ?? DEFAULT_SORT;
+
+  const sortedRows = useMemo(() => {
+    return filteredRows
+      .map((row, index) => ({ row, index }))
+      .sort((left, right) => {
+        const comparison = compareEarningsRows(left.row, right.row, effectiveSort);
+        return comparison !== 0 ? comparison : left.index - right.index;
+      })
+      .map(({ row }) => row);
+  }, [effectiveSort, filteredRows]);
+
+  const totalCount = sortedRows.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const paginatedRows = useMemo(() => {
     const startIndex = (page - 1) * pageSize;
-    return filteredRows.slice(startIndex, startIndex + pageSize);
-  }, [filteredRows, page, pageSize]);
+    return sortedRows.slice(startIndex, startIndex + pageSize);
+  }, [page, pageSize, sortedRows]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -254,10 +378,35 @@ export function EarningsView() {
   }, [page, setPage, totalPages]);
 
   useEffect(() => {
-    if (!selectedSymbol || !filteredRows.some((row) => row.symbol === selectedSymbol)) {
-      setSelectedSymbol(filteredRows[0]?.symbol || null);
+    if (!selectedSymbol || !sortedRows.some((row) => row.symbol === selectedSymbol)) {
+      setSelectedSymbol(sortedRows[0]?.symbol || null);
     }
-  }, [filteredRows, selectedSymbol]);
+  }, [selectedSymbol, sortedRows]);
+
+  function toggleSort(nextKey: SortKey) {
+    setSortState((current) => {
+      const active = current ?? DEFAULT_SORT;
+      const isDefaultView = current === null;
+
+      if (active.key !== nextKey) {
+        return { key: nextKey, direction: "asc" };
+      }
+
+      if (isDefaultView && nextKey === DEFAULT_SORT.key) {
+        return { key: nextKey, direction: "asc" };
+      }
+
+      if (active.direction === "asc") {
+        return { key: nextKey, direction: "desc" };
+      }
+
+      if (nextKey === DEFAULT_SORT.key) {
+        return null;
+      }
+
+      return null;
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -427,7 +576,7 @@ export function EarningsView() {
                 {selectedDetail?.next ? (
                   <div className="mt-2 space-y-1 text-sm text-[var(--foreground)]">
                     <div>{selectedDetail.next.report_date || "No date"}</div>
-                    <div className="text-[var(--muted-foreground)]">{selectedDetail.next.report_time || "TBD"}</div>
+                    <div className="text-[var(--muted-foreground)]">{fmtCallTime(selectedDetail.next.report_time)}</div>
                   </div>
                 ) : (
                   <div className="mt-2 text-sm text-[var(--muted-foreground)]">{getEarningsGapCopy(selectedDetail)}</div>
@@ -471,11 +620,21 @@ export function EarningsView() {
             <table className="w-full text-sm border-collapse">
               <thead className="sticky top-0 z-10 bg-[var(--panel)] border-b border-[var(--border)]">
                 <tr>
-                  {["Symbol","Company","Sector","Call Time","EPS Est","Reported EPS","Surprise","Exp Move","Mkt Cap","Score"].map((h) => (
-                    <th key={h} className="px-3 py-2.5 text-left text-[11px] uppercase tracking-wide font-medium text-[var(--muted-foreground)] whitespace-nowrap">
-                      {h}
+                  {SORTABLE_COLUMNS.map((column) => {
+                    const activeSort = effectiveSort.key === column.key ? effectiveSort.direction : null;
+                    const isRightAligned = column.align === "right";
+                    return (
+                    <th key={column.key} className={`px-3 py-2.5 text-[11px] uppercase tracking-wide font-medium text-[var(--muted-foreground)] whitespace-nowrap ${isRightAligned ? "text-right" : "text-left"}`}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(column.key)}
+                        className={`inline-flex items-center gap-1 transition-colors hover:text-[var(--foreground)] ${isRightAligned ? "justify-end" : "justify-start"} w-full`}
+                      >
+                        <span>{column.label}</span>
+                        <span className={activeSort ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]/60"} aria-hidden="true">{sortIndicator(activeSort)}</span>
+                      </button>
                     </th>
-                  ))}
+                  )})}
                 </tr>
               </thead>
               <tbody>
@@ -488,12 +647,14 @@ export function EarningsView() {
                 )}
                 {paginatedRows.map((row, i) => {
                   const timeKey = normaliseTime(row.time);
+                  const timeDisplay = fmtCallTime(row.time);
                   const surprise = fmtSurprise(row.surprise);
                   const expMove = row.expected_move_percent != null ? `±${Number(row.expected_move_percent).toFixed(1)}%` : "—";
+                  const isSelected = row.symbol === selectedSymbol;
                   return (
                     <tr key={`${row.symbol}-${i}`}
                       onClick={() => setSelectedSymbol(row.symbol)}
-                      className={`border-b border-[var(--border)] transition-colors cursor-pointer ${i % 2 !== 0 ? "bg-[var(--muted)]/30" : ""} hover:bg-[var(--muted)]`}>
+                      className={`border-b border-[var(--border)] transition-colors cursor-pointer ${isSelected ? "bg-blue-500/10" : i % 2 !== 0 ? "bg-[var(--muted)]/30" : ""} hover:bg-[var(--muted)]`}>
                       <td className="px-3 py-2.5 font-semibold text-blue-500 text-xs tracking-wide whitespace-nowrap">
                         {row.symbol}
                       </td>
@@ -504,9 +665,13 @@ export function EarningsView() {
                         {row.sector || "—"}
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border ${TIME_PILL[timeKey] ?? TIME_PILL.TBD}`}>
-                          {timeKey}
-                        </span>
+                        {timeKey ? (
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border ${TIME_PILL[timeKey]}`}>
+                            {timeDisplay}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[var(--muted-foreground)]">{timeDisplay}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--foreground)]">
                         {fmtEps(row.eps_estimate)}

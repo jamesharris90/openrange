@@ -2,20 +2,27 @@ const express = require('express');
 const { pool, queryWithTimeout } = require('../db/pg');
 const { fmpFetch } = require('../services/fmpClient');
 const { fetchNextEventForSymbol } = require('../engines/earningsIngestionEngine');
-const { getCoverageContext, getCoverageExplanation, hasStructuralEarningsGap } = require('../services/dataCoverageService');
+const { classifyCoverageContext, getActiveUniverseSymbols, getCoverageContext } = require('../services/dataCoverageService');
 const {
   classifyEarningsTrade,
   buildExecutionPlan,
   deriveBias,
 } = require('../intelligence/earningsClassifier');
 const { getCachedEarningsCalendarPayload } = require('../v2/services/experienceSnapshotService');
+const { attachCanonicalEarningsFields } = require('../services/earningsCanonicalService');
 const { evaluateTradeTruth } = require('../services/truthEngine');
 const { buildFinalTradeObject } = require('../engines/finalTradeBuilder');
 const { validateTrade } = require('../utils/validateTrade');
 const router = express.Router();
 const earningsHistoryCache = new Map();
+const coverageSummaryCache = new Map();
+const schemaMapCache = new Map();
 const EARNINGS_HISTORY_TTL_MS = 5 * 60 * 1000;
+const COVERAGE_SUMMARY_TTL_MS = 5 * 60 * 1000;
+const SCHEMA_MAP_TTL_MS = 10 * 60 * 1000;
 const EARNINGS_FRESH_TTL_MS = 24 * 60 * 60 * 1000;
+const CALENDAR_SINGLE_DAY_LIMIT = 600;
+const CALENDAR_MULTI_DAY_LIMIT = 5000;
 
 const EARNINGS_REQUIRED_COLUMNS = {
   earnings_history: ['symbol', 'report_date', 'eps_actual'],
@@ -54,8 +61,145 @@ function normalizeEventSource(value, fallback = 'fallback') {
   return fallback;
 }
 
-function normalizeSymbolEventRow(symbol, row) {
+function normalizeCalendarDisplayTime(value, preservePlaceholder = false) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    return null;
+  }
+
+  const normalized = text.toUpperCase();
+  if (!preservePlaceholder && (normalized === 'TBD' || normalized === 'UNKNOWN')) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function isValidCalendarDate(value) {
+  const text = String(value || '').trim().slice(0, 10);
+  if (!text) {
+    return false;
+  }
+
+  return Number.isFinite(Date.parse(`${text}T00:00:00Z`));
+}
+
+function isWeekendCalendarDate(value) {
+  if (!isValidCalendarDate(value)) {
+    return false;
+  }
+
+  const day = toUtcMidnight(`${String(value).slice(0, 10)}T00:00:00Z`).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+function hasStrictFallbackCalendarMetadata(row) {
+  const symbol = String(row?.symbol || '').trim().toUpperCase();
+  const company = String(row?.company || row?.company_name || '').trim();
+  const sector = String(row?.sector || '').trim();
+
+  if (!symbol || !isValidCalendarDate(row?.report_date || row?.date)) {
+    return false;
+  }
+
+  if (!company) {
+    return false;
+  }
+
+  if (company.toUpperCase() === symbol) {
+    return false;
+  }
+
+  if (!sector) {
+    return false;
+  }
+
+  return true;
+}
+
+function isStrictFallbackCalendarRow(row, responseSource = 'db') {
+  if (row?._calendar_origin === 'fallback') {
+    return true;
+  }
+
+  const source = String(row?.source || '').trim().toLowerCase();
+  if (responseSource !== 'db') {
+    return true;
+  }
+
+  return source === 'fallback' || source === 'snapshot' || source === 'snapshot_stale';
+}
+
+function sanitizeCalendarRows(rows, responseSource = 'db') {
+  return dedupeCalendarRows((Array.isArray(rows) ? rows : []).filter((row) => {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    const reportDate = String(row?.report_date || row?.date || '').trim().slice(0, 10);
+
+    if (!symbol || !isValidCalendarDate(reportDate)) {
+      return false;
+    }
+
+    if (isStrictFallbackCalendarRow(row, responseSource) && !hasStrictFallbackCalendarMetadata(row)) {
+      return false;
+    }
+
+    return true;
+  }));
+}
+
+function sanitizeCalendarPayload(payload) {
+  if (!payload || !Array.isArray(payload.data)) {
+    return payload;
+  }
+
+  const responseSource = String(payload.source || 'snapshot').trim().toLowerCase();
+  const rows = sanitizeCalendarRows(payload.data, responseSource);
+
   return {
+    ...payload,
+    data: rows,
+    rows,
+    count: rows.length,
+    message: rows.length ? (payload.message || '') : (payload.message || 'No earnings data available'),
+  };
+}
+
+function mergeMissingWeekendFallbackRows(primaryRows, supplementalRows) {
+  const merged = new Map();
+
+  for (const row of Array.isArray(primaryRows) ? primaryRows : []) {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    const reportDate = String(row?.report_date || row?.date || '').trim().slice(0, 10);
+    if (!symbol || !reportDate) {
+      continue;
+    }
+
+    merged.set(`${symbol}|${reportDate}`, row);
+  }
+
+  for (const row of Array.isArray(supplementalRows) ? supplementalRows : []) {
+    const normalized = normalizeSupplementalCalendarRow(row);
+    const symbol = String(normalized?.symbol || '').trim().toUpperCase();
+    const reportDate = String(normalized?.report_date || '').trim().slice(0, 10);
+    if (!symbol || !reportDate || !isWeekendCalendarDate(reportDate)) {
+      continue;
+    }
+
+    const key = `${symbol}|${reportDate}`;
+    if (!merged.has(key)) {
+      merged.set(key, normalized);
+    }
+  }
+
+  return dedupeCalendarRows(Array.from(merged.values()));
+}
+
+function normalizeSymbolEventRow(symbol, row) {
+  return attachCanonicalEarningsFields({
     symbol: String(row?.symbol || symbol || '').trim().toUpperCase() || null,
     report_date: row?.report_date || row?.date || null,
     report_time: row?.report_time || row?.time || 'TBD',
@@ -66,7 +210,7 @@ function normalizeSymbolEventRow(symbol, row) {
     expected_move_percent: row?.expected_move_percent != null ? Number(row.expected_move_percent) : row?.expectedMove != null ? Number(row.expectedMove) : null,
     updated_at: row?.updated_at || null,
     source: normalizeEventSource(row?.source, 'fallback'),
-  };
+  });
 }
 
 function deriveEventStatus(row) {
@@ -168,6 +312,28 @@ function getFreshCacheEntry(cache, key, ttlMs) {
   return entry.data;
 }
 
+async function getCoverageSummary(symbol) {
+  const cacheKey = String(symbol || '').trim().toUpperCase();
+  if (!cacheKey) {
+    return null;
+  }
+
+  const cached = getFreshCacheEntry(coverageSummaryCache, cacheKey, COVERAGE_SUMMARY_TTL_MS);
+  if (cached) {
+    return cached;
+  }
+
+  const context = await getCoverageContext(cacheKey).catch(() => null);
+  const summary = context ? classifyCoverageContext(context) : null;
+
+  coverageSummaryCache.set(cacheKey, {
+    data: summary,
+    timestamp: Date.now(),
+  });
+
+  return summary;
+}
+
 function fallbackCalendarPayload(extra = {}) {
   return {
     success: false,
@@ -225,7 +391,7 @@ async function fmpEarningsFallback(from, to) {
       symbol: String(r.symbol || '').toUpperCase(),
       company_name: r.company || r.name || r.symbol,
       report_date: r.date,
-      time: r.time || 'TBD',
+      time: r.time != null ? String(r.time).trim() || null : null,
       eps_estimate: r.epsEstimated != null ? Number(r.epsEstimated) : null,
       eps_actual: r.eps != null ? Number(r.eps) : null,
       revenue_estimate: r.revenueEstimated != null ? Number(r.revenueEstimated) : r.revenueEstimate != null ? Number(r.revenueEstimate) : null,
@@ -279,13 +445,20 @@ async function safePoolQuery(label, query, params = []) {
 }
 
 async function getSchemaMap(tableNames) {
+  const normalizedTableNames = Array.from(new Set((tableNames || []).map((tableName) => String(tableName || '').trim()).filter(Boolean))).sort();
+  const cacheKey = normalizedTableNames.join(',');
+  const cached = getFreshCacheEntry(schemaMapCache, cacheKey, SCHEMA_MAP_TTL_MS);
+  if (cached) {
+    return cached;
+  }
+
   const result = await safePoolQuery(
     'schema.columns',
     `SELECT table_name, column_name
      FROM information_schema.columns
      WHERE table_schema = 'public'
        AND table_name = ANY($1::text[])`,
-    [tableNames],
+    [normalizedTableNames],
   );
 
   const map = new Map();
@@ -295,6 +468,12 @@ async function getSchemaMap(tableNames) {
     }
     map.get(row.table_name).add(row.column_name);
   }
+
+  schemaMapCache.set(cacheKey, {
+    data: map,
+    timestamp: Date.now(),
+  });
+
   return map;
 }
 
@@ -348,6 +527,136 @@ function isoDate(date) {
 
 function limitRows(rows, limit) {
   return Array.isArray(rows) ? rows.slice(0, limit) : [];
+}
+
+function resolveCalendarLimit(requestedLimit, from, to) {
+  const parsedLimit = Math.max(1, Number(requestedLimit) || 100);
+  if (from && to && from !== to) {
+    return Math.min(Math.max(parsedLimit, CALENDAR_MULTI_DAY_LIMIT), CALENDAR_MULTI_DAY_LIMIT);
+  }
+
+  return Math.min(parsedLimit, CALENDAR_SINGLE_DAY_LIMIT);
+}
+
+function dedupeCalendarRows(rows) {
+  const deduped = new Map();
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    const reportDate = String(row?.report_date || row?.date || '').trim().slice(0, 10);
+    if (!symbol || !reportDate) {
+      continue;
+    }
+
+    deduped.set(`${symbol}|${reportDate}`, row);
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    const leftDate = String(left?.report_date || left?.date || '');
+    const rightDate = String(right?.report_date || right?.date || '');
+    return leftDate.localeCompare(rightDate) || String(left?.symbol || '').localeCompare(String(right?.symbol || ''));
+  });
+}
+
+function normalizeSupplementalCalendarRow(row) {
+  return {
+    symbol: row?.symbol || null,
+    company: row?.company || row?.company_name || null,
+    report_date: row?.report_date || row?.date || null,
+    report_time: row?.report_time ?? row?.time ?? null,
+    eps_estimate: row?.eps_estimate ?? null,
+    eps_actual: row?.eps_actual ?? null,
+    eps_surprise_pct: row?.eps_surprise_pct ?? null,
+    revenue_estimate: row?.revenue_estimate ?? row?.rev_estimate ?? null,
+    revenue_actual: row?.revenue_actual ?? row?.rev_actual ?? null,
+    sector: row?.sector ?? null,
+    earnings_score: row?.earnings_score ?? row?.score ?? null,
+    expected_move_from_earnings: row?.expected_move_from_earnings ?? row?.expected_move ?? row?.expected_move_percent ?? null,
+    price: row?.price ?? null,
+    market_cap: row?.market_cap ?? null,
+    volume: row?.volume ?? null,
+    rvol: row?.rvol ?? null,
+    atr: row?.atr ?? null,
+    final_score: row?.final_score ?? null,
+    decision_execution_plan: row?.decision_execution_plan ?? null,
+    decision_trade_class: row?.decision_trade_class ?? null,
+    updated_at: row?.updated_at || null,
+    source: normalizeEventSource(row?.source, 'fmp'),
+    expected_move: row?.expected_move ?? row?.expected_move_percent ?? null,
+    _calendar_origin: 'fallback',
+  };
+}
+
+function mergeCalendarRows(primaryRows, supplementalRows) {
+  const merged = new Map();
+
+  for (const row of Array.isArray(supplementalRows) ? supplementalRows : []) {
+    const normalized = normalizeSupplementalCalendarRow(row);
+    const symbol = String(normalized?.symbol || '').trim().toUpperCase();
+    const reportDate = String(normalized?.report_date || '').trim().slice(0, 10);
+    if (!symbol || !reportDate) {
+      continue;
+    }
+
+    merged.set(`${symbol}|${reportDate}`, normalized);
+  }
+
+  for (const row of Array.isArray(primaryRows) ? primaryRows : []) {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    const reportDate = String(row?.report_date || row?.date || '').trim().slice(0, 10);
+    if (!symbol || !reportDate) {
+      continue;
+    }
+
+    merged.set(`${symbol}|${reportDate}`, row);
+  }
+
+  return dedupeCalendarRows(Array.from(merged.values()));
+}
+
+async function filterCalendarRowsToActiveUniverse(rows) {
+  const activeSymbols = new Set(await getActiveUniverseSymbols());
+  return dedupeCalendarRows((Array.isArray(rows) ? rows : []).filter((row) => activeSymbols.has(String(row?.symbol || '').trim().toUpperCase())));
+}
+
+async function enrichFallbackCalendarRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const symbols = Array.from(new Set(list.map((row) => String(row?.symbol || '').trim().toUpperCase()).filter(Boolean)));
+  if (!symbols.length) {
+    return [];
+  }
+
+  try {
+    const result = await safePoolQuery(
+      'calendar.fallback_metadata',
+      `SELECT UPPER(symbol) AS symbol, company_name, sector, COALESCE(is_active, true) AS is_active
+       FROM ticker_universe
+       WHERE UPPER(symbol) = ANY($1::text[])`,
+      [symbols]
+    );
+
+    const metadata = new Map((result.rows || []).map((row) => [row.symbol, row]));
+    return list.map((row) => {
+      const symbol = String(row?.symbol || '').trim().toUpperCase();
+      const meta = metadata.get(symbol);
+      const companyName = String(row?.company_name || '').trim();
+      const useMetadataCompany = !companyName || companyName.toUpperCase() === symbol;
+      return {
+        ...row,
+        company_name: useMetadataCompany ? (meta?.company_name || null) : row?.company_name,
+        sector: row?.sector || meta?.sector || null,
+        _calendar_active: meta?.is_active !== false,
+      };
+    }).filter((row) => row._calendar_active !== false);
+  } catch {
+    return list;
+  }
+}
+
+async function getEligibleFallbackCalendarRows(from, to) {
+  const fallbackRows = await fmpEarningsFallback(from, to);
+  const enrichedRows = await enrichFallbackCalendarRows(fallbackRows);
+  return sanitizeCalendarRows(enrichedRows, 'fmp');
 }
 
 function toUtcMidnight(dateInput) {
@@ -579,7 +888,7 @@ router.get('/api/earnings', async (req, res) => {
       status: 'ok',
       source: 'earnings_history',
       count: result.rows.length,
-      data: result.rows,
+      data: result.rows.map((row) => attachCanonicalEarningsFields(row)),
     };
 
     earningsHistoryCache.set(cacheKey, {
@@ -628,6 +937,7 @@ router.get('/api/earnings/history/:symbol', async (req, res) => {
       });
     }
 
+    const coverageSummaryPromise = getCoverageSummary(symbol);
     const schemaMap = await getSchemaMap(['earnings_history', 'earnings_events', 'ticker_universe']);
     const historyReportTimeExpr = hasColumn(schemaMap, 'earnings_history', 'report_time')
       ? "COALESCE(NULLIF(e.report_time, ''), 'TBD')"
@@ -679,11 +989,10 @@ router.get('/api/earnings/history/:symbol', async (req, res) => {
       ).catch(() => ({ rows: [] })),
     ]);
 
-    const history = historyResult.rows || [];
-    const next = nextResult.rows?.[0] || null;
-    const coverage = await withTimeout(getCoverageExplanation(symbol).catch(() => null), 500, null);
-    const coverageContext = await withTimeout(getCoverageContext(symbol).catch(() => null), 500, null);
-    const structurallyUnsupported = hasStructuralEarningsGap(coverageContext || {});
+    const history = (historyResult.rows || []).map((row) => attachCanonicalEarningsFields(row));
+    const next = nextResult.rows?.[0] ? attachCanonicalEarningsFields(nextResult.rows[0]) : null;
+  const coverage = await withTimeout(coverageSummaryPromise, 500, null);
+  const structurallyUnsupported = Boolean(coverage?.flags?.structurally_unsupported);
     const noHistory = history.length === 0;
     const message = noHistory ? buildCoverageAwareMessage(symbol, coverage, Boolean(next), structurallyUnsupported) : null;
 
@@ -734,13 +1043,13 @@ router.get('/api/earnings/history/:symbol', async (req, res) => {
 
 router.get('/api/earnings/calendar', async (req, res) => {
   try {
-    const limit = Math.max(1, Math.min(Number(req.query.limit) || 400, 600));
     const classFilter = String(req.query.class || '').trim().toUpperCase();
     const tradingWeek = computeTradingWeekWindow(new Date());
     const fromParam = String(req.query.from || '').trim();
     const toParam = String(req.query.to || '').trim();
     const from = fromParam || tradingWeek.from;
     const to = toParam || tradingWeek.to;
+    const limit = resolveCalendarLimit(req.query.limit, from, to);
 
     console.log('EARNINGS REQUEST', {
       path: '/api/earnings/calendar',
@@ -751,6 +1060,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
       class_filter: classFilter || null,
     });
 
+    const todayUtc = toUtcMidnight(new Date());
+    const requestedWindowStartsBeforeToday = toUtcMidnight(from) < todayUtc;
+
     const snapshotPayload = await getCachedEarningsCalendarPayload({
       from,
       to,
@@ -758,8 +1070,8 @@ router.get('/api/earnings/calendar', async (req, res) => {
       class: classFilter,
     }).catch(() => null);
 
-    if (snapshotPayload && snapshotPayload.source !== 'snapshot_stale') {
-      return res.status(200).json(snapshotPayload);
+    if (snapshotPayload && snapshotPayload.source !== 'snapshot_stale' && !requestedWindowStartsBeforeToday) {
+      return res.status(200).json(sanitizeCalendarPayload(snapshotPayload));
     }
 
     let hasRequiredSchema = false;
@@ -770,7 +1082,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
     }
     if (!hasRequiredSchema) {
       console.warn('[EARNINGS] schema unavailable — using FMP fallback');
-      const fmpRows = await fmpEarningsFallback(from, to);
+      const fmpRows = await getEligibleFallbackCalendarRows(from, to);
       if (fmpRows.length > 0) {
         const limitedRows = limitRows(fmpRows, limit);
         return res.status(200).json({
@@ -791,7 +1103,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
     }
 
-    const joinTables = ['earnings_events', 'earnings_history', 'decision_view', 'market_metrics', 'market_quotes'];
+    const joinTables = ['earnings_events', 'earnings_history', 'decision_view', 'market_metrics', 'market_quotes', 'ticker_universe'];
     let schemaMap;
     try {
       schemaMap = await getSchemaMap(joinTables);
@@ -801,9 +1113,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
         message: err?.message,
         stack: err?.stack,
       });
-      const fmpRows = await fmpEarningsFallback(from, to);
-      if (fmpRows.length > 0) {
-        const limitedRows = limitRows(fmpRows, limit);
+      const filteredFmpRows = await getEligibleFallbackCalendarRows(from, to);
+      if (filteredFmpRows.length > 0) {
+        const limitedRows = limitRows(filteredFmpRows, limit);
         return res.status(200).json({
           success: true,
           data: limitedRows,
@@ -826,6 +1138,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
     const hasEarningsHistory = hasColumn(schemaMap, 'earnings_history', 'symbol');
     const hasMarketMetrics = hasColumn(schemaMap, 'market_metrics', 'symbol');
     const hasMarketQuotes = hasColumn(schemaMap, 'market_quotes', 'symbol');
+    const hasActiveTickerUniverse = hasColumn(schemaMap, 'ticker_universe', 'is_active');
 
     const reportTimeExpr = hasColumn(schemaMap, 'earnings_events', 'report_time')
       ? "NULLIF(e.report_time, '')"
@@ -834,12 +1147,19 @@ router.get('/api/earnings/calendar', async (req, res) => {
       ? "NULLIF(e.time, '')"
       : 'NULL';
 
-    const dbSql = `WITH base AS (
+    const eventUniverseJoin = hasActiveTickerUniverse
+      ? 'INNER JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol) AND COALESCE(tu.is_active, true) = true'
+      : 'INNER JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)';
+    const historyUniverseJoin = hasActiveTickerUniverse
+      ? 'INNER JOIN ticker_universe tu ON UPPER(h.symbol) = UPPER(tu.symbol) AND COALESCE(tu.is_active, true) = true'
+      : 'INNER JOIN ticker_universe tu ON UPPER(h.symbol) = UPPER(tu.symbol)';
+
+    const dbSql = `WITH upcoming_base AS (
       SELECT
         e.symbol,
         COALESCE(${selectColumn(schemaMap, 'earnings_events', 'e', 'company')}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'company_name')}, tu.company_name) AS company,
         e.report_date::text AS report_date,
-        COALESCE(${reportTimeExpr}, ${fallbackTimeExpr}, 'UNKNOWN') AS report_time,
+        COALESCE(${reportTimeExpr}, ${fallbackTimeExpr}) AS report_time,
         ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_estimate')} AS eps_estimate,
         COALESCE(${hasEarningsHistory ? selectColumn(schemaMap, 'earnings_history', 'eh', 'eps_actual') : 'NULL'}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_actual')}) AS eps_actual,
         COALESCE(${hasEarningsHistory ? selectColumn(schemaMap, 'earnings_history', 'eh', 'eps_surprise_pct') : 'NULL'}, ${selectColumn(schemaMap, 'earnings_events', 'e', 'eps_surprise_pct')}) AS eps_surprise_pct,
@@ -859,12 +1179,48 @@ router.get('/api/earnings/calendar', async (req, res) => {
         COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
         COALESCE(e.source, 'db') AS source
       FROM earnings_events e
-      LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
+      ${eventUniverseJoin}
       ${hasEarningsHistory ? 'LEFT JOIN earnings_history eh ON UPPER(eh.symbol) = UPPER(e.symbol) AND eh.report_date::date = e.report_date::date' : ''}
       ${hasDecisionView ? 'LEFT JOIN decision_view d ON UPPER(e.symbol) = UPPER(d.symbol)' : ''}
       ${hasMarketMetrics ? 'LEFT JOIN market_metrics m ON UPPER(e.symbol) = UPPER(m.symbol)' : ''}
       ${hasMarketQuotes ? 'LEFT JOIN market_quotes q ON UPPER(e.symbol) = UPPER(q.symbol)' : ''}
       WHERE e.report_date::date BETWEEN $1::date AND $2::date
+        AND e.report_date::date >= CURRENT_DATE
+    ), historical_base AS (
+      SELECT
+        h.symbol,
+        tu.company_name AS company,
+        h.report_date::text AS report_date,
+        NULLIF(h.report_time, '') AS report_time,
+        h.eps_estimate,
+        h.eps_actual,
+        h.eps_surprise_pct,
+        h.revenue_estimate,
+        h.revenue_actual,
+        COALESCE(tu.sector, ${hasMarketQuotes && hasColumn(schemaMap, 'market_quotes', 'sector') ? 'q.sector' : 'NULL'}) AS sector,
+        NULL::numeric AS earnings_score,
+        h.expected_move_percent AS expected_move_from_earnings,
+        COALESCE(${hasMarketMetrics ? 'm.price' : 'NULL'}, ${hasMarketQuotes ? 'q.price' : 'NULL'}) AS price,
+        ${hasMarketQuotes ? 'q.market_cap' : 'NULL'} AS market_cap,
+        COALESCE(${hasMarketMetrics ? 'm.volume' : 'NULL'}, ${hasMarketQuotes ? 'q.volume' : 'NULL'}) AS volume,
+        ${hasMarketMetrics && hasColumn(schemaMap, 'market_metrics', 'relative_volume') ? 'm.relative_volume' : 'NULL'} AS relative_volume,
+        ${hasMarketMetrics && hasColumn(schemaMap, 'market_metrics', 'atr') ? 'm.atr' : 'NULL'} AS atr,
+        ${hasDecisionView && hasColumn(schemaMap, 'decision_view', 'final_score') ? 'd.final_score' : 'NULL'} AS final_score,
+        ${hasDecisionView ? "(to_jsonb(d)->>'execution_plan')" : 'NULL'} AS decision_execution_plan,
+        ${hasDecisionView ? "(to_jsonb(d)->>'trade_class')" : 'NULL'} AS decision_trade_class,
+        COALESCE(h.updated_at, h.created_at, h.report_date) AS updated_at,
+        COALESCE(h.source, 'earnings_history') AS source
+      FROM earnings_history h
+      ${historyUniverseJoin}
+      ${hasDecisionView ? 'LEFT JOIN decision_view d ON UPPER(h.symbol) = UPPER(d.symbol)' : ''}
+      ${hasMarketMetrics ? 'LEFT JOIN market_metrics m ON UPPER(h.symbol) = UPPER(m.symbol)' : ''}
+      ${hasMarketQuotes ? 'LEFT JOIN market_quotes q ON UPPER(h.symbol) = UPPER(q.symbol)' : ''}
+      WHERE h.report_date::date BETWEEN $1::date AND $2::date
+        AND h.report_date::date < CURRENT_DATE
+    ), base AS (
+      SELECT * FROM upcoming_base
+      UNION ALL
+      SELECT * FROM historical_base
     )
     SELECT
       symbol,
@@ -901,9 +1257,9 @@ router.get('/api/earnings/calendar', async (req, res) => {
     let dbRows = [];
     try {
       const dbResult = await safePoolQuery('calendar.main_query', dbSql, [from, to, limit]);
-      dbRows = dbResult.rows;
+      dbRows = dedupeCalendarRows(dbResult.rows);
     } catch {
-      const fmpRows = await fmpEarningsFallback(from, to);
+      const fmpRows = await getEligibleFallbackCalendarRows(from, to);
       if (fmpRows.length > 0) {
         const limitedRows = limitRows(fmpRows, limit);
         return res.status(200).json({ success: true, data: limitedRows, count: limitedRows.length, source: 'fmp_direct', rows: limitedRows });
@@ -914,21 +1270,42 @@ router.get('/api/earnings/calendar', async (req, res) => {
       });
     }
 
-    const requestedWindowEndsBeforeToday = toUtcMidnight(to) < toUtcMidnight(new Date());
+    let supplementalPastRows = [];
+    if (requestedWindowStartsBeforeToday) {
+      const pastWindowEnd = isoDate(addUtcDays(todayUtc, -1));
+      const supplementalTo = toUtcMidnight(to) < todayUtc ? to : pastWindowEnd;
+      supplementalPastRows = await getEligibleFallbackCalendarRows(from, supplementalTo);
+      supplementalPastRows = supplementalPastRows.filter((row) => toUtcMidnight(row.report_date || row.date) < todayUtc);
+      dbRows = mergeCalendarRows(dbRows, supplementalPastRows);
+    }
+
+    const requestedWindowEndsBeforeToday = toUtcMidnight(to) < todayUtc;
     const dbRowsAreFresh = dbRows.some((row) => isFreshTimestamp(row.updated_at));
     const shouldUseDbRows = dbRows.length > 0 && (requestedWindowEndsBeforeToday || dbRowsAreFresh);
-    const fmpRows = shouldUseDbRows ? [] : await fmpEarningsFallback(from, to);
+    const fmpRows = shouldUseDbRows
+      ? []
+      : supplementalPastRows.length > 0
+        ? supplementalPastRows
+        : await getEligibleFallbackCalendarRows(from, to);
     const limitedFmpRows = limitRows(fmpRows, limit);
     const responseSource = shouldUseDbRows ? 'db' : fmpRows.length ? 'fmp' : dbRows.length ? 'fallback' : 'fallback';
-    const responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? limitedFmpRows : dbRows;
+    let responseRows = responseSource === 'db' ? dbRows : responseSource === 'fmp' ? limitedFmpRows : dbRows;
+
+    if (responseSource === 'db' && !requestedWindowEndsBeforeToday && toUtcMidnight(to) >= todayUtc) {
+      const weekendSupplementalRows = await getEligibleFallbackCalendarRows(from, to);
+      responseRows = mergeMissingWeekendFallbackRows(responseRows, weekendSupplementalRows);
+    }
+
+    responseRows = sanitizeCalendarRows(responseRows, responseSource);
 
     let enriched = responseRows.map((row) => {
+      const preservePlaceholderTime = row?._calendar_origin === 'fallback';
 
       const base = {
         symbol: row.symbol,
-        company_name: row.company || null,
+        company_name: row.company || row.company_name || null,
         report_date: row.report_date,
-        time: row.report_time || 'UNKNOWN',
+        time: normalizeCalendarDisplayTime(row.report_time ?? row.time, preservePlaceholderTime),
         price: row.price ?? null,
         market_cap: row.market_cap ?? null,
         volume: row.volume ?? null,
@@ -1000,7 +1377,7 @@ router.get('/api/earnings/calendar', async (req, res) => {
 
       const finalTrade = buildFinalTradeObject(enrichedBase, 'earnings_calendar');
       if (!finalTrade) {
-        return enrichedBase;
+        return attachCanonicalEarningsFields(enrichedBase);
       }
       const validation = validateTrade(finalTrade);
       if (!validation.valid) {
@@ -1008,13 +1385,13 @@ router.get('/api/earnings/calendar', async (req, res) => {
           symbol: enrichedBase.symbol,
           errors: validation.errors,
         });
-        return enrichedBase;
+        return attachCanonicalEarningsFields(enrichedBase);
       }
 
-      return {
+      return attachCanonicalEarningsFields({
         ...enrichedBase,
         ...finalTrade,
-      };
+      });
     });
 
     if (classFilter) {
