@@ -238,9 +238,12 @@ async function buildTradeability(symbol) {
       { timeoutMs: 3000, label: 'decision.tradeability.metrics', maxRetries: 0 }
     ),
     queryWithTimeout(
-      `SELECT score, event_type, headline
+      `-- Direct symbol equality uses idx_opportunity_stream_symbol_updated
+       -- Previously used UPPER(symbol) which forced Parallel Seq Scan
+       -- Fixed Phase 33b 2026-04-24 - symbols are already normalized uppercase
+       SELECT score, event_type, headline
        FROM opportunity_stream
-       WHERE UPPER(symbol) = $1
+       WHERE symbol = $1
        ORDER BY created_at DESC NULLS LAST
        LIMIT 1`,
       [symbol],
