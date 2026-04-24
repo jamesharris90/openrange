@@ -56,3 +56,6 @@ server/server.pid
 # Generated validation logs
 logs/*validation*.json
 logs/critical_data_precheck_latest.json
+
+# Temp audit scripts (per-session, not source)
+server/tmp/
