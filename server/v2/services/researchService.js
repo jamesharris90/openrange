@@ -7,6 +7,16 @@ const {
   hasChartCandles,
   hasCompleteTechnicals,
 } = require('../../services/dataConfidenceService');
+const {
+  classifyTickerRecord,
+  ensureTickerClassificationSchema,
+  normalizeTickerClassificationRecord,
+  upsertTickerClassifications,
+} = require('../../services/tickerClassificationService');
+const {
+  attachCanonicalEarningsFields,
+  normalizeResearchEarningsPayload,
+} = require('../../services/earningsCanonicalService');
 
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
@@ -30,6 +40,7 @@ const REQUIRED_TABLES = [
   'earnings_events',
   'earnings_history',
   'company_profiles',
+  'ticker_classifications',
 ];
 
 function normalizeSymbol(value) {
@@ -256,7 +267,7 @@ function normalizeEarningsRecord(data) {
     return null;
   }
 
-  return {
+  return attachCanonicalEarningsFields({
     symbol: normalizeSymbol(record.symbol),
     report_date: record.report_date || record.earnings_date || null,
     report_time: normalizeReportTime(record.report_time) || normalizeReportTime(record.time),
@@ -267,7 +278,7 @@ function normalizeEarningsRecord(data) {
     market_cap: toNullableNumber(record.market_cap),
     sector: toNullableString(record.sector),
     industry: toNullableString(record.industry),
-  };
+  });
 }
 
 function normalizeFmpEarningsRows(rows, symbol) {
@@ -304,6 +315,7 @@ function buildEarningsPayload(rows) {
     return {
       latest: null,
       next: null,
+      history: [],
     };
   }
 
@@ -317,6 +329,7 @@ function buildEarningsPayload(rows) {
   return {
     latest,
     next,
+    history: normalizedRows,
   };
 }
 
@@ -589,6 +602,7 @@ async function hydrateEarningsFromFmp(symbol, options = {}) {
       earnings: {
         latest: null,
         next: null,
+        history: [],
       },
       persisted: false,
     };
@@ -829,7 +843,7 @@ function projectNextEarningsFromHistory(symbol, rows = []) {
     nextDate.setUTCDate(nextDate.getUTCDate() + cadenceDays);
   } while (nextDate < today);
 
-  return {
+  return attachCanonicalEarningsFields({
     symbol,
     report_date: nextDate.toISOString().slice(0, 10),
     report_time: orderedRows[0].report_time || null,
@@ -840,7 +854,7 @@ function projectNextEarningsFromHistory(symbol, rows = []) {
     market_cap: orderedRows[0].market_cap ?? null,
     sector: orderedRows[0].sector ?? null,
     industry: orderedRows[0].industry ?? null,
-  };
+  });
 }
 
 function hasRecentNews(news) {
@@ -1133,7 +1147,13 @@ async function getResearchData(symbol) {
   const existingTables = new Set(REQUIRED_TABLES);
   const warnings = payload.warnings;
 
-  const [marketRows, intradayRows, dailyRows, newsRows, earningsRows, companyRows] = await Promise.all([
+  try {
+    await ensureTickerClassificationSchema();
+  } catch (error) {
+    warnings.push(`ticker_classifications: ${error.message}`);
+  }
+
+  const [marketRows, intradayRows, dailyRows, newsRows, earningsRows, companyRows, classificationRows] = await Promise.all([
     safeQuery(
       existingTables,
       'market_quotes',
@@ -1283,6 +1303,27 @@ async function getResearchData(symbol) {
       warnings,
       []
     ),
+    safeQuery(
+      existingTables,
+      'ticker_classifications',
+      `SELECT
+         stock_classification,
+         classification_label,
+         classification_reason,
+        listing_type,
+        instrument_detail,
+        instrument_detail_label
+       FROM ticker_classifications
+       WHERE symbol = $1
+       LIMIT 1`,
+      [normalizedSymbol],
+      {
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
+        label: 'research.ticker_classification',
+      },
+      warnings,
+      []
+    ),
   ]);
 
   const projectedEarningsRows = await safeQuery(
@@ -1356,10 +1397,10 @@ async function getResearchData(symbol) {
     }
   }
 
-  payload.earnings = {
+  payload.earnings = normalizeResearchEarningsPayload({
     ...payload.earnings,
     history: earningsHistory,
-  };
+  });
 
   payload.company = normalizeCompanyRecord(companyRows[0]?.data, normalizedSymbol);
 
@@ -1373,6 +1414,36 @@ async function getResearchData(symbol) {
 
   if (!payload.company.industry) {
     payload.company.industry = payload.earnings.next?.industry || payload.earnings.latest?.industry || null;
+  }
+
+  const derivedClassification = classifyTickerRecord({
+    symbol: normalizedSymbol,
+    company_name: payload.company.company_name,
+    sector: payload.company.sector,
+    industry: payload.company.industry,
+    exchange: payload.company.exchange,
+    price: payload.market.price,
+  });
+
+  const normalizedClassification = normalizeTickerClassificationRecord(classificationRows[0], derivedClassification);
+  payload.company = {
+    ...payload.company,
+    ...normalizedClassification,
+  };
+
+  if (!classificationRows[0]?.stock_classification) {
+    try {
+      await upsertTickerClassifications([{
+        symbol: normalizedSymbol,
+        company_name: payload.company.company_name,
+        sector: payload.company.sector,
+        industry: payload.company.industry,
+        exchange: payload.company.exchange,
+        price: payload.market.price,
+      }]);
+    } catch (error) {
+      warnings.push(`ticker_classifications.persist: ${error.message}`);
+    }
   }
 
   payload.mcp = buildMCP(payload);

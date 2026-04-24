@@ -5,6 +5,7 @@ const { getCache, setCache } = require('../cache/memoryCache');
 const { normalizeSymbol } = require('../../services/researchCacheService');
 const { queryWithTimeout } = require('../../db/pg');
 const { computeCompletenessConfidence, hasChartCandles, hasCompleteTechnicals } = require('../../services/dataConfidenceService');
+const { classifyTickerRecord, normalizeTickerClassificationRecord } = require('../../services/tickerClassificationService');
 const { getLatestScreenerPayload } = require('../services/snapshotService');
 const { buildMCP, getResearchData } = require('../services/researchService');
 const { buildFastResearchSnapshot } = require('../services/experienceSnapshotService');
@@ -213,6 +214,18 @@ function buildSyntheticScreenerRow(symbol, data) {
 }
 
 function buildResponse(symbol, data, meta, source = 'snapshot') {
+  const normalizedCompany = {
+    ...(data?.company || {}),
+    ...normalizeTickerClassificationRecord(data?.company, classifyTickerRecord({
+      symbol,
+      company_name: data?.company?.company_name,
+      sector: data?.company?.sector,
+      industry: data?.company?.industry,
+      exchange: data?.company?.exchange,
+      price: data?.market?.price,
+    })),
+  };
+
   const warnings = Array.from(new Set([
     ...(Array.isArray(data?.warnings) ? data.warnings : []),
     ...(Array.isArray(meta?.warnings) ? meta.warnings : []),
@@ -237,6 +250,7 @@ function buildResponse(symbol, data, meta, source = 'snapshot') {
     data: {
       ...emptyResearchData(symbol),
       ...data,
+      company: normalizedCompany,
       meta: responseMeta,
     },
     meta: responseMeta,

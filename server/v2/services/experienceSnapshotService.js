@@ -1,4 +1,9 @@
 const { queryWithTimeout } = require('../../db/pg');
+const {
+  attachCanonicalEarningsFields,
+  normalizeResearchEarningsPayload,
+} = require('../../services/earningsCanonicalService');
+const { getActiveUniverseSymbols } = require('../../services/dataCoverageService');
 const { getCache, setCache } = require('../cache/memoryCache');
 const { getCachedScreenerPayload } = require('./snapshotService');
 const { emptyResearchData, buildMCP, normalizeSymbol } = require('./researchService');
@@ -46,7 +51,7 @@ function normalizeFastHistoryRow(symbol, row) {
     return null;
   }
 
-  return {
+  return attachCanonicalEarningsFields({
     symbol,
     report_date: reportDate,
     report_time: String(row?.report_time || 'TBD').trim() || 'TBD',
@@ -57,7 +62,7 @@ function normalizeFastHistoryRow(symbol, row) {
     market_cap: toNullableNumber(row?.market_cap),
     sector: toNullableString(row?.sector),
     industry: toNullableString(row?.industry),
-  };
+  });
 }
 
 async function loadFastResearchSupplements(symbol) {
@@ -302,7 +307,7 @@ function normalizeEarningsRow(row) {
     return null;
   }
 
-  return {
+  return attachCanonicalEarningsFields({
     symbol: String(row?.symbol || '').trim().toUpperCase() || null,
     company_name: String(row?.company_name || '').trim() || null,
     report_date: reportDate,
@@ -319,7 +324,35 @@ function normalizeEarningsRow(row) {
     score: Number.isFinite(Number(row?.score)) ? Number(row.score) : null,
     source: String(row?.source || 'db').trim() || 'db',
     updated_at: row?.updated_at || null,
-  };
+  });
+}
+
+function dedupeEarningsRows(rows) {
+  const deduped = new Map();
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row?.symbol || !row?.report_date) {
+      continue;
+    }
+
+    deduped.set(`${row.symbol}|${row.report_date}`, row);
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    return String(left.report_date || '').localeCompare(String(right.report_date || '')) || String(left.symbol || '').localeCompare(String(right.symbol || ''));
+  });
+}
+
+function resolveSnapshotCalendarLimit(options = {}) {
+  const from = String(options.from || options.startDate || '').trim();
+  const to = String(options.to || options.endDate || '').trim();
+  const requested = Math.max(1, Number(options.limit) || 100);
+
+  if (from && to && from !== to) {
+    return 5000;
+  }
+
+  return Math.min(requested, 600);
 }
 
 function dedupeNewsRows(rows) {
@@ -361,7 +394,8 @@ function getNextEarningsRowFromSnapshot(snapshot, symbol) {
     return null;
   }
 
-  return (snapshot.data || []).find((row) => row?.symbol === symbol && row?.report_date) || null;
+  const row = (snapshot.data || []).find((item) => item?.symbol === symbol && item?.report_date) || null;
+  return row ? attachCanonicalEarningsFields(row) : null;
 }
 
 async function buildDirectNewsFallbackSnapshot(limit, cutoffIso) {
@@ -374,26 +408,62 @@ async function buildDirectNewsFallbackSnapshot(limit, cutoffIso) {
 
 async function loadEarningsSnapshotRows(limit, timeoutMs = 6000) {
   const result = await queryWithTimeout(
-    `SELECT
-       e.symbol,
-       COALESCE(e.company, tu.company_name) AS company_name,
-       e.report_date::text AS report_date,
-       COALESCE(NULLIF(e.report_time, ''), NULLIF(e.time, ''), 'TBD') AS time,
-       e.eps_estimate,
-       e.eps_actual,
-       COALESCE(e.revenue_estimate, e.rev_estimate) AS revenue_estimate,
-       COALESCE(e.revenue_actual, e.rev_actual) AS revenue_actual,
-       e.expected_move_percent,
-       e.market_cap,
-       COALESCE(e.sector, tu.sector) AS sector,
-       tu.industry,
-       e.score,
-       COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
-       COALESCE(e.source, 'db') AS source
-     FROM earnings_events e
-     LEFT JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol)
-     WHERE e.report_date::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE + INTERVAL '45 days'
-     ORDER BY e.report_date ASC, e.symbol ASC
+    `WITH upcoming_rows AS (
+       SELECT
+         e.symbol,
+         COALESCE(e.company, tu.company_name) AS company_name,
+         e.report_date::text AS report_date,
+         COALESCE(NULLIF(e.report_time, ''), NULLIF(e.time, ''), 'TBD') AS time,
+         e.eps_estimate,
+         e.eps_actual,
+         COALESCE(e.revenue_estimate, e.rev_estimate) AS revenue_estimate,
+         COALESCE(e.revenue_actual, e.rev_actual) AS revenue_actual,
+         e.expected_move_percent,
+         e.market_cap,
+         COALESCE(e.sector, tu.sector) AS sector,
+         tu.industry,
+         e.score,
+         COALESCE(e.updated_at, e.created_at, NOW()) AS updated_at,
+         COALESCE(e.source, 'db') AS source
+       FROM earnings_events e
+       INNER JOIN ticker_universe tu ON UPPER(e.symbol) = UPPER(tu.symbol) AND COALESCE(tu.is_active, true) = true
+       WHERE e.report_date::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE + INTERVAL '45 days'
+     ), history_rows AS (
+       SELECT
+         h.symbol,
+         tu.company_name,
+         h.report_date::text AS report_date,
+         COALESCE(NULLIF(h.report_time, ''), 'TBD') AS time,
+         h.eps_estimate,
+         h.eps_actual,
+         h.revenue_estimate,
+         h.revenue_actual,
+         h.expected_move_percent,
+         mq.market_cap,
+         COALESCE(tu.sector, mq.sector) AS sector,
+         tu.industry,
+         NULL::numeric AS score,
+         COALESCE(h.updated_at, h.created_at, NOW()) AS updated_at,
+         COALESCE(h.source, 'earnings_history') AS source
+       FROM earnings_history h
+       INNER JOIN ticker_universe tu ON UPPER(h.symbol) = UPPER(tu.symbol) AND COALESCE(tu.is_active, true) = true
+       LEFT JOIN market_quotes mq ON UPPER(h.symbol) = UPPER(mq.symbol)
+       WHERE h.report_date::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE + INTERVAL '45 days'
+         AND h.report_date::date < CURRENT_DATE
+         AND NOT EXISTS (
+           SELECT 1
+           FROM earnings_events e2
+           WHERE UPPER(e2.symbol) = UPPER(h.symbol)
+             AND e2.report_date::date = h.report_date::date
+         )
+     )
+     SELECT *
+     FROM (
+       SELECT * FROM upcoming_rows
+       UNION ALL
+       SELECT * FROM history_rows
+     ) combined
+     ORDER BY report_date ASC, symbol ASC
      LIMIT $1`,
     [limit],
     {
@@ -403,7 +473,7 @@ async function loadEarningsSnapshotRows(limit, timeoutMs = 6000) {
     }
   );
 
-  return (result.rows || []).map((row) => normalizeEarningsRow(row)).filter(Boolean);
+  return dedupeEarningsRows((result.rows || []).map((row) => normalizeEarningsRow(row)).filter(Boolean));
 }
 
 async function loadNewsSnapshotRows(cutoffIso, limit) {
@@ -861,7 +931,7 @@ async function getEarningsSnapshot() {
 async function getCachedEarningsCalendarPayload(options = {}) {
   const from = String(options.from || options.startDate || '').trim() || new Date().toISOString().slice(0, 10);
   const to = String(options.to || options.endDate || '').trim() || new Date(Date.now() + (7 * 86400000)).toISOString().slice(0, 10);
-  const limit = clamp(Number(options.limit) || 100, 1, 600);
+  const limit = resolveSnapshotCalendarLimit({ ...options, from, to });
   const classFilter = String(options.class || '').trim().toUpperCase();
   let snapshot = getImmediateEarningsSnapshot();
   let source = snapshot === lastSuccessfulEarningsSnapshot ? 'snapshot_stale' : 'snapshot';
@@ -886,7 +956,12 @@ async function getCachedEarningsCalendarPayload(options = {}) {
 
   void refreshEarningsSnapshot().catch(() => {});
 
-  let rows = (snapshot.data || []).filter((row) => row.report_date >= from && row.report_date <= to);
+  const activeUniverse = new Set(await getActiveUniverseSymbols());
+  const snapshotRows = Array.isArray(snapshot?.data) ? snapshot.data : [];
+  let rows = dedupeEarningsRows(snapshotRows.filter((row) => {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    return row.report_date >= from && row.report_date <= to && activeUniverse.has(symbol);
+  }));
 
   if (classFilter) {
     rows = rows.filter((row) => String(row.trade_class || '').trim().toUpperCase() === classFilter);
@@ -905,7 +980,7 @@ async function getCachedEarningsCalendarPayload(options = {}) {
     rows: data,
     events: data,
     message: data.length ? '' : 'No earnings data available',
-    snapshot_at: snapshot.created_at,
+    snapshot_at: snapshot?.created_at || null,
   };
 }
 
@@ -970,7 +1045,7 @@ async function buildFastResearchSnapshot(symbolInput) {
         website: supplements.company.website || null,
         description: supplements.company.description || null,
       },
-      earnings: {
+      earnings: normalizeResearchEarningsPayload({
         latest: supplements.history[0] || null,
         next: supplements.next || snapshotNextEarnings || (screenerRow.earnings_date ? {
           symbol,
@@ -985,7 +1060,7 @@ async function buildFastResearchSnapshot(symbolInput) {
           industry: screenerRow.industry || null,
         } : null),
         history: supplements.history,
-      },
+      }),
       news: symbolNews,
       screener: screenerRow,
       news_count: Math.max(symbolNews.length, screenerRow.has_news ? 1 : 0),
@@ -1123,14 +1198,9 @@ async function buildFastResearchSnapshot(symbolInput) {
   const profile = profileResult.rows?.[0] || {};
   const market = marketResult.rows?.[0] || {};
   const nextEarnings = nextResult.rows?.[0] || null;
-  const history = (historyResult.rows || []).map((row) => ({
-    report_date: row.report_date || null,
-    report_time: row.report_time || null,
-    eps_estimate: Number.isFinite(Number(row.eps_estimate)) ? Number(row.eps_estimate) : null,
-    eps_actual: Number.isFinite(Number(row.eps_actual)) ? Number(row.eps_actual) : null,
-    revenue_estimate: Number.isFinite(Number(row.revenue_estimate)) ? Number(row.revenue_estimate) : null,
-    revenue_actual: Number.isFinite(Number(row.revenue_actual)) ? Number(row.revenue_actual) : null,
-  }));
+  const history = (historyResult.rows || [])
+    .map((row) => normalizeFastHistoryRow(symbol, row))
+    .filter(Boolean);
 
   const nextData = {
     ...base,
@@ -1158,9 +1228,9 @@ async function buildFastResearchSnapshot(symbolInput) {
       website: null,
       description: null,
     },
-    earnings: {
+    earnings: normalizeResearchEarningsPayload({
       latest: cachedSupplementData?.history?.[0] || history[0] || null,
-      next: cachedSupplementData?.next || snapshotNextEarnings || (nextEarnings ? {
+      next: cachedSupplementData?.next || snapshotNextEarnings || (nextEarnings ? attachCanonicalEarningsFields({
         symbol,
         report_date: nextEarnings.report_date || screenerRow?.earnings_date || null,
         report_time: nextEarnings.report_time || null,
@@ -1171,7 +1241,7 @@ async function buildFastResearchSnapshot(symbolInput) {
         market_cap: Number.isFinite(Number(nextEarnings.market_cap)) ? Number(nextEarnings.market_cap) : (screenerRow?.market_cap ?? null),
         sector: nextEarnings.sector || screenerRow?.sector || profile.sector || null,
         industry: nextEarnings.industry || screenerRow?.industry || profile.industry || null,
-      } : (screenerRow?.earnings_date ? {
+      }) : (screenerRow?.earnings_date ? attachCanonicalEarningsFields({
         symbol,
         report_date: screenerRow.earnings_date,
         report_time: null,
@@ -1182,9 +1252,9 @@ async function buildFastResearchSnapshot(symbolInput) {
         market_cap: screenerRow.market_cap ?? null,
         sector: screenerRow.sector || profile.sector || null,
         industry: screenerRow.industry || profile.industry || null,
-      } : null)),
+      }) : null)),
       history: cachedSupplementData?.history?.length ? cachedSupplementData.history : history,
-    },
+    }),
     screener: screenerRow,
     news: symbolNews,
     news_count: Math.max(symbolNews.length, Number(newsCountResult.rows?.[0]?.cnt || 0)),
