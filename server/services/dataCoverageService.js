@@ -9,8 +9,10 @@ const {
 const FULL_NEWS_THRESHOLD = Math.max(1, Number(process.env.COVERAGE_FULL_NEWS_THRESHOLD) || 3);
 const LOW_QUALITY_PRICE_THRESHOLD = Math.max(0.01, Number(process.env.COVERAGE_LOW_QUALITY_PRICE_THRESHOLD) || 1);
 const LOW_QUALITY_VOLUME_THRESHOLD = Math.max(1, Number(process.env.COVERAGE_LOW_QUALITY_VOLUME_THRESHOLD) || 100000);
+const ACTIVE_UNIVERSE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let tickerUniverseColumnsPromise = null;
+let activeUniverseSymbolsCache = null;
 
 function normalizeSymbol(value) {
   return String(value || '').trim().toUpperCase();
@@ -371,6 +373,10 @@ async function getCoverageExplanation(symbol) {
 }
 
 async function getActiveUniverseSymbols() {
+  if (activeUniverseSymbolsCache && (Date.now() - activeUniverseSymbolsCache.timestamp) < ACTIVE_UNIVERSE_CACHE_TTL_MS) {
+    return activeUniverseSymbolsCache.symbols;
+  }
+
   const tickerUniverseColumns = await getTickerUniverseColumns();
   const whereClause = tickerUniverseColumns.has('is_active')
     ? 'WHERE COALESCE(is_active, true) = true'
@@ -390,7 +396,13 @@ async function getActiveUniverseSymbols() {
     }
   );
 
-  return (result.rows || []).map((row) => normalizeSymbol(row.symbol)).filter(Boolean);
+  const symbols = (result.rows || []).map((row) => normalizeSymbol(row.symbol)).filter(Boolean);
+  activeUniverseSymbolsCache = {
+    symbols,
+    timestamp: Date.now(),
+  };
+
+  return symbols;
 }
 
 async function getGlobalCoverageHealth() {

@@ -22,10 +22,14 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function hasAnyEarningsCoverage(row) {
+  return Boolean(row?.has_earnings || row?.has_earnings_history || row?.has_upcoming_earnings);
+}
+
 function calculateCoverageScore(row) {
   return (
     (row.has_news ? 30 : 0)
-    + (row.has_earnings ? 30 : 0)
+    + (hasAnyEarningsCoverage(row) ? 30 : 0)
     + (row.has_technicals ? 40 : 0)
   );
 }
@@ -64,7 +68,16 @@ function dedupeCoverageRows(rows) {
     const merged = {
       ...existing,
       has_news: Boolean(existing.has_news || row.has_news),
-      has_earnings: Boolean(existing.has_earnings || row.has_earnings),
+      has_earnings_history: Boolean(existing.has_earnings_history || row.has_earnings_history),
+      has_upcoming_earnings: Boolean(existing.has_upcoming_earnings || row.has_upcoming_earnings),
+      has_earnings: Boolean(
+        existing.has_earnings
+        || row.has_earnings
+        || existing.has_earnings_history
+        || row.has_earnings_history
+        || existing.has_upcoming_earnings
+        || row.has_upcoming_earnings
+      ),
       has_technicals: Boolean(existing.has_technicals || row.has_technicals),
       news_count: Math.max(toNumber(existing.news_count), toNumber(row.news_count)),
       earnings_count: Math.max(toNumber(existing.earnings_count), toNumber(row.earnings_count)),
@@ -242,6 +255,8 @@ async function ensureCoverageTable() {
        symbol TEXT PRIMARY KEY,
        has_news BOOLEAN NOT NULL DEFAULT FALSE,
        has_earnings BOOLEAN NOT NULL DEFAULT FALSE,
+     has_earnings_history BOOLEAN NOT NULL DEFAULT FALSE,
+     has_upcoming_earnings BOOLEAN NOT NULL DEFAULT FALSE,
        has_technicals BOOLEAN NOT NULL DEFAULT FALSE,
        news_count INTEGER NOT NULL DEFAULT 0,
        earnings_count INTEGER NOT NULL DEFAULT 0,
@@ -250,13 +265,17 @@ async function ensureCoverageTable() {
        coverage_score INTEGER NOT NULL DEFAULT 0,
        last_checked TIMESTAMPTZ NOT NULL DEFAULT NOW()
      )`,
+   `ALTER TABLE data_coverage
+     ADD COLUMN IF NOT EXISTS has_earnings_history BOOLEAN NOT NULL DEFAULT FALSE`,
+   `ALTER TABLE data_coverage
+     ADD COLUMN IF NOT EXISTS has_upcoming_earnings BOOLEAN NOT NULL DEFAULT FALSE`,
     `CREATE INDEX IF NOT EXISTS idx_data_coverage_score ON data_coverage (coverage_score ASC, symbol ASC)`,
     `CREATE INDEX IF NOT EXISTS idx_data_coverage_checked ON data_coverage (last_checked DESC)`
   ];
 
   for (const statement of statements) {
     await queryWithTimeout(statement, [], {
-      timeoutMs: 15000,
+      timeoutMs: 60000,
       label: 'coverage.ensure_table',
       maxRetries: 0,
       poolType: 'write',
@@ -288,6 +307,8 @@ async function buildCoverageRows() {
        UNION
        SELECT DISTINCT UPPER(symbol) AS symbol FROM technical_indicators WHERE symbol IS NOT NULL AND symbol <> ''
        UNION
+      SELECT DISTINCT UPPER(symbol) AS symbol FROM earnings_events WHERE symbol IS NOT NULL AND symbol <> ''
+      UNION
        SELECT DISTINCT UPPER(symbol) AS symbol FROM earnings_history WHERE symbol IS NOT NULL AND symbol <> ''
        UNION
        SELECT DISTINCT UPPER(NULLIF((to_jsonb(na)->>'symbol'), '')) AS symbol
@@ -329,11 +350,19 @@ async function buildCoverageRows() {
        FROM news_expanded
        GROUP BY symbol
      ),
-     earnings AS (
+     earnings_history_rollup AS (
        SELECT UPPER(symbol) AS symbol,
               COUNT(*)::int AS earnings_count,
               MAX(report_date)::timestamptz AS last_earnings_at
        FROM earnings_history
+       GROUP BY UPPER(symbol)
+     ),
+     earnings_upcoming_rollup AS (
+       SELECT UPPER(symbol) AS symbol,
+              COUNT(*)::int AS upcoming_earnings_count,
+              MIN(report_date)::timestamptz AS next_earnings_at
+       FROM earnings_events
+       WHERE report_date >= CURRENT_DATE
        GROUP BY UPPER(symbol)
      ),
      technicals AS (
@@ -353,15 +382,18 @@ async function buildCoverageRows() {
      SELECT su.symbol,
             COALESCE(n.news_count, 0) AS news_count,
             n.last_news_at,
-            COALESCE(e.earnings_count, 0) AS earnings_count,
-            e.last_earnings_at,
+           COALESCE(eh.earnings_count, 0) AS earnings_count,
+           eh.last_earnings_at,
+           COALESCE(eu.upcoming_earnings_count, 0) AS upcoming_earnings_count,
+           eu.next_earnings_at,
             COALESCE(t.technical_count, 0) AS technical_count,
             t.technical_updated_at,
             COALESCE(d.daily_row_count, 0) AS daily_row_count,
             d.last_daily_at
      FROM symbol_universe su
      LEFT JOIN news n ON n.symbol = su.symbol
-     LEFT JOIN earnings e ON e.symbol = su.symbol
+         LEFT JOIN earnings_history_rollup eh ON eh.symbol = su.symbol
+         LEFT JOIN earnings_upcoming_rollup eu ON eu.symbol = su.symbol
      LEFT JOIN technicals t ON t.symbol = su.symbol
      LEFT JOIN daily d ON d.symbol = su.symbol
      ORDER BY su.symbol ASC`,
@@ -377,12 +409,17 @@ async function buildCoverageRows() {
   const rows = (result.rows || []).map((row) => {
     const newsCount = toNumber(row.news_count);
     const earningsCount = toNumber(row.earnings_count);
+    const upcomingEarningsCount = toNumber(row.upcoming_earnings_count);
     const technicalCount = toNumber(row.technical_count);
     const dailyRowCount = toNumber(row.daily_row_count);
+    const hasEarningsHistory = earningsCount > 0;
+    const hasUpcomingEarnings = upcomingEarningsCount > 0;
     const nextRow = {
       symbol: String(row.symbol || '').trim().toUpperCase(),
       has_news: newsCount > 0,
-      has_earnings: earningsCount > 0,
+      has_earnings_history: hasEarningsHistory,
+      has_upcoming_earnings: hasUpcomingEarnings,
+      has_earnings: hasEarningsHistory || hasUpcomingEarnings,
       has_technicals: technicalCount > 0,
       news_count: newsCount,
       earnings_count: earningsCount,
@@ -408,12 +445,17 @@ async function upsertCoverageRows(rows) {
     return 0;
   }
 
-  const payload = JSON.stringify(rows);
+  const payload = JSON.stringify(rows.map((row) => ({
+    ...row,
+    has_earnings: Boolean(row.has_earnings || row.has_earnings_history || row.has_upcoming_earnings),
+  })));
   await queryWithTimeout(
     `INSERT INTO data_coverage (
        symbol,
        has_news,
        has_earnings,
+       has_earnings_history,
+       has_upcoming_earnings,
        has_technicals,
        news_count,
        earnings_count,
@@ -425,6 +467,8 @@ async function upsertCoverageRows(rows) {
      SELECT symbol,
             has_news,
             has_earnings,
+           has_earnings_history,
+           has_upcoming_earnings,
             has_technicals,
             news_count,
             earnings_count,
@@ -436,6 +480,8 @@ async function upsertCoverageRows(rows) {
        symbol text,
        has_news boolean,
        has_earnings boolean,
+       has_earnings_history boolean,
+       has_upcoming_earnings boolean,
        has_technicals boolean,
        news_count integer,
        earnings_count integer,
@@ -446,6 +492,8 @@ async function upsertCoverageRows(rows) {
      ON CONFLICT (symbol) DO UPDATE
      SET has_news = EXCLUDED.has_news,
          has_earnings = EXCLUDED.has_earnings,
+       has_earnings_history = EXCLUDED.has_earnings_history,
+       has_upcoming_earnings = EXCLUDED.has_upcoming_earnings,
          has_technicals = EXCLUDED.has_technicals,
          news_count = EXCLUDED.news_count,
          earnings_count = EXCLUDED.earnings_count,
@@ -484,6 +532,8 @@ async function getCoverageStatusBySymbols(symbols) {
     `SELECT symbol,
             has_news,
             has_earnings,
+            has_earnings_history,
+            has_upcoming_earnings,
             has_technicals,
             news_count,
             earnings_count,
@@ -546,7 +596,7 @@ function buildCoverageDataConfidence(row) {
     coverage: {
       coverage_score: toNumber(row.coverage_score),
       has_news: Boolean(row.has_news),
-      has_earnings: Boolean(row.has_earnings),
+      has_earnings: hasAnyEarningsCoverage(row),
       has_technicals: Boolean(row.has_technicals),
     },
     priceUpdatedAt: row.last_checked,
@@ -555,7 +605,7 @@ function buildCoverageDataConfidence(row) {
     sources: [
       'coverage_engine',
       row.has_news ? 'news' : null,
-      row.has_earnings ? 'earnings' : null,
+      hasAnyEarningsCoverage(row) ? 'earnings' : null,
       row.has_technicals ? 'technicals' : null,
     ],
   });
@@ -567,6 +617,8 @@ async function getPriorityPreview(options = {}) {
     `SELECT symbol,
             has_news,
             has_earnings,
+            has_earnings_history,
+            has_upcoming_earnings,
             has_technicals,
             news_count,
             earnings_count,

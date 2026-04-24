@@ -199,7 +199,11 @@ function normalizeScreenerRow(row) {
     freshness_score: toNumber(row.freshness_score) ?? 0,
     source_quality: toNumber(row.source_quality) ?? 0,
     has_news: row.has_news !== undefined ? Boolean(row.has_news) : false,
-    has_earnings: row.has_earnings !== undefined ? Boolean(row.has_earnings) : false,
+    has_earnings_history: row.has_earnings_history !== undefined ? Boolean(row.has_earnings_history) : false,
+    has_upcoming_earnings: row.has_upcoming_earnings !== undefined ? Boolean(row.has_upcoming_earnings) : false,
+    has_earnings: row.has_earnings !== undefined
+      ? Boolean(row.has_earnings)
+      : Boolean(row.has_earnings_history || row.has_upcoming_earnings),
     has_technicals: row.has_technicals !== undefined ? Boolean(row.has_technicals) : false,
     tradeable: row.tradeable !== undefined ? Boolean(row.tradeable) : true,
     first_seen_timestamp: row.first_seen_timestamp || null,
@@ -1653,7 +1657,9 @@ async function getScreenerRows(options = {}) {
       const industry = profile.industry ?? universe.industry ?? null;
       const exchange = profile.exchange ?? universe.exchange ?? null;
       const hasNews = Boolean(coverageStatus.has_news);
-      const hasEarnings = Boolean(coverageStatus.has_earnings);
+      const hasEarningsHistory = Boolean(coverageStatus.has_earnings_history);
+      const hasUpcomingEarnings = Boolean(coverageStatus.has_upcoming_earnings);
+      const hasEarnings = hasEarningsHistory || hasUpcomingEarnings || Boolean(coverageStatus.has_earnings);
       const effectiveGapPercent = resolveGapPercent({
         price,
         previousClose: quote.previous_close ?? metrics.previous_close ?? null,
@@ -1724,6 +1730,8 @@ async function getScreenerRows(options = {}) {
         momentum,
         coverage_score: coverageScore,
         has_news: hasNews,
+        has_earnings_history: hasEarningsHistory,
+        has_upcoming_earnings: hasUpcomingEarnings,
         has_earnings: hasEarnings,
         has_technicals: Boolean(coverageStatus.has_technicals),
         tradeable: coverageScore >= 60,
@@ -1771,7 +1779,8 @@ async function getScreenerRows(options = {}) {
       has_news: row.has_news || Boolean(latestNews?.latest_news_at),
       latest_news_at: latestNews?.latest_news_at || null,
       news_source: latestNews?.news_source || 'none',
-      has_earnings: row.has_earnings || Boolean(resolvedEarningsDate),
+      has_upcoming_earnings: row.has_upcoming_earnings || Boolean(resolvedEarningsDate),
+      has_earnings: row.has_earnings_history || row.has_upcoming_earnings || Boolean(resolvedEarningsDate),
       earnings_date: resolvedEarningsDate,
       earnings_source: resolvedEarningsSource,
       catalyst_type: resolveCatalystType({

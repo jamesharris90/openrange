@@ -73,14 +73,23 @@ function computeSourceQuality(sources) {
   return 0;
 }
 
+function hasAnyEarningsContext(flags = {}) {
+  return Boolean(
+    flags?.has_earnings_history
+    || flags?.has_upcoming_earnings
+    || flags?.has_earnings
+  );
+}
+
 function applyConfidenceCaps(score, coverage) {
   let capped = score;
+  const hasEarningsContext = hasAnyEarningsContext(coverage);
 
-  if (!coverage?.has_news || !coverage?.has_earnings || !coverage?.has_technicals) {
+  if (!coverage?.has_news || !hasEarningsContext || !coverage?.has_technicals) {
     capped = Math.min(capped, 64);
   }
 
-  if (!coverage?.has_news && !coverage?.has_earnings && !coverage?.has_technicals) {
+  if (!coverage?.has_news && !hasEarningsContext && !coverage?.has_technicals) {
     capped = Math.min(capped, 39);
   }
 
@@ -126,7 +135,9 @@ function computeCompletenessConfidence(flags = {}) {
     has_volume: Boolean(flags.has_volume),
     has_chart_data: Boolean(flags.has_chart_data),
     has_technicals: Boolean(flags.has_technicals),
-    has_earnings: Boolean(flags.has_earnings),
+    has_earnings_history: Boolean(flags.has_earnings_history),
+    has_upcoming_earnings: Boolean(flags.has_upcoming_earnings),
+    has_earnings: hasAnyEarningsContext(flags),
   };
 
   let score = 100;

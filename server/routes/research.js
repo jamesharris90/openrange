@@ -420,8 +420,10 @@ function buildCoverageFromScoreRow(symbol, scoreRow) {
   const coverageScore = Number(scoreRow.coverage_score || 0);
   const newsCount = Number(scoreRow.news_count || 0);
   const earningsCount = Number(scoreRow.earnings_count || 0);
+  const hasEarningsHistory = Boolean(scoreRow.has_earnings_history) || earningsCount > 0;
+  const hasUpcomingEarnings = Boolean(scoreRow.has_upcoming_earnings) || Boolean(scoreRow.next_earnings_date);
   const hasNews = Boolean(scoreRow.has_news) || newsCount > 0 || Boolean(scoreRow.latest_news_at);
-  const hasEarnings = Boolean(scoreRow.has_earnings) || earningsCount > 0 || Boolean(scoreRow.next_earnings_date);
+  const hasEarnings = hasEarningsHistory || hasUpcomingEarnings || Boolean(scoreRow.has_earnings);
   const hasTechnicals = toNumber(scoreRow.price) !== null || Boolean(scoreRow.has_technicals);
 
   if (!(coverageScore > 0 || hasNews || hasEarnings || hasTechnicals)) {
@@ -431,6 +433,8 @@ function buildCoverageFromScoreRow(symbol, scoreRow) {
   return {
     symbol,
     has_news: hasNews,
+    has_earnings_history: hasEarningsHistory,
+    has_upcoming_earnings: hasUpcomingEarnings,
     has_earnings: hasEarnings,
     has_technicals: hasTechnicals,
     news_count: newsCount,
@@ -697,13 +701,15 @@ function cacheCoverageSnapshotRow(row) {
     daily_count: Number(row?.daily_count || 0),
     coverage_score: Number(row?.coverage_score || 0),
     has_news: Boolean(row?.has_news),
-    has_earnings: Boolean(row?.has_earnings),
+    has_earnings_history: Boolean(row?.has_earnings_history),
+    has_upcoming_earnings: Boolean(row?.has_upcoming_earnings),
+    has_earnings: Boolean(row?.has_earnings || row?.has_earnings_history || row?.has_upcoming_earnings),
     has_technicals: Boolean(row?.has_technicals),
   });
 }
 
 async function refreshCoverageSnapshotCache(timeoutMs = 10000) {
-  const snapshotCacheSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
+  const snapshotCacheSql = `SELECT symbol, has_news, has_earnings, has_earnings_history, has_upcoming_earnings, has_technicals, news_count, earnings_count,
        CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
        last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage`;
@@ -730,7 +736,7 @@ async function loadPrimaryCoverageSection(symbol, timeoutMs = RESEARCH_SECTION_T
 }
 
 async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
-  const directSnapshotSql = `SELECT symbol, has_news, has_earnings, has_technicals, news_count, earnings_count,
+  const directSnapshotSql = `SELECT symbol, has_news, has_earnings, has_earnings_history, has_upcoming_earnings, has_technicals, news_count, earnings_count,
       CASE WHEN has_technicals THEN 1 ELSE 0 END AS daily_count,
       last_news_at, last_earnings_at, coverage_score, last_checked
      FROM data_coverage
@@ -740,6 +746,8 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
        UPPER($1) AS symbol,
   (SELECT COUNT(*)::int FROM news_articles WHERE symbol = $1) AS news_count,
   (SELECT COUNT(*)::int FROM earnings_history WHERE symbol = $1) AS earnings_count,
+  (SELECT COUNT(*)::int FROM earnings_events WHERE symbol = $1 AND report_date >= CURRENT_DATE) AS upcoming_earnings_count,
+  (SELECT MIN(report_date) FROM earnings_events WHERE symbol = $1 AND report_date >= CURRENT_DATE) AS next_earnings_date,
   (SELECT COUNT(*)::int FROM daily_ohlcv WHERE symbol = $1) AS daily_count`;
   const cachedRow = coverageSnapshotCache.get(symbol) || null;
   if (cachedRow) {
@@ -778,16 +786,21 @@ async function loadDirectCoverageRow(symbol, timeoutMs = 1500) {
 
   const newsCount = Number(row.news_count || 0);
   const earningsCount = Number(row.earnings_count || 0);
+  const upcomingEarningsCount = Number(row.upcoming_earnings_count || 0);
   const dailyCount = Number(row.daily_count || 0);
   const coverageScore = Number(row.coverage_score || 0) || ((newsCount > 0 ? 20 : 0)
     + (earningsCount > 0 ? 20 : 0)
     + (dailyCount > 0 ? 40 : 0)
     + 20);
+  const hasEarningsHistory = row.has_earnings_history != null ? Boolean(row.has_earnings_history) : earningsCount > 0;
+  const hasUpcomingEarnings = row.has_upcoming_earnings != null ? Boolean(row.has_upcoming_earnings) : upcomingEarningsCount > 0;
 
   return {
     symbol,
     has_news: row.has_news != null ? Boolean(row.has_news) : newsCount > 0,
-    has_earnings: row.has_earnings != null ? Boolean(row.has_earnings) : earningsCount > 0,
+    has_earnings_history: hasEarningsHistory,
+    has_upcoming_earnings: hasUpcomingEarnings,
+    has_earnings: row.has_earnings != null ? Boolean(row.has_earnings) : (hasEarningsHistory || hasUpcomingEarnings),
     has_technicals: row.has_technicals != null ? Boolean(row.has_technicals) : dailyCount > 0,
     news_count: newsCount,
     earnings_count: earningsCount,
@@ -923,7 +936,9 @@ function normalizeCoveragePayload(symbol, coverageMap) {
   return {
     symbol,
     has_news: Boolean(row?.has_news),
-    has_earnings: Boolean(row?.has_earnings),
+    has_earnings_history: Boolean(row?.has_earnings_history),
+    has_upcoming_earnings: Boolean(row?.has_upcoming_earnings),
+    has_earnings: Boolean(row?.has_earnings || row?.has_earnings_history || row?.has_upcoming_earnings),
     has_technicals: Boolean(row?.has_technicals),
     news_count: Number(row?.news_count || 0),
     earnings_count: Number(row?.earnings_count || 0),
