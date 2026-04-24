@@ -155,17 +155,43 @@ async function getTableColumns(tableName) {
 }
 
 async function getTableCount(tableName) {
-  const result = await queryWithTimeout(
-    `SELECT COUNT(*)::bigint AS count FROM ${tableName}`,
-    [],
-    {
-      label: `data_trust.count.${tableName}`,
-      timeoutMs: 20000,
-      maxRetries: 0,
-    }
-  );
+  const timeoutMs = ['intraday_1m', 'daily_ohlc', 'news_articles'].includes(tableName)
+    ? 120000
+    : 20000;
 
-  return Number(result.rows?.[0]?.count || 0);
+  try {
+    const result = await queryWithTimeout(
+      `SELECT COUNT(*)::bigint AS count FROM ${tableName}`,
+      [],
+      {
+        label: `data_trust.count.${tableName}`,
+        timeoutMs,
+        maxRetries: 0,
+      }
+    );
+
+    return Number(result.rows?.[0]?.count || 0);
+  } catch (error) {
+    if (!String(error?.message || '').includes('statement timeout')) {
+      throw error;
+    }
+
+    const estimate = await queryWithTimeout(
+      `SELECT COALESCE(n_live_tup, 0)::bigint AS count
+       FROM pg_stat_all_tables
+       WHERE schemaname = 'public' AND relname = $1`,
+      [tableName],
+      {
+        label: `data_trust.count_estimate.${tableName}`,
+        timeoutMs: 10000,
+        maxRetries: 0,
+      }
+    );
+
+    const estimatedCount = Number(estimate.rows?.[0]?.count || 0);
+    console.warn(`Using estimated row count for ${tableName}: ${estimatedCount}`);
+    return estimatedCount;
+  }
 }
 
 async function runPrecheck() {
