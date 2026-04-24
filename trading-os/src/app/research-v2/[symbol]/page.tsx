@@ -78,6 +78,12 @@ type EarningsRecord = {
   eps_actual?: number | null;
   revenue_estimate?: number | null;
   revenue_actual?: number | null;
+  event_state?: string | null;
+  earnings_outcome?: string | null;
+  has_actuals?: boolean | null;
+  has_estimates?: boolean | null;
+  eps_surprise_pct?: number | null;
+  revenue_surprise_pct?: number | null;
 };
 
 type CompanyData = {
@@ -88,6 +94,12 @@ type CompanyData = {
   exchange?: string | null;
   country?: string | null;
   website?: string | null;
+  stock_classification?: string | null;
+  stock_classification_label?: string | null;
+  stock_classification_reason?: string | null;
+  listing_type?: string | null;
+  instrument_detail?: string | null;
+  instrument_detail_label?: string | null;
 };
 
 type ResearchData = {
@@ -235,6 +247,153 @@ function formatDate(value: string | null | undefined) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(parsed));
+}
+
+function formatClassificationValue(value: string | null | undefined) {
+  const text = String(value || '').trim();
+  return text || 'No data available';
+}
+
+function formatEarningsLabel(value: string | null | undefined, fallback = "No data available") {
+  const text = String(value || "").trim();
+  if (!text) {
+    return fallback;
+  }
+
+  return text
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function isPendingEarningsRow(row: EarningsRecord | null | undefined) {
+  const state = String(row?.event_state || "").trim().toUpperCase();
+  const outcome = String(row?.earnings_outcome || "").trim().toUpperCase();
+
+  return outcome === "PENDING" || state === "UPCOMING" || state === "AWAITING_ACTUALS";
+}
+
+function isReportedEarningsRow(row: EarningsRecord | null | undefined) {
+  if (!row) {
+    return false;
+  }
+
+  const state = String(row.event_state || "").trim().toUpperCase();
+  return row.has_actuals === true || (state === "REPORTED" || state === "PARTIAL_RESULT") && !isPendingEarningsRow(row);
+}
+
+function hasUsableEarningsRow(row: EarningsRecord | null | undefined) {
+  if (!row) {
+    return false;
+  }
+
+  return [
+    row.report_date,
+    row.report_time,
+    row.eps_estimate,
+    row.eps_actual,
+    row.revenue_estimate,
+    row.revenue_actual,
+    row.event_state,
+    row.earnings_outcome,
+  ].some((value) => value !== null && value !== undefined && value !== "");
+}
+
+function formatCompactMetricNumber(value: number | string | null | undefined, digits = 2) {
+  const numeric = toDisplayNumber(value);
+  if (numeric === null) {
+    return "--";
+  }
+
+  return numeric.toFixed(digits);
+}
+
+function formatCompactLargeNumber(value: number | string | null | undefined) {
+  const formatted = formatLargeNumber(value);
+  return formatted === "No data available" ? "--" : formatted;
+}
+
+function formatCompactSurprise(value: number | string | null | undefined) {
+  const numeric = toDisplayNumber(value);
+  if (numeric === null) {
+    return "--";
+  }
+
+  const sign = numeric > 0 ? "+" : "";
+  return `${sign}${numeric.toFixed(1)}%`;
+}
+
+function formatEarningsTime(value: string | null | undefined) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "Time not set";
+  }
+
+  return formatEarningsLabel(text, text);
+}
+
+function formatActualEstimatePair(
+  actual: number | string | null | undefined,
+  estimate: number | string | null | undefined,
+  formatter: (value: number | string | null | undefined) => string,
+) {
+  const actualValue = formatter(actual);
+  const estimateValue = formatter(estimate);
+
+  if (actualValue === "--" && estimateValue === "--") {
+    return "--";
+  }
+
+  if (actualValue === "--") {
+    return `Est ${estimateValue}`;
+  }
+
+  if (estimateValue === "--") {
+    return `Actual ${actualValue}`;
+  }
+
+  return `${actualValue} / ${estimateValue}`;
+}
+
+function earningsOutcomeTone(row: EarningsRecord | null | undefined) {
+  const outcome = String(row?.earnings_outcome || "").trim().toUpperCase();
+  const state = String(row?.event_state || "").trim().toUpperCase();
+
+  if (outcome === "BEAT") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  }
+
+  if (outcome === "MISS") {
+    return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+  }
+
+  if (outcome === "MEET") {
+    return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+  }
+
+  if (state === "UPCOMING" || outcome === "PENDING") {
+    return "border-cyan-500/30 bg-cyan-500/10 text-cyan-200";
+  }
+
+  return "border-slate-700 bg-slate-900/70 text-slate-300";
+}
+
+function surpriseTone(value: number | string | null | undefined) {
+  const numeric = toDisplayNumber(value);
+  if (numeric === null) {
+    return "text-slate-400";
+  }
+
+  if (numeric > 0) {
+    return "text-emerald-300";
+  }
+
+  if (numeric < 0) {
+    return "text-rose-300";
+  }
+
+  return "text-amber-300";
 }
 
 function getChartRows(chart: ResearchData["chart"] | undefined) {
@@ -454,6 +613,30 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
   const company = data?.company || {};
   const earnings = data?.earnings || {};
   const earningsHistory = Array.isArray(earnings.history) ? earnings.history : [];
+  const latestEarnings = earnings.latest ?? null;
+  const nextEarnings = earnings.next ?? null;
+  const hasUpcomingSummary = hasUsableEarningsRow(nextEarnings);
+  const hasLatestSummary = hasUsableEarningsRow(latestEarnings);
+  const nextEarningsPending = isPendingEarningsRow(nextEarnings);
+  const latestEarningsReported = isReportedEarningsRow(latestEarnings);
+  const recentHistory = earningsHistory.slice(0, 4);
+  const limitedCoverageMessage = !hasUpcomingSummary && hasLatestSummary
+    ? "Upcoming scheduling is not in the current feed yet. Latest reported quarter is shown first."
+    : hasUpcomingSummary && !hasLatestSummary && recentHistory.length === 0
+      ? "Upcoming earnings are scheduled, but reported-quarter coverage is still limited."
+      : !hasUpcomingSummary && !hasLatestSummary && recentHistory.length > 0
+        ? "Only partial historical earnings rows are available right now."
+        : recentHistory.length > 0 && recentHistory.length < 3
+          ? "Historical coverage is limited to a small sample right now."
+          : null;
+  const latestStatusLabel = latestEarningsReported
+    ? formatEarningsLabel(latestEarnings?.earnings_outcome || latestEarnings?.event_state, "Reported")
+    : hasLatestSummary
+      ? formatEarningsLabel(latestEarnings?.event_state || latestEarnings?.earnings_outcome, "Latest on file")
+      : "No reported quarter";
+  const nextStatusLabel = hasUpcomingSummary
+    ? formatEarningsLabel(nextEarnings?.event_state || nextEarnings?.earnings_outcome, nextEarningsPending ? "Upcoming" : "Scheduled")
+    : "No upcoming date";
 
   return (
     <div className="space-y-4">
@@ -465,30 +648,156 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
           <InfoPanel title="Industry" value={company.industry || "No data available"} muted />
           <InfoPanel title="Exchange" value={company.exchange || "No data available"} muted />
           <InfoPanel title="Country" value={company.country || "No data available"} muted />
+          <InfoPanel title="Classification" value={formatClassificationValue(company.stock_classification_label)} muted />
+          <InfoPanel title="Instrument Detail" value={formatClassificationValue(company.instrument_detail_label)} muted />
+          <InfoPanel title="Listing Type" value={formatClassificationValue(company.listing_type)} muted />
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-400">{company.description || "No data available"}</p>
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Earnings</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <InfoPanel title="Next Report" value={formatDate(earnings.next?.report_date)} muted />
-          <InfoPanel title="Report Time" value={earnings.next?.report_time || "No data available"} muted />
-          <InfoPanel title="EPS Estimate" value={formatMetricNumber(earnings.next?.eps_estimate ?? null, 2)} muted />
-          <InfoPanel title="Revenue Estimate" value={formatLargeNumber(earnings.next?.revenue_estimate ?? null)} muted />
-        </div>
-        {earningsHistory.length ? (
-          <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Last 4 Quarters</p>
-            <div className="mt-3 space-y-2">
-              {earningsHistory.slice(0, 4).map((entry) => (
-                <div key={`${symbol}-${entry.report_date || 'na'}`} className="flex items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2 text-sm text-slate-200">
-                  <span>{formatDate(entry.report_date)}</span>
-                  <span className="text-slate-400">EPS {formatMetricNumber(entry.eps_actual ?? entry.eps_estimate ?? null, 2)}</span>
-                </div>
-              ))}
-            </div>
+        {limitedCoverageMessage ? (
+          <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {limitedCoverageMessage}
           </div>
         ) : null}
+        {!hasUpcomingSummary && !hasLatestSummary && !earningsHistory.length ? (
+          <div className="mt-4">
+            <EmptyState compact message="Earnings coverage is still thin for this symbol right now." />
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {(!hasUpcomingSummary && hasLatestSummary) ? (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Latest Result</p>
+                      <p className="mt-2 text-lg font-semibold text-slate-100">{formatDate(latestEarnings?.report_date)}</p>
+                    </div>
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.16em] uppercase", earningsOutcomeTone(latestEarnings))}>
+                      {latestStatusLabel}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">EPS Actual / Est</p>
+                      <p className="mt-2 text-sm font-medium text-slate-100">{formatActualEstimatePair(latestEarnings?.eps_actual ?? null, latestEarnings?.eps_estimate ?? null, (value) => formatCompactMetricNumber(value, 2))}</p>
+                      <p className={cn("mt-1 text-xs", surpriseTone(latestEarnings?.eps_surprise_pct ?? null))}>Surprise {formatCompactSurprise(latestEarnings?.eps_surprise_pct ?? null)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Revenue Actual / Est</p>
+                      <p className="mt-2 text-sm font-medium text-slate-100">{formatActualEstimatePair(latestEarnings?.revenue_actual ?? null, latestEarnings?.revenue_estimate ?? null, formatCompactLargeNumber)}</p>
+                      <p className={cn("mt-1 text-xs", surpriseTone(latestEarnings?.revenue_surprise_pct ?? null))}>Surprise {formatCompactSurprise(latestEarnings?.revenue_surprise_pct ?? null)}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Upcoming Earnings</p>
+                      <p className="mt-2 text-lg font-semibold text-slate-100">{hasUpcomingSummary ? formatDate(nextEarnings?.report_date) : "No upcoming date"}</p>
+                    </div>
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.16em] uppercase", earningsOutcomeTone(nextEarnings))}>
+                      {nextStatusLabel}
+                    </span>
+                  </div>
+                  {hasUpcomingSummary ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Report Time</p>
+                        <p className="mt-2 text-sm font-medium text-slate-100">{formatEarningsTime(nextEarnings?.report_time)}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">EPS Estimate</p>
+                        <p className="mt-2 text-sm font-medium text-slate-100">{formatCompactMetricNumber(nextEarnings?.eps_estimate ?? null, 2)}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 sm:col-span-2">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Revenue Estimate</p>
+                        <p className="mt-2 text-sm font-medium text-slate-100">{formatCompactLargeNumber(nextEarnings?.revenue_estimate ?? null)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-6 text-slate-400">No scheduled earnings date is in the current feed yet.</p>
+                  )}
+                </div>
+              )}
+
+              {(!hasUpcomingSummary && hasLatestSummary) ? (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Upcoming Earnings</p>
+                      <p className="mt-2 text-lg font-semibold text-slate-100">No upcoming date</p>
+                    </div>
+                    <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-semibold tracking-[0.16em] uppercase text-slate-300">
+                      Feed pending
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-400">No scheduled earnings date is in the current feed yet.</p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Latest Result</p>
+                      <p className="mt-2 text-lg font-semibold text-slate-100">{hasLatestSummary ? formatDate(latestEarnings?.report_date) : "No reported quarter"}</p>
+                    </div>
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.16em] uppercase", earningsOutcomeTone(latestEarnings))}>
+                      {latestStatusLabel}
+                    </span>
+                  </div>
+                  {hasLatestSummary ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">EPS Actual / Est</p>
+                        <p className="mt-2 text-sm font-medium text-slate-100">{formatActualEstimatePair(latestEarnings?.eps_actual ?? null, latestEarnings?.eps_estimate ?? null, (value) => formatCompactMetricNumber(value, 2))}</p>
+                        <p className={cn("mt-1 text-xs", surpriseTone(latestEarnings?.eps_surprise_pct ?? null))}>Surprise {formatCompactSurprise(latestEarnings?.eps_surprise_pct ?? null)}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Revenue Actual / Est</p>
+                        <p className="mt-2 text-sm font-medium text-slate-100">{formatActualEstimatePair(latestEarnings?.revenue_actual ?? null, latestEarnings?.revenue_estimate ?? null, formatCompactLargeNumber)}</p>
+                        <p className={cn("mt-1 text-xs", surpriseTone(latestEarnings?.revenue_surprise_pct ?? null))}>Surprise {formatCompactSurprise(latestEarnings?.revenue_surprise_pct ?? null)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-6 text-slate-400">No reported quarter is available in the current feed yet.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Recent History</p>
+                  <p className="mt-1 text-sm text-slate-400">Last {recentHistory.length || 0} earnings rows on file.</p>
+                </div>
+              </div>
+              {recentHistory.length ? (
+                <div className="mt-3 space-y-2">
+                  {recentHistory.map((entry, index) => (
+                    <div key={`${symbol}-${entry.report_date || 'na'}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 text-sm text-slate-200">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium text-slate-100">{formatDate(entry.report_date)}</span>
+                        <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.16em] uppercase", earningsOutcomeTone(entry))}>
+                          {formatEarningsLabel(entry.earnings_outcome || entry.event_state, "On file")}
+                        </span>
+                      </div>
+                      <div className="mt-2 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+                        <span>EPS {formatActualEstimatePair(entry.eps_actual ?? null, entry.eps_estimate ?? null, (value) => formatCompactMetricNumber(value, 2))}</span>
+                        <span>Revenue {formatActualEstimatePair(entry.revenue_actual ?? null, entry.revenue_estimate ?? null, formatCompactLargeNumber)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-slate-400">Recent earnings history is still limited for this symbol.</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

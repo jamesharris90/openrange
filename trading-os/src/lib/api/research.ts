@@ -131,26 +131,19 @@ export type ResearchFullFundamentals = {
   source: string;
 };
 
-export type ResearchEarningsHistoryRow = {
-  date: string;
+export type ResearchEarningsRow = {
+  report_date: string | null;
   report_time?: string | null;
-  epsActual: number | null;
-  epsEstimated: number | null;
-  surprisePercent: number | null;
-  expectedMove: number | null;
-  actualMove: number | null;
-  eps_actual?: number | null;
   eps_estimate?: number | null;
-  expected_move_percent?: number | null;
-  actual_move_percent?: number | null;
-  pre_move_percent?: number | null;
-  post_move_percent?: number | null;
-  true_reaction_window?: string | null;
-  day1_close?: number | null;
-  day3_close?: number | null;
-  drift1d?: number | null;
-  drift3d?: number | null;
-  beat?: boolean | null;
+  eps_actual?: number | null;
+  revenue_estimate?: number | null;
+  revenue_actual?: number | null;
+  event_state?: string | null;
+  earnings_outcome?: string | null;
+  has_actuals?: boolean | null;
+  has_estimates?: boolean | null;
+  eps_surprise_pct?: number | null;
+  revenue_surprise_pct?: number | null;
 };
 
 export type EarningsPatternEntry = {
@@ -160,21 +153,11 @@ export type EarningsPatternEntry = {
   date: string;
 };
 
-export type ResearchEarningsNextRow = {
-  date: string;
-  report_time?: string | null;
-  epsActual: number | null;
-  epsEstimated: number | null;
-  expectedMove: number | null;
-  eps_actual?: number | null;
-  eps_estimate?: number | null;
-  expected_move_percent?: number | null;
-};
-
 export type ResearchFullEarnings = {
   symbol: string;
-  next: ResearchEarningsNextRow | null;
-  history: ResearchEarningsHistoryRow[];
+  latest: ResearchEarningsRow | null;
+  next: ResearchEarningsRow | null;
+  history: ResearchEarningsRow[];
   pattern?: EarningsPatternEntry[];
   updated_at: string | null;
   source: string;

@@ -15,6 +15,14 @@ function toApiPath(path: string[] = []): string {
 }
 
 function timeoutForPath(path: string) {
+  if (path.startsWith("/api/earnings/history/")) {
+    return 45000;
+  }
+
+  if (path === "/api/system/data-coverage" || path.startsWith("/api/system/data-coverage?")) {
+    return 45000;
+  }
+
   if (path.startsWith("/api/v2/research/")) {
     return 30000;
   }

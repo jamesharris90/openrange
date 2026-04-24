@@ -74,6 +74,23 @@ function sourceTone(source) {
   return 'border-slate-700 bg-slate-900/70 text-slate-300';
 }
 
+function buildNoDataCopy(symbol, company = {}) {
+  const classificationLabel = String(company?.stock_classification_label || '').trim();
+  const classificationReason = String(company?.stock_classification_reason || '').trim();
+
+  if (!classificationLabel) {
+    return {
+      description: `No symbol-specific catalyst articles found for ${symbol}.`,
+      body: 'No direct catalyst headlines in the current window.',
+    };
+  }
+
+  return {
+    description: `There is limited stock data for ${symbol} because it is classified as ${classificationLabel.toLowerCase()}.`,
+    body: classificationReason || 'Structured coverage is limited for this type of listing.',
+  };
+}
+
 /**
  * @param {{
  *   symbol: string,
@@ -89,13 +106,20 @@ function sourceTone(source) {
  *     contextScope?: string | null,
  *     context_scope?: string | null,
  *   }>,
+ *   company?: {
+ *     stock_classification?: string | null,
+ *     stock_classification_label?: string | null,
+ *     stock_classification_reason?: string | null,
+ *     listing_type?: string | null,
+ *   },
  * }} props
  */
-function CatalystPanel({ symbol, news = [] }) {
+function CatalystPanel({ symbol, news = [], company = {} }) {
   const items = useMemo(() => normalizeNewsItems(news), [news]);
   const noData = items.length === 0;
+  const noDataCopy = useMemo(() => buildNoDataCopy(symbol, company), [company, symbol]);
   const description = noData
-    ? `No symbol-specific catalyst articles found for ${symbol}.`
+    ? noDataCopy.description
     : `Top headlines directly linked to ${symbol}.`;
 
   return (
@@ -139,7 +163,7 @@ function CatalystPanel({ symbol, news = [] }) {
           </div>
         ) : (
           <div className="rounded-2xl border border-slate-800/70 bg-slate-950/45 px-4 py-8 text-sm leading-6 text-slate-400">
-            No direct catalyst headlines in the current window.
+            {noDataCopy.body}
           </div>
         )}
       </CardContent>
