@@ -3,7 +3,7 @@ const createConcurrencyLimiter = require('../utils/createConcurrencyLimiter');
 const logger = require('../logger');
 const { updateTelemetry } = require('../cache/telemetryCache');
 const { ingestMarketQuotesRefresh } = require('../engines/fmpMarketIngestion');
-const { runDataIntegrityEngine } = require('../engines/dataIntegrityEngine');
+const { runDataIntegrityEngine, runDuplicateIntegrityCheck } = require('../engines/dataIntegrityEngine');
 const { runFlowDetectionEngine } = require('../engines/flowDetectionEngine');
 const { runShortSqueezeEngine } = require('../engines/shortSqueezeEngine');
 const { runOpportunityRanker } = require('../engines/opportunityRanker');
@@ -114,6 +114,10 @@ function startEngineScheduler() {
 
   cron.schedule('*/30 * * * * *', () => {
     runWithTelemetry('integrityEngine', runDataIntegrityEngine, 'integrity_runtime');
+  });
+
+  cron.schedule('0 0 * * * *', () => {
+    runWithTelemetry('duplicateIntegrityCheck', runDuplicateIntegrityCheck, 'integrity_duplicate_runtime');
   });
 
   cron.schedule('*/20 * * * * *', () => {

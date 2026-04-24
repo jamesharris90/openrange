@@ -24,6 +24,25 @@ let eventsTableState = {
   promise: null,
 };
 
+async function persistIntegrityIssues(issues, persistence) {
+  for (const issue of issues) {
+    eventBus.emit(EVENT_TYPES.DATA_INTEGRITY_WARNING, {
+      source: issue.source || 'data_integrity_engine',
+      ...issue,
+      timestamp: issue.timestamp || new Date().toISOString(),
+    });
+
+    const persisted = await writeIntegrityEvent(issue);
+    if (persisted) {
+      persistence.persisted_issue_count += 1;
+    } else {
+      persistence.status = 'degraded';
+      persistence.dropped_issue_count += 1;
+      persistence.last_error = eventsTableState.error || 'integrity event persistence unavailable';
+    }
+  }
+}
+
 async function ensureDataIntegrityEventsTable() {
   const now = Date.now();
   const checkedAtMs = eventsTableState.checked_at ? Date.parse(eventsTableState.checked_at) : 0;
@@ -138,30 +157,11 @@ async function runDataIntegrityEngine() {
     checks.price_anomaly = anomaly;
     issues.push(...(anomaly.anomalies || []));
 
-    const duplicate = await runDuplicateTickEngine();
-    checks.duplicate_tick = duplicate;
-    issues.push(...(duplicate.events || []));
-
     const crosscheck = await runProviderCrossCheckEngine();
     checks.provider_crosscheck = crosscheck;
     issues.push(...(crosscheck.discrepancies || []));
 
-    for (const issue of issues) {
-      eventBus.emit(EVENT_TYPES.DATA_INTEGRITY_WARNING, {
-        source: issue.source || 'data_integrity_engine',
-        ...issue,
-        timestamp: issue.timestamp || new Date().toISOString(),
-      });
-
-      const persisted = await writeIntegrityEvent(issue);
-      if (persisted) {
-        persistence.persisted_issue_count += 1;
-      } else {
-        persistence.status = 'degraded';
-        persistence.dropped_issue_count += 1;
-        persistence.last_error = eventsTableState.error || 'integrity event persistence unavailable';
-      }
-    }
+    await persistIntegrityIssues(issues, persistence);
 
     latestIntegrityRun = {
       status: issues.length > 0 ? 'warning' : 'ok',
@@ -208,6 +208,58 @@ async function runDataIntegrityEngine() {
   }
 }
 
+async function runDuplicateIntegrityCheck() {
+  const startedAt = Date.now();
+  const persistence = {
+    status: 'ok',
+    persisted_issue_count: 0,
+    dropped_issue_count: 0,
+    last_error: null,
+  };
+
+  try {
+    // Throttled from every 30s to hourly - Phase 33c 2026-04-24
+    // PK on (symbol, timestamp) enforces uniqueness at insert; full-table
+    // census every 30s generated 192M block reads for redundant validation
+    const duplicate = await runDuplicateTickEngine();
+    const issues = duplicate.events || [];
+
+    await persistIntegrityIssues(issues, persistence);
+
+    return {
+      ok: true,
+      check: duplicate,
+      issues,
+      persistence,
+      execution_time_ms: Date.now() - startedAt,
+      last_run: new Date().toISOString(),
+    };
+  } catch (error) {
+    logger.error('[ENGINE ERROR] duplicate_integrity_check failed', { error: error.message });
+    eventBus.emit(EVENT_TYPES.ENGINE_FAILURE, {
+      source: 'duplicate_integrity_check',
+      issue: 'engine_failure',
+      severity: 'high',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+
+    return {
+      ok: false,
+      check: null,
+      issues: [],
+      persistence: {
+        ...persistence,
+        status: 'degraded',
+        last_error: error.message,
+      },
+      execution_time_ms: Date.now() - startedAt,
+      last_run: new Date().toISOString(),
+      error: error.message,
+    };
+  }
+}
+
 function getDataIntegrityHealth() {
   return latestIntegrityRun;
 }
@@ -215,5 +267,6 @@ function getDataIntegrityHealth() {
 module.exports = {
   ensureDataIntegrityEventsTable,
   runDataIntegrityEngine,
+  runDuplicateIntegrityCheck,
   getDataIntegrityHealth,
 };
