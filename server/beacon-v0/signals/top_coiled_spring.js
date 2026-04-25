@@ -25,13 +25,17 @@ const SIGNAL_NAME = 'top_coiled_spring';
 const CATEGORY = 'compression';
 const RUN_MODE = 'leaderboard';
 const TOP_N = 100;
-const MIN_AVG_VOLUME = 100000;
-const MIN_PRICE = 1.0;
+const MIN_20D_AVG_VOLUME = 250000;
+const MIN_5D_AVG_VOLUME = 100000;
+const MIN_PRICE = 5.0;
+const MIN_ATR_20D = 0.10;
 
 async function detect(universe = [], options = {}) {
   const topN = Number(options.topN || TOP_N);
-  const minAvgVolume = Number(options.minAvgVolume || MIN_AVG_VOLUME);
+  const min20dAvgVolume = Number(options.min20dAvgVolume || MIN_20D_AVG_VOLUME);
+  const min5dAvgVolume = Number(options.min5dAvgVolume || MIN_5D_AVG_VOLUME);
   const minPrice = Number(options.minPrice || MIN_PRICE);
+  const minAtr20d = Number(options.minAtr20d || MIN_ATR_20D);
   const universeFilter = buildUniverseClause(universe, 4);
 
   const result = await queryWithTimeout(
@@ -77,15 +81,16 @@ async function detect(universe = [], options = {}) {
          (1.0 - LEAST(vol_5d / NULLIF(vol_20d, 0), 1.5)))::numeric(10, 4) AS compression_score
       FROM symbol_stats
       WHERE data_points >= 18
-        AND atr_20d > 0
+        AND atr_20d > $4
         AND vol_20d >= $1
+        AND vol_5d >= $5
         AND latest_close >= $2
         AND atr_5d / NULLIF(atr_20d, 0) < 1.0
         AND vol_5d / NULLIF(vol_20d, 0) < 1.0
       ORDER BY compression_score DESC
       LIMIT $3
     `,
-    [minAvgVolume, minPrice, topN, ...universeFilter.params],
+    [min20dAvgVolume, minPrice, topN, minAtr20d, min5dAvgVolume, ...universeFilter.params],
     {
       label: 'beacon_v0.signal.top_coiled_spring',
       timeoutMs: 20000,
@@ -131,7 +136,9 @@ function summarize(metadata = {}) {
 
 module.exports = {
   CATEGORY,
-  MIN_AVG_VOLUME,
+  MIN_20D_AVG_VOLUME,
+  MIN_5D_AVG_VOLUME,
+  MIN_ATR_20D,
   MIN_PRICE,
   RUN_MODE,
   SIGNAL_NAME,
