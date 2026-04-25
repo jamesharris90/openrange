@@ -176,20 +176,6 @@ function normalizeNewsPayload(payload: unknown): NewsItem[] {
     }, []).slice(0, 5);
 }
 
-function formatPercent(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") {
-    return "No data available";
-  }
-
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return "No data available";
-  }
-
-  const sign = numeric > 0 ? "+" : "";
-  return `${sign}${numeric.toFixed(2)}%`;
-}
-
 function formatCurrency(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") {
     return "No data available";
@@ -437,26 +423,6 @@ function resolveDataQualityLabel(data: ResearchData | null, response: ResearchRe
   return data?.data_quality_label || data?.data_confidence_label || response?.data_quality_label || response?.data_confidence_label || "LOW";
 }
 
-function normalizeMcpSummary(value: string | undefined) {
-  const summary = String(value || "").trim();
-  if (summary === "Watch - building setup but no confirmation yet") {
-    return "Setup developing — not confirmed yet";
-  }
-  if (summary === "No trade - lacks catalyst and momentum") {
-    return "No trade — insufficient edge";
-  }
-  if (summary === "Developing setup - wait for confirmation") {
-    return "Developing setup — wait for confirmation";
-  }
-  if (summary === "No edge - avoid until conditions improve") {
-    return "No edge — avoid until conditions improve";
-  }
-  if (summary === "High-quality setup with catalyst and confirmation - tradeable now") {
-    return "High-quality setup with catalyst and confirmation — tradeable now";
-  }
-  return summary || "No trade — insufficient edge";
-}
-
 function formatMetricNumber(value: number | string | null | undefined, digits = 1) {
   const numeric = toDisplayNumber(value);
   if (numeric === null) {
@@ -464,25 +430,6 @@ function formatMetricNumber(value: number | string | null | undefined, digits = 
   }
 
   return numeric.toFixed(digits);
-}
-
-function formatRatio(value: number | string | null | undefined) {
-  const numeric = toDisplayNumber(value);
-  if (numeric === null) {
-    return "--";
-  }
-
-  return `${numeric.toFixed(1)}R`;
-}
-
-function confidenceBarTone(confidence: number) {
-  if (confidence > 70) {
-    return "bg-emerald-400";
-  }
-  if (confidence >= 40) {
-    return "bg-amber-400";
-  }
-  return "bg-rose-400";
 }
 
 const InfoPanel = memo(function InfoPanel({
@@ -557,57 +504,6 @@ class ResearchErrorBoundary extends Component<ResearchErrorBoundaryProps, Resear
     return this.props.children;
   }
 }
-
-const DecisionPanel = memo(function DecisionPanel({ data }: { data: ResearchData | null }) {
-  const mcp = data?.mcp || {};
-  const market = data?.market || {};
-  const confidenceValue = toDisplayNumber(mcp.confidence);
-  const tradeScoreValue = toDisplayNumber(mcp.trade_score);
-  const expectedMovePercent = toDisplayNumber(mcp.expected_move?.percent);
-  const rrValue = toDisplayNumber(mcp.risk?.rr);
-
-  return (
-    <div className="rounded-2xl border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_45%),rgba(2,6,23,0.82)] p-5">
-      <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-300/80">Decision</p>
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <div className={cn("rounded-2xl border px-4 py-4", badgeTone(mcp.action))}>
-          <p className="text-[10px] uppercase tracking-[0.22em] opacity-75">Action</p>
-          <p className="mt-2 text-2xl font-semibold uppercase tracking-[0.14em]">{mcp.action || "AVOID"}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Trade Score</p>
-          <p className="mt-2 text-3xl font-semibold">{tradeScoreValue === null ? "--" : Math.round(tradeScoreValue)}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Expected Move</p>
-          <p className="mt-2 text-3xl font-semibold">{expectedMovePercent === null ? "--" : `${formatMetricNumber(expectedMovePercent, 1)}%`}</p>
-          <p className={cn("mt-1 text-xs uppercase tracking-[0.18em]", badgeTone(mcp.expected_move?.label))}>{mcp.expected_move?.label || "LOW"}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-slate-100">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">R:R</p>
-          <p className="mt-2 text-3xl font-semibold">{formatRatio(rrValue)}</p>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
-        <span className={cn("rounded-full border px-2.5 py-1", badgeTone(mcp.trade_quality))}>{mcp.trade_quality || "LOW"}</span>
-        <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">{formatCurrency(market.price ?? null)}</span>
-        <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">{formatPercent(market.change_percent ?? null)}</span>
-      </div>
-      <p className="mt-6 text-2xl font-semibold leading-9 text-slate-100">{normalizeMcpSummary(mcp.summary)}</p>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <InfoPanel title="Why" value={mcp.why || "No catalyst identified yet"} />
-        <InfoPanel title="Trade Plan" value={mcp.when || "Waiting for better conditions"} />
-      </div>
-      <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Confidence</p>
-        <p className="mt-2 text-sm leading-6 text-slate-200">{confidenceValue === null ? "No data available" : `${confidenceValue}% — ${mcp.confidence_reason || "Moderate conviction"}`}</p>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-          <div className={cn("h-full rounded-full transition-all", confidenceBarTone(confidenceValue ?? 0))} style={{ width: `${Math.max(0, Math.min(100, confidenceValue ?? 0))}%` }} />
-        </div>
-      </div>
-    </div>
-  );
-});
 
 const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: ResearchData | null; symbol: string }) {
   const company = data?.company || {};
@@ -1142,7 +1038,7 @@ function ResearchV2PageContent({ params }: Props) {
       {!error ? (
         <div className="mt-8 space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
-            <DecisionPanel data={payload} />
+            {/* Decision card removed Phase 37 — see docs/BEACON_v0_SPEC.md scoring discipline */}
             <OverviewPanel data={payload} symbol={symbol} />
           </div>
 
