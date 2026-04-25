@@ -13,6 +13,14 @@ require('dotenv').config({
 });
 
 const { runBeaconPipeline } = require('../beacon-v0/orchestrator/run');
+const {
+  isAnotherRunActive,
+  reapStaleRuns,
+  recordRunFailure,
+  recordRunStart,
+  recordRunSuccess,
+} = require('../beacon-v0/persistence/runs');
+const { generateRunId } = require('../beacon-v0/persistence/picks');
 const { pool, queryWithTimeout } = require('../db/pg');
 
 async function getEvaluationUniverse() {
@@ -39,10 +47,24 @@ async function getEvaluationUniverse() {
 }
 
 async function main() {
+  console.log('[beacon-v0-worker] Starting at', new Date().toISOString());
   const startedAt = Date.now();
-  console.log('[beacon-v0-worker] Starting run at', new Date().toISOString());
+  const runId = generateRunId();
 
   try {
+    const staleRuns = await reapStaleRuns();
+    if (staleRuns.length > 0) {
+      console.log(
+        `[beacon-v0-worker] Reaped ${staleRuns.length} stale run(s):`,
+        staleRuns.map((run) => run.run_id).join(', '),
+      );
+    }
+
+    if (await isAnotherRunActive()) {
+      console.log('[beacon-v0-worker] Another run is active, skipping this trigger');
+      return;
+    }
+
     const symbols = await getEvaluationUniverse();
     console.log(`[beacon-v0-worker] Universe: ${symbols.length} symbols`);
 
@@ -51,13 +73,32 @@ async function main() {
       return;
     }
 
-    const { picks, runId } = await runBeaconPipeline(symbols, {
+    await recordRunStart(runId, symbols.length);
+
+    const { picks } = await runBeaconPipeline(symbols, {
       persist: true,
+      runId,
       limit: 5000,
     });
+    const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
 
-    console.log(`[beacon-v0-worker] Run ${runId}: ${picks.length} picks written`);
-    console.log(`[beacon-v0-worker] Duration: ${Math.round((Date.now() - startedAt) / 1000)}s`);
+    await recordRunSuccess(runId, picks.length, durationSeconds, {
+      batches_processed: Math.ceil(symbols.length / 100),
+      worker_version: 'v0.1',
+    });
+
+    console.log(`[beacon-v0-worker] Run ${runId}: ${picks.length} picks written in ${durationSeconds}s`);
+  } catch (error) {
+    const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
+    console.error('[beacon-v0-worker] Failed:', error.stack || error.message);
+
+    try {
+      await recordRunFailure(runId, error.message || String(error), durationSeconds);
+    } catch (recordError) {
+      console.error('[beacon-v0-worker] Failed to record failure:', recordError.stack || recordError.message);
+    }
+
+    throw error;
   } finally {
     await pool.end().catch(() => {});
   }
