@@ -79,4 +79,10 @@ async function detect(universe = [], options = {}) {
   });
 }
 
-module.exports = { CATEGORY, MIN_AVG_VOLUME, MIN_RVOL, RUN_MODE, SIGNAL_NAME, TOP_N, detect };
+function summarize(metadata = {}) {
+  const rvol = toNumber(metadata.rvol);
+  if (rvol == null) return null;
+  return `trading at ${rvol.toFixed(2)}x volume`;
+}
+
+module.exports = { CATEGORY, MIN_AVG_VOLUME, MIN_RVOL, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

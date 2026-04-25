@@ -83,4 +83,11 @@ async function detect(universe = [], options = {}) {
   });
 }
 
-module.exports = { CATEGORY, LOOKBACK_TRADING_DAYS, MIN_ABS_EPS_SURPRISE_PCT, RUN_MODE, SIGNAL_NAME, TOP_N, detect };
+function summarize(metadata = {}) {
+  const surprise = toNumber(metadata.eps_surprise_pct ?? metadata.surprise_pct);
+  if (surprise == null) return 'reported earnings recently';
+  const sign = surprise >= 0 ? '+' : '';
+  return `reported ${sign}${surprise.toFixed(1)}% earnings surprise`;
+}
+
+module.exports = { CATEGORY, LOOKBACK_TRADING_DAYS, MIN_ABS_EPS_SURPRISE_PCT, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

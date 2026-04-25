@@ -82,6 +82,14 @@ async function detect(universe = [], options = {}) {
   });
 }
 
+function summarize(metadata = {}) {
+  const days = toNumber(metadata.days_until_earnings ?? metadata.days_until);
+  if (days == null) return null;
+  if (days === 0) return 'earnings today';
+  if (days === 1) return 'earnings tomorrow';
+  return `earnings in ${days} days`;
+}
+
 module.exports = {
   CATEGORY,
   RUN_MODE,
@@ -90,4 +98,5 @@ module.exports = {
   WINDOW_DAYS,
   daysUntil,
   detect,
+  summarize,
 };

@@ -1,3 +1,25 @@
+const topRvol = require('../signals/top_rvol_today');
+const topGap = require('../signals/top_gap_today');
+const topNews = require('../signals/top_news_last_12h');
+const topUpcomingEarnings = require('../signals/earnings_upcoming_within_3d');
+const earningsReaction = require('../signals/earnings_reaction_last_3d');
+
+const SIGNAL_MODULES = {
+  [topRvol.SIGNAL_NAME]: topRvol,
+  [topGap.SIGNAL_NAME]: topGap,
+  [topNews.SIGNAL_NAME]: topNews,
+  [topUpcomingEarnings.SIGNAL_NAME]: topUpcomingEarnings,
+  [earningsReaction.SIGNAL_NAME]: earningsReaction,
+};
+
+const PRIORITY_ORDER = [
+  topUpcomingEarnings.SIGNAL_NAME,
+  earningsReaction.SIGNAL_NAME,
+  topGap.SIGNAL_NAME,
+  topRvol.SIGNAL_NAME,
+  topNews.SIGNAL_NAME,
+];
+
 const PATTERN_RULES = [
   {
     name: 'earnings_catalyst_with_volume',
@@ -58,6 +80,63 @@ function derivePattern(signalsAligned = []) {
   return { name: 'multi_signal_alignment', label: 'Multi-Signal Alignment' };
 }
 
+function normalizeSignalData(pick) {
+  const signalsBy = new Map();
+  const metadataSignals = pick?.metadata?.signals || [];
+  const candidateSignals = pick?.signals || [];
+
+  for (const signal of metadataSignals) {
+    const name = signal.name || signal.signal;
+    if (!name) continue;
+    signalsBy.set(name, {
+      name,
+      metadata: signal.metadata || signal.evidence || {},
+    });
+  }
+
+  for (const signal of candidateSignals) {
+    const name = signal.name || signal.signal;
+    if (!name || signalsBy.has(name)) continue;
+    signalsBy.set(name, {
+      name,
+      metadata: signal.metadata || signal.evidence || {},
+    });
+  }
+
+  return signalsBy;
+}
+
+function composeReasoning(pick) {
+  const signalsBy = normalizeSignalData(pick);
+  const fragments = [];
+
+  for (const signalName of PRIORITY_ORDER) {
+    if (!signalsBy.has(signalName)) continue;
+    const signalData = signalsBy.get(signalName);
+    const signalModule = SIGNAL_MODULES[signalName];
+
+    if (!signalModule || typeof signalModule.summarize !== 'function') {
+      continue;
+    }
+
+    try {
+      const fragment = signalModule.summarize(signalData.metadata || {});
+      if (fragment) fragments.push(fragment);
+    } catch (error) {
+      console.warn(`[beacon-v0] summarize failed for ${signalName}:`, error.message);
+    }
+  }
+
+  if (fragments.length === 0) {
+    const alignmentCount = pick?.alignment_count || pick?.alignment?.alignmentCount || pick?.signals_aligned?.length || pick?.signals?.length || 0;
+    return `${alignmentCount} Beacon v0 leaderboards align.`;
+  }
+
+  const sentences = fragments.map((fragment) => fragment.charAt(0).toUpperCase() + fragment.slice(1));
+
+  return `${sentences.join('. ')}.`;
+}
+
 function categorizeCandidate(candidate) {
   const signalsAligned = (candidate.signals || []).map((signal) => signal.signal).filter(Boolean);
   const signalNames = new Set(signalsAligned);
@@ -69,7 +148,7 @@ function categorizeCandidate(candidate) {
       patternName: pattern.name,
       patternLabel: pattern.label,
       patternCategory: pattern.label,
-      patternDescription: `${pattern.label}: ${candidate.alignment.alignmentCount} Beacon v0 leaderboards align on this symbol.`,
+      patternDescription: composeReasoning(candidate),
     };
   }
 
@@ -94,7 +173,10 @@ function categorizeBeaconCandidates(candidates) {
 
 module.exports = {
   PATTERN_RULES,
+  PRIORITY_ORDER,
+  SIGNAL_MODULES,
   categorizeBeaconCandidates,
   categorizeCandidate,
+  composeReasoning,
   derivePattern,
 };

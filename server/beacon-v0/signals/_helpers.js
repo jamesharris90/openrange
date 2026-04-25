@@ -1,4 +1,6 @@
-const { queryWithTimeout } = require('../../db/pg');
+function queryWithTimeout(...args) {
+  return require('../../db/pg').queryWithTimeout(...args);
+}
 
 function normalizeSymbol(value) {
   return String(value || '').trim().toUpperCase();

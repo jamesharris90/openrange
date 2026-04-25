@@ -82,10 +82,18 @@ async function detect(universe = [], options = {}) {
         prior_close: toNumber(row.prior_close),
         today_volume: toNumber(row.volume),
         gap_pct: gapPct,
+        direction: gapPct >= 0 ? 'up' : 'down',
       },
       reasoning: `Opened ${gapPct.toFixed(2)}% from prior close on ${formatNumber(row.volume)} shares`,
     };
   });
 }
 
-module.exports = { CATEGORY, MIN_GAP_ABS_PCT, MIN_PRICE, MIN_TODAY_VOLUME, RUN_MODE, SIGNAL_NAME, TOP_N, detect };
+function summarize(metadata = {}) {
+  const gapPct = toNumber(metadata.gap_pct);
+  if (gapPct == null) return null;
+  const direction = metadata.direction || (gapPct >= 0 ? 'up' : 'down');
+  return `gapped ${direction} ${Math.abs(gapPct).toFixed(2)}%`;
+}
+
+module.exports = { CATEGORY, MIN_GAP_ABS_PCT, MIN_PRICE, MIN_TODAY_VOLUME, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

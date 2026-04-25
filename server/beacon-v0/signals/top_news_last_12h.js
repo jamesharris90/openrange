@@ -95,4 +95,11 @@ async function detect(universe = [], options = {}) {
   });
 }
 
-module.exports = { CATEGORY, NEWS_WINDOW_HOURS, RUN_MODE, SIGNAL_NAME, TOP_N, detect };
+function summarize(metadata = {}) {
+  const count = toNumber(metadata.news_count);
+  if (count == null) return null;
+  const windowHours = toNumber(metadata.window_hours) || NEWS_WINDOW_HOURS;
+  return `${count} news ${count === 1 ? 'item' : 'items'} in last ${windowHours}h`;
+}
+
+module.exports = { CATEGORY, NEWS_WINDOW_HOURS, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
