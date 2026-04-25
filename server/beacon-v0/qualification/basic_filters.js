@@ -4,20 +4,28 @@ function qualifyCandidate(candidate, options = {}) {
   const reasons = [];
   const primarySignal = candidate.signals?.[0];
   const evidence = primarySignal?.evidence || {};
+  const minAlignmentCount = Number(options.minAlignmentCount ?? 2);
   const minPrice = Number(options.minPrice ?? 2);
   const maxPrice = Number(options.maxPrice ?? 50);
   const minMarketCap = Number(options.minMarketCap ?? 50_000_000);
   const allowedExchanges = options.allowedExchanges || DEFAULT_ALLOWED_EXCHANGES;
+  const isSimpleCountAlignment = candidate.alignment?.mode === 'simple_count';
 
   if (!candidate.symbol) reasons.push('missing_symbol');
-  if (!evidence.earningsDate) reasons.push('missing_earnings_date');
-  if (evidence.exchange && !allowedExchanges.has(String(evidence.exchange).toUpperCase())) {
+  if (isSimpleCountAlignment) {
+    if (Number(candidate.alignment.alignmentCount || 0) < minAlignmentCount) {
+      reasons.push('alignment_count_below_threshold');
+    }
+  } else if (!evidence.earningsDate) {
+    reasons.push('missing_earnings_date');
+  }
+  if (!isSimpleCountAlignment && evidence.exchange && !allowedExchanges.has(String(evidence.exchange).toUpperCase())) {
     reasons.push('unsupported_exchange');
   }
-  if (evidence.price !== null && (evidence.price < minPrice || evidence.price > maxPrice)) {
+  if (!isSimpleCountAlignment && evidence.price !== null && (evidence.price < minPrice || evidence.price > maxPrice)) {
     reasons.push('outside_price_range');
   }
-  if (evidence.marketCap !== null && evidence.marketCap < minMarketCap) {
+  if (!isSimpleCountAlignment && evidence.marketCap !== null && evidence.marketCap < minMarketCap) {
     reasons.push('below_market_cap_floor');
   }
 
@@ -27,7 +35,7 @@ function qualifyCandidate(candidate, options = {}) {
     ...candidate,
     qualified,
     disqualifiedReasons: reasons,
-    confidenceQualification: qualified ? 'basic_data_quality_passed' : 'disqualified',
+    confidenceQualification: qualified ? candidate.confidenceQualification || 'basic_data_quality_passed' : 'disqualified',
   };
 }
 

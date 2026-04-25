@@ -1,11 +1,22 @@
-const { alignSingleSignal } = require('../alignment/single_signal');
+const { alignLeaderboardSignals, MIN_ALIGNMENT_COUNT, TOP_ALIGNED_PICKS } = require('../alignment/simple_count');
 const { categorizeBeaconCandidates } = require('../categorization/simple');
 const { generateRunId, persistPicks } = require('../persistence/picks');
 const { qualifyBeaconCandidates } = require('../qualification/basic_filters');
-const { detectUpcomingEarningsWithin3d, SIGNAL_NAME } = require('../signals/earnings_upcoming_within_3d');
+const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
+const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d');
+const topGapToday = require('../signals/top_gap_today');
+const topNewsLast12h = require('../signals/top_news_last_12h');
+const topRvolToday = require('../signals/top_rvol_today');
 
 const BATCH_SIZE = 100;
 const INTER_BATCH_DELAY_MS = 2000;
+const SIGNALS = [
+  topRvolToday,
+  topGapToday,
+  topNewsLast12h,
+  earningsUpcomingWithin3d,
+  earningsReactionLast3d,
+];
 
 function chunkArray(items, size) {
   const chunks = [];
@@ -21,43 +32,27 @@ function sleep(ms) {
 
 function candidateToPick(candidate) {
   const signals = candidate.signals || [];
-  const primarySignal = signals[0] || {};
-  const daysUntilEarnings = primarySignal.evidence?.daysUntilEarnings;
-  const timing = Number.isFinite(daysUntilEarnings)
-    ? ` within ${daysUntilEarnings} day${daysUntilEarnings === 1 ? '' : 's'}`
-    : '';
 
   return {
     symbol: candidate.symbol,
-    pattern: candidate.patternCategory || 'Uncategorized Signal Alignment',
-    confidence: candidate.confidenceQualification || 'basic_data_quality_passed',
-    reasoning: `${candidate.symbol} has an upcoming earnings catalyst${timing}. ${candidate.patternDescription || ''}`.trim(),
+    pattern: candidate.patternCategory || 'Multi-Signal Alignment',
+    confidence: candidate.confidenceQualification || 'emerging_alignment',
+    reasoning: candidate.patternDescription
+      ? `${candidate.symbol}: ${candidate.patternDescription}`
+      : `${candidate.symbol}: multiple Beacon v0 leaderboards align on this symbol.`,
     signals_aligned: signals.map((signal) => signal.signal),
     metadata: {
       direction: candidate.direction || 'neutral',
       alignment: candidate.alignment || null,
-      signal_evidence: signals.map((signal) => signal.evidence || {}),
+      signal_evidence: signals.map((signal) => ({
+        signal: signal.signal,
+        category: signal.category || signal.signalCategory || null,
+        rank: signal.rank || null,
+        score: signal.score || null,
+        reasoning: signal.reasoning || null,
+        metadata: signal.evidence || signal.metadata || {},
+      })),
     },
-  };
-}
-
-async function runSignalBatch(symbols, options = {}) {
-  const signals = await detectUpcomingEarningsWithin3d({
-    ...options,
-    symbols,
-  });
-  const aligned = alignSingleSignal(signals);
-  const qualified = qualifyBeaconCandidates(aligned, options.qualification || {});
-  const categorized = categorizeBeaconCandidates(qualified);
-  const candidates = categorized.filter((candidate) => candidate.qualified);
-  const picks = candidates.map(candidateToPick);
-
-  return {
-    signals,
-    aligned,
-    categorized,
-    candidates,
-    picks,
   };
 }
 
@@ -65,36 +60,38 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   const startedAt = new Date().toISOString();
   const persist = options.persist !== false;
   const runId = options.runId || generateRunId();
-  const batchSize = Number(options.batchSize || BATCH_SIZE);
-  const interBatchDelayMs = Number(options.interBatchDelayMs ?? INTER_BATCH_DELAY_MS);
-  const batches = Array.isArray(symbols) && symbols.length > 0
-    ? chunkArray(symbols, batchSize)
-    : [[]];
+  const signalsToRun = options.signals || SIGNALS;
+  const signalResults = [];
 
-  const signals = [];
-  const aligned = [];
-  const categorized = [];
-  const candidates = [];
-  const picks = [];
+  for (let index = 0; index < signalsToRun.length; index += 1) {
+    const signal = signalsToRun[index];
+    const results = await signal.detect(symbols, options);
+    signalResults.push({
+      signal: signal.SIGNAL_NAME,
+      category: signal.CATEGORY,
+      runMode: signal.RUN_MODE,
+      results,
+    });
+    console.log(`[beacon-v0] Signal ${index + 1}/${signalsToRun.length} ${signal.SIGNAL_NAME}: ${results.size} leaderboard hits`);
 
-  for (let index = 0; index < batches.length; index += 1) {
-    const batchSymbols = batches[index];
-    const result = await runSignalBatch(batchSymbols, options);
-    signals.push(...result.signals);
-    aligned.push(...result.aligned);
-    categorized.push(...result.categorized);
-    candidates.push(...result.candidates);
-    picks.push(...result.picks);
-
-    console.log(
-      `[beacon-v0] Batch ${index + 1}/${batches.length} processed: ${batchSymbols.length || 'all'} symbols, ${result.signals.length} signals fired, ${result.picks.length} picks`,
-    );
-
-    if (index < batches.length - 1 && interBatchDelayMs > 0) {
-      await sleep(interBatchDelayMs);
+    if (index < signalsToRun.length - 1 && Number(options.interSignalDelayMs || 0) > 0) {
+      await sleep(Number(options.interSignalDelayMs));
     }
   }
 
+  const firedSignals = signalResults.reduce((total, item) => total + item.results.size, 0);
+  const minAlignmentCount = Number(options.minAlignmentCount || MIN_ALIGNMENT_COUNT);
+  const aligned = alignLeaderboardSignals(signalResults, {
+    minAlignmentCount,
+    limit: Number(options.limit || TOP_ALIGNED_PICKS),
+  });
+  const qualified = qualifyBeaconCandidates(aligned, {
+    ...(options.qualification || {}),
+    minAlignmentCount,
+  });
+  const categorized = categorizeBeaconCandidates(qualified);
+  const candidates = categorized.filter((candidate) => candidate.qualified);
+  const picks = candidates.map(candidateToPick);
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {
@@ -104,20 +101,28 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   }
 
   return {
-    scanVersion: 'beacon-v0-phase41',
-    signalSlice: SIGNAL_NAME,
+    scanVersion: 'beacon-v0-phase43',
+    signalSlice: 'leaderboard_alignment_v1',
     generatedAt: startedAt,
     runId,
+    signalResults: signalResults.map((item) => ({
+      signal: item.signal,
+      category: item.category,
+      runMode: item.runMode,
+      count: item.results.size,
+    })),
     persistence: {
       enabled: persist,
       inserted: persistenceResult.inserted,
       runId,
     },
     stats: {
-      firedSignals: signals.length,
+      firedSignals,
       alignedCandidates: aligned.length,
       qualifiedCandidates: candidates.length,
       disqualifiedCandidates: categorized.length - candidates.length,
+      signalLeaderboards: signalResults.length,
+      minAlignmentCount,
     },
     picks,
     candidates,
@@ -132,6 +137,7 @@ async function runBeaconV0(options = {}) {
 module.exports = {
   BATCH_SIZE,
   INTER_BATCH_DELAY_MS,
+  SIGNALS,
   candidateToPick,
   chunkArray,
   runBeaconPipeline,

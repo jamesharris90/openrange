@@ -26,12 +26,19 @@ const { pool, queryWithTimeout } = require('../db/pg');
 async function getEvaluationUniverse() {
   const result = await queryWithTimeout(
     `
-      SELECT DISTINCT UPPER(symbol) AS symbol
-      FROM earnings_events
-      WHERE symbol IS NOT NULL
-        AND COALESCE(earnings_date, report_date) >= CURRENT_DATE
-        AND COALESCE(earnings_date, report_date) <= CURRENT_DATE + interval '7 days'
-      ORDER BY UPPER(symbol)
+      WITH universe AS (
+        SELECT UPPER(symbol) AS symbol
+        FROM ticker_classifications
+        WHERE symbol IS NOT NULL
+        UNION
+        SELECT UPPER(symbol) AS symbol
+        FROM opportunity_stream
+        WHERE symbol IS NOT NULL
+      )
+      SELECT DISTINCT symbol
+      FROM universe
+      WHERE symbol ~ '^[A-Z][A-Z0-9.-]{0,9}$'
+      ORDER BY symbol
     `,
     [],
     {
@@ -78,13 +85,13 @@ async function main() {
     const { picks } = await runBeaconPipeline(symbols, {
       persist: true,
       runId,
-      limit: 5000,
+      limit: 20,
     });
     const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
 
     await recordRunSuccess(runId, picks.length, durationSeconds, {
-      batches_processed: Math.ceil(symbols.length / 100),
-      worker_version: 'v0.1',
+      signals_processed: 5,
+      worker_version: 'v0.2-phase43',
     });
 
     console.log(`[beacon-v0-worker] Run ${runId}: ${picks.length} picks written in ${durationSeconds}s`);

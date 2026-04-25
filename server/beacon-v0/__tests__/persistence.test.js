@@ -14,10 +14,30 @@ const { pool } = require('../../db/pg');
     console.log('Running Beacon v0 pipeline WITH persistence');
     const { picks: written, runId } = await runBeaconPipeline([], {
       persist: true,
-      limit: 500,
+      limit: 20,
     });
 
     console.log(`Wrote ${written.length} picks under run_id=${runId}`);
+
+    if (written.length === 0) {
+      throw new Error('Expected at least one Phase 43 aligned pick to be written');
+    }
+
+    if (written.length > 20) {
+      throw new Error(`Expected at most 20 picks, wrote ${written.length}`);
+    }
+
+    for (const pick of written) {
+      if (pick.pattern !== 'Multi-Signal Alignment') {
+        throw new Error(`Unexpected pick pattern for ${pick.symbol}: ${pick.pattern}`);
+      }
+      if (!Array.isArray(pick.signals_aligned) || pick.signals_aligned.length < 2) {
+        throw new Error(`Expected at least two aligned signals for ${pick.symbol}`);
+      }
+      if ((pick.metadata?.alignment?.alignmentCount || 0) < 2) {
+        throw new Error(`Expected alignment metadata for ${pick.symbol}`);
+      }
+    }
 
     const read = await getLatestPicks(100);
     console.log(`Read ${read.length} picks back from DB`);

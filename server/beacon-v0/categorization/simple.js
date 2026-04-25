@@ -1,6 +1,14 @@
 function categorizeCandidate(candidate) {
   const signalNames = new Set((candidate.signals || []).map((signal) => signal.signal));
 
+  if ((candidate.alignment?.alignmentCount || 0) >= 2) {
+    return {
+      ...candidate,
+      patternCategory: 'Multi-Signal Alignment',
+      patternDescription: `${candidate.alignment.alignmentCount} Beacon v0 leaderboards align on this symbol.`,
+    };
+  }
+
   if (signalNames.has('earnings_upcoming_within_3d')) {
     return {
       ...candidate,
