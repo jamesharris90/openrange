@@ -20,11 +20,8 @@ type ScreenerRow = {
   momentum: "BULLISH" | "BEARISH";
   tqi: number;
   tqi_label: "A" | "B" | "C" | "D";
-  final_score: number;
-  coverage_score: number;
   data_confidence: number;
   data_confidence_label: "HIGH" | "MEDIUM" | "LOW" | "POOR";
-  freshness_score: number;
   source_quality: number;
   tradeable: boolean;
   has_news?: boolean;
@@ -988,7 +985,7 @@ export default function ScreenerPage() {
           </div>
         </div>
         <p className="max-w-3xl text-sm text-slate-400">
-          Live market scanner focused on price, volume, and catalyst context. Score metrics now live on the research page for each ticker.
+          Use filters to narrow your universe by data quality, sector, and catalyst presence.
         </p>
       </header>
 

@@ -77,7 +77,6 @@ type MacroContext = {
 
 type OpportunityRow = {
   symbol: string;
-  score: number;
   why: string;
   state: "FORMING" | "CONFIRMED";
   early_signal: boolean;
@@ -150,8 +149,6 @@ type NextSessionMomentumRow = {
   relative_volume: number | null;
   atr_percent: number | null;
   setup_type: string | null;
-  setup_score: number | null;
-  stream_score: number | null;
   headline: string | null;
   sector?: string | null;
 };

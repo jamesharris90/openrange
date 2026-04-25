@@ -35,7 +35,7 @@ export type ScreenerFilters = {
   minMarketCap?: number;
   maxMarketCap?: number;
   sector?: string;
-  sortBy?: "score" | "change" | "volume" | "relVolume" | "marketCap";
+  sortBy?: "change" | "volume" | "relVolume" | "marketCap";
   mode?: "all" | "focus";
 };
 
