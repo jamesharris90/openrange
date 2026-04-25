@@ -207,7 +207,15 @@ router.get('/summary', async (req, res) => {
            SELECT
              (SELECT COUNT(DISTINCT strategy_id) FROM latest_scores) AS active_strategies,
              (SELECT COUNT(*) FROM strategy_backtest_signals) AS signals_tracked,
-             (SELECT COUNT(*) FROM morning_picks WHERE pick_date = CURRENT_DATE) AS todays_picks,
+             (SELECT COUNT(*)
+              FROM beacon_v0_picks
+              WHERE run_id = (
+                SELECT run_id
+                FROM beacon_v0_picks
+                ORDER BY created_at DESC
+                LIMIT 1
+              )
+              AND created_at >= CURRENT_DATE) AS todays_picks,
              (SELECT CASE
                WHEN COALESCE(SUM(total_signals), 0) = 0 THEN NULL
                ELSE SUM(win_rate * total_signals) / SUM(total_signals)

@@ -143,9 +143,9 @@ export default function BeaconHeader({
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Active Strategies", value: formatNumber(summary.active_strategies) },
-          { label: "Signals Tracked", value: formatNumber(summary.signals_tracked) },
+          { label: "Backtest Signals", value: formatNumber(summary.signals_tracked) },
           { label: "Today’s Picks", value: formatNumber(summary.todays_picks) },
-          { label: "30-Day Win Rate", value: formatPercent(summary.thirty_day_win_rate) },
+          { label: "30-Day Backtest Win Rate", value: formatPercent(summary.thirty_day_win_rate) },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="pb-2">

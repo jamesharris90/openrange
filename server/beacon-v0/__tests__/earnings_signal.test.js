@@ -31,10 +31,16 @@ const { pool } = require('../../db/pg');
 
     const [candidate] = result.candidates;
     const [pick] = result.picks;
+    const patternLabels = new Set(result.picks.map((item) => item.pattern));
     assert.ok(candidate.symbol, 'candidate symbol is required');
-    assert.strictEqual(candidate.patternCategory, 'Multi-Signal Alignment');
+    assert.ok(candidate.patternCategory, 'candidate pattern category is required');
     assert.strictEqual(candidate.qualified, true);
-    assert.strictEqual(pick.pattern, 'Multi-Signal Alignment');
+    assert.ok(pick.pattern, 'pick pattern is required');
+    assert.ok(patternLabels.size > 1, 'expected multiple derived pattern labels');
+    assert.ok(
+      [...patternLabels].some((label) => label !== 'Multi-Signal Alignment'),
+      'expected at least one non-fallback pattern label',
+    );
     assert.ok(pick.reasoning, 'pick reasoning is required');
     assert.ok(Array.isArray(candidate.signals), 'candidate signals must be an array');
     assert.ok(candidate.signals.length >= 2, 'candidate should have at least two aligned signals');
@@ -52,6 +58,10 @@ const { pool } = require('../../db/pg');
       alignedCandidates: result.stats.alignedCandidates,
       qualifiedCandidates: result.stats.qualifiedCandidates,
       picks: result.picks.length,
+      patternDistribution: result.picks.reduce((counts, item) => {
+        counts[item.pattern] = (counts[item.pattern] || 0) + 1;
+        return counts;
+      }, {}),
       runId: result.runId,
       firstCandidate: {
         symbol: pick.symbol,

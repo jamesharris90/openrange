@@ -27,9 +27,10 @@ const { pool } = require('../../db/pg');
       throw new Error(`Expected at most 20 picks, wrote ${written.length}`);
     }
 
+    const patternLabels = new Set(written.map((pick) => pick.pattern));
     for (const pick of written) {
-      if (pick.pattern !== 'Multi-Signal Alignment') {
-        throw new Error(`Unexpected pick pattern for ${pick.symbol}: ${pick.pattern}`);
+      if (!pick.pattern) {
+        throw new Error(`Missing pick pattern for ${pick.symbol}`);
       }
       if (!Array.isArray(pick.signals_aligned) || pick.signals_aligned.length < 2) {
         throw new Error(`Expected at least two aligned signals for ${pick.symbol}`);
@@ -37,6 +38,10 @@ const { pool } = require('../../db/pg');
       if ((pick.metadata?.alignment?.alignmentCount || 0) < 2) {
         throw new Error(`Expected alignment metadata for ${pick.symbol}`);
       }
+    }
+
+    if (![...patternLabels].some((label) => label !== 'Multi-Signal Alignment')) {
+      throw new Error('Expected at least one derived non-fallback pattern label');
     }
 
     const read = await getLatestPicks(100);

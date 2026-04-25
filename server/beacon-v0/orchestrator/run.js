@@ -36,6 +36,7 @@ function candidateToPick(candidate) {
   return {
     symbol: candidate.symbol,
     pattern: candidate.patternCategory || 'Multi-Signal Alignment',
+    pattern_label: candidate.patternLabel || candidate.patternCategory || 'Multi-Signal Alignment',
     confidence: candidate.confidenceQualification || 'emerging_alignment',
     reasoning: candidate.patternDescription
       ? `${candidate.symbol}: ${candidate.patternDescription}`
@@ -43,6 +44,8 @@ function candidateToPick(candidate) {
     signals_aligned: signals.map((signal) => signal.signal),
     metadata: {
       direction: candidate.direction || 'neutral',
+      pattern_name: candidate.patternName || 'multi_signal_alignment',
+      pattern_label: candidate.patternLabel || candidate.patternCategory || 'Multi-Signal Alignment',
       alignment: candidate.alignment || null,
       signal_evidence: signals.map((signal) => ({
         signal: signal.signal,
