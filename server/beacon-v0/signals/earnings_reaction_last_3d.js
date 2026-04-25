@@ -85,9 +85,15 @@ async function detect(universe = [], options = {}) {
 
 function summarize(metadata = {}) {
   const surprise = toNumber(metadata.eps_surprise_pct ?? metadata.surprise_pct);
-  if (surprise == null) return 'reported earnings recently';
+  const actual = toNumber(metadata.eps_actual);
+  const estimate = toNumber(metadata.eps_estimate);
+  const context = actual != null && estimate != null
+    ? ` ($${actual.toFixed(2)} vs $${estimate.toFixed(2)} estimate)`
+    : '';
+
+  if (surprise == null) return `reported earnings recently${context}`;
   const sign = surprise >= 0 ? '+' : '';
-  return `reported ${sign}${surprise.toFixed(1)}% earnings surprise`;
+  return `reported ${sign}${surprise.toFixed(1)}% earnings surprise${context}`;
 }
 
 module.exports = { CATEGORY, LOOKBACK_TRADING_DAYS, MIN_ABS_EPS_SURPRISE_PCT, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
