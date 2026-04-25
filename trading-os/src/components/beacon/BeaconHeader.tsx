@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils";
 
 import { BEACON_QUERY_OPTIONS, fetchBeaconSummary } from "@/components/beacon/beacon-api";
 
-type Tab = "picks" | "grades" | "track";
+type Tab = "picks" | "grades" | "track" | "v0";
 
 const TAB_LABELS: Array<{ key: Tab; label: string }> = [
   { key: "picks", label: "Morning Picks" },
   { key: "grades", label: "Strategy Grades" },
   { key: "track", label: "Track Record" },
+  { key: "v0", label: "v0 (preview)" },
 ];
 
 function formatNumber(value: number | null | undefined): string {

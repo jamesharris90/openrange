@@ -6,8 +6,9 @@ import BeaconHeader from "@/components/beacon/BeaconHeader";
 import MorningPicksTab from "@/components/beacon/MorningPicksTab";
 import StrategyGradesTab from "@/components/beacon/StrategyGradesTab";
 import TrackRecordTab from "@/components/beacon/TrackRecordTab";
+import { V0PreviewTab } from "@/components/beacon/V0PreviewTab";
 
-type Tab = "picks" | "grades" | "track";
+type Tab = "picks" | "grades" | "track" | "v0";
 
 export default function BeaconPage() {
   const [tab, setTab] = useState<Tab>("picks");
@@ -18,6 +19,7 @@ export default function BeaconPage() {
       {tab === "picks" && <MorningPicksTab onViewGrades={() => setTab("grades")} />}
       {tab === "grades" && <StrategyGradesTab />}
       {tab === "track" && <TrackRecordTab />}
+      {tab === "v0" && <V0PreviewTab />}
     </div>
   );
 }

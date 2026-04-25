@@ -6,24 +6,30 @@ require('dotenv').config({
   override: false,
 });
 
-const { runBeaconV0 } = require('../orchestrator/run');
+const { runBeaconPipeline } = require('../orchestrator/run');
 const { pool } = require('../../db/pg');
 
 (async () => {
   try {
-    const result = await runBeaconV0({ limit: 500 });
+    const result = await runBeaconPipeline([], { limit: 500, persist: false });
 
-    assert.strictEqual(result.scanVersion, 'beacon-v0-skeleton-phase40');
+    assert.strictEqual(result.scanVersion, 'beacon-v0-phase41');
     assert.strictEqual(result.signalSlice, 'earnings_upcoming_within_3d');
     assert.strictEqual(result.persistence.enabled, false);
+    assert.ok(result.runId, 'runId is required');
     assert.ok(result.stats.firedSignals > 0, 'expected at least one upcoming earnings signal');
     assert.ok(result.stats.alignedCandidates > 0, 'expected at least one aligned candidate');
     assert.ok(result.stats.qualifiedCandidates > 0, 'expected at least one qualified candidate');
+    assert.ok(Array.isArray(result.picks), 'picks must be an array');
+    assert.ok(result.picks.length > 0, 'expected at least one pick');
 
     const [candidate] = result.candidates;
+    const [pick] = result.picks;
     assert.ok(candidate.symbol, 'candidate symbol is required');
     assert.strictEqual(candidate.patternCategory, 'Upcoming Earnings');
     assert.strictEqual(candidate.qualified, true);
+    assert.strictEqual(pick.pattern, 'Upcoming Earnings');
+    assert.ok(pick.reasoning, 'pick reasoning is required');
     assert.ok(Array.isArray(candidate.signals), 'candidate signals must be an array');
     assert.strictEqual(candidate.signals[0].signal, 'earnings_upcoming_within_3d');
     assert.strictEqual(candidate.signals[0].direction, 'neutral');
@@ -35,9 +41,11 @@ const { pool } = require('../../db/pg');
       firedSignals: result.stats.firedSignals,
       alignedCandidates: result.stats.alignedCandidates,
       qualifiedCandidates: result.stats.qualifiedCandidates,
+      picks: result.picks.length,
+      runId: result.runId,
       firstCandidate: {
-        symbol: candidate.symbol,
-        patternCategory: candidate.patternCategory,
+        symbol: pick.symbol,
+        pattern: pick.pattern,
         earningsDate: candidate.signals[0].evidence.earningsDate,
         direction: candidate.signals[0].direction,
       },

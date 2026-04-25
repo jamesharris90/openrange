@@ -42,6 +42,9 @@ function normalizeEarningsRow(row) {
 async function fetchUpcomingEarningsWithinDays(options = {}) {
   const windowDays = Number(options.windowDays ?? 3);
   const limit = Number(options.limit ?? 500);
+  const symbols = Array.isArray(options.symbols)
+    ? options.symbols.map(normalizeSymbol).filter(Boolean)
+    : [];
 
   if (!Number.isInteger(windowDays) || windowDays < 0 || windowDays > 30) {
     throw new Error('windowDays must be an integer between 0 and 30');
@@ -50,6 +53,12 @@ async function fetchUpcomingEarningsWithinDays(options = {}) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 5000) {
     throw new Error('limit must be an integer between 1 and 5000');
   }
+
+  const params = [windowDays, limit];
+  const symbolFilter = symbols.length > 0
+    ? 'AND UPPER(symbol) = ANY($3::text[])'
+    : '';
+  if (symbols.length > 0) params.push(symbols);
 
   const result = await queryWithTimeout(
     `
@@ -68,10 +77,11 @@ async function fetchUpcomingEarningsWithinDays(options = {}) {
       WHERE symbol IS NOT NULL
         AND COALESCE(earnings_date, report_date) >= CURRENT_DATE
         AND COALESCE(earnings_date, report_date) <= CURRENT_DATE + ($1::int * interval '1 day')
+        ${symbolFilter}
       ORDER BY COALESCE(earnings_date, report_date), symbol
       LIMIT $2
     `,
-    [windowDays, limit],
+    params,
     {
       label: 'beacon-v0.fetchUpcomingEarningsWithinDays',
       timeoutMs: Number(options.timeoutMs ?? 5000),
