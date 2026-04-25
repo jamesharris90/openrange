@@ -3,6 +3,7 @@ const topGap = require('../signals/top_gap_today');
 const topNews = require('../signals/top_news_last_12h');
 const topUpcomingEarnings = require('../signals/earnings_upcoming_within_3d');
 const earningsReaction = require('../signals/earnings_reaction_last_3d');
+const topCoiledSpring = require('../signals/top_coiled_spring');
 
 const SIGNAL_MODULES = {
   [topRvol.SIGNAL_NAME]: topRvol,
@@ -10,17 +11,49 @@ const SIGNAL_MODULES = {
   [topNews.SIGNAL_NAME]: topNews,
   [topUpcomingEarnings.SIGNAL_NAME]: topUpcomingEarnings,
   [earningsReaction.SIGNAL_NAME]: earningsReaction,
+  [topCoiledSpring.SIGNAL_NAME]: topCoiledSpring,
 };
 
 const PRIORITY_ORDER = [
   topUpcomingEarnings.SIGNAL_NAME,
   earningsReaction.SIGNAL_NAME,
+  topCoiledSpring.SIGNAL_NAME,
   topGap.SIGNAL_NAME,
   topRvol.SIGNAL_NAME,
   topNews.SIGNAL_NAME,
 ];
 
 const PATTERN_RULES = [
+  {
+    name: 'pre_earnings_coiled_spring',
+    requires: ['top_coiled_spring', 'earnings_upcoming_within_3d', 'top_rvol_today'],
+    label: 'Pre-Earnings Coiled Spring',
+  },
+  {
+    name: 'coiled_spring_with_news',
+    requires: ['top_coiled_spring', 'top_news_last_12h', 'top_rvol_today'],
+    label: 'Coiled Spring with News Catalyst',
+  },
+  {
+    name: 'compression_with_news',
+    requires: ['top_coiled_spring', 'top_news_last_12h'],
+    label: 'Compression with News',
+  },
+  {
+    name: 'compression_breaking_volume',
+    requires: ['top_coiled_spring', 'top_rvol_today'],
+    label: 'Compression Breaking on Volume',
+  },
+  {
+    name: 'compression_resolving_gap',
+    requires: ['top_coiled_spring', 'top_gap_today'],
+    label: 'Compression Resolving Gap',
+  },
+  {
+    name: 'pre_earnings_compression',
+    requires: ['top_coiled_spring', 'earnings_upcoming_within_3d'],
+    label: 'Pre-Earnings Compression',
+  },
   {
     name: 'earnings_catalyst_with_volume',
     requires: ['earnings_upcoming_within_3d', 'top_rvol_today', 'top_news_last_12h'],
