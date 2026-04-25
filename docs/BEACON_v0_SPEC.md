@@ -70,7 +70,7 @@
 
 **Beacon page:**
 
-- During rebuild: page hidden from navigation OR replaced with the v0 build page.
+- During rebuild: page stays visible in navigation as a live health monitor — its empty/error state acts as a production canary for backend issues.
 - No "coming soon" placeholder — site is not public, no audience to manage.
 - Returns at v0 ship with unified scorer.
 
@@ -79,7 +79,7 @@
 1. Phase 36 (today): Update BEACON_v0_SPEC.md with this discipline section [done by this commit].
 2. Phase 37: Remove Decision card from Research page; preserve all data panels.
 3. Phase 38: Remove score column and score filters from Screener.
-4. Phase 39: Hide Beacon route from main navigation; keep route accessible via direct URL for development.
+4. Phase 39: Beacon route remains in navigation throughout rebuild as health canary; no Phase 39 work required.
 5. Phase 40+: Begin Beacon v0 unified scorer implementation per existing spec sections.
 6. Phase v0 ship: Restore scoring across Beacon, Research (as supporting context), and Screener (as filter).
 
