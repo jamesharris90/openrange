@@ -214,8 +214,7 @@ router.get('/summary', async (req, res) => {
                 FROM beacon_v0_picks
                 ORDER BY created_at DESC
                 LIMIT 1
-              )
-              AND created_at >= CURRENT_DATE) AS todays_picks,
+                )) AS todays_picks,
              (SELECT CASE
                WHEN COALESCE(SUM(total_signals), 0) = 0 THEN NULL
                ELSE SUM(win_rate * total_signals) / SUM(total_signals)
