@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Gauge,
   Globe,
+  Landmark,
   LayoutDashboard,
   Newspaper,
   Radar,
@@ -28,6 +29,7 @@ const baseNavItems = [
   { href: "/beacon", label: "Beacon", icon: Radar },
   { href: "/research", label: "Research", icon: TrendingUp },
   { href: "/news-feed", label: "News", icon: Newspaper },
+  { href: "/congress", label: "Congress", icon: Landmark },
   { href: "/earnings", label: "Earnings", icon: Calendar },
 ];
 
