@@ -5,6 +5,7 @@ import { Component, memo, useEffect, useMemo, useState, type ErrorInfo, type Rea
 
 import { ChartEngine, CHART_TIMEFRAME_OPTIONS, type ChartTimeframe } from "@/components/charts/chart-engine";
 import CatalystPanel from "@/components/research/CatalystPanel";
+import CongressionalPanel from "@/components/research/CongressionalPanel";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -1160,7 +1161,9 @@ function ResearchV2PageContent({ params }: Props) {
             <CatalystPanel symbol={symbol} news={catalystNews} />
           </div>
 
-            <FundamentalsPanel data={payload} phase={phase} />
+          <CongressionalPanel symbol={symbol} />
+
+          <FundamentalsPanel data={payload} phase={phase} />
         </div>
       ) : null}
     </section>
