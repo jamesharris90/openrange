@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiGet } from "@/lib/api/client";
@@ -14,6 +15,10 @@ interface V0Pick {
   signals_aligned: string[];
   forward_count?: number;
   backward_count?: number;
+  latest_close?: number | null;
+  prior_close?: number | null;
+  change_pct?: number | null;
+  sparkline?: number[];
   metadata: Record<string, unknown>;
   created_at: string;
   run_id?: string | null;
@@ -80,16 +85,6 @@ function isForwardLookingSignal(signal: string | null | undefined): boolean {
   return typeof signal === "string" && FORWARD_LOOKING_SIGNALS.has(signal);
 }
 
-function getForwardCount(pick: V0Pick): number {
-  if (typeof pick.forward_count === "number") return pick.forward_count;
-  return pick.signals_aligned.filter(isForwardLookingSignal).length;
-}
-
-function getBackwardCount(pick: V0Pick, alignmentCount: number, forwardCount: number): number {
-  if (typeof pick.backward_count === "number") return pick.backward_count;
-  return Math.max(alignmentCount - forwardCount, 0);
-}
-
 function getSignalEvidence(pick: V0Pick): SignalEvidence[] {
   const rawEvidence = pick.metadata.signal_evidence;
   if (!Array.isArray(rawEvidence)) return [];
@@ -107,6 +102,34 @@ function getSignalEvidence(pick: V0Pick): SignalEvidence[] {
 
 async function fetchV0Picks(): Promise<V0Response> {
   return apiGet<V0Response>("/api/beacon-v0/picks");
+}
+
+function Sparkline({ values, isPositive }: { values: number[]; isPositive: boolean }) {
+  if (!values || values.length < 2) return null;
+
+  const width = 80;
+  const height = 24;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg width={width} height={height} className="opacity-80" aria-hidden="true">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={isPositive ? "#34d399" : "#f87171"}
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
 }
 
 export function V0PreviewTab() {
@@ -174,14 +197,27 @@ export function V0PreviewTab() {
       <CardContent className="space-y-3">
         {data.picks.map((pick) => {
           const alignmentCount = getAlignmentCount(pick);
-          const forwardCount = getForwardCount(pick);
-          const backwardCount = getBackwardCount(pick, alignmentCount, forwardCount);
           const signalEvidence = getSignalEvidence(pick);
 
           return (
             <div key={`${pick.symbol}-${pick.pattern}`} className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="font-mono text-lg font-semibold text-cyan-300">{pick.symbol}</div>
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <Link href={`/research-v2/${pick.symbol}`} className="font-mono text-xl font-bold text-cyan-300 hover:underline">
+                    {pick.symbol}
+                  </Link>
+                  {pick.latest_close != null && (
+                    <span className="text-lg font-medium text-zinc-200">${pick.latest_close.toFixed(2)}</span>
+                  )}
+                  {pick.change_pct != null && (
+                    <span className={pick.change_pct >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
+                      {pick.change_pct >= 0 ? "+" : ""}{pick.change_pct.toFixed(2)}%
+                    </span>
+                  )}
+                  {pick.sparkline && pick.sparkline.length > 1 && (
+                    <Sparkline values={pick.sparkline} isPositive={(pick.change_pct ?? 0) >= 0} />
+                  )}
+                </div>
                 <div className="flex flex-col items-start gap-2 sm:items-end">
                   <span className={`inline-flex items-center rounded-xl border px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] ${getAlignmentBadgeClass(alignmentCount)}`}>
                     Alignment · {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
@@ -190,18 +226,6 @@ export function V0PreviewTab() {
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-300">{pick.reasoning}</p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-                <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">Confidence: {pick.confidence}</span>
-                <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-emerald-200">
-                  Forward-looking: {forwardCount}
-                </span>
-                <span className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300">
-                  Already moved / observed: {backwardCount}
-                </span>
-                <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">
-                  Signals: {pick.signals_aligned.length ? pick.signals_aligned.join(", ") : "—"}
-                </span>
-              </div>
               {signalEvidence.length > 0 && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {signalEvidence.slice(0, 4).map((evidence, index) => {
