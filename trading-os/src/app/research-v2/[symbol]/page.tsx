@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Component, memo, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
 
-import { ChartEngine } from "@/components/charts/chart-engine";
+import { ChartEngine, CHART_TIMEFRAME_OPTIONS, type ChartTimeframe } from "@/components/charts/chart-engine";
 import CatalystPanel from "@/components/research/CatalystPanel";
 import { cn } from "@/lib/utils";
 
@@ -130,6 +130,8 @@ type ResearchWarning = {
 };
 
 type PayloadPhase = "idle" | "fast_loading" | "fast_loaded" | "full_loading" | "full_loaded" | "error";
+
+const CHART_TIMEFRAME_STORAGE_KEY = "research_chart_timeframe";
 
 type ResearchResponse = {
   status?: string;
@@ -521,6 +523,24 @@ function phaseAwareValue(value: string | null | undefined, phase: PayloadPhase, 
   return "—";
 }
 
+function useResearchChartTimeframe(): [ChartTimeframe, (timeframe: ChartTimeframe) => void] {
+  const [timeframe, setTimeframeState] = useState<ChartTimeframe>("daily");
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(CHART_TIMEFRAME_STORAGE_KEY);
+    if (CHART_TIMEFRAME_OPTIONS.some((option) => option.value === stored)) {
+      setTimeframeState(stored as ChartTimeframe);
+    }
+  }, []);
+
+  const setTimeframe = (nextTimeframe: ChartTimeframe) => {
+    setTimeframeState(nextTimeframe);
+    window.localStorage.setItem(CHART_TIMEFRAME_STORAGE_KEY, nextTimeframe);
+  };
+
+  return [timeframe, setTimeframe];
+}
+
 function EmptyState({ message, compact = false }: { message: string; compact?: boolean }) {
   return (
     <div className={cn(
@@ -808,6 +828,7 @@ function ResearchV2PageContent({ params }: Props) {
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [phase, setPhase] = useState<PayloadPhase>("idle");
+  const [chartTimeframe, setChartTimeframe] = useResearchChartTimeframe();
   const payload = data?.data || null;
   const researchMeta = data?.meta || null;
   const responseWarnings = useMemo(() => {
@@ -1133,7 +1154,7 @@ function ResearchV2PageContent({ params }: Props) {
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
             <div className="space-y-3">
-              <ChartEngine ticker={symbol} timeframe="daily" height={340} />
+              <ChartEngine ticker={symbol} timeframe={chartTimeframe} onTimeframeChange={setChartTimeframe} height={340} />
               {!chartRows?.length ? <EmptyState message="No chart data available" compact /> : null}
             </div>
             <CatalystPanel symbol={symbol} news={catalystNews} />

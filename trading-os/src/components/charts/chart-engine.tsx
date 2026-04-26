@@ -70,7 +70,15 @@ function normalizeChartPayload(payload: unknown): PricePoint[] {
   return [];
 }
 
-function buildChartUrl(ticker: string, timeframe: "daily" | "5m" | "1m") {
+export type ChartTimeframe = "1m" | "5m" | "daily";
+
+export const CHART_TIMEFRAME_OPTIONS: { value: ChartTimeframe; label: string }[] = [
+  { value: "1m", label: "1m" },
+  { value: "5m", label: "5m" },
+  { value: "daily", label: "1D" },
+];
+
+function buildChartUrl(ticker: string, timeframe: ChartTimeframe) {
   const symbol = encodeURIComponent(ticker);
   return `/api/chart?symbol=${symbol}&timeframe=${encodeURIComponent(timeframe)}`;
 }
@@ -78,12 +86,14 @@ function buildChartUrl(ticker: string, timeframe: "daily" | "5m" | "1m") {
 export const ChartEngine = memo(function ChartEngine({
   ticker,
   timeframe,
+  onTimeframeChange,
   height = 260,
   gammaExposure = 0,
   syncCrosshairId,
 }: {
   ticker: string;
-  timeframe: "daily" | "5m" | "1m";
+  timeframe: ChartTimeframe;
+  onTimeframeChange?: (timeframe: ChartTimeframe) => void;
   height?: number;
   gammaExposure?: number;
   syncCrosshairId?: string;
@@ -91,6 +101,7 @@ export const ChartEngine = memo(function ChartEngine({
   const liveQuote = useTickerStore((state) => state.quotes[ticker.toUpperCase()]);
   const [themeTick, setThemeTick] = useState(0);
   const [data, setData] = useState<PricePoint[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const hasFetched = useRef(false);
@@ -172,6 +183,25 @@ export const ChartEngine = memo(function ChartEngine({
   }, []);
 
   useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!ref.current || !chartRef.current) return;
+    chartRef.current.resize(
+      ref.current.clientWidth || 800,
+      ref.current.clientHeight || height,
+    );
+  }, [height, isFullscreen]);
+
+  useEffect(() => {
     if (!ref.current) return;
 
     const styles = getComputedStyle(document.documentElement);
@@ -189,12 +219,19 @@ export const ChartEngine = memo(function ChartEngine({
         horzLines: { color: border },
       },
       width: ref.current.clientWidth,
-      height,
+      height: ref.current.clientHeight || height,
       rightPriceScale: { borderColor: border },
       timeScale: { borderColor: border, timeVisible: true, secondsVisible: false },
       crosshair: {
         vertLine: { color: "#3b82f6", width: 1 },
         horzLine: { color: "#3b82f6", width: 1 },
+      },
+    });
+
+    chart.priceScale("right").applyOptions({
+      scaleMargins: {
+        top: 0.05,
+        bottom: 0.25,
       },
     });
 
@@ -214,8 +251,16 @@ export const ChartEngine = memo(function ChartEngine({
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
-      priceScaleId: "",
-      color: "rgba(59,130,246,0.4)",
+      priceScaleId: "volume",
+      color: "rgba(100,116,139,0.5)",
+    });
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: {
+        top: 0.75,
+        bottom: 0,
+      },
+      visible: false,
     });
 
     const gammaSeries = chart.addSeries(HistogramSeries, {
@@ -242,7 +287,7 @@ export const ChartEngine = memo(function ChartEngine({
 
     const resizeObserver = new ResizeObserver(() => {
       if (!ref.current || !chartRef.current) return;
-      chartRef.current.applyOptions({ width: ref.current.clientWidth });
+      chartRef.current.resize(ref.current.clientWidth, ref.current.clientHeight || height);
     });
 
     resizeObserver.observe(ref.current);
@@ -371,32 +416,59 @@ export const ChartEngine = memo(function ChartEngine({
   }, [normalized, gammaExposure]);
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-panel p-2 shadow-lg">
-      <div className="mb-2 flex items-center justify-between px-2 text-xs text-slate-400">
-        <span className="font-mono">{ticker}</span>
-        <span className="flex items-center gap-2 uppercase">
-          <span>{timeframe}</span>
-          {liveQuote ? (() => {
-            const livePrice = Number(liveQuote.price);
-            const liveChange = Number(liveQuote.change_percent);
-            const hasLivePrice = Number.isFinite(livePrice);
-            const hasLiveChange = Number.isFinite(liveChange);
-
-            if (!hasLivePrice) {
-              return <span className="text-slate-500">No live price</span>;
-            }
-
-              return (
-                <span className={hasLiveChange && liveChange < 0 ? "text-bear" : "text-bull"}>
-                  ${toFixedSafe(livePrice, 2)}
-                </span>
-              );
-          })() : null}
-        </span>
+    <div className={isFullscreen ? "fixed inset-0 z-50 flex flex-col bg-slate-950 p-4" : "relative"}>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {CHART_TIMEFRAME_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onTimeframeChange?.(option.value)}
+              className={timeframe === option.value
+                ? "rounded border border-cyan-700 bg-cyan-900/50 px-3 py-1 text-xs text-cyan-300"
+                : "rounded border border-slate-800 px-3 py-1 text-xs text-slate-400 transition hover:text-slate-200"}
+              aria-pressed={timeframe === option.value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((value) => !value)}
+          className="rounded border border-slate-800 px-2 py-1 text-sm text-slate-400 transition hover:border-slate-700 hover:text-slate-200"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? "⤓" : "⤢"}
+        </button>
       </div>
-      <div className="px-2 pb-2 text-[10px] text-slate-500">VWAP | EMA 9/20/50/200 | VOL</div>
-      <div ref={ref} className="w-full" />
-      {normalized.length === 0 && <div className="px-2 pb-2 text-xs text-slate-500">No data available</div>}
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-800 bg-panel p-2 shadow-lg">
+        <div className="mb-2 flex items-center justify-between px-2 text-xs text-slate-400">
+          <span className="font-mono">{ticker}</span>
+          <span className="flex items-center gap-2 uppercase">
+            <span>{CHART_TIMEFRAME_OPTIONS.find((option) => option.value === timeframe)?.label || timeframe}</span>
+            {liveQuote ? (() => {
+              const livePrice = Number(liveQuote.price);
+              const liveChange = Number(liveQuote.change_percent);
+              const hasLivePrice = Number.isFinite(livePrice);
+              const hasLiveChange = Number.isFinite(liveChange);
+
+              if (!hasLivePrice) {
+                return <span className="text-slate-500">No live price</span>;
+              }
+
+                return (
+                  <span className={hasLiveChange && liveChange < 0 ? "text-bear" : "text-bull"}>
+                    ${toFixedSafe(livePrice, 2)}
+                  </span>
+                );
+            })() : null}
+          </span>
+        </div>
+        <div className="px-2 pb-2 text-[10px] text-slate-500">VWAP | EMA 9/20/50/200 | VOL</div>
+        <div ref={ref} className="w-full flex-1" style={{ height: isFullscreen ? undefined : `${height}px` }} />
+        {normalized.length === 0 && <div className="px-2 pb-2 text-xs text-slate-500">No data available</div>}
+      </div>
     </div>
   );
 });
