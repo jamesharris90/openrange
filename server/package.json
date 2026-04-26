@@ -9,7 +9,8 @@
     "start:coverage-worker": "node scripts/runCoverageCompletionCampaign.js --unsafe --loop --skip-health-check --news-batch-size=8 --news-concurrency=2 --max-news-symbols=24 --inter-symbol-delay-ms=0 --inter-batch-delay-ms=0 --cycle-sleep-ms=0 --max-articles-per-symbol=4 --max-news-attempts-per-symbol=1",
     "start:phase2-worker": "node scripts/runPhase2Worker.js",
     "start:beacon-nightly-worker": "node beaconNightlyWorker.js",
-    "build": "echo Backend build step",
+    "build": "npm run validate:deps && echo Backend build step",
+    "validate:deps": "node -e \"['@anthropic-ai/sdk','pg','express'].forEach(d => { try { require.resolve(d); console.log('OK:', d); } catch (e) { console.error('MISSING:', d); process.exit(1); } })\"",
     "dev": "nodemon --ignore logs/** --ignore ../logs/** --ignore tmp/** --ignore server.pid index.js",
     "dev:stable": "node index.js",
     "deploy": "railway up",
@@ -45,6 +46,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@supabase/supabase-js": "^2.98.0",
     "axios": "^1.4.0",

@@ -5,21 +5,39 @@
  * Fails soft — returns null on any error so worker can continue.
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
-
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = 'claude-sonnet-4-5';
 const MAX_TOKENS = 300;
 const TIMEOUT_MS = 15000;
 
 let client = null;
+let Anthropic = undefined;
+
+function loadSDK() {
+  if (Anthropic !== undefined) {
+    return Anthropic;
+  }
+
+  try {
+    Anthropic = require('@anthropic-ai/sdk');
+  } catch (error) {
+    console.error('[anthropicClient] @anthropic-ai/sdk not available:', error.message);
+    Anthropic = null;
+  }
+
+  return Anthropic;
+}
 
 function getClient() {
   if (!ANTHROPIC_API_KEY) {
     return null;
   }
+  const SDK = loadSDK();
+  if (!SDK) {
+    return null;
+  }
   if (!client) {
-    const AnthropicClient = Anthropic.default || Anthropic;
+    const AnthropicClient = SDK.default || SDK.Anthropic || SDK;
     client = new AnthropicClient({
       apiKey: ANTHROPIC_API_KEY,
       timeout: TIMEOUT_MS,
@@ -38,7 +56,10 @@ function getClient() {
 async function generateJSON(systemPrompt, userMessage) {
   const c = getClient();
   if (!c) {
-    return { result: null, usage: null, error: 'ANTHROPIC_API_KEY not set' };
+    if (!ANTHROPIC_API_KEY) {
+      return { result: null, usage: null, error: 'ANTHROPIC_API_KEY not set' };
+    }
+    return { result: null, usage: null, error: '@anthropic-ai/sdk module not loaded' };
   }
 
   try {
