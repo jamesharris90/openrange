@@ -202,6 +202,36 @@ Data needed:
 - Aggregate at pick level (count forward-looking signals in alignment)
 - Frontend rendering changes
 
+## 9. LLM narrative layer for pick reasoning
+
+What: Beacon currently composes deterministic reasoning from signal metadata. A future LLM narrative layer would turn the raw signal stack into a concise trader-readable thesis: what happened, what is still ahead, why the alignment matters, and what would invalidate the setup.
+
+Status: Deferred. Should only start after Beacon has stable forward/backward signal metadata, outcome tracking, and enough examples to evaluate narrative quality.
+
+Design goals:
+- Preserve deterministic facts as the source of truth; the LLM should explain, not invent.
+- Separate forward-looking setup language from already-moved momentum language.
+- Include confidence caveats and invalidation notes without making trade recommendations.
+- Keep the narrative short enough for card UI and expandable into a deeper detail view.
+
+Dependencies:
+- Stable pick-level signal evidence payloads
+- Forward/backward counts exposed in the API
+- Catalyst classification tags for news-driven picks
+- Outcome attribution to evaluate whether narratives are helpful or misleading
+
+Implementation sequencing:
+- Phase D1: Prompt contract and JSON schema for narrative generation
+- Phase D2: Offline narrative generation for historical picks only
+- Phase D3: Human review and quality scoring against real examples
+- Phase D4: Optional production generation with caching and strict fallbacks
+
+Open risks:
+- Hallucinated catalysts or causal claims
+- Overconfident language that implies certainty
+- Latency and cost if narratives are generated synchronously
+- Drift between deterministic Beacon fields and generated prose
+
 ## Open questions
 
 - Should "forward-looking" picks be visually distinguished from "already moved" picks in the UI? (Different tab, different colour, different section?)

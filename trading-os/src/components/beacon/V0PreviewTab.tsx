@@ -12,6 +12,8 @@ interface V0Pick {
   confidence: string;
   reasoning: string;
   signals_aligned: string[];
+  forward_count?: number;
+  backward_count?: number;
   metadata: Record<string, unknown>;
   created_at: string;
   run_id?: string | null;
@@ -32,6 +34,12 @@ interface V0Response {
   generated_at: string | null;
   run_id?: string | null;
 }
+
+const FORWARD_LOOKING_SIGNALS = new Set([
+  "earnings_upcoming_within_3d",
+  "top_coiled_spring",
+  "top_volume_building",
+]);
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return "—";
@@ -60,12 +68,26 @@ function getAlignmentCount(pick: V0Pick): number {
 
 function getAlignmentBadgeClass(count: number): string {
   if (count >= 4) {
-    return "border-emerald-400/50 bg-emerald-500/20 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.18)]";
+    return "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.24)]";
   }
   if (count === 3) {
-    return "border-blue-400/50 bg-blue-500/20 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.16)]";
+    return "border-blue-300/70 bg-blue-500/25 text-blue-100 shadow-[0_0_24px_rgba(59,130,246,0.22)]";
   }
   return "border-slate-600/60 bg-slate-800/70 text-slate-200";
+}
+
+function isForwardLookingSignal(signal: string | null | undefined): boolean {
+  return typeof signal === "string" && FORWARD_LOOKING_SIGNALS.has(signal);
+}
+
+function getForwardCount(pick: V0Pick): number {
+  if (typeof pick.forward_count === "number") return pick.forward_count;
+  return pick.signals_aligned.filter(isForwardLookingSignal).length;
+}
+
+function getBackwardCount(pick: V0Pick, alignmentCount: number, forwardCount: number): number {
+  if (typeof pick.backward_count === "number") return pick.backward_count;
+  return Math.max(alignmentCount - forwardCount, 0);
 }
 
 function getSignalEvidence(pick: V0Pick): SignalEvidence[] {
@@ -152,6 +174,8 @@ export function V0PreviewTab() {
       <CardContent className="space-y-3">
         {data.picks.map((pick) => {
           const alignmentCount = getAlignmentCount(pick);
+          const forwardCount = getForwardCount(pick);
+          const backwardCount = getBackwardCount(pick, alignmentCount, forwardCount);
           const signalEvidence = getSignalEvidence(pick);
 
           return (
@@ -159,8 +183,8 @@ export function V0PreviewTab() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="font-mono text-lg font-semibold text-cyan-300">{pick.symbol}</div>
                 <div className="flex flex-col items-start gap-2 sm:items-end">
-                  <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${getAlignmentBadgeClass(alignmentCount)}`}>
-                    {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
+                  <span className={`inline-flex items-center rounded-xl border px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] ${getAlignmentBadgeClass(alignmentCount)}`}>
+                    Alignment · {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
                   </span>
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{pick.pattern}</div>
                 </div>
@@ -168,23 +192,53 @@ export function V0PreviewTab() {
               <p className="mt-3 text-sm leading-6 text-slate-300">{pick.reasoning}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
                 <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">Confidence: {pick.confidence}</span>
+                <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-emerald-200">
+                  Forward-looking: {forwardCount}
+                </span>
+                <span className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300">
+                  Already moved / observed: {backwardCount}
+                </span>
                 <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">
                   Signals: {pick.signals_aligned.length ? pick.signals_aligned.join(", ") : "—"}
                 </span>
               </div>
               {signalEvidence.length > 0 && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {signalEvidence.slice(0, 4).map((evidence, index) => (
-                    <div key={`${pick.symbol}-${evidence.signal || index}`} className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="font-medium text-slate-200">{evidence.signal || "Signal"}</span>
-                        <span className="text-slate-500">Rank {evidence.rank ?? "—"}</span>
+                  {signalEvidence.slice(0, 4).map((evidence, index) => {
+                    const forwardLooking = isForwardLookingSignal(evidence.signal);
+
+                    return (
+                      <div
+                        key={`${pick.symbol}-${evidence.signal || index}`}
+                        className={`rounded-lg border p-3 ${
+                          forwardLooking
+                            ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.12)]"
+                            : "border-slate-800 bg-slate-900/70"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 text-xs">
+                          <div>
+                            <span className={forwardLooking ? "font-medium text-emerald-100" : "font-medium text-slate-200"}>
+                              {evidence.signal || "Signal"}
+                            </span>
+                            <div className="mt-1">
+                              <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                                forwardLooking
+                                  ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-200"
+                                  : "border-slate-700 bg-slate-800 text-slate-400"
+                              }`}>
+                                {forwardLooking ? "Forward setup" : "Observed move"}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-slate-500">Rank {evidence.rank ?? "—"}</span>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                          {evidence.reasoning || evidence.category || "Signal evidence available."}
+                        </p>
                       </div>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
-                        {evidence.reasoning || evidence.category || "Signal evidence available."}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
