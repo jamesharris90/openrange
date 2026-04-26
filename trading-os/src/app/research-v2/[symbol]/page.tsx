@@ -17,7 +17,10 @@ type MCPData = {
   summary?: string;
   why?: string;
   what?: string;
-  where?: string;
+  where?: string | null;
+  where_status?: "pending" | "available" | string | null;
+  upper_level?: number | null;
+  lower_level?: number | null;
   when?: string;
   confidence?: number;
   confidence_reason?: string;
@@ -118,8 +121,15 @@ type ResearchData = {
   };
   company?: CompanyData;
   mcp?: MCPData;
-  warnings?: string[];
+  warnings?: ResearchWarning[];
 };
+
+type ResearchWarning = {
+  reason?: string | null;
+  message?: string | null;
+};
+
+type PayloadPhase = "idle" | "fast_loading" | "fast_loaded" | "full_loading" | "full_loaded" | "error";
 
 type ResearchResponse = {
   status?: string;
@@ -133,8 +143,9 @@ type ResearchResponse = {
   meta?: {
     fallback?: boolean;
     reason?: string | null;
+    phase?: string | null;
     response_ms?: number;
-    warnings?: string[];
+    warnings?: ResearchWarning[];
   };
 };
 
@@ -235,9 +246,55 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(parsed));
 }
 
-function formatClassificationValue(value: string | null | undefined) {
-  const text = String(value || '').trim();
-  return text || 'No data available';
+function isHydratingPhase(phase: PayloadPhase) {
+  return phase === "fast_loading" || phase === "fast_loaded" || phase === "full_loading";
+}
+
+function normalizeWarning(value: unknown): ResearchWarning | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const lower = value.toLowerCase();
+    const reason = lower.includes("timeout")
+      ? "fmp_timeout"
+      : lower.includes("chart")
+        ? "chart_unavailable"
+        : lower.includes("seed") || lower.includes("fallback")
+          ? "seeded_fallback"
+          : "partial_data";
+    return { reason, message: value };
+  }
+
+  if (typeof value === "object") {
+    const warning = value as { reason?: unknown; message?: unknown };
+    return {
+      reason: String(warning.reason || "partial_data"),
+      message: warning.message ? String(warning.message) : null,
+    };
+  }
+
+  return null;
+}
+
+function getBannerMessage(warnings: ResearchWarning[], meta: ResearchResponse["meta"] | null): string | null {
+  const reasons = new Set(warnings.map((warning) => String(warning.reason || "").trim()).filter(Boolean));
+
+  if (meta?.fallback) {
+    reasons.add("seeded_fallback");
+  }
+  if (String(meta?.reason || "").toLowerCase().includes("timeout")) {
+    reasons.add("fmp_timeout");
+  }
+
+  if (reasons.has("seeded_fallback")) return "Showing cached data — live fetch unavailable";
+  if (reasons.has("fmp_timeout")) return "Upstream data source slow — some fields may be limited";
+  if (reasons.has("chart_unavailable")) return "Chart temporarily unavailable";
+  if (reasons.has("partial_data")) return "Some data sections are incomplete";
+  if (reasons.has("fast_payload")) return null;
+
+  return reasons.size > 0 ? "Some data temporarily limited" : null;
 }
 
 function formatEarningsLabel(value: string | null | undefined, fallback = "No data available") {
@@ -438,7 +495,7 @@ const InfoPanel = memo(function InfoPanel({
   muted,
 }: {
   title: string;
-  value: string;
+  value: ReactNode;
   muted?: boolean;
 }) {
   return (
@@ -448,6 +505,21 @@ const InfoPanel = memo(function InfoPanel({
     </div>
   );
 });
+
+function FieldSkeleton({ width = "w-24" }: { width?: string }) {
+  return <div className={cn("h-5 animate-pulse rounded bg-slate-700/50", width)} />;
+}
+
+function phaseAwareValue(value: string | null | undefined, phase: PayloadPhase, width?: string) {
+  const text = String(value || "").trim();
+  if (text) {
+    return text;
+  }
+  if (isHydratingPhase(phase)) {
+    return <FieldSkeleton width={width} />;
+  }
+  return "—";
+}
 
 function EmptyState({ message, compact = false }: { message: string; compact?: boolean }) {
   return (
@@ -505,7 +577,7 @@ class ResearchErrorBoundary extends Component<ResearchErrorBoundaryProps, Resear
   }
 }
 
-const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: ResearchData | null; symbol: string }) {
+const OverviewPanel = memo(function OverviewPanel({ data, symbol, phase }: { data: ResearchData | null; symbol: string; phase: PayloadPhase }) {
   const company = data?.company || {};
   const earnings = data?.earnings || {};
   const earningsHistory = Array.isArray(earnings.history) ? earnings.history : [];
@@ -540,15 +612,17 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Overview</p>
         <p className="mt-3 text-lg font-medium text-slate-100">{company.company_name || symbol}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <InfoPanel title="Sector" value={company.sector || "No data available"} muted />
-          <InfoPanel title="Industry" value={company.industry || "No data available"} muted />
-          <InfoPanel title="Exchange" value={company.exchange || "No data available"} muted />
-          <InfoPanel title="Country" value={company.country || "No data available"} muted />
-          <InfoPanel title="Classification" value={formatClassificationValue(company.stock_classification_label)} muted />
-          <InfoPanel title="Instrument Detail" value={formatClassificationValue(company.instrument_detail_label)} muted />
-          <InfoPanel title="Listing Type" value={formatClassificationValue(company.listing_type)} muted />
+          <InfoPanel title="Sector" value={phaseAwareValue(company.sector, phase)} muted />
+          <InfoPanel title="Industry" value={phaseAwareValue(company.industry, phase, "w-32")} muted />
+          <InfoPanel title="Exchange" value={phaseAwareValue(company.exchange, phase)} muted />
+          <InfoPanel title="Country" value={phaseAwareValue(company.country, phase)} muted />
+          <InfoPanel title="Classification" value={phaseAwareValue(company.stock_classification_label, phase, "w-28")} muted />
+          <InfoPanel title="Instrument Detail" value={phaseAwareValue(company.instrument_detail_label, phase, "w-28")} muted />
+          <InfoPanel title="Listing Type" value={phaseAwareValue(company.listing_type, phase, "w-28")} muted />
         </div>
-        <p className="mt-4 text-sm leading-6 text-slate-400">{company.description || "No data available"}</p>
+        <div className="mt-4 text-sm leading-6 text-slate-400">
+          {company.description || (isHydratingPhase(phase) ? <FieldSkeleton width="w-full" /> : "—")}
+        </div>
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Earnings</p>
@@ -699,10 +773,13 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol }: { data: Rese
   );
 });
 
-const FundamentalsPanel = memo(function FundamentalsPanel({ data }: { data: ResearchData | null }) {
+const FundamentalsPanel = memo(function FundamentalsPanel({ data, phase }: { data: ResearchData | null; phase: PayloadPhase }) {
   const market = data?.market || {};
   const technicals = data?.technicals || {};
   const mcp = data?.mcp || {};
+  const whereValue = mcp.where_status === "pending"
+    ? (isHydratingPhase(phase) ? <FieldSkeleton width="w-44" /> : "Levels unavailable")
+    : mcp.where || "Levels unavailable";
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -713,9 +790,9 @@ const FundamentalsPanel = memo(function FundamentalsPanel({ data }: { data: Rese
         <InfoPanel title="Volume" value={formatLargeNumber(market.volume ?? null)} muted />
         <InfoPanel title="Market Cap" value={formatLargeNumber(market.market_cap ?? null)} muted />
         <InfoPanel title="RSI" value={formatMetricNumber(technicals.rsi ?? null, 2)} muted />
-        <InfoPanel title="VWAP" value={formatCurrency(technicals.vwap ?? null)} muted />
+        <InfoPanel title="VWAP" value={technicals.vwap == null && isHydratingPhase(phase) ? <FieldSkeleton /> : (technicals.vwap == null ? "—" : formatCurrency(technicals.vwap))} muted />
         <InfoPanel title="ATR" value={formatCurrency(technicals.atr ?? null)} muted />
-        <InfoPanel title="Where" value={mcp.where || "Key levels still forming"} muted />
+        <InfoPanel title="Where" value={whereValue} muted />
       </div>
     </div>
   );
@@ -730,14 +807,18 @@ function ResearchV2PageContent({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [phase, setPhase] = useState<PayloadPhase>("idle");
   const payload = data?.data || null;
   const researchMeta = data?.meta || null;
   const responseWarnings = useMemo(() => {
-    return Array.from(new Set([
+    return [
       ...(Array.isArray(payload?.warnings) ? payload.warnings : []),
       ...(Array.isArray(researchMeta?.warnings) ? researchMeta.warnings : []),
-    ]));
+    ]
+      .map(normalizeWarning)
+      .filter((warning): warning is ResearchWarning => Boolean(warning));
   }, [payload?.warnings, researchMeta?.warnings]);
+  const bannerMessage = useMemo(() => getBannerMessage(responseWarnings, researchMeta), [responseWarnings, researchMeta]);
   const chartRows = useMemo(() => getChartRows(payload?.chart), [payload?.chart]);
   const catalystNews = useMemo(() => {
     if (Array.isArray(news) && news.length > 0) {
@@ -771,6 +852,7 @@ function ResearchV2PageContent({ params }: Props) {
       setData(null);
       setError(false);
       setLoading(false);
+      setPhase("idle");
       return undefined;
     }
 
@@ -780,6 +862,7 @@ function ResearchV2PageContent({ params }: Props) {
       try {
         setLoading(true);
         setError(false);
+        setPhase("fast_loading");
         console.log("[RESEARCH FAST FETCH START]", symbol);
 
         const res = await fetch(`/api/v2/research/${encodeURIComponent(symbol)}?fast=true`, {
@@ -797,8 +880,9 @@ function ResearchV2PageContent({ params }: Props) {
 
         if (isMounted) {
           console.log("[RESEARCH FAST SET DATA]", json);
-          setData(json);
+          setData((current) => current?.meta?.phase?.startsWith("full") ? current : json);
           setLoading(false);
+          setPhase((currentPhase) => currentPhase === "full_loaded" ? currentPhase : "full_loading");
         }
       } catch (err) {
         console.error("[RESEARCH FAST FETCH ERROR]", err);
@@ -806,6 +890,7 @@ function ResearchV2PageContent({ params }: Props) {
           setData(null);
           setError(true);
           setLoading(false);
+          setPhase("error");
         }
       }
     }
@@ -825,6 +910,7 @@ function ResearchV2PageContent({ params }: Props) {
 
     let mounted = true;
     const controller = new AbortController();
+    setPhase((currentPhase) => currentPhase === "idle" ? "full_loading" : currentPhase);
 
     async function loadFullResearch() {
       try {
@@ -854,9 +940,11 @@ function ResearchV2PageContent({ params }: Props) {
             },
           };
         });
+        setPhase("full_loaded");
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("[RESEARCH FULL FETCH ERROR]", error);
+          setPhase((currentPhase) => currentPhase === "full_loaded" ? currentPhase : "fast_loaded");
         }
       }
     }
@@ -927,6 +1015,7 @@ function ResearchV2PageContent({ params }: Props) {
     setNews(null);
     setLoading(true);
     setError(false);
+    setPhase("fast_loading");
     setReloadKey((value) => value + 1);
   };
 
@@ -1029,9 +1118,9 @@ function ResearchV2PageContent({ params }: Props) {
         </div>
       ) : null}
 
-      {researchMeta?.fallback || responseWarnings.length > 0 ? (
+      {bannerMessage ? (
         <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Some data is temporarily limited due to high load
+          {bannerMessage}
         </div>
       ) : null}
 
@@ -1039,7 +1128,7 @@ function ResearchV2PageContent({ params }: Props) {
         <div className="mt-8 space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
             {/* Decision card removed Phase 37 — see docs/BEACON_v0_SPEC.md scoring discipline */}
-            <OverviewPanel data={payload} symbol={symbol} />
+            <OverviewPanel data={payload} symbol={symbol} phase={phase} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
@@ -1050,7 +1139,7 @@ function ResearchV2PageContent({ params }: Props) {
             <CatalystPanel symbol={symbol} news={catalystNews} />
           </div>
 
-          <FundamentalsPanel data={payload} />
+            <FundamentalsPanel data={payload} phase={phase} />
         </div>
       ) : null}
     </section>

@@ -51,8 +51,11 @@ function getDefaultMCP(symbol) {
   return {
     summary: 'No edge - avoid until conditions improve',
     why: 'No clear catalyst, move appears technically driven and indicates low conviction.',
-    what: 'Range-bound between 0.00 and 0.00',
-    where: 'Watch breakout above 0.00 or breakdown below 0.00',
+    what: 'Key levels still forming',
+    where: null,
+    where_status: 'pending',
+    upper_level: null,
+    lower_level: null,
     when: 'Avoid until catalyst emerges',
     confidence: 20,
     confidence_reason: 'Limited due to lack of catalyst and weak structure.',
@@ -138,9 +141,20 @@ function toArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function makeWarning(reason, message) {
+  return {
+    reason,
+    message: String(message || reason),
+  };
+}
+
+function pushWarning(warnings, reason, message) {
+  warnings.push(makeWarning(reason, message));
+}
+
 async function safeQuery(existingTables, tableName, sql, params, options, warnings, fallbackRows = []) {
   if (!existingTables.has(tableName)) {
-    warnings.push(`Missing table: ${tableName}`);
+    pushWarning(warnings, 'partial_data', `Missing table: ${tableName}`);
     return fallbackRows;
   }
 
@@ -151,7 +165,8 @@ async function safeQuery(existingTables, tableName, sql, params, options, warnin
     });
     return result.rows || fallbackRows;
   } catch (error) {
-    warnings.push(`${tableName}: ${error.message}`);
+    const reason = String(error?.message || '').toLowerCase().includes('timeout') ? 'fmp_timeout' : 'partial_data';
+    pushWarning(warnings, reason, `${tableName}: ${error.message}`);
     return fallbackRows;
   }
 }
@@ -240,7 +255,7 @@ async function backfillMissingCharts(symbol, chart, warnings) {
       const payload = await buildChartPayload(symbol, '1day');
       nextChart.daily = normalizeCandleRows(payload?.candles);
     } catch (error) {
-      warnings.push(`chart_daily_fallback: ${error.message}`);
+      pushWarning(warnings, 'chart_unavailable', `chart_daily_fallback: ${error.message}`);
     }
   }
 
@@ -254,7 +269,7 @@ async function backfillMissingCharts(symbol, chart, warnings) {
         nextChart.daily = candles;
       }
     } catch (error) {
-      warnings.push(`chart_intraday_fallback: ${error.message}`);
+      pushWarning(warnings, 'chart_unavailable', `chart_intraday_fallback: ${error.message}`);
     }
   }
 
@@ -962,10 +977,11 @@ function buildMCP(researchData) {
     }
 
     const { recentHigh, recentLow, priorHigh, priorLow } = getRecentRange(researchData?.chart);
-    const upperLevel = formatLevel(recentHigh);
-    const lowerLevel = formatLevel(recentLow);
+    const hasRangeLevels = recentHigh !== null && recentLow !== null;
+    const upperLevel = hasRangeLevels ? formatLevel(recentHigh) : null;
+    const lowerLevel = hasRangeLevels ? formatLevel(recentLow) : null;
 
-    let what = `Range-bound between ${lowerLevel} and ${upperLevel}`;
+    let what = hasRangeLevels ? `Range-bound between ${lowerLevel} and ${upperLevel}` : 'Key levels still forming';
     let trendState = 'RANGE';
     if (price !== null && sma20 !== null && sma50 !== null) {
       if (price > sma20 && sma20 > sma50) {
@@ -989,7 +1005,7 @@ function buildMCP(researchData) {
     );
     const distanceToVwap = price !== null && vwap !== null && price > vwap ? 'ABOVE_VWAP' : 'BELOW_VWAP';
 
-    const where = `Watch breakout above ${upperLevel} or breakdown below ${lowerLevel}`;
+    const where = hasRangeLevels ? `Watch breakout above ${upperLevel} or breakdown below ${lowerLevel}` : null;
 
     let when = 'Wait for breakout with volume confirmation';
     if (!recentNews && !upcomingEarnings && relativeVolume < 1) {
@@ -1125,6 +1141,9 @@ function buildMCP(researchData) {
       why,
       what,
       where,
+      where_status: hasRangeLevels ? 'available' : 'pending',
+      upper_level: recentHigh,
+      lower_level: recentLow,
       when,
       confidence,
       confidence_reason: confidenceReason,
@@ -1150,7 +1169,7 @@ async function getResearchData(symbol) {
   try {
     await ensureTickerClassificationSchema();
   } catch (error) {
-    warnings.push(`ticker_classifications: ${error.message}`);
+    pushWarning(warnings, 'partial_data', `ticker_classifications: ${error.message}`);
   }
 
   const [marketRows, intradayRows, dailyRows, newsRows, earningsRows, companyRows, classificationRows] = await Promise.all([
@@ -1393,7 +1412,7 @@ async function getResearchData(symbol) {
         ...payload.earnings,
         next: projectedNext,
       };
-      warnings.push('earnings_projected_from_history');
+      pushWarning(warnings, 'partial_data', 'earnings_projected_from_history');
     }
   }
 
@@ -1442,7 +1461,7 @@ async function getResearchData(symbol) {
         price: payload.market.price,
       }]);
     } catch (error) {
-      warnings.push(`ticker_classifications.persist: ${error.message}`);
+      pushWarning(warnings, 'partial_data', `ticker_classifications.persist: ${error.message}`);
     }
   }
 
