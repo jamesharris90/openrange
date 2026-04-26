@@ -12,7 +12,7 @@ require('dotenv').config({
   override: false,
 });
 
-const { runBeaconPipeline } = require('../beacon-v0/orchestrator/run');
+const { SIGNALS, runBeaconPipeline } = require('../beacon-v0/orchestrator/run');
 const {
   isAnotherRunActive,
   reapStaleRuns,
@@ -22,6 +22,8 @@ const {
 } = require('../beacon-v0/persistence/runs');
 const { generateRunId } = require('../beacon-v0/persistence/picks');
 const { pool, queryWithTimeout } = require('../db/pg');
+
+const WORKER_VERSION = 'v0.5-phase50';
 
 async function getEvaluationUniverse() {
   const result = await queryWithTimeout(
@@ -90,8 +92,8 @@ async function main() {
     const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
 
     await recordRunSuccess(runId, picks.length, durationSeconds, {
-      signals_processed: 5,
-      worker_version: 'v0.2-phase43',
+      signals_processed: SIGNALS.length,
+      worker_version: WORKER_VERSION,
     });
 
     console.log(`[beacon-v0-worker] Run ${runId}: ${picks.length} picks written in ${durationSeconds}s`);
