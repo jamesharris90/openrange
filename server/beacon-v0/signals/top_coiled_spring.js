@@ -36,7 +36,7 @@ async function detect(universe = [], options = {}) {
   const min5dAvgVolume = Number(options.min5dAvgVolume || MIN_5D_AVG_VOLUME);
   const minPrice = Number(options.minPrice || MIN_PRICE);
   const minAtr20d = Number(options.minAtr20d || MIN_ATR_20D);
-  const universeFilter = buildUniverseClause(universe, 4);
+  const universeFilter = buildUniverseClause(universe, 6);
 
   const result = await queryWithTimeout(
     `
