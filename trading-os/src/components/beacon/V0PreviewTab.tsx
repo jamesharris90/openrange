@@ -58,6 +58,16 @@ function getAlignmentCount(pick: V0Pick): number {
   return typeof count === "number" ? count : pick.signals_aligned.length;
 }
 
+function getAlignmentBadgeClass(count: number): string {
+  if (count >= 4) {
+    return "border-emerald-400/50 bg-emerald-500/20 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.18)]";
+  }
+  if (count === 3) {
+    return "border-blue-400/50 bg-blue-500/20 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.16)]";
+  }
+  return "border-slate-600/60 bg-slate-800/70 text-slate-200";
+}
+
 function getSignalEvidence(pick: V0Pick): SignalEvidence[] {
   const rawEvidence = pick.metadata.signal_evidence;
   if (!Array.isArray(rawEvidence)) return [];
@@ -146,15 +156,17 @@ export function V0PreviewTab() {
 
           return (
             <div key={`${pick.symbol}-${pick.pattern}`} className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="font-mono text-lg font-semibold text-cyan-300">{pick.symbol}</div>
-                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{pick.pattern}</div>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${getAlignmentBadgeClass(alignmentCount)}`}>
+                    {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
+                  </span>
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{pick.pattern}</div>
+                </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-300">{pick.reasoning}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-                <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-cyan-200">
-                  Alignment: {alignmentCount} signals
-                </span>
                 <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">Confidence: {pick.confidence}</span>
                 <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1">
                   Signals: {pick.signals_aligned.length ? pick.signals_aligned.join(", ") : "—"}
