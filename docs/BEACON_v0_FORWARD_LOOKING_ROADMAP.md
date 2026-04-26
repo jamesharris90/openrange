@@ -98,6 +98,110 @@ Implement in roughly this order:
 
 This roadmap is intentionally aspirational. Each phase is gated on shipping value before moving to the next.
 
+## 5. Learning module / signal weight adaptation
+
+What: Beacon currently treats all signals as equally weighted. The learning module would track Beacon picks against measured outcomes (next-day move, 3-day move, 5-day move) and adjust signal weights based on observed performance.
+
+Status: Deferred. Depends on having multiple weeks of historical Beacon picks to build statistical significance.
+
+Sub-types:
+- Outcome attribution: link each pick to subsequent price move
+- Pattern performance: which pattern names produce the best continuation?
+- Signal combination edge: do certain alignments outperform others?
+- Score adaptation: feedback loop adjusting score boost based on history
+- Cross-pattern context: e.g., "earnings_reaction + news flag" historically produces 4.2% next-day move on average vs 1.1% for earnings_reaction alone — therefore boost picks with that combination
+
+Data needed:
+- New table: beacon_v0_outcomes (run_id, symbol, t+1 close, t+3 close, t+5 close, attribution metadata)
+- Outcome ingestion worker that runs daily after market close
+- Statistical significance testing infrastructure
+- Score adaptation logic in alignment engine
+
+Implementation effort: Multi-week. Foundational. Requires backtest-style infrastructure embedded in production.
+
+Risks:
+- Overfitting to recent patterns
+- Sample size insufficiency for rare combinations
+- Lookahead bias if not carefully implemented
+
+## 6. News catalyst classification
+
+What: Beacon currently treats news as binary (symbol has news in last 12h, yes/no). Real news catalysts have very different implications:
+- Stock-specific news: company-only relevance (Phase 3 trial result, M&A)
+- Sector news: cascades to multiple stocks (FDA approval class, OPEC decision)
+- Macro news: market-wide implications (Fed decision, war, executive orders)
+
+Without classification, Beacon misses sector-wide moves driven by single events.
+
+Status: Deferred. Requires NLP/LLM classification layer.
+
+Sub-types:
+- Stock-specific catalyst (drug trial, earnings preannouncement, M&A target)
+- Sector catalyst (FDA class action, regulatory change, supply shock)
+- Macro/geopolitical catalyst (war, executive order, central bank action)
+- Theme catalyst (psychedelics legislation, AI executive order, mineral rights)
+
+Data needed:
+- News headline text classifier (LLM-based or fine-tuned BERT)
+- Sector/theme taxonomy with stock mappings
+- Cascade detection logic ("if classified as 'energy supply shock' → boost all XLE constituents")
+- Real-world examples to validate against (e.g., Apr 18 psychedelics EO)
+
+Implementation effort: Multi-week. Likely 2-3 phases:
+- Phase A: Headline classifier + tagging
+- Phase B: Sector/theme mapping + cascade detection
+- Phase C: Integration into Beacon signal system
+
+Real-world tests:
+- Trump April 18 psychedelics EO → did Beacon catch related stocks?
+- Iran/energy events → did Beacon surface energy/defense names ahead of the move?
+
+## 7. Congressional / political trade signals
+
+What: Senate and House members are required to disclose stock trades within 45 days. FMP provides this data via senate-trading and house-trading endpoints. Politicians' STOCK trades have historically shown alpha; "Pelosi bought $X" stories drive retail flow.
+
+Status: Planned for Phase C series (later session).
+
+Sub-types:
+- Senate trades (via FMP /senate-trading endpoint)
+- House trades (via FMP /house-trading endpoint)
+- Recent trades signal (members trading specific symbol in last 30 days)
+- Cluster detection (multiple members buying same symbol = stronger signal)
+- Sector pattern detection (defense stocks bought by armed services committee members ahead of contracts)
+
+Data needed:
+- New tables: congressional_trades (member, party, chamber, symbol, trade_type, amount_range, transaction_date, disclosure_date)
+- Ingestion worker (daily, FMP endpoints)
+- Signal logic: top_congressional_trades_recent
+
+Implementation effort: 3-5 phases:
+- C1: Ingestion (FMP endpoints + table + worker)
+- C2: Signal logic (top_congressional_trades_recent)
+- C3: Independent frontend page (similar to News, Earnings tabs)
+- C4 (optional): Cluster detection across members
+- C5 (optional): Pre-event timing analysis
+
+Independent frontend: Beacon utilizes the data as a signal, but congressional trades also deserve their own page in the navigation showing recent disclosures, member-level views, sector breakdowns. Similar to how News and Earnings are both ingested for Beacon AND have their own frontend pages.
+
+## 8. Forward-looking vs backward-looking UI distinction
+
+What: Currently 5 of 6 Beacon signals are backward-looking (RVOL, gap, news, earnings_reaction all describe events that already happened). Only Coiled Spring is forward-looking. As more forward-looking signals are added, the UI needs to distinguish them.
+
+Status: Phase B4 (next phase).
+
+Sub-types:
+- Signal-level metadata flag: forward_looking: true | false
+- UI badge or color treatment differentiating forward-looking signal cards within a pick
+- Pick-level summary: "X of Y signals forward-looking"
+- Ranking weight: should forward-looking alignment count more than backward-looking? (Open question)
+
+Note: "Already moved + still moving" is a real pattern (momentum continuation, especially with fresh news). Backward-looking signals are not inherently less valuable — they just describe a different trade thesis. UI should communicate the difference, not stigmatize either type.
+
+Data needed:
+- Add `forward_looking` boolean to each signal module's exports
+- Aggregate at pick level (count forward-looking signals in alignment)
+- Frontend rendering changes
+
 ## Open questions
 
 - Should "forward-looking" picks be visually distinguished from "already moved" picks in the UI? (Different tab, different colour, different section?)
