@@ -160,7 +160,7 @@ Real-world tests:
 
 What: Senate and House members are required to disclose stock trades within 45 days. FMP provides this data via senate-trading and house-trading endpoints. Politicians' STOCK trades have historically shown alpha; "Pelosi bought $X" stories drive retail flow.
 
-Status: Planned for Phase C series (later session).
+Status: Phase C1 complete (ingestion deployed). Signal logic and frontend remain planned for later Phase C work.
 
 Sub-types:
 - Senate trades (via FMP /senate-trading endpoint)
@@ -175,7 +175,7 @@ Data needed:
 - Signal logic: top_congressional_trades_recent
 
 Implementation effort: 3-5 phases:
-- C1: Ingestion (FMP endpoints + table + worker)
+- C1: Ingestion (FMP endpoints + table + worker) ✓
 - C2: Signal logic (top_congressional_trades_recent)
 - C3: Independent frontend page (similar to News, Earnings tabs)
 - C4 (optional): Cluster detection across members
@@ -231,6 +231,35 @@ Open risks:
 - Overconfident language that implies certainty
 - Latency and cost if narratives are generated synchronously
 - Drift between deterministic Beacon fields and generated prose
+
+## Worker timing audit (open)
+
+Status: Captured for Monday review.
+
+Observations from Sunday session:
+- beacon-nightly-worker: 21:30 UTC, runs ~3.5 hours
+- beacon-v0-worker: 22:00 UTC (during nightly worker window — small query footprint, low impact, but worth verifying under real Monday load)
+- congressional-trades-worker: 02:00 UTC
+
+Open questions:
+- Should beacon-v0-worker move outside nightly worker window?
+- What does beacon-nightly-worker actually do? Phase 35b raised pool cap but legacy worker behavior was not audited
+- Is 02:00 UTC the right time for congressional given typical filing patterns?
+
+Action: Monday morning audit of all worker schedules + actual DB CPU profile during overlap windows.
+
+## Post-market price data (deferred)
+
+Status: Captured for future phase.
+
+Issue: Phase B5a card shows latest_close from daily_ohlc (regular-hours 4:00 PM ET close). Trader concern: post-market activity (4:00 PM - 8:00 PM ET) is where significant price discovery happens, especially for earnings reactions. Showing only regular-hours close misses 4 hours of price action.
+
+Options:
+- Source post-market close from FMP after-hours quote endpoint
+- Add explicit "as of HH:MM ET" label to current price (admit it is regular hours)
+- Two-tier display: regular-hours close + post-market last (when available)
+
+Implementation effort: 2-3 phases, likely after C series.
 
 ## Open questions
 
