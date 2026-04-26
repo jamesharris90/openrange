@@ -9,6 +9,7 @@ const {
 const SIGNAL_NAME = 'top_rvol_today';
 const CATEGORY = 'volume';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = false;
 const TOP_N = 100;
 const MIN_RVOL = 1.5;
 const MIN_AVG_VOLUME = 100000;
@@ -85,4 +86,4 @@ function summarize(metadata = {}) {
   return `trading at ${rvol.toFixed(2)}x volume`;
 }
 
-module.exports = { CATEGORY, MIN_AVG_VOLUME, MIN_RVOL, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
+module.exports = { CATEGORY, FORWARD_LOOKING, MIN_AVG_VOLUME, MIN_RVOL, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

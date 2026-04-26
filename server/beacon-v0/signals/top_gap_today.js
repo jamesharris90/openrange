@@ -9,6 +9,7 @@ const {
 const SIGNAL_NAME = 'top_gap_today';
 const CATEGORY = 'price';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = false;
 const TOP_N = 100;
 const MIN_GAP_ABS_PCT = 1.0;
 const MIN_PRICE = 1.0;
@@ -96,4 +97,4 @@ function summarize(metadata = {}) {
   return `gapped ${direction} ${Math.abs(gapPct).toFixed(2)}%`;
 }
 
-module.exports = { CATEGORY, MIN_GAP_ABS_PCT, MIN_PRICE, MIN_TODAY_VOLUME, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
+module.exports = { CATEGORY, FORWARD_LOOKING, MIN_GAP_ABS_PCT, MIN_PRICE, MIN_TODAY_VOLUME, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

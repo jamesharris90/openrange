@@ -8,6 +8,7 @@ const {
 const SIGNAL_NAME = 'earnings_upcoming_within_3d';
 const CATEGORY = 'earnings';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = true;
 const TOP_N = 100;
 const WINDOW_DAYS = 3;
 
@@ -92,6 +93,7 @@ function summarize(metadata = {}) {
 
 module.exports = {
   CATEGORY,
+  FORWARD_LOOKING,
   RUN_MODE,
   SIGNAL_NAME,
   TOP_N,

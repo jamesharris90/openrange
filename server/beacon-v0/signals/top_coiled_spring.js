@@ -24,6 +24,7 @@ const {
 const SIGNAL_NAME = 'top_coiled_spring';
 const CATEGORY = 'compression';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = true;
 const TOP_N = 100;
 const MIN_20D_AVG_VOLUME = 250000;
 const MIN_5D_AVG_VOLUME = 100000;
@@ -136,6 +137,7 @@ function summarize(metadata = {}) {
 
 module.exports = {
   CATEGORY,
+  FORWARD_LOOKING,
   MIN_20D_AVG_VOLUME,
   MIN_5D_AVG_VOLUME,
   MIN_ATR_20D,

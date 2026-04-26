@@ -8,6 +8,7 @@ const {
 const SIGNAL_NAME = 'top_news_last_12h';
 const CATEGORY = 'news';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = false;
 const TOP_N = 100;
 const NEWS_WINDOW_HOURS = 12;
 
@@ -102,4 +103,4 @@ function summarize(metadata = {}) {
   return `${count} news ${count === 1 ? 'item' : 'items'} in last ${windowHours}h`;
 }
 
-module.exports = { CATEGORY, NEWS_WINDOW_HOURS, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
+module.exports = { CATEGORY, FORWARD_LOOKING, NEWS_WINDOW_HOURS, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };

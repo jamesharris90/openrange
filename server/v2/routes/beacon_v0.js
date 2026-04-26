@@ -1,12 +1,31 @@
 const express = require('express');
+const { SIGNALS } = require('../../beacon-v0/orchestrator/run');
 const { getLatestPicks } = require('../../beacon-v0/persistence/picks');
 
 const router = express.Router();
 
+const forwardLookingMap = new Map();
+SIGNALS.forEach((signal) => {
+  if (signal && signal.SIGNAL_NAME) {
+    forwardLookingMap.set(signal.SIGNAL_NAME, Boolean(signal.FORWARD_LOOKING));
+  }
+});
+
+function enrichPickDirectionCounts(pick) {
+  const signalsAligned = Array.isArray(pick.signals_aligned) ? pick.signals_aligned : [];
+  const forwardCount = signalsAligned.filter((signalName) => forwardLookingMap.get(signalName) === true).length;
+
+  return {
+    ...pick,
+    forward_count: forwardCount,
+    backward_count: signalsAligned.length - forwardCount,
+  };
+}
+
 router.get('/picks', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
-    const picks = await getLatestPicks(limit);
+    const picks = (await getLatestPicks(limit)).map(enrichPickDirectionCounts);
 
     return res.json({
       picks,

@@ -22,6 +22,13 @@ const SIGNALS = [
   topVolumeBuilding,
 ];
 
+const forwardLookingMap = new Map();
+SIGNALS.forEach((signal) => {
+  if (signal && signal.SIGNAL_NAME) {
+    forwardLookingMap.set(signal.SIGNAL_NAME, Boolean(signal.FORWARD_LOOKING));
+  }
+});
+
 function chunkArray(items, size) {
   const chunks = [];
   for (let index = 0; index < items.length; index += size) {
@@ -36,6 +43,8 @@ function sleep(ms) {
 
 function candidateToPick(candidate) {
   const signals = candidate.signals || [];
+  const signalsAligned = signals.map((signal) => signal.signal);
+  const forwardCount = signalsAligned.filter((signalName) => forwardLookingMap.get(signalName) === true).length;
 
   return {
     symbol: candidate.symbol,
@@ -45,7 +54,9 @@ function candidateToPick(candidate) {
     reasoning: candidate.patternDescription
       ? `${candidate.symbol}: ${candidate.patternDescription}`
       : `${candidate.symbol}: multiple Beacon v0 leaderboards align on this symbol.`,
-    signals_aligned: signals.map((signal) => signal.signal),
+    signals_aligned: signalsAligned,
+    forward_count: forwardCount,
+    backward_count: signalsAligned.length - forwardCount,
     metadata: {
       direction: candidate.direction || 'neutral',
       pattern_name: candidate.patternName || 'multi_signal_alignment',

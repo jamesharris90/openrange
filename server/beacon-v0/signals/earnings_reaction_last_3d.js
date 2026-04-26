@@ -8,6 +8,7 @@ const {
 const SIGNAL_NAME = 'earnings_reaction_last_3d';
 const CATEGORY = 'earnings';
 const RUN_MODE = 'leaderboard';
+const FORWARD_LOOKING = false;
 const TOP_N = 100;
 const LOOKBACK_TRADING_DAYS = 3;
 const MIN_ABS_EPS_SURPRISE_PCT = 1.0;
@@ -96,4 +97,4 @@ function summarize(metadata = {}) {
   return `reported ${sign}${surprise.toFixed(1)}% earnings surprise${context}`;
 }
 
-module.exports = { CATEGORY, LOOKBACK_TRADING_DAYS, MIN_ABS_EPS_SURPRISE_PCT, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
+module.exports = { CATEGORY, FORWARD_LOOKING, LOOKBACK_TRADING_DAYS, MIN_ABS_EPS_SURPRISE_PCT, RUN_MODE, SIGNAL_NAME, TOP_N, detect, summarize };
