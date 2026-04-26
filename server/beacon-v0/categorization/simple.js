@@ -4,6 +4,7 @@ const topNews = require('../signals/top_news_last_12h');
 const topUpcomingEarnings = require('../signals/earnings_upcoming_within_3d');
 const earningsReaction = require('../signals/earnings_reaction_last_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
+const topCongressionalTradesRecent = require('../signals/top_congressional_trades_recent');
 const topVolumeBuilding = require('../signals/top_volume_building');
 
 const SIGNAL_MODULES = {
@@ -13,12 +14,14 @@ const SIGNAL_MODULES = {
   [topUpcomingEarnings.SIGNAL_NAME]: topUpcomingEarnings,
   [earningsReaction.SIGNAL_NAME]: earningsReaction,
   [topCoiledSpring.SIGNAL_NAME]: topCoiledSpring,
+  [topCongressionalTradesRecent.SIGNAL_NAME]: topCongressionalTradesRecent,
   [topVolumeBuilding.SIGNAL_NAME]: topVolumeBuilding,
 };
 
 const PRIORITY_ORDER = [
   topUpcomingEarnings.SIGNAL_NAME,
   earningsReaction.SIGNAL_NAME,
+  topCongressionalTradesRecent.SIGNAL_NAME,
   topCoiledSpring.SIGNAL_NAME,
   topVolumeBuilding.SIGNAL_NAME,
   topGap.SIGNAL_NAME,
@@ -71,6 +74,21 @@ const PATTERN_RULES = [
     name: 'volume_building_compression_news',
     requires: ['top_volume_building', 'top_coiled_spring', 'top_news_last_12h'],
     label: 'Coiled Accumulation with Catalyst',
+  },
+  {
+    name: 'congressional_pre_earnings_news',
+    requires: ['top_congressional_trades_recent', 'earnings_upcoming_within_3d', 'top_news_last_12h'],
+    label: 'Congressional + Pre-Earnings + News',
+  },
+  {
+    name: 'congressional_with_earnings_reaction',
+    requires: ['top_congressional_trades_recent', 'earnings_reaction_last_3d', 'top_rvol_today'],
+    label: 'Congressional Conviction with Earnings Reaction',
+  },
+  {
+    name: 'congressional_news_volume',
+    requires: ['top_congressional_trades_recent', 'top_news_last_12h', 'top_rvol_today'],
+    label: 'Congressional + News Catalyst',
   },
   {
     name: 'compression_with_news',
@@ -166,6 +184,16 @@ const PATTERN_RULES = [
     name: 'earnings_reaction_compression_only',
     requires: ['earnings_reaction_last_3d', 'top_coiled_spring'],
     label: 'Post-Earnings Coiled Spring',
+  },
+  {
+    name: 'congressional_with_news',
+    requires: ['top_congressional_trades_recent', 'top_news_last_12h'],
+    label: 'Congressional + News',
+  },
+  {
+    name: 'congressional_pre_earnings',
+    requires: ['top_congressional_trades_recent', 'earnings_upcoming_within_3d'],
+    label: 'Congressional + Pre-Earnings',
   },
   {
     name: 'volume_building_with_news',
