@@ -3,7 +3,6 @@
 import { memo, useMemo } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { WARMING_COPY, isNullDisplay } from "@/components/research/formatters";
 
 function normalizeNewsItems(payload) {
   const rows = Array.isArray(payload)
@@ -28,21 +27,48 @@ function normalizeNewsItems(payload) {
         source: String(item?.source || "News").trim() || "News",
         url: String(item?.url || "").trim() || null,
         publishedAt: item?.publishedAt || item?.published_at || null,
-        contextScope: String(item?.context_scope || item?.contextScope || 'DIRECT').trim().toUpperCase(),
+        contextScope: String(item?.context_scope || item?.contextScope || 'SYMBOL_NEWS').trim().toUpperCase(),
       };
     })
     .filter(Boolean)
     .slice(0, 5);
 }
 
-function formatTimestamp(value) {
+function formatRelativeTime(value) {
   if (!value) {
-    return WARMING_COPY;
+    return 'Time unavailable';
+  }
+
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) {
+    return 'Time unavailable';
+  }
+
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(then).toLocaleDateString('en-US', {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatAbsoluteTime(value) {
+  if (!value) {
+    return null;
   }
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return WARMING_COPY;
+    return null;
   }
 
   return parsed.toLocaleString("en-US", {
@@ -50,19 +76,25 @@ function formatTimestamp(value) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 }
 
 function scopeLabel(value) {
   switch (String(value || '').toUpperCase()) {
+    case 'DIRECT_CATALYST':
+    case 'DIRECT':
+      return { label: 'DIRECT CATALYST', className: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-200' };
+    case 'SYMBOL_NEWS':
+    case 'SYMBOL':
+      return { label: 'SYMBOL NEWS', className: 'border-slate-700 bg-slate-900/70 text-slate-300' };
     case 'SECTOR':
-      return 'SECTOR';
+      return { label: 'SECTOR', className: 'border-blue-500/35 bg-blue-500/10 text-blue-200' };
     case 'MARKET':
-      return 'MACRO';
-    case 'RELATED':
-      return 'RELATED';
+    case 'MACRO':
+      return { label: 'MACRO', className: 'border-amber-500/35 bg-amber-500/10 text-amber-200' };
     default:
-      return 'DIRECT CATALYST';
+      return { label: 'SYMBOL NEWS', className: 'border-slate-700 bg-slate-900/70 text-slate-300' };
   }
 }
 
@@ -132,20 +164,23 @@ function CatalystPanel({ symbol, news = [], company = {} }) {
         {items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item, index) => {
-              const publishedAt = formatTimestamp(item.publishedAt);
-              const hasPublishedAt = !isNullDisplay(publishedAt);
+              const relativeTime = formatRelativeTime(item.publishedAt);
+              const absoluteTime = formatAbsoluteTime(item.publishedAt);
+              const scope = scopeLabel(item.contextScope);
               const content = (
                 <div className="rounded-2xl border border-slate-800/70 bg-slate-950/45 p-4 transition hover:border-slate-700 hover:bg-slate-900/55">
                   <div className="flex items-center justify-between gap-3">
                     <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] ${sourceTone(item.source)}`}>{item.source}</div>
-                    <div className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] text-slate-300">
-                      {scopeLabel(item.contextScope)}
+                    <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] ${scope.className}`}>
+                      {scope.label}
                     </div>
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-3">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-300/75">Headline {index + 1}</div>
-                    <div className={`text-[11px] uppercase tracking-[0.18em] ${hasPublishedAt ? "text-slate-500" : "text-slate-600"}`}>
-                      {publishedAt}
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 text-right text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                      <span>{relativeTime}</span>
+                      {absoluteTime ? <span className="text-slate-700">·</span> : null}
+                      {absoluteTime ? <span>{absoluteTime}</span> : null}
                     </div>
                   </div>
                   <div className="mt-3 text-sm font-medium leading-6 text-slate-100">{item.headline}</div>
