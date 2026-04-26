@@ -8,6 +8,7 @@ const topCoiledSpring = require('../signals/top_coiled_spring');
 const topGapToday = require('../signals/top_gap_today');
 const topNewsLast12h = require('../signals/top_news_last_12h');
 const topRvolToday = require('../signals/top_rvol_today');
+const topVolumeBuilding = require('../signals/top_volume_building');
 
 const BATCH_SIZE = 100;
 const INTER_BATCH_DELAY_MS = 2000;
@@ -18,6 +19,7 @@ const SIGNALS = [
   earningsUpcomingWithin3d,
   earningsReactionLast3d,
   topCoiledSpring,
+  topVolumeBuilding,
 ];
 
 function chunkArray(items, size) {

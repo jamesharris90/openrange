@@ -4,6 +4,7 @@ const topNews = require('../signals/top_news_last_12h');
 const topUpcomingEarnings = require('../signals/earnings_upcoming_within_3d');
 const earningsReaction = require('../signals/earnings_reaction_last_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
+const topVolumeBuilding = require('../signals/top_volume_building');
 
 const SIGNAL_MODULES = {
   [topRvol.SIGNAL_NAME]: topRvol,
@@ -12,12 +13,14 @@ const SIGNAL_MODULES = {
   [topUpcomingEarnings.SIGNAL_NAME]: topUpcomingEarnings,
   [earningsReaction.SIGNAL_NAME]: earningsReaction,
   [topCoiledSpring.SIGNAL_NAME]: topCoiledSpring,
+  [topVolumeBuilding.SIGNAL_NAME]: topVolumeBuilding,
 };
 
 const PRIORITY_ORDER = [
   topUpcomingEarnings.SIGNAL_NAME,
   earningsReaction.SIGNAL_NAME,
   topCoiledSpring.SIGNAL_NAME,
+  topVolumeBuilding.SIGNAL_NAME,
   topGap.SIGNAL_NAME,
   topRvol.SIGNAL_NAME,
   topNews.SIGNAL_NAME,
@@ -58,6 +61,16 @@ const PATTERN_RULES = [
     name: 'coiled_spring_gap_volume',
     requires: ['top_coiled_spring', 'top_gap_today', 'top_rvol_today'],
     label: 'Compression Breakout',
+  },
+  {
+    name: 'volume_building_with_news_pre_earnings',
+    requires: ['top_volume_building', 'top_news_last_12h', 'earnings_upcoming_within_3d'],
+    label: 'Pre-Earnings Accumulation with News',
+  },
+  {
+    name: 'volume_building_compression_news',
+    requires: ['top_volume_building', 'top_coiled_spring', 'top_news_last_12h'],
+    label: 'Coiled Accumulation with Catalyst',
   },
   {
     name: 'compression_with_news',
@@ -153,6 +166,21 @@ const PATTERN_RULES = [
     name: 'earnings_reaction_compression_only',
     requires: ['earnings_reaction_last_3d', 'top_coiled_spring'],
     label: 'Post-Earnings Coiled Spring',
+  },
+  {
+    name: 'volume_building_with_news',
+    requires: ['top_volume_building', 'top_news_last_12h'],
+    label: 'Accumulation with News',
+  },
+  {
+    name: 'pre_earnings_accumulation',
+    requires: ['top_volume_building', 'earnings_upcoming_within_3d'],
+    label: 'Pre-Earnings Accumulation',
+  },
+  {
+    name: 'coiled_accumulation',
+    requires: ['top_volume_building', 'top_coiled_spring'],
+    label: 'Coiled Accumulation',
   },
 ];
 
