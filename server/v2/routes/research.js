@@ -7,7 +7,7 @@ const { queryWithTimeout } = require('../../db/pg');
 const { computeCompletenessConfidence, hasChartCandles, hasCompleteTechnicals } = require('../../services/dataConfidenceService');
 const { classifyTickerRecord, normalizeTickerClassificationRecord } = require('../../services/tickerClassificationService');
 const { getLatestScreenerPayload } = require('../services/snapshotService');
-const { buildMCP, getResearchData } = require('../services/researchService');
+const { buildMCP, getBeaconAlignment, getResearchData } = require('../services/researchService');
 const { buildFastResearchSnapshot } = require('../services/experienceSnapshotService');
 
 const router = express.Router();
@@ -257,6 +257,16 @@ function buildResponse(symbol, data, meta, source = 'snapshot') {
   };
 }
 
+function withBeaconAlignment(response, beaconAlignment) {
+  return {
+    ...response,
+    data: {
+      ...(response?.data || {}),
+      beacon_alignment: beaconAlignment,
+    },
+  };
+}
+
 function buildSeededFullPayload(symbol, fastSnapshot, reason, startedAt) {
   const fastData = fastSnapshot?.data || emptyResearchData(symbol);
   const screenerRow = fastData?.screener || buildSyntheticScreenerRow(symbol, fastData);
@@ -455,6 +465,7 @@ async function enrichResearchDataFromDb(symbol, data) {
         vwap: data.technicals?.vwap ?? row.vwap ?? null,
         relative_volume: data.technicals?.relative_volume ?? row.metrics_relative_volume ?? row.relative_volume ?? null,
         avg_volume_30d: data.technicals?.avg_volume_30d ?? row.avg_volume_30d ?? null,
+        vwap_source: data.technicals?.vwap_source ?? (row.vwap == null ? null : 'market_metrics'),
       },
     };
   } catch (_error) {
@@ -543,7 +554,8 @@ router.get('/:symbol', async (req, res) => {
   }
 
   const fastSnapshot = await buildFastResearchSnapshot(symbol).catch(() => null);
-  const fastResponse = buildResponse(
+  const beaconAlignment = await getBeaconAlignment(symbol);
+  const fastResponse = withBeaconAlignment(buildResponse(
     symbol,
     fastSnapshot?.data || emptyResearchData(symbol),
     {
@@ -554,7 +566,7 @@ router.get('/:symbol', async (req, res) => {
       source: fastSnapshot?.meta?.source || 'snapshot',
     },
     fastSnapshot?.meta?.source || 'snapshot'
-  );
+  ), beaconAlignment);
 
   if (String(req.query.fast || '').trim().toLowerCase() === 'true') {
     return res.json(fastResponse);
@@ -562,7 +574,7 @@ router.get('/:symbol', async (req, res) => {
 
   const cachedFull = getCachedFullResearchPayload(symbol);
   if (cachedFull?.data) {
-    return res.json({
+    return res.json(withBeaconAlignment({
       ...cachedFull,
       meta: {
         ...cachedFull.meta,
@@ -577,7 +589,7 @@ router.get('/:symbol', async (req, res) => {
           phase: 'full_cache',
         },
       },
-    });
+    }, beaconAlignment));
   }
 
   const fullRefreshPromise = refreshFullResearchPayload(symbol);
@@ -590,7 +602,7 @@ router.get('/:symbol', async (req, res) => {
       }),
     ]);
 
-    return res.json(fullPayload);
+    return res.json(withBeaconAlignment(fullPayload, beaconAlignment));
   } catch (error) {
     console.warn('[RESEARCH] route seeded response', { symbol, error: error.message });
     void fullRefreshPromise.catch(() => {});
@@ -598,10 +610,10 @@ router.get('/:symbol', async (req, res) => {
     if (fastSnapshot?.data) {
       const seededPayload = buildSeededFullPayload(symbol, fastSnapshot, error.message || 'full_research_timeout', startedAt);
       setCache(fullResearchCacheKey(symbol), seededPayload, Math.min(FULL_RESEARCH_CACHE_TTL_MS, 30_000));
-      return res.json(seededPayload);
+      return res.json(withBeaconAlignment(seededPayload, beaconAlignment));
     }
 
-    return res.json({
+    return res.json(withBeaconAlignment({
       ...fastResponse,
       meta: {
         ...fastResponse.meta,
@@ -620,7 +632,7 @@ router.get('/:symbol', async (req, res) => {
           phase: 'fast_fallback',
         },
       },
-    });
+    }, beaconAlignment));
   }
 });
 

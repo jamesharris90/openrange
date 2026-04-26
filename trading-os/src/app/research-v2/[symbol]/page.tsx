@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Component, memo, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
 
 import { ChartEngine, CHART_TIMEFRAME_OPTIONS, type ChartTimeframe } from "@/components/charts/chart-engine";
+import BeaconAlignmentPanel, { type BeaconAlignment } from "@/components/research/BeaconAlignmentPanel";
 import CatalystPanel from "@/components/research/CatalystPanel";
 import CongressionalPanel from "@/components/research/CongressionalPanel";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ type TechnicalsData = {
   atr?: number | null;
   rsi?: number | null;
   vwap?: number | null;
+  vwap_source?: string | null;
   relative_volume?: number | null;
   avg_volume_30d?: number | null;
   sma_20?: number | null;
@@ -122,6 +124,7 @@ type ResearchData = {
   };
   company?: CompanyData;
   mcp?: MCPData;
+  beacon_alignment?: BeaconAlignment | null;
   warnings?: ResearchWarning[];
 };
 
@@ -1148,6 +1151,8 @@ function ResearchV2PageContent({ params }: Props) {
 
       {!error ? (
         <div className="mt-8 space-y-4">
+          <BeaconAlignmentPanel alignment={payload?.beacon_alignment} />
+
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
             {/* Decision card removed Phase 37 — see docs/BEACON_v0_SPEC.md scoring discipline */}
             <OverviewPanel data={payload} symbol={symbol} phase={phase} />

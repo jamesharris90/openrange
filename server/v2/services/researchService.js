@@ -196,16 +196,105 @@ function normalizeMarketRow(row) {
 
 function normalizeTechnicalsRow(row) {
   const metrics = asObject(row?.metrics);
+  const vwap = pickFirstNumber(metrics, ['vwap']);
 
   return {
     atr: pickFirstNumber(metrics, ['atr']),
     rsi: pickFirstNumber(metrics, ['rsi']),
-    vwap: pickFirstNumber(metrics, ['vwap']),
+    vwap,
+    vwap_source: vwap !== null ? 'market_metrics' : null,
     relative_volume: pickFirstNumber(metrics, ['relative_volume', 'rvol']),
     avg_volume_30d: pickFirstNumber(metrics, ['avg_volume_30d', 'avg_30_day_volume']),
     sma_20: pickFirstNumber(metrics, ['sma_20', 'ma_20', 'ema_20']),
     sma_50: pickFirstNumber(metrics, ['sma_50', 'ma_50', 'ema_50']),
   };
+}
+
+async function getVWAPFromIntraday(symbol) {
+  try {
+    const result = await queryWithTimeout(
+      `WITH today_bars AS (
+         SELECT
+           close,
+           volume,
+           (high + low + close) / 3.0 AS typical_price
+         FROM intraday_1m
+         WHERE symbol = $1
+           AND "timestamp"::date = (
+             SELECT MAX("timestamp"::date)
+             FROM intraday_1m
+             WHERE symbol = $1
+           )
+       )
+       SELECT
+         CASE
+           WHEN SUM(volume) > 0
+           THEN SUM(typical_price * volume) / SUM(volume)
+           ELSE NULL
+         END AS vwap
+       FROM today_bars`,
+      [normalizeSymbol(symbol)],
+      {
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
+        label: 'research.technicals.vwap_intraday',
+        maxRetries: 0,
+      }
+    );
+
+    return toNullableNumber(result.rows?.[0]?.vwap);
+  } catch (error) {
+    console.error('[research] VWAP calc error:', error.message);
+    return null;
+  }
+}
+
+async function getBeaconAlignment(symbol) {
+  try {
+    const result = await queryWithTimeout(
+      `SELECT
+         bp.symbol,
+         bp.pattern,
+         bp.signals_aligned,
+         bp.reasoning,
+         bp.run_id,
+         r.started_at AS run_started_at
+       FROM beacon_v0_picks bp
+       JOIN beacon_v0_runs r ON r.run_id = bp.run_id
+       WHERE bp.run_id = (
+         SELECT run_id
+         FROM beacon_v0_runs
+         WHERE status = 'completed'
+         ORDER BY started_at DESC
+         LIMIT 1
+       )
+       AND bp.symbol = $1
+       LIMIT 1`,
+      [normalizeSymbol(symbol)],
+      {
+        timeoutMs: RESEARCH_SECTION_TIMEOUT_MS,
+        label: 'research.beacon_alignment',
+        maxRetries: 0,
+      }
+    );
+
+    const row = result.rows?.[0];
+    if (!row) {
+      return null;
+    }
+
+    const signalsAligned = Array.isArray(row.signals_aligned) ? row.signals_aligned : [];
+    return {
+      in_picks: true,
+      pattern: row.pattern,
+      signals_aligned: signalsAligned,
+      signal_count: signalsAligned.length,
+      reasoning: row.reasoning,
+      run_started_at: row.run_started_at,
+    };
+  } catch (error) {
+    console.error('[research] Beacon alignment error:', error.message);
+    return null;
+  }
 }
 
 function normalizeCandleRows(rows) {
@@ -1370,6 +1459,12 @@ async function getResearchData(symbol) {
   const marketRow = marketRows[0] || { quote: {}, metrics: {} };
   payload.market = normalizeMarketRow(marketRow);
   payload.technicals = normalizeTechnicalsRow(marketRow);
+  if (payload.technicals.vwap === null) {
+    const intradayVwap = await getVWAPFromIntraday(normalizedSymbol);
+    payload.technicals.vwap = intradayVwap;
+    payload.technicals.vwap_source = intradayVwap !== null ? 'computed_intraday' : null;
+  }
+  payload.beacon_alignment = await getBeaconAlignment(normalizedSymbol);
   payload.chart.intraday = normalizeCandleRows(intradayRows);
   payload.chart.daily = normalizeCandleRows(dailyRows);
   if (!hasChartCandles(payload.chart)) {
@@ -1480,6 +1575,7 @@ async function getResearchData(symbol) {
 module.exports = {
   buildMCP,
   emptyResearchData,
+  getBeaconAlignment,
   getResearchData,
   normalizeSymbol,
 };
