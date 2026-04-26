@@ -27,6 +27,7 @@
     "db:migrate": "node server/db/migrate.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@supabase/supabase-js": "^2.57.4",
     "dotenv": "^16.4.7",
     "ioredis": "^5.10.0",

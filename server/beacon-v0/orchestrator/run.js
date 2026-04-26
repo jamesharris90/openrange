@@ -1,5 +1,6 @@
 const { alignLeaderboardSignals, MIN_ALIGNMENT_COUNT, TOP_ALIGNED_PICKS } = require('../alignment/simple_count');
 const { categorizeBeaconCandidates } = require('../categorization/simple');
+const { generatePickNarrative } = require('../narrative/generateNarrative');
 const { generateRunId, persistPicks } = require('../persistence/picks');
 const { qualifyBeaconCandidates } = require('../qualification/basic_filters');
 const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
@@ -76,6 +77,100 @@ function candidateToPick(candidate) {
   };
 }
 
+function findSignalEvidence(pick, signalName) {
+  const evidence = Array.isArray(pick?.metadata?.signal_evidence) ? pick.metadata.signal_evidence : [];
+  return evidence.find((item) => item.signal === signalName) || null;
+}
+
+function pickTextArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      return item?.headline || item?.title || item?.summary || null;
+    })
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+}
+
+function buildNarrativeContext(pick) {
+  const context = {};
+  const newsEvidence = findSignalEvidence(pick, 'top_news_last_12h');
+  const newsMetadata = newsEvidence?.metadata || {};
+  const headlines = [
+    ...pickTextArray(newsMetadata.headlines),
+    ...pickTextArray(newsMetadata.news),
+    ...pickTextArray(newsMetadata.articles),
+    ...pickTextArray(newsMetadata.items),
+  ];
+
+  if (headlines.length > 0) {
+    context.news_headlines = [...new Set(headlines)].slice(0, 2);
+  }
+
+  const upcomingEarnings = findSignalEvidence(pick, 'earnings_upcoming_within_3d');
+  if (upcomingEarnings) {
+    const metadata = upcomingEarnings.metadata || {};
+    context.earnings_summary = metadata.days_until !== undefined
+      ? `Earnings in ${metadata.days_until} days`
+      : upcomingEarnings.reasoning || 'Upcoming earnings signal fired';
+  }
+
+  const earningsReaction = findSignalEvidence(pick, 'earnings_reaction_last_3d');
+  if (!context.earnings_summary && earningsReaction) {
+    const metadata = earningsReaction.metadata || {};
+    context.earnings_summary = metadata.surprise_pct !== undefined
+      ? `Recent earnings reaction with ${Number(metadata.surprise_pct).toFixed(1)}% surprise`
+      : earningsReaction.reasoning || 'Recent earnings reaction signal fired';
+  }
+
+  const congressional = findSignalEvidence(pick, 'top_congressional_trades_recent');
+  if (congressional) {
+    const metadata = congressional.metadata || {};
+    const purchases = metadata.total_purchases ?? metadata.purchase_count ?? metadata.purchases;
+    const members = metadata.distinct_members ?? metadata.member_count ?? metadata.members;
+    context.congressional_summary = purchases !== undefined || members !== undefined
+      ? `${purchases ?? '?'} purchases by ${members ?? '?'} members`
+      : congressional.reasoning || 'Recent congressional trade signal fired';
+  }
+
+  return context;
+}
+
+async function enrichPicksWithNarratives(picks) {
+  if (!Array.isArray(picks) || picks.length === 0) {
+    return picks;
+  }
+
+  console.log(`[beacon-v0] Generating narratives for ${picks.length} picks...`);
+  const narrativeStartedAt = Date.now();
+
+  const enrichedPicks = await Promise.all(picks.map(async (pick) => {
+    const narrative = await generatePickNarrative(pick, buildNarrativeContext(pick));
+
+    return {
+      ...pick,
+      narrative_thesis: narrative.thesis,
+      narrative_watch_for: narrative.watch_for,
+      narrative_generated_at: narrative.thesis ? new Date().toISOString() : null,
+      narrative_model: narrative.model,
+      narrative_input_tokens: narrative.input_tokens,
+      narrative_output_tokens: narrative.output_tokens,
+      narrative_error: narrative.error,
+    };
+  }));
+
+  const narrativeDuration = Math.round((Date.now() - narrativeStartedAt) / 1000);
+  const narrativeSuccessCount = enrichedPicks.filter((pick) => pick.narrative_thesis).length;
+  const totalInputTokens = enrichedPicks.reduce((sum, pick) => sum + (pick.narrative_input_tokens || 0), 0);
+  const totalOutputTokens = enrichedPicks.reduce((sum, pick) => sum + (pick.narrative_output_tokens || 0), 0);
+
+  console.log(`[beacon-v0] Narrative generation: ${narrativeSuccessCount}/${enrichedPicks.length} success, ${narrativeDuration}s`);
+  console.log(`[beacon-v0] Token usage: ${totalInputTokens} input, ${totalOutputTokens} output`);
+
+  return enrichedPicks;
+}
+
 async function runBeaconPipeline(symbols = [], options = {}) {
   const startedAt = new Date().toISOString();
   const persist = options.persist !== false;
@@ -111,7 +206,7 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   });
   const categorized = categorizeBeaconCandidates(qualified);
   const candidates = categorized.filter((candidate) => candidate.qualified);
-  const picks = candidates.map(candidateToPick);
+  const picks = await enrichPicksWithNarratives(candidates.map(candidateToPick));
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {

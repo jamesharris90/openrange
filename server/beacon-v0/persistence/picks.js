@@ -24,6 +24,13 @@ function normalizePickForStorage(pick) {
       signals: pick.signals || [],
       disqualifiedReasons: pick.disqualifiedReasons || [],
     },
+    narrativeThesis: pick.narrative_thesis || null,
+    narrativeWatchFor: pick.narrative_watch_for || null,
+    narrativeGeneratedAt: pick.narrative_generated_at || null,
+    narrativeModel: pick.narrative_model || null,
+    narrativeInputTokens: Number.isFinite(Number(pick.narrative_input_tokens)) ? Number(pick.narrative_input_tokens) : null,
+    narrativeOutputTokens: Number.isFinite(Number(pick.narrative_output_tokens)) ? Number(pick.narrative_output_tokens) : null,
+    narrativeError: pick.narrative_error || null,
   };
 }
 
@@ -41,8 +48,8 @@ async function persistPicks(picks, runId = generateRunId()) {
   const placeholders = [];
 
   normalized.forEach((pick, index) => {
-    const base = index * 7;
-    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7})`);
+    const base = index * 14;
+    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14})`);
     values.push(
       pick.symbol,
       pick.pattern,
@@ -51,13 +58,22 @@ async function persistPicks(picks, runId = generateRunId()) {
       pick.signalsAligned,
       JSON.stringify(pick.metadata || {}),
       runId,
+      pick.narrativeThesis,
+      pick.narrativeWatchFor,
+      pick.narrativeGeneratedAt,
+      pick.narrativeModel,
+      pick.narrativeInputTokens,
+      pick.narrativeOutputTokens,
+      pick.narrativeError,
     );
   });
 
   await queryWithTimeout(
     `
       INSERT INTO beacon_v0_picks
-        (symbol, pattern, confidence, reasoning, signals_aligned, metadata, run_id)
+        (symbol, pattern, confidence, reasoning, signals_aligned, metadata, run_id,
+         narrative_thesis, narrative_watch_for, narrative_generated_at, narrative_model,
+         narrative_input_tokens, narrative_output_tokens, narrative_error)
       VALUES ${placeholders.join(', ')}
     `,
     values,
@@ -90,6 +106,13 @@ async function getLatestPicks(limit = 20) {
         reasoning,
         signals_aligned,
         metadata,
+        narrative_thesis,
+        narrative_watch_for,
+        narrative_generated_at,
+        narrative_model,
+        narrative_input_tokens,
+        narrative_output_tokens,
+        narrative_error,
         run_id,
         created_at
       FROM beacon_v0_picks
