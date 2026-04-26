@@ -192,22 +192,6 @@ async function ensureEarningsSchema() {
        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
        PRIMARY KEY (symbol, report_date)
      )`,
-    `ALTER TABLE earnings_events
-       ADD COLUMN IF NOT EXISTS report_date DATE,
-       ADD COLUMN IF NOT EXISTS report_time TEXT,
-       ADD COLUMN IF NOT EXISTS eps_estimate NUMERIC,
-       ADD COLUMN IF NOT EXISTS eps_actual NUMERIC,
-       ADD COLUMN IF NOT EXISTS rev_estimate NUMERIC,
-       ADD COLUMN IF NOT EXISTS rev_actual NUMERIC,
-       ADD COLUMN IF NOT EXISTS eps_surprise_pct NUMERIC,
-       ADD COLUMN IF NOT EXISTS revenue_estimate NUMERIC,
-       ADD COLUMN IF NOT EXISTS revenue_actual NUMERIC,
-       ADD COLUMN IF NOT EXISTS company TEXT,
-       ADD COLUMN IF NOT EXISTS sector TEXT,
-       ADD COLUMN IF NOT EXISTS industry TEXT,
-       ADD COLUMN IF NOT EXISTS exchange TEXT,
-       ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'fmp_stable_earnings_calendar',
-       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`,
       `UPDATE earnings_events
          SET revenue_estimate = COALESCE(revenue_estimate, rev_estimate),
            revenue_actual = COALESCE(revenue_actual, rev_actual),
@@ -215,17 +199,6 @@ async function ensureEarningsSchema() {
            rev_actual = COALESCE(rev_actual, revenue_actual),
            source = COALESCE(NULLIF(BTRIM(source), ''), 'fmp_stable_earnings_calendar'),
            updated_at = COALESCE(updated_at, NOW())`,
-    `DO $$
-     BEGIN
-       IF NOT EXISTS (
-         SELECT 1 FROM pg_constraint
-         WHERE conname = 'earnings_events_symbol_report_date_key'
-           AND conrelid = 'earnings_events'::regclass
-       ) THEN
-         ALTER TABLE earnings_events
-           ADD CONSTRAINT earnings_events_symbol_report_date_key UNIQUE (symbol, report_date);
-       END IF;
-     END$$`,
     `CREATE INDEX IF NOT EXISTS idx_earnings_history_symbol_date ON earnings_history (symbol, report_date DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_earnings_events_symbol_date ON earnings_events (symbol, report_date ASC)`,
     `UPDATE earnings_events
