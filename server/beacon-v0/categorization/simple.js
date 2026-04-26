@@ -35,6 +35,31 @@ const PATTERN_RULES = [
     label: 'Coiled Spring with News Catalyst',
   },
   {
+    name: 'pre_earnings_compression_news',
+    requires: ['top_coiled_spring', 'earnings_upcoming_within_3d', 'top_news_last_12h'],
+    label: 'Pre-Earnings Compression with News',
+  },
+  {
+    name: 'pre_earnings_compression_gap',
+    requires: ['top_coiled_spring', 'earnings_upcoming_within_3d', 'top_gap_today'],
+    label: 'Pre-Earnings Compression Gap',
+  },
+  {
+    name: 'earnings_reaction_compression',
+    requires: ['earnings_reaction_last_3d', 'top_coiled_spring', 'top_news_last_12h'],
+    label: 'Post-Earnings Compression Building',
+  },
+  {
+    name: 'earnings_reaction_compression_gap',
+    requires: ['earnings_reaction_last_3d', 'top_coiled_spring', 'top_gap_today'],
+    label: 'Post-Earnings Compression Gap',
+  },
+  {
+    name: 'coiled_spring_gap_volume',
+    requires: ['top_coiled_spring', 'top_gap_today', 'top_rvol_today'],
+    label: 'Compression Breakout',
+  },
+  {
     name: 'compression_with_news',
     requires: ['top_coiled_spring', 'top_news_last_12h'],
     label: 'Compression with News',
@@ -63,6 +88,21 @@ const PATTERN_RULES = [
     name: 'earnings_reaction_with_volume',
     requires: ['earnings_reaction_last_3d', 'top_rvol_today', 'top_news_last_12h'],
     label: 'Earnings Reaction Continuing',
+  },
+  {
+    name: 'pre_earnings_news_gap',
+    requires: ['earnings_upcoming_within_3d', 'top_news_last_12h', 'top_gap_today'],
+    label: 'Pre-Earnings News Gap',
+  },
+  {
+    name: 'earnings_reaction_news_gap',
+    requires: ['earnings_reaction_last_3d', 'top_news_last_12h', 'top_gap_today'],
+    label: 'Earnings Reaction with News & Gap',
+  },
+  {
+    name: 'news_gap_volume',
+    requires: ['top_news_last_12h', 'top_gap_today', 'top_rvol_today'],
+    label: 'News Catalyst Breakout',
   },
   {
     name: 'news_driven_volume',
@@ -98,6 +138,21 @@ const PATTERN_RULES = [
     name: 'gap_with_volume',
     requires: ['top_gap_today', 'top_rvol_today'],
     label: 'Gap with Volume',
+  },
+  {
+    name: 'pre_earnings_news',
+    requires: ['earnings_upcoming_within_3d', 'top_news_last_12h'],
+    label: 'Pre-Earnings News',
+  },
+  {
+    name: 'earnings_reaction_news',
+    requires: ['earnings_reaction_last_3d', 'top_news_last_12h'],
+    label: 'Earnings Reaction with News',
+  },
+  {
+    name: 'earnings_reaction_compression_only',
+    requires: ['earnings_reaction_last_3d', 'top_coiled_spring'],
+    label: 'Post-Earnings Coiled Spring',
   },
 ];
 
