@@ -14,7 +14,6 @@ const topVolumeBuilding = require('../signals/top_volume_building');
 
 const BATCH_SIZE = 100;
 const INTER_BATCH_DELAY_MS = 2000;
-let envDiagnosticLogged = false;
 const SIGNALS = [
   topRvolToday,
   topGapToday,
@@ -43,44 +42,6 @@ function chunkArray(items, size) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function logEnvDiagnostic() {
-  if (envDiagnosticLogged) return;
-  envDiagnosticLogged = true;
-
-  const key = process.env.ANTHROPIC_API_KEY;
-  const keyPresent = Boolean(key);
-  const relevantEnvKeys = Object.keys(process.env)
-    .filter((name) => /ANTHROPIC|CLAUDE|API_KEY|SDK/i.test(name))
-    .sort();
-  const relevantEnvSummary = relevantEnvKeys.map((name) => ({
-    name,
-    value: process.env[name] ? `[${String(process.env[name]).length} chars]` : '[empty]',
-  }));
-
-  console.log('[beacon-v0-worker][ENV DIAGNOSTIC]', JSON.stringify({
-    service: {
-      railway_service_name: process.env.RAILWAY_SERVICE_NAME || null,
-      railway_service_id: process.env.RAILWAY_SERVICE_ID || null,
-      railway_environment_name: process.env.RAILWAY_ENVIRONMENT_NAME || null,
-      railway_replica_id: process.env.RAILWAY_REPLICA_ID || null,
-      railway_deployment_id: process.env.RAILWAY_DEPLOYMENT_ID || null,
-      railway_git_commit_sha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
-    },
-    env: {
-      total_env_vars: Object.keys(process.env).length,
-      anthropic_api_key_present: keyPresent,
-      anthropic_api_key_type: typeof key,
-      anthropic_api_key_length: keyPresent ? key.length : 0,
-      anthropic_api_key_first_10: keyPresent ? key.substring(0, 10) : null,
-      anthropic_api_key_last_4: keyPresent ? key.substring(key.length - 4) : null,
-      anthropic_api_key_starts_with_sk_ant: keyPresent ? key.startsWith('sk-ant-') : false,
-      anthropic_api_key_has_leading_whitespace: keyPresent ? key !== key.trimStart() : false,
-      anthropic_api_key_has_trailing_whitespace: keyPresent ? key !== key.trimEnd() : false,
-      relevant_env_keys: relevantEnvSummary,
-    },
-  }));
 }
 
 function candidateToPick(candidate) {
@@ -211,8 +172,6 @@ async function enrichPicksWithNarratives(picks) {
 }
 
 async function runBeaconPipeline(symbols = [], options = {}) {
-  logEnvDiagnostic();
-
   const startedAt = new Date().toISOString();
   const persist = options.persist !== false;
   const runId = options.runId || generateRunId();
