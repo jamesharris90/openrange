@@ -401,6 +401,7 @@ function createV2App() {
   app.use('/api/v2/earnings', earningsV2Route);
   app.use('/api/v2/beacon', beaconRoute);
   app.use('/api/beacon-v0', beaconV0Route);
+  app.use('/api/v2/beacon-v0', beaconV0Route);
   app.use('/api/v2/congressional', congressionalRoute);
   app.use('/', legacyEarningsRoute);
   app.use('/api/market', marketRoute);

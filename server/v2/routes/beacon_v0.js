@@ -1,7 +1,10 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { SIGNALS } = require('../../beacon-v0/orchestrator/run');
-const { getLatestPicks } = require('../../beacon-v0/persistence/picks');
+const { generatePickNarrative } = require('../../beacon-v0/narrative/generateNarrative');
 const { queryWithTimeout } = require('../../db/pg');
+const userModel = require('../../users/model');
+const { JWT_SECRET } = require('../../utils/config');
 
 const router = express.Router();
 
@@ -21,6 +24,77 @@ function enrichPickDirectionCounts(pick) {
     forward_count: forwardCount,
     backward_count: signalsAligned.length - forwardCount,
   };
+}
+
+async function requireAuth(req, res, next) {
+  if (!JWT_SECRET) return res.status(500).json({ error: 'Authentication service unavailable' });
+
+  const token = req.get('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'No token' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const dbUser = await userModel.findById(decoded.id).catch(() => null);
+    if (!dbUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const isAdmin = dbUser.is_admin === 1 || dbUser.is_admin === true || dbUser.is_admin === '1';
+    req.user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      is_admin: isAdmin ? 1 : 0,
+      plan: String(dbUser.plan || (isAdmin ? 'admin' : 'free')).toLowerCase(),
+    };
+
+    return next();
+  } catch (_error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+async function fetchLatestPicks(limit = 20) {
+  const boundedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  const result = await queryWithTimeout(
+    `
+      WITH latest_run AS (
+        SELECT run_id
+        FROM beacon_v0_picks
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+      SELECT
+        id::text AS pick_id,
+        symbol,
+        pattern,
+        confidence,
+        reasoning,
+        signals_aligned,
+        metadata,
+        narrative_thesis,
+        narrative_watch_for,
+        narrative_generated_at,
+        narrative_model,
+        narrative_input_tokens,
+        narrative_output_tokens,
+        narrative_error,
+        run_id,
+        created_at
+      FROM beacon_v0_picks
+      WHERE run_id = (SELECT run_id FROM latest_run)
+      ORDER BY symbol ASC
+      LIMIT $1
+    `,
+    [boundedLimit],
+    {
+      label: 'beacon_v0.route.latest',
+      timeoutMs: 8000,
+      slowQueryMs: 1000,
+      poolType: 'read',
+      maxRetries: 1,
+    },
+  );
+
+  return result.rows;
 }
 
 async function fetchPickPriceData(symbols) {
@@ -106,7 +180,7 @@ function enrichPickPriceData(pick, priceMap) {
 router.get('/picks', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
-    const picks = (await getLatestPicks(limit)).map(enrichPickDirectionCounts);
+    const picks = (await fetchLatestPicks(limit)).map(enrichPickDirectionCounts);
     const priceMap = await fetchPickPriceData(picks.map((pick) => pick.symbol));
     const enrichedPicks = picks.map((pick) => enrichPickPriceData(pick, priceMap));
 
@@ -122,6 +196,103 @@ router.get('/picks', async (req, res) => {
     return res.status(500).json({
       error: 'beacon_v0_picks_failed',
       message: error.message,
+    });
+  }
+});
+
+router.post('/regenerate-narrative/:pick_id', requireAuth, async (req, res) => {
+  const { pick_id: pickId } = req.params;
+
+  if (!pickId || !/^\d+$/.test(String(pickId))) {
+    return res.status(400).json({ error: 'invalid pick_id' });
+  }
+
+  try {
+    const result = await queryWithTimeout(
+      `
+        SELECT
+          id::text AS pick_id,
+          run_id,
+          symbol,
+          pattern,
+          COALESCE(metadata->>'pattern_label', pattern) AS pattern_label,
+          confidence,
+          signals_aligned,
+          reasoning,
+          metadata,
+          narrative_thesis,
+          narrative_watch_for
+        FROM beacon_v0_picks
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [pickId],
+      {
+        label: 'beacon_v0.regenerate.fetch',
+        timeoutMs: 5000,
+        slowQueryMs: 1000,
+        poolType: 'read',
+        maxRetries: 1,
+      },
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'pick not found' });
+    }
+
+    const pick = result.rows[0];
+    const narrative = await generatePickNarrative(pick);
+
+    if (narrative.error) {
+      return res.status(502).json({
+        error: 'narrative generation failed',
+        detail: narrative.error,
+      });
+    }
+
+    const updateResult = await queryWithTimeout(
+      `
+        UPDATE beacon_v0_picks
+        SET narrative_thesis = $1,
+            narrative_watch_for = $2,
+            narrative_generated_at = NOW(),
+            narrative_model = $3,
+            narrative_input_tokens = $4,
+            narrative_output_tokens = $5,
+            narrative_error = NULL
+        WHERE id = $6
+        RETURNING narrative_generated_at
+      `,
+      [
+        narrative.thesis,
+        narrative.watch_for,
+        narrative.model || 'claude-sonnet-4-5',
+        narrative.input_tokens || 0,
+        narrative.output_tokens || 0,
+        pickId,
+      ],
+      {
+        label: 'beacon_v0.regenerate.update',
+        timeoutMs: 5000,
+        slowQueryMs: 1000,
+        poolType: 'write',
+        maxRetries: 1,
+      },
+    );
+
+    return res.json({
+      pick_id: pickId,
+      narrative_thesis: narrative.thesis,
+      narrative_watch_for: narrative.watch_for,
+      narrative_generated_at: updateResult.rows[0]?.narrative_generated_at || new Date().toISOString(),
+      input_tokens: narrative.input_tokens || 0,
+      output_tokens: narrative.output_tokens || 0,
+    });
+  } catch (error) {
+    console.error('[beacon-v0] regenerate-narrative error:', error);
+    return res.status(500).json({
+      error: 'internal error',
+      detail: String(error.message || error),
     });
   }
 });

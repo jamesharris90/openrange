@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 
-import { apiGet } from "@/lib/api/client";
+import { apiFetch, apiGet } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface V0Pick {
+  pick_id: string;
   symbol: string;
   pattern: string;
   confidence: string;
@@ -20,6 +23,9 @@ interface V0Pick {
   change_pct?: number | null;
   sparkline?: number[];
   metadata: Record<string, unknown>;
+  narrative_thesis?: string | null;
+  narrative_watch_for?: string | null;
+  narrative_generated_at?: string | null;
   created_at: string;
   run_id?: string | null;
 }
@@ -132,6 +138,155 @@ function Sparkline({ values, isPositive }: { values: number[]; isPositive: boole
   );
 }
 
+type RegenerateNarrativeResponse = {
+  narrative_thesis: string | null;
+  narrative_watch_for: string | null;
+  narrative_generated_at: string | null;
+};
+
+function V0PickCard({ pick }: { pick: V0Pick }) {
+  const [regenerating, setRegenerating] = useState(false);
+  const [localPick, setLocalPick] = useState(pick);
+  const alignmentCount = getAlignmentCount(localPick);
+  const signalEvidence = getSignalEvidence(localPick);
+
+  useEffect(() => {
+    setLocalPick(pick);
+  }, [pick]);
+
+  const handleRegenerate = async () => {
+    if (regenerating) return;
+    setRegenerating(true);
+
+    try {
+      const response = await apiFetch(
+        `/api/v2/beacon-v0/regenerate-narrative/${encodeURIComponent(localPick.pick_id)}`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.detail || errorBody.error || `HTTP ${response.status}`);
+      }
+
+      const data = (await response.json()) as RegenerateNarrativeResponse;
+      setLocalPick((previous) => ({
+        ...previous,
+        narrative_thesis: data.narrative_thesis,
+        narrative_watch_for: data.narrative_watch_for,
+        narrative_generated_at: data.narrative_generated_at,
+      }));
+      alert("Narrative regenerated");
+    } catch (error) {
+      console.error("[beacon] regenerate failed:", error);
+      alert(`Regenerate failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <Link href={`/research-v2/${localPick.symbol}`} className="font-mono text-xl font-bold text-cyan-300 hover:underline">
+            {localPick.symbol}
+          </Link>
+          {localPick.latest_close != null && (
+            <span className="text-lg font-medium text-zinc-200">${localPick.latest_close.toFixed(2)}</span>
+          )}
+          {localPick.change_pct != null && (
+            <span className={localPick.change_pct >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
+              {localPick.change_pct >= 0 ? "+" : ""}{localPick.change_pct.toFixed(2)}%
+            </span>
+          )}
+          {localPick.sparkline && localPick.sparkline.length > 1 && (
+            <Sparkline values={localPick.sparkline} isPositive={(localPick.change_pct ?? 0) >= 0} />
+          )}
+        </div>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center rounded-xl border px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] ${getAlignmentBadgeClass(alignmentCount)}`}>
+              Alignment · {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
+            </span>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
+              title="Regenerate narrative"
+              aria-label="Regenerate narrative"
+            >
+              <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} />
+            </button>
+          </div>
+          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{localPick.pattern}</div>
+        </div>
+      </div>
+      <div className={`mt-3 transition-opacity duration-200 ${regenerating ? "opacity-40" : "opacity-100"}`}>
+        {localPick.narrative_thesis ? (
+          <>
+            <p className="text-sm leading-relaxed text-zinc-100">
+              {localPick.narrative_thesis}
+            </p>
+            {localPick.narrative_watch_for ? (
+              <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                <span className="mr-1 uppercase tracking-wider text-zinc-500">Watch for:</span>
+                {localPick.narrative_watch_for}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-sm italic text-zinc-400">
+            {localPick.reasoning || "Narrative pending..."}
+          </p>
+        )}
+      </div>
+      {signalEvidence.length > 0 && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {signalEvidence.slice(0, 4).map((evidence, index) => {
+            const forwardLooking = isForwardLookingSignal(evidence.signal);
+
+            return (
+              <div
+                key={`${localPick.symbol}-${evidence.signal || index}`}
+                className={`rounded-lg border p-3 ${
+                  forwardLooking
+                    ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.12)]"
+                    : "border-slate-800 bg-slate-900/70"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 text-xs">
+                  <div>
+                    <span className={forwardLooking ? "font-medium text-emerald-100" : "font-medium text-slate-200"}>
+                      {evidence.signal || "Signal"}
+                    </span>
+                    <div className="mt-1">
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                        forwardLooking
+                          ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-200"
+                          : "border-slate-700 bg-slate-800 text-slate-400"
+                      }`}>
+                        {forwardLooking ? "Forward setup" : "Observed move"}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-slate-500">Rank {evidence.rank ?? "—"}</span>
+                </div>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                  {evidence.reasoning || evidence.category || "Signal evidence available."}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function V0PreviewTab() {
   const query = useQuery({
     queryKey: ["beacon", "v0", "picks"],
@@ -195,79 +350,9 @@ export function V0PreviewTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {data.picks.map((pick) => {
-          const alignmentCount = getAlignmentCount(pick);
-          const signalEvidence = getSignalEvidence(pick);
-
-          return (
-            <div key={`${pick.symbol}-${pick.pattern}`} className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <Link href={`/research-v2/${pick.symbol}`} className="font-mono text-xl font-bold text-cyan-300 hover:underline">
-                    {pick.symbol}
-                  </Link>
-                  {pick.latest_close != null && (
-                    <span className="text-lg font-medium text-zinc-200">${pick.latest_close.toFixed(2)}</span>
-                  )}
-                  {pick.change_pct != null && (
-                    <span className={pick.change_pct >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
-                      {pick.change_pct >= 0 ? "+" : ""}{pick.change_pct.toFixed(2)}%
-                    </span>
-                  )}
-                  {pick.sparkline && pick.sparkline.length > 1 && (
-                    <Sparkline values={pick.sparkline} isPositive={(pick.change_pct ?? 0) >= 0} />
-                  )}
-                </div>
-                <div className="flex flex-col items-start gap-2 sm:items-end">
-                  <span className={`inline-flex items-center rounded-xl border px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] ${getAlignmentBadgeClass(alignmentCount)}`}>
-                    Alignment · {alignmentCount} {alignmentCount === 1 ? "Signal" : "Signals"}
-                  </span>
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{pick.pattern}</div>
-                </div>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{pick.reasoning}</p>
-              {signalEvidence.length > 0 && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {signalEvidence.slice(0, 4).map((evidence, index) => {
-                    const forwardLooking = isForwardLookingSignal(evidence.signal);
-
-                    return (
-                      <div
-                        key={`${pick.symbol}-${evidence.signal || index}`}
-                        className={`rounded-lg border p-3 ${
-                          forwardLooking
-                            ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.12)]"
-                            : "border-slate-800 bg-slate-900/70"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2 text-xs">
-                          <div>
-                            <span className={forwardLooking ? "font-medium text-emerald-100" : "font-medium text-slate-200"}>
-                              {evidence.signal || "Signal"}
-                            </span>
-                            <div className="mt-1">
-                              <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
-                                forwardLooking
-                                  ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-200"
-                                  : "border-slate-700 bg-slate-800 text-slate-400"
-                              }`}>
-                                {forwardLooking ? "Forward setup" : "Observed move"}
-                              </span>
-                            </div>
-                          </div>
-                          <span className="text-slate-500">Rank {evidence.rank ?? "—"}</span>
-                        </div>
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
-                          {evidence.reasoning || evidence.category || "Signal evidence available."}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {data.picks.map((pick) => (
+          <V0PickCard key={pick.pick_id || `${pick.symbol}-${pick.pattern}`} pick={pick} />
+        ))}
       </CardContent>
     </Card>
   );
