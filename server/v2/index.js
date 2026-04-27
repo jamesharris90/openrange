@@ -42,6 +42,7 @@ const { getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
 const { getTelemetry } = require('../cache/telemetryCache');
 const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher');
 const { runOutcomeCapture, runOutcomeExpirySweep } = require('../workers/beacon_v0_outcome_worker');
+const { reapStaleNightlyRuns } = require('../beacon-nightly/nightlyCycle');
 
 let yahooSchedulerStarted = false;
 let newsBackfillSchedulerStarted = false;
@@ -49,6 +50,7 @@ let screenerSnapshotSchedulerStarted = false;
 let intelligencePipelineSchedulerStarted = false;
 let snapshotRunning = false;
 let beaconV0OutcomeSchedulerStarted = false;
+let beaconNightlyReaperSchedulerStarted = false;
 
 const chartRoute = express.Router();
 const chartV5Route = express.Router();
@@ -306,6 +308,30 @@ function ensureBeaconV0OutcomeScheduler() {
   console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'expiry_sweep', schedule: '06:00 UTC daily' });
 }
 
+function ensureBeaconNightlyReaperScheduler() {
+  if (beaconNightlyReaperSchedulerStarted) {
+    return;
+  }
+
+  beaconNightlyReaperSchedulerStarted = true;
+  cron.schedule('0 6 * * *', async () => {
+    try {
+      const rows = await reapStaleNightlyRuns();
+      console.log(JSON.stringify({
+        cron: 'beacon-nightly-reaper',
+        rows_reaped: rows.length,
+        reaped_ids: rows.map((row) => row.id),
+        reaped_ages_seconds: rows.map((row) => Number(row.age_seconds || 0)),
+        timestamp: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.warn('[BEACON_NIGHTLY_REAPER] scheduled run failed', { error: error.message });
+    }
+  });
+
+  console.log('[BEACON_NIGHTLY_REAPER] scheduler active', { schedule: '06:00 UTC daily' });
+}
+
 async function runStartupTask(name, task) {
   try {
     await task();
@@ -502,6 +528,7 @@ function startV2BackgroundServices(app, options = {}) {
       startTradeOutcomeScheduler();
       startDataHealthMonitor();
       ensureBeaconV0OutcomeScheduler();
+      ensureBeaconNightlyReaperScheduler();
     });
   } else {
     console.log('[SCHEDULERS] background services disabled');

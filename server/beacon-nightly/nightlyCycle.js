@@ -7,15 +7,16 @@ const { RUNS_TABLE, ensureBeaconNightlyTables, seedDefaultStrategyParams } = req
 const LOCK_KEY = 947321;
 const ZOMBIE_RUN_MAX_AGE = '2 hours';
 
-async function cleanupZombieRuns() {
+async function reapStaleNightlyRuns() {
   const result = await runWithDbPool('write', () => queryWithTimeout(
     `UPDATE ${RUNS_TABLE}
      SET status = 'failed',
          completed_at = NOW(),
-         error = 'Auto-marked failed: run was stuck in running state beyond max duration. Likely interrupted by worker restart.'
+         updated_at = NOW(),
+         error = COALESCE(error, 'auto-marked stuck run beyond max duration (standalone reaper)')
      WHERE status = 'running'
-       AND started_at < NOW() - INTERVAL '${ZOMBIE_RUN_MAX_AGE}'
-     RETURNING id`,
+       AND updated_at < NOW() - INTERVAL '${ZOMBIE_RUN_MAX_AGE}'
+     RETURNING id, started_at, EXTRACT(EPOCH FROM (NOW() - started_at))::int AS age_seconds`,
     [],
     {
       timeoutMs: 10000,
@@ -192,7 +193,7 @@ async function updateRun(runId, patch = {}) {
 async function runBeaconNightlyCycle(options = {}) {
   await ensureBeaconNightlyTables();
   await seedDefaultStrategyParams();
-  await cleanupZombieRuns();
+  await reapStaleNightlyRuns();
 
   const locked = await acquireLock();
   if (!locked) {
@@ -296,5 +297,6 @@ async function runBeaconNightlyCycle(options = {}) {
 }
 
 module.exports = {
+  reapStaleNightlyRuns,
   runBeaconNightlyCycle,
 };
