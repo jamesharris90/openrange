@@ -249,6 +249,7 @@ async function runBeaconNightlyCycle(options = {}) {
     const backtestSummary = options.skipBacktest === true
       ? { generatedSignals: 0, scoreRows: 0, pickRows: 0 }
       : await runNightlyIncrementalBacktest({
+        beaconNightlyRunId: run.id,
         strategyIds: options.strategyIds,
         symbols: explicitSymbols || universe.symbols,
         skipScoring: false,

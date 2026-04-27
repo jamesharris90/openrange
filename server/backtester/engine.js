@@ -11,6 +11,8 @@ const RESULT_TABLE = 'strategy_backtest_signals';
 const DEFAULT_PAGE_SIZE = Number(process.env.BACKTESTER_PAGE_SIZE || 500);
 const PROGRESS_EVERY_SYMBOLS = Number(process.env.BACKTESTER_PROGRESS_EVERY || 100);
 const GC_EVERY_SYMBOLS = Number(process.env.BACKTESTER_GC_EVERY || 200);
+const BACKTEST_HEARTBEAT_SYMBOLS = 25;
+const BACKTEST_HEARTBEAT_MS = 60 * 1000;
 const DEFAULT_CHECKPOINT_DIR = path.join(__dirname, '..', 'logs', 'backtests', 'checkpoints');
 
 function ensureDirectory(dirPath) {
@@ -352,6 +354,53 @@ async function persistBacktestRows(rows) {
   );
 }
 
+async function writeBacktestHeartbeat(runId, progress, options = {}) {
+  if (!runId) {
+    return false;
+  }
+
+  const queryFn = options.queryFn || queryWithTimeout;
+  const heartbeatAt = progress.heartbeat_at || new Date().toISOString();
+  const processed = Number(progress.processed || 0);
+  const total = Number(progress.total || 0);
+  const payload = {
+    ...progress,
+    processed,
+    total,
+    pct_complete: Number(progress.pct_complete || 0),
+    heartbeat_at: heartbeatAt,
+  };
+  const metaPatch = {
+    last_step: `backtest_processing_${processed}_of_${total}`,
+    last_step_at: heartbeatAt,
+  };
+
+  try {
+    await queryFn(
+      `UPDATE beacon_nightly_runs
+       SET updated_at = NOW(),
+           metadata = jsonb_set(
+             COALESCE(metadata, '{}'::jsonb),
+             '{backtest_progress}',
+             $2::jsonb,
+             true
+           ) || $3::jsonb
+       WHERE id = $1`,
+      [runId, JSON.stringify(payload), JSON.stringify(metaPatch)],
+      {
+        timeoutMs: 5000,
+        label: `beacon_nightly.backtest_heartbeat.${runId}`,
+        maxRetries: 0,
+        poolType: 'write',
+      }
+    );
+    return true;
+  } catch (error) {
+    console.warn('[beacon-nightly heartbeat] write failed:', error.message);
+    return false;
+  }
+}
+
 async function runBacktestEngine(options = {}) {
   const mode = options.mode || 'historical';
   const skipScoring = options.skipScoring === true;
@@ -418,6 +467,9 @@ async function runBacktestEngine(options = {}) {
   let processedSymbols = 0;
   let persistedSignals = 0;
   let peakMemoryMb = 0;
+  let symbolsSinceHeartbeat = 0;
+  let lastHeartbeatTime = Date.now();
+  const heartbeatRunId = options.beaconNightlyRunId || options.runId || null;
   const collectSymbolStats = options.collectSymbolStats === true || (requestedSymbols && requestedSymbols.length <= 25);
   const symbolStats = [];
 
@@ -450,6 +502,7 @@ async function runBacktestEngine(options = {}) {
     });
     if (!relevantStrategies.length) {
       processedSymbols += 1;
+      symbolsSinceHeartbeat += 1;
       const heapUsageMb = getHeapUsageMbValue();
       peakMemoryMb = Math.max(peakMemoryMb, heapUsageMb);
       if (collectSymbolStats) {
@@ -472,6 +525,30 @@ async function runBacktestEngine(options = {}) {
         updatedAt: new Date().toISOString(),
         status: 'running',
       });
+
+      const heartbeatNow = Date.now();
+      if (
+        heartbeatRunId
+        && (
+          symbolsSinceHeartbeat >= BACKTEST_HEARTBEAT_SYMBOLS
+          || (heartbeatNow - lastHeartbeatTime) >= BACKTEST_HEARTBEAT_MS
+        )
+      ) {
+        const heartbeatWritten = await writeBacktestHeartbeat(heartbeatRunId, {
+          processed: processedSymbols,
+          total: orderedSymbols.length,
+          current_symbol: symbol,
+          pct_complete: Math.round((processedSymbols / Math.max(1, orderedSymbols.length)) * 100),
+          persisted_signals: persistedSignals,
+          heartbeat_at: new Date().toISOString(),
+        });
+
+        if (heartbeatWritten) {
+          symbolsSinceHeartbeat = 0;
+          lastHeartbeatTime = heartbeatNow;
+        }
+      }
+
       continue;
     }
 
@@ -509,6 +586,7 @@ async function runBacktestEngine(options = {}) {
     }
 
     processedSymbols += 1;
+    symbolsSinceHeartbeat += 1;
 
     const heapUsageMb = getHeapUsageMbValue();
     peakMemoryMb = Math.max(peakMemoryMb, heapUsageMb);
@@ -540,6 +618,29 @@ async function runBacktestEngine(options = {}) {
       status: 'running',
     });
 
+    const heartbeatNow = Date.now();
+    if (
+      heartbeatRunId
+      && (
+        symbolsSinceHeartbeat >= BACKTEST_HEARTBEAT_SYMBOLS
+        || (heartbeatNow - lastHeartbeatTime) >= BACKTEST_HEARTBEAT_MS
+      )
+    ) {
+      const heartbeatWritten = await writeBacktestHeartbeat(heartbeatRunId, {
+        processed: processedSymbols,
+        total: orderedSymbols.length,
+        current_symbol: symbol,
+        pct_complete: Math.round((processedSymbols / Math.max(1, orderedSymbols.length)) * 100),
+        persisted_signals: persistedSignals,
+        heartbeat_at: new Date().toISOString(),
+      });
+
+      if (heartbeatWritten) {
+        symbolsSinceHeartbeat = 0;
+        lastHeartbeatTime = heartbeatNow;
+      }
+    }
+
     if (processedSymbols % PROGRESS_EVERY_SYMBOLS === 0) {
       logger.info(`[BACKFILL] ${processedSymbols}/${orderedSymbols.length} symbols processed. ${persistedSignals} signals found. Memory: ${heapUsageMb.toFixed(1)}mb`);
     }
@@ -560,6 +661,17 @@ async function runBacktestEngine(options = {}) {
     completedAt: new Date().toISOString(),
     status: 'completed',
   });
+
+  if (heartbeatRunId && processedSymbols > 0 && symbolsSinceHeartbeat > 0) {
+    await writeBacktestHeartbeat(heartbeatRunId, {
+      processed: processedSymbols,
+      total: orderedSymbols.length,
+      current_symbol: orderedSymbols[orderedSymbols.length - 1] || null,
+      pct_complete: 100,
+      persisted_signals: persistedSignals,
+      heartbeat_at: new Date().toISOString(),
+    });
+  }
 
   logger.info(`[BACKFILL] ${processedSymbols}/${orderedSymbols.length} symbols processed. ${persistedSignals} signals found. Memory: ${getHeapUsageMb()}mb. Peak: ${peakMemoryMb.toFixed(1)}mb`);
 
@@ -615,4 +727,5 @@ module.exports = {
   runBacktestEngine,
   runHistoricalBackfill,
   runNightlyIncrementalBacktest,
+  writeBacktestHeartbeat,
 };
