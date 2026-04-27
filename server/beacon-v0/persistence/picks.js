@@ -11,6 +11,12 @@ function generateRunId() {
   return `v0-${timestamp}-${crypto.randomBytes(4).toString('hex')}`;
 }
 
+function toFiniteNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function normalizePickForStorage(pick) {
   return {
     symbol: String(pick.symbol || '').trim().toUpperCase(),
@@ -18,6 +24,8 @@ function normalizePickForStorage(pick) {
     confidence: pick.confidence || pick.confidenceQualification || 'unqualified',
     reasoning: pick.reasoning || pick.patternDescription || '',
     signalsAligned: pick.signals_aligned || (pick.signals || []).map((signal) => signal.signal),
+    pickPrice: toFiniteNumberOrNull(pick.pick_price),
+    pickVolumeBaseline: toFiniteNumberOrNull(pick.pick_volume_baseline),
     metadata: pick.metadata || {
       direction: pick.direction || 'neutral',
       alignment: pick.alignment || null,
@@ -47,12 +55,17 @@ async function persistPicks(picks, runId = generateRunId()) {
     return { inserted: 0, runId };
   }
 
+  const missingPrice = normalized.find((pick) => pick.pickPrice == null);
+  if (missingPrice) {
+    throw new Error(`beacon_v0 pick_price missing for ${missingPrice.symbol}; refusing to persist unevaluable pick`);
+  }
+
   const values = [];
   const placeholders = [];
 
   normalized.forEach((pick, index) => {
-    const base = index * 17;
-    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW())`);
+    const base = index * 19;
+    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW(), $${base + 18}, $${base + 19}, 'generation')`);
     values.push(
       pick.symbol,
       pick.pattern,
@@ -71,6 +84,8 @@ async function persistPicks(picks, runId = generateRunId()) {
       pick.topCatalystTier,
       pick.topCatalystRank,
       pick.topCatalystReasons,
+      pick.pickPrice,
+      pick.pickVolumeBaseline,
     );
   });
 
@@ -80,7 +95,8 @@ async function persistPicks(picks, runId = generateRunId()) {
         (symbol, pattern, confidence, reasoning, signals_aligned, metadata, run_id,
          narrative_thesis, narrative_watch_for, narrative_generated_at, narrative_model,
          narrative_input_tokens, narrative_output_tokens, narrative_error,
-         top_catalyst_tier, top_catalyst_rank, top_catalyst_reasons, top_catalyst_computed_at)
+        top_catalyst_tier, top_catalyst_rank, top_catalyst_reasons, top_catalyst_computed_at,
+        pick_price, pick_volume_baseline, baseline_source)
       VALUES ${placeholders.join(', ')}
     `,
     values,

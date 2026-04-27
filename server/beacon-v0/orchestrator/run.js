@@ -45,13 +45,47 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function pickFirstMetadataNumber(signals, keys) {
+  for (const signal of signals || []) {
+    const metadata = signal?.evidence || signal?.metadata || {};
+    for (const key of keys) {
+      const value = toFiniteNumber(metadata[key]);
+      if (value != null) return value;
+    }
+  }
+  return null;
+}
+
+function extractPickBaselines(signals) {
+  return {
+    pick_price: pickFirstMetadataNumber(signals, ['price', 'latest_close', 'close']),
+    pick_volume_baseline: pickFirstMetadataNumber(signals, ['avg_volume_20d', 'average_volume', 'vol_20d', 'avg_volume_30d']),
+  };
+}
+
 function candidateToPick(candidate) {
   const signals = candidate.signals || [];
   const signalsAligned = signals.map((signal) => signal.signal);
   const forwardCount = signalsAligned.filter((signalName) => forwardLookingMap.get(signalName) === true).length;
+  const baselines = extractPickBaselines(signals);
+
+  if (baselines.pick_price == null) {
+    console.warn('[beacon-v0] Skipping pick without generation price baseline', {
+      symbol: candidate.symbol,
+      signals: signalsAligned,
+    });
+    return null;
+  }
 
   return {
     symbol: candidate.symbol,
+    ...baselines,
     pattern: candidate.patternCategory || 'Multi-Signal Alignment',
     pattern_label: candidate.patternLabel || candidate.patternCategory || 'Multi-Signal Alignment',
     confidence: candidate.confidenceQualification || 'emerging_alignment',
@@ -242,7 +276,8 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   });
   const categorized = categorizeBeaconCandidates(qualified);
   const candidates = categorized.filter((candidate) => candidate.qualified);
-  const picks = computeTierRanking(await enrichPicksWithNarratives(candidates.map(candidateToPick)));
+  const candidatePicks = candidates.map(candidateToPick).filter(Boolean);
+  const picks = computeTierRanking(await enrichPicksWithNarratives(candidatePicks));
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {
