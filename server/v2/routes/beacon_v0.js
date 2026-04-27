@@ -77,6 +77,10 @@ async function fetchLatestPicks(limit = 20) {
         narrative_input_tokens,
         narrative_output_tokens,
         narrative_error,
+        top_catalyst_tier,
+        top_catalyst_rank,
+        top_catalyst_reasons,
+        top_catalyst_computed_at,
         run_id,
         created_at
       FROM beacon_v0_picks

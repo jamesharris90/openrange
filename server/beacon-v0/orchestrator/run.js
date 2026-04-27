@@ -3,6 +3,7 @@ const { categorizeBeaconCandidates } = require('../categorization/simple');
 const { generatePickNarrative } = require('../narrative/generateNarrative');
 const { generateRunId, persistPicks } = require('../persistence/picks');
 const { qualifyBeaconCandidates } = require('../qualification/basic_filters');
+const { computeTierRanking } = require('../ranking/computeTier');
 const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
 const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
@@ -241,7 +242,7 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   });
   const categorized = categorizeBeaconCandidates(qualified);
   const candidates = categorized.filter((candidate) => candidate.qualified);
-  const picks = await enrichPicksWithNarratives(candidates.map(candidateToPick));
+  const picks = computeTierRanking(await enrichPicksWithNarratives(candidates.map(candidateToPick)));
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {

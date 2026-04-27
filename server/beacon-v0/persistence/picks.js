@@ -31,6 +31,9 @@ function normalizePickForStorage(pick) {
     narrativeInputTokens: Number.isFinite(Number(pick.narrative_input_tokens)) ? Number(pick.narrative_input_tokens) : null,
     narrativeOutputTokens: Number.isFinite(Number(pick.narrative_output_tokens)) ? Number(pick.narrative_output_tokens) : null,
     narrativeError: pick.narrative_error || null,
+    topCatalystTier: Number.isFinite(Number(pick.top_catalyst_tier)) ? Number(pick.top_catalyst_tier) : null,
+    topCatalystRank: Number.isFinite(Number(pick.top_catalyst_rank)) ? Number(pick.top_catalyst_rank) : null,
+    topCatalystReasons: Array.isArray(pick.top_catalyst_reasons) ? pick.top_catalyst_reasons : null,
   };
 }
 
@@ -48,8 +51,8 @@ async function persistPicks(picks, runId = generateRunId()) {
   const placeholders = [];
 
   normalized.forEach((pick, index) => {
-    const base = index * 14;
-    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14})`);
+    const base = index * 17;
+    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW())`);
     values.push(
       pick.symbol,
       pick.pattern,
@@ -65,6 +68,9 @@ async function persistPicks(picks, runId = generateRunId()) {
       pick.narrativeInputTokens,
       pick.narrativeOutputTokens,
       pick.narrativeError,
+      pick.topCatalystTier,
+      pick.topCatalystRank,
+      pick.topCatalystReasons,
     );
   });
 
@@ -73,7 +79,8 @@ async function persistPicks(picks, runId = generateRunId()) {
       INSERT INTO beacon_v0_picks
         (symbol, pattern, confidence, reasoning, signals_aligned, metadata, run_id,
          narrative_thesis, narrative_watch_for, narrative_generated_at, narrative_model,
-         narrative_input_tokens, narrative_output_tokens, narrative_error)
+         narrative_input_tokens, narrative_output_tokens, narrative_error,
+         top_catalyst_tier, top_catalyst_rank, top_catalyst_reasons, top_catalyst_computed_at)
       VALUES ${placeholders.join(', ')}
     `,
     values,

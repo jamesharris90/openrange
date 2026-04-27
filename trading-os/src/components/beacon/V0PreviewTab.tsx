@@ -26,6 +26,10 @@ interface V0Pick {
   narrative_thesis?: string | null;
   narrative_watch_for?: string | null;
   narrative_generated_at?: string | null;
+  top_catalyst_tier?: number | null;
+  top_catalyst_rank?: number | null;
+  top_catalyst_reasons?: string[] | null;
+  top_catalyst_computed_at?: string | null;
   created_at: string;
   run_id?: string | null;
 }
@@ -135,6 +139,55 @@ function Sparkline({ values, isPositive }: { values: number[]; isPositive: boole
         strokeWidth="1.5"
       />
     </svg>
+  );
+}
+
+function V0TopCatalystCard({ pick }: { pick: V0Pick }) {
+  const reasons = Array.isArray(pick.top_catalyst_reasons) ? pick.top_catalyst_reasons : [];
+  const tier = pick.top_catalyst_tier === 1 ? 1 : 2;
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+      <div className="flex gap-4">
+        <div className="shrink-0 font-mono text-lg font-black text-slate-400">
+          #{pick.top_catalyst_rank ?? "—"}
+        </div>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <Link href={`/research-v2/${pick.symbol}`} className="font-mono text-xl font-bold text-cyan-300 hover:underline">
+                {pick.symbol}
+              </Link>
+              {pick.latest_close != null && (
+                <span className="text-lg font-medium text-zinc-200">${pick.latest_close.toFixed(2)}</span>
+              )}
+              {pick.change_pct != null && (
+                <span className={pick.change_pct >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
+                  {pick.change_pct >= 0 ? "+" : ""}{pick.change_pct.toFixed(2)}%
+                </span>
+              )}
+            </div>
+            <span className={`inline-flex w-fit items-center rounded-xl border px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] ${getAlignmentBadgeClass(tier === 1 ? 4 : 3)}`}>
+              TIER {tier}
+            </span>
+          </div>
+          {reasons.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {reasons.map((reason) => (
+                <span key={`${pick.pick_id}-${reason}`} className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs text-slate-300">
+                  {reason}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {pick.narrative_thesis ? (
+            <p className="text-sm leading-relaxed text-zinc-100">{pick.narrative_thesis}</p>
+          ) : (
+            <p className="text-sm italic text-zinc-400">{pick.reasoning || "Narrative pending..."}</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -320,6 +373,10 @@ export function V0PreviewTab() {
   }
 
   const data = query.data;
+  const topCatalystPicks = data.picks
+    .filter((pick) => pick.top_catalyst_tier && pick.top_catalyst_rank)
+    .sort((a, b) => Number(a.top_catalyst_rank || 999) - Number(b.top_catalyst_rank || 999))
+    .slice(0, 5);
 
   if (data.picks.length === 0) {
     return (
@@ -350,6 +407,19 @@ export function V0PreviewTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {topCatalystPicks.length > 0 ? (
+          <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <div className="mb-4">
+              <h3 className="text-sm font-black uppercase tracking-[0.24em] text-slate-100">Today&apos;s Top Catalysts</h3>
+              <p className="mt-1 text-xs text-slate-500">Highest-conviction Beacon v0 picks for today&apos;s session.</p>
+            </div>
+            <div className="space-y-3">
+              {topCatalystPicks.map((pick) => (
+                <V0TopCatalystCard key={`top-${pick.pick_id || `${pick.symbol}-${pick.pattern}`}`} pick={pick} />
+              ))}
+            </div>
+          </div>
+        ) : null}
         {data.picks.map((pick) => (
           <V0PickCard key={pick.pick_id || `${pick.symbol}-${pick.pattern}`} pick={pick} />
         ))}
