@@ -197,7 +197,7 @@ async function upsertRows(table, rows, schema, conflictColumns, updateColumns, l
 
   const sql = buildJsonbUpsertSql(table, schema, conflictColumns, updateColumns);
   const batchSize = Math.max(1, Number(process.env.BACKTESTER_UPSERT_BATCH_SIZE || 50) || 50);
-  const timeoutMs = Math.max(30000, Number(process.env.BACKTESTER_UPSERT_TIMEOUT_MS || 120000) || 120000);
+  const timeoutMs = Math.max(30000, Number(process.env.BACKTESTER_UPSERT_TIMEOUT_MS || 30000) || 30000);
   for (const group of chunk(rows, batchSize)) {
     await queryWithTimeout(sql, [JSON.stringify(group)], {
       timeoutMs,
