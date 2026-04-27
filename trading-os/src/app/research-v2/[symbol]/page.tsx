@@ -131,6 +131,7 @@ type ResearchData = {
 type ResearchWarning = {
   reason?: string | null;
   message?: string | null;
+  dataset?: string | null;
 };
 
 type PayloadPhase = "idle" | "fast_loading" | "fast_loaded" | "full_loading" | "full_loaded" | "error";
@@ -263,6 +264,14 @@ function normalizeWarning(value: unknown): ResearchWarning | null {
 
   if (typeof value === "string") {
     const lower = value.toLowerCase();
+    if (lower === "synthetic_screener_row") {
+      return {
+        reason: "enrichment_pending",
+        message: "Screener snapshot enrichment pending",
+        dataset: "screener",
+      };
+    }
+
     const reason = lower.includes("timeout")
       ? "fmp_timeout"
       : lower.includes("chart")
@@ -274,10 +283,11 @@ function normalizeWarning(value: unknown): ResearchWarning | null {
   }
 
   if (typeof value === "object") {
-    const warning = value as { reason?: unknown; message?: unknown };
+    const warning = value as { reason?: unknown; message?: unknown; dataset?: unknown };
     return {
       reason: String(warning.reason || "partial_data"),
       message: warning.message ? String(warning.message) : null,
+      dataset: warning.dataset ? String(warning.dataset) : null,
     };
   }
 
@@ -285,7 +295,9 @@ function normalizeWarning(value: unknown): ResearchWarning | null {
 }
 
 function getBannerMessage(warnings: ResearchWarning[], meta: ResearchResponse["meta"] | null): string | null {
-  const reasons = new Set(warnings.map((warning) => String(warning.reason || "").trim()).filter(Boolean));
+  const reasons = new Set(warnings
+    .map((warning) => String(warning.reason || "").trim())
+    .filter((reason) => Boolean(reason) && reason !== "enrichment_pending"));
 
   if (meta?.fallback) {
     reasons.add("seeded_fallback");
@@ -844,6 +856,10 @@ function ResearchV2PageContent({ params }: Props) {
       .filter((warning): warning is ResearchWarning => Boolean(warning));
   }, [payload?.warnings, researchMeta?.warnings]);
   const bannerMessage = useMemo(() => getBannerMessage(responseWarnings, researchMeta), [responseWarnings, researchMeta]);
+  const enrichmentPendingDatasets = Array.from(new Set(responseWarnings
+    .filter((warning) => warning.reason === "enrichment_pending")
+    .map((warning) => String(warning.dataset || "").trim())
+    .filter(Boolean)));
   const chartRows = useMemo(() => getChartRows(payload?.chart), [payload?.chart]);
   const catalystNews = useMemo(() => {
     if (Array.isArray(news) && news.length > 0) {
@@ -1147,6 +1163,12 @@ function ResearchV2PageContent({ params }: Props) {
         <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
           {bannerMessage}
         </div>
+      ) : null}
+
+      {enrichmentPendingDatasets.length > 0 ? (
+        <p className="mt-3 text-xs text-slate-500">
+          Pending: {enrichmentPendingDatasets.join(", ")}
+        </p>
       ) : null}
 
       {!error ? (
