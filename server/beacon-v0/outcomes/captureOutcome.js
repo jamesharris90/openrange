@@ -86,22 +86,27 @@ function getCheckpointWindowClause(checkpointNumber) {
 }
 
 async function expireStaleOutcomePicks() {
-  await queryWithTimeout(
+  return runExpirySweep();
+}
+
+async function runExpirySweep() {
+  const result = await queryWithTimeout(
     `
       UPDATE beacon_v0_picks
       SET outcome_complete = true
       WHERE outcome_complete = false
         AND NOW() > created_at + INTERVAL '30 hours'
+      RETURNING id
     `,
     [],
     {
-      label: 'beacon_v0.outcomes.expire_stale',
-      timeoutMs: 8000,
-      slowQueryMs: 1000,
+      label: 'beacon_v0_outcomes.expiry_sweep',
+      timeoutMs: 15000,
       poolType: 'write',
-      maxRetries: 1,
     },
   );
+
+  return { rows_marked_complete: result.rowCount };
 }
 
 async function findPicksNeedingCapture(checkpointNumber) {
@@ -288,4 +293,5 @@ module.exports = {
   findPicksNeedingCapture,
   capturePickOutcome,
   markOutcomeCompleteIfDone,
+  runExpirySweep,
 };

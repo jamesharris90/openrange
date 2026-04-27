@@ -41,7 +41,7 @@ const { startRetentionJobs } = require('../system/retentionJobs');
 const { getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
 const { getTelemetry } = require('../cache/telemetryCache');
 const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher');
-const { runOutcomeCapture } = require('../workers/beacon_v0_outcome_worker');
+const { runOutcomeCapture, runOutcomeExpirySweep } = require('../workers/beacon_v0_outcome_worker');
 
 let yahooSchedulerStarted = false;
 let newsBackfillSchedulerStarted = false;
@@ -294,6 +294,16 @@ function ensureBeaconV0OutcomeScheduler() {
 
     console.log('[BEACON_V0_OUTCOMES] scheduler active', { checkpoint, schedule: label });
   });
+
+  cron.schedule('0 6 * * *', async () => {
+    try {
+      await runOutcomeExpirySweep();
+    } catch (error) {
+      console.warn('[BEACON_V0_OUTCOMES] expiry sweep scheduled run failed', { error: error.message });
+    }
+  });
+
+  console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'expiry_sweep', schedule: '06:00 UTC daily' });
 }
 
 async function runStartupTask(name, task) {

@@ -9,6 +9,7 @@ const {
   findPicksNeedingCapture,
   capturePickOutcome,
   markOutcomeCompleteIfDone,
+  runExpirySweep,
 } = require('../beacon-v0/outcomes/captureOutcome');
 const { pool } = require('../db/pg');
 
@@ -85,6 +86,31 @@ async function runOutcomeCapture(checkpointNumber) {
   return summary;
 }
 
+async function runOutcomeExpirySweep() {
+  const startedAt = Date.now();
+
+  try {
+    const { rows_marked_complete: rowsMarkedComplete } = await runExpirySweep();
+    const summary = {
+      worker: 'beacon-v0-outcomes',
+      action: 'expiry_sweep',
+      rows_marked_complete: rowsMarkedComplete,
+      duration_ms: Date.now() - startedAt,
+    };
+    console.log('[beacon-v0-outcomes] expiry sweep complete', summary);
+    return summary;
+  } catch (error) {
+    const summary = {
+      worker: 'beacon-v0-outcomes',
+      action: 'expiry_sweep',
+      error: error.message,
+      duration_ms: Date.now() - startedAt,
+    };
+    console.error('[beacon-v0-outcomes] expiry sweep failed', summary);
+    return summary;
+  }
+}
+
 async function main() {
   const checkpoint = Number(process.argv[2] || 1);
   await runOutcomeCapture(checkpoint);
@@ -103,4 +129,5 @@ if (require.main === module) {
 
 module.exports = {
   runOutcomeCapture,
+  runOutcomeExpirySweep,
 };
