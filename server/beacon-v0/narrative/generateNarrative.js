@@ -27,7 +27,16 @@ Rules:
 - If signals are mixed or contradictory, say so
 - Maximum 60 words total across both fields
 - Plain text only, no markdown or formatting in the values
-- Output ONLY the JSON object, nothing else`;
+- Output ONLY the JSON object, nothing else
+
+CONGRESSIONAL SIGNAL LANGUAGE:
+When a pick includes congressional trade signals, describe them with factual, neutral language only.
+
+USE: "disclosed congressional buying", "filed congressional activity", "congressional purchase disclosure", "notable disclosed positioning"
+
+NEVER USE: "informed positioning", "smart money following politicians", any phrasing that implies politicians have inside information or that following them produces alpha.
+
+State the disclosure as a data point, not a recommendation.`;
 
 function buildUserMessage(pick, context = {}) {
   const lines = [

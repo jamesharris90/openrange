@@ -137,6 +137,40 @@ function buildNarrativeContext(pick) {
   return context;
 }
 
+async function generateNarrativesBounded(picks, concurrency = 3) {
+  const results = new Array(picks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      if (index >= picks.length) {
+        return;
+      }
+
+      try {
+        results[index] = await generatePickNarrative(picks[index], buildNarrativeContext(picks[index]));
+      } catch (error) {
+        results[index] = {
+          thesis: null,
+          watch_for: null,
+          input_tokens: 0,
+          output_tokens: 0,
+          error: String(error.message || error),
+        };
+      }
+    }
+  }
+
+  const workerCount = Math.min(Math.max(Number(concurrency) || 1, 1), picks.length);
+  const workers = Array.from({ length: workerCount }, () => worker());
+  await Promise.all(workers);
+
+  return results;
+}
+
 async function enrichPicksWithNarratives(picks) {
   if (!Array.isArray(picks) || picks.length === 0) {
     return picks;
@@ -145,9 +179,10 @@ async function enrichPicksWithNarratives(picks) {
   console.log(`[beacon-v0] Generating narratives for ${picks.length} picks...`);
   const narrativeStartedAt = Date.now();
 
-  const enrichedPicks = await Promise.all(picks.map(async (pick) => {
-    const narrative = await generatePickNarrative(pick, buildNarrativeContext(pick));
+  const narratives = await generateNarrativesBounded(picks, 3);
 
+  const enrichedPicks = picks.map((pick, index) => {
+    const narrative = narratives[index];
     return {
       ...pick,
       narrative_thesis: narrative.thesis,
@@ -158,7 +193,7 @@ async function enrichPicksWithNarratives(picks) {
       narrative_output_tokens: narrative.output_tokens,
       narrative_error: narrative.error,
     };
-  }));
+  });
 
   const narrativeDuration = Math.round((Date.now() - narrativeStartedAt) / 1000);
   const narrativeSuccessCount = enrichedPicks.filter((pick) => pick.narrative_thesis).length;
