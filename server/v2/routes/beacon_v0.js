@@ -26,6 +26,40 @@ function enrichPickDirectionCounts(pick) {
   };
 }
 
+function groupPickOutcomes(pick) {
+  const {
+    outcome_t1_price: t1Price,
+    outcome_t1_pct_change: t1PctChange,
+    outcome_t1_volume_ratio: t1VolumeRatio,
+    outcome_t1_captured_at: t1CapturedAt,
+    outcome_t2_price: t2Price,
+    outcome_t2_pct_change: t2PctChange,
+    outcome_t2_volume_ratio: t2VolumeRatio,
+    outcome_t2_captured_at: t2CapturedAt,
+    outcome_t3_price: t3Price,
+    outcome_t3_pct_change: t3PctChange,
+    outcome_t3_volume_ratio: t3VolumeRatio,
+    outcome_t3_captured_at: t3CapturedAt,
+    outcome_t4_price: t4Price,
+    outcome_t4_pct_change: t4PctChange,
+    outcome_t4_volume_ratio: t4VolumeRatio,
+    outcome_t4_captured_at: t4CapturedAt,
+    outcome_complete: outcomeComplete,
+    ...rest
+  } = pick;
+
+  return {
+    ...rest,
+    outcomes: {
+      t1: { price: t1Price ?? null, pct_change: t1PctChange ?? null, volume_ratio: t1VolumeRatio ?? null, captured_at: t1CapturedAt ?? null },
+      t2: { price: t2Price ?? null, pct_change: t2PctChange ?? null, volume_ratio: t2VolumeRatio ?? null, captured_at: t2CapturedAt ?? null },
+      t3: { price: t3Price ?? null, pct_change: t3PctChange ?? null, volume_ratio: t3VolumeRatio ?? null, captured_at: t3CapturedAt ?? null },
+      t4: { price: t4Price ?? null, pct_change: t4PctChange ?? null, volume_ratio: t4VolumeRatio ?? null, captured_at: t4CapturedAt ?? null },
+      complete: Boolean(outcomeComplete),
+    },
+  };
+}
+
 async function requireAuth(req, res, next) {
   if (!JWT_SECRET) return res.status(500).json({ error: 'Authentication service unavailable' });
 
@@ -81,6 +115,23 @@ async function fetchLatestPicks(limit = 20) {
         top_catalyst_rank,
         top_catalyst_reasons,
         top_catalyst_computed_at,
+        outcome_t1_price,
+        outcome_t1_pct_change,
+        outcome_t1_volume_ratio,
+        outcome_t1_captured_at,
+        outcome_t2_price,
+        outcome_t2_pct_change,
+        outcome_t2_volume_ratio,
+        outcome_t2_captured_at,
+        outcome_t3_price,
+        outcome_t3_pct_change,
+        outcome_t3_volume_ratio,
+        outcome_t3_captured_at,
+        outcome_t4_price,
+        outcome_t4_pct_change,
+        outcome_t4_volume_ratio,
+        outcome_t4_captured_at,
+        outcome_complete,
         run_id,
         created_at
       FROM beacon_v0_picks
@@ -186,7 +237,7 @@ router.get('/picks', async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const picks = (await fetchLatestPicks(limit)).map(enrichPickDirectionCounts);
     const priceMap = await fetchPickPriceData(picks.map((pick) => pick.symbol));
-    const enrichedPicks = picks.map((pick) => enrichPickPriceData(pick, priceMap));
+    const enrichedPicks = picks.map((pick) => groupPickOutcomes(enrichPickPriceData(pick, priceMap)));
 
     return res.json({
       picks: enrichedPicks,
