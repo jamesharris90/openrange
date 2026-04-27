@@ -225,6 +225,9 @@ function buildResponse(symbol, data, meta, source = 'snapshot') {
       price: data?.market?.price,
     })),
   };
+  normalizedCompany.stock_classification = data?.company?.stock_classification ?? normalizedCompany.stock_classification;
+  normalizedCompany.stock_classification_label = data?.company?.stock_classification_label ?? normalizedCompany.stock_classification_label;
+  normalizedCompany.stock_classification_reason = data?.company?.stock_classification_reason ?? normalizedCompany.stock_classification_reason;
 
   const warnings = Array.from(new Set([
     ...(Array.isArray(data?.warnings) ? data.warnings : []),
