@@ -191,7 +191,7 @@ function normalizeNewsPayload(payload: unknown): NewsItem[] {
       });
 
       return items;
-    }, []).slice(0, 5);
+    }, []).slice(0, 15);
 }
 
 function formatCurrency(value: number | string | null | undefined) {
@@ -1019,7 +1019,7 @@ function ResearchV2PageContent({ params }: Props) {
 
     async function loadNews() {
       try {
-        const response = await fetch(`/api/news?symbol=${encodeURIComponent(symbol)}&limit=5`, {
+        const response = await fetch(`/api/news?symbol=${encodeURIComponent(symbol)}&limit=15`, {
           cache: "no-store",
           signal: controller.signal,
         });

@@ -31,7 +31,7 @@ function normalizeNewsItems(payload) {
       };
     })
     .filter(Boolean)
-    .slice(0, 5);
+    .slice(0, 15);
 }
 
 function formatRelativeTime(value) {
