@@ -21,6 +21,24 @@ const POWER_HOUR_WINDOW = {
     'top_congressional_trades_recent',
   ],
 
+  content_profile: {
+    purpose: 'acceleration',
+    signals: [
+      'top_rvol_today',
+      'top_news_last_12h',
+      'top_volume_building',
+      'top_congressional_trades_recent',
+    ],
+    signal_weights: {
+      top_rvol_today: 1.5,
+      top_news_last_12h: 1.5,
+      top_volume_building: 1.0,
+      top_congressional_trades_recent: 0.5,
+    },
+    lookback_hours: 4,
+    forward_hours: null,
+  },
+
   min_alignment_count: 2,
 
   universe: {

@@ -22,6 +22,24 @@ const PREMARKET_WINDOW = {
     'top_volume_building',
   ],
 
+  content_profile: {
+    purpose: 'reaction',
+    signals: [
+      'top_gap_today',
+      'top_news_last_12h',
+      'earnings_reaction_last_3d',
+      'top_volume_building',
+    ],
+    signal_weights: {
+      top_gap_today: 1.5,
+      top_news_last_12h: 1.0,
+      earnings_reaction_last_3d: 1.5,
+      top_volume_building: 1.0,
+    },
+    lookback_hours: 14,
+    forward_hours: null,
+  },
+
   // Lower alignment threshold — premarket signals are individually meaningful
   min_alignment_count: 2,
 

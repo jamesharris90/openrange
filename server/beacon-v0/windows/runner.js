@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { getWindow } = require('./index');
+const { validateProfile } = require('./profiles');
 const { getPremarketEarningsExpansion } = require('./expansion/premarket_earnings');
 const { runBeaconPipeline, SIGNALS: ALL_SIGNALS } = require('../orchestrator/run');
 const { recordRunStart, recordRunSuccess, recordRunFailure } = require('../persistence/runs');
@@ -109,10 +110,10 @@ function generateWindowRunId(windowName) {
   return `v0-${windowName}-${timestamp}-${hash}`;
 }
 
-function getWindowSignals(window) {
-  const windowSignals = ALL_SIGNALS.filter((signal) => window.signals.includes(signal.SIGNAL_NAME));
-  if (windowSignals.length !== window.signals.length) {
-    const missing = window.signals.filter((name) => !ALL_SIGNALS.find((signal) => signal.SIGNAL_NAME === name));
+function getWindowSignals(window, profile) {
+  const windowSignals = ALL_SIGNALS.filter((signal) => profile.signals.includes(signal.SIGNAL_NAME));
+  if (windowSignals.length !== profile.signals.length) {
+    const missing = profile.signals.filter((name) => !ALL_SIGNALS.find((signal) => signal.SIGNAL_NAME === name));
     throw new Error(`Window ${window.name} references unknown signals: ${missing.join(', ')}`);
   }
   return windowSignals;
@@ -120,6 +121,7 @@ function getWindowSignals(window) {
 
 async function runWindow(windowName, options = {}) {
   const window = getWindow(windowName);
+  const profile = validateProfile(window.content_profile, windowName);
   const runId = options.runId || generateWindowRunId(windowName);
   const startedAt = Date.now();
 
@@ -135,7 +137,7 @@ async function runWindow(windowName, options = {}) {
     }
 
     await recordRunStart(runId, universe.length);
-    const windowSignals = getWindowSignals(window);
+    const windowSignals = getWindowSignals(window, profile);
 
     const result = await runBeaconPipeline(universe, {
       persist: true,
@@ -145,6 +147,10 @@ async function runWindow(windowName, options = {}) {
       minAlignmentCount: window.min_alignment_count,
       windowContext: {
         name: window.name,
+        purpose: profile.purpose,
+        signal_weights: profile.signal_weights,
+        lookback_hours: profile.lookback_hours,
+        forward_hours: profile.forward_hours,
         rankingWeights: window.ranking_weights,
       },
       skipNarrativeGeneration: true,

@@ -20,6 +20,20 @@ const POST_MARKET_WINDOW = {
     'top_news_last_12h', // earnings call commentary
   ],
 
+  content_profile: {
+    purpose: 'reaction',
+    signals: [
+      'earnings_reaction_last_3d',
+      'top_news_last_12h',
+    ],
+    signal_weights: {
+      earnings_reaction_last_3d: 2.0,
+      top_news_last_12h: 1.0,
+    },
+    lookback_hours: 4,
+    forward_hours: null,
+  },
+
   min_alignment_count: 1, // earnings reaction alone is sufficient
 
   universe: {
