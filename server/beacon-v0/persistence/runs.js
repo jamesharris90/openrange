@@ -78,12 +78,40 @@ async function recordRunSuccess(runId, picksGenerated, durationSeconds, metadata
           completed_at = NOW(),
           picks_generated = $2,
           duration_seconds = $3,
-          metadata = $4::jsonb
+          metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb
       WHERE run_id = $1
     `,
     [runId, picksGenerated, durationSeconds, JSON.stringify(metadata)],
     {
       label: 'beacon_v0.runs.complete',
+      timeoutMs: 5000,
+      slowQueryMs: 1000,
+      poolType: 'write',
+      maxRetries: 1,
+    },
+  );
+}
+
+function normalizeFunnelCounts(funnel = {}) {
+  return {
+    candidates_evaluated: Number.parseInt(funnel.candidates_evaluated, 10) || 0,
+    candidates_aligned: Number.parseInt(funnel.candidates_aligned, 10) || 0,
+    candidates_qualified: Number.parseInt(funnel.candidates_qualified, 10) || 0,
+    candidates_picked: Number.parseInt(funnel.candidates_picked, 10) || 0,
+    candidates_skipped_no_price: Number.parseInt(funnel.candidates_skipped_no_price, 10) || 0,
+  };
+}
+
+async function recordRunFunnel(runId, funnel = {}) {
+  await queryWithTimeout(
+    `
+      UPDATE beacon_v0_runs
+      SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('funnel', $2::jsonb)
+      WHERE run_id = $1
+    `,
+    [runId, JSON.stringify(normalizeFunnelCounts(funnel))],
+    {
+      label: 'beacon_v0.runs.funnel',
       timeoutMs: 5000,
       slowQueryMs: 1000,
       poolType: 'write',
@@ -117,6 +145,7 @@ module.exports = {
   isAnotherRunActive,
   reapStaleRuns,
   recordRunFailure,
+  recordRunFunnel,
   recordRunStart,
   recordRunSuccess,
 };

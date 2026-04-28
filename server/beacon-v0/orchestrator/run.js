@@ -2,6 +2,7 @@ const { alignLeaderboardSignals, MIN_ALIGNMENT_COUNT, TOP_ALIGNED_PICKS } = requ
 const { categorizeBeaconCandidates } = require('../categorization/simple');
 const { generatePickNarrative } = require('../narrative/generateNarrative');
 const { generateRunId, persistPicks } = require('../persistence/picks');
+const { recordRunFunnel } = require('../persistence/runs');
 const { qualifyBeaconCandidates } = require('../qualification/basic_filters');
 const { computeTierRanking } = require('../ranking/computeTier');
 const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
@@ -247,6 +248,13 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   const runId = options.runId || generateRunId();
   const signalsToRun = options.signals || SIGNALS;
   const signalResults = [];
+  const funnel = {
+    candidates_evaluated: Array.isArray(symbols) ? symbols.length : 0,
+    candidates_aligned: 0,
+    candidates_qualified: 0,
+    candidates_picked: 0,
+    candidates_skipped_no_price: 0,
+  };
 
   for (let index = 0; index < signalsToRun.length; index += 1) {
     const signal = signalsToRun[index];
@@ -270,19 +278,31 @@ async function runBeaconPipeline(symbols = [], options = {}) {
     minAlignmentCount,
     limit: Number(options.limit || TOP_ALIGNED_PICKS),
   });
+  funnel.candidates_aligned = aligned.length;
   const qualified = qualifyBeaconCandidates(aligned, {
     ...(options.qualification || {}),
     minAlignmentCount,
   });
   const categorized = categorizeBeaconCandidates(qualified);
   const candidates = categorized.filter((candidate) => candidate.qualified);
-  const candidatePicks = candidates.map(candidateToPick).filter(Boolean);
+  funnel.candidates_qualified = candidates.length;
+  const candidatePicks = [];
+  for (const candidate of candidates) {
+    const pick = candidateToPick(candidate);
+    if (pick) {
+      candidatePicks.push(pick);
+    } else {
+      funnel.candidates_skipped_no_price += 1;
+    }
+  }
   const picks = computeTierRanking(await enrichPicksWithNarratives(candidatePicks));
+  funnel.candidates_picked = picks.length;
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {
     const result = await persistPicks(picks, runId);
     persistenceResult = { ...result, enabled: true };
+    await recordRunFunnel(runId, funnel);
     console.log(`[beacon-v0] Persisted ${result.inserted} picks under run_id=${runId}`);
   }
 
@@ -309,6 +329,7 @@ async function runBeaconPipeline(symbols = [], options = {}) {
       disqualifiedCandidates: categorized.length - candidates.length,
       signalLeaderboards: signalResults.length,
       minAlignmentCount,
+      funnel,
     },
     picks,
     candidates,
