@@ -299,11 +299,81 @@ async function enrichPicksWithNarratives(picks) {
   return enrichedPicks;
 }
 
+function buildSignalDerivedReasoning(pick) {
+  const evidence = Array.isArray(pick?.metadata?.signal_evidence) ? pick.metadata.signal_evidence : [];
+  const signals = evidence.map((item) => item.signal).filter(Boolean);
+  return `Aligned on ${signals.length > 0 ? signals.join(', ') : 'multiple signals'}. Window-discovered, no nightly narrative.`;
+}
+
+async function getExistingNightlyNarratives(symbols = []) {
+  const normalizedSymbols = [...new Set((symbols || [])
+    .map((symbol) => String(symbol || '').trim().toUpperCase())
+    .filter(Boolean))];
+
+  if (normalizedSymbols.length === 0) {
+    return new Map();
+  }
+
+  const { rows } = await queryWithTimeout(
+    `
+      SELECT DISTINCT ON (UPPER(symbol))
+        UPPER(symbol) AS symbol,
+        narrative_thesis AS thesis,
+        narrative_watch_for AS watch_for
+      FROM beacon_v0_picks
+      WHERE UPPER(symbol) = ANY($1::text[])
+        AND discovered_in_window = 'nightly'
+        AND created_at > NOW() - INTERVAL '24 hours'
+      ORDER BY UPPER(symbol), created_at DESC
+    `,
+    [normalizedSymbols],
+    {
+      label: 'beacon_v0.orchestrator.existing_narratives',
+      timeoutMs: 5000,
+      slowQueryMs: 1000,
+      poolType: 'read',
+      maxRetries: 0,
+    },
+  );
+
+  const narratives = new Map();
+  for (const row of rows) {
+    narratives.set(row.symbol, {
+      thesis: row.thesis || null,
+      watch_for: row.watch_for || null,
+    });
+  }
+  return narratives;
+}
+
+async function enrichPicksWithoutNarrativeGeneration(picks) {
+  if (!Array.isArray(picks) || picks.length === 0) {
+    return picks;
+  }
+
+  const narratives = await getExistingNightlyNarratives(picks.map((pick) => pick.symbol));
+  return picks.map((pick) => {
+    const existing = narratives.get(String(pick.symbol || '').toUpperCase());
+    return {
+      ...pick,
+      narrative_thesis: existing?.thesis || buildSignalDerivedReasoning(pick),
+      narrative_watch_for: existing?.watch_for || null,
+      narrative_generated_at: null,
+      narrative_model: existing?.thesis ? 'nightly_reuse' : 'signal_derived',
+      narrative_input_tokens: 0,
+      narrative_output_tokens: 0,
+      narrative_error: null,
+    };
+  });
+}
+
 async function runBeaconPipeline(symbols = [], options = {}) {
   const startedAt = new Date().toISOString();
   const persist = options.persist !== false;
   const runId = options.runId || generateRunId();
   const signalsToRun = options.signals || SIGNALS;
+  const windowContext = options.windowContext || null;
+  const skipNarrativeGeneration = options.skipNarrativeGeneration === true;
   const signalResults = [];
   const funnel = {
     candidates_evaluated: Array.isArray(symbols) ? symbols.length : 0,
@@ -352,7 +422,10 @@ async function runBeaconPipeline(symbols = [], options = {}) {
       funnel.candidates_skipped_no_price += 1;
     }
   }
-  const picks = computeTierRanking(await enrichPicksWithNarratives(candidatePicks));
+  const narrativeReadyPicks = skipNarrativeGeneration
+    ? await enrichPicksWithoutNarrativeGeneration(candidatePicks)
+    : await enrichPicksWithNarratives(candidatePicks);
+  const picks = computeTierRanking(narrativeReadyPicks);
   const volumeBaselines = await computePickVolumeBaselines(picks.map((pick) => pick.symbol));
   picks.forEach((pick) => {
     pick.pick_volume_baseline = volumeBaselines.get(String(pick.symbol || '').toUpperCase()) ?? null;
@@ -361,7 +434,9 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
   if (persist && picks.length > 0) {
-    const result = await persistPicks(picks, runId);
+    const result = await persistPicks(picks, runId, {
+      discoveredInWindow: windowContext?.name || 'nightly',
+    });
     persistenceResult = { ...result, enabled: true };
     await recordRunFunnel(runId, funnel);
     console.log(`[beacon-v0] Persisted ${result.inserted} picks under run_id=${runId}`);

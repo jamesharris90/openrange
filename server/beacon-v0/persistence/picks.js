@@ -45,7 +45,9 @@ function normalizePickForStorage(pick) {
   };
 }
 
-async function persistPicks(picks, runId = generateRunId()) {
+async function persistPicks(picks, runId = generateRunId(), options = {}) {
+  const discoveredInWindow = options.discoveredInWindow || 'nightly';
+
   if (!Array.isArray(picks) || picks.length === 0) {
     return { inserted: 0, runId };
   }
@@ -64,8 +66,8 @@ async function persistPicks(picks, runId = generateRunId()) {
   const placeholders = [];
 
   normalized.forEach((pick, index) => {
-    const base = index * 19;
-    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW(), $${base + 18}, $${base + 19}, 'generation')`);
+    const base = index * 20;
+    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW(), $${base + 18}, $${base + 19}, 'generation', $${base + 20})`);
     values.push(
       pick.symbol,
       pick.pattern,
@@ -86,6 +88,7 @@ async function persistPicks(picks, runId = generateRunId()) {
       pick.topCatalystReasons,
       pick.pickPrice,
       pick.pickVolumeBaseline,
+      discoveredInWindow,
     );
   });
 
@@ -96,7 +99,7 @@ async function persistPicks(picks, runId = generateRunId()) {
          narrative_thesis, narrative_watch_for, narrative_generated_at, narrative_model,
          narrative_input_tokens, narrative_output_tokens, narrative_error,
         top_catalyst_tier, top_catalyst_rank, top_catalyst_reasons, top_catalyst_computed_at,
-        pick_price, pick_volume_baseline, baseline_source)
+        pick_price, pick_volume_baseline, baseline_source, discovered_in_window)
       VALUES ${placeholders.join(', ')}
     `,
     values,
