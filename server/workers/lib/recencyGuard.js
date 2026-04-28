@@ -11,7 +11,7 @@ const ALLOWED_RUN_ID_COLUMNS = new Set(['run_id', 'id']);
  *
  * Fails open: any error returns null (proceed with execution).
  */
-async function checkRecentRun({ table, recencyWindowHours, workerName, runIdColumn = 'run_id' }) {
+async function checkRecentRun({ table, recencyWindowHours, workerName, additionalWhere = null, runIdColumn = 'run_id' }) {
   if (process.env.FORCE_RUN === '1') {
     return null;
   }
@@ -24,6 +24,14 @@ async function checkRecentRun({ table, recencyWindowHours, workerName, runIdColu
   }
 
   try {
+    const whereClauses = [
+      `status IN ('completed', 'running')`,
+      `started_at > NOW() - ($1 || ' hours')::interval`,
+    ];
+    if (additionalWhere) {
+      whereClauses.push(additionalWhere);
+    }
+
     const { rows } = await queryWithTimeout(
       `SELECT
          ${runIdColumn}::text AS run_id,
@@ -32,8 +40,7 @@ async function checkRecentRun({ table, recencyWindowHours, workerName, runIdColu
          status,
          EXTRACT(EPOCH FROM (NOW() - started_at)) / 3600.0 AS hours_since_start
        FROM ${table}
-       WHERE status IN ('completed', 'running')
-         AND started_at > NOW() - ($1 || ' hours')::interval
+       WHERE ${whereClauses.join(' AND ')}
        ORDER BY started_at DESC
        LIMIT 1`,
       [String(recencyWindowHours)],

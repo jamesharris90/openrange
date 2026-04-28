@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { getWindow } = require('./index');
+const { getPremarketEarningsExpansion } = require('./expansion/premarket_earnings');
 const { runBeaconPipeline, SIGNALS: ALL_SIGNALS } = require('../orchestrator/run');
 const { recordRunStart, recordRunSuccess, recordRunFailure } = require('../persistence/runs');
 const { queryWithTimeout } = require('../../db/pg');
@@ -26,8 +27,29 @@ async function getNightlyUniverseForToday() {
 }
 
 async function getWindowExpansionUniverse(window) {
-  console.log(`[window-runner] expansion universe for ${window.name}: placeholder, returning empty (will be implemented in G2c-4+)`);
-  return [];
+  const max = window.universe.expansion_max_symbols || 50;
+
+  switch (window.name) {
+    case 'premarket': {
+      const result = await getPremarketEarningsExpansion({ limit: max });
+      console.log(JSON.stringify({
+        log: 'window_runner.expansion',
+        window: window.name,
+        source: 'premarket_earnings',
+        symbol_count: result.symbols.length,
+        sample: result.metadata.slice(0, 5),
+      }));
+      return result.symbols;
+    }
+    case 'open':
+    case 'power_hour':
+    case 'post_market':
+      console.log(`[window-runner] expansion universe for ${window.name}: not yet implemented (G2c-5+), returning empty`);
+      return [];
+    default:
+      console.warn(`[window-runner] unknown window: ${window.name}`);
+      return [];
+  }
 }
 
 async function getPriorWindowSymbols(window) {
