@@ -5,6 +5,7 @@ const { generateRunId, persistPicks } = require('../persistence/picks');
 const { recordRunFunnel } = require('../persistence/runs');
 const { qualifyBeaconCandidates } = require('../qualification/basic_filters');
 const { computeTierRanking } = require('../ranking/computeTier');
+const { queryWithTimeout } = require('../../db/pg');
 const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
 const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
@@ -66,8 +67,64 @@ function pickFirstMetadataNumber(signals, keys) {
 function extractPickBaselines(signals) {
   return {
     pick_price: pickFirstMetadataNumber(signals, ['price', 'latest_close', 'close']),
-    pick_volume_baseline: pickFirstMetadataNumber(signals, ['avg_volume_20d', 'average_volume', 'vol_20d', 'avg_volume_30d']),
   };
+}
+
+async function computePickVolumeBaselines(symbols = []) {
+  const normalizedSymbols = [...new Set((symbols || [])
+    .map((symbol) => String(symbol || '').trim().toUpperCase())
+    .filter(Boolean))];
+
+  if (normalizedSymbols.length === 0) {
+    return new Map();
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `
+        WITH requested AS (
+          SELECT DISTINCT UPPER(unnest($1::text[])) AS symbol
+        ),
+        recent_bars AS (
+          SELECT
+            UPPER(d.symbol) AS symbol,
+            d.volume,
+            ROW_NUMBER() OVER (PARTITION BY UPPER(d.symbol) ORDER BY d.date DESC) AS rn
+          FROM daily_ohlc d
+          JOIN requested r ON r.symbol = UPPER(d.symbol)
+          WHERE d.date > CURRENT_DATE - INTERVAL '40 days'
+        )
+        SELECT
+          symbol,
+          AVG(volume)::bigint AS avg_volume_20d,
+          COUNT(*)::int AS bar_count
+        FROM recent_bars
+        WHERE rn <= 20
+        GROUP BY symbol
+        HAVING COUNT(*) >= 20
+      `,
+      [normalizedSymbols],
+      {
+        label: 'beacon_v0.compute_volume_baselines',
+        timeoutMs: 10000,
+        slowQueryMs: 1000,
+        poolType: 'read',
+        maxRetries: 0,
+      },
+    );
+
+    const baselines = new Map();
+    for (const row of rows) {
+      const volume = toFiniteNumber(row.avg_volume_20d);
+      if (volume != null) {
+        baselines.set(String(row.symbol || '').toUpperCase(), volume);
+      }
+    }
+    return baselines;
+  } catch (error) {
+    console.warn('[beacon-v0] Failed to compute authoritative volume baselines', error.message || error);
+    return new Map();
+  }
 }
 
 function candidateToPick(candidate) {
@@ -296,6 +353,10 @@ async function runBeaconPipeline(symbols = [], options = {}) {
     }
   }
   const picks = computeTierRanking(await enrichPicksWithNarratives(candidatePicks));
+  const volumeBaselines = await computePickVolumeBaselines(picks.map((pick) => pick.symbol));
+  picks.forEach((pick) => {
+    pick.pick_volume_baseline = volumeBaselines.get(String(pick.symbol || '').toUpperCase()) ?? null;
+  });
   funnel.candidates_picked = picks.length;
   let persistenceResult = { inserted: 0, runId, enabled: false };
 
@@ -347,6 +408,7 @@ module.exports = {
   SIGNALS,
   candidateToPick,
   chunkArray,
+  computePickVolumeBaselines,
   runBeaconPipeline,
   runBeaconV0,
   sleep,
