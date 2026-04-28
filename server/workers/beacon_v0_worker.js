@@ -22,8 +22,10 @@ const {
 } = require('../beacon-v0/persistence/runs');
 const { generateRunId } = require('../beacon-v0/persistence/picks');
 const { pool, queryWithTimeout } = require('../db/pg');
+const { checkRecentRun } = require('./lib/recencyGuard');
 
 const WORKER_VERSION = 'v0.5-phase50';
+const RECENCY_WINDOW_HOURS = Number(process.env.BEACON_V0_RECENCY_WINDOW_HOURS || 20);
 
 async function getEvaluationUniverse() {
   const result = await queryWithTimeout(
@@ -61,6 +63,20 @@ async function main() {
   const runId = generateRunId();
 
   try {
+    const skip = await checkRecentRun({
+      table: 'beacon_v0_runs',
+      recencyWindowHours: RECENCY_WINDOW_HOURS,
+      workerName: 'beacon-v0-worker',
+    });
+
+    if (skip) {
+      console.log(JSON.stringify({
+        log: 'beacon_v0_worker.skip',
+        ...skip,
+      }));
+      return { skipped: true, reason: skip.reason, runId: skip.recent_run_id };
+    }
+
     const staleRuns = await reapStaleRuns();
     if (staleRuns.length > 0) {
       console.log(

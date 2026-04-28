@@ -7,10 +7,12 @@ require('dotenv').config({ path: path.join(__dirname, '.env'), override: true })
 process.env.PG_POOL_MAX = process.env.BEACON_NIGHTLY_PG_POOL_MAX || '1';
 
 const { runBeaconNightlyCycle } = require('./beacon-nightly/nightlyCycle');
+const { checkRecentRun } = require('./workers/lib/recencyGuard');
 
 const DEFAULT_CRON = '30 21 * * 2-6';
 const DEFAULT_TIMEZONE = 'UTC';
 const KEEPALIVE_INTERVAL_MS = 60 * 60 * 1000;
+const RECENCY_WINDOW_HOURS = Number(process.env.BEACON_NIGHTLY_RECENCY_WINDOW_HOURS || 20);
 
 let cycleInFlight = false;
 let keepAliveTimer = null;
@@ -66,6 +68,22 @@ async function runCycle(trigger) {
   const startedAt = Date.now();
 
   try {
+    const skip = await checkRecentRun({
+      table: 'beacon_nightly_runs',
+      recencyWindowHours: RECENCY_WINDOW_HOURS,
+      workerName: 'beacon-nightly-worker',
+      runIdColumn: 'id',
+    });
+
+    if (skip) {
+      console.log(JSON.stringify({
+        log: 'beacon_nightly_worker.skip',
+        trigger,
+        ...skip,
+      }));
+      return { skipped: true, reason: skip.reason, runId: skip.recent_run_id };
+    }
+
     const result = await runBeaconNightlyCycle({
       serviceRole: 'beacon-nightly-worker',
       trigger,
