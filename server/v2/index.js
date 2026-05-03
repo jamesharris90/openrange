@@ -484,6 +484,7 @@ function createV2App() {
 }
 
 function startV2BackgroundServices(app, options = {}) {
+  console.log('[STARTUP] startV2BackgroundServices called');
   const schedulerFlags = options.schedulerFlags || app?.locals?.schedulerFlags || resolveSchedulerFlags();
   const hooks = {
     startResearchWarmup: options.startResearchWarmup,
@@ -525,6 +526,7 @@ function startV2BackgroundServices(app, options = {}) {
 
   if (schedulerFlags.backgroundServicesEnabled) {
     scheduleStartupTask('background_services', STARTUP_DELAYS_MS.backgroundServices, async () => {
+      console.log('[STARTUP] background_services callback fired');
       startBacktestScheduler();
       startTradeOutcomeScheduler();
       startDataHealthMonitor();

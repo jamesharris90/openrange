@@ -44,6 +44,7 @@ async function startServer() {
     console.log(`🚀 V2 backend running on port ${PORT}`);
   });
 
+  console.log('[STARTUP] index.js about to call startV2BackgroundServices');
   startV2BackgroundServices(app, {
     async startResearchWarmup() {
       try {
@@ -57,6 +58,7 @@ async function startServer() {
       await verifySnapshotStartup();
     },
   });
+  console.log('[STARTUP] index.js startV2BackgroundServices returned');
 
   return { app, server };
 }
