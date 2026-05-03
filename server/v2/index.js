@@ -41,7 +41,8 @@ const { startRetentionJobs } = require('../system/retentionJobs');
 const { getDataIntegrityHealth } = require('../engines/dataIntegrityEngine');
 const { getTelemetry } = require('../cache/telemetryCache');
 const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher');
-const { runOutcomeCapture, runOutcomeExpirySweep } = require('../workers/beacon_v0_outcome_worker');
+const { runOutcomeCapture } = require('../beacon-v0/outcomes/captureOutcome');
+const { runHealthSweep } = require('../beacon-v0/outcomes/healthSweep');
 const { reapStaleNightlyRuns } = require('../beacon-nightly/nightlyCycle');
 
 let yahooSchedulerStarted = false;
@@ -278,34 +279,31 @@ function ensureBeaconV0OutcomeScheduler() {
   }
 
   beaconV0OutcomeSchedulerStarted = true;
-  const schedules = [
-    { checkpoint: 1, expression: '*/15 * * * *', label: 'every 15 minutes' },
-    { checkpoint: 2, expression: '0 15 * * 1-5', label: '15:00 UTC weekdays' },
-    { checkpoint: 3, expression: '0 21 * * 1-5', label: '21:00 UTC weekdays' },
-    { checkpoint: 4, expression: '30 13 * * 1-5', label: '13:30 UTC weekdays' },
-  ];
-
-  schedules.forEach(({ checkpoint, expression, label }) => {
-    cron.schedule(expression, async () => {
-      try {
-        await runOutcomeCapture(checkpoint);
-      } catch (error) {
-        console.warn('[BEACON_V0_OUTCOMES] scheduled run failed', { checkpoint, error: error.message });
-      }
-    });
-
-    console.log('[BEACON_V0_OUTCOMES] scheduler active', { checkpoint, schedule: label });
-  });
-
-  cron.schedule('0 6 * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     try {
-      await runOutcomeExpirySweep();
+      await runOutcomeCapture();
     } catch (error) {
-      console.warn('[BEACON_V0_OUTCOMES] expiry sweep scheduled run failed', { error: error.message });
+      console.error(JSON.stringify({
+        log: 'beacon_v0_outcomes.cycle.failed',
+        error: error.message,
+      }));
     }
   });
 
-  console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'expiry_sweep', schedule: '06:00 UTC daily' });
+  console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'unified_capture', schedule: 'every 5 minutes' });
+
+  cron.schedule('15 * * * *', async () => {
+    try {
+      await runHealthSweep();
+    } catch (error) {
+      console.error(JSON.stringify({
+        log: 'beacon_v0_outcomes.health_sweep.failed',
+        error: error.message,
+      }));
+    }
+  });
+
+  console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'health_sweep', schedule: '15 minutes past every hour' });
 }
 
 function ensureBeaconNightlyReaperScheduler() {

@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const { queryWithTimeout } = require('../../db/pg');
+const { computeDueTimes } = require('../outcomes/dueTimeCalculator');
 
 function generateRunId() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -18,6 +19,40 @@ function toFiniteNumberOrNull(value) {
 }
 
 function normalizePickForStorage(pick) {
+  const createdAt = pick.created_at ? new Date(pick.created_at) : new Date();
+  const discoveredInWindow = pick.discovered_in_window || 'nightly';
+  let dueTimeFields = {
+    outcomeT1DueAt: null,
+    outcomeT2DueAt: null,
+    outcomeT3DueAt: null,
+    outcomeT4DueAt: null,
+    outcomeT1SessionMinutes: null,
+    outcomeT2SessionMinutes: null,
+    outcomeT3SessionMinutes: null,
+    outcomeT4SessionMinutes: null,
+  };
+
+  try {
+    const dueTimes = computeDueTimes(createdAt, discoveredInWindow);
+    dueTimeFields = {
+      outcomeT1DueAt: dueTimes.t1_due_at,
+      outcomeT2DueAt: dueTimes.t2_due_at,
+      outcomeT3DueAt: dueTimes.t3_due_at,
+      outcomeT4DueAt: dueTimes.t4_due_at,
+      outcomeT1SessionMinutes: dueTimes.t1_session_minutes,
+      outcomeT2SessionMinutes: dueTimes.t2_session_minutes,
+      outcomeT3SessionMinutes: dueTimes.t3_session_minutes,
+      outcomeT4SessionMinutes: dueTimes.t4_session_minutes,
+    };
+  } catch (error) {
+    console.warn(JSON.stringify({
+      log: 'beacon_v0.persistence.due_times_failed',
+      symbol: pick.symbol,
+      discovered_in_window: discoveredInWindow,
+      error: error.message,
+    }));
+  }
+
   return {
     symbol: String(pick.symbol || '').trim().toUpperCase(),
     pattern: pick.pattern || pick.patternCategory || 'Uncategorized Signal Alignment',
@@ -42,12 +77,15 @@ function normalizePickForStorage(pick) {
     topCatalystTier: Number.isFinite(Number(pick.top_catalyst_tier)) ? Number(pick.top_catalyst_tier) : null,
     topCatalystRank: Number.isFinite(Number(pick.top_catalyst_rank)) ? Number(pick.top_catalyst_rank) : null,
     topCatalystReasons: Array.isArray(pick.top_catalyst_reasons) ? pick.top_catalyst_reasons : null,
+    createdAt,
+    discoveredInWindow,
+    outcomeStatus: 'pending',
+    outcomeComplete: false,
+    ...dueTimeFields,
   };
 }
 
 async function persistPicks(picks, runId = generateRunId(), options = {}) {
-  const discoveredInWindow = options.discoveredInWindow || 'nightly';
-
   if (!Array.isArray(picks) || picks.length === 0) {
     return { inserted: 0, runId };
   }
@@ -66,8 +104,8 @@ async function persistPicks(picks, runId = generateRunId(), options = {}) {
   const placeholders = [];
 
   normalized.forEach((pick, index) => {
-    const base = index * 20;
-    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], NOW(), $${base + 18}, $${base + 19}, 'generation', $${base + 20})`);
+    const base = index * 32;
+    placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17}::text[], $${base + 18}, $${base + 19}, $${base + 20}, $${base + 21}, $${base + 22}, $${base + 23}, $${base + 24}, $${base + 25}, $${base + 26}, $${base + 27}, $${base + 28}, $${base + 29}, $${base + 30}, $${base + 31}, $${base + 32})`);
     values.push(
       pick.symbol,
       pick.pattern,
@@ -86,9 +124,21 @@ async function persistPicks(picks, runId = generateRunId(), options = {}) {
       pick.topCatalystTier,
       pick.topCatalystRank,
       pick.topCatalystReasons,
+      pick.createdAt,
       pick.pickPrice,
       pick.pickVolumeBaseline,
-      discoveredInWindow,
+      'generation',
+      pick.discoveredInWindow,
+      pick.outcomeT1DueAt,
+      pick.outcomeT2DueAt,
+      pick.outcomeT3DueAt,
+      pick.outcomeT4DueAt,
+      pick.outcomeStatus,
+      pick.outcomeComplete,
+      pick.outcomeT1SessionMinutes,
+      pick.outcomeT2SessionMinutes,
+      pick.outcomeT3SessionMinutes,
+      pick.outcomeT4SessionMinutes,
     );
   });
 
@@ -99,7 +149,11 @@ async function persistPicks(picks, runId = generateRunId(), options = {}) {
          narrative_thesis, narrative_watch_for, narrative_generated_at, narrative_model,
          narrative_input_tokens, narrative_output_tokens, narrative_error,
         top_catalyst_tier, top_catalyst_rank, top_catalyst_reasons, top_catalyst_computed_at,
-        pick_price, pick_volume_baseline, baseline_source, discovered_in_window)
+        pick_price, pick_volume_baseline, baseline_source, discovered_in_window,
+        outcome_t1_due_at, outcome_t2_due_at, outcome_t3_due_at, outcome_t4_due_at,
+        outcome_status, outcome_complete,
+        outcome_t1_session_minutes, outcome_t2_session_minutes,
+        outcome_t3_session_minutes, outcome_t4_session_minutes)
       VALUES ${placeholders.join(', ')}
     `,
     values,
