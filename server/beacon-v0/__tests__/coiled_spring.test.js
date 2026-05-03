@@ -14,8 +14,10 @@ require('dotenv').config({
 
 const sig = require('../signals/top_coiled_spring');
 const { pool } = require('../../db/pg');
+const hasDatabaseUrl = Boolean(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL);
+const testIfDatabase = hasDatabaseUrl ? test : test.skip;
 
-async function smokeTest() {
+testIfDatabase('top_coiled_spring detect() smoke test', async () => {
   console.log('Testing top_coiled_spring detect()...');
   const results = await sig.detect();
 
@@ -52,13 +54,8 @@ async function smokeTest() {
 
   console.log('');
   console.log('SMOKE TEST PASSED');
-}
+}, 30000);
 
-smokeTest()
-  .catch((error) => {
-    console.error('FAILED:', error.stack || error.message);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await pool.end().catch(() => {});
-  });
+afterAll(async () => {
+  await pool.end().catch(() => {});
+});

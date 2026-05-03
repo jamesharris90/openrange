@@ -1,3 +1,10 @@
+const path = require('path');
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+  override: false,
+});
+
 const request = require('supertest');
 const express = require('express');
 const userRoutes = require('../users/routes');

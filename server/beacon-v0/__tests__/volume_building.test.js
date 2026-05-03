@@ -2,9 +2,20 @@
  * Isolation test for top_volume_building signal.
  */
 
-const sig = require('../signals/top_volume_building');
+const path = require('path');
 
-async function smokeTest() {
+require('dotenv').config({
+  path: path.resolve(__dirname, '../../.env'),
+  override: false,
+});
+
+const sig = require('../signals/top_volume_building');
+const { pool } = require('../../db/pg');
+
+const hasDatabaseUrl = Boolean(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL);
+const testIfDatabase = hasDatabaseUrl ? test : test.skip;
+
+testIfDatabase('top_volume_building detect() smoke test', async () => {
   console.log('Testing top_volume_building detect()...');
   const results = await sig.detect();
 
@@ -50,9 +61,8 @@ async function smokeTest() {
 
   console.log('');
   console.log('SMOKE TEST PASSED');
-}
+}, 30000);
 
-smokeTest().catch((error) => {
-  console.error('FAILED:', error);
-  process.exit(1);
+afterAll(async () => {
+  await pool.end().catch(() => {});
 });

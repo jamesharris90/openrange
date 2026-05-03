@@ -8,8 +8,10 @@ require('dotenv').config({
 
 const { runBeaconPipeline } = require('../orchestrator/run');
 const { pool } = require('../../db/pg');
+const hasDatabaseUrl = Boolean(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL);
+const testIfDatabase = hasDatabaseUrl ? test : test.skip;
 
-(async () => {
+testIfDatabase('Beacon pipeline smoke test without persistence', async () => {
   try {
     const result = await runBeaconPipeline([], { limit: 20, persist: false });
 
@@ -73,7 +75,4 @@ const { pool } = require('../../db/pg');
   } finally {
     await pool.end().catch(() => {});
   }
-})().catch((error) => {
-  console.error(error.stack || error.message);
-  process.exit(1);
-});
+}, 30000);

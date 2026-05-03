@@ -1,3 +1,10 @@
+const path = require('path');
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+  override: false,
+});
+
 describe('Usage persistence', () => {
   beforeEach(() => {
     jest.resetModules();

@@ -8,8 +8,10 @@ require('dotenv').config({
 const { runBeaconPipeline } = require('../orchestrator/run');
 const { getLatestPicks } = require('../persistence/picks');
 const { pool } = require('../../db/pg');
+const hasDatabaseUrl = Boolean(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL);
+const testIfDatabase = hasDatabaseUrl ? test : test.skip;
 
-(async () => {
+testIfDatabase('Beacon pipeline persistence smoke test', async () => {
   try {
     console.log('Running Beacon v0 pipeline WITH persistence');
     const { picks: written, runId } = await runBeaconPipeline([], {
@@ -61,7 +63,4 @@ const { pool } = require('../../db/pg');
   } finally {
     await pool.end().catch(() => {});
   }
-})().catch((error) => {
-  console.error('PERSISTENCE TEST FAILED:', error.stack || error.message);
-  process.exit(1);
-});
+}, 30000);

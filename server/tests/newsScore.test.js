@@ -1,3 +1,10 @@
+const path = require('path');
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+  override: false,
+});
+
 const { scoreNewsItem } = require('../services/newsEngineV3');
 
 describe('news scoring v3', () => {
