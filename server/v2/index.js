@@ -274,6 +274,7 @@ function ensureIntelligencePipelineScheduler() {
 }
 
 function ensureBeaconV0OutcomeScheduler() {
+  console.log('[BEACON_V0_OUTCOMES] ensureBeaconV0OutcomeScheduler entered');
   if (beaconV0OutcomeSchedulerStarted) {
     return;
   }
@@ -302,6 +303,8 @@ function ensureBeaconV0OutcomeScheduler() {
       }));
     }
   });
+
+  console.log('[BEACON_V0_OUTCOMES] all crons registered successfully');
 
   console.log('[BEACON_V0_OUTCOMES] scheduler active', { action: 'health_sweep', schedule: '15 minutes past every hour' });
 }
@@ -525,7 +528,13 @@ function startV2BackgroundServices(app, options = {}) {
       startBacktestScheduler();
       startTradeOutcomeScheduler();
       startDataHealthMonitor();
-      ensureBeaconV0OutcomeScheduler();
+      try {
+        console.log('[BEACON_V0_OUTCOMES] about to call ensureBeaconV0OutcomeScheduler');
+        ensureBeaconV0OutcomeScheduler();
+        console.log('[BEACON_V0_OUTCOMES] ensureBeaconV0OutcomeScheduler returned');
+      } catch (err) {
+        console.error('[BEACON_V0_OUTCOMES] ensureBeaconV0OutcomeScheduler threw:', err.stack || err.message);
+      }
       ensureBeaconNightlyReaperScheduler();
     });
   } else {
