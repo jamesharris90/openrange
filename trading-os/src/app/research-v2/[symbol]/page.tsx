@@ -298,6 +298,7 @@ function getBannerMessage(warnings: ResearchWarning[], meta: ResearchResponse["m
   const reasons = new Set(warnings
     .map((warning) => String(warning.reason || "").trim())
     .filter((reason) => Boolean(reason) && reason !== "enrichment_pending"));
+  const responseMs = Number(meta?.response_ms || 0);
 
   if (meta?.fallback) {
     reasons.add("seeded_fallback");
@@ -307,7 +308,7 @@ function getBannerMessage(warnings: ResearchWarning[], meta: ResearchResponse["m
   }
 
   if (reasons.has("seeded_fallback")) return "Showing cached data — live fetch unavailable";
-  if (reasons.has("fmp_timeout")) return "Upstream data source slow — some fields may be limited";
+  if (reasons.has("fmp_timeout") && responseMs >= 2_000) return "Upstream data source slow — some fields may be limited";
   if (reasons.has("chart_unavailable")) return "Chart temporarily unavailable";
   if (reasons.has("partial_data")) return "Some data sections are incomplete";
   if (reasons.has("fast_payload")) return null;
@@ -624,15 +625,6 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol, phase }: { dat
   const nextEarningsPending = isPendingEarningsRow(nextEarnings);
   const latestEarningsReported = isReportedEarningsRow(latestEarnings);
   const recentHistory = earningsHistory.slice(0, 4);
-  const limitedCoverageMessage = !hasUpcomingSummary && hasLatestSummary
-    ? "Upcoming scheduling is not in the current feed yet. Latest reported quarter is shown first."
-    : hasUpcomingSummary && !hasLatestSummary && recentHistory.length === 0
-      ? "Upcoming earnings are scheduled, but reported-quarter coverage is still limited."
-      : !hasUpcomingSummary && !hasLatestSummary && recentHistory.length > 0
-        ? "Only partial historical earnings rows are available right now."
-        : recentHistory.length > 0 && recentHistory.length < 3
-          ? "Historical coverage is limited to a small sample right now."
-          : null;
   const latestStatusLabel = latestEarningsReported
     ? formatEarningsLabel(latestEarnings?.earnings_outcome || latestEarnings?.event_state, "Reported")
     : hasLatestSummary
@@ -662,14 +654,9 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol, phase }: { dat
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Earnings</p>
-        {limitedCoverageMessage ? (
-          <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            {limitedCoverageMessage}
-          </div>
-        ) : null}
         {!hasUpcomingSummary && !hasLatestSummary && !earningsHistory.length ? (
           <div className="mt-4">
-            <EmptyState compact message="Earnings coverage is still thin for this symbol right now." />
+            <EmptyState compact message="Not yet reported" />
           </div>
         ) : (
           <div className="mt-4 space-y-4">
@@ -768,20 +755,22 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol, phase }: { dat
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm leading-6 text-slate-400">No reported quarter is available in the current feed yet.</p>
+                    <div className="mt-4">
+                      <EmptyState compact message="Not yet reported" />
+                    </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Recent History</p>
-                  <p className="mt-1 text-sm text-slate-400">Last {recentHistory.length || 0} earnings rows on file.</p>
+            {recentHistory.length > 0 ? (
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Recent History</p>
+                    <p className="mt-1 text-sm text-slate-400">Last {recentHistory.length} earnings rows on file.</p>
+                  </div>
                 </div>
-              </div>
-              {recentHistory.length ? (
                 <div className="mt-3 space-y-2">
                   {recentHistory.map((entry, index) => (
                     <div key={`${symbol}-${entry.report_date || 'na'}-${index}`} className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3 text-sm text-slate-200">
@@ -798,10 +787,8 @@ const OverviewPanel = memo(function OverviewPanel({ data, symbol, phase }: { dat
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-slate-400">Recent earnings history is still limited for this symbol.</p>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
