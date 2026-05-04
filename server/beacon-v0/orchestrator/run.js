@@ -70,6 +70,89 @@ function extractPickBaselines(signals) {
   };
 }
 
+async function computeCandidatePriceFallbacks(symbols = []) {
+  const normalizedSymbols = [...new Set((symbols || [])
+    .map((symbol) => String(symbol || '').trim().toUpperCase())
+    .filter(Boolean))];
+
+  if (normalizedSymbols.length === 0) {
+    return new Map();
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `
+        WITH requested AS (
+          SELECT DISTINCT UPPER(unnest($1::text[])) AS symbol
+        ),
+        latest_quotes AS (
+          SELECT DISTINCT ON (UPPER(mq.symbol))
+            UPPER(mq.symbol) AS symbol,
+            mq.price,
+            mq.updated_at
+          FROM market_quotes mq
+          JOIN requested r ON r.symbol = UPPER(mq.symbol)
+          ORDER BY UPPER(mq.symbol), mq.updated_at DESC
+        ),
+        latest_closes AS (
+          SELECT DISTINCT ON (UPPER(d.symbol))
+            UPPER(d.symbol) AS symbol,
+            d.close,
+            d.date
+          FROM daily_ohlc d
+          JOIN requested r ON r.symbol = UPPER(d.symbol)
+          ORDER BY UPPER(d.symbol), d.date DESC
+        )
+        SELECT
+          r.symbol,
+          q.price AS market_quote_price,
+          q.updated_at AS market_quote_updated_at,
+          d.close AS daily_close,
+          d.date AS daily_close_date
+        FROM requested r
+        LEFT JOIN latest_quotes q ON q.symbol = r.symbol
+        LEFT JOIN latest_closes d ON d.symbol = r.symbol
+      `,
+      [normalizedSymbols],
+      {
+        label: 'beacon_v0.compute_candidate_price_fallbacks',
+        timeoutMs: 10000,
+        slowQueryMs: 1000,
+        poolType: 'read',
+        maxRetries: 0,
+      },
+    );
+
+    const fallbackPrices = new Map();
+    for (const row of rows) {
+      const symbol = String(row.symbol || '').toUpperCase();
+      const marketQuotePrice = toFiniteNumber(row.market_quote_price);
+      if (marketQuotePrice != null && marketQuotePrice > 0) {
+        fallbackPrices.set(symbol, {
+          pick_price: marketQuotePrice,
+          price_source: 'market_quotes',
+          price_timestamp: row.market_quote_updated_at || null,
+        });
+        continue;
+      }
+
+      const dailyClose = toFiniteNumber(row.daily_close);
+      if (dailyClose != null && dailyClose > 0) {
+        fallbackPrices.set(symbol, {
+          pick_price: dailyClose,
+          price_source: 'daily_ohlc',
+          price_timestamp: row.daily_close_date || null,
+        });
+      }
+    }
+
+    return fallbackPrices;
+  } catch (error) {
+    console.warn('[beacon-v0] Failed to compute candidate price fallbacks', error.message || error);
+    return new Map();
+  }
+}
+
 async function computePickVolumeBaselines(symbols = []) {
   const normalizedSymbols = [...new Set((symbols || [])
     .map((symbol) => String(symbol || '').trim().toUpperCase())
@@ -127,11 +210,29 @@ async function computePickVolumeBaselines(symbols = []) {
   }
 }
 
-function candidateToPick(candidate) {
+function candidateToPick(candidate, fallbackPriceMap = new Map()) {
   const signals = candidate.signals || [];
   const signalsAligned = signals.map((signal) => signal.signal);
   const forwardCount = signalsAligned.filter((signalName) => forwardLookingMap.get(signalName) === true).length;
-  const baselines = extractPickBaselines(signals);
+  const signalBaselines = extractPickBaselines(signals);
+  const fallbackBaselines = fallbackPriceMap.get(String(candidate.symbol || '').toUpperCase()) || null;
+  const baselines = signalBaselines.pick_price != null
+    ? {
+      ...signalBaselines,
+      price_source: 'signal',
+    }
+    : {
+      ...signalBaselines,
+      ...(fallbackBaselines || {}),
+    };
+
+  if (signalBaselines.pick_price == null && fallbackBaselines?.pick_price != null) {
+    if (fallbackBaselines.price_source === 'market_quotes') {
+      console.log(`[beacon-v0] using market_quotes price for ${candidate.symbol}`);
+    } else if (fallbackBaselines.price_source === 'daily_ohlc') {
+      console.log(`[beacon-v0] using daily_ohlc close for ${candidate.symbol}`);
+    }
+  }
 
   if (baselines.pick_price == null) {
     console.warn('[beacon-v0] Skipping pick without generation price baseline', {
@@ -155,6 +256,8 @@ function candidateToPick(candidate) {
     backward_count: signalsAligned.length - forwardCount,
     metadata: {
       direction: candidate.direction || 'neutral',
+      generation_price_source: baselines.price_source || 'signal',
+      generation_price_timestamp: baselines.price_timestamp || null,
       pattern_name: candidate.patternName || 'multi_signal_alignment',
       pattern_label: candidate.patternLabel || candidate.patternCategory || 'Multi-Signal Alignment',
       alignment: candidate.alignment || null,
@@ -413,9 +516,13 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   const categorized = categorizeBeaconCandidates(qualified);
   const candidates = categorized.filter((candidate) => candidate.qualified);
   funnel.candidates_qualified = candidates.length;
+  const missingSignalPriceSymbols = candidates
+    .filter((candidate) => extractPickBaselines(candidate.signals || []).pick_price == null)
+    .map((candidate) => candidate.symbol);
+  const fallbackPriceMap = await computeCandidatePriceFallbacks(missingSignalPriceSymbols);
   const candidatePicks = [];
   for (const candidate of candidates) {
-    const pick = candidateToPick(candidate);
+    const pick = candidateToPick(candidate, fallbackPriceMap);
     if (pick) {
       candidatePicks.push(pick);
     } else {
@@ -482,6 +589,7 @@ module.exports = {
   INTER_BATCH_DELAY_MS,
   SIGNALS,
   candidateToPick,
+  computeCandidatePriceFallbacks,
   chunkArray,
   computePickVolumeBaselines,
   runBeaconPipeline,
