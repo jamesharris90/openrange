@@ -1,0 +1,16 @@
+# Symbols to permanently exclude from viewPicks output.
+#
+# One symbol per line. Lines starting with # are comments.
+#
+# Copy this file to .viewpicks-exclude and edit.
+#
+# .viewpicks-exclude is your local exclude list.
+
+# Audit's worst symbols
+CMPO
+NGD
+ZEUS
+POET
+SES
+
+# Add your own below
