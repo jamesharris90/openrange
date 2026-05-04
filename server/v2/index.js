@@ -44,6 +44,7 @@ const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher
 const { runOutcomeCapture } = require('../beacon-v0/outcomes/captureOutcome');
 const { runHealthSweep } = require('../beacon-v0/outcomes/healthSweep');
 const { reapStaleNightlyRuns } = require('../beacon-nightly/nightlyCycle');
+const { registerPremarketCatalystCron } = require('../premarket-catalyst/scheduler');
 
 let yahooSchedulerStarted = false;
 let newsBackfillSchedulerStarted = false;
@@ -281,7 +282,8 @@ function ensureBeaconV0OutcomeScheduler() {
   beaconV0OutcomeSchedulerStarted = true;
   cron.schedule('*/5 * * * *', async () => {
     try {
-      await runOutcomeCapture();
+      await runOutcomeCapture({ tableName: 'beacon_v0_picks' });
+      await runOutcomeCapture({ tableName: 'premarket_picks' });
     } catch (error) {
       console.error(JSON.stringify({
         log: 'beacon_v0_outcomes.cycle.failed',
@@ -294,7 +296,8 @@ function ensureBeaconV0OutcomeScheduler() {
 
   cron.schedule('15 * * * *', async () => {
     try {
-      await runHealthSweep();
+      await runHealthSweep({ tableName: 'beacon_v0_picks' });
+      await runHealthSweep({ tableName: 'premarket_picks' });
     } catch (error) {
       console.error(JSON.stringify({
         log: 'beacon_v0_outcomes.health_sweep.failed',
@@ -525,6 +528,7 @@ function startV2BackgroundServices(app, options = {}) {
       startBacktestScheduler();
       startTradeOutcomeScheduler();
       startDataHealthMonitor();
+      registerPremarketCatalystCron();
       ensureBeaconV0OutcomeScheduler();
       ensureBeaconNightlyReaperScheduler();
     });

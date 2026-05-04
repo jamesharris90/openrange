@@ -2,8 +2,16 @@
 
 const { queryWithTimeout } = require('../../db/pg');
 
+const ALLOWED_TABLES = new Set(['beacon_v0_picks', 'premarket_picks']);
 const STALE_THRESHOLDS_HOURS = { 1: 6, 2: 12, 3: 24, 4: 48 };
 const STALE_TO_ERRORED_DAYS = 7;
+
+function assertAllowedTable(tableName = 'beacon_v0_picks') {
+  if (!ALLOWED_TABLES.has(tableName)) {
+    throw new Error(`Unsupported health sweep table: ${tableName}`);
+  }
+  return tableName;
+}
 
 function missingCheckpointOverdueClause({ checkpoint, hours }) {
   return `(
@@ -21,7 +29,8 @@ function missingCheckpointErroredClause(checkpoint) {
   )`;
 }
 
-async function runHealthSweep() {
+async function runHealthSweep({ tableName = 'beacon_v0_picks' } = {}) {
+  const resolvedTableName = assertAllowedTable(tableName);
   const startedAt = Date.now();
   const staleClauses = Object.entries(STALE_THRESHOLDS_HOURS)
     .map(([checkpoint, hours]) => missingCheckpointOverdueClause({ checkpoint, hours }))
@@ -32,7 +41,7 @@ async function runHealthSweep() {
 
   const staleResult = await queryWithTimeout(
     `
-      UPDATE beacon_v0_picks
+      UPDATE ${resolvedTableName}
       SET outcome_status = 'stale',
           outcome_complete = false
       WHERE outcome_status IN ('pending', 'partial')
@@ -42,7 +51,7 @@ async function runHealthSweep() {
     [],
     {
       timeoutMs: 10000,
-      label: 'beacon_v0.outcomes.health_sweep.mark_stale',
+      label: `beacon_v0.outcomes.health_sweep.mark_stale.${resolvedTableName}`,
       poolType: 'write',
       maxRetries: 0,
     },
@@ -50,7 +59,7 @@ async function runHealthSweep() {
 
   const erroredResult = await queryWithTimeout(
     `
-      UPDATE beacon_v0_picks
+      UPDATE ${resolvedTableName}
       SET outcome_status = 'errored',
           outcome_complete = false
       WHERE outcome_status = 'stale'
@@ -60,23 +69,25 @@ async function runHealthSweep() {
     [],
     {
       timeoutMs: 10000,
-      label: 'beacon_v0.outcomes.health_sweep.mark_errored',
+      label: `beacon_v0.outcomes.health_sweep.mark_errored.${resolvedTableName}`,
       poolType: 'write',
       maxRetries: 0,
     },
   );
 
   const result = {
+    tableName: resolvedTableName,
     marked_stale: staleResult.rows.length,
     marked_errored: erroredResult.rows.length,
     duration_ms: Date.now() - startedAt,
   };
 
-  console.log(JSON.stringify({ log: 'beacon_v0_outcomes.health_sweep', ...result }));
+  console.log(JSON.stringify({ log: 'beacon_v0_outcomes.health_sweep', table: resolvedTableName, ...result }));
   return result;
 }
 
 module.exports = {
+  assertAllowedTable,
   runHealthSweep,
   STALE_THRESHOLDS_HOURS,
   STALE_TO_ERRORED_DAYS,

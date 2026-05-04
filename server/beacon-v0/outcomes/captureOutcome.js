@@ -3,6 +3,25 @@
 const { queryWithTimeout } = require('../../db/pg');
 const { lookupPrice } = require('./priceLookup');
 
+const TABLE_CONFIG = Object.freeze({
+  beacon_v0_picks: {
+    tableName: 'beacon_v0_picks',
+    label: 'beacon_v0_picks',
+    pickVolumeBaselineExpression: 'pick_volume_baseline',
+    baselineSourceExpression: 'baseline_source',
+    eligibleClause: "AND baseline_source != 'unavailable'",
+    supportsVolumeRatio: true,
+  },
+  premarket_picks: {
+    tableName: 'premarket_picks',
+    label: 'premarket_picks',
+    pickVolumeBaselineExpression: 'premarket_volume_baseline',
+    baselineSourceExpression: "'available'::text",
+    eligibleClause: '',
+    supportsVolumeRatio: false,
+  },
+});
+
 const CHECKPOINTS = [1, 2, 3, 4];
 const BAR_TYPE = {
   1: 'open-like',
@@ -11,13 +30,22 @@ const BAR_TYPE = {
   4: 'close-like',
 };
 
+function getTableConfig(tableName = 'beacon_v0_picks') {
+  const config = TABLE_CONFIG[tableName];
+  if (!config) {
+    throw new Error(`Unsupported outcome capture table: ${tableName}`);
+  }
+  return config;
+}
+
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
 
-async function findDuePicks(limit = 200) {
+async function findDuePicks({ tableName = 'beacon_v0_picks', limit = 200 } = {}) {
+  const config = getTableConfig(tableName);
   const boundedLimit = Math.min(Math.max(Number(limit) || 200, 1), 1000);
   const result = await queryWithTimeout(
     `
@@ -25,8 +53,8 @@ async function findDuePicks(limit = 200) {
         id,
         symbol,
         pick_price,
-        pick_volume_baseline,
-        baseline_source,
+        ${config.pickVolumeBaselineExpression} AS pick_volume_baseline,
+        ${config.baselineSourceExpression} AS baseline_source,
         outcome_t1_due_at,
         outcome_t2_due_at,
         outcome_t3_due_at,
@@ -36,9 +64,9 @@ async function findDuePicks(limit = 200) {
         outcome_t3_captured_at,
         outcome_t4_captured_at,
         outcome_status
-      FROM beacon_v0_picks
+      FROM ${config.tableName}
       WHERE outcome_status IN ('pending', 'partial', 'stale')
-        AND baseline_source != 'unavailable'
+        ${config.eligibleClause}
         AND pick_price IS NOT NULL
         AND pick_price > 0
         AND (
@@ -60,7 +88,7 @@ async function findDuePicks(limit = 200) {
     {
       timeoutMs: 5000,
       slowQueryMs: 1000,
-      label: 'beacon_v0.outcomes.find_due',
+      label: `beacon_v0.outcomes.find_due.${config.label}`,
       poolType: 'read',
       maxRetries: 0,
     },
@@ -81,8 +109,9 @@ function computeStatus(pick, updates) {
   return pick.outcome_status;
 }
 
-async function writeUpdates(pickId, updates) {
-  const columns = Object.keys(updates);
+async function writeUpdates({ tableName = 'beacon_v0_picks', pickId, updates }) {
+  const config = getTableConfig(tableName);
+  const columns = Object.keys(updates).filter((column) => config.supportsVolumeRatio || !/^outcome_t\d_volume_ratio$/.test(column));
   if (columns.length === 0) {
     return;
   }
@@ -91,19 +120,20 @@ async function writeUpdates(pickId, updates) {
   const values = [pickId, ...columns.map((column) => updates[column])];
 
   await queryWithTimeout(
-    `UPDATE beacon_v0_picks SET ${setClauses.join(', ')} WHERE id = $1`,
+    `UPDATE ${config.tableName} SET ${setClauses.join(', ')} WHERE id = $1`,
     values,
     {
       timeoutMs: 3000,
       slowQueryMs: 1000,
-      label: 'beacon_v0.outcomes.write_updates',
+      label: `beacon_v0.outcomes.write_updates.${config.label}`,
       poolType: 'write',
       maxRetries: 0,
     },
   );
 }
 
-async function capturePick(pick) {
+async function capturePick({ tableName = 'beacon_v0_picks', pick }) {
+  const config = getTableConfig(tableName);
   const updates = {};
   const now = new Date();
 
@@ -131,7 +161,9 @@ async function capturePick(pick) {
     updates[`outcome_t${checkpoint}_captured_at`] = lookup.captured_at;
     updates[`outcome_t${checkpoint}_price`] = lookup.price;
     updates[`outcome_t${checkpoint}_pct_change`] = pctChange;
-    updates[`outcome_t${checkpoint}_volume_ratio`] = volumeRatio;
+    if (config.supportsVolumeRatio) {
+      updates[`outcome_t${checkpoint}_volume_ratio`] = volumeRatio;
+    }
   }
 
   updates.outcome_last_attempted_at = now;
@@ -141,7 +173,7 @@ async function capturePick(pick) {
   updates.outcome_status = newStatus;
   updates.outcome_complete = newStatus === 'complete';
 
-  await writeUpdates(pick.id, updates);
+  await writeUpdates({ tableName, pickId: pick.id, updates });
 
   return {
     pickId: pick.id,
@@ -150,18 +182,20 @@ async function capturePick(pick) {
   };
 }
 
-async function runOutcomeCapture() {
+async function runOutcomeCapture({ tableName = 'beacon_v0_picks', limit = 200 } = {}) {
+  const config = getTableConfig(tableName);
   const startedAt = Date.now();
-  const picks = await findDuePicks(200);
+  const picks = await findDuePicks({ tableName, limit });
 
   if (picks.length === 0) {
     const summary = {
+      tableName: config.tableName,
       scanned: 0,
       captured: 0,
       errors: [],
       durationMs: Date.now() - startedAt,
     };
-    console.log(JSON.stringify({ log: 'beacon_v0_outcomes.cycle', scanned: 0, captured: 0, errors: 0, duration_ms: summary.durationMs }));
+    console.log(JSON.stringify({ log: 'beacon_v0_outcomes.cycle', table: config.tableName, scanned: 0, captured: 0, errors: 0, duration_ms: summary.durationMs }));
     return summary;
   }
 
@@ -170,7 +204,7 @@ async function runOutcomeCapture() {
 
   for (const pick of picks) {
     try {
-      const result = await capturePick(pick);
+      const result = await capturePick({ tableName, pick });
       totalCaptured += result.captured;
     } catch (error) {
       errors.push({ pickId: pick.id, error: error.message });
@@ -179,6 +213,7 @@ async function runOutcomeCapture() {
 
   console.log(JSON.stringify({
     log: 'beacon_v0_outcomes.cycle',
+    table: config.tableName,
     scanned: picks.length,
     captured: totalCaptured,
     errors: errors.length,
@@ -186,6 +221,7 @@ async function runOutcomeCapture() {
   }));
 
   return {
+    tableName: config.tableName,
     scanned: picks.length,
     captured: totalCaptured,
     errors,
@@ -194,6 +230,7 @@ async function runOutcomeCapture() {
 }
 
 module.exports = {
+  getTableConfig,
   runOutcomeCapture,
   findDuePicks,
   capturePick,
