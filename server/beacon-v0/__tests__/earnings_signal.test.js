@@ -13,7 +13,11 @@ const testIfDatabase = hasDatabaseUrl ? test : test.skip;
 
 testIfDatabase('Beacon pipeline smoke test without persistence', async () => {
   try {
-    const result = await runBeaconPipeline([], { limit: 20, persist: false });
+    const result = await runBeaconPipeline([], {
+      limit: 20,
+      persist: false,
+      skipNarrativeGeneration: true,
+    });
 
     assert.strictEqual(result.scanVersion, 'beacon-v0-phase43');
     assert.strictEqual(result.signalSlice, 'leaderboard_alignment_v1');

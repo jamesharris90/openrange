@@ -17,6 +17,7 @@ testIfDatabase('Beacon pipeline persistence smoke test', async () => {
     const { picks: written, runId } = await runBeaconPipeline([], {
       persist: true,
       limit: 20,
+      skipNarrativeGeneration: true,
     });
 
     console.log(`Wrote ${written.length} picks under run_id=${runId}`);

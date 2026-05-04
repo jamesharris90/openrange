@@ -6,7 +6,57 @@ const { normalizeSymbol, mapFromProviderSymbol, mapToProviderSymbol } = require(
 
 const MAX_SYMBOLS_PER_CYCLE = Math.max(10, Number(process.env.INTRADAY_MAX_SYMBOLS_PER_CYCLE) || 50);
 const PINNED_INTRADAY_SYMBOLS = ['AAPL', 'SPY', 'QQQ', 'IWM', 'NVDA', 'MSFT'];
+const ET_OFFSET_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  timeZoneName: 'shortOffset',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
 let ingestionCursor = 0;
+
+function parseEasternOffsetMinutes(date) {
+  const offsetLabel = ET_OFFSET_FORMATTER
+    .formatToParts(date)
+    .find((part) => part.type === 'timeZoneName')?.value;
+
+  const match = String(offsetLabel || '').match(/^GMT([+-])(\d{1,2})(?::?(\d{2}))?$/);
+  if (!match) {
+    throw new Error(`Unsupported America/New_York offset label: ${offsetLabel}`);
+  }
+
+  const sign = match[1] === '+' ? 1 : -1;
+  const hours = Number(match[2] || 0);
+  const minutes = Number(match[3] || 0);
+  return sign * ((hours * 60) + minutes);
+}
+
+function parseFmpTimestamp(timestamp) {
+  const raw = String(timestamp || '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  const naiveMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!naiveMatch) {
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+
+  const year = Number(naiveMatch[1]);
+  const month = Number(naiveMatch[2]);
+  const day = Number(naiveMatch[3]);
+  const hour = Number(naiveMatch[4]);
+  const minute = Number(naiveMatch[5]);
+  const second = Number(naiveMatch[6] || 0);
+  const localAsUtcMillis = Date.UTC(year, month - 1, day, hour, minute, second);
+  const offsetMinutes = parseEasternOffsetMinutes(new Date(localAsUtcMillis));
+  return new Date(localAsUtcMillis - (offsetMinutes * 60 * 1000)).toISOString();
+}
 
 function dbRead(sql, label, params = []) {
   return queryWithTimeout(sql, params, {
@@ -266,14 +316,15 @@ function normalizeIntraday(payload, symbol) {
 
   return data
     .map((row) => {
-      const timestamp = row.date || row.datetime || row.timestamp;
+      const providerTimestamp = row.date || row.datetime || row.timestamp;
+      const timestamp = parseFmpTimestamp(providerTimestamp);
       const close = Number(row.close ?? row.price);
       const open = Number(row.open ?? close);
       const high = Number(row.high ?? close);
       const low = Number(row.low ?? close);
       const volumeRaw = Number(row.volume);
       const volume = Number.isFinite(volumeRaw) ? Math.max(0, Math.trunc(volumeRaw)) : 0;
-      const session = timestamp ? getProviderSession(timestamp) : 'CLOSED';
+      const session = providerTimestamp ? getProviderSession(providerTimestamp) : 'CLOSED';
       return {
         symbol,
         timestamp,
@@ -368,5 +419,6 @@ async function runIntradayIngestion() {
 }
 
 module.exports = {
+  parseFmpTimestamp,
   runIntradayIngestion,
 };
