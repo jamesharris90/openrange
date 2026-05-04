@@ -42,9 +42,12 @@ function buildBackfillWindows(months) {
       toDate: formatDate(chunkEnd),
     });
 
+    if (chunkEnd.getTime() >= endDate.getTime()) {
+      break;
+    }
+
     cursor = new Date(chunkEnd);
     cursor.setUTCDate(cursor.getUTCDate() - 9);
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   return windows;

@@ -317,9 +317,9 @@ async function ingestSingleWindow({ fromDate, toDate, limit, maxPages, universeM
   const validated = validateRequestWindow(fromDate, toDate);
   let page = 0;
   let totalSeen = 0;
+  let totalUpserted = 0;
   let totalSkipped = 0;
   let totalErrored = 0;
-  const rowsToUpsert = [];
 
   while (page < Math.min(MAX_PAGES, maxPages)) {
     const payload = await fmpFetch(FILINGS_ENDPOINT, {
@@ -334,12 +334,14 @@ async function ingestSingleWindow({ fromDate, toDate, limit, maxPages, universeM
       break;
     }
 
+    const pageRows = [];
+
     for (const record of records) {
       totalSeen += 1;
       try {
         const normalized = normalizeFilingRecord(record, universeMap);
         if (normalized.status === 'upsert') {
-          rowsToUpsert.push(normalized.row);
+          pageRows.push(normalized.row);
         } else {
           totalSkipped += 1;
         }
@@ -353,15 +355,20 @@ async function ingestSingleWindow({ fromDate, toDate, limit, maxPages, universeM
       }
     }
 
+    if (pageRows.length > 0) {
+      const persisted = await persistFilings(pageRows);
+      totalUpserted += persisted.upserted;
+      totalErrored += persisted.errored;
+    }
+
     page += 1;
   }
 
-  const persisted = await persistFilings(rowsToUpsert);
   return {
     totalSeen,
-    totalUpserted: persisted.upserted,
+    totalUpserted,
     totalSkipped,
-    totalErrored: totalErrored + persisted.errored,
+    totalErrored,
     pagesFetched: page,
     windowsProcessed: 1,
   };
