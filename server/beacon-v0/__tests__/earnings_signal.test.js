@@ -23,13 +23,13 @@ testIfDatabase('Beacon pipeline smoke test without persistence', async () => {
     assert.strictEqual(result.signalSlice, 'leaderboard_alignment_v1');
     assert.strictEqual(result.persistence.enabled, false);
     assert.ok(result.runId, 'runId is required');
-    assert.strictEqual(result.stats.signalLeaderboards, 8, 'expected eight signal leaderboards');
+    assert.strictEqual(result.stats.signalLeaderboards, 9, 'expected nine signal leaderboards');
     assert.strictEqual(result.stats.minAlignmentCount, 2, 'expected alignment threshold of 2');
     assert.ok(result.stats.firedSignals > 0, 'expected at least one leaderboard signal hit');
     assert.ok(result.stats.alignedCandidates > 0, 'expected at least one aligned candidate');
     assert.ok(result.stats.qualifiedCandidates > 0, 'expected at least one qualified candidate');
     assert.ok(Array.isArray(result.signalResults), 'signalResults must be an array');
-    assert.strictEqual(result.signalResults.length, 8, 'expected eight signal summaries');
+    assert.strictEqual(result.signalResults.length, 9, 'expected nine signal summaries');
     assert.ok(result.signalResults.every((signal) => signal.count > 0), 'each signal should produce leaderboard hits');
     assert.ok(Array.isArray(result.picks), 'picks must be an array');
     assert.ok(result.picks.length > 0, 'expected at least one pick');

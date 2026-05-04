@@ -1,6 +1,7 @@
 const topRvol = require('../signals/top_rvol_today');
 const topGap = require('../signals/top_gap_today');
 const topNews = require('../signals/top_news_last_12h');
+const topCatalystIntelligence = require('../signals/top_catalyst_intelligence_today');
 const topUpcomingEarnings = require('../signals/earnings_upcoming_within_3d');
 const earningsReaction = require('../signals/earnings_reaction_last_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
@@ -11,6 +12,7 @@ const SIGNAL_MODULES = {
   [topRvol.SIGNAL_NAME]: topRvol,
   [topGap.SIGNAL_NAME]: topGap,
   [topNews.SIGNAL_NAME]: topNews,
+  [topCatalystIntelligence.SIGNAL_NAME]: topCatalystIntelligence,
   [topUpcomingEarnings.SIGNAL_NAME]: topUpcomingEarnings,
   [earningsReaction.SIGNAL_NAME]: earningsReaction,
   [topCoiledSpring.SIGNAL_NAME]: topCoiledSpring,
@@ -21,6 +23,7 @@ const SIGNAL_MODULES = {
 const PRIORITY_ORDER = [
   topUpcomingEarnings.SIGNAL_NAME,
   earningsReaction.SIGNAL_NAME,
+  topCatalystIntelligence.SIGNAL_NAME,
   topCongressionalTradesRecent.SIGNAL_NAME,
   topCoiledSpring.SIGNAL_NAME,
   topVolumeBuilding.SIGNAL_NAME,
@@ -30,6 +33,26 @@ const PRIORITY_ORDER = [
 ];
 
 const PATTERN_RULES = [
+  {
+    name: 'multi_source_catalyst_confirmation',
+    requires: ['top_catalyst_intelligence_today', 'top_news_last_12h', 'top_rvol_today'],
+    label: 'Multi-Source Catalyst Confirmation',
+  },
+  {
+    name: 'high_conviction_catalyst_with_gap',
+    requires: ['top_catalyst_intelligence_today', 'top_gap_today'],
+    label: 'High-Conviction Catalyst Gap',
+  },
+  {
+    name: 'high_conviction_catalyst_with_news',
+    requires: ['top_catalyst_intelligence_today', 'top_news_last_12h'],
+    label: 'High-Conviction Catalyst',
+  },
+  {
+    name: 'catalyst_with_volume_confirmation',
+    requires: ['top_catalyst_intelligence_today', 'top_rvol_today'],
+    label: 'Catalyst with Volume Confirmation',
+  },
   {
     name: 'pre_earnings_coiled_spring',
     requires: ['top_coiled_spring', 'earnings_upcoming_within_3d', 'top_rvol_today'],

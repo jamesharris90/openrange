@@ -10,6 +10,7 @@ const earningsReactionLast3d = require('../signals/earnings_reaction_last_3d');
 const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d');
 const topCoiledSpring = require('../signals/top_coiled_spring');
 const topCongressionalTradesRecent = require('../signals/top_congressional_trades_recent');
+const topCatalystIntelligenceToday = require('../signals/top_catalyst_intelligence_today');
 const topGapToday = require('../signals/top_gap_today');
 const topNewsLast12h = require('../signals/top_news_last_12h');
 const topRvolToday = require('../signals/top_rvol_today');
@@ -21,6 +22,7 @@ const SIGNALS = [
   topRvolToday,
   topGapToday,
   topNewsLast12h,
+  topCatalystIntelligenceToday,
   earningsUpcomingWithin3d,
   earningsReactionLast3d,
   topCoiledSpring,
