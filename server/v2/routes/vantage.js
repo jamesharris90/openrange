@@ -17,6 +17,9 @@ let contextCache = {
 let refreshPromise = null;
 
 function toFiniteNumber(value) {
+  if (value == null || value === '') {
+    return null;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -26,6 +29,56 @@ function formatSignedPercent(value) {
     return 'n/a';
   }
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+function latestTimestamp(...values) {
+  let latest = null;
+
+  for (const value of values.flat()) {
+    if (!value) {
+      continue;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      continue;
+    }
+    if (!latest || parsed.getTime() > latest.getTime()) {
+      latest = parsed;
+    }
+  }
+
+  return latest ? latest.toISOString() : null;
+}
+
+function classifyBreadth(pct) {
+  if (!Number.isFinite(pct)) {
+    return 'neutral';
+  }
+  if (pct > 60) {
+    return 'bullish';
+  }
+  if (pct < 40) {
+    return 'bearish';
+  }
+  return 'neutral';
+}
+
+function deriveMarketRegime({ snapshot, breadthPercent, volatilityLevel, indices }) {
+  const spyChange = toFiniteNumber(indices?.SPY?.change_percent);
+  const qqqChange = toFiniteNumber(indices?.QQQ?.change_percent);
+  const breadth = classifyBreadth(breadthPercent);
+
+  if (spyChange != null && qqqChange != null) {
+    if (spyChange >= 0 && qqqChange >= 0 && breadth === 'bullish' && volatilityLevel !== 'high') {
+      return 'risk_on';
+    }
+
+    if (spyChange < 0 && qqqChange < 0 && breadth === 'bearish') {
+      return 'risk_off';
+    }
+  }
+
+  return snapshot?.market_regime || 'neutral';
 }
 
 function deriveOpeningBias({ snapshot, strongestSector, weakestSector, indices }) {
@@ -75,10 +128,33 @@ async function loadLatestSnapshot() {
 
 async function loadIndices() {
   const result = await queryWithTimeout(
-    `SELECT symbol, price, change_percent, relative_volume, updated_at
-     FROM market_quotes
-     WHERE symbol = ANY($1::text[])
-     ORDER BY symbol ASC`,
+    `SELECT
+       q.symbol,
+       q.price,
+       q.change_percent,
+       COALESCE(
+         q.relative_volume,
+         m.relative_volume,
+         CASE
+           WHEN m.avg_volume_30d IS NOT NULL AND m.avg_volume_30d > 0 AND q.volume IS NOT NULL
+             THEN ROUND((q.volume / m.avg_volume_30d)::numeric, 2)
+           WHEN m.avg_volume_30d IS NOT NULL AND m.avg_volume_30d > 0 AND m.volume IS NOT NULL
+             THEN ROUND((m.volume / m.avg_volume_30d)::numeric, 2)
+           ELSE NULL
+         END
+       ) AS relative_volume,
+       q.updated_at AS quote_updated_at,
+       m.updated_at AS metrics_updated_at
+     FROM market_quotes q
+     LEFT JOIN LATERAL (
+       SELECT relative_volume, volume, avg_volume_30d, updated_at
+       FROM market_metrics
+       WHERE symbol = q.symbol
+       ORDER BY updated_at DESC NULLS LAST
+       LIMIT 1
+     ) m ON TRUE
+     WHERE q.symbol = ANY($1::text[])
+     ORDER BY q.symbol ASC`,
     [['SPY', 'QQQ', 'IWM', 'DIA']],
     {
       label: 'vantage.context.indices',
@@ -93,10 +169,116 @@ async function loadIndices() {
       price: toFiniteNumber(row.price),
       change_percent: toFiniteNumber(row.change_percent),
       relative_volume: toFiniteNumber(row.relative_volume),
-      updated_at: row.updated_at || null,
+      updated_at: latestTimestamp(row.quote_updated_at, row.metrics_updated_at),
     };
     return accumulator;
   }, {});
+}
+
+async function loadLiveBreadth() {
+  try {
+    const result = await queryWithTimeout(
+      `SELECT
+         COUNT(*)::int AS total_symbols,
+         SUM(CASE WHEN change_percent > 0 THEN 1 ELSE 0 END)::int AS bullish_symbols,
+         MAX(updated_at) AS updated_at
+       FROM market_metrics
+       WHERE change_percent IS NOT NULL`,
+      [],
+      {
+        label: 'vantage.context.breadth',
+        timeoutMs: 5000,
+        poolType: 'read',
+        maxRetries: 1,
+      }
+    );
+
+    const totalSymbols = toFiniteNumber(result.rows?.[0]?.total_symbols);
+    const bullishSymbols = toFiniteNumber(result.rows?.[0]?.bullish_symbols);
+
+    if (!Number.isFinite(totalSymbols) || totalSymbols <= 0 || !Number.isFinite(bullishSymbols)) {
+      return {
+        breadth_percent: null,
+        updated_at: result.rows?.[0]?.updated_at || null,
+      };
+    }
+
+    return {
+      breadth_percent: Number(((bullishSymbols / totalSymbols) * 100).toFixed(2)),
+      updated_at: result.rows?.[0]?.updated_at || null,
+    };
+  } catch (_error) {
+    return {
+      breadth_percent: null,
+      updated_at: null,
+    };
+  }
+}
+
+async function loadLiveVolatility() {
+  try {
+    const result = await queryWithTimeout(
+      `SELECT timestamp, open, high, low
+       FROM intraday_1m
+       WHERE symbol = 'SPY'
+         AND timestamp >= NOW() - INTERVAL '3 days'
+       ORDER BY timestamp DESC
+       LIMIT 240`,
+      [],
+      {
+        label: 'vantage.context.volatility',
+        timeoutMs: 5000,
+        poolType: 'read',
+        maxRetries: 1,
+      }
+    );
+
+    const bars = (result.rows || [])
+      .map((row) => {
+        const open = toFiniteNumber(row.open);
+        const high = toFiniteNumber(row.high);
+        const low = toFiniteNumber(row.low);
+
+        if (![open, high, low].every((value) => Number.isFinite(value)) || open <= 0) {
+          return null;
+        }
+
+        return ((high - low) / open) * 100;
+      })
+      .filter((value) => Number.isFinite(value) && value >= 0)
+      .reverse();
+
+    if (bars.length < 60) {
+      return {
+        volatility_level: null,
+        updated_at: result.rows?.[0]?.timestamp || null,
+      };
+    }
+
+    const recent = bars.slice(-30);
+    const baseline = bars.slice(-150, -30);
+    const recentAvg = recent.reduce((sum, value) => sum + value, 0) / recent.length;
+    const baselineAvg = baseline.length > 0
+      ? baseline.reduce((sum, value) => sum + value, 0) / baseline.length
+      : recentAvg;
+
+    if (!Number.isFinite(recentAvg) || !Number.isFinite(baselineAvg) || baselineAvg <= 0) {
+      return {
+        volatility_level: null,
+        updated_at: result.rows?.[0]?.timestamp || null,
+      };
+    }
+
+    return {
+      volatility_level: recentAvg > (baselineAvg * 1.15) ? 'high' : 'normal',
+      updated_at: result.rows?.[0]?.timestamp || null,
+    };
+  } catch (_error) {
+    return {
+      volatility_level: null,
+      updated_at: null,
+    };
+  }
 }
 
 async function loadSectorLeadership() {
@@ -163,22 +345,42 @@ async function generateNarrative(context) {
 }
 
 async function buildContextPayload() {
-  const [overview, snapshot, indices, sectorLeadership] = await Promise.all([
+  const [overview, snapshot, indices, sectorLeadership, liveBreadth, liveVolatility] = await Promise.all([
     getMarketOverview(),
     loadLatestSnapshot(),
     loadIndices(),
     loadSectorLeadership(),
+    loadLiveBreadth(),
+    loadLiveVolatility(),
   ]);
 
+  const breadthPercent = liveBreadth.breadth_percent ?? toFiniteNumber(snapshot?.breadth_percent);
+  const volatilityLevel = liveVolatility.volatility_level || snapshot?.volatility_level || 'normal';
+  const marketRegime = deriveMarketRegime({
+    snapshot,
+    breadthPercent,
+    volatilityLevel,
+    indices,
+  });
   const strongestSector = snapshot?.strongest_sector || sectorLeadership.strongest?.sector || overview?.themes?.[0]?.sector || null;
   const weakestSector = snapshot?.weakest_sector || sectorLeadership.weakest?.sector || null;
-  const bias = deriveOpeningBias({ snapshot, strongestSector, weakestSector, indices });
+  const marketState = {
+    market_regime: marketRegime,
+    volatility_level: volatilityLevel,
+    breadth_percent: breadthPercent,
+  };
+  const bias = deriveOpeningBias({ snapshot: marketState, strongestSector, weakestSector, indices });
+  const sourceSnapshotAt = latestTimestamp(
+    liveBreadth.updated_at,
+    liveVolatility.updated_at,
+    Object.values(indices || {}).map((index) => index?.updated_at)
+  );
 
   const narrativeContext = {
     opening_bias: bias,
-    market_regime: snapshot?.market_regime || 'neutral',
-    volatility_level: snapshot?.volatility_level || 'normal',
-    breadth_percent: toFiniteNumber(snapshot?.breadth_percent),
+    market_regime: marketRegime,
+    volatility_level: volatilityLevel,
+    breadth_percent: breadthPercent,
     strongest_sector: strongestSector,
     weakest_sector: weakestSector,
     indices,
@@ -191,7 +393,7 @@ async function buildContextPayload() {
   const generated = await generateNarrative(narrativeContext);
   const fallbackNarrative = buildFallbackNarrative({
     bias,
-    snapshot,
+    snapshot: marketState,
     strongestSector,
     weakestSector,
     overview,
@@ -200,9 +402,9 @@ async function buildContextPayload() {
 
   return {
     opening_bias: bias,
-    market_regime: snapshot?.market_regime || 'neutral',
-    volatility_level: snapshot?.volatility_level || 'normal',
-    breadth_percent: toFiniteNumber(snapshot?.breadth_percent),
+    market_regime: marketRegime,
+    volatility_level: volatilityLevel,
+    breadth_percent: breadthPercent,
     strongest_sector: strongestSector,
     weakest_sector: weakestSector,
     earnings_today_count: Array.isArray(overview?.today?.earnings) ? overview.today.earnings.length : 0,
@@ -224,7 +426,7 @@ async function buildContextPayload() {
     risk_flag: generated.risk_flag || null,
     generated_by: generated.narrative ? MODEL : 'fallback',
     generated_at: new Date().toISOString(),
-    source_snapshot_at: snapshot?.created_at || null,
+    source_snapshot_at: sourceSnapshotAt,
     narrative_error: generated.error || null,
     narrative_usage: generated.usage || null,
   };
