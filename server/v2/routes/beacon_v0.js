@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { SIGNALS } = require('../../beacon-v0/orchestrator/run');
 const { generatePickNarrative } = require('../../beacon-v0/narrative/generateNarrative');
 const { queryWithTimeout } = require('../../db/pg');
+const { getLatestScreenerPayload } = require('../services/snapshotService');
 const userModel = require('../../users/model');
 const { JWT_SECRET } = require('../../utils/config');
 
@@ -86,14 +87,20 @@ async function requireAuth(req, res, next) {
   }
 }
 
-async function fetchLatestPicks(limit = 20) {
+async function fetchLatestPicks({ limit = 20, asOfDate = null } = {}) {
   const boundedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   const result = await queryWithTimeout(
     `
-      WITH latest_run AS (
-        SELECT run_id
+      WITH ranked_runs AS (
+        SELECT run_id, MAX(created_at) AS latest_created_at
         FROM beacon_v0_picks
-        ORDER BY created_at DESC
+        WHERE ($1::date IS NULL OR (created_at AT TIME ZONE 'America/New_York')::date = $1::date)
+        GROUP BY run_id
+      ),
+      latest_run AS (
+        SELECT run_id
+        FROM ranked_runs
+        ORDER BY latest_created_at DESC
         LIMIT 1
       )
       SELECT
@@ -115,6 +122,7 @@ async function fetchLatestPicks(limit = 20) {
         top_catalyst_rank,
         top_catalyst_reasons,
         top_catalyst_computed_at,
+        pick_price,
         outcome_t1_price,
         outcome_t1_pct_change,
         outcome_t1_volume_ratio,
@@ -132,14 +140,15 @@ async function fetchLatestPicks(limit = 20) {
         outcome_t4_volume_ratio,
         outcome_t4_captured_at,
         outcome_complete,
+        (created_at AT TIME ZONE 'America/New_York')::date::text AS as_of_date,
         run_id,
         created_at
       FROM beacon_v0_picks
       WHERE run_id = (SELECT run_id FROM latest_run)
       ORDER BY symbol ASC
-      LIMIT $1
+      LIMIT $2
     `,
-    [boundedLimit],
+    [asOfDate, boundedLimit],
     {
       label: 'beacon_v0.route.latest',
       timeoutMs: 8000,
@@ -232,12 +241,196 @@ function enrichPickPriceData(pick, priceMap) {
   };
 }
 
+function toFiniteNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function normalizeDirection(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'up' || normalized === 'bullish' || normalized === 'long') {
+    return 'up';
+  }
+  if (normalized === 'down' || normalized === 'bearish' || normalized === 'short') {
+    return 'down';
+  }
+  if (normalized === 'neutral') {
+    return 'neutral';
+  }
+  return null;
+}
+
+function parseOptionalNumber(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  return toFiniteNumber(value);
+}
+
+function getSignalEvidence(pick) {
+  return Array.isArray(pick?.metadata?.signal_evidence) ? pick.metadata.signal_evidence : [];
+}
+
+function findSignalByName(pick, signalName) {
+  return getSignalEvidence(pick).find((entry) => entry && entry.signal === signalName) || null;
+}
+
+function collectCatalystLabels(pick, screenerRow) {
+  const labels = new Set();
+  const patternLabel = normalizeText(pick?.metadata?.pattern_label || pick?.pattern);
+  if (patternLabel) {
+    labels.add(patternLabel.toLowerCase());
+  }
+
+  const screenerCatalyst = normalizeText(screenerRow?.catalyst_type);
+  if (screenerCatalyst && screenerCatalyst.toLowerCase() !== 'none') {
+    labels.add(screenerCatalyst.toLowerCase());
+  }
+
+  getSignalEvidence(pick).forEach((entry) => {
+    const signal = normalizeText(entry?.signal);
+    const category = normalizeText(entry?.category);
+    if (signal) {
+      labels.add(signal.toLowerCase());
+    }
+    if (category) {
+      labels.add(category.toLowerCase());
+    }
+  });
+
+  return Array.from(labels);
+}
+
+async function fetchScreenerEnrichment(symbols) {
+  const screenerPayload = await getLatestScreenerPayload().catch(() => null);
+  const rows = Array.isArray(screenerPayload?.data) ? screenerPayload.data : [];
+  const wantedSymbols = new Set((symbols || []).map((symbol) => String(symbol || '').trim().toUpperCase()).filter(Boolean));
+  const screenerMap = new Map();
+
+  rows.forEach((row) => {
+    const symbol = String(row?.symbol || '').trim().toUpperCase();
+    if (!symbol || !wantedSymbols.has(symbol)) {
+      return;
+    }
+
+    screenerMap.set(symbol, {
+      symbol,
+      price: toFiniteNumber(row.price),
+      market_cap: toFiniteNumber(row.market_cap),
+      rvol: toFiniteNumber(row.rvol),
+      gap_percent: toFiniteNumber(row.gap_percent ?? row.gapPercent),
+      catalyst_type: normalizeText(row.catalyst_type),
+      sector: normalizeText(row.sector),
+      company_name: normalizeText(row.company_name || row.name),
+    });
+  });
+
+  return screenerMap;
+}
+
+function enrichPickMarketData(pick, screenerMap) {
+  const screenerRow = screenerMap.get(pick.symbol) || null;
+  const gapSignal = findSignalByName(pick, 'top_gap_today');
+  const rvolSignal = findSignalByName(pick, 'top_rvol_today');
+  const alignmentCount = toFiniteNumber(pick?.metadata?.alignment?.alignmentCount) ?? pick.signals_aligned.length;
+  const resolvedDirection = normalizeDirection(
+    pick?.metadata?.direction || gapSignal?.metadata?.direction || null
+  ) || 'neutral';
+
+  return {
+    ...pick,
+    display_price: pick.latest_close ?? screenerRow?.price ?? toFiniteNumber(pick.pick_price) ?? null,
+    market_cap: screenerRow?.market_cap ?? null,
+    rvol: screenerRow?.rvol ?? toFiniteNumber(rvolSignal?.metadata?.rvol) ?? null,
+    gap_percent: screenerRow?.gap_percent ?? toFiniteNumber(gapSignal?.metadata?.gap_pct) ?? null,
+    catalyst_type: screenerRow?.catalyst_type ?? null,
+    sector: screenerRow?.sector ?? null,
+    company_name: screenerRow?.company_name ?? null,
+    direction: resolvedDirection,
+    alignment_count: alignmentCount,
+    is_top_catalyst: Number(pick.top_catalyst_tier || 0) > 0 && Number(pick.top_catalyst_rank || 0) > 0,
+    catalyst_labels: collectCatalystLabels(pick, screenerRow),
+  };
+}
+
+function matchesFilters(pick, filters) {
+  const price = toFiniteNumber(pick.display_price);
+  const marketCap = toFiniteNumber(pick.market_cap);
+  const rvol = toFiniteNumber(pick.rvol);
+  const gapPercent = toFiniteNumber(pick.gap_percent);
+
+  if (filters.tier != null && Number(pick.top_catalyst_tier || 0) !== filters.tier) {
+    return false;
+  }
+  if (filters.minPrice != null && (price == null || price < filters.minPrice)) {
+    return false;
+  }
+  if (filters.maxPrice != null && (price == null || price > filters.maxPrice)) {
+    return false;
+  }
+  if (filters.minMarketCap != null && (marketCap == null || marketCap < filters.minMarketCap)) {
+    return false;
+  }
+  if (filters.maxMarketCap != null && (marketCap == null || marketCap > filters.maxMarketCap)) {
+    return false;
+  }
+  if (filters.minRvol != null && (rvol == null || rvol < filters.minRvol)) {
+    return false;
+  }
+  if (filters.minGap != null && (gapPercent == null || Math.abs(gapPercent) < filters.minGap)) {
+    return false;
+  }
+  if (filters.direction && pick.direction !== filters.direction) {
+    return false;
+  }
+  if (filters.catalyst && !pick.catalyst_labels.includes(filters.catalyst)) {
+    return false;
+  }
+  if (filters.topScope === 'only' && !pick.is_top_catalyst) {
+    return false;
+  }
+  if (filters.topScope === 'exclude' && pick.is_top_catalyst) {
+    return false;
+  }
+  return true;
+}
+
 router.get('/picks', async (req, res) => {
   try {
+    const asOfDate = req.query.date ? String(req.query.date).trim() : null;
+    if (asOfDate && !/^\d{4}-\d{2}-\d{2}$/.test(asOfDate)) {
+      return res.status(400).json({ error: 'invalid date format, expected YYYY-MM-DD' });
+    }
+
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
-    const picks = (await fetchLatestPicks(limit)).map(enrichPickDirectionCounts);
+    const tier = parseOptionalNumber(req.query.tier);
+    const topScope = ['all', 'only', 'exclude'].includes(String(req.query.topScope || 'all'))
+      ? String(req.query.topScope || 'all')
+      : 'all';
+    const filters = {
+      tier: tier == null ? null : Number(tier),
+      minPrice: parseOptionalNumber(req.query.minPrice),
+      maxPrice: parseOptionalNumber(req.query.maxPrice),
+      minMarketCap: parseOptionalNumber(req.query.minMarketCap),
+      maxMarketCap: parseOptionalNumber(req.query.maxMarketCap),
+      minRvol: parseOptionalNumber(req.query.minRvol),
+      minGap: parseOptionalNumber(req.query.minGap),
+      direction: normalizeDirection(req.query.direction),
+      catalyst: normalizeText(req.query.catalyst)?.toLowerCase() || null,
+      topScope,
+    };
+
+    const picks = (await fetchLatestPicks({ limit: 100, asOfDate })).map(enrichPickDirectionCounts);
     const priceMap = await fetchPickPriceData(picks.map((pick) => pick.symbol));
-    const enrichedPicks = picks.map((pick) => groupPickOutcomes(enrichPickPriceData(pick, priceMap)));
+    const screenerMap = await fetchScreenerEnrichment(picks.map((pick) => pick.symbol));
+    const enrichedPicks = picks
+      .map((pick) => enrichPickMarketData(groupPickOutcomes(enrichPickPriceData(pick, priceMap)), screenerMap))
+      .filter((pick) => matchesFilters(pick, filters))
+      .slice(0, limit);
 
     return res.json({
       picks: enrichedPicks,
@@ -245,6 +438,8 @@ router.get('/picks', async (req, res) => {
       version: 'v0',
       generated_at: enrichedPicks[0]?.created_at || null,
       run_id: enrichedPicks[0]?.run_id || null,
+      as_of_date: enrichedPicks[0]?.as_of_date || asOfDate,
+      filters,
     });
   } catch (error) {
     console.error('beacon_v0_picks_failed:', error.message);

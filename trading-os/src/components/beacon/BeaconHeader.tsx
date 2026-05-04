@@ -5,18 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 import { BEACON_QUERY_OPTIONS, fetchBeaconSummary } from "@/components/beacon/beacon-api";
-
-type Tab = "picks" | "grades" | "track" | "v0";
-
-const TAB_LABELS: Array<{ key: Tab; label: string }> = [
-  { key: "picks", label: "Morning Picks" },
-  { key: "grades", label: "Strategy Grades" },
-  { key: "track", label: "Track Record" },
-  { key: "v0", label: "v0 (preview)" },
-];
 
 function formatNumber(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) {
@@ -83,13 +73,7 @@ function HeaderSkeleton() {
   );
 }
 
-export default function BeaconHeader({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
-}) {
+export default function BeaconHeader() {
   const summaryQuery = useQuery({
     queryKey: ["beacon", "summary"],
     queryFn: fetchBeaconSummary,
@@ -124,11 +108,16 @@ export default function BeaconHeader({
           <Badge variant="accent" className="w-fit uppercase tracking-[0.18em]">BEACON AI</Badge>
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">BEACON AI</h1>
-            <p className="mt-1 text-sm text-slate-400">Algorithmic strategy intelligence</p>
+            <p className="mt-1 text-sm text-slate-400">Algorithmic strategy intelligence, filtered v0 picks, and live market context.</p>
           </div>
         </div>
-        <div className="text-xs text-slate-500">
-          Latest score date: <span className="text-slate-300">{formatDate(summary.latest_score_date)}</span>
+        <div className="flex flex-col items-start gap-1 text-xs text-slate-500 sm:items-end">
+          <span>
+            Latest score date: <span className="text-slate-300">{formatDate(summary.latest_score_date)}</span>
+          </span>
+          <span className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 uppercase tracking-[0.18em] text-cyan-200">
+            v0 preview consolidated
+          </span>
         </div>
       </div>
 
@@ -155,24 +144,6 @@ export default function BeaconHeader({
               <div className="text-2xl font-semibold text-slate-100">{stat.value}</div>
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-b border-slate-800/80 pb-1">
-        {TAB_LABELS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={cn(
-              "rounded-t-lg border-b-2 px-3 py-2 text-sm font-medium transition",
-              activeTab === tab.key
-                ? "border-cyan-400 text-cyan-300"
-                : "border-transparent text-slate-500 hover:text-slate-200"
-            )}
-          >
-            {tab.label}
-          </button>
         ))}
       </div>
     </div>

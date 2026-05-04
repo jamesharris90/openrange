@@ -13,6 +13,7 @@ const adminRoute = require('./routes/admin');
 const devRoute = require('./routes/dev');
 const beaconRoute = require('./routes/beacon');
 const beaconV0Route = require('./routes/beacon_v0');
+const vantageRoute = require('./routes/vantage');
 const congressionalRoute = require('./routes/congressional');
 const dashboardRoute = require('../routes/dashboard');
 const newsletterRoute = require('../routes/newsletter');
@@ -557,6 +558,7 @@ function createV2App() {
   app.use('/api/v2/beacon', beaconRoute);
   app.use('/api/beacon-v0', beaconV0Route);
   app.use('/api/v2/beacon-v0', beaconV0Route);
+  app.use('/api/vantage', vantageRoute);
   app.use('/api/v2/congressional', congressionalRoute);
   app.use('/', legacyEarningsRoute);
   app.use('/api/market', marketRoute);
