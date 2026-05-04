@@ -44,6 +44,8 @@ const { registerEmailIntelligenceSchedules } = require('../email/emailDispatcher
 const { runOutcomeCapture } = require('../beacon-v0/outcomes/captureOutcome');
 const { runHealthSweep } = require('../beacon-v0/outcomes/healthSweep');
 const { reapStaleNightlyRuns } = require('../beacon-nightly/nightlyCycle');
+const { currentSession, nextSession } = require('../beacon-v0/outcomes/tradingCalendar');
+const { ingestMarketContext } = require('../ingestion/fmp_market_context_ingest');
 const { registerPremarketCatalystCron } = require('../premarket-catalyst/scheduler');
 
 let yahooSchedulerStarted = false;
@@ -53,6 +55,41 @@ let intelligencePipelineSchedulerStarted = false;
 let snapshotRunning = false;
 let beaconV0OutcomeSchedulerStarted = false;
 let beaconNightlyReaperSchedulerStarted = false;
+let marketContextSchedulerStarted = false;
+
+function toEtDateString(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function getEtHour(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const hourPart = parts.find((part) => part.type === 'hour');
+  return Number(hourPart?.value);
+}
+
+function isUsTradingDay(date = new Date()) {
+  const current = currentSession(date);
+  if (current) {
+    return true;
+  }
+
+  try {
+    const next = nextSession(date);
+    return Boolean(next && toEtDateString(next.open) === toEtDateString(date));
+  } catch (_error) {
+    return false;
+  }
+}
 
 const chartRoute = express.Router();
 const chartV5Route = express.Router();
@@ -333,6 +370,59 @@ function ensureBeaconNightlyReaperScheduler() {
   console.log('[BEACON_NIGHTLY_REAPER] scheduler active', { schedule: '06:00 UTC daily' });
 }
 
+async function refreshMarketContextIfTrading() {
+  const now = new Date();
+  if (!isUsTradingDay(now)) {
+    return;
+  }
+
+  const etHour = getEtHour(now);
+  if (!Number.isFinite(etHour) || etHour < 4 || etHour >= 20) {
+    return;
+  }
+
+  try {
+    console.log(JSON.stringify({
+      log: 'market_context.refresh_started',
+      timestamp: now.toISOString(),
+    }));
+
+    const result = await ingestMarketContext();
+
+    console.log(JSON.stringify({
+      log: 'market_context.refreshed',
+      timestamp: new Date().toISOString(),
+      ...result,
+    }));
+  } catch (error) {
+    console.error(JSON.stringify({
+      log: 'market_context.refresh_failed',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    }));
+  }
+}
+
+function ensureMarketContextScheduler() {
+  if (marketContextSchedulerStarted) {
+    return;
+  }
+
+  marketContextSchedulerStarted = true;
+
+  cron.schedule('*/5 * * * *', () => {
+    void refreshMarketContextIfTrading();
+  }, {
+    timezone: 'America/New_York',
+  });
+
+  console.log('[MARKET_CONTEXT] scheduler active', {
+    schedule: 'every 5 minutes',
+    timezone: 'America/New_York',
+    window: '04:00-20:00 ET on US trading days',
+  });
+}
+
 async function runStartupTask(name, task) {
   try {
     await task();
@@ -528,6 +618,7 @@ function startV2BackgroundServices(app, options = {}) {
       startBacktestScheduler();
       startTradeOutcomeScheduler();
       startDataHealthMonitor();
+      ensureMarketContextScheduler();
       registerPremarketCatalystCron();
       ensureBeaconV0OutcomeScheduler();
       ensureBeaconNightlyReaperScheduler();
