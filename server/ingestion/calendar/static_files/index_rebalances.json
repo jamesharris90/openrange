@@ -1,0 +1,37 @@
+[
+  {
+    "event_date": "2026-06-26",
+    "title": "Russell annual rebalance",
+    "description": "Annual Russell index reconstitution effective after market close",
+    "importance": 9,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-06-19",
+    "title": "S&P quarterly rebalance",
+    "description": "Quarterly S&P index rebalance window",
+    "importance": 8,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-09-18",
+    "title": "S&P quarterly rebalance",
+    "description": "Quarterly S&P index rebalance window",
+    "importance": 8,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-12-18",
+    "title": "S&P quarterly rebalance",
+    "description": "Quarterly S&P index rebalance window",
+    "importance": 8,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2027-03-19",
+    "title": "S&P quarterly rebalance",
+    "description": "Quarterly S&P index rebalance window",
+    "importance": 8,
+    "related_symbols": []
+  }
+]

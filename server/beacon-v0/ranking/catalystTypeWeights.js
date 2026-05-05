@@ -28,7 +28,7 @@ const TIERS = {
       'considering', 'may acquire', 'social media', 'reddit',
       'wallstreetbets',
     ],
-    clusters: ['NEWS_VOLUME', 'M_AND_A_RUMOR', 'SECTOR_ROTATION', 'GENERIC_NEWS', 'EARNINGS', 'ANALYST_ACTION'],
+    clusters: ['NEWS_VOLUME', 'M_AND_A_RUMOR', 'SECTOR_ROTATION', 'GENERIC_NEWS', 'EARNINGS', 'ANALYST_ACTION', 'CATALYST_INTELLIGENCE'],
   },
   tier4: {
     weight: 0.5,
@@ -36,6 +36,8 @@ const TIERS = {
     clusters: ['LOW_CONFIDENCE', 'SINGLE_SOURCE'],
   },
 };
+
+TIERS.tier1.clusters.push('IMMINENT_CATALYST');
 
 function classifyCatalyst(catalystText, cluster) {
   const normalizedCluster = typeof cluster === 'string' ? cluster.trim().toUpperCase() : '';

@@ -1,0 +1,58 @@
+[
+  {
+    "event_date": "2026-05-29",
+    "end_date": "2026-06-02",
+    "title": "ASCO Annual Meeting",
+    "industry": "Biotech",
+    "importance": 8,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-09-01",
+    "end_date": "2026-09-03",
+    "title": "Goldman Sachs Communacopia + Technology Conference",
+    "industry": "Technology",
+    "importance": 6,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-09-26",
+    "end_date": "2026-09-29",
+    "title": "ESC Congress",
+    "industry": "Healthcare",
+    "importance": 6,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2026-11-07",
+    "end_date": "2026-11-09",
+    "title": "AHA Scientific Sessions",
+    "industry": "Healthcare",
+    "importance": 7,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2027-01-05",
+    "end_date": "2027-01-08",
+    "title": "CES",
+    "industry": "Consumer Technology",
+    "importance": 7,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2027-01-11",
+    "end_date": "2027-01-14",
+    "title": "JPMorgan Healthcare Conference",
+    "industry": "Biotech",
+    "importance": 9,
+    "related_symbols": []
+  },
+  {
+    "event_date": "2027-02-02",
+    "end_date": "2027-02-04",
+    "title": "Nasdaq Investor Conference",
+    "industry": "Cross-sector",
+    "importance": 5,
+    "related_symbols": []
+  }
+]

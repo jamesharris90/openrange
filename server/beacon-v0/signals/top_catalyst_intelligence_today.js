@@ -87,6 +87,7 @@ async function detect(universe = [], options = {}) {
         catalyst_count: catalystCount,
         latest_at: row.latest_at,
         lookback_hours: lookbackHours,
+        cluster: 'CATALYST_INTELLIGENCE',
         score,
       },
       reasoning: `Catalyst intelligence rank ${index + 1}: confidence ${(confidenceScore ?? 0).toFixed(2)}, sentiment ${(sentimentScore ?? 0).toFixed(2)}, ${providerCount} source${providerCount === 1 ? '' : 's'}, ${freshnessMinutes ?? '?'}min fresh`,

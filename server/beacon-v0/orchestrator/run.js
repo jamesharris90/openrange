@@ -11,6 +11,7 @@ const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d
 const topCoiledSpring = require('../signals/top_coiled_spring');
 const topCongressionalTradesRecent = require('../signals/top_congressional_trades_recent');
 const topCatalystIntelligenceToday = require('../signals/top_catalyst_intelligence_today');
+const topImminentCatalystsToday = require('../signals/top_imminent_catalysts_today');
 const topSmartMoneyToday = require('../signals/top_smart_money_today');
 const topGapToday = require('../signals/top_gap_today');
 const topNewsLast12h = require('../signals/top_news_last_12h');
@@ -29,6 +30,7 @@ const SIGNALS = [
   topCoiledSpring,
   topVolumeBuilding,
   topCongressionalTradesRecent,
+  topImminentCatalystsToday,
   topSmartMoneyToday,
 ];
 
@@ -236,6 +238,28 @@ async function buildCatalystIntelligenceScores(signalResults = []) {
 
   if (symbols.length === 0) {
     return baseScores;
+  }
+
+  const imminentSignal = (signalResults || []).find((signalResult) => signalResult?.signal === topImminentCatalystsToday.SIGNAL_NAME);
+  const imminentMap = imminentSignal?.results instanceof Map ? imminentSignal.results : new Map();
+  for (const [symbol, item] of imminentMap.entries()) {
+    const normalizedSymbol = String(symbol || '').trim().toUpperCase();
+    if (!normalizedSymbol) continue;
+    const existing = baseScores.get(normalizedSymbol);
+    if (!existing) {
+      baseScores.set(normalizedSymbol, {
+        score: Number(item?.score || 0),
+        headline: item?.headline || item?.reasoning || item?.metadata?.headline || '',
+        cluster: item?.cluster || item?.metadata?.cluster || 'IMMINENT_CATALYST',
+      });
+      continue;
+    }
+
+    baseScores.set(normalizedSymbol, {
+      score: Number(existing.score || 0) + Number(item?.score || 0),
+      headline: existing.headline || item?.headline || item?.reasoning || '',
+      cluster: existing.cluster || item?.cluster || item?.metadata?.cluster || 'IMMINENT_CATALYST',
+    });
   }
 
   try {

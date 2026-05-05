@@ -14,6 +14,14 @@ const { runIngest: runInsiderTradesIngestion } = require('./fmp_insider_trades_i
 const { runIngest: runInstitutional13fIngestion } = require('./fmp_institutional_13f_ingest');
 const { runIngest: runActivistFilingsIngestion } = require('./fmp_activist_filings_ingest');
 const { runIngest: runSenateHouseIngestion } = require('./fmp_senate_house_ingest');
+const { runIngest: runFomcCalendarIngestion } = require('./calendar/fomc_ingest');
+const { runIngest: runFredEconomicIngestion } = require('./calendar/fred_economic_ingest');
+const { runIngest: runFmpIpoCalendarIngestion } = require('./calendar/fmp_ipo_ingest');
+const { runIngest: runFmpSplitsCalendarIngestion } = require('./calendar/fmp_splits_ingest');
+const { runIngest: runClinicalTrialsIngestion } = require('./calendar/clinical_trials_ingest');
+const { runIngest: runOpenFdaIngestion } = require('./calendar/openfda_ingest');
+const { runIngest: runFvapElectionsIngestion } = require('./calendar/fvap_elections_ingest');
+const { runIngest: runStaticCalendarLoaders } = require('./calendar/load_static_calendars');
 const { buildMorningUniverse, cleanupTrackedUniverse } = require('../services/trackedUniverseService');
 const { refreshIpoCalendar } = require('../routes/ipoCalendar');
 const { runNarrativeEngine } = require('../services/mcpNarrativeEngine');
@@ -112,6 +120,14 @@ const JOB_SCHEDULES = {
   ticker_universe: '20 0 * * *',
   congressional_trades_latest: '15 6 * * 1-5',
   congressional_trades_backfill: '15 6 * * 1',
+  fred_economic_calendar: '30 5 * * 1-5',
+  fmp_ipo_calendar_events: '0 6 * * 1-5',
+  fmp_splits_calendar: '0 6 * * 1-5',
+  fomc_calendar: '0 6 * * 1',
+  clinical_trials_calendar: '0 6 * * 1',
+  static_calendar_loaders: '0 6 * * 1',
+  openfda_calendar: '0 7 * * 1',
+  fvap_elections_calendar: '0 8 * * 1',
   insider_trades: '30 6 * * 1-5',
   institutional_13f: '0 6 * * 1',
   activist_filings: '45 6 * * 1-5',
@@ -212,6 +228,14 @@ function startIngestionScheduler() {
   cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion, getScheduledJobOptions('ticker_universe')));
   cron.schedule(JOB_SCHEDULES.congressional_trades_latest, safeRun('congressional_trades_latest', () => runSenateHouseIngestion(), getScheduledJobOptions('congressional_trades_latest')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.congressional_trades_backfill, safeRun('congressional_trades_backfill', () => runSenateHouseIngestion({ includeBackfill: true, skipLatest: true }), getScheduledJobOptions('congressional_trades_backfill')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.fred_economic_calendar, safeRun('fred_economic_calendar', runFredEconomicIngestion, getScheduledJobOptions('fred_economic_calendar')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.fmp_ipo_calendar_events, safeRun('fmp_ipo_calendar_events', runFmpIpoCalendarIngestion, getScheduledJobOptions('fmp_ipo_calendar_events')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.fmp_splits_calendar, safeRun('fmp_splits_calendar', runFmpSplitsCalendarIngestion, getScheduledJobOptions('fmp_splits_calendar')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.fomc_calendar, safeRun('fomc_calendar', runFomcCalendarIngestion, getScheduledJobOptions('fomc_calendar')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.clinical_trials_calendar, safeRun('clinical_trials_calendar', runClinicalTrialsIngestion, getScheduledJobOptions('clinical_trials_calendar')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.static_calendar_loaders, safeRun('static_calendar_loaders', runStaticCalendarLoaders, getScheduledJobOptions('static_calendar_loaders')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.openfda_calendar, safeRun('openfda_calendar', runOpenFdaIngestion, getScheduledJobOptions('openfda_calendar')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.fvap_elections_calendar, safeRun('fvap_elections_calendar', runFvapElectionsIngestion, getScheduledJobOptions('fvap_elections_calendar')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.insider_trades, safeRun('insider_trades', runInsiderTradesIngestion, getScheduledJobOptions('insider_trades')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.institutional_13f, safeRun('institutional_13f', runInstitutional13fIngestion, getScheduledJobOptions('institutional_13f')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.activist_filings, safeRun('activist_filings', runActivistFilingsIngestion, getScheduledJobOptions('activist_filings')), { timezone: 'Europe/London' });
