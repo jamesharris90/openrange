@@ -56,7 +56,7 @@ ALTER TABLE congressional_trades
 
 ALTER TABLE congressional_trades
   ADD COLUMN full_member_name TEXT GENERATED ALWAYS AS (
-    NULLIF(BTRIM(CONCAT(COALESCE(member_first_name, first_name, ''), ' ', COALESCE(member_last_name, last_name, ''))), '')
+    NULLIF(BTRIM(COALESCE(member_first_name, first_name, '') || ' ' || COALESCE(member_last_name, last_name, '')), '')
   ) STORED;
 
 CREATE INDEX IF NOT EXISTS congressional_trades_symbol_transaction_date_desc_idx
