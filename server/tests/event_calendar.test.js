@@ -70,6 +70,20 @@ describe('event calendar helpers and signal', () => {
     expect(item.headline).toBe('AAPL investor day in 2 days; Product roadmap update');
   });
 
+  test('detect binds populated universe filters to parameter $2', async () => {
+    queryWithTimeout.mockResolvedValue({ rows: [] });
+
+    await detect(['aapl'], { topN: 5 });
+
+    expect(queryWithTimeout).toHaveBeenCalledWith(
+      expect.stringContaining('AND UPPER(symbol) = ANY($2::text[])'),
+      [5, ['AAPL']],
+      expect.objectContaining({
+        label: 'beacon_v0.signal.top_imminent_catalysts_today',
+      }),
+    );
+  });
+
   test('synthesizeHeadline handles same-day events', () => {
     expect(synthesizeHeadline({
       title: 'Fed meeting',

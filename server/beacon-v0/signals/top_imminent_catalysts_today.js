@@ -4,6 +4,7 @@ const {
   queryWithTimeout,
   toNumber,
 } = require('./_helpers');
+const logger = require('../../logger');
 
 const SIGNAL_NAME = 'top_imminent_catalysts_today';
 const CATEGORY = 'catalyst';
@@ -21,7 +22,8 @@ function synthesizeHeadline(row) {
 
 async function detect(universe = [], options = {}) {
   const topN = Number(options.topN || TOP_N);
-  const universeFilter = buildUniverseClause(universe, 3);
+  const universeFilter = buildUniverseClause(universe, 2);
+  logger.debug('[imminent_catalysts] symbol filter size: %d', Array.isArray(universeFilter.params[0]) ? universeFilter.params[0].length : 0);
   const result = await queryWithTimeout(
     `
       SELECT
