@@ -8,6 +8,7 @@ import { EventDetailModal } from '@/components/catalyst/event-detail-modal'
 import { TodayBriefing } from '@/components/catalyst/today-briefing'
 import { WatchlistTimeline } from '@/components/catalyst/watchlist-timeline'
 import { mockEvents, watchlistSymbols } from '@/lib/calendar-mock-data'
+import { fetchCalendarEvents, fetchWatchlistSymbols } from '@/lib/calendar-api'
 import type { CatalystEvent, EventTier } from '@/lib/calendar-types'
 import { cn } from '@/lib/utils'
 
@@ -212,11 +213,62 @@ export default function EventsPage() {
   const [filterWatchlist, setFilterWatchlist] = useState(false)
   const [kpiFilter, setKpiFilter] = useState<KPIFilter>(null)
   const [showTier1Alert, setShowTier1Alert] = useState(true)
+  const [events, setEvents] = useState<CatalystEvent[]>([])
+  const [watchlist, setWatchlist] = useState<string[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800)
-    return () => clearTimeout(timer)
+    let isActive = true
+
+    const formatDate = (value: Date) => value.toISOString().slice(0, 10)
+    const addDays = (value: Date, days: number) => {
+      const result = new Date(value)
+      result.setDate(result.getDate() + days)
+      return result
+    }
+
+    async function loadCalendar() {
+      setIsLoading(true)
+
+      try {
+        const now = new Date()
+        const [liveEvents, liveWatchlist] = await Promise.all([
+          fetchCalendarEvents({
+            from: formatDate(now),
+            to: formatDate(addDays(now, 30)),
+            limit: 300,
+          }),
+          fetchWatchlistSymbols(),
+        ])
+
+        if (!isActive) {
+          return
+        }
+
+        setEvents(liveEvents)
+        setWatchlist(liveWatchlist)
+        setLoadError(null)
+      } catch {
+        if (!isActive) {
+          return
+        }
+
+        setEvents(mockEvents)
+        setWatchlist(watchlistSymbols)
+        setLoadError('Live calendar unavailable. Showing fallback data.')
+      } finally {
+        if (isActive) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadCalendar()
+
+    return () => {
+      isActive = false
+    }
   }, [])
 
   const today = useMemo(() => {
@@ -226,35 +278,35 @@ export default function EventsPage() {
   }, [])
   const weekFromNow = useMemo(() => new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), [today])
 
-  const todayCount = mockEvents.filter((event) => new Date(event.date).toDateString() === today.toDateString()).length
-  const tier1Count = mockEvents.filter((event) => {
+  const todayCount = events.filter((event) => new Date(event.date).toDateString() === today.toDateString()).length
+  const tier1Count = events.filter((event) => {
     const eventDate = new Date(event.date)
     eventDate.setHours(0, 0, 0, 0)
     return event.tier === 1 && eventDate >= today && eventDate <= weekFromNow
   }).length
-  const watchlistCount = watchlistSymbols.length
+  const watchlistCount = watchlist.length
 
   const filteredEvents = useMemo(() => {
-    let events = mockEvents
+    let filtered = events
 
     if (filterWatchlist) {
-      events = events.filter((event) => event.isWatchlist || event.symbol === 'SPY')
+      filtered = filtered.filter((event) => event.isWatchlist || event.symbol === 'SPY' || event.symbol === '')
     }
 
     if (kpiFilter === 'today') {
-      events = events.filter((event) => new Date(event.date).toDateString() === today.toDateString())
+      filtered = filtered.filter((event) => new Date(event.date).toDateString() === today.toDateString())
     } else if (kpiFilter === 'tier1') {
-      events = events.filter((event) => {
+      filtered = filtered.filter((event) => {
         const eventDate = new Date(event.date)
         eventDate.setHours(0, 0, 0, 0)
         return event.tier === 1 && eventDate >= today && eventDate <= weekFromNow
       })
     } else if (kpiFilter === 'watching') {
-      events = events.filter((event) => event.isWatchlist)
+      filtered = filtered.filter((event) => event.isWatchlist)
     }
 
-    return events
-  }, [filterWatchlist, kpiFilter, today, weekFromNow])
+    return filtered
+  }, [events, filterWatchlist, kpiFilter, today, weekFromNow])
 
   const handleKpiClick = (filter: KPIFilter) => {
     setKpiFilter((previous) => (previous === filter ? null : filter))
@@ -298,7 +350,7 @@ export default function EventsPage() {
     <div className="min-h-screen bg-background">
       {showTier1Alert && (
         <Tier1AlertBanner
-          events={mockEvents}
+          events={events}
           onDismiss={() => setShowTier1Alert(false)}
           onEventClick={setSelectedEvent}
         />
@@ -369,7 +421,15 @@ export default function EventsPage() {
         </div>
       </header>
 
-      <Next24HoursStrip events={mockEvents} onEventClick={setSelectedEvent} />
+      {loadError && (
+        <div className="border-b border-[oklch(0.65_0.25_25/0.25)] bg-[oklch(0.65_0.25_25/0.1)]">
+          <div className="container mx-auto px-4 py-2 text-xs font-medium text-[oklch(0.82_0.12_40)]">
+            {loadError}
+          </div>
+        </div>
+      )}
+
+      <Next24HoursStrip events={events} onEventClick={setSelectedEvent} />
 
       <div className="border-b border-border bg-panel">
         <div className="container mx-auto px-4">
@@ -403,7 +463,7 @@ export default function EventsPage() {
         {viewMode === 'timeline' && (
           <div className="space-y-8" id="timeline-panel" role="tabpanel">
             <section className="rounded-xl border border-border bg-panel p-4 md:p-6">
-              <WatchlistTimeline events={filteredEvents} watchlistSymbols={watchlistSymbols} onEventClick={setSelectedEvent} />
+              <WatchlistTimeline events={filteredEvents} watchlistSymbols={watchlist} onEventClick={setSelectedEvent} />
             </section>
 
             <div className="grid gap-6 md:grid-cols-2">

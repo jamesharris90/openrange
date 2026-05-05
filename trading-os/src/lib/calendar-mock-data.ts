@@ -1,5 +1,7 @@
 import type { CatalystEvent } from './calendar-types'
 
+// Deprecated for the live calendar path. Retained only as a UI fallback when the backend is unavailable.
+
 // Generate dates relative to today
 const today = new Date()
 const getDate = (daysFromNow: number) => {

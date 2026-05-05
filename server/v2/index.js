@@ -18,6 +18,7 @@ const congressionalRoute = require('./routes/congressional');
 const dashboardRoute = require('../routes/dashboard');
 const newsletterRoute = require('../routes/newsletter');
 const marketRoute = require('../routes/market');
+const calendarRoute = require('../routes/calendar');
 const legacyEarningsRoute = require('../routes/earnings');
 const intelligenceRoute = require('../routes/intelligence');
 const adminCoverageRoute = require('../routes/adminCoverage');
@@ -562,6 +563,8 @@ function createV2App() {
   app.use('/api/v2/congressional', congressionalRoute);
   app.use('/', legacyEarningsRoute);
   app.use('/api/market', marketRoute);
+  app.use('/api/calendar', calendarRoute);
+  app.use('/api/watchlist', calendarRoute);
   app.use('/api/system', systemRoute);
   app.use('/api/data/trust', require('../routes/data_trust'));
   app.use('/api/validation', validationRoute);
