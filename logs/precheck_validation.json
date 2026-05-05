@@ -1,0 +1,27 @@
+{
+  "phase": "IMPL-30 Phase 2",
+  "timestamp": "2026-05-05T21:18:00Z",
+  "repo": {
+    "branch": "main",
+    "local_head_before_phase2": "ad30f672178aa31e73d6a33229f947b1c32d1f60",
+    "origin_main_before_push": "9d00e4d5e0b71afa4f27a0a502b73fe3d950db18",
+    "phase1_commit_present": true,
+    "phase1_commit": "ad30f67"
+  },
+  "database": {
+    "event_calendar_count": 5563,
+    "smart_money_scores_count": 0,
+    "earnings_history_exists": true,
+    "daily_like_tables": [
+      "daily_ohlc",
+      "daily_ohlcv",
+      "daily_reviews",
+      "daily_signal_snapshot",
+      "market_quotes",
+      "market_regime_daily",
+      "signal_performance_daily",
+      "signal_validation_daily"
+    ]
+  },
+  "result": "PASS"
+}

@@ -1,0 +1,52 @@
+{
+  "phase": "IMPL-30 Phase 2",
+  "timestamp": "2026-05-05T21:18:00Z",
+  "backend_test": {
+    "command": "cd /Users/jamesharris/Server/server && npx jest routes/__tests__/calendar.test.js --runInBand",
+    "status": "PASS",
+    "tests": 8
+  },
+  "live_smoke": {
+    "base_url": "http://127.0.0.1:3017",
+    "endpoints": [
+      {
+        "path": "/api/calendar/events",
+        "status": 200
+      },
+      {
+        "path": "/api/calendar/events/:id",
+        "status": 200
+      },
+      {
+        "path": "/api/calendar/heatmap",
+        "status": 200
+      },
+      {
+        "path": "/api/calendar/today",
+        "status": 200
+      },
+      {
+        "path": "/api/watchlist",
+        "status": 200
+      }
+    ],
+    "shape_checks": [
+      "events[] + meta.total/from/to",
+      "detail.source_url + detail.metadata + detail.related_events[]",
+      "today.bmo/intraday/amc/other",
+      "watchlist.symbols[] + source + updated_at"
+    ],
+    "result": "PASS"
+  },
+  "frontend_ui_smoke": {
+    "url": "http://127.0.0.1:3002/events",
+    "status": "PASS",
+    "notes": [
+      "KPI counters rendered",
+      "Next 24h strip rendered",
+      "Today panel rendered",
+      "Calendar Density rendered",
+      "No render crash observed"
+    ]
+  }
+}
