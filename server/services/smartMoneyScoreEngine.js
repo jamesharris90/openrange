@@ -65,24 +65,30 @@ function calculateInsiderComponent(rows = []) {
 }
 
 function calculateCongressionalComponent(rows = [], options = {}) {
-  const distinctMembers = new Set(rows.map((row) => `${row.first_name || ''}|${row.last_name || ''}`.trim()).filter(Boolean));
+  const distinctMembers = new Set(
+    rows
+      .map((row) => `${row.member_first_name || row.first_name || ''}|${row.member_last_name || row.last_name || ''}`.trim())
+      .filter(Boolean)
+  );
   const memberContribution = Math.min(distinctMembers.size * 5, 15);
   const clusterMembers = new Set(
     rows
       .filter((row) => row.disclosure_date && new Date(row.disclosure_date) >= new Date(options.clusterWindowStart || '1970-01-01'))
-      .map((row) => `${row.first_name || ''}|${row.last_name || ''}`.trim())
+      .map((row) => `${row.member_first_name || row.first_name || ''}|${row.member_last_name || row.last_name || ''}`.trim())
       .filter(Boolean)
   );
   const clusterBonus = clusterMembers.size >= 3 ? 5 : 0;
-  const congressionalNetValue = rows.reduce((total, row) => total + (toNumber(row.amount_min) || 0), 0);
-  const component = Math.max(0, Math.min(25, memberContribution + clusterBonus));
+  const congressionalNetValue = rows.reduce((total, row) => total + (toNumber(row.amount_min_usd ?? row.amount_min) || 0), 0);
+  const convictionBonus = rows.some((row) => (toNumber(row.amount_min_usd ?? row.amount_min) || 0) > 50000) ? 5 : 0;
+  const component = Math.max(0, Math.min(25, memberContribution + clusterBonus + convictionBonus));
 
   return {
     component,
     congressional_member_count: distinctMembers.size,
     congressional_net_value: congressionalNetValue,
     contributing: rows.slice(0, 5).map((row) => ({
-      member: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+      member: `${row.member_first_name || row.first_name || ''} ${row.member_last_name || row.last_name || ''}`.trim(),
+      chamber: row.chamber || null,
       party: row.party || row.member_party || null,
       trade_date: row.disclosure_date || row.transaction_date,
       type: row.transaction_type,
@@ -166,7 +172,7 @@ async function loadSymbolInputs(symbol, scoreDate) {
   );
 
   const congressionalPromise = queryWithTimeout(
-    `SELECT first_name, last_name, transaction_type, transaction_date, disclosure_date, amount_min
+    `SELECT first_name, last_name, member_first_name, member_last_name, chamber, transaction_type, transaction_date, disclosure_date, amount_min, amount_min_usd
      FROM congressional_trades
      WHERE UPPER(symbol) = UPPER($1)
        AND disclosure_date >= $2::date - INTERVAL '${CONGRESSIONAL_LOOKBACK_DAYS} days'`,

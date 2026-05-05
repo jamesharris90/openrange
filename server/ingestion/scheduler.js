@@ -13,6 +13,7 @@ const { runUniverseIngestion } = require('./fmp_universe_ingest');
 const { runIngest: runInsiderTradesIngestion } = require('./fmp_insider_trades_ingest');
 const { runIngest: runInstitutional13fIngestion } = require('./fmp_institutional_13f_ingest');
 const { runIngest: runActivistFilingsIngestion } = require('./fmp_activist_filings_ingest');
+const { runIngest: runSenateHouseIngestion } = require('./fmp_senate_house_ingest');
 const { buildMorningUniverse, cleanupTrackedUniverse } = require('../services/trackedUniverseService');
 const { refreshIpoCalendar } = require('../routes/ipoCalendar');
 const { runNarrativeEngine } = require('../services/mcpNarrativeEngine');
@@ -109,6 +110,8 @@ const JOB_SCHEDULES = {
   earnings_transcripts: '12 0 * * *',
   company_profiles: '15 0 * * *',
   ticker_universe: '20 0 * * *',
+  congressional_trades_latest: '15 6 * * 1-5',
+  congressional_trades_backfill: '15 6 * * 1',
   insider_trades: '30 6 * * 1-5',
   institutional_13f: '0 6 * * 1',
   activist_filings: '45 6 * * 1-5',
@@ -207,6 +210,8 @@ function startIngestionScheduler() {
   cron.schedule(JOB_SCHEDULES.earnings_transcripts, safeRun('earnings_transcripts', runTranscriptsIngestion, getScheduledJobOptions('earnings_transcripts')));
   cron.schedule(JOB_SCHEDULES.company_profiles, safeRun('company_profiles', runProfilesIngestion, getScheduledJobOptions('company_profiles')));
   cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion, getScheduledJobOptions('ticker_universe')));
+  cron.schedule(JOB_SCHEDULES.congressional_trades_latest, safeRun('congressional_trades_latest', () => runSenateHouseIngestion(), getScheduledJobOptions('congressional_trades_latest')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.congressional_trades_backfill, safeRun('congressional_trades_backfill', () => runSenateHouseIngestion({ includeBackfill: true, skipLatest: true }), getScheduledJobOptions('congressional_trades_backfill')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.insider_trades, safeRun('insider_trades', runInsiderTradesIngestion, getScheduledJobOptions('insider_trades')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.institutional_13f, safeRun('institutional_13f', runInstitutional13fIngestion, getScheduledJobOptions('institutional_13f')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.activist_filings, safeRun('activist_filings', runActivistFilingsIngestion, getScheduledJobOptions('activist_filings')), { timezone: 'Europe/London' });

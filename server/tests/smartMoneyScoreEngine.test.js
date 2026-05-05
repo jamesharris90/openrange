@@ -38,13 +38,23 @@ describe('smartMoneyScoreEngine', () => {
 
   test('congressional component scores member count and cluster', () => {
     const result = calculateCongressionalComponent([
-      { first_name: 'A', last_name: 'One', transaction_type: 'Purchase', disclosure_date: '2026-05-01', amount_min: 10000 },
-      { first_name: 'B', last_name: 'Two', transaction_type: 'Purchase', disclosure_date: '2026-05-02', amount_min: 20000 },
-      { first_name: 'C', last_name: 'Three', transaction_type: 'Purchase', disclosure_date: '2026-05-03', amount_min: 30000 },
+      { member_first_name: 'A', member_last_name: 'One', chamber: 'Senate', transaction_type: 'Purchase', disclosure_date: '2026-05-01', amount_min_usd: 10000 },
+      { member_first_name: 'B', member_last_name: 'Two', chamber: 'House', transaction_type: 'Purchase', disclosure_date: '2026-05-02', amount_min_usd: 20000 },
+      { member_first_name: 'C', member_last_name: 'Three', chamber: 'House', transaction_type: 'Purchase', disclosure_date: '2026-05-03', amount_min_usd: 30000 },
     ], { clusterWindowStart: '2026-04-25' });
 
     expect(result.component).toBe(20);
     expect(result.congressional_member_count).toBe(3);
+  });
+
+  test('congressional component adds conviction bonus for larger disclosed trade tiers', () => {
+    const result = calculateCongressionalComponent([
+      { member_first_name: 'A', member_last_name: 'One', chamber: 'Senate', transaction_type: 'Purchase', disclosure_date: '2026-05-01', amount_min_usd: 75000 },
+      { member_first_name: 'B', member_last_name: 'Two', chamber: 'House', transaction_type: 'Purchase', disclosure_date: '2026-05-02', amount_min_usd: 10000 },
+    ], { clusterWindowStart: '2026-04-25' });
+
+    expect(result.component).toBe(15);
+    expect(result.congressional_net_value).toBe(85000);
   });
 
   test('institutional component scores new, increased, major, and closed positions', () => {
