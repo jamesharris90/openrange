@@ -212,6 +212,84 @@ async function computePickVolumeBaselines(symbols = []) {
   }
 }
 
+async function buildCatalystIntelligenceScores(signalResults = []) {
+  const catalystSignal = (signalResults || []).find((signalResult) => signalResult?.signal === topCatalystIntelligenceToday.SIGNAL_NAME);
+  const resultMap = catalystSignal?.results instanceof Map ? catalystSignal.results : new Map();
+  if (resultMap.size === 0) {
+    return new Map();
+  }
+
+  const baseScores = new Map();
+  const symbols = [];
+  for (const [symbol, item] of resultMap.entries()) {
+    const normalizedSymbol = String(symbol || '').trim().toUpperCase();
+    if (!normalizedSymbol) continue;
+    symbols.push(normalizedSymbol);
+    baseScores.set(normalizedSymbol, {
+      score: Number(item?.score || 0),
+      headline: item?.headline || item?.summary || item?.metadata?.headline || item?.metadata?.summary || '',
+      cluster: item?.cluster || item?.metadata?.cluster || item?.metadata?.catalyst_type || null,
+    });
+  }
+
+  if (symbols.length === 0) {
+    return baseScores;
+  }
+
+  try {
+    const { rows } = await queryWithTimeout(
+      `
+        WITH ranked AS (
+          SELECT
+            UPPER(symbol) AS symbol,
+            catalyst_type,
+            narrative,
+            confidence_score,
+            freshness_minutes,
+            provider_count,
+            created_at,
+            ROW_NUMBER() OVER (
+              PARTITION BY UPPER(symbol)
+              ORDER BY confidence_score DESC NULLS LAST,
+                       provider_count DESC NULLS LAST,
+                       freshness_minutes ASC NULLS LAST,
+                       created_at DESC
+            ) AS rn
+          FROM catalyst_intelligence
+          WHERE UPPER(symbol) = ANY($1::text[])
+            AND created_at >= NOW() - INTERVAL '24 hours'
+        )
+        SELECT symbol, catalyst_type, narrative
+        FROM ranked
+        WHERE rn = 1
+      `,
+      [symbols],
+      {
+        label: 'beacon_v0.build_catalyst_intelligence_scores',
+        timeoutMs: 10000,
+        slowQueryMs: 1000,
+        poolType: 'read',
+        maxRetries: 0,
+      },
+    );
+
+    rows.forEach((row) => {
+      const symbol = String(row.symbol || '').trim().toUpperCase();
+      const existing = baseScores.get(symbol);
+      if (!existing) return;
+      baseScores.set(symbol, {
+        ...existing,
+        headline: existing.headline || row.narrative || '',
+        cluster: existing.cluster || row.catalyst_type || null,
+      });
+    });
+  } catch (error) {
+    console.warn('[beacon-v0] Failed to enrich catalyst intelligence ranking scores', error.message || error);
+  }
+
+  return baseScores;
+}
+
 function candidateToPick(candidate, fallbackPriceMap = new Map()) {
   const signals = candidate.signals || [];
   const signalsAligned = signals.map((signal) => signal.signal);
@@ -534,7 +612,8 @@ async function runBeaconPipeline(symbols = [], options = {}) {
   const narrativeReadyPicks = skipNarrativeGeneration
     ? await enrichPicksWithoutNarrativeGeneration(candidatePicks)
     : await enrichPicksWithNarratives(candidatePicks);
-  const picks = computeTierRanking(narrativeReadyPicks);
+  const catalystIntelligenceScores = await buildCatalystIntelligenceScores(signalResults);
+  const picks = computeTierRanking(narrativeReadyPicks, catalystIntelligenceScores);
   const volumeBaselines = await computePickVolumeBaselines(picks.map((pick) => pick.symbol));
   picks.forEach((pick) => {
     pick.pick_volume_baseline = volumeBaselines.get(String(pick.symbol || '').toUpperCase()) ?? null;
