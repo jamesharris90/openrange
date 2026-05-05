@@ -47,18 +47,56 @@ function sourceBaseScore(source) {
 
 // ─── keyword boost ────────────────────────────────────────────────────────────
 
-const HIGH_KEYWORD_RE = /earnings|eps|revenue|guidance|fda|merger|acquisition|lawsuit|settlement|upgrade|downgrade|beat|miss|buyout|takeover/i;
+function buildWordBoundaryRegex(terms) {
+  return new RegExp(`\\b(?:${terms.join('|')})\\b`, 'i');
+}
+
+const HIGH_KEYWORD_RE = buildWordBoundaryRegex([
+  'earnings',
+  'eps',
+  'revenue',
+  'guidance',
+  'fda',
+  'merger',
+  'acquisition',
+  'lawsuit',
+  'settlement',
+  'upgrade',
+  'downgrade',
+  'beat(?:s|en|ing)?',
+  'miss(?:es|ed|ing)?',
+  'buyout',
+  'takeover',
+]);
 const MULTI_SYMBOL_THRESHOLD = 2;
 
 // ─── catalyst cluster detection ───────────────────────────────────────────────
 
 const CLUSTER_THEMES = [
-  { key: 'EARNINGS', re: /earnings|eps|revenue|guidance|beat\w*|miss\w*|quarterly/i },
-  { key: 'FDA',      re: /fda|drug|approval|trial|phase\s*[123]|clinical/i },
-  { key: 'LEGAL',    re: /lawsuit|litigation|sec\b|fraud|settlement|class.action/i },
-  { key: 'MERGER',   re: /merger|acquisition|buyout|takeover|deal|combine/i },
-  { key: 'ANALYST',  re: /upgrade|downgrade|price target|outperform|underperform|initiat/i },
-  { key: 'OFFERING', re: /offering|secondary|dilution|share issuance/i },
+  {
+    key: 'EARNINGS',
+    re: buildWordBoundaryRegex(['earnings', 'eps', 'revenue', 'guidance', 'beat(?:s|en|ing)?', 'miss(?:es|ed|ing)?', 'quarterly']),
+  },
+  {
+    key: 'FDA',
+    re: buildWordBoundaryRegex(['fda', 'drug', 'approval', 'trial', 'phase\\s*[123]', 'clinical']),
+  },
+  {
+    key: 'LEGAL',
+    re: buildWordBoundaryRegex(['lawsuit', 'litigation', 'sec', 'fraud', 'settlement', 'class\\s+action']),
+  },
+  {
+    key: 'MERGER',
+    re: buildWordBoundaryRegex(['merger', 'acquisition', 'buyout', 'takeover', 'deal', 'combine']),
+  },
+  {
+    key: 'ANALYST',
+    re: buildWordBoundaryRegex(['upgrade', 'downgrade', 'price target', 'outperform', 'underperform', 'initiat(?:e|es|ed|ing|ion|ions)?']),
+  },
+  {
+    key: 'OFFERING',
+    re: buildWordBoundaryRegex(['offering', 'secondary', 'dilution', 'share issuance']),
+  },
 ];
 
 function detectCluster(headline, summary) {

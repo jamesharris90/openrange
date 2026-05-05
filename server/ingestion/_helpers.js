@@ -103,6 +103,8 @@ async function runIngestionJob({
 }
 
 module.exports = {
+  BATCH_DELAY_MS,
+  MAX_SYMBOLS_PER_BATCH,
   symbolsFromEnv,
   runIngestionJob,
 };

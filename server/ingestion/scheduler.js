@@ -92,7 +92,7 @@ const inFlightJobs = new Set();
 const JOB_SCHEDULES = {
   intraday_1m: '*/1 * * * *',
   live_quotes: '*/5 * * * *',
-  news_articles: '*/15 * * * *',
+  news_articles: '0 6 * * *',
   stock_news: '*/15 * * * *',
   tracked_universe_cleanup: '0 * * * *',
   build_morning_universe: '0 8 * * 1-5',
@@ -186,7 +186,7 @@ function startIngestionScheduler() {
 
   cron.schedule(JOB_SCHEDULES.intraday_1m, safeRun('intraday_1m', runIntradayIngestion, getScheduledJobOptions('intraday_1m')));
   cron.schedule(JOB_SCHEDULES.live_quotes, safeRun('live_quotes', runLiveQuotesIngestion, getScheduledJobOptions('live_quotes')));
-  cron.schedule(JOB_SCHEDULES.news_articles, safeRun('news_articles', runNewsIngestion, getScheduledJobOptions('news_articles')));
+  cron.schedule(JOB_SCHEDULES.news_articles, safeRun('news_articles', runNewsIngestion, getScheduledJobOptions('news_articles')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.stock_news, safeRun('stock_news', runStockNewsIngestion, getScheduledJobOptions('stock_news')));
   cron.schedule(JOB_SCHEDULES.tracked_universe_cleanup, safeRun('tracked_universe_cleanup', cleanupTrackedUniverse, getScheduledJobOptions('tracked_universe_cleanup')));
   cron.schedule(JOB_SCHEDULES.build_morning_universe, safeRun('build_morning_universe', buildMorningUniverse, getScheduledJobOptions('build_morning_universe')));
