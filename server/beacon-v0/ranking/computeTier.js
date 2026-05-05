@@ -65,7 +65,7 @@ function forwardSetupReason(signal) {
   return null;
 }
 
-function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) {
+function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map(), smartMoneyScores = new Map()) {
   const signalEvidence = getSignalEvidence(pick);
   const alignmentCount = getAlignmentCount(pick);
   const forwardSignals = signalEvidence.filter((signal) => FORWARD_SETUP_SIGNALS.has(signal?.signal));
@@ -76,6 +76,7 @@ function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) 
   const daysUntilEarnings = getSignalMetadataValue(earningsSignal, ['days_until_earnings', 'days_until']);
   const symbol = String(pick?.symbol || '').toUpperCase();
   const catalystEntry = catalystIntelligenceScores.get(symbol) || null;
+  const smartMoneyEntry = smartMoneyScores.get(symbol) || null;
 
   const factors = [];
   let score = 0;
@@ -86,6 +87,7 @@ function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) 
     rvol: 0,
     earnings_bonus: 0,
     catalyst_quality_score: 0,
+    smart_money_score: 0,
     final_score: 0,
   };
 
@@ -133,6 +135,16 @@ function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) 
     factors.push({ contribution, reason: 'High-quality catalyst intelligence' });
   }
 
+  if (smartMoneyEntry?.score != null) {
+    const smartMoneyValue = Number(smartMoneyEntry.score || 0);
+    const contribution = smartMoneyValue >= 60 ? 8 : smartMoneyValue >= 30 ? 4 : 0;
+    if (contribution > 0) {
+      score += contribution;
+      breakdown.smart_money_score = contribution;
+      factors.push({ contribution, reason: smartMoneyEntry.headline || 'Smart Money alignment' });
+    }
+  }
+
   if (daysUntilEarnings === 0) {
     score += 20;
     breakdown.earnings_bonus = 20;
@@ -164,6 +176,11 @@ function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) 
           headline: catalystEntry.headline || '',
           cluster: catalystEntry.cluster || null,
         } : null,
+        smart_money_entry: smartMoneyEntry ? {
+          score: Number(smartMoneyEntry.score || 0),
+          headline: smartMoneyEntry.headline || '',
+          cluster: smartMoneyEntry.cluster || null,
+        } : null,
       },
     },
     originalIndex,
@@ -172,10 +189,10 @@ function scorePick(pick, originalIndex, catalystIntelligenceScores = new Map()) 
   };
 }
 
-function computeTierRanking(picks, catalystIntelligenceScores = new Map()) {
+function computeTierRanking(picks, catalystIntelligenceScores = new Map(), smartMoneyScores = new Map()) {
   if (!Array.isArray(picks) || picks.length === 0) return [];
 
-  const scored = picks.map((pick, index) => scorePick(pick, index, catalystIntelligenceScores)).sort((a, b) => {
+  const scored = picks.map((pick, index) => scorePick(pick, index, catalystIntelligenceScores, smartMoneyScores)).sort((a, b) => {
     const scoreDelta = b.score - a.score;
     if (scoreDelta !== 0) return scoreDelta;
     return a.originalIndex - b.originalIndex;

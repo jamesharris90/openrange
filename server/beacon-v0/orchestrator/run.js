@@ -11,6 +11,7 @@ const earningsUpcomingWithin3d = require('../signals/earnings_upcoming_within_3d
 const topCoiledSpring = require('../signals/top_coiled_spring');
 const topCongressionalTradesRecent = require('../signals/top_congressional_trades_recent');
 const topCatalystIntelligenceToday = require('../signals/top_catalyst_intelligence_today');
+const topSmartMoneyToday = require('../signals/top_smart_money_today');
 const topGapToday = require('../signals/top_gap_today');
 const topNewsLast12h = require('../signals/top_news_last_12h');
 const topRvolToday = require('../signals/top_rvol_today');
@@ -28,6 +29,7 @@ const SIGNALS = [
   topCoiledSpring,
   topVolumeBuilding,
   topCongressionalTradesRecent,
+  topSmartMoneyToday,
 ];
 
 const forwardLookingMap = new Map();
@@ -288,6 +290,24 @@ async function buildCatalystIntelligenceScores(signalResults = []) {
   }
 
   return baseScores;
+}
+
+function buildSmartMoneyScores(signalResults = []) {
+  const smartMoneySignal = (signalResults || []).find((signalResult) => signalResult?.signal === topSmartMoneyToday.SIGNAL_NAME);
+  const resultMap = smartMoneySignal?.results instanceof Map ? smartMoneySignal.results : new Map();
+  const scores = new Map();
+
+  for (const [symbol, item] of resultMap.entries()) {
+    const normalizedSymbol = String(symbol || '').trim().toUpperCase();
+    if (!normalizedSymbol) continue;
+    scores.set(normalizedSymbol, {
+      score: Number(item?.score || 0),
+      headline: item?.headline || item?.reasoning || item?.metadata?.headline || '',
+      cluster: item?.cluster || item?.metadata?.cluster || 'SMART_MONEY',
+    });
+  }
+
+  return scores;
 }
 
 function candidateToPick(candidate, fallbackPriceMap = new Map()) {
@@ -613,7 +633,8 @@ async function runBeaconPipeline(symbols = [], options = {}) {
     ? await enrichPicksWithoutNarrativeGeneration(candidatePicks)
     : await enrichPicksWithNarratives(candidatePicks);
   const catalystIntelligenceScores = await buildCatalystIntelligenceScores(signalResults);
-  const picks = computeTierRanking(narrativeReadyPicks, catalystIntelligenceScores);
+  const smartMoneyScores = buildSmartMoneyScores(signalResults);
+  const picks = computeTierRanking(narrativeReadyPicks, catalystIntelligenceScores, smartMoneyScores);
   const volumeBaselines = await computePickVolumeBaselines(picks.map((pick) => pick.symbol));
   picks.forEach((pick) => {
     pick.pick_volume_baseline = volumeBaselines.get(String(pick.symbol || '').toUpperCase()) ?? null;

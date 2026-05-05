@@ -10,6 +10,9 @@ const { runAnalystEnrichmentIngestion } = require('./fmp_analyst_enrichment_inge
 const { runTranscriptsIngestion } = require('./fmp_transcripts_ingest');
 const { runProfilesIngestion } = require('./fmp_profiles_ingest');
 const { runUniverseIngestion } = require('./fmp_universe_ingest');
+const { runIngest: runInsiderTradesIngestion } = require('./fmp_insider_trades_ingest');
+const { runIngest: runInstitutional13fIngestion } = require('./fmp_institutional_13f_ingest');
+const { runIngest: runActivistFilingsIngestion } = require('./fmp_activist_filings_ingest');
 const { buildMorningUniverse, cleanupTrackedUniverse } = require('../services/trackedUniverseService');
 const { refreshIpoCalendar } = require('../routes/ipoCalendar');
 const { runNarrativeEngine } = require('../services/mcpNarrativeEngine');
@@ -19,6 +22,7 @@ const { runSignalEvaluation, refreshPerformanceCache } = require('../services/si
 const { runRegimeCapture } = require('../services/marketRegimeEngine');
 const { runCatalystBackfill } = require('../engines/catalystBackfillEngine');
 const { runNightlyIncrementalBacktest } = require('../backtester/engine');
+const { runComputeSmartMoneyScores } = require('../jobs/computeSmartMoneyScores');
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
 
@@ -105,6 +109,10 @@ const JOB_SCHEDULES = {
   earnings_transcripts: '12 0 * * *',
   company_profiles: '15 0 * * *',
   ticker_universe: '20 0 * * *',
+  insider_trades: '30 6 * * 1-5',
+  institutional_13f: '0 6 * * 1',
+  activist_filings: '45 6 * * 1-5',
+  smart_money_scores: '0 7 * * 1-5',
   narrative_engine: '*/5 * * * *',
   regime_capture: '*/5 * * * *',
   news_enrichment: '*/10 * * * *',
@@ -199,6 +207,10 @@ function startIngestionScheduler() {
   cron.schedule(JOB_SCHEDULES.earnings_transcripts, safeRun('earnings_transcripts', runTranscriptsIngestion, getScheduledJobOptions('earnings_transcripts')));
   cron.schedule(JOB_SCHEDULES.company_profiles, safeRun('company_profiles', runProfilesIngestion, getScheduledJobOptions('company_profiles')));
   cron.schedule(JOB_SCHEDULES.ticker_universe, safeRun('ticker_universe', runUniverseIngestion, getScheduledJobOptions('ticker_universe')));
+  cron.schedule(JOB_SCHEDULES.insider_trades, safeRun('insider_trades', runInsiderTradesIngestion, getScheduledJobOptions('insider_trades')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.institutional_13f, safeRun('institutional_13f', runInstitutional13fIngestion, getScheduledJobOptions('institutional_13f')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.activist_filings, safeRun('activist_filings', runActivistFilingsIngestion, getScheduledJobOptions('activist_filings')), { timezone: 'Europe/London' });
+  cron.schedule(JOB_SCHEDULES.smart_money_scores, safeRun('smart_money_scores', runComputeSmartMoneyScores, getScheduledJobOptions('smart_money_scores')), { timezone: 'Europe/London' });
   cron.schedule(JOB_SCHEDULES.narrative_engine, safeRun('narrative_engine', runNarrativeEngine, getScheduledJobOptions('narrative_engine')));
   cron.schedule(JOB_SCHEDULES.regime_capture, safeRun('regime_capture', runRegimeCapture, getScheduledJobOptions('regime_capture')));
   cron.schedule(JOB_SCHEDULES.news_enrichment, safeRun('news_enrichment', runNewsEnrichmentEngine, getScheduledJobOptions('news_enrichment')));
