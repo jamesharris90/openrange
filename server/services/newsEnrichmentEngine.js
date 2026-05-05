@@ -51,6 +51,14 @@ function buildWordBoundaryRegex(terms) {
   return new RegExp(`\\b(?:${terms.join('|')})\\b`, 'i');
 }
 
+function buildTheme({ key, terms, excludeTerms = [] }) {
+  return {
+    key,
+    re: buildWordBoundaryRegex(terms),
+    excludeRe: excludeTerms.length ? buildWordBoundaryRegex(excludeTerms) : null,
+  };
+}
+
 const HIGH_KEYWORD_RE = buildWordBoundaryRegex([
   'earnings',
   'eps',
@@ -63,8 +71,8 @@ const HIGH_KEYWORD_RE = buildWordBoundaryRegex([
   'settlement',
   'upgrade',
   'downgrade',
-  'beat(?:s|en|ing)?',
-  'miss(?:es|ed|ing)?',
+  'beat(?:s|en|ed)?',
+  'miss(?:es|ed)?',
   'buyout',
   'takeover',
 ]);
@@ -73,36 +81,133 @@ const MULTI_SYMBOL_THRESHOLD = 2;
 // ─── catalyst cluster detection ───────────────────────────────────────────────
 
 const CLUSTER_THEMES = [
-  {
-    key: 'EARNINGS',
-    re: buildWordBoundaryRegex(['earnings', 'eps', 'revenue', 'guidance', 'beat(?:s|en|ing)?', 'miss(?:es|ed|ing)?', 'quarterly']),
-  },
-  {
+  buildTheme({
+    key: 'CONTRACT_AWARD',
+    terms: [
+      'contract\\s+award',
+      'awarded\\s+contract',
+      'wins?\\s+contract',
+      'contract\\s+win',
+      'award(?:ed)?(?:[^.]{0,120})contract',
+      'task\\s+order',
+      'government\\s+contract',
+      'defense\\s+contract',
+      'army\\s+contract',
+      'navy\\s+contract',
+      'air\\s+force\\s+contract',
+      'pentagon',
+      'nasa\\s+contract',
+    ],
+  }),
+  buildTheme({
+    key: 'TRIAL_SUCCESS',
+    terms: [
+      'phase\\s*3.*(?:success|positive|met|achiev)',
+      'primary\\s+endpoint\\s+met',
+      'trial.*succeed',
+      'topline\\s+positive',
+      'clinical\\s+(?:success|win)',
+    ],
+    excludeTerms: ['phase\\s*3\\s+fail', 'phase\\s*3\\s+miss', 'did\\s+not\\s+meet'],
+  }),
+  buildTheme({
+    key: 'FDA_APPROVAL',
+    terms: [
+      'fda\\s+approv(?:al|e[ds]?|ing)?',
+      'fda\\s+clear(?:ance|ed|s|ing)?',
+      'pdufa',
+      'priority\\s+review',
+      'breakthrough\\s+designation',
+      'orphan\\s+drug',
+      'new\\s+drug\\s+application\\s+approv',
+    ],
+    excludeTerms: ['fda\\s+delay', 'fda\\s+rejection', 'complete\\s+response\\s+letter'],
+  }),
+  buildTheme({
+    key: 'REGULATORY_CLEARANCE',
+    terms: [
+      '510\\(k\\)\\s+clearance',
+      'ce\\s+mark',
+      'ema\\s+approv',
+      'health\\s+canada\\s+approv',
+      'tga\\s+approv',
+      'regulatory\\s+clearance',
+    ],
+  }),
+  buildTheme({
+    key: 'GUIDANCE_RAISE',
+    terms: [
+      'raised\\s+guidance',
+      'raises\\s+guidance',
+      'boost(?:ed|s)\\s+(?:guidance|forecast|outlook)',
+      'guidance\\s+(?:raised|boosted|increased)',
+      'hike(?:d|s)\\s+guidance',
+      'raises?\\s+full[ -]year\\s+(?:guidance|outlook)',
+      'increased\\s+full.year\\s+(?:guidance|outlook)',
+    ],
+  }),
+  buildTheme({
     key: 'FDA',
-    re: buildWordBoundaryRegex(['fda', 'drug', 'approval', 'trial', 'phase\\s*[123]', 'clinical']),
-  },
-  {
-    key: 'LEGAL',
-    re: buildWordBoundaryRegex(['lawsuit', 'litigation', 'sec', 'fraud', 'settlement', 'class\\s+action']),
-  },
-  {
+    terms: ['fda', 'drug', 'approval', 'trial', 'phase\\s*[123]', 'clinical'],
+  }),
+  buildTheme({
+    key: 'EARNINGS',
+    terms: ['earnings', 'eps', 'revenue', 'guidance', 'beat(?:s|en|ed)?', 'miss(?:es|ed)?', 'quarterly'],
+  }),
+  buildTheme({
     key: 'MERGER',
-    re: buildWordBoundaryRegex(['merger', 'acquisition', 'buyout', 'takeover', 'deal', 'combine']),
-  },
-  {
+    terms: ['merger', 'acquisition', 'buyout', 'takeover', 'deal', 'combine'],
+  }),
+  buildTheme({
+    key: 'PARTNERSHIP',
+    terms: [
+      'strategic\\s+partnership',
+      'collaboration\\s+agreement',
+      'partnership\\s+with',
+      'joint\\s+venture',
+      'partnership\\s+announcement',
+    ],
+    excludeTerms: ['potential\\s+partnership', 'rumored\\s+partnership'],
+  }),
+  buildTheme({
+    key: 'INSIDER_BUYING',
+    terms: [
+      'insider\\s+(?:buying|purchase|bought)',
+      'form\\s+4\\s+filing',
+      'cluster\\s+buying',
+      'director\\s+purchase',
+      'ceo\\s+purchase',
+      '10b5\\.1\\s+plan',
+    ],
+  }),
+  buildTheme({
+    key: 'SPINOFF',
+    terms: ['spin.?off', 'spun\\s+off', 'separation\\s+complete', 'corporate\\s+separation', 'distribution\\s+to\\s+shareholders'],
+  }),
+  buildTheme({
+    key: 'LEGAL',
+    terms: ['lawsuit', 'litigation', 'sec', 'fraud', 'settlement', 'class\\s+action'],
+  }),
+  buildTheme({
     key: 'ANALYST',
-    re: buildWordBoundaryRegex(['upgrade', 'downgrade', 'price target', 'outperform', 'underperform', 'initiat(?:e|es|ed|ing|ion|ions)?']),
-  },
-  {
+    terms: ['upgrade', 'downgrade', 'price target', 'outperform', 'underperform', 'initiat(?:e|es|ed|ing|ion|ions)?'],
+  }),
+  buildTheme({
     key: 'OFFERING',
-    re: buildWordBoundaryRegex(['offering', 'secondary', 'dilution', 'share issuance']),
-  },
+    terms: ['offering', 'secondary', 'dilution', 'share issuance'],
+  }),
 ];
 
 function detectCluster(headline, summary) {
   const text = String(headline || '') + ' ' + String(summary || '');
   for (const theme of CLUSTER_THEMES) {
-    if (theme.re.test(text)) return theme.key;
+    if (!theme.re.test(text)) {
+      continue;
+    }
+    if (theme.excludeRe && theme.excludeRe.test(text)) {
+      continue;
+    }
+    return theme.key;
   }
   return null;
 }

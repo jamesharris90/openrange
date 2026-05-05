@@ -8,7 +8,7 @@ const TIERS = {
       'ce mark', 'raised guidance', 'beat and raise', 'guidance raised',
       'breakthrough designation', 'priority review',
     ],
-    clusters: ['FDA_APPROVAL', 'TRIAL_SUCCESS', 'M_AND_A_DEFINITIVE', 'CONTRACT_AWARD', 'REGULATORY_CLEARANCE'],
+    clusters: ['FDA_APPROVAL', 'TRIAL_SUCCESS', 'M_AND_A_DEFINITIVE', 'CONTRACT_AWARD', 'REGULATORY_CLEARANCE', 'GUIDANCE_RAISE'],
   },
   tier2: {
     weight: 1.5,
@@ -19,7 +19,7 @@ const TIERS = {
       'partnership', 'collaboration agreement', 'strategic partnership',
       'short squeeze', 'high short interest',
     ],
-    clusters: ['EARNINGS_BEAT', 'ANALYST_UPGRADE', 'PARTNERSHIP', 'INSIDER_BUYING', 'PHASE_2'],
+    clusters: ['EARNINGS_BEAT', 'ANALYST_UPGRADE', 'PARTNERSHIP', 'INSIDER_BUYING', 'PHASE_2', 'SPINOFF'],
   },
   tier3: {
     weight: 1.0,
