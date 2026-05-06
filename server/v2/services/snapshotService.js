@@ -6,7 +6,8 @@ const { getCoverageSnapshotsBySymbols } = require('../../services/dataCoverageSe
 const { getCoverageStatusesBySymbols } = require('../../services/dataCoverageStatusService');
 
 const SNAPSHOT_CACHE_KEY = 'screener-v2-snapshot';
-const SNAPSHOT_CACHE_TTL_MS = 120000;
+// Extended from 120s to 300s in IMPL-31 FIX 2A to reduce egress. See /tmp/openrange-impl31-audit/SUMMARY.md.
+const SNAPSHOT_CACHE_TTL_MS = 300000;
 const SNAPSHOT_READ_RETRY_BACKOFF_MS = 10000;
 const PROFILE_BATCH_SIZE = 500;
 
