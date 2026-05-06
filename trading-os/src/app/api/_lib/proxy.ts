@@ -13,12 +13,6 @@ function buildHeaders(request: NextRequest, includeJson = false): Record<string,
   const auth = request.headers.get("authorization");
   if (auth) headers.authorization = auth;
 
-  const ifNoneMatch = request.headers.get("if-none-match");
-  if (ifNoneMatch) headers["If-None-Match"] = ifNoneMatch;
-
-  const ifModifiedSince = request.headers.get("if-modified-since");
-  if (ifModifiedSince) headers["If-Modified-Since"] = ifModifiedSince;
-
   const incomingApiKey = request.headers.get("x-api-key");
   const apiKey = incomingApiKey || process.env.PROXY_API_KEY;
   if (apiKey) headers["x-api-key"] = apiKey;
@@ -32,18 +26,8 @@ function withQuery(path: string, request: NextRequest): string {
 }
 
 function responseHeaders(response: Response): HeadersInit {
-  const headers: Record<string, string> = {};
   const contentType = response.headers.get("content-type");
-  const etag = response.headers.get("etag");
-  const cacheControl = response.headers.get("cache-control");
-  const lastModified = response.headers.get("last-modified");
-
-  if (contentType) headers["content-type"] = contentType;
-  if (etag) headers.etag = etag;
-  if (cacheControl) headers["cache-control"] = cacheControl;
-  if (lastModified) headers["last-modified"] = lastModified;
-
-  return headers;
+  return contentType ? { "content-type": contentType } : {};
 }
 
 export async function backendRequest(

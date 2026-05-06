@@ -22,9 +22,6 @@
 const { queryWithTimeout } = require('../db/pg');
 const logger = require('../utils/logger');
 
-const SIGNAL_EVAL_BATCH_LIMIT = Math.max(300, Number(process.env.SIGNAL_EVAL_BATCH_LIMIT || 2000));
-const SIGNAL_EVAL_MAX_BATCHES = Math.max(1, Number(process.env.SIGNAL_EVAL_MAX_BATCHES || 5));
-
 // ─── in-memory performance cache ─────────────────────────────────────────────
 //
 // Two-level structure:
@@ -172,7 +169,9 @@ async function refreshPerformanceCache() {
 
 // ─── signal evaluation ────────────────────────────────────────────────────────
 
-async function evaluatePendingSignals(limit = SIGNAL_EVAL_BATCH_LIMIT) {
+async function runSignalEvaluation() {
+  const t0 = Date.now();
+
   // Fetch pending signals: at least 6 minutes old (5m window + 1m buffer)
   let pending;
   try {
@@ -183,16 +182,17 @@ async function evaluatePendingSignals(limit = SIGNAL_EVAL_BATCH_LIMIT) {
         AND signal_ts < NOW() - INTERVAL '6 minutes'
         AND entry_price > 0
       ORDER BY signal_ts ASC
-      LIMIT $1
-    `, [limit], { timeoutMs: 15000, label: 'signal_eval.pending', maxRetries: 0 });
+      LIMIT 300
+    `, [], { timeoutMs: 15000, label: 'signal_eval.pending', maxRetries: 0 });
     pending = rows;
   } catch (err) {
     logger.warn('[SIGNAL EVAL] fetch pending failed', { error: err.message });
-    return { evaluated: 0, pendingFetched: 0 };
+    return { evaluated: 0 };
   }
 
   if (pending.length === 0) {
-    return { evaluated: 0, pendingFetched: 0 };
+    logger.info('[SIGNAL EVAL] no pending signals');
+    return { evaluated: 0 };
   }
 
   // Group by symbol to share candle fetch
@@ -289,8 +289,8 @@ async function evaluatePendingSignals(limit = SIGNAL_EVAL_BATCH_LIMIT) {
   );
 
   if (updates.length === 0) {
-    logger.info('[SIGNAL EVAL] no candle data yet for pending signals', { pendingFetched: pending.length });
-    return { evaluated: 0, pendingFetched: pending.length };
+    logger.info('[SIGNAL EVAL] no candle data yet for pending signals');
+    return { evaluated: 0 };
   }
 
   // Single batch UPDATE
@@ -323,39 +323,12 @@ async function evaluatePendingSignals(limit = SIGNAL_EVAL_BATCH_LIMIT) {
     });
   } catch (err) {
     logger.warn('[SIGNAL EVAL] batch update failed', { error: err.message });
-    return { evaluated: 0, pendingFetched: pending.length };
-  }
-
-  return { evaluated: updates.length, pendingFetched: pending.length };
-}
-
-async function runSignalEvaluation() {
-  const t0 = Date.now();
-  let evaluated = 0;
-  let batches = 0;
-
-  while (batches < SIGNAL_EVAL_MAX_BATCHES) {
-    const batch = await evaluatePendingSignals(SIGNAL_EVAL_BATCH_LIMIT);
-    batches += 1;
-    evaluated += Number(batch.evaluated || 0);
-
-    if (!batch.pendingFetched || batch.pendingFetched < SIGNAL_EVAL_BATCH_LIMIT) {
-      break;
-    }
-
-    if (!batch.evaluated) {
-      break;
-    }
+    return { evaluated: 0 };
   }
 
   const durationMs = Date.now() - t0;
-  if (evaluated === 0) {
-    logger.info('[SIGNAL EVAL] no pending signals');
-    return { evaluated: 0, batches };
-  }
-
-  logger.info('[SIGNAL EVAL] complete', { evaluated, batches, batchLimit: SIGNAL_EVAL_BATCH_LIMIT, durationMs });
-  return { evaluated, batches };
+  logger.info('[SIGNAL EVAL] complete', { evaluated: updates.length, durationMs });
+  return { evaluated: updates.length };
 }
 
 // ─── performance stats API ────────────────────────────────────────────────────

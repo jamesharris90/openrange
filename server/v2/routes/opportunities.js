@@ -6,29 +6,6 @@ const { buildNextSessionPayload } = require('../../engines/nextSessionEngine');
 
 const router = express.Router();
 
-function buildWeakEtag(parts = []) {
-  const value = parts.filter((part) => part !== null && part !== undefined && part !== '').join(':');
-  return `W/"${value || 'empty'}"`;
-}
-
-function matchesEtag(headerValue, etag) {
-  if (!headerValue || !etag) {
-    return false;
-  }
-
-  return String(headerValue)
-    .split(',')
-    .map((value) => value.trim())
-    .includes(etag);
-}
-
-function applyCacheHeaders(res, etag) {
-  res.set('Cache-Control', 'private, no-cache');
-  if (etag) {
-    res.set('ETag', etag);
-  }
-}
-
 function toRouteOptions(req) {
   return {
     asOf: req.query.as_of || req.query.asOf || null,
@@ -39,11 +16,6 @@ function toRouteOptions(req) {
 router.get('/', async (_req, res) => {
   try {
     const payload = await getLatestOpportunitiesPayload();
-    const etag = buildWeakEtag(['opportunities', payload?.snapshot_at || payload?.status || 'no_snapshot']);
-    applyCacheHeaders(res, etag);
-    if (matchesEtag(_req.headers['if-none-match'], etag)) {
-      return res.status(304).end();
-    }
     return res.json(payload);
   } catch (error) {
     return res.status(500).json({
@@ -62,15 +34,6 @@ router.get('/next-session', async (req, res) => {
 
     if (market.is_market_open) {
       const payload = await getLatestOpportunitiesPayload();
-      const etag = buildWeakEtag([
-        'opportunities-next-session',
-        'live',
-        payload?.snapshot_at || payload?.status || 'no_snapshot',
-      ]);
-      applyCacheHeaders(res, etag);
-      if (matchesEtag(req.headers['if-none-match'], etag)) {
-        return res.status(304).end();
-      }
       return res.json({
         success: true,
         status: 'ok',
@@ -85,15 +48,6 @@ router.get('/next-session', async (req, res) => {
     }
 
     const payload = await buildNextSessionPayload(options);
-    const etag = buildWeakEtag([
-      'opportunities-next-session',
-      'next-session',
-      payload?.generated_at || payload?.snapshot_at || payload?.message || 'no_snapshot',
-    ]);
-    applyCacheHeaders(res, etag);
-    if (matchesEtag(req.headers['if-none-match'], etag)) {
-      return res.status(304).end();
-    }
     return res.json({
       success: true,
       status: payload.message ? 'no_data' : 'ok',

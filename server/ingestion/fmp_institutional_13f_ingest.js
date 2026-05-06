@@ -249,20 +249,17 @@ async function runIngest(options = {}) {
   let fetched = 0;
   let skipped = 0;
   let apiErrors = 0;
-  let deduped = 0;
-  let inserted = 0;
+  const allRows = [];
 
   for (let index = 0; index < symbols.length; index += MAX_SYMBOLS_PER_BATCH) {
     const batch = symbols.slice(index, index + MAX_SYMBOLS_PER_BATCH);
-    const batchRows = [];
-
     for (const symbol of batch) {
       for (const target of quarters) {
         try {
           const result = await fetchQuarterRows(symbol, target.year, target.quarter, options);
           fetched += result.rows.length;
           skipped += result.skipped;
-          batchRows.push(...result.rows);
+          allRows.push(...result.rows);
         } catch (error) {
           apiErrors += 1;
           logger.error('smart money institutional symbol fetch failed', {
@@ -275,22 +272,19 @@ async function runIngest(options = {}) {
       }
     }
 
-    const persistence = await upsertInstitutionalHoldings(batchRows, { dryRun });
-    deduped += Number(persistence.deduped || 0);
-    inserted += Number(persistence.upserted || 0);
-
     if (index + MAX_SYMBOLS_PER_BATCH < symbols.length) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
   }
 
+  const persistence = await upsertInstitutionalHoldings(allRows, { dryRun });
   logger.info('smart money institutional 13f ingest complete', {
     dryRun,
     symbols: symbols.length,
     quarters,
     fetched,
-    deduped,
-    inserted,
+    deduped: persistence.deduped,
+    inserted: persistence.upserted,
     skipped,
     apiErrors,
   });
@@ -301,8 +295,8 @@ async function runIngest(options = {}) {
     symbols: symbols.length,
     quarters,
     fetched,
-    deduped,
-    inserted,
+    deduped: persistence.deduped,
+    inserted: persistence.upserted,
     skipped,
     apiErrors,
   };

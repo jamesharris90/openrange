@@ -4,29 +4,6 @@ const { getTrustedSymbols } = require('../../services/dataTrustService');
 
 const router = express.Router();
 
-function buildWeakEtag(parts = []) {
-  const value = parts.filter((part) => part !== null && part !== undefined && part !== '').join(':');
-  return `W/"${value || 'empty'}"`;
-}
-
-function matchesEtag(headerValue, etag) {
-  if (!headerValue || !etag) {
-    return false;
-  }
-
-  return String(headerValue)
-    .split(',')
-    .map((value) => value.trim())
-    .includes(etag);
-}
-
-function applyCacheHeaders(res, etag) {
-  res.set('Cache-Control', 'private, no-cache');
-  if (etag) {
-    res.set('ETag', etag);
-  }
-}
-
 router.get('/', async (req, res) => {
   console.time('screener_query');
   const startedAt = Date.now();
@@ -72,19 +49,6 @@ router.get('/', async (req, res) => {
     if (rawUniverseSize > 0) {
       console.log('[SCREENER_ROUTE] Universe size:', rawUniverseSize);
     }
-
-    const etag = buildWeakEtag([
-      'screener',
-      payload?.snapshot_at || payload?.status || 'no_snapshot',
-      trustedOnly ? 'trusted' : 'all',
-      hasLimitParam ? String(limit || 'none') : 'all',
-      String(offset),
-    ]);
-    applyCacheHeaders(res, etag);
-    if (matchesEtag(req.headers['if-none-match'], etag)) {
-      return res.status(304).end();
-    }
-
     console.log('[SCREENER_ROUTE] response_ms:', Date.now() - startedAt);
     return res.json(payload);
   } catch (error) {
